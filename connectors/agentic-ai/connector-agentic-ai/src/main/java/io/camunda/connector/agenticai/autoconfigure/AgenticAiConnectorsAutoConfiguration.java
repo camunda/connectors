@@ -45,14 +45,14 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistory
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceToolMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.CamundaAgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.ChatModelApiRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.framework.anthropic.configuration.AgenticAiAnthropicFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.configuration.AgenticAiAnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiCapabilitiesConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.CapabilityAwareToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.ToolCallResultStrategy;
-import io.camunda.connector.agenticai.aiagent.framework.openai.configuration.AgenticAiOpenAiFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.openai.configuration.AgenticAiOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -94,8 +94,8 @@ import org.springframework.context.annotation.Import;
 @Import({
   AgenticAiCapabilitiesConfiguration.class,
   AgenticAiLangchain4JFrameworkConfiguration.class,
-  AgenticAiAnthropicFrameworkConfiguration.class,
-  AgenticAiOpenAiFrameworkConfiguration.class,
+  AgenticAiAnthropicProviderConfiguration.class,
+  AgenticAiOpenAiProviderConfiguration.class,
   McpDiscoveryConfiguration.class,
   McpClientConfiguration.class,
   McpRemoteClientConfiguration.class,

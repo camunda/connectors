@@ -6,7 +6,7 @@
 # `application.yml` using the same property prefix, no full-file replacement
 # required:
 #
-#   camunda.connector.agenticai.aiagent.framework.capabilities:
+#   camunda.connector.agenticai.aiagent.capabilities:
 #     anthropic-messages:
 #       models:
 #         claude-opus-4-6-plus:            # map key reused -> override existing entry
@@ -17,23 +17,23 @@
 #   <api-family>:
 #     defaults:    capability block applied to every model entry in the family
 #     models:      map of opaque identifiers to entries. Each entry has one of:
-#                    - `id`      (defaults to the map key when neither is set)
-#                    - `pattern` (a single glob string using `*` only, OR a
-#                                 list of glob strings; the entry matches when
-#                                 any glob in the list matches, and longest
-#                                 match wins at resolve-time)
+#                    - `id`       (defaults to the map key when neither is set)
+#                    - `patterns` (a single glob string using `*` only, OR a
+#                                  list of glob strings; the entry matches when
+#                                  any glob in the list matches, and longest
+#                                  match wins at resolve-time)
 #                  plus an optional `aliases` list (id entries only), an
 #                  optional `backend` string, and a `capabilities` overlay.
 #                  NB: `*` and `.` in property keys interfere with Spring Boot's
 #                  map binding, so glob characters always live in the
-#                  `pattern` field, never in the map key.
+#                  `patterns` field, never in the map key.
 #
 # `backend` (optional, default unset = backend-agnostic): distinguishes how
 # the same model id is served (e.g. `azure-foundry`, `bedrock`) when that
 # changes its capabilities (typically context-window). A backend-specific
 # entry layers ON TOP OF the backend-agnostic entry matching the same model
 # id, which in turn layers on top of the family `defaults` — see "Resolution
-# chain" below. `backend` is orthogonal to the `id`/`pattern` discriminator
+# chain" below. `backend` is orthogonal to the `id`/`patterns` discriminator
 # and may be combined with either.
 #
 # Merge semantics (Spring Boot config + capability matrix resolver):
@@ -102,240 +102,239 @@ camunda:
   connector:
     agenticai:
       aiagent:
-        framework:
-          capabilities:
+        capabilities:
 
-            anthropic-messages:
-              defaults:
-                input-modalities:
-                  user-message: [text, image, document]
-                  tool-result:  [text, image, document]
-                output-modalities:
-                  assistant-message: [text]
-                context-window: 200000
-                max-output-tokens: 8192
-              models:
-                claude-fable:
-                  pattern: claude-fable-*
-                  capabilities:
-                    context-window: 1000000
-                    max-output-tokens: 128000
-                    provider:
-                      reasoning:
-                        # Always-on thinking (no disabled mode).
-                        thinking-modes: [adaptive]
-                        effort-levels: [low, medium, high, xhigh, max]
-                # Sonnet 5 is dateless (no trailing version segment), so it needs
-                # its own pattern rather than falling under claude-sonnet-4-*.
-                claude-sonnet-5:
-                  pattern: claude-sonnet-5*
-                  capabilities:
-                    context-window: 1000000
-                    max-output-tokens: 128000
-                    provider:
-                      reasoning:
-                        thinking-modes: [adaptive, disabled]
-                        effort-levels: [low, medium, high, xhigh, max]
-                claude-opus-4-1:
-                  pattern: claude-opus-4-1*
-                  capabilities:
-                    context-window: 200000
-                    max-output-tokens: 32000
-                    provider:
-                      reasoning:
-                        thinking-modes: [enabled, disabled]
-                claude-opus-4-5:
-                  pattern: claude-opus-4-5*
-                  capabilities:
-                    context-window: 200000
-                    max-output-tokens: 64000
-                    provider:
-                      reasoning:
-                        thinking-modes: [enabled, disabled]
-                        effort-levels: [low, medium, high, max]
-                # opus-4-1/-4-5 (above) are 200k-context releases; opus-4-6 and
-                # later moved to the 1M-context tier. Named explicitly (not
-                # claude-opus-4-*) so a 200k-tier point release is never swept
-                # into the higher figures below.
-                claude-opus-4-6-plus:
-                  pattern: [claude-opus-4-6*, claude-opus-4-7*, claude-opus-4-8*]
-                  capabilities:
-                    context-window: 1000000
-                    max-output-tokens: 128000
-                    provider:
-                      reasoning:
-                        thinking-modes: [adaptive, disabled]
-                        effort-levels: [low, medium, high, xhigh, max]
-                claude-sonnet-4-5:
-                  pattern: claude-sonnet-4-5*
-                  capabilities:
-                    context-window: 1000000
-                    max-output-tokens: 64000
-                    provider:
-                      reasoning:
-                        thinking-modes: [enabled, disabled]
-                claude-sonnet-4-6-plus:
-                  pattern: claude-sonnet-4-6*
-                  capabilities:
-                    context-window: 1000000
-                    max-output-tokens: 128000
-                    provider:
-                      reasoning:
-                        thinking-modes: [enabled, adaptive, disabled]
-                        effort-levels: [low, medium, high, xhigh, max]
-                claude-haiku:
-                  pattern: claude-haiku-*
-                  capabilities:
-                    context-window: 200000
-                    max-output-tokens: 64000
-                    provider:
-                      reasoning:
-                        thinking-modes: [enabled, disabled]
+          anthropic-messages:
+            defaults:
+              input-modalities:
+                user-message: [text, image, document]
+                tool-result:  [text, image, document]
+              output-modalities:
+                assistant-message: [text]
+              context-window: 200000
+              max-output-tokens: 8192
+            models:
+              claude-fable:
+                patterns: claude-fable-*
+                capabilities:
+                  context-window: 1000000
+                  max-output-tokens: 128000
+                  provider:
+                    reasoning:
+                      # Always-on thinking (no disabled mode).
+                      thinking-modes: [adaptive]
+                      effort-levels: [low, medium, high, xhigh, max]
+              # Sonnet 5 is dateless (no trailing version segment), so it needs
+              # its own pattern rather than falling under claude-sonnet-4-*.
+              claude-sonnet-5:
+                patterns: claude-sonnet-5*
+                capabilities:
+                  context-window: 1000000
+                  max-output-tokens: 128000
+                  provider:
+                    reasoning:
+                      thinking-modes: [adaptive, disabled]
+                      effort-levels: [low, medium, high, xhigh, max]
+              claude-opus-4-1:
+                patterns: claude-opus-4-1*
+                capabilities:
+                  context-window: 200000
+                  max-output-tokens: 32000
+                  provider:
+                    reasoning:
+                      thinking-modes: [enabled, disabled]
+              claude-opus-4-5:
+                patterns: claude-opus-4-5*
+                capabilities:
+                  context-window: 200000
+                  max-output-tokens: 64000
+                  provider:
+                    reasoning:
+                      thinking-modes: [enabled, disabled]
+                      effort-levels: [low, medium, high, max]
+              # opus-4-1/-4-5 (above) are 200k-context releases; opus-4-6 and
+              # later moved to the 1M-context tier. Named explicitly (not
+              # claude-opus-4-*) so a 200k-tier point release is never swept
+              # into the higher figures below.
+              claude-opus-4-6-plus:
+                patterns: [claude-opus-4-6*, claude-opus-4-7*, claude-opus-4-8*]
+                capabilities:
+                  context-window: 1000000
+                  max-output-tokens: 128000
+                  provider:
+                    reasoning:
+                      thinking-modes: [adaptive, disabled]
+                      effort-levels: [low, medium, high, xhigh, max]
+              claude-sonnet-4-5:
+                patterns: claude-sonnet-4-5*
+                capabilities:
+                  context-window: 1000000
+                  max-output-tokens: 64000
+                  provider:
+                    reasoning:
+                      thinking-modes: [enabled, disabled]
+              claude-sonnet-4-6-plus:
+                patterns: claude-sonnet-4-6*
+                capabilities:
+                  context-window: 1000000
+                  max-output-tokens: 128000
+                  provider:
+                    reasoning:
+                      thinking-modes: [enabled, adaptive, disabled]
+                      effort-levels: [low, medium, high, xhigh, max]
+              claude-haiku:
+                patterns: claude-haiku-*
+                capabilities:
+                  context-window: 200000
+                  max-output-tokens: 64000
+                  provider:
+                    reasoning:
+                      thinking-modes: [enabled, disabled]
 
-            # Chat Completions tool messages are text-only (the SDK enforces
-            # ChatCompletionContentPartText for tool message content arrays);
-            # multimodal tool results require the Responses API.
-            openai-completions:
-              defaults:
-                input-modalities:
-                  user-message: [text, image, document]
-                  tool-result:  [text]
-                output-modalities:
-                  assistant-message: [text]
-                context-window: 128000
-                max-output-tokens: 4096
-              models:
-                # gpt-5* spans a wide range on models.dev (128k-1.05M context,
-                # 16k-272k output across chat-latest/base/codex/pro variants);
-                # pinned to the conservative floor across the whole matched
-                # lineage rather than over-promising for the low-end variants.
-                gpt-5:
-                  pattern: gpt-5*
-                  capabilities:
-                    context-window: 128000
-                    max-output-tokens: 16384
-                    provider:
-                      reasoning:
-                        effort-levels: [minimal, low, medium, high]
-                gpt-4o:
-                  pattern: gpt-4o*
-                  capabilities:
-                    context-window: 128000
-                    max-output-tokens: 16384
-                # gpt-4o-2024-05-13's initial release capped max-output-tokens
-                # at 4096, below every later gpt-4o* release; pinned by exact
-                # id so it doesn't inherit the higher figure above.
-                gpt-4o-2024-05-13:
-                  capabilities:
-                    context-window: 128000
-                    max-output-tokens: 4096
-                gpt-4-1:
-                  pattern: gpt-4.1*
-                  capabilities:
-                    context-window: 1047576
-                    max-output-tokens: 32768
-                o1:
-                  pattern: o1*
-                  capabilities:
-                    context-window: 200000
-                    max-output-tokens: 100000
-                    provider:
-                      reasoning:
-                        effort-levels: [low, medium, high]
-                o3:
-                  pattern: o3*
-                  capabilities:
-                    context-window: 200000
-                    max-output-tokens: 100000
-                    provider:
-                      reasoning:
-                        effort-levels: [low, medium, high]
-                # o4-mini is the only o4 family member on models.dev (no bare
-                # "o4" entry exists). Its input modalities lack PDF/document
-                # support, unlike the family default.
-                o4:
-                  pattern: o4*
-                  capabilities:
-                    context-window: 200000
-                    max-output-tokens: 100000
-                    input-modalities:
-                      user-message: [text, image]
-                    provider:
-                      reasoning:
-                        effort-levels: [low, medium, high]
+          # Chat Completions tool messages are text-only (the SDK enforces
+          # ChatCompletionContentPartText for tool message content arrays);
+          # multimodal tool results require the Responses API.
+          openai-completions:
+            defaults:
+              input-modalities:
+                user-message: [text, image, document]
+                tool-result:  [text]
+              output-modalities:
+                assistant-message: [text]
+              context-window: 128000
+              max-output-tokens: 4096
+            models:
+              # gpt-5* spans a wide range on models.dev (128k-1.05M context,
+              # 16k-272k output across chat-latest/base/codex/pro variants);
+              # pinned to the conservative floor across the whole matched
+              # lineage rather than over-promising for the low-end variants.
+              gpt-5:
+                patterns: gpt-5*
+                capabilities:
+                  context-window: 128000
+                  max-output-tokens: 16384
+                  provider:
+                    reasoning:
+                      effort-levels: [minimal, low, medium, high]
+              gpt-4o:
+                patterns: gpt-4o*
+                capabilities:
+                  context-window: 128000
+                  max-output-tokens: 16384
+              # gpt-4o-2024-05-13's initial release capped max-output-tokens
+              # at 4096, below every later gpt-4o* release; pinned by exact
+              # id so it doesn't inherit the higher figure above.
+              gpt-4o-2024-05-13:
+                capabilities:
+                  context-window: 128000
+                  max-output-tokens: 4096
+              gpt-4-1:
+                patterns: gpt-4.1*
+                capabilities:
+                  context-window: 1047576
+                  max-output-tokens: 32768
+              o1:
+                patterns: o1*
+                capabilities:
+                  context-window: 200000
+                  max-output-tokens: 100000
+                  provider:
+                    reasoning:
+                      effort-levels: [low, medium, high]
+              o3:
+                patterns: o3*
+                capabilities:
+                  context-window: 200000
+                  max-output-tokens: 100000
+                  provider:
+                    reasoning:
+                      effort-levels: [low, medium, high]
+              # o4-mini is the only o4 family member on models.dev (no bare
+              # "o4" entry exists). Its input modalities lack PDF/document
+              # support, unlike the family default.
+              o4:
+                patterns: o4*
+                capabilities:
+                  context-window: 200000
+                  max-output-tokens: 100000
+                  input-modalities:
+                    user-message: [text, image]
+                  provider:
+                    reasoning:
+                      effort-levels: [low, medium, high]
 
-            # Responses API: function call outputs accept text, image and file
-            # content items per the SDK's FunctionCallOutput.Output union.
-            # Reasoning (provider.reasoning.effort-levels) mirrors the
-            # openai-completions declarations above for the same reasoning-
-            # capable model families (gpt-5, o-series): reasoning is a model
-            # capability, not an API-surface one, so both families declare it
-            # identically per model.
-            openai-responses:
-              defaults:
-                input-modalities:
-                  user-message: [text, image, document]
-                  tool-result:  [text, image, document]
-                output-modalities:
-                  assistant-message: [text]
-                context-window: 128000
-                max-output-tokens: 4096
-              models:
-                # gpt-5* spans a wide range on models.dev (128k-1.05M context,
-                # 16k-272k output across chat-latest/base/codex/pro variants);
-                # pinned to the conservative floor across the whole matched
-                # lineage rather than over-promising for the low-end variants.
-                gpt-5:
-                  pattern: gpt-5*
-                  capabilities:
-                    context-window: 128000
-                    max-output-tokens: 16384
-                    provider:
-                      reasoning:
-                        effort-levels: [minimal, low, medium, high]
-                gpt-4o:
-                  pattern: gpt-4o*
-                  capabilities:
-                    context-window: 128000
-                    max-output-tokens: 16384
-                # gpt-4o-2024-05-13's initial release capped max-output-tokens
-                # at 4096, below every later gpt-4o* release; pinned by exact
-                # id so it doesn't inherit the higher figure above.
-                gpt-4o-2024-05-13:
-                  capabilities:
-                    context-window: 128000
-                    max-output-tokens: 4096
-                gpt-4-1:
-                  pattern: gpt-4.1*
-                  capabilities:
-                    context-window: 1047576
-                    max-output-tokens: 32768
-                o1:
-                  pattern: o1*
-                  capabilities:
-                    context-window: 200000
-                    max-output-tokens: 100000
-                    provider:
-                      reasoning:
-                        effort-levels: [low, medium, high]
-                o3:
-                  pattern: o3*
-                  capabilities:
-                    context-window: 200000
-                    max-output-tokens: 100000
-                    provider:
-                      reasoning:
-                        effort-levels: [low, medium, high]
-                # o4-mini is the only o4 family member on models.dev (no bare
-                # "o4" entry exists). Its input modalities lack PDF/document
-                # support, unlike the family default.
-                o4:
-                  pattern: o4*
-                  capabilities:
-                    context-window: 200000
-                    max-output-tokens: 100000
-                    input-modalities:
-                      user-message: [text, image]
-                    provider:
-                      reasoning:
-                        effort-levels: [low, medium, high]
+          # Responses API: function call outputs accept text, image and file
+          # content items per the SDK's FunctionCallOutput.Output union.
+          # Reasoning (provider.reasoning.effort-levels) mirrors the
+          # openai-completions declarations above for the same reasoning-
+          # capable model families (gpt-5, o-series): reasoning is a model
+          # capability, not an API-surface one, so both families declare it
+          # identically per model.
+          openai-responses:
+            defaults:
+              input-modalities:
+                user-message: [text, image, document]
+                tool-result:  [text, image, document]
+              output-modalities:
+                assistant-message: [text]
+              context-window: 128000
+              max-output-tokens: 4096
+            models:
+              # gpt-5* spans a wide range on models.dev (128k-1.05M context,
+              # 16k-272k output across chat-latest/base/codex/pro variants);
+              # pinned to the conservative floor across the whole matched
+              # lineage rather than over-promising for the low-end variants.
+              gpt-5:
+                patterns: gpt-5*
+                capabilities:
+                  context-window: 128000
+                  max-output-tokens: 16384
+                  provider:
+                    reasoning:
+                      effort-levels: [minimal, low, medium, high]
+              gpt-4o:
+                patterns: gpt-4o*
+                capabilities:
+                  context-window: 128000
+                  max-output-tokens: 16384
+              # gpt-4o-2024-05-13's initial release capped max-output-tokens
+              # at 4096, below every later gpt-4o* release; pinned by exact
+              # id so it doesn't inherit the higher figure above.
+              gpt-4o-2024-05-13:
+                capabilities:
+                  context-window: 128000
+                  max-output-tokens: 4096
+              gpt-4-1:
+                patterns: gpt-4.1*
+                capabilities:
+                  context-window: 1047576
+                  max-output-tokens: 32768
+              o1:
+                patterns: o1*
+                capabilities:
+                  context-window: 200000
+                  max-output-tokens: 100000
+                  provider:
+                    reasoning:
+                      effort-levels: [low, medium, high]
+              o3:
+                patterns: o3*
+                capabilities:
+                  context-window: 200000
+                  max-output-tokens: 100000
+                  provider:
+                    reasoning:
+                      effort-levels: [low, medium, high]
+              # o4-mini is the only o4 family member on models.dev (no bare
+              # "o4" entry exists). Its input modalities lack PDF/document
+              # support, unlike the family default.
+              o4:
+                patterns: o4*
+                capabilities:
+                  context-window: 200000
+                  max-output-tokens: 100000
+                  input-modalities:
+                    user-message: [text, image]
+                  provider:
+                    reasoning:
+                      effort-levels: [low, medium, high]

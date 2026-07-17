@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Built capability matrix used by the {@link ModelCapabilitiesResolver}. Materialised at startup
- * from {@link AgenticAiFrameworkProperties} (Spring Boot config) by {@link
+ * from {@link AgenticAiCapabilitiesProperties} (Spring Boot config) by {@link
  * CapabilityMatrixFactory}: bundled defaults from the classpath YAML are loaded as a low-precedence
  * {@link org.springframework.core.env.PropertySource} and library-consumer overrides land on top
  * before this matrix is built.

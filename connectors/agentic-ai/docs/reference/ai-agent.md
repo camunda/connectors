@@ -1212,7 +1212,7 @@ Master configuration class. Activated by `@ConditionalOnBooleanProperty("camunda
 
 Imports:
 - `AgenticAiLangchain4JFrameworkConfiguration` — LangChain4J converter chain and adapter
-- `AgenticAiAnthropicFrameworkConfiguration` — native Anthropic `ChatModelApiFactory` (see [§12](#12-framework-abstraction))
+- `AgenticAiAnthropicProviderConfiguration` — native Anthropic `ChatModelApiFactory` (see [§12](#12-framework-abstraction))
 - `McpDiscoveryConfiguration`, `McpClientConfiguration`, `McpRemoteClientConfiguration` — MCP (see [mcp.md §14](mcp.md#14-spring-configuration))
 - `A2aClientOutboundConnectorConfiguration`, `A2aClientAgenticToolConfiguration`, `A2aClientPollingConfiguration`, `A2aClientWebhookConfiguration` — A2A (see [a2a.md §14](a2a.md#14-spring-configuration))
 
@@ -1236,7 +1236,6 @@ Imports:
 | `camunda.connector.agenticai.aiagent.subprocess-v2.enabled`       | `true`       | AI Agent Sub-process v2 connector  |
 | `camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled` | `true`     | Ad-Hoc Tools Schema connector     |
 | `camunda.connector.agenticai.framework`                           | `langchain4j` | AI framework implementation      |
-| `camunda.connector.agenticai.aiagent.framework.anthropic.enabled` | `true`       | Native Anthropic `ChatModelApiFactory` (direct backend) — operator kill-switch |
 
 #### v2 (own LLM layer) beans
 
@@ -1249,12 +1248,11 @@ them:
 - `aiAgentSubProcessV2` (`AiAgentSubProcessV2`) — `@ConditionalOnBean(JobWorkerAgentRequestHandler.class)`,
   toggled by `...aiagent.subprocess-v2.enabled`.
 
-Separately, `AgenticAiAnthropicFrameworkConfiguration` registers the `anthropicChatModelApiFactory`
+Separately, `AgenticAiAnthropicProviderConfiguration` registers the `anthropicChatModelApiFactory`
 bean (`AnthropicChatModelApiFactory`) that serves the v2 Anthropic `direct`-backend configuration
-natively (see [§12, v2 config surface](#12-framework-abstraction)); it is gated by its own
-`...aiagent.framework.anthropic.enabled` toggle (default `true`), independent of the v2
-connector-level toggles above — disabling it falls back to the v2 path failing loud for Anthropic
-`direct` configs (no bridge fallback exists for the v2 config surface).
+natively (see [§12, v2 config surface](#12-framework-abstraction)); it is registered
+unconditionally (subject only to `@ConditionalOnMissingBean`, so a consumer-provided factory bean
+still wins), independent of the v2 connector-level toggles above.
 
 **Operator coupling:** because each v2 bean `@ConditionalOnBean`s the shared flavor handler, and
 that handler is created only when its v1 flavor toggle is on, disabling a v1 flavor also disables

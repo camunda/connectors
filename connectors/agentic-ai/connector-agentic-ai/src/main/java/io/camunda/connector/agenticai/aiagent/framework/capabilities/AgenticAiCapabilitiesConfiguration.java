@@ -29,10 +29,10 @@ import org.springframework.core.io.ClassPathResource;
  * Spring instantiates this configuration bean and therefore robust against runtimes that skip
  * Spring Boot's {@code EnvironmentPostProcessor} discovery (e.g. when the connector jar is loaded
  * after the host application context has already started). Library-consumer overrides under the
- * same {@code camunda.connector.agenticai.aiagent.framework.capabilities.*} prefix land on top.
+ * same {@code camunda.connector.agenticai.aiagent.capabilities.*} prefix land on top.
  */
 @Configuration
-@EnableConfigurationProperties(AgenticAiFrameworkProperties.class)
+@EnableConfigurationProperties(AgenticAiCapabilitiesProperties.class)
 public class AgenticAiCapabilitiesConfiguration implements EnvironmentAware {
 
   private static final String BUNDLED_RESOURCE = "capabilities/model-capabilities.yaml";
@@ -63,7 +63,8 @@ public class AgenticAiCapabilitiesConfiguration implements EnvironmentAware {
   @Bean
   @ConditionalOnMissingBean
   public CapabilityMatrix aiAgentCapabilityMatrix(
-      AgenticAiFrameworkProperties properties, @ConnectorsObjectMapper ObjectMapper objectMapper) {
+      AgenticAiCapabilitiesProperties properties,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return CapabilityMatrixFactory.build(properties, objectMapper);
   }
 

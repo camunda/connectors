@@ -9,14 +9,14 @@ package io.camunda.connector.agenticai.aiagent.framework.capabilities;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiFrameworkProperties.ApiFamilyProperties;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiFrameworkProperties.ModelEntryProperties;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiCapabilitiesProperties.ApiFamilyProperties;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiCapabilitiesProperties.ModelEntryProperties;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * Validation guards on {@link CapabilityMatrixFactory#build(AgenticAiFrameworkProperties,
+ * Validation guards on {@link CapabilityMatrixFactory#build(AgenticAiCapabilitiesProperties,
  * ObjectMapper)}.
  */
 class CapabilityMatrixFactoryTest {
@@ -29,12 +29,12 @@ class CapabilityMatrixFactoryTest {
         new ModelEntryProperties(
             "claude-opus-4-7", List.of("claude-opus-*"), List.of(), null, null);
     final var properties =
-        new AgenticAiFrameworkProperties(
+        new AgenticAiCapabilitiesProperties(
             Map.of("anthropic-messages", new ApiFamilyProperties(null, Map.of("opus", entry))));
 
     assertThatIllegalStateException()
         .isThrownBy(() -> CapabilityMatrixFactory.build(properties, mapper))
-        .withMessageContaining("must specify at most one of `id` or `pattern`");
+        .withMessageContaining("must specify at most one of `id` or `patterns`");
   }
 
   @Test
@@ -43,7 +43,7 @@ class CapabilityMatrixFactoryTest {
         new ModelEntryProperties(
             null, List.of("claude-opus-*"), List.of("claude-opus-latest"), null, null);
     final var properties =
-        new AgenticAiFrameworkProperties(
+        new AgenticAiCapabilitiesProperties(
             Map.of("anthropic-messages", new ApiFamilyProperties(null, Map.of("opus", entry))));
 
     assertThatIllegalStateException()

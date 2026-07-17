@@ -16,16 +16,16 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Sparse capability block — bound by Spring Boot from {@code application.yml} (relaxed
- * camel/kebab-case binding) via {@link AgenticAiFrameworkProperties}, and serialised by Jackson to
- * a {@link com.fasterxml.jackson.databind.JsonNode} tree (snake_case via {@link JsonNaming}) by
+ * camel/kebab-case binding) via {@link AgenticAiCapabilitiesProperties}, and serialised by Jackson
+ * to a {@link com.fasterxml.jackson.databind.JsonNode} tree (snake_case via {@link JsonNaming}) by
  * {@link CapabilityMatrixFactory} so {@link ModelCapabilitiesResolver} can deep-merge it against
  * the matched provider's sparse materialisation DTO (e.g. {@code AnthropicModelCapabilitiesData}).
  *
  * <p>Stays in this package (rather than moving alongside a single provider's DTO) because Spring
  * Boot's relaxed binder needs one concrete, typed shape to rebuild modality lists from indexed
- * property keys for every api family bound under {@link AgenticAiFrameworkProperties}, regardless
- * of which provider ultimately materialises the merged tree; every bundled family currently shares
- * this flat shape.
+ * property keys for every api family bound under {@link AgenticAiCapabilitiesProperties},
+ * regardless of which provider ultimately materialises the merged tree; every bundled family
+ * currently shares this flat shape.
  *
  * <p>{@code provider} is an opaque, provider-specific capability bag (e.g. Anthropic's {@code
  * reasoning} descriptor) bound as a raw {@code Map<String, Object>} so this provider-agnostic

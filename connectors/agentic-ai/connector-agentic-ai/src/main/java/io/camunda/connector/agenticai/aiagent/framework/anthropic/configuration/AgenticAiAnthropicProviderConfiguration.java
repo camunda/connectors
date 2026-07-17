@@ -11,21 +11,17 @@ import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicChatM
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Registers the {@link AnthropicChatModelApiFactory} as an additional {@code ChatModelApiFactory}
- * bean so it is picked up by {@code chatModelApiRegistry(List<ChatModelApiFactory>)} and resolved
- * for the configurations it supports.
+ * Registers the {@link AnthropicChatModelApiFactory} as a {@code ChatModelApiFactory} bean so it is
+ * picked up by {@code chatModelApiRegistry(List<ChatModelApiFactory>)} and resolved for the
+ * configurations it supports.
  */
 @Configuration
-@ConditionalOnBooleanProperty(
-    value = "camunda.connector.agenticai.aiagent.framework.anthropic.enabled",
-    matchIfMissing = true)
-public class AgenticAiAnthropicFrameworkConfiguration {
+public class AgenticAiAnthropicProviderConfiguration {
 
   @Bean
   @ConditionalOnMissingBean

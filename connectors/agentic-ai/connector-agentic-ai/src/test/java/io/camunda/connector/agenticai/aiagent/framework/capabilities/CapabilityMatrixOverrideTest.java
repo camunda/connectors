@@ -28,7 +28,7 @@ import org.springframework.context.ApplicationContext;
  */
 class CapabilityMatrixOverrideTest {
 
-  private static final String PREFIX = "camunda.connector.agenticai.aiagent.framework.capabilities";
+  private static final String PREFIX = "camunda.connector.agenticai.aiagent.capabilities";
 
   private final ApplicationContextRunner baseRunner =
       new ApplicationContextRunner()

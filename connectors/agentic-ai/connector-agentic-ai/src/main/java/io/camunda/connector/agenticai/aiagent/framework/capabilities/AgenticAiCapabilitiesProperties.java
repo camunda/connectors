@@ -12,8 +12,8 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Spring Boot configuration binding for the agentic-ai framework. The {@code capabilities} map is
- * populated from two layers, deep-merged by Spring Boot:
+ * Spring Boot configuration binding for the agentic-ai capability matrix. The {@code capabilities}
+ * map is populated from two layers, deep-merged by Spring Boot:
  *
  * <ol>
  *   <li>Bundled defaults: {@code resources/capabilities/model-capabilities.yaml}, registered as a
@@ -21,14 +21,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *       AgenticAiCapabilitiesConfiguration#setEnvironment} when the configuration bean is
  *       instantiated.
  *   <li>Application overrides: any property under {@code
- *       camunda.connector.agenticai.aiagent.framework.capabilities.*} declared by the library
- *       consumer (typically in their own {@code application.yml}). Library consumers can override
- *       an individual model's capability fields, replace a sub-modality list, or add a brand-new
- *       model entry under any api family without restating the bundled matrix.
+ *       camunda.connector.agenticai.aiagent.capabilities.*} declared by the library consumer
+ *       (typically in their own {@code application.yml}). Library consumers can override an
+ *       individual model's capability fields, replace a sub-modality list, or add a brand-new model
+ *       entry under any api family without restating the bundled matrix.
  * </ol>
  *
  * Map keys under {@code models} carry the discriminator: keys containing {@code *} are treated as
- * glob patterns, otherwise as model ids. Optional explicit {@code id} / {@code pattern} fields
+ * glob patterns, otherwise as model ids. Optional explicit {@code id} / {@code patterns} fields
  * inside an entry override the key derivation when needed.
  *
  * <p>Capability sub-trees ({@code defaults} and per-entry {@code capabilities}) are bound to the
@@ -36,10 +36,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * modality lists from indexed property keys; the resolver projects them onto a concrete, provider-
  * specific {@link ModelCapabilities} via Jackson tree merge at lookup time.
  */
-@ConfigurationProperties("camunda.connector.agenticai.aiagent.framework")
-public record AgenticAiFrameworkProperties(Map<String, ApiFamilyProperties> capabilities) {
+@ConfigurationProperties("camunda.connector.agenticai.aiagent")
+public record AgenticAiCapabilitiesProperties(Map<String, ApiFamilyProperties> capabilities) {
 
-  public AgenticAiFrameworkProperties {
+  public AgenticAiCapabilitiesProperties {
     capabilities = capabilities == null ? Map.of() : Map.copyOf(capabilities);
   }
 
@@ -53,14 +53,14 @@ public record AgenticAiFrameworkProperties(Map<String, ApiFamilyProperties> capa
 
   public record ModelEntryProperties(
       @Nullable String id,
-      List<String> pattern,
+      List<String> patterns,
       List<String> aliases,
       @Nullable String backend,
       @Nullable ModelCapabilitiesProperties capabilities) {
 
     public ModelEntryProperties {
       aliases = aliases == null ? List.of() : List.copyOf(aliases);
-      pattern = pattern == null ? List.of() : List.copyOf(pattern);
+      patterns = patterns == null ? List.of() : List.copyOf(patterns);
     }
   }
 }

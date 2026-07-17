@@ -11,8 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiFrameworkProperties.ApiFamilyProperties;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiFrameworkProperties.ModelEntryProperties;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiCapabilitiesProperties.ApiFamilyProperties;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiCapabilitiesProperties.ModelEntryProperties;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CapabilityMatrix.ApiFamily;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CapabilityMatrix.ModelEntry;
 import java.util.ArrayList;
@@ -22,22 +22,22 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Materialises a {@link CapabilityMatrix} from {@link AgenticAiFrameworkProperties} bound by Spring
- * Boot. Per-entry capability sub-trees ({@code defaults} and {@code capabilities}) are converted to
- * {@link JsonNode} so the resolver can deep-merge them at lookup time.
+ * Materialises a {@link CapabilityMatrix} from {@link AgenticAiCapabilitiesProperties} bound by
+ * Spring Boot. Per-entry capability sub-trees ({@code defaults} and {@code capabilities}) are
+ * converted to {@link JsonNode} so the resolver can deep-merge them at lookup time.
  *
  * <p>Each {@code models} map entry must carry exactly one discriminator:
  *
  * <ul>
- *   <li>An explicit {@code pattern} field — a glob string (uses {@code *} only) or a list of globs.
- *       The entry matches when any glob in the list matches the requested model id; longest-match
- *       across entries wins. Aliases are not allowed for pattern entries.
+ *   <li>An explicit {@code patterns} field — a glob string (uses {@code *} only) or a list of
+ *       globs. The entry matches when any glob in the list matches the requested model id;
+ *       longest-match across entries wins. Aliases are not allowed for pattern entries.
  *   <li>An explicit {@code id} field — the entry matches that model id exactly.
  *   <li>Neither — the map key itself is treated as the model id.
  * </ul>
  *
  * <p>{@code *} and {@code .} cannot appear in the map key because Spring Boot's map binding strips
- * them; pattern entries must declare the glob in the {@code pattern} field while the map key stays
+ * them; pattern entries must declare the glob in the {@code patterns} field while the map key stays
  * a stable, override-friendly identifier.
  */
 public final class CapabilityMatrixFactory {
@@ -45,7 +45,7 @@ public final class CapabilityMatrixFactory {
   private CapabilityMatrixFactory() {}
 
   public static CapabilityMatrix build(
-      AgenticAiFrameworkProperties properties, ObjectMapper objectMapper) {
+      AgenticAiCapabilitiesProperties properties, ObjectMapper objectMapper) {
     final Map<String, ApiFamily> families = new LinkedHashMap<>();
     properties
         .capabilities()
@@ -72,12 +72,12 @@ public final class CapabilityMatrixFactory {
   private static ModelEntry buildEntry(
       String familyName, String mapKey, ModelEntryProperties entry, ObjectMapper objectMapper) {
     final boolean idExplicit = entry.id() != null && !entry.id().isBlank();
-    final List<String> patterns = nonBlank(entry.pattern());
+    final List<String> patterns = nonBlank(entry.patterns());
     final boolean patternExplicit = !patterns.isEmpty();
 
     if (idExplicit && patternExplicit) {
       throw new IllegalStateException(
-          "Capability matrix entry '%s' under api family '%s' must specify at most one of `id` or `pattern`"
+          "Capability matrix entry '%s' under api family '%s' must specify at most one of `id` or `patterns`"
               .formatted(mapKey, familyName));
     }
 

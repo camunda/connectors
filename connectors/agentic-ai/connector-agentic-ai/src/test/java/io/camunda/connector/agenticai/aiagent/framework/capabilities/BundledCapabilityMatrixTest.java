@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
  * AgenticAiCapabilitiesConfiguration} loads the bundled YAML as a {@link
  * org.springframework.core.env.PropertySource} during its own {@code setEnvironment(...)} callback,
  * so importing the configuration class is enough — no manual environment post-processing needed.
- * The test then exercises the full {@link AgenticAiFrameworkProperties} -> {@link
+ * The test then exercises the full {@link AgenticAiCapabilitiesProperties} -> {@link
  * CapabilityMatrixFactory} -> {@link ModelCapabilitiesResolver} pipeline.
  */
 class BundledCapabilityMatrixTest {
