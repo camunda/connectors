@@ -164,7 +164,6 @@ public abstract class BaseAgentRequestHandler<
         conversation.lastTurn(),
         OffsetDateTime.now());
 
-    LOGGER.debug("Executing chat request");
     var workingConversation = conversation;
     try (final var chatModel =
         chatModelApiRegistry.resolve(agentConfiguration.chatModelApiConfiguration())) {
@@ -175,6 +174,10 @@ public abstract class BaseAgentRequestHandler<
       // path.
       boolean continued;
       do {
+        LOGGER.debug(
+            "Sending turn (iterationKey={}) to the model",
+            workingConversation.currentTurn().iterationKey());
+
         final var windowedSnapshot =
             workingConversation.window(agentConfiguration.contextWindowSize());
         final var toolResultRoutedSnapshot =
@@ -194,6 +197,10 @@ public abstract class BaseAgentRequestHandler<
         // messages — the model resumes the paused turn on the existing state.
         continued = chatResult instanceof ChatModelResult.Continuation;
         if (continued) {
+          LOGGER.debug(
+              "Provider paused turn (iterationKey={}); resuming with another round",
+              workingConversation.currentTurn().iterationKey());
+
           // Report this round's own metrics now: its history item and metrics are rolled into
           // previousTurns and would otherwise never reach the instance-level counters (only the
           // final round's delta is pushed after the loop). No status change — still mid-turn.
