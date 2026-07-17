@@ -17,8 +17,12 @@ import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.Process
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.ChatModelApiRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequestV2;
@@ -113,7 +117,14 @@ class AiAgentV2EntryPointTest {
   void v2LlmProviderConfigFailsLoudThroughRegistryUntilProviderFactoryExists() {
     final var registry =
         new ChatModelApiRegistryImpl(
-            List.of(new Langchain4JChatModelApiFactory(mock(Langchain4JAiFrameworkAdapter.class))));
+            List.of(
+                new Langchain4JChatModelApiFactory(
+                    provider -> true,
+                    mock(ChatModelFactory.class),
+                    mock(ChatMessageConverter.class),
+                    mock(ToolSpecificationConverter.class),
+                    mock(JsonSchemaConverter.class),
+                    Langchain4JChatModelApi.DEFAULT_CAPABILITIES)));
 
     assertThatThrownBy(
             () -> registry.resolve(new LlmProviderChatModelApiConfiguration(anthropicConfig())))

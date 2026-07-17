@@ -22,8 +22,12 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicBedrockBackend;
@@ -125,7 +129,13 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
   }
 
   private static ChatModelApiFactory langchain4JFactory() {
-    return new Langchain4JChatModelApiFactory(mock(Langchain4JAiFrameworkAdapter.class));
+    return new Langchain4JChatModelApiFactory(
+        provider -> true,
+        mock(ChatModelFactory.class),
+        mock(ChatMessageConverter.class),
+        mock(ToolSpecificationConverter.class),
+        mock(JsonSchemaConverter.class),
+        Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
   }
 
   private static ChatModelApiFactory anthropicFactory() {

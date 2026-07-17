@@ -37,7 +37,6 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFac
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
@@ -135,9 +134,12 @@ class AgenticAiConnectorsAutoConfigurationTest {
           ToolCallConverter.class,
           JsonSchemaConverter.class,
           ToolSpecificationConverter.class,
-          ChatMessageConverter.class,
-          Langchain4JAiFrameworkAdapter.class,
-          Langchain4JChatModelApiFactory.class);
+          ChatMessageConverter.class);
+
+  // One Langchain4JChatModelApiFactory bean is registered per built-in provider (six today), so
+  // this type has multiple beans and cannot be asserted via assertHasAllBeansOf/hasSingleBean like
+  // the rest of LANGCHAIN4J_BEANS; it is asserted separately (see the dedicated tests below).
+  private static final int LANGCHAIN4J_CHAT_MODEL_API_FACTORY_BEAN_COUNT = 6;
 
   // this will need to be updated in case we support different frameworks
   private static final List<Class<?>> ALL_BEANS =
@@ -152,14 +154,23 @@ class AgenticAiConnectorsAutoConfigurationTest {
   void whenAgenticAiConfigurationEnabled_thenAgenticConnectorBeansAreCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.enabled=true")
-        .run(context -> assertHasAllBeansOf(context, ALL_BEANS));
+        .run(
+            context -> {
+              assertHasAllBeansOf(context, ALL_BEANS);
+              assertThat(context.getBeansOfType(Langchain4JChatModelApiFactory.class))
+                  .hasSize(LANGCHAIN4J_CHAT_MODEL_API_FACTORY_BEAN_COUNT);
+            });
   }
 
   @Test
   void whenAgenticAiConfigurationDisabled_thenNoAgenticConnectorBeansAreCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.enabled=false")
-        .run(context -> assertDoesNotHaveAnyBeansOf(context, ALL_BEANS));
+        .run(
+            context -> {
+              assertDoesNotHaveAnyBeansOf(context, ALL_BEANS);
+              assertThat(context.getBeansOfType(Langchain4JChatModelApiFactory.class)).isEmpty();
+            });
   }
 
   @Test
