@@ -33,6 +33,7 @@ import com.anthropic.models.beta.messages.BetaToolUseBlock;
 import com.anthropic.models.beta.messages.BetaUsage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -369,6 +370,31 @@ class AnthropicMessageResponseConverterTest {
     assertThat(maxTokensResult).isInstanceOf(ChatModelResult.Completed.class);
     assertThat(maxTokensResult.assistantMessage().stopReason())
         .isEqualTo(io.camunda.connector.agenticai.aiagent.model.message.StopReason.LENGTH);
+  }
+
+  @Test
+  void mapsUnrecognisedStopReasonToUnknownStopReasonCarryingTheRawValue() {
+    final var message =
+        message(
+            """
+            {
+              "id": "msg_8",
+              "model": "claude-sonnet-4-6",
+              "role": "assistant",
+              "type": "message",
+              "content": [{"type": "text", "text": "??"}],
+              "stop_reason": "some_new_vendor_stop_reason",
+              "usage": {"input_tokens": 1, "output_tokens": 1}
+            }
+            """);
+
+    final var result = converter.toResult(message, EXECUTION_TIME);
+
+    assertThat(result).isInstanceOf(ChatModelResult.Completed.class);
+    assertThat(result.assistantMessage().stopReason())
+        .isEqualTo(new UnknownStopReason("some_new_vendor_stop_reason"));
+    assertThat(result.assistantMessage().metadata())
+        .containsEntry("stopReason", "some_new_vendor_stop_reason");
   }
 
   @Test

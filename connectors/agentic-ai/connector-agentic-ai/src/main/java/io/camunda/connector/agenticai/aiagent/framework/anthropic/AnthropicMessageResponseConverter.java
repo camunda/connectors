@@ -187,7 +187,8 @@ public class AnthropicMessageResponseConverter {
    * {@code pause_turn} maps to {@code null} since it is surfaced as a {@link
    * ChatModelResult.Continuation} rather than a stop reason (the turn isn't actually finished).
    * Uses {@link BetaStopReason#value()} rather than {@code known()} so a genuinely unrecognised
-   * future value degrades to the domain {@code UNKNOWN} sentinel instead of throwing.
+   * future value degrades to an {@code UnknownStopReason} carrying the raw string instead of
+   * throwing.
    */
   private io.camunda.connector.agenticai.aiagent.model.message.@Nullable StopReason mapStopReason(
       @Nullable BetaStopReason stopReason) {
@@ -203,7 +204,9 @@ public class AnthropicMessageResponseConverter {
       case REFUSAL ->
           io.camunda.connector.agenticai.aiagent.model.message.StopReason.CONTENT_FILTERED;
       case PAUSE_TURN -> null; // surfaced as Continuation, not a stop reason
-      default -> io.camunda.connector.agenticai.aiagent.model.message.StopReason.UNKNOWN;
+      default ->
+          new io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason(
+              stopReason.asString());
     };
   }
 }
