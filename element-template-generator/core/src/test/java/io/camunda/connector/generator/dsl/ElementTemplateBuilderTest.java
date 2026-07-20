@@ -23,11 +23,56 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 public class ElementTemplateBuilderTest {
+
+  /**
+   * Populates every {@link ElementTemplate} field so {@link #fromRoundTripsEveryField()} fails the
+   * moment a newly added field isn't wired into {@link
+   * ElementTemplateBuilder#from(ElementTemplate)}.
+   */
+  private ElementTemplate templateWithEveryFieldPopulated() {
+    return ElementTemplate.builderForOutbound()
+        .id("io.camunda.connector.Template.v1")
+        .type("io.camunda:template:1")
+        .name("Template: Some Function")
+        .version(3)
+        .category(ElementTemplateCategory.CONNECTORS)
+        .documentationRef("https://docs.camunda.io/docs/components/connectors/template/")
+        .description("Some description")
+        .keywords(new String[] {"foo", "bar"})
+        .appliesTo(Set.of(SERVICE_TASK))
+        .elementType(SERVICE_TASK)
+        .engines(new Engines("^8.3"))
+        .icon(new ElementTemplateIcon("data:image/svg+xml;base64,AAAA"))
+        .propertyGroups(
+            PropertyGroup.builder()
+                .id("groupA")
+                .label("Group A")
+                .properties(
+                    StringProperty.builder()
+                        .id("propA1")
+                        .group("groupA")
+                        .binding(new PropertyBinding.ZeebeTaskHeader("propA1"))
+                        .value("a1"))
+                .build())
+        .steps(List.of(new LeafStep("Step", "Step description", List.of("keyword"), "presetId")))
+        .presets(List.of(new Preset("presetId", Map.of("propA1", "a1"))))
+        .build();
+  }
+
+  @Test
+  void fromRoundTripsEveryField() {
+    var original = templateWithEveryFieldPopulated();
+
+    var rebuilt = ElementTemplateBuilder.from(original).build();
+
+    assertThat(rebuilt).isEqualTo(original);
+  }
 
   private ElementTemplate templateWithElementType(BpmnType elementType) {
     return ElementTemplate.builderForOutbound()
