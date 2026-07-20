@@ -68,14 +68,12 @@ public class CustomCredentialsProviderNotUsedTest {
   @Test
   public void credentialsProvidedInProperties_customCredentialsProviderNotUsed() {
     // When client-id and client-secret are provided in properties,
-    // the SaaS CredentialsProviderConfiguration should delegate to the standard Camunda
-    // OAuth flow (not use the internal GCP secret manager).
-    // In the new multi-client architecture, no standalone CredentialsProvider beans are
-    // registered by the Camunda starter - credentials are managed by CredentialsProviderConfiguration.
-    assertThat(applicationContext.getBean(CredentialsProviderConfiguration.class)).isNotNull();
+    // the @Conditional prevents our SaaS CredentialsProviderConfiguration from being registered.
+    // The default CredentialsProviderConfiguration from the Camunda starter is used instead.
+    CredentialsProviderConfiguration config =
+        applicationContext.getBean(CredentialsProviderConfiguration.class);
+    assertThat(config.getClass()).isEqualTo(CredentialsProviderConfiguration.class);
     // No legacy custom GCP credentials provider bean should be present
     assertThat(applicationContext.containsBean("customConnectorsCredentialsProvider")).isFalse();
-    // No standalone credentials provider bean registered by the Camunda starter
-    assertThat(applicationContext.containsBean("camundaClientCredentialsProvider")).isFalse();
   }
 }
