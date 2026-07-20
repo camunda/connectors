@@ -136,21 +136,36 @@
       <artifactId>langchain4j-http-client-jdk</artifactId>
     </dependency>
 
+    <!--
+      Declared directly rather than via the com.anthropic:anthropic-java aggregator: anthropic-java-core
+      (the com.anthropic.models.* classes) and anthropic-java-client-okhttp (the OkHttp-based
+      AnthropicClient builder used by AnthropicOkHttpClientFactory, plus the ProxyAuthenticator used
+      for proxy credentials) share the aggregator's version.
+    -->
     <dependency>
       <groupId>com.anthropic</groupId>
-      <artifactId>anthropic-java</artifactId>
+      <artifactId>anthropic-java-core</artifactId>
+      <version>${version.anthropic-java}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java-client-okhttp</artifactId>
       <version>${version.anthropic-java}</version>
     </dependency>
 
     <!--
-      openai-java mirrors anthropic-java's structure (both Stainless-generated): the openai-java
-      aggregator POM pulls in openai-java-core (the com.openai.models.* classes) and
-      openai-java-client-okhttp (the OpenAIOkHttpClient builder). It relies on the shared okhttp-jvm
-      dependency (declared below) for its runtime OkHttp classes.
+      openai-java mirrors anthropic-java's structure (both Stainless-generated): declared directly
+      rather than via the com.openai:openai-java aggregator, for the identical reasons above.
+      It relies on the shared okhttp-jvm dependency (declared below) for its runtime OkHttp classes.
     -->
     <dependency>
       <groupId>com.openai</groupId>
-      <artifactId>openai-java</artifactId>
+      <artifactId>openai-java-core</artifactId>
+      <version>${version.openai-java}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.openai</groupId>
+      <artifactId>openai-java-client-okhttp</artifactId>
       <version>${version.openai-java}</version>
     </dependency>
 
@@ -448,22 +463,6 @@
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-core</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-json</ignoredDependency>
-                <!-- anthropic-java is a pure aggregator POM (no classes of its own): it pulls in
-                     anthropic-java-core (where the com.anthropic.models.* classes actually live)
-                     and anthropic-java-client-okhttp (the OkHttp-based AnthropicClient builder used
-                     by AnthropicOkHttpClientFactory, plus the ProxyAuthenticator used for proxy
-                     credentials) transitively. The analyzer sees anthropic-java as
-                     declared-but-unused and both transitive artifacts as used-but-undeclared;
-                     ignore all three rather than declaring the transitive artifacts directly, since
-                     the aggregator is still the intended/managed dependency surface. -->
-                <ignoredDependency>com.anthropic:anthropic-java</ignoredDependency>
-                <ignoredDependency>com.anthropic:anthropic-java-core</ignoredDependency>
-                <ignoredDependency>com.anthropic:anthropic-java-client-okhttp</ignoredDependency>
-                <!-- openai-java has the same aggregator/core/okhttp split as anthropic-java above;
-                     ignore all three for the identical analyzer reasons. -->
-                <ignoredDependency>com.openai:openai-java</ignoredDependency>
-                <ignoredDependency>com.openai:openai-java-core</ignoredDependency>
-                <ignoredDependency>com.openai:openai-java-client-okhttp</ignoredDependency>
                 <!-- okhttp-jvm has no direct source import (it's only reflectively required by
                      anthropic-java-client-okhttp's AnthropicOkHttpClient at runtime, see the
                      dependency declaration above); the analyzer would otherwise flag it unused. -->
