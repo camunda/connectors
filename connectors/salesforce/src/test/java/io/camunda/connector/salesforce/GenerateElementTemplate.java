@@ -41,6 +41,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Generates the Salesforce element template by extending HTTP JSON's own generated {@link
@@ -177,6 +178,18 @@ public class GenerateElementTemplate {
   }
 
   private static DropdownProperty prunedAuthTypeDropdown(DropdownProperty original) {
+    Set<String> availableAuthTypes =
+        original.getChoices().stream().map(DropdownChoice::value).collect(Collectors.toSet());
+    Set<String> missingAuthTypes =
+        KEPT_AUTH_TYPES.stream()
+            .filter(authType -> !availableAuthTypes.contains(authType))
+            .collect(Collectors.toSet());
+    if (!missingAuthTypes.isEmpty()) {
+      throw new IllegalStateException(
+          "HTTP JSON's generated \"authentication.type\" dropdown no longer offers "
+              + missingAuthTypes
+              + ", which Salesforce depends on -- has HTTP JSON's auth model changed?");
+    }
     List<DropdownChoice> prunedChoices =
         original.getChoices().stream()
             .filter(choice -> KEPT_AUTH_TYPES.contains(choice.value()))
