@@ -39,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
@@ -392,12 +393,13 @@ class ChatMessageConverterTest {
   void fromToolCallResultMessage_convertsToolCallResults() {
     ToolCallResult toolCallResult =
         ToolCallResult.builder().id("toolCallId").name("toolName").content("Hello, world!").build();
+    ToolCallResultContent toolCallResultContent = ToolCallResultContent.from(toolCallResult);
     ToolCallResultMessage toolCallResultMessage =
-        ToolCallResultMessage.builder().results(List.of(toolCallResult)).build();
+        ToolCallResultMessage.builder().results(List.of(toolCallResultContent)).build();
 
     ToolExecutionResultMessage toolExecutionResultMessage =
         new ToolExecutionResultMessage("toolCallId", "toolName", "Hello, world!");
-    when(toolCallConverter.asToolExecutionResultMessage(toolCallResult))
+    when(toolCallConverter.asToolExecutionResultMessage(toolCallResultContent))
         .thenReturn(toolExecutionResultMessage);
 
     List<ToolExecutionResultMessage> result =

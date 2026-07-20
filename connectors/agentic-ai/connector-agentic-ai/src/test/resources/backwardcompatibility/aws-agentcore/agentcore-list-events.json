@@ -1,0 +1,316 @@
+{
+    "events": [
+        {
+            "memoryId": "dummy_memory-mRN0nH9sBn",
+            "actorId": "dummy",
+            "sessionId": "6fd0b412-3365-4186-a6f1-f65f88ef168d",
+            "eventId": "0000001783536853665#307ab07a",
+            "eventTimestamp": "2026-07-08T20:54:13.665000+02:00",
+            "payload": [
+                {
+                    "conversational": {
+                        "content": {
+                            "text": "Perfect! 🎉 I've successfully sent a joke to Ervin Howell at Shanna@melissa.tv. The email contains a funny keyboard factory joke that should brighten their day!"
+                        },
+                        "role": "ASSISTANT"
+                    }
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.messageMetadata\",\"version\":1,\"metadata\":{\"framework\":{\"id\":\"d1545e48-3f81-4382-bb8d-d20028984644\",\"finishReason\":\"STOP\",\"tokenUsage\":{\"inputTokenCount\":2770,\"outputTokenCount\":47,\"totalTokenCount\":2817,\"cacheWriteInputTokens\":0,\"cacheReadInputTokens\":0}},\"timestamp\":\"2026-07-08T20:54:13.544139+02:00\"},\"properties\":{\"role\":\"ASSISTANT\"}}"
+                }
+            ],
+            "branch": {
+                "rootEventId": "0000001783536842738#2ce04983",
+                "name": "528df5f0-ff11-42f5-8fb8-79d1fe0e8b8f"
+            },
+            "metadata": {
+                "seq": {
+                    "stringValue": "1"
+                }
+            }
+        },
+        {
+            "memoryId": "dummy_memory-mRN0nH9sBn",
+            "actorId": "dummy",
+            "sessionId": "6fd0b412-3365-4186-a6f1-f65f88ef168d",
+            "eventId": "0000001783536853547#ceb68751",
+            "eventTimestamp": "2026-07-08T20:54:13.547000+02:00",
+            "payload": [
+                {
+                    "conversational": {
+                        "content": {
+                            "text": "{\"emailSent\":true}"
+                        },
+                        "role": "TOOL"
+                    }
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.toolCallResults\",\"version\":1,\"results\":[{\"id\":\"tooluse_eB2dGtO9m9Te1MB1zPi2xs\",\"name\":\"AskHumanToSendEmail\",\"content\":{\"emailSent\":true},\"completedAt\":\"2026-07-08T20:54:10.557+02:00[Europe/Vienna]\"}]}"
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.messageMetadata\",\"version\":1,\"metadata\":{\"timestamp\":\"2026-07-08T20:54:11.180912+02:00\"},\"properties\":{\"role\":\"TOOL\"}}"
+                }
+            ],
+            "branch": {
+                "rootEventId": "0000001783536842738#2ce04983",
+                "name": "528df5f0-ff11-42f5-8fb8-79d1fe0e8b8f"
+            },
+            "metadata": {
+                "seq": {
+                    "stringValue": "0"
+                }
+            }
+        },
+        {
+            "memoryId": "dummy_memory-mRN0nH9sBn",
+            "actorId": "dummy",
+            "sessionId": "6fd0b412-3365-4186-a6f1-f65f88ef168d",
+            "eventId": "0000001783536842738#2ce04983",
+            "eventTimestamp": "2026-07-08T20:54:02.738000+02:00",
+            "payload": [
+                {
+                    "conversational": {
+                        "content": {
+                            "text": "Let me add more emojis to make it more fun!"
+                        },
+                        "role": "ASSISTANT"
+                    }
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.toolCalls\",\"version\":1,\"toolCalls\":[{\"id\":\"tooluse_eB2dGtO9m9Te1MB1zPi2xs\",\"name\":\"AskHumanToSendEmail\",\"arguments\":{\"instructions\":\"Please send this joke email to Ervin Howell. The user requested to send Ervin a joke to brighten their day.\",\"email_body\":\"Hi Ervin! 👋\\n\\nHope this joke brightens your day! ☀️😊\\n\\nI just got fired from my job at the keyboard factory. ⌨️\\n\\nThey told me I wasn't putting in enough shifts. 😂🤣\\n\\nGet it? Shifts! 🔄⬆️\\n\\nHave a great day! 🌟✨\\n\\nBest regards! 💫\",\"recipient_email\":\"Shanna@melissa.tv\",\"recipient_name\":\"Ervin Howell\",\"email_subject\":\"A joke for you! 😄🎉\"}}]}"
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.messageMetadata\",\"version\":1,\"metadata\":{\"framework\":{\"id\":\"24c4ae7d-3129-446d-81a6-829fa0fd9456\",\"finishReason\":\"TOOL_EXECUTION\",\"tokenUsage\":{\"inputTokenCount\":2463,\"outputTokenCount\":289,\"totalTokenCount\":2752,\"cacheWriteInputTokens\":0,\"cacheReadInputTokens\":0}},\"timestamp\":\"2026-07-08T20:54:02.603931+02:00\"},\"properties\":{\"role\":\"ASSISTANT\"}}"
+                }
+            ],
+            "branch": {
+                "rootEventId": "0000001783536807849#cdbc1e86",
+                "name": "29535e99-1414-4ea5-acc7-a33c96f7a8e1"
+            },
+            "metadata": {
+                "seq": {
+                    "stringValue": "1"
+                }
+            }
+        },
+        {
+            "memoryId": "dummy_memory-mRN0nH9sBn",
+            "actorId": "dummy",
+            "sessionId": "6fd0b412-3365-4186-a6f1-f65f88ef168d",
+            "eventId": "0000001783536842607#def3d7b9",
+            "eventTimestamp": "2026-07-08T20:54:02.607000+02:00",
+            "payload": [
+                {
+                    "conversational": {
+                        "content": {
+                            "text": "{\"operatorFeedback\":\"needs more emojis\",\"emailOk\":false}"
+                        },
+                        "role": "TOOL"
+                    }
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.toolCallResults\",\"version\":1,\"results\":[{\"id\":\"tooluse_3zcGCrRa1IgtD8jngwrNi6\",\"name\":\"AskHumanToSendEmail\",\"content\":{\"operatorFeedback\":\"needs more emojis\",\"emailOk\":false},\"completedAt\":\"2026-07-08T20:53:54.6+02:00[Europe/Vienna]\"}]}"
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.messageMetadata\",\"version\":1,\"metadata\":{\"timestamp\":\"2026-07-08T20:53:55.140102+02:00\"},\"properties\":{\"role\":\"TOOL\"}}"
+                }
+            ],
+            "branch": {
+                "rootEventId": "0000001783536807849#cdbc1e86",
+                "name": "29535e99-1414-4ea5-acc7-a33c96f7a8e1"
+            },
+            "metadata": {
+                "seq": {
+                    "stringValue": "0"
+                }
+            }
+        },
+        {
+            "memoryId": "dummy_memory-mRN0nH9sBn",
+            "actorId": "dummy",
+            "sessionId": "6fd0b412-3365-4186-a6f1-f65f88ef168d",
+            "eventId": "0000001783536807849#cdbc1e86",
+            "eventTimestamp": "2026-07-08T20:53:27.849000+02:00",
+            "payload": [
+                {
+                    "conversational": {
+                        "content": {
+                            "text": "Perfect! Now I'll send the joke to Ervin Howell."
+                        },
+                        "role": "ASSISTANT"
+                    }
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.toolCalls\",\"version\":1,\"toolCalls\":[{\"id\":\"tooluse_3zcGCrRa1IgtD8jngwrNi6\",\"name\":\"AskHumanToSendEmail\",\"arguments\":{\"instructions\":\"Please send this joke email to Ervin Howell. The user requested to send Ervin a joke to brighten their day.\",\"email_body\":\"Hi Ervin,\\n\\nHope this joke brightens your day:\\n\\nI just got fired from my job at the keyboard factory.\\n\\nThey told me I wasn't putting in enough shifts.\\n\\n😄\\n\\nBest regards!\",\"recipient_email\":\"Shanna@melissa.tv\",\"recipient_name\":\"Ervin Howell\",\"email_subject\":\"A joke for you!\"}}]}"
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.messageMetadata\",\"version\":1,\"metadata\":{\"framework\":{\"id\":\"95383a28-f41d-43df-86d4-0857249c63e6\",\"finishReason\":\"TOOL_EXECUTION\",\"tokenUsage\":{\"inputTokenCount\":2196,\"outputTokenCount\":237,\"totalTokenCount\":2433,\"cacheWriteInputTokens\":0,\"cacheReadInputTokens\":0}},\"timestamp\":\"2026-07-08T20:53:27.713001+02:00\"},\"properties\":{\"role\":\"ASSISTANT\"}}"
+                }
+            ],
+            "branch": {
+                "rootEventId": "0000001783536802868#babdb404",
+                "name": "972a7d8a-2845-4f54-afe1-af537c63e527"
+            },
+            "metadata": {
+                "seq": {
+                    "stringValue": "1"
+                }
+            }
+        },
+        {
+            "memoryId": "dummy_memory-mRN0nH9sBn",
+            "actorId": "dummy",
+            "sessionId": "6fd0b412-3365-4186-a6f1-f65f88ef168d",
+            "eventId": "0000001783536807720#ecd7117d",
+            "eventTimestamp": "2026-07-08T20:53:27.720000+02:00",
+            "payload": [
+                {
+                    "conversational": {
+                        "content": {
+                            "text": "{\"website\":\"anastasia.net\",\"name\":\"Ervin Howell\",\"email\":\"Shanna@melissa.tv\",\"username\":\"Antonette\",\"company\":{\"name\":\"Deckow-Crist\",\"catchPhrase\":\"Proactive didactic contingency\",\"bs\":\"synergize scalable supply-chains\"},\"id\":2,\"address\":{\"geo\":{\"lat\":\"-43.9509\",\"lng\":\"-34.4618\"},\"street\":\"Victor Plains\",\"suite\":\"Suite 879\",\"city\":\"Wisokyburgh\",\"zipcode\":\"90566-7771\"},\"phone\":\"010-692-6593 x09125\"}"
+                        },
+                        "role": "TOOL"
+                    }
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.toolCallResults\",\"version\":1,\"results\":[{\"id\":\"tooluse_H02aOM5gXPDhUGsBp9OMjy\",\"name\":\"LoadUserByID\",\"content\":{\"website\":\"anastasia.net\",\"name\":\"Ervin Howell\",\"email\":\"Shanna@melissa.tv\",\"username\":\"Antonette\",\"company\":{\"name\":\"Deckow-Crist\",\"catchPhrase\":\"Proactive didactic contingency\",\"bs\":\"synergize scalable supply-chains\"},\"id\":2,\"address\":{\"geo\":{\"lat\":\"-43.9509\",\"lng\":\"-34.4618\"},\"street\":\"Victor Plains\",\"suite\":\"Suite 879\",\"city\":\"Wisokyburgh\",\"zipcode\":\"90566-7771\"},\"phone\":\"010-692-6593 x09125\"},\"completedAt\":\"2026-07-08T20:53:23.604+02:00[Europe/Vienna]\"}]}"
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.messageMetadata\",\"version\":1,\"metadata\":{\"timestamp\":\"2026-07-08T20:53:23.930703+02:00\"},\"properties\":{\"role\":\"TOOL\"}}"
+                }
+            ],
+            "branch": {
+                "rootEventId": "0000001783536802868#babdb404",
+                "name": "972a7d8a-2845-4f54-afe1-af537c63e527"
+            },
+            "metadata": {
+                "seq": {
+                    "stringValue": "0"
+                }
+            }
+        },
+        {
+            "memoryId": "dummy_memory-mRN0nH9sBn",
+            "actorId": "dummy",
+            "sessionId": "6fd0b412-3365-4186-a6f1-f65f88ef168d",
+            "eventId": "0000001783536802868#babdb404",
+            "eventTimestamp": "2026-07-08T20:53:22.868000+02:00",
+            "payload": [
+                {
+                    "conversational": {
+                        "content": {
+                            "text": "Great! I found Ervin Howell (ID: 2) and I have a joke. Now let me get Ervin's email address."
+                        },
+                        "role": "ASSISTANT"
+                    }
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.toolCalls\",\"version\":1,\"toolCalls\":[{\"id\":\"tooluse_H02aOM5gXPDhUGsBp9OMjy\",\"name\":\"LoadUserByID\",\"arguments\":{\"id\":2}}]}"
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.messageMetadata\",\"version\":1,\"metadata\":{\"framework\":{\"id\":\"4c304b30-2e44-41a0-9b29-4ccb704587ee\",\"finishReason\":\"TOOL_EXECUTION\",\"tokenUsage\":{\"inputTokenCount\":1956,\"outputTokenCount\":88,\"totalTokenCount\":2044,\"cacheWriteInputTokens\":0,\"cacheReadInputTokens\":0}},\"timestamp\":\"2026-07-08T20:53:22.716201+02:00\"},\"properties\":{\"role\":\"ASSISTANT\"}}"
+                }
+            ],
+            "branch": {
+                "rootEventId": "0000001783536797557#249fd7bf",
+                "name": "b9bd7a2d-d6b2-4ff2-b7aa-e0df25115a0d"
+            },
+            "metadata": {
+                "seq": {
+                    "stringValue": "1"
+                }
+            }
+        },
+        {
+            "memoryId": "dummy_memory-mRN0nH9sBn",
+            "actorId": "dummy",
+            "sessionId": "6fd0b412-3365-4186-a6f1-f65f88ef168d",
+            "eventId": "0000001783536802720#8f189a67",
+            "eventTimestamp": "2026-07-08T20:53:22.720000+02:00",
+            "payload": [
+                {
+                    "conversational": {
+                        "content": {
+                            "text": "[{\"id\":1,\"name\":\"Leanne Graham\",\"username\":\"Bret\"},{\"id\":2,\"name\":\"Ervin Howell\",\"username\":\"Antonette\"},{\"id\":3,\"name\":\"Clementine Bauch\",\"username\":\"Samantha\"},{\"id\":4,\"name\":\"Patricia Lebsack\",\"username\":\"Karianne\"},{\"id\":5,\"name\":\"Chelsey Dietrich\",\"username\":\"Kamren\"},{\"id\":6,\"name\":\"Mrs. Dennis Schulist\",\"username\":\"Leopoldo_Corkery\"},{\"id\":7,\"name\":\"Kurtis Weissnat\",\"username\":\"Elwyn.Skiles\"},{\"id\":8,\"name\":\"Nicholas Runolfsdottir V\",\"username\":\"Maxime_Nienow\"},{\"id\":9,\"name\":\"Glenna Reichert\",\"username\":\"Delphine\"},{\"id\":10,\"name\":\"Clementina DuBuque\",\"username\":\"Moriah.Stanton\"}]\nI just got fired from my job at the keyboard factory.\n\nThey told me I wasn't putting in enough shifts."
+                        },
+                        "role": "TOOL"
+                    }
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.toolCallResults\",\"version\":1,\"results\":[{\"id\":\"tooluse_FOcMCCJ59OWJOJLmfMu2gy\",\"name\":\"ListUsers\",\"content\":[{\"id\":1,\"name\":\"Leanne Graham\",\"username\":\"Bret\"},{\"id\":2,\"name\":\"Ervin Howell\",\"username\":\"Antonette\"},{\"id\":3,\"name\":\"Clementine Bauch\",\"username\":\"Samantha\"},{\"id\":4,\"name\":\"Patricia Lebsack\",\"username\":\"Karianne\"},{\"id\":5,\"name\":\"Chelsey Dietrich\",\"username\":\"Kamren\"},{\"id\":6,\"name\":\"Mrs. Dennis Schulist\",\"username\":\"Leopoldo_Corkery\"},{\"id\":7,\"name\":\"Kurtis Weissnat\",\"username\":\"Elwyn.Skiles\"},{\"id\":8,\"name\":\"Nicholas Runolfsdottir V\",\"username\":\"Maxime_Nienow\"},{\"id\":9,\"name\":\"Glenna Reichert\",\"username\":\"Delphine\"},{\"id\":10,\"name\":\"Clementina DuBuque\",\"username\":\"Moriah.Stanton\"}],\"completedAt\":\"2026-07-08T20:53:18.072+02:00[Europe/Vienna]\"},{\"id\":\"tooluse_oPt3Jcwpl536eciGfi8jC3\",\"name\":\"Jokes_API\",\"content\":\"I just got fired from my job at the keyboard factory.\\n\\nThey told me I wasn't putting in enough shifts.\",\"completedAt\":\"2026-07-08T20:53:18.064+02:00[Europe/Vienna]\"}]}"
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.messageMetadata\",\"version\":1,\"metadata\":{\"timestamp\":\"2026-07-08T20:53:18.260722+02:00\"},\"properties\":{\"role\":\"TOOL\"}}"
+                }
+            ],
+            "branch": {
+                "rootEventId": "0000001783536797557#249fd7bf",
+                "name": "b9bd7a2d-d6b2-4ff2-b7aa-e0df25115a0d"
+            },
+            "metadata": {
+                "seq": {
+                    "stringValue": "0"
+                }
+            }
+        },
+        {
+            "memoryId": "dummy_memory-mRN0nH9sBn",
+            "actorId": "dummy",
+            "sessionId": "6fd0b412-3365-4186-a6f1-f65f88ef168d",
+            "eventId": "0000001783536797557#249fd7bf",
+            "eventTimestamp": "2026-07-08T20:53:17.557000+02:00",
+            "payload": [
+                {
+                    "conversational": {
+                        "content": {
+                            "text": "<thinking>\n<context>\nThe user wants me to send a joke to someone named \"Ervin\". To do this, I need to:\n1. Look up who Ervin is (get their contact details)\n2. Get a joke\n3. Send the joke to Ervin\n\nI should first list all users to find Ervin, then get their details, fetch a joke, and then use the email function to send it.\n</context>\n<reflection>\nI need to use the ListUsers function first to find Ervin, then LoadUserByID to get their email address, then Jokes_API to get a joke, and finally AskHumanToSendEmail to send the joke to Ervin.\n</reflection>\n</thinking>\n\nI'll help you send a joke to Ervin. Let me first find Ervin's contact information and get a joke."
+                        },
+                        "role": "ASSISTANT"
+                    }
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.toolCalls\",\"version\":1,\"toolCalls\":[{\"id\":\"tooluse_FOcMCCJ59OWJOJLmfMu2gy\",\"name\":\"ListUsers\",\"arguments\":{}},{\"id\":\"tooluse_oPt3Jcwpl536eciGfi8jC3\",\"name\":\"Jokes_API\",\"arguments\":{}}]}"
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.messageMetadata\",\"version\":1,\"metadata\":{\"framework\":{\"id\":\"d21c8a6e-1ddd-468e-add9-8dbd264a3db2\",\"finishReason\":\"TOOL_EXECUTION\",\"tokenUsage\":{\"inputTokenCount\":1391,\"outputTokenCount\":253,\"totalTokenCount\":1644,\"cacheWriteInputTokens\":0,\"cacheReadInputTokens\":0}},\"timestamp\":\"2026-07-08T20:53:17.333774+02:00\"},\"properties\":{\"role\":\"ASSISTANT\"}}"
+                }
+            ],
+            "branch": {
+                "name": "main"
+            },
+            "metadata": {
+                "seq": {
+                    "stringValue": "1"
+                }
+            }
+        },
+        {
+            "memoryId": "dummy_memory-mRN0nH9sBn",
+            "actorId": "dummy",
+            "sessionId": "6fd0b412-3365-4186-a6f1-f65f88ef168d",
+            "eventId": "0000001783536797438#5adc336d",
+            "eventTimestamp": "2026-07-08T20:53:17.438000+02:00",
+            "payload": [
+                {
+                    "conversational": {
+                        "content": {
+                            "text": "send ervin a joke"
+                        },
+                        "role": "USER"
+                    }
+                },
+                {
+                    "blob": "{\"blobType\":\"camunda.messageMetadata\",\"version\":1,\"metadata\":{\"timestamp\":\"2026-07-08T20:53:12.567622+02:00\"},\"properties\":{\"role\":\"USER\"}}"
+                }
+            ],
+            "branch": {
+                "name": "main"
+            },
+            "metadata": {
+                "seq": {
+                    "stringValue": "0"
+                }
+            }
+        }
+    ]
+}

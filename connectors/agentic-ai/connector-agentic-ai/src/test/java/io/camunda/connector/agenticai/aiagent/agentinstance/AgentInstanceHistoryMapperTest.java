@@ -17,8 +17,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -50,11 +51,11 @@ class AgentInstanceHistoryMapperTest {
   void toolResultUsesItsOwnCompletedAtNotTheTurnIngestionTimestamp() {
     final var toolCall = ToolCall.builder().id("call-1").name("getWeather").build();
     final var result =
-        ToolCallResult.builder()
+        ToolCallResultContent.builder()
             .id("call-1")
             .name("getWeather")
             .elementId("getWeather")
-            .content("sunny")
+            .content(List.of(TextContent.textContent("sunny")))
             .completedAt(TOOL_RESULT_COMPLETED_AT)
             .build();
     final var message = ToolCallResultMessage.builder().results(List.of(result)).build();
@@ -78,19 +79,19 @@ class AgentInstanceHistoryMapperTest {
     final var fastToolCall = ToolCall.builder().id("fast").name("getWeather").build();
     final var slowToolCall = ToolCall.builder().id("slow").name("downloadFile").build();
     final var fastResult =
-        ToolCallResult.builder()
+        ToolCallResultContent.builder()
             .id("fast")
             .name("getWeather")
             .elementId("getWeather")
-            .content("sunny")
+            .content(List.of(TextContent.textContent("sunny")))
             .completedAt(fastCompletedAt)
             .build();
     final var slowResult =
-        ToolCallResult.builder()
+        ToolCallResultContent.builder()
             .id("slow")
             .name("downloadFile")
             .elementId("downloadFile")
-            .content("done")
+            .content(List.of(TextContent.textContent("done")))
             .completedAt(slowCompletedAt)
             .build();
     final var message =
@@ -112,11 +113,11 @@ class AgentInstanceHistoryMapperTest {
     // every tool call result before it reaches the history mapper
     final var toolCall = ToolCall.builder().id("call-1").name("getWeather").build();
     final var result =
-        ToolCallResult.builder()
+        ToolCallResultContent.builder()
             .id("call-1")
             .name("getWeather")
             .elementId("getWeather")
-            .content("sunny")
+            .content(List.of(TextContent.textContent("sunny")))
             .build();
     final var message = ToolCallResultMessage.builder().results(List.of(result)).build();
 
