@@ -68,13 +68,17 @@ public class CamundaClientSaaSConfiguration {
       @Override
       public CredentialsProvider camundaClientCredentialsProvider(
           final CamundaClientProperties properties) {
-        return new OAuthCredentialsProviderBuilder()
-            .clientId(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID, null))
-            .clientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET, null))
-            .authorizationServerUrl(camundaClientTokenUrl)
-            .audience(camundaClientAudience)
-            .credentialsCachePath(credentialsCachePath)
-            .build();
+        if (properties.getAuth().getClientId() == null
+            && properties.getAuth().getClientSecret() == null) {
+          return new OAuthCredentialsProviderBuilder()
+              .clientId(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID, null))
+              .clientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET, null))
+              .authorizationServerUrl(camundaClientTokenUrl)
+              .audience(camundaClientAudience)
+              .credentialsCachePath(credentialsCachePath)
+              .build();
+        }
+        return super.camundaClientCredentialsProvider(properties);
       }
     };
   }
