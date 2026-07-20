@@ -18,19 +18,19 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiResponsesRecordedConversation.RecordedChatRequest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiResponsesRecordedConversation.RecordedChatRequest;
 import org.junit.jupiter.api.Test;
 
 /**
- * Fast, engine-free unit test for {@link NativeOpenAiResponsesRecordedConversation}'s request-body
- * parser: feeds a canned Responses request body (covering {@code instructions}, a user {@code
- * input_text} message, a {@code function_call}, a {@code function_call_output}, a {@code tools[]}
- * entry, and a {@code text.format} json_schema) directly to {@link RecordedChatRequest#parse}, no
- * WireMock/engine involved - the full round-trip through a real conversation is exercised
- * separately by {@link ProviderWireFormatSmokeTests} via {@link
- * NativeOpenAiResponsesWireFormatFixture}.
+ * Fast, engine-free unit test for {@link StreamingOpenAiResponsesRecordedConversation}'s
+ * request-body parser: feeds a canned Responses request body (covering {@code instructions}, a user
+ * {@code input_text} message, a {@code function_call}, a {@code function_call_output}, a {@code
+ * tools[]} entry, and a {@code text.format} json_schema) directly to {@link
+ * RecordedChatRequest#parse}, no WireMock/engine involved - the full round-trip through a real
+ * conversation is exercised separately by {@link ProviderWireFormatSmokeTests} via {@link
+ * StreamingOpenAiResponsesWireFormatFixture}.
  */
-class NativeOpenAiResponsesRecordedConversationTest {
+class StreamingOpenAiResponsesRecordedConversationTest {
 
   private static final String REQUEST_BODY =
       """

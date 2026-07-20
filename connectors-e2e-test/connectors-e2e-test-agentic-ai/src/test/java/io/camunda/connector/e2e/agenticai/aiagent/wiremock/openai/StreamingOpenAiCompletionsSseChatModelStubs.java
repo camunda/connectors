@@ -49,13 +49,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * stream_options.include_usage=true}, which {@code OpenAiCompletionsRequestConverter} always sets
  * for this native provider's requests.
  */
-final class NativeOpenAiCompletionsSseChatModelStubs {
+final class StreamingOpenAiCompletionsSseChatModelStubs {
 
   private static final String SCENARIO_NAME = "llm-conversation-openai-sse";
   private static final ObjectMapper JSON = new ObjectMapper();
   private static final AtomicInteger TURN_COUNTER = new AtomicInteger(0);
 
-  private NativeOpenAiCompletionsSseChatModelStubs() {}
+  private StreamingOpenAiCompletionsSseChatModelStubs() {}
 
   static void stubConversation(TurnStub... turns) {
     if (turns.length == 0) {

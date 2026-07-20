@@ -26,7 +26,7 @@ import java.util.function.Function;
  * ProviderWireFormatFixture} SPI, driving the connector through its langchain4j-bridge Anthropic
  * provider (v1). See {@link AbstractAnthropicMessagesWireFormatFixture} for the wire-format
  * plumbing shared with the native provider fixture ({@link
- * NativeAnthropicMessagesWireFormatFixture}).
+ * StreamingAnthropicMessagesWireFormatFixture}).
  */
 public final class AnthropicMessagesWireFormatFixture
     extends AbstractAnthropicMessagesWireFormatFixture {

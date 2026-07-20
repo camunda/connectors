@@ -55,7 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * only produces {@link io.camunda.connector.agenticai.aiagent.model.message.content.TextContent}
  * for an {@code output_text} part) followed by one {@code function_call} item per tool call.
  */
-final class NativeOpenAiResponsesSseChatModelStubs {
+final class StreamingOpenAiResponsesSseChatModelStubs {
 
   static final String RESPONSES_PATH = "/v1/responses";
 
@@ -63,7 +63,7 @@ final class NativeOpenAiResponsesSseChatModelStubs {
   private static final ObjectMapper JSON = new ObjectMapper();
   private static final AtomicInteger TURN_COUNTER = new AtomicInteger(0);
 
-  private NativeOpenAiResponsesSseChatModelStubs() {}
+  private StreamingOpenAiResponsesSseChatModelStubs() {}
 
   static void stubConversation(TurnStub... turns) {
     if (turns.length == 0) {

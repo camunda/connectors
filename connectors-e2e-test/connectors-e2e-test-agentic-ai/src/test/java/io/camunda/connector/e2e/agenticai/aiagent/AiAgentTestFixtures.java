@@ -87,7 +87,7 @@ public interface AiAgentTestFixtures {
    * #AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PROPERTIES}, omitting anything under {@code provider.*}
    * since the v2 template's nested provider/backend schema differs from v1 despite sharing the same
    * top-level prefix, and is instead configured directly by the fixture under test (e.g. {@code
-   * NativeAnthropicMessagesWireFormatFixture}).
+   * StreamingAnthropicMessagesWireFormatFixture}).
    */
   Map<String, String> AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PROPERTIES =
       Map.ofEntries(

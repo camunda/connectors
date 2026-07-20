@@ -53,7 +53,7 @@ import org.springframework.core.io.Resource;
  * additional scenario in that cross-provider parameterized suite.
  *
  * <p>Server-side skill/tool execution can't be emulated by WireMock, so this test drives a single
- * plain-text turn (via {@link NativeAnthropicMessagesSseChatModelStubs}, already migrated to the
+ * plain-text turn (via {@link StreamingAnthropicMessagesSseChatModelStubs}, already migrated to the
  * beta SSE event family) - the point is asserting the outgoing *request* wire format, not the
  * response.
  */
@@ -96,7 +96,7 @@ class NativeAnthropicSkillsAndToolsWireFormatTest extends BaseAiAgentJobWorkerTe
 
   /**
    * Points the connector at this test's WireMock server via the native (v2) Anthropic direct
-   * backend (same wiring as {@link NativeAnthropicMessagesWireFormatFixture}) and configures two
+   * backend (same wiring as {@link StreamingAnthropicMessagesWireFormatFixture}) and configures two
    * Skills - one Anthropic-hosted (single-token form, defaulting type/version), one custom (3-token
    * form) - plus the web-search and web-fetch toggles. {@code enableCodeExecution} is left unset so
    * the {@code code_execution} tool/beta under test are proven to come from the skills auto-add
@@ -118,7 +118,7 @@ class NativeAnthropicSkillsAndToolsWireFormatTest extends BaseAiAgentJobWorkerTe
   void includesSkillsCodeExecutionAndWebToolsOnTheWire() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
-    NativeAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
@@ -145,7 +145,7 @@ class NativeAnthropicSkillsAndToolsWireFormatTest extends BaseAiAgentJobWorkerTe
   void skillsCodeExecutionAndDynamicWebToolsCoexistOnDefaults() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
-    NativeAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     awaitProcessCompletion(

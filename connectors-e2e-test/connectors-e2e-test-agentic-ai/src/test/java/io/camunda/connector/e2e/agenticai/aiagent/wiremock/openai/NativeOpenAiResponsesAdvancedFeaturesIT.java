@@ -24,9 +24,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.jobworker.BaseAiAgentJobWorkerTest;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiResponsesRecordedConversation.RecordedChatRequest;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiResponsesSseChatModelStubs.ReasoningTurnStub;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiResponsesSseChatModelStubs.ServerToolTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiResponsesRecordedConversation.RecordedChatRequest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiResponsesSseChatModelStubs.ReasoningTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiResponsesSseChatModelStubs.ServerToolTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.io.File;
@@ -48,13 +48,13 @@ import org.springframework.core.io.Resource;
  * block and replayed on a follow-up model call - the OpenAI analogue of {@code
  * NativeAnthropicReasoningEffortIT} and {@code NativeAnthropicCodeExecutionServerToolE2eTest}.
  *
- * <p>Reuses {@link NativeOpenAiResponsesWireFormatFixture}'s native-OpenAI-Responses element
+ * <p>Reuses {@link StreamingOpenAiResponsesWireFormatFixture}'s native-OpenAI-Responses element
  * template wiring (v2/own-LLM-layer template, {@code provider.openai.*} properties, compatible
- * backend pointed at WireMock) and {@link NativeOpenAiResponsesRecordedConversation} for request
- * inspection, extended (see {@link NativeOpenAiResponsesRecordedConversation#rawInputItems()},
- * {@link NativeOpenAiResponsesRecordedConversation.RecordedChatRequest#reasoningEffort()}, {@link
- * NativeOpenAiResponsesRecordedConversation.RecordedChatRequest#include()}) to expose the item
- * kinds and top-level fields the shared {@code messages()} SPI mapping doesn't model.
+ * backend pointed at WireMock) and {@link StreamingOpenAiResponsesRecordedConversation} for request
+ * inspection, extended (see {@link StreamingOpenAiResponsesRecordedConversation#rawInputItems()},
+ * {@link StreamingOpenAiResponsesRecordedConversation.RecordedChatRequest#reasoningEffort()},
+ * {@link StreamingOpenAiResponsesRecordedConversation.RecordedChatRequest#include()}) to expose the
+ * item kinds and top-level fields the shared {@code messages()} SPI mapping doesn't model.
  */
 class NativeOpenAiResponsesAdvancedFeaturesIT extends BaseAiAgentJobWorkerTest {
 
@@ -102,10 +102,10 @@ class NativeOpenAiResponsesAdvancedFeaturesIT extends BaseAiAgentJobWorkerTest {
 
   /**
    * Points the connector at this test's WireMock server via the native (v2) OpenAI Responses
-   * compatible backend, same wiring as {@link NativeOpenAiResponsesWireFormatFixture}. Sets {@code
-   * provider.openai.model.model} to {@link #REASONING_CAPABLE_MODEL} so effort validation (Task 4's
-   * reasoning tests) and server-tool API-family validation both resolve against a consistent,
-   * matched model across every test in this class.
+   * compatible backend, same wiring as {@link StreamingOpenAiResponsesWireFormatFixture}. Sets
+   * {@code provider.openai.model.model} to {@link #REASONING_CAPABLE_MODEL} so effort validation
+   * (Task 4's reasoning tests) and server-tool API-family validation both resolve against a
+   * consistent, matched model across every test in this class.
    */
   private ElementTemplate configureOpenAiResponsesBackend(ElementTemplate template) {
     return template
@@ -130,7 +130,7 @@ class NativeOpenAiResponsesAdvancedFeaturesIT extends BaseAiAgentJobWorkerTest {
   void highEffortAppearsOnTheWireWithEncryptedContentInclude() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
-    NativeOpenAiResponsesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    StreamingOpenAiResponsesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     awaitProcessCompletion(createProcessInstance(effort("high"), Map.of("userPrompt", userPrompt)));
@@ -154,7 +154,7 @@ class NativeOpenAiResponsesAdvancedFeaturesIT extends BaseAiAgentJobWorkerTest {
     final var toolCallId = "call_reasoningE2E";
     final var satisfiedResponseText = "The superflux calculation of 5 and 3 is 24.";
 
-    NativeOpenAiResponsesSseChatModelStubs.stubReasoningConversation(
+    StreamingOpenAiResponsesSseChatModelStubs.stubReasoningConversation(
         new ReasoningTurnStub(
             reasoningId,
             encryptedContent,
@@ -166,7 +166,7 @@ class NativeOpenAiResponsesAdvancedFeaturesIT extends BaseAiAgentJobWorkerTest {
 
     awaitProcessCompletion(createProcessInstance(effort("high"), Map.of("userPrompt", userPrompt)));
 
-    final var recorded = NativeOpenAiResponsesRecordedConversation.recorded();
+    final var recorded = StreamingOpenAiResponsesRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).as("recorded model-call requests").isEqualTo(2);
 
     final var secondRequest = recorded.requests().get(1);
@@ -229,7 +229,7 @@ class NativeOpenAiResponsesAdvancedFeaturesIT extends BaseAiAgentJobWorkerTest {
     final var searchQuery = "today's date";
     final var satisfiedResponseText = "Great, glad that helped!";
 
-    NativeOpenAiResponsesSseChatModelStubs.stubServerToolConversation(
+    StreamingOpenAiResponsesSseChatModelStubs.stubServerToolConversation(
         new ServerToolTurnStub(webSearchText, webSearchCallId, searchQuery, 10, 20),
         TurnStub.text(satisfiedResponseText, 11, 22));
     enqueueUserFeedback(userFollowUpFeedback(followUpPrompt), userSatisfiedFeedback());
@@ -240,7 +240,7 @@ class NativeOpenAiResponsesAdvancedFeaturesIT extends BaseAiAgentJobWorkerTest {
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
 
-    final var recorded = NativeOpenAiResponsesRecordedConversation.recorded();
+    final var recorded = StreamingOpenAiResponsesRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).as("recorded model-call requests").isEqualTo(2);
 
     // Scan the whole conversation rather than assuming a fixed turn index - mirrors
@@ -274,7 +274,7 @@ class NativeOpenAiResponsesAdvancedFeaturesIT extends BaseAiAgentJobWorkerTest {
   // ---------------------------------------------------------------------------
 
   private static RecordedChatRequest soleRecordedRequest() {
-    final var recorded = NativeOpenAiResponsesRecordedConversation.recorded();
+    final var recorded = StreamingOpenAiResponsesRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).as("recorded model-call requests").isEqualTo(1);
     return recorded.lastRequest();
   }

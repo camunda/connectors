@@ -37,7 +37,7 @@ import java.util.function.Function;
  * client.messages().createStreaming(params)}), which expects a real {@code text/event-stream} SSE
  * body, whereas the langchain4j-bridge client (v1) issues a plain non-streaming POST and expects a
  * single buffered JSON body. {@link #stubConversation(TurnStub...)} is overridden here to stub the
- * former via {@link NativeAnthropicMessagesSseChatModelStubs} instead of inheriting {@link
+ * former via {@link StreamingAnthropicMessagesSseChatModelStubs} instead of inheriting {@link
  * AbstractAnthropicMessagesWireFormatFixture}'s buffered-JSON default.
  *
  * <p>Drives the v2 element template ({@link
@@ -51,17 +51,17 @@ import java.util.function.Function;
  * {@code v1} and {@code messages} path segments onto the configured base URL itself, whereas the
  * langchain4j Anthropic client expects the endpoint to already include {@code /v1}.
  */
-public final class NativeAnthropicMessagesWireFormatFixture
+public final class StreamingAnthropicMessagesWireFormatFixture
     extends AbstractAnthropicMessagesWireFormatFixture {
 
   @Override
   public String apiName() {
-    return "NativeAnthropicMessages";
+    return "StreamingAnthropicMessages";
   }
 
   @Override
   public void stubConversation(TurnStub... turns) {
-    NativeAnthropicMessagesSseChatModelStubs.stubConversation(turns);
+    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(turns);
   }
 
   @Override

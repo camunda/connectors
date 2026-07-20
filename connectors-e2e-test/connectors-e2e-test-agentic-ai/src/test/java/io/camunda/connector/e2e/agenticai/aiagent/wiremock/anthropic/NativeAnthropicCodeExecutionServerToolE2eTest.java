@@ -31,7 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.jobworker.BaseAiAgentJobWorkerTest;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.NativeAnthropicMessagesSseChatModelStubs.ServerToolUseTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs.ServerToolUseTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import java.io.File;
@@ -47,7 +47,7 @@ import org.springframework.core.io.Resource;
 
 /**
  * End-to-end coverage for an Anthropic Skills/code-execution turn driven through the REAL {@code
- * BetaMessageAccumulator} (via {@link NativeAnthropicMessagesSseChatModelStubs}), closing the
+ * BetaMessageAccumulator} (via {@link StreamingAnthropicMessagesSseChatModelStubs}), closing the
  * coverage gap that let a native-path {@code server_tool_use}/{@code code_execution_tool_result}
  * bug ship undetected: unlike {@link NativeAnthropicSkillsAndToolsWireFormatTest} (which only
  * drives a plain-text turn, since server-side skill/tool execution can't be emulated by WireMock,
@@ -125,7 +125,7 @@ class NativeAnthropicCodeExecutionServerToolE2eTest extends BaseAiAgentJobWorker
     final var followingText = "Confirmed: 1 == 1.";
     final var satisfiedResponseText = "Great, glad that helped!";
 
-    NativeAnthropicMessagesSseChatModelStubs.stubServerToolUseConversation(
+    StreamingAnthropicMessagesSseChatModelStubs.stubServerToolUseConversation(
         new ServerToolUseTurnStub(
             precedingText, serverToolUseId, codeInputJson, stdout, followingText, 10, 20),
         TurnStub.text(satisfiedResponseText, 11, 22));

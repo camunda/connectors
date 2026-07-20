@@ -28,12 +28,12 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentTest;
 import io.camunda.connector.e2e.agenticai.aiagent.jobworker.BaseAiAgentJobWorkerTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesWireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.NativeAnthropicMessagesWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.AzureOpenAiCompletionsWireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiCompletionsWireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiResponsesWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiCompletionsWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiResponsesWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
@@ -79,11 +79,11 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
     return Stream.of(
         new OpenAiCompletionsWireFormatFixture(),
         new AnthropicMessagesWireFormatFixture(),
-        new NativeAnthropicMessagesWireFormatFixture(),
+        new StreamingAnthropicMessagesWireFormatFixture(),
         new BedrockConverseWireFormatFixture(),
         new AzureOpenAiCompletionsWireFormatFixture(),
-        new NativeOpenAiCompletionsWireFormatFixture(),
-        new NativeOpenAiResponsesWireFormatFixture());
+        new StreamingOpenAiCompletionsWireFormatFixture(),
+        new StreamingOpenAiResponsesWireFormatFixture());
   }
 
   /**

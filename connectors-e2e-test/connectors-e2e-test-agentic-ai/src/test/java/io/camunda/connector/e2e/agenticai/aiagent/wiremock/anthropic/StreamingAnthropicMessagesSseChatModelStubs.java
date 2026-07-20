@@ -104,13 +104,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * earlier native-path bug in that block-mapping ship undetected (see {@link
  * ServerToolUseTurnStub}).
  */
-final class NativeAnthropicMessagesSseChatModelStubs {
+final class StreamingAnthropicMessagesSseChatModelStubs {
 
   private static final String SCENARIO_NAME = "llm-conversation-sse";
   private static final JsonMapper JSON_MAPPER = ObjectMappers.jsonMapper();
   private static final AtomicInteger TURN_COUNTER = new AtomicInteger(0);
 
-  private NativeAnthropicMessagesSseChatModelStubs() {}
+  private StreamingAnthropicMessagesSseChatModelStubs() {}
 
   /** Wires the scenario chain returning each turn's SSE response in order. */
   static void stubConversation(TurnStub... turns) {
@@ -118,7 +118,7 @@ final class NativeAnthropicMessagesSseChatModelStubs {
       throw new IllegalArgumentException("At least one conversation turn is required");
     }
     stubScenario(
-        Arrays.stream(turns).map(NativeAnthropicMessagesSseChatModelStubs::sseBody).toList());
+        Arrays.stream(turns).map(StreamingAnthropicMessagesSseChatModelStubs::sseBody).toList());
   }
 
   /**

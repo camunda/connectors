@@ -31,8 +31,8 @@ import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.jobworker.BaseAiAgentJobWorkerTest;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.NativeAnthropicMessagesSseChatModelStubs.RedactedThinkingTurnStub;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.NativeAnthropicMessagesSseChatModelStubs.ThinkingTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs.RedactedThinkingTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs.ThinkingTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.io.File;
@@ -57,7 +57,7 @@ import org.springframework.core.io.Resource;
  * <p>Follows the same native-Anthropic wiring as {@link
  * NativeAnthropicSkillsAndToolsWireFormatTest} / {@link
  * NativeAnthropicCodeExecutionServerToolE2eTest}: v2/own-LLM-layer element template, {@code
- * provider.anthropic.*} properties, {@link NativeAnthropicMessagesSseChatModelStubs} for the
+ * provider.anthropic.*} properties, {@link StreamingAnthropicMessagesSseChatModelStubs} for the
  * streamed SSE response.
  */
 class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
@@ -118,10 +118,10 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
 
   /**
    * Points the connector at this test's WireMock server via the native (v2) Anthropic direct
-   * backend, same wiring as {@link NativeAnthropicMessagesWireFormatFixture}. Deliberately does NOT
-   * set {@code provider.anthropic.model.model} - every test sets its own model id (via its {@code
-   * elementTemplateModifier}) since the model id under test drives capability-matrix matching and
-   * must vary per scenario.
+   * backend, same wiring as {@link StreamingAnthropicMessagesWireFormatFixture}. Deliberately does
+   * NOT set {@code provider.anthropic.model.model} - every test sets its own model id (via its
+   * {@code elementTemplateModifier}) since the model id under test drives capability-matrix
+   * matching and must vary per scenario.
    */
   private ElementTemplate configureAnthropicBackend(ElementTemplate template) {
     return template
@@ -143,7 +143,7 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
   void enabledThinkingWithBudgetTokensAppearsOnTheWire() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
-    NativeAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
@@ -170,7 +170,7 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
   void adaptiveThinkingWithSummarizedDisplayAppearsOnTheWire() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
-    NativeAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
@@ -195,7 +195,7 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
   void disabledThinkingAppearsOnTheWire() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
-    NativeAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
@@ -222,7 +222,7 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
   void xhighEffortAppearsOnTheWireAsOutputConfigEffort() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
-    NativeAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
@@ -244,7 +244,7 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
   void customEffortSendsFreeTextValueVerbatimOnTheWire() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
-    NativeAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
@@ -276,7 +276,7 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
     final var toolCallId = "toolu_01thinkE2E";
     final var satisfiedResponseText = "The superflux calculation of 5 and 3 is 24.";
 
-    NativeAnthropicMessagesSseChatModelStubs.stubThinkingConversation(
+    StreamingAnthropicMessagesSseChatModelStubs.stubThinkingConversation(
         new ThinkingTurnStub(
             thinkingText,
             signature,
@@ -353,7 +353,7 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
     final var toolCallId = "toolu_01redactedE2E";
     final var satisfiedResponseText = "The superflux calculation of 5 and 3 is 24.";
 
-    NativeAnthropicMessagesSseChatModelStubs.stubRedactedThinkingConversation(
+    StreamingAnthropicMessagesSseChatModelStubs.stubRedactedThinkingConversation(
         new RedactedThinkingTurnStub(
             redactedData,
             List.of(new ToolCallStub(toolCallId, "SuperfluxProduct", "{\"a\": 5, \"b\": 3}")),

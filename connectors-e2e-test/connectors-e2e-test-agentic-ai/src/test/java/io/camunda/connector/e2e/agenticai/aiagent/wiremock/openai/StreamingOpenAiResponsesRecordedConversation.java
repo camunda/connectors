@@ -50,23 +50,23 @@ import java.util.Optional;
  * lossy simplification: {@code OpenAiResponsesRequestConverter#assistantInputItems} always emits
  * exactly this contiguous item sequence for one domain {@code AssistantMessage}.
  */
-public final class NativeOpenAiResponsesRecordedConversation {
+public final class StreamingOpenAiResponsesRecordedConversation {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final List<RecordedChatRequest> requests;
 
-  private NativeOpenAiResponsesRecordedConversation(List<RecordedChatRequest> requests) {
+  private StreamingOpenAiResponsesRecordedConversation(List<RecordedChatRequest> requests) {
     this.requests = requests;
   }
 
   /** Reads and parses all recorded {@code POST /v1/responses} requests, oldest first. */
-  public static NativeOpenAiResponsesRecordedConversation recorded() {
-    return recorded(NativeOpenAiResponsesSseChatModelStubs.RESPONSES_PATH);
+  public static StreamingOpenAiResponsesRecordedConversation recorded() {
+    return recorded(StreamingOpenAiResponsesSseChatModelStubs.RESPONSES_PATH);
   }
 
   /** Reads and parses all recorded Responses requests at the given path, oldest first. */
-  public static NativeOpenAiResponsesRecordedConversation recorded(String path) {
+  public static StreamingOpenAiResponsesRecordedConversation recorded(String path) {
     final List<LoggedRequest> loggedRequests =
         new ArrayList<>(findAll(postRequestedFor(urlPathEqualTo(path))));
 
@@ -79,7 +79,7 @@ public final class NativeOpenAiResponsesRecordedConversation {
             .map(RecordedChatRequest::parse)
             .toList();
 
-    return new NativeOpenAiResponsesRecordedConversation(parsed);
+    return new StreamingOpenAiResponsesRecordedConversation(parsed);
   }
 
   /** Number of model calls. */
