@@ -79,6 +79,7 @@ public class CamundaClientSaaSConfiguration {
                   ? auth.getCredentialsCachePath()
                   : credentialsCachePath;
           return new OAuthCredentialsProviderBuilder()
+              .applyEnvironmentOverrides(false)
               .clientId(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID, null))
               .clientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET, null))
               .authorizationServerUrl(tokenUrl)
