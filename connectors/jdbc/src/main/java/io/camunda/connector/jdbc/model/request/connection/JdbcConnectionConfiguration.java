@@ -31,4 +31,18 @@ public record JdbcConnectionConfiguration(
   public DetailedConnection toDetailedConnection() {
     return new DetailedConnection(host, port, username, password, databaseName, null);
   }
+
+  @Override
+  public String toString() {
+    return "JdbcConnectionConfiguration{"
+        + "host="
+        + host
+        + ", port="
+        + port
+        + ", databaseName="
+        + databaseName
+        + ", username=[REDACTED]"
+        + ", password=[REDACTED]"
+        + "}";
+  }
 }
