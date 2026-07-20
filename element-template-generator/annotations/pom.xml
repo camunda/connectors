@@ -14,4 +14,11 @@
   <artifactId>element-template-generator-annotations</artifactId>
   <packaging>jar</packaging>
 
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-core</artifactId>
+    </dependency>
+  </dependencies>
+
 </project>

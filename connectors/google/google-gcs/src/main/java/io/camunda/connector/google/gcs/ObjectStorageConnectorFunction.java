@@ -22,7 +22,8 @@ import java.util.function.Function;
       "authentication",
       "operationDiscriminator",
       "operation",
-      "additionalProperties"
+      "additionalProperties",
+      "documentReturnFormat"
     },
     type = "io.camunda:google-gcs:1")
 @ElementTemplate(
@@ -31,7 +32,7 @@ import java.util.function.Function;
     name = "Google Cloud Storage Outbound Connector",
     description = "Upload and download files from Google Cloud Storage.",
     inputDataClass = ObjectStorageRequest.class,
-    version = 3,
+    version = 4,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
@@ -60,7 +61,8 @@ public class ObjectStorageConnectorFunction implements OutboundConnectorFunction
   public Object execute(OutboundConnectorContext context) {
     Function<DocumentCreationRequest, Document> createDocument = context::create;
     ObjectStorageRequest objectStorageRequest = context.bindVariables(ObjectStorageRequest.class);
+    boolean useDocumentReturnFlow = context.readDocumentReturnFormat().isPresent();
     return ObjectStorageExecutor.create(objectStorageRequest, createDocument)
-        .execute(objectStorageRequest.getOperation());
+        .execute(objectStorageRequest.getOperation(), useDocumentReturnFlow);
   }
 }

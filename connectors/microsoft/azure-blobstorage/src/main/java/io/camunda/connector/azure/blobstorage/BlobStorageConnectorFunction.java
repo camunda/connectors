@@ -22,7 +22,8 @@ import java.util.function.Function;
       "authentication",
       "operationDiscriminator",
       "operation",
-      "additionalProperties"
+      "additionalProperties",
+      "documentReturnFormat"
     },
     type = "io.camunda:azure-blobstorage:1")
 @ElementTemplate(
@@ -31,7 +32,7 @@ import java.util.function.Function;
     name = "Azure Blob Storage Outbound Connector",
     description = "Upload and download files from Azure Blob Storage.",
     inputDataClass = BlobStorageRequest.class,
-    version = 4,
+    version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
@@ -57,7 +58,8 @@ public class BlobStorageConnectorFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) {
     Function<DocumentCreationRequest, Document> createDocument = context::create;
     BlobStorageRequest blobStorageRequest = context.bindVariables(BlobStorageRequest.class);
+    boolean useDocumentReturnFlow = context.readDocumentReturnFormat().isPresent();
     return BlobStorageExecutor.create(blobStorageRequest, createDocument)
-        .execute(blobStorageRequest.getOperation());
+        .execute(blobStorageRequest.getOperation(), useDocumentReturnFlow);
   }
 }

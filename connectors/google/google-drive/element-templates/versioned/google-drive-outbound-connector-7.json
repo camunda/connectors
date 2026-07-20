@@ -5,7 +5,7 @@
   "description" : "Manage Google Drive files and folders",
   "keywords" : [ "create file", "create file from template", "create folder", "upload file", "download file", "file storage", "document management" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googledrive/",
-  "version" : 8,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -502,69 +502,10 @@
     },
     "type" : "String"
   }, {
-    "id" : "documentReturnFormat",
-    "label" : "Response format",
-    "value" : "DOCUMENT",
-    "group" : "operationDetails",
-    "binding" : {
-      "name" : "documentReturnFormat.choice",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "resource.type",
-        "equals" : "download",
-        "type" : "simple"
-      }, {
-        "property" : "resource.type",
-        "equals" : "download",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "How the downloaded payload should be returned. Document reference uploads the payload to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Document reference",
-      "value" : "DOCUMENT"
-    }, {
-      "name" : "as text",
-      "value" : "TEXT"
-    }, {
-      "name" : "as JSON",
-      "value" : "JSON"
-    } ]
-  }, {
-    "id" : "documentReturnFormatEncoding",
-    "label" : "Encoding",
-    "description" : "Character set used to decode the response. Default UTF-8.",
-    "value" : "UTF-8",
-    "feel" : "optional",
-    "group" : "operationDetails",
-    "binding" : {
-      "name" : "documentReturnFormat.encoding",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "resource.type",
-        "equals" : "download",
-        "type" : "simple"
-      }, {
-        "property" : "documentReturnFormat",
-        "equals" : "TEXT",
-        "type" : "simple"
-      }, {
-        "property" : "resource.type",
-        "equals" : "download",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "8",
+    "value" : "7",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

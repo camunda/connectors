@@ -22,6 +22,7 @@ import com.box.sdk.BoxSearch;
 import com.box.sdk.BoxSearchParameters;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.box.model.BoxRequest;
 import io.camunda.connector.box.model.BoxRequest.Operation.Search.SortDirection;
@@ -31,12 +32,13 @@ import java.util.stream.Collectors;
 
 public class BoxOperations {
 
-  public static BoxResult execute(BoxRequest request, OutboundConnectorContext context) {
+  public static Object execute(
+      BoxRequest request, OutboundConnectorContext context, boolean useDocumentReturnFlow) {
     var api = connectToApi(request.authentication());
     return switch (request.operation()) {
       case BoxRequest.Operation.UploadFile uploadFile -> uploadFile(uploadFile, api);
       case BoxRequest.Operation.DownloadFile downloadFile ->
-          downloadFile(downloadFile, api, context);
+          downloadFile(downloadFile, api, context, useDocumentReturnFlow);
       case BoxRequest.Operation.MoveFile moveFile -> moveFile(moveFile, api);
       case BoxRequest.Operation.DeleteFile deleteFile -> deleteFile(deleteFile, api);
       case BoxRequest.Operation.CreateFolder createFolder -> createFolder(createFolder, api);
@@ -71,13 +73,29 @@ public class BoxOperations {
     return new BoxResult.Upload(item(file));
   }
 
-  private static BoxResult.Download downloadFile(
+  private static Object downloadFile(
       BoxRequest.Operation.DownloadFile downloadFile,
       BoxAPIConnection api,
-      OutboundConnectorContext context) {
+      OutboundConnectorContext context,
+      boolean useDocumentReturnFlow) {
     var file = getFile(downloadFile.filePath(), api);
-    var document = createDocument(file, context);
-    return new BoxResult.Download(item(file), document);
+    if (useDocumentReturnFlow) {
+      return newDownloadPath(file);
+    } else {
+      var document = createDocument(file, context);
+      return new BoxResult.Download(item(file), document);
+    }
+  }
+
+  private static DocumentReturn<BoxResult> newDownloadPath(BoxFile file) {
+    BoxResult.Item itemSnapshot = item(file);
+    String fileName = file.getInfo().getName();
+    byte[] bytes = download(file);
+    return DocumentReturn.of(
+        bytes,
+        null,
+        fileName,
+        (converted, choice) -> BoxResult.forDownload(itemSnapshot, choice, converted));
   }
 
   private static Document createDocument(BoxFile file, OutboundConnectorContext context) {
