@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfigur
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
@@ -29,7 +30,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class Langchain4JChatModelApiFactoryTest {
 
-  @Mock private ChatModelFactory chatModelFactory;
+  @Mock private ChatModelProvider<AnthropicProviderConfiguration> chatModelProvider;
   @Mock private ChatMessageConverter chatMessageConverter;
   @Mock private ToolSpecificationConverter toolSpecificationConverter;
   @Mock private JsonSchemaConverter jsonSchemaConverter;
@@ -41,8 +42,7 @@ class Langchain4JChatModelApiFactoryTest {
   void setUp() {
     factory =
         new Langchain4JChatModelApiFactory(
-            provider -> provider instanceof AnthropicProviderConfiguration,
-            chatModelFactory,
+            chatModelProvider,
             chatMessageConverter,
             toolSpecificationConverter,
             jsonSchemaConverter,
@@ -50,7 +50,8 @@ class Langchain4JChatModelApiFactoryTest {
   }
 
   @Test
-  void supportsConfigurationMatchingPredicate() {
+  void supportsConfigurationMatchingProviderType() {
+    when(chatModelProvider.type()).thenReturn(AnthropicProviderConfiguration.ANTHROPIC_ID);
     final ChatModelApiConfiguration configuration =
         new ProviderChatModelApiConfiguration(anthropicProviderConfiguration());
 
@@ -58,19 +59,12 @@ class Langchain4JChatModelApiFactoryTest {
   }
 
   @Test
-  void doesNotSupportConfigurationNotMatchingPredicate() {
-    final var rejectingFactory =
-        new Langchain4JChatModelApiFactory(
-            provider -> false,
-            chatModelFactory,
-            chatMessageConverter,
-            toolSpecificationConverter,
-            jsonSchemaConverter,
-            Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
+  void doesNotSupportConfigurationWithDifferentProviderType() {
+    when(chatModelProvider.type()).thenReturn("some-other-provider");
     final ChatModelApiConfiguration configuration =
         new ProviderChatModelApiConfiguration(anthropicProviderConfiguration());
 
-    assertThat(rejectingFactory.supports(configuration)).isFalse();
+    assertThat(factory.supports(configuration)).isFalse();
   }
 
   @Test
@@ -86,13 +80,13 @@ class Langchain4JChatModelApiFactoryTest {
     final var providerConfiguration = anthropicProviderConfiguration();
     final ChatModelApiConfiguration configuration =
         new ProviderChatModelApiConfiguration(providerConfiguration);
-    when(chatModelFactory.createChatModel(providerConfiguration)).thenReturn(chatModel);
+    when(chatModelProvider.createChatModel(providerConfiguration)).thenReturn(chatModel);
 
     final var api = factory.create(configuration);
 
     assertThat(api).isInstanceOf(Langchain4JChatModelApi.class);
     assertThat(api.capabilities()).isSameAs(Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
-    verify(chatModelFactory).createChatModel(providerConfiguration);
+    verify(chatModelProvider).createChatModel(providerConfiguration);
   }
 
   private static AnthropicProviderConfiguration anthropicProviderConfiguration() {

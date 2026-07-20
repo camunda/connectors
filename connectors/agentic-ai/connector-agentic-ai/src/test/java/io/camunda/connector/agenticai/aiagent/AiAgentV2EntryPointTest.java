@@ -18,10 +18,10 @@ import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentReques
 import io.camunda.connector.agenticai.aiagent.framework.ChatModelApiRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
@@ -119,8 +119,7 @@ class AiAgentV2EntryPointTest {
         new ChatModelApiRegistryImpl(
             List.of(
                 new Langchain4JChatModelApiFactory(
-                    provider -> true,
-                    mock(ChatModelFactory.class),
+                    mock(ChatModelProvider.class),
                     mock(ChatMessageConverter.class),
                     mock(ToolSpecificationConverter.class),
                     mock(JsonSchemaConverter.class),

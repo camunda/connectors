@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.configurati
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverterImpl;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApi;
@@ -17,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JC
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
@@ -86,21 +86,19 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
     return new ChatMessageConverterImpl(contentConverter, toolCallConverter, objectMapper);
   }
 
-  // One factory bean per built-in provider (each keyed to that provider's ProviderConfiguration
-  // subtype), so an individual provider can be swapped for a different ChatModelApiFactory without
-  // affecting the others. @ConditionalOnMissingBean is deliberately omitted here: all six methods
-  // return the same Langchain4JChatModelApiFactory type, so a type-based condition would only ever
-  // let the first-registered bean through.
+  // One factory bean per built-in provider, each wrapping that provider's ChatModelProvider bean
+  // (resolved by its specific generic type). @ConditionalOnMissingBean is deliberately omitted
+  // here: all six methods return the same Langchain4JChatModelApiFactory type, so a type-based
+  // condition would only ever let the first-registered bean through.
 
   @Bean
   public Langchain4JChatModelApiFactory aiAgentLangchain4JAnthropicChatModelApiFactory(
-      ChatModelFactory chatModelFactory,
+      ChatModelProvider<AnthropicProviderConfiguration> anthropicChatModelProvider,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
     return new Langchain4JChatModelApiFactory(
-        provider -> provider instanceof AnthropicProviderConfiguration,
-        chatModelFactory,
+        anthropicChatModelProvider,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter,
@@ -109,13 +107,12 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   public Langchain4JChatModelApiFactory aiAgentLangchain4JBedrockChatModelApiFactory(
-      ChatModelFactory chatModelFactory,
+      ChatModelProvider<BedrockProviderConfiguration> bedrockChatModelProvider,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
     return new Langchain4JChatModelApiFactory(
-        provider -> provider instanceof BedrockProviderConfiguration,
-        chatModelFactory,
+        bedrockChatModelProvider,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter,
@@ -124,13 +121,12 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   public Langchain4JChatModelApiFactory aiAgentLangchain4JAzureOpenAiChatModelApiFactory(
-      ChatModelFactory chatModelFactory,
+      ChatModelProvider<AzureOpenAiProviderConfiguration> azureOpenAiChatModelProvider,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
     return new Langchain4JChatModelApiFactory(
-        provider -> provider instanceof AzureOpenAiProviderConfiguration,
-        chatModelFactory,
+        azureOpenAiChatModelProvider,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter,
@@ -139,13 +135,12 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   public Langchain4JChatModelApiFactory aiAgentLangchain4JGoogleVertexAiChatModelApiFactory(
-      ChatModelFactory chatModelFactory,
+      ChatModelProvider<GoogleVertexAiProviderConfiguration> googleVertexAiChatModelProvider,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
     return new Langchain4JChatModelApiFactory(
-        provider -> provider instanceof GoogleVertexAiProviderConfiguration,
-        chatModelFactory,
+        googleVertexAiChatModelProvider,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter,
@@ -154,13 +149,12 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   public Langchain4JChatModelApiFactory aiAgentLangchain4JOpenAiChatModelApiFactory(
-      ChatModelFactory chatModelFactory,
+      ChatModelProvider<OpenAiProviderConfiguration> openAiChatModelProvider,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
     return new Langchain4JChatModelApiFactory(
-        provider -> provider instanceof OpenAiProviderConfiguration,
-        chatModelFactory,
+        openAiChatModelProvider,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter,
@@ -169,13 +163,12 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   public Langchain4JChatModelApiFactory aiAgentLangchain4JOpenAiCompatibleChatModelApiFactory(
-      ChatModelFactory chatModelFactory,
+      ChatModelProvider<OpenAiCompatibleProviderConfiguration> openAiCompatibleChatModelProvider,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
     return new Langchain4JChatModelApiFactory(
-        provider -> provider instanceof OpenAiCompatibleProviderConfiguration,
-        chatModelFactory,
+        openAiCompatibleChatModelProvider,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter,

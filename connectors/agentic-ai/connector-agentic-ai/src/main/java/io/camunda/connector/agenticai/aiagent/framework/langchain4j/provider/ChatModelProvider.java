@@ -10,8 +10,8 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableCha
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 
 /**
- * Factory for a single LLM provider implementation. Implementations are registered in the {@link
- * ChatModelProviderRegistry} by their {@link #type()}, which matches the corresponding {@link
+ * Factory for a single LLM provider implementation. Each provider is wrapped by a {@code
+ * Langchain4JChatModelApiFactory} matching on {@link #type()}, which corresponds to the {@link
  * ProviderConfiguration} discriminator (e.g. {@code anthropic}).
  *
  * @param <T> the {@link ProviderConfiguration} subtype this provider handles

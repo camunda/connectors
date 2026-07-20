@@ -33,7 +33,6 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CapabilityMatrix;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverter;
@@ -44,7 +43,6 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Ant
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AzureOpenAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.BedrockChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.GoogleVertexAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiCompatibleChatModelProvider;
@@ -127,8 +125,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
           GoogleVertexAiChatModelProvider.class,
           OpenAiChatModelProvider.class,
           OpenAiCompatibleChatModelProvider.class,
-          ChatModelProviderRegistry.class,
-          ChatModelFactory.class,
           DocumentToContentConverter.class,
           ContentConverter.class,
           ToolCallConverter.class,
