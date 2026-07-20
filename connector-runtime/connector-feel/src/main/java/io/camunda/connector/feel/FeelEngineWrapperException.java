@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.feel;
 
+import java.util.Arrays;
+
 /** Exception class indicating issues in a {@link LocalFeelExpressionEvaluator} call */
 public class FeelEngineWrapperException extends RuntimeException {
 
@@ -36,10 +38,16 @@ public class FeelEngineWrapperException extends RuntimeException {
     super(
         String.format(
             "Failed to evaluate expression '%s' in context '%s'. Reason: %s",
-            expression, context, reason),
+            expression, formatContext(context), reason),
         throwable);
     this.reason = reason;
     this.expression = expression;
+  }
+
+  private static String formatContext(final Object context) {
+    final String formatted =
+        context instanceof Object[] array ? Arrays.deepToString(array) : String.valueOf(context);
+    return formatted.length() > 2000 ? formatted.substring(0, 2000) + "...(truncated)" : formatted;
   }
 
   public String getReason() {

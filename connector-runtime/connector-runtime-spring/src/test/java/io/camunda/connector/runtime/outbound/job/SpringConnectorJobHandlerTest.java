@@ -30,6 +30,7 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.command.FailJobCommandStep1;
@@ -1403,6 +1404,36 @@ class SpringConnectorJobHandlerTest {
       assertThat(result.getErrorCode()).isNull();
       assertThat(result.getErrorMessage()).isNull();
       assertThat(result.getVariables()).isNull();
+    }
+
+    @Test
+    void shouldAbandonJob_WhenThreadInterruptedDuringErrorExpressionEvaluation() throws Exception {
+      // given: the job-handling thread was interrupted (e.g. runtime shutdown via
+      // JobWorkerExecutors.close()) right before error expression evaluation gets a chance to
+      // observe it - mirroring a downstream connector call that returned after being interrupted
+      var errorExpression = "if error != null then bpmnError(error.code, error.message) else null";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("1013", "exception message");
+              });
+      var jobClient = mock(JobClient.class);
+
+      // when
+      Thread.currentThread().interrupt();
+      try {
+        JobBuilder.create()
+            .withErrorExpressionHeader(errorExpression)
+            .useJobClient(jobClient)
+            .execute(jobHandler);
+      } finally {
+        // clear any leftover interrupt status so it doesn't leak into other tests
+        Thread.interrupted();
+      }
+
+      // then: no incident is raised - the job is abandoned so Zeebe's activation timeout
+      // reassigns it, instead of failing with a misleading "Reason: null" error
+      verifyNoInteractions(jobClient);
     }
   }
 

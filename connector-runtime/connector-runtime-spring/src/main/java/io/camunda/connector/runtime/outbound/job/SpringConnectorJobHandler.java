@@ -240,6 +240,24 @@ public class SpringConnectorJobHandler implements JobHandler {
           error -> handleBPMNError(client, job, error, counterMetricsContext),
           () -> handleSuccessResult(client, job, finalResult, counterMetricsContext));
     } catch (Exception ex) {
+      if (Thread.currentThread().isInterrupted()) {
+        // the job-handling thread was interrupted (e.g. runtime shutdown) while evaluating the
+        // error expression; leave the job alone rather than raising an incident so Zeebe's
+        // activation timeout reassigns it, same as if the worker had been killed outright.
+        // NOTE: the connector call preceding this evaluation has already run to completion, so
+        // reassignment will re-invoke the connector from scratch - any non-idempotent side effect
+        // (HTTP call, message send, LLM call, etc.) it performed may be executed a second time.
+        LOGGER.error(
+            "Job {} for tenant {} was interrupted while evaluating its error expression, likely "
+                + "because the runtime is shutting down; abandoning the job so Zeebe's activation "
+                + "timeout reassigns it. WARNING: the connector call for this job already ran to "
+                + "completion before the interrupt was noticed, so reassignment will re-execute it "
+                + "- verify the connector's side effects are idempotent before relying on this",
+            job.getKey(),
+            job.getTenantId(),
+            ex);
+        return;
+      }
       failJob(
           client,
           job,
