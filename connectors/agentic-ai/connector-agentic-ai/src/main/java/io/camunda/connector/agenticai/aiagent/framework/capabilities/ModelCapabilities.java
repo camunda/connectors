@@ -17,9 +17,17 @@ import java.util.List;
  * here is a tax on every custom provider that must implement it. New methods added in later chunks
  * must be {@code default} so existing custom implementations keep compiling.
  *
- * <p>For example, a model supporting text and images in user messages but only text elsewhere
- * reports {@code userMessageModalities = [TEXT, IMAGE]}, {@code toolResultModalities = [TEXT]},
- * {@code assistantMessageModalities = [TEXT]}.
+ * <p>A model supporting text and images in user messages but only text elsewhere would be declared
+ * in the bundled YAML's capability-overlay shape as:
+ *
+ * <pre>{@code
+ * capabilities:
+ *   input-modalities:
+ *     user-message: [text, image]
+ *     tool-result: [text]
+ *   output-modalities:
+ *     assistant-message: [text]
+ * }</pre>
  */
 public interface ModelCapabilities {
 

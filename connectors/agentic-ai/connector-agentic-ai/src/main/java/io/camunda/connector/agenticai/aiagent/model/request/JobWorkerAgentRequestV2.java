@@ -23,9 +23,6 @@ import java.util.List;
  * v2 AI Agent Sub-process request: wire-format-first chat-model config + the shared v1 request
  * data.
  */
-// TODO: new code should follow JobWorker* -> AiAgentSubProcess*, OutboundConnector* ->
-// AiAgentTask* naming; this and other existing v2 types intentionally keep their current names for
-// now to avoid churn.
 public record JobWorkerAgentRequestV2(
     @JsonProperty("adHocSubProcessElements") List<AdHocToolElement> toolElements,
     @FEEL

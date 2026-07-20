@@ -36,9 +36,17 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * modality lists from indexed property keys; the resolver projects them onto a concrete, provider-
  * specific {@link ModelCapabilities} via Jackson tree merge at lookup time.
  *
- * <p>For example, {@code camunda.connector.agenticai.aiagent.capabilities.anthropic.models.claude-
- * sonnet-4-5.capabilities.max-output-tokens=64000} overrides just that one field on an otherwise
- * bundled model entry.
+ * <p>For example, a library consumer overriding just one field on an otherwise bundled model entry
+ * would add this to their {@code application.yml}:
+ *
+ * <pre>{@code
+ * camunda.connector.agenticai.aiagent.capabilities:
+ *   anthropic-messages:
+ *     models:
+ *       claude-sonnet-4-5:
+ *         capabilities:
+ *           max-output-tokens: 64000
+ * }</pre>
  */
 @ConfigurationProperties("camunda.connector.agenticai.aiagent")
 public record AgenticAiCapabilitiesProperties(Map<String, ApiFamilyProperties> capabilities) {

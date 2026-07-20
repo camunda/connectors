@@ -17,9 +17,18 @@ import org.jspecify.annotations.Nullable;
  * {@link ModelCapabilities} contract — they are read only by a provider's own converter via the
  * concrete type — so they live here as extra record accessors, not as interface methods.
  *
- * <p>For example: {@code userMessageModalities = [TEXT, IMAGE]}, {@code toolResultModalities =
- * [TEXT]}, {@code assistantMessageModalities = [TEXT]}, {@code contextWindow = 200000}, {@code
- * maxOutputTokens = 64000}.
+ * <p>A capability overlay carrying the same data takes this YAML shape in the bundled matrix:
+ *
+ * <pre>{@code
+ * capabilities:
+ *   input-modalities:
+ *     user-message: [text, image]
+ *     tool-result: [text]
+ *   output-modalities:
+ *     assistant-message: [text]
+ *   context-window: 200000
+ *   max-output-tokens: 64000
+ * }</pre>
  *
  * @param contextWindow the total input+output token budget for a single request (one model call),
  *     not a figure that accumulates across turns
