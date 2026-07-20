@@ -911,7 +911,7 @@ public interface ChatModelApiFactory {
   profile instead of resolving one.
 - **`ChatModelApiConfiguration`** is the neutral descriptor the registry dispatches on — deliberately
   **not** the sealed `ProviderConfiguration`, so the chat-model layer stays connector-agnostic. Phase 0
-  ships one impl, `ProviderChatModelApiConfiguration`, wrapping the built-in provider config; a second
+  ships one impl, `V1ChatModelApiConfiguration`, wrapping the built-in provider config; a second
   connector variant or a custom provider contributes its own impl.
 - **`ChatModelApiFactory`** decides via `supports(...)` whether it can serve a configuration and
   `create(...)`s the chat model; `getOrder()` sets selection precedence (mirrors
@@ -920,9 +920,9 @@ public interface ChatModelApiFactory {
   sorts by `getOrder()`, and returns the **first** whose `supports(...)` is true — else fails loud with
   `ConnectorException(ERROR_CODE_FAILED_MODEL_CALL)`. This is how providers move to native **one at a
   time**: a native factory `supports()` its config at higher precedence than the lowest-precedence
-  LangChain4j bridge, which `supports()` every `ProviderChatModelApiConfiguration`.
+  LangChain4j bridge, which `supports()` every `V1ChatModelApiConfiguration`.
 - **`BaseAgentRequestHandler.proceed()`** wraps the request's provider config and resolves+calls
-  directly — `registry.resolve(new ProviderChatModelApiConfiguration(config.provider())).call(...)` —
+  directly — `registry.resolve(new V1ChatModelApiConfiguration(config.provider())).call(...)` —
   then ingests the returned `(assistantMessage, metrics)`, the same contract the old adapter returned.
 
 > **A `call(...)` is a single provider round-trip; multi-round provider turns are a request-handler
@@ -950,7 +950,7 @@ wire-format-first config surface in package
   under a single provider-named component (`anthropic` / `openai`) so generated template property
   ids are namespaced (`configuration.anthropic.*` / `configuration.openai.*`), avoiding
   cross-provider id collisions.
-- **`LlmProviderChatModelApiConfiguration(LlmProviderConfiguration)`** — the v2
+- **`V2ChatModelApiConfiguration(LlmProviderConfiguration)`** — the v2
   `ChatModelApiConfiguration` impl the entry points wrap the request's `configuration` in and hand
   to the registry.
 
@@ -1031,7 +1031,7 @@ the top-level abstraction:
 - **`Langchain4JChatModelApi`** wraps the pre-existing `Langchain4JAiFrameworkAdapter` (see below),
   calls its `executeMeasuringTime(...)` (so the returned metrics carry the measured `executionTime`),
   and returns a completed `ChatModelResult` — LangChain4J has no continuation concept.
-- **`Langchain4JChatModelApiFactory`** `supports()` every `ProviderChatModelApiConfiguration` and
+- **`Langchain4JChatModelApiFactory`** `supports()` every `V1ChatModelApiConfiguration` and
   registers at the **lowest precedence** (`getOrder()` = `Integer.MAX_VALUE`), so every built-in
   provider routes through this one bridge in Phase 0. Native provider implementations override it
   per-provider in later phases (ADR 009 Phase 1) by `supports()`-ing their own config at a higher
@@ -1928,7 +1928,7 @@ tool-calling loop), and `getOrder()` sets precedence (the default outranks the l
 bridge). Register it as a Spring bean; `ChatModelApiRegistry` sorts factories by `getOrder()` and picks
 the first that `supports()` the configuration. Reference implementation: `Langchain4JChatModelApiFactory`
 / `Langchain4JChatModelApi` — the lowest-precedence bridge serving every
-`ProviderChatModelApiConfiguration`. A native implementation for one provider `supports()` that
+`V1ChatModelApiConfiguration`. A native implementation for one provider `supports()` that
 provider's config at default precedence; the bridge covers the rest. Only the vendor-scoped package
 may import that vendor's SDK — keep a native chat model in its own `aiagent.framework.<provider>.**`
 package (invariant I1). Custom providers follow the same shape with their own `ChatModelApiConfiguration`
@@ -1937,8 +1937,8 @@ implementation (analogous to the memory `custom` store).
 The v2 (own LLM layer) connectors already contribute their wire-format-first config surface in
 package `io.camunda.connector.agenticai.aiagent.model.request.chatmodel` (`LlmProviderConfiguration`
 and its `AnthropicChatModel`/`OpenAiChatModel` members), wrapped by
-`LlmProviderChatModelApiConfiguration` at the connector entry points. A native provider added here
-`supports(...)`s a `LlmProviderChatModelApiConfiguration` (matching on the provider discriminator, and
+`V2ChatModelApiConfiguration` at the connector entry points. A native provider added here
+`supports(...)`s a `V2ChatModelApiConfiguration` (matching on the provider discriminator, and
 on the backend for providers with several). `AnthropicChatModelApiFactory` (Anthropic `direct`
 backend) is the first such implementation; for every configuration this surface can express that has
 no supporting factory yet (OpenAI, Anthropic `bedrock`), the v2 path still fails loud

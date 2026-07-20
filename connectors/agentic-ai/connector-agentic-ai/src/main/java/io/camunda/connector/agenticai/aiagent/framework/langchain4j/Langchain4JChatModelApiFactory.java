@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
-import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V1ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
@@ -18,7 +18,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderCon
 
 /**
  * Adapts one {@link ChatModelProvider} to the chat model SPI. {@link #supports} matches a {@link
- * ProviderChatModelApiConfiguration} whose {@link ProviderConfiguration#providerType()} equals the
+ * V1ChatModelApiConfiguration} whose {@link ProviderConfiguration#providerType()} equals the
  * wrapped provider's {@link ChatModelProvider#type()}, and {@link #create} builds the underlying
  * LangChain4J chat model once via that provider and wraps it in a {@link Langchain4JChatModelApi}.
  * One instance is registered per built-in provider, so an individual provider's implementation can
@@ -47,14 +47,14 @@ public class Langchain4JChatModelApiFactory implements ChatModelApiFactory {
 
   @Override
   public boolean supports(ChatModelApiConfiguration configuration) {
-    return configuration instanceof ProviderChatModelApiConfiguration provider
+    return configuration instanceof V1ChatModelApiConfiguration provider
         && chatModelProvider.type().equals(provider.providerConfiguration().providerType());
   }
 
   @Override
   public ChatModelApi create(ChatModelApiConfiguration configuration) {
     final var providerConfiguration =
-        ((ProviderChatModelApiConfiguration) configuration).providerConfiguration();
+        ((V1ChatModelApiConfiguration) configuration).providerConfiguration();
 
     @SuppressWarnings("unchecked")
     final var provider = (ChatModelProvider<ProviderConfiguration>) chatModelProvider;

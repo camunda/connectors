@@ -23,7 +23,7 @@ import com.openai.models.responses.ResponseInputItem;
 import com.openai.models.responses.ResponseTextConfig;
 import com.openai.models.responses.Tool;
 import com.openai.models.responses.WebSearchTool;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiRequestValidator;
@@ -89,8 +89,7 @@ public class OpenAiResponsesRequestConverter {
       ConversationSnapshot snapshot,
       OpenAiModelCapabilities capabilities,
       boolean modelMatched) {
-    final var cfg =
-        (LlmProviderChatModelApiConfiguration) ctx.configuration().chatModelApiConfiguration();
+    final var cfg = (V2ChatModelApiConfiguration) ctx.configuration().chatModelApiConfiguration();
     final OpenAiChatModel model = (OpenAiChatModel) cfg.configuration();
     final OpenAiConnection connection = model.openai();
     final String modelId = connection.model().model();

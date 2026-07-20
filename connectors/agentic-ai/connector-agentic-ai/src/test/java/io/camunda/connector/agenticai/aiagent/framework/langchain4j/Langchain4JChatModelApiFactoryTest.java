@@ -12,8 +12,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V1ChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
@@ -53,7 +53,7 @@ class Langchain4JChatModelApiFactoryTest {
   void supportsConfigurationMatchingProviderType() {
     when(chatModelProvider.type()).thenReturn(AnthropicProviderConfiguration.ANTHROPIC_ID);
     final ChatModelApiConfiguration configuration =
-        new ProviderChatModelApiConfiguration(anthropicProviderConfiguration());
+        new V1ChatModelApiConfiguration(anthropicProviderConfiguration());
 
     assertThat(factory.supports(configuration)).isTrue();
   }
@@ -62,15 +62,14 @@ class Langchain4JChatModelApiFactoryTest {
   void doesNotSupportConfigurationWithDifferentProviderType() {
     when(chatModelProvider.type()).thenReturn("some-other-provider");
     final ChatModelApiConfiguration configuration =
-        new ProviderChatModelApiConfiguration(anthropicProviderConfiguration());
+        new V1ChatModelApiConfiguration(anthropicProviderConfiguration());
 
     assertThat(factory.supports(configuration)).isFalse();
   }
 
   @Test
-  void doesNotSupportNonProviderChatModelApiConfiguration() {
-    final ChatModelApiConfiguration configuration =
-        mock(LlmProviderChatModelApiConfiguration.class);
+  void doesNotSupportNonV1ChatModelApiConfiguration() {
+    final ChatModelApiConfiguration configuration = mock(V2ChatModelApiConfiguration.class);
 
     assertThat(factory.supports(configuration)).isFalse();
   }
@@ -79,7 +78,7 @@ class Langchain4JChatModelApiFactoryTest {
   void createBuildsChatModelOnceAndReturnsLangchain4JChatModelApi() {
     final var providerConfiguration = anthropicProviderConfiguration();
     final ChatModelApiConfiguration configuration =
-        new ProviderChatModelApiConfiguration(providerConfiguration);
+        new V1ChatModelApiConfiguration(providerConfiguration);
     when(chatModelProvider.createChatModel(providerConfiguration)).thenReturn(chatModel);
 
     final var api = factory.create(configuration);

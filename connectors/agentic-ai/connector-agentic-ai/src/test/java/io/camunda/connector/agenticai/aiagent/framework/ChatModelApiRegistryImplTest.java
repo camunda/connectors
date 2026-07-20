@@ -14,7 +14,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
-import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V1ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
@@ -95,7 +95,7 @@ class ChatModelApiRegistryImplTest {
   }
 
   private static ChatModelApiConfiguration validProviderConfiguration() {
-    return new ProviderChatModelApiConfiguration(
+    return new V1ChatModelApiConfiguration(
         new AnthropicProviderConfiguration(
             new AnthropicConnection(
                 null,

@@ -33,7 +33,7 @@ import dev.langchain4j.model.openai.OpenAiTokenUsage;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
-import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V1ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
@@ -437,7 +437,7 @@ class Langchain4JChatModelApiTest {
     when(executionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
-                new ProviderChatModelApiConfiguration(PROVIDER),
+                new V1ChatModelApiConfiguration(PROVIDER),
                 PROVIDER.model(),
                 PROVIDER.providerType(),
                 null,

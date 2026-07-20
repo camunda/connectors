@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.ObjectMappers;
 import com.openai.models.ReasoningEffort;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiContentConverter;
@@ -101,7 +101,7 @@ class OpenAiCompletionsRequestConverterTest {
       OpenAiChatModel model, @Nullable ResponseConfiguration response) {
     final var configuration =
         new AgentConfiguration(
-            new LlmProviderChatModelApiConfiguration(model),
+            new V2ChatModelApiConfiguration(model),
             model.model(),
             model.providerType(),
             new SystemPromptConfiguration("system prompt"),

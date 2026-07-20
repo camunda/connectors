@@ -40,7 +40,7 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
-import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V1ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.CapabilityAwareToolCallResultStrategy;
@@ -146,7 +146,7 @@ class JobWorkerAgentRequestHandlerTest {
     lenient()
         .doReturn(
             new AgentConfiguration(
-                new ProviderChatModelApiConfiguration(new OpenAiProviderConfiguration(null)),
+                new V1ChatModelApiConfiguration(new OpenAiProviderConfiguration(null)),
                 "model",
                 OpenAiProviderConfiguration.OPENAI_ID,
                 new PromptConfiguration.SystemPromptConfiguration(null),
@@ -805,7 +805,7 @@ class JobWorkerAgentRequestHandlerTest {
     when(agentExecutionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
-                new ProviderChatModelApiConfiguration(new OpenAiProviderConfiguration(null)),
+                new V1ChatModelApiConfiguration(new OpenAiProviderConfiguration(null)),
                 "model",
                 OpenAiProviderConfiguration.OPENAI_ID,
                 new PromptConfiguration.SystemPromptConfiguration(null),

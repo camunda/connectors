@@ -9,5 +9,5 @@ package io.camunda.connector.agenticai.aiagent.framework.api;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 
 /** {@link ChatModelApiConfiguration} backed by a built-in {@link ProviderConfiguration}. */
-public record ProviderChatModelApiConfiguration(ProviderConfiguration providerConfiguration)
+public record V1ChatModelApiConfiguration(ProviderConfiguration providerConfiguration)
     implements ChatModelApiConfiguration {}

@@ -19,7 +19,7 @@ import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModel
 import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilitiesData;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
@@ -41,12 +41,12 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 
-class LlmProviderChatModelApiConfigurationRegistryTest {
+class V2ChatModelApiConfigurationRegistryTest {
 
   @Test
   void wrapsProviderConfigAndExposesCapabilityOverrideViaConfiguration() {
     final var config =
-        new LlmProviderChatModelApiConfiguration(
+        new V2ChatModelApiConfiguration(
             new AnthropicChatModel(
                 new AnthropicConnection(
                     new AnthropicDirectBackend(null, "sk-ant"),
@@ -69,14 +69,14 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
   @Test
   void directAnthropicV2ConfigResolvesToAnthropicChatModelApi() {
     // Both the LangChain4J factory and the Anthropic factory are registered; they are disjoint by
-    // configuration type (ProviderChatModelApiConfiguration vs.
-    // LlmProviderChatModelApiConfiguration
+    // configuration type (V1ChatModelApiConfiguration vs.
+    // V2ChatModelApiConfiguration
     // with a direct backend), so only the Anthropic factory supports this configuration.
     final var registry =
         new ChatModelApiRegistryImpl(List.of(langchain4JFactory(), anthropicFactory()));
 
     final ChatModelApiConfiguration directConfig =
-        new LlmProviderChatModelApiConfiguration(
+        new V2ChatModelApiConfiguration(
             new AnthropicChatModel(
                 new AnthropicConnection(
                     new AnthropicDirectBackend(null, "sk-ant"),
@@ -98,13 +98,13 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
   @Test
   void bedrockAnthropicV2ConfigStillFailsLoud() {
     // Neither the Anthropic factory (direct-only) nor the LangChain4J factory
-    // (ProviderChatModelApiConfiguration only) supports a bedrock-backed
-    // LlmProviderChatModelApiConfiguration.
+    // (V1ChatModelApiConfiguration only) supports a bedrock-backed
+    // V2ChatModelApiConfiguration.
     final var registry =
         new ChatModelApiRegistryImpl(List.of(langchain4JFactory(), anthropicFactory()));
 
     final ChatModelApiConfiguration bedrockConfig =
-        new LlmProviderChatModelApiConfiguration(
+        new V2ChatModelApiConfiguration(
             new AnthropicChatModel(
                 new AnthropicConnection(
                     new AnthropicBedrockBackend(

@@ -16,7 +16,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.ChatModelApiRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
@@ -69,13 +69,13 @@ class AiAgentV2EntryPointTest {
         new OutboundConnectorAgentExecutionContext(
             mock(JobContext.class),
             request.data(),
-            new LlmProviderChatModelApiConfiguration(request.configuration()),
+            new V2ChatModelApiConfiguration(request.configuration()),
             request.configuration().model(),
             request.configuration().providerType(),
             mock(ProcessDefinitionAdHocToolElementsResolver.class));
 
     assertThat(ctx.configuration().chatModelApiConfiguration())
-        .isEqualTo(new LlmProviderChatModelApiConfiguration(config));
+        .isEqualTo(new V2ChatModelApiConfiguration(config));
     assertThat(ctx.configuration().modelName()).isEqualTo("claude-sonnet-4-6");
     assertThat(ctx.configuration().modelProvider()).isEqualTo("anthropic");
   }
@@ -108,7 +108,7 @@ class AiAgentV2EntryPointTest {
 
     final var capturedConfiguration = executionContextCaptor.getValue().configuration();
     assertThat(capturedConfiguration.chatModelApiConfiguration())
-        .isEqualTo(new LlmProviderChatModelApiConfiguration(config));
+        .isEqualTo(new V2ChatModelApiConfiguration(config));
     assertThat(capturedConfiguration.modelName()).isEqualTo(config.model());
     assertThat(capturedConfiguration.modelProvider()).isEqualTo(config.providerType());
   }
@@ -125,8 +125,7 @@ class AiAgentV2EntryPointTest {
                     mock(JsonSchemaConverter.class),
                     Langchain4JChatModelApi.DEFAULT_CAPABILITIES)));
 
-    assertThatThrownBy(
-            () -> registry.resolve(new LlmProviderChatModelApiConfiguration(anthropicConfig())))
+    assertThatThrownBy(() -> registry.resolve(new V2ChatModelApiConfiguration(anthropicConfig())))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("No chat model registered for configuration");
   }

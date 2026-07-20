@@ -16,7 +16,7 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseInputItem;
 import com.openai.models.responses.ResponseOutputItem;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.framework.openai.family.responses.OpenAiResponsesRequestConverter;
@@ -176,7 +176,7 @@ class OpenAiProviderContentRoundTripTest {
                 null));
     final var configuration =
         new AgentConfiguration(
-            new LlmProviderChatModelApiConfiguration(model),
+            new V2ChatModelApiConfiguration(model),
             model.model(),
             model.providerType(),
             new SystemPromptConfiguration("system prompt"),

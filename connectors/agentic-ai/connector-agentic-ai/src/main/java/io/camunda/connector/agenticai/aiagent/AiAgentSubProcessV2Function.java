@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequestV2;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -53,7 +53,7 @@ public class AiAgentSubProcessV2Function implements AgentConnectorFunction {
             request.agentContext(),
             request.toolCallResults(),
             request.toolElements(),
-            new LlmProviderChatModelApiConfiguration(config),
+            new V2ChatModelApiConfiguration(config),
             config.model(),
             config.providerType());
     return agentRequestHandler.handleRequest(executionContext);

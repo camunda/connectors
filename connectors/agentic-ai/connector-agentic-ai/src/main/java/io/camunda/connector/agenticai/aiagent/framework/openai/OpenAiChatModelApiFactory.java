@@ -11,7 +11,7 @@ import com.openai.client.OpenAIClient;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.framework.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.framework.openai.family.completions.OpenAiCompletionsRequestConverter;
@@ -52,13 +52,13 @@ public class OpenAiChatModelApiFactory implements ChatModelApiFactory {
 
   @Override
   public boolean supports(ChatModelApiConfiguration configuration) {
-    return configuration instanceof LlmProviderChatModelApiConfiguration llm
+    return configuration instanceof V2ChatModelApiConfiguration llm
         && llm.configuration() instanceof OpenAiChatModel;
   }
 
   @Override
   public ChatModelApi create(ChatModelApiConfiguration configuration) {
-    final var llm = (LlmProviderChatModelApiConfiguration) configuration;
+    final var llm = (V2ChatModelApiConfiguration) configuration;
     final var model = (OpenAiChatModel) llm.configuration();
     final var connection = model.openai();
     final String familyKey = model.apiFamilyKey();

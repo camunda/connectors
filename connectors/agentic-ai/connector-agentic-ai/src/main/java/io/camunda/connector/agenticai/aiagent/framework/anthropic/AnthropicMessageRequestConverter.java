@@ -34,7 +34,7 @@ import com.anthropic.models.beta.messages.BetaWebSearchTool20250305;
 import com.anthropic.models.beta.messages.BetaWebSearchTool20260209;
 import com.anthropic.models.beta.messages.BetaWebSearchTool20260318;
 import com.anthropic.models.beta.messages.MessageCreateParams;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -130,8 +130,7 @@ public class AnthropicMessageRequestConverter {
       ConversationSnapshot snapshot,
       AnthropicModelCapabilities capabilities,
       boolean modelMatched) {
-    final var cfg =
-        (LlmProviderChatModelApiConfiguration) ctx.configuration().chatModelApiConfiguration();
+    final var cfg = (V2ChatModelApiConfiguration) ctx.configuration().chatModelApiConfiguration();
     final var model = (AnthropicChatModel) cfg.configuration();
     final var params = model.anthropic().model().parameters();
     final String modelId = model.anthropic().model().model();

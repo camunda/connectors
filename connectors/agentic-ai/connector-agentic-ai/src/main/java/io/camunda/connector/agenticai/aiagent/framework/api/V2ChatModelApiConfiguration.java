@@ -16,5 +16,5 @@ import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.LlmProvide
  * capability override is reached via {@link LlmProviderConfiguration#capabilityOverride()} — do not
  * add a second component here.
  */
-public record LlmProviderChatModelApiConfiguration(LlmProviderConfiguration configuration)
+public record V2ChatModelApiConfiguration(LlmProviderConfiguration configuration)
     implements ChatModelApiConfiguration {}

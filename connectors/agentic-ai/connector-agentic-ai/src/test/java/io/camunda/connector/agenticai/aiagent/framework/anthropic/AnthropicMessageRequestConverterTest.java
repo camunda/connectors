@@ -18,7 +18,7 @@ import com.anthropic.models.beta.messages.BetaMessageParam;
 import com.anthropic.models.beta.messages.BetaThinkingConfigAdaptive;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
@@ -147,7 +147,7 @@ class AnthropicMessageRequestConverterTest {
       AnthropicChatModel model, @Nullable ResponseConfiguration response) {
     final var configuration =
         new AgentConfiguration(
-            new LlmProviderChatModelApiConfiguration(model),
+            new V2ChatModelApiConfiguration(model),
             model.model(),
             model.providerType(),
             new SystemPromptConfiguration("system prompt"),

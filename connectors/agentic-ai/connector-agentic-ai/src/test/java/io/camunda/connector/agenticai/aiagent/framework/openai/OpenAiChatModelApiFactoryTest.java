@@ -14,8 +14,8 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V1ChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
@@ -67,7 +67,7 @@ class OpenAiChatModelApiFactoryTest {
   @Test
   void doesNotSupportAnthropic() {
     final var config =
-        new LlmProviderChatModelApiConfiguration(
+        new V2ChatModelApiConfiguration(
             new AnthropicChatModel(
                 new AnthropicConnection(
                     new AnthropicDirectBackend(null, "sk-ant"),
@@ -87,9 +87,9 @@ class OpenAiChatModelApiFactoryTest {
   }
 
   @Test
-  void doesNotSupportProviderChatModelApiConfiguration() {
+  void doesNotSupportV1ChatModelApiConfiguration() {
     final ChatModelApiConfiguration config =
-        new ProviderChatModelApiConfiguration(
+        new V1ChatModelApiConfiguration(
             new AnthropicProviderConfiguration(
                 new AnthropicProviderConfiguration.AnthropicConnection(
                     null,
@@ -145,9 +145,9 @@ class OpenAiChatModelApiFactoryTest {
         null);
   }
 
-  private static LlmProviderChatModelApiConfiguration directConfig(
+  private static V2ChatModelApiConfiguration directConfig(
       OpenAiApiFamily apiFamily, String modelId) {
-    return new LlmProviderChatModelApiConfiguration(
+    return new V2ChatModelApiConfiguration(
         new OpenAiChatModel(
             new OpenAiConnection(
                 apiFamily,
@@ -159,9 +159,9 @@ class OpenAiChatModelApiFactoryTest {
                 null)));
   }
 
-  private static LlmProviderChatModelApiConfiguration compatibleConfig(
+  private static V2ChatModelApiConfiguration compatibleConfig(
       OpenAiApiFamily apiFamily, String modelId) {
-    return new LlmProviderChatModelApiConfiguration(
+    return new V2ChatModelApiConfiguration(
         new OpenAiChatModel(
             new OpenAiConnection(
                 apiFamily,

@@ -24,7 +24,7 @@ import com.openai.models.chat.completions.ChatCompletionSystemMessageParam;
 import com.openai.models.chat.completions.ChatCompletionTool;
 import com.openai.models.chat.completions.ChatCompletionToolMessageParam;
 import com.openai.models.chat.completions.ChatCompletionUserMessageParam;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiRequestValidator;
@@ -95,8 +95,7 @@ public class OpenAiCompletionsRequestConverter {
       ConversationSnapshot snapshot,
       OpenAiModelCapabilities capabilities,
       boolean modelMatched) {
-    final var cfg =
-        (LlmProviderChatModelApiConfiguration) ctx.configuration().chatModelApiConfiguration();
+    final var cfg = (V2ChatModelApiConfiguration) ctx.configuration().chatModelApiConfiguration();
     final OpenAiChatModel model = (OpenAiChatModel) cfg.configuration();
     final OpenAiConnection connection = model.openai();
     final String modelId = connection.model().model();
