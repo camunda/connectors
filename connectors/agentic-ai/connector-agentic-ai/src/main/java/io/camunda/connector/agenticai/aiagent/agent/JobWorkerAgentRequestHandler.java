@@ -10,7 +10,7 @@ import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse.ToolCallElementActivation;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;

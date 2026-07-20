@@ -34,8 +34,8 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Di
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
+import io.camunda.connector.agenticai.aiagent.chatmodel.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.AiFrameworkChatResponse;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;

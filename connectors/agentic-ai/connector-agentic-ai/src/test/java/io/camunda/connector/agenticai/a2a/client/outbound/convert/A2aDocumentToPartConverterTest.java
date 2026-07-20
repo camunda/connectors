@@ -18,7 +18,6 @@ import io.a2a.spec.DataPart;
 import io.a2a.spec.FilePart;
 import io.a2a.spec.FileWithBytes;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentConversionException;
 import io.camunda.connector.api.document.Document;
 import java.util.List;
 import java.util.Map;
@@ -139,7 +138,7 @@ public class A2aDocumentToPartConverterTest {
     when(document.reference().toString()).thenReturn("<REF>");
 
     assertThatThrownBy(() -> converter.convert(document))
-        .isInstanceOf(DocumentConversionException.class)
+        .isInstanceOf(A2aDocumentConversionException.class)
         .hasMessage("Content type is unset for document with reference '<REF>'");
   }
 
@@ -150,7 +149,7 @@ public class A2aDocumentToPartConverterTest {
     when(document.reference().toString()).thenReturn("<REF>");
 
     assertThatThrownBy(() -> converter.convert(document))
-        .isInstanceOf(DocumentConversionException.class)
+        .isInstanceOf(A2aDocumentConversionException.class)
         .hasMessage("Content type is unset for document with reference '<REF>'");
   }
 
@@ -160,7 +159,7 @@ public class A2aDocumentToPartConverterTest {
     when(document.reference().toString()).thenReturn("<REF>");
 
     assertThatThrownBy(() -> converter.convert(document))
-        .isInstanceOf(DocumentConversionException.class)
+        .isInstanceOf(A2aDocumentConversionException.class)
         .hasMessage("Unsupported content type 'foo_bar' for document with reference '<REF>'");
   }
 
@@ -170,7 +169,7 @@ public class A2aDocumentToPartConverterTest {
     when(document.reference().toString()).thenReturn("<REF>");
 
     assertThatThrownBy(() -> converter.convert(document))
-        .isInstanceOf(DocumentConversionException.class)
+        .isInstanceOf(A2aDocumentConversionException.class)
         .hasMessage(
             "Unsupported content type 'application/zip' for document with reference '<REF>'");
   }
