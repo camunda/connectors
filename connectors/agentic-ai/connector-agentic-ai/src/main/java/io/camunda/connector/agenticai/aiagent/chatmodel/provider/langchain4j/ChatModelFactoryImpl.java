@@ -1,0 +1,26 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
+
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderRegistry;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+
+public class ChatModelFactoryImpl implements ChatModelFactory {
+
+  private final ChatModelProviderRegistry chatModelProviderRegistry;
+
+  public ChatModelFactoryImpl(ChatModelProviderRegistry chatModelProviderRegistry) {
+    this.chatModelProviderRegistry = chatModelProviderRegistry;
+  }
+
+  @Override
+  public CloseableChatModel createChatModel(ProviderConfiguration providerConfiguration) {
+    return chatModelProviderRegistry
+        .getChatModelProvider(providerConfiguration)
+        .createChatModel(providerConfiguration);
+  }
+}
