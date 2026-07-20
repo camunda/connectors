@@ -24,7 +24,6 @@ import io.camunda.connector.api.secret.SecretProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -54,15 +53,16 @@ public class CamundaClientSaaSConfiguration {
   }
 
   /**
-   * Provides a custom {@link CredentialsProviderConfiguration} that uses the internal secret
-   * manager (GCP or AWS) to retrieve M2M credentials for the Camunda client. Only active when
-   * client-id/secret are not explicitly configured in the environment.
+   * Provides a custom {@link CredentialsProviderConfiguration} that is always registered. When
+   * client-id/secret are absent from a resolved client's properties, it fetches M2M credentials
+   * from the internal secret manager (GCP or AWS). When credentials are present in the per-client
+   * properties, it delegates to the parent implementation so that each client uses its own
+   * configured credentials.
    *
-   * <p>This bean overrides the default {@link CredentialsProviderConfiguration} from the Camunda
-   * Spring Boot starter, which registers its own via {@code @ConditionalOnMissingBean}.
+   * <p>This bean replaces the default {@link CredentialsProviderConfiguration} from the Camunda
+   * Spring Boot starter (which would register via {@code @ConditionalOnMissingBean}).
    */
   @Bean
-  @Conditional(AuthPropertiesNotPresentCondition.class)
   public CredentialsProviderConfiguration credentialsProviderConfiguration() {
     return new CredentialsProviderConfiguration() {
       @Override
