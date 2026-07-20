@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.ProblemDetail;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
 import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
@@ -29,6 +30,7 @@ import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep5;
+import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.AgentTool;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
@@ -69,10 +71,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -255,6 +261,65 @@ class CamundaAgentInstanceClientTest {
               Duration.ofSeconds(4),
               Duration.ofSeconds(8));
       verify(camundaClient, times(5)).newCreateAgentInstanceCommand();
+    }
+
+    @Test
+    void shouldReturnExistingAgentInstanceKeyOnConflictWithParseableDetail() {
+      // given: a 409 ALREADY_EXISTS response whose detail embeds the existing agent instance key
+      givenCreateCommandWithMaxModelCalls();
+      final var detail =
+          "Command 'CREATE' rejected with code 'ALREADY_EXISTS': Expected to associate element "
+              + "instance with key '77' with an agent instance, but it is already associated with "
+              + "agent instance with key '999'.";
+      when(step5.execute()).thenThrow(conflictException(detail));
+
+      // when
+      final AgentInstanceKey key = client.create(TestAgentExecutionContext.withLimits());
+
+      // then: the existing key is reused, no retry
+      assertThat(key).isEqualTo(AgentInstanceKey.of(999L));
+      assertThat(recordedSleeps).isEmpty();
+      verify(camundaClient, times(1)).newCreateAgentInstanceCommand();
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(
+        strings = {
+          // unrelated wording
+          "Some unrelated conflict message.",
+          // whole message must match, not just a fragment -- extra text before/after an
+          // otherwise well-formed detail must not be accepted
+          "extra prefix Command 'CREATE' rejected with code 'ALREADY_EXISTS': Expected to "
+              + "associate element instance with key '77' with an agent instance, but it is "
+              + "already associated with agent instance with key '999'. extra suffix",
+          // well-worded detail whose embedded key isn't numeric
+          "Command 'CREATE' rejected with code 'ALREADY_EXISTS': Expected to associate element "
+              + "instance with key '77' with an agent instance, but it is already associated "
+              + "with agent instance with key 'abc'."
+        })
+    void shouldThrowConnectorExceptionImmediatelyOnUnparseableConflictDetail(
+        @Nullable String detail) {
+      // given: a 409 ALREADY_EXISTS response whose detail doesn't match the expected contract
+      givenCreateCommandWithMaxModelCalls();
+      when(step5.execute()).thenThrow(conflictException(detail));
+
+      // when / then: the conflict cannot be resolved, so it fails permanently, no retry
+      assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e ->
+                  assertThat(e.getErrorCode())
+                      .isEqualTo(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED));
+
+      assertThat(recordedSleeps).isEmpty();
+      verify(camundaClient, times(1)).newCreateAgentInstanceCommand();
+    }
+
+    private ProblemException conflictException(@Nullable String detail) {
+      final var problemDetail =
+          new ProblemDetail().setStatus(409).setTitle("ALREADY_EXISTS").setDetail(detail);
+      return new ProblemException(409, "Conflict", problemDetail);
     }
   }
 

@@ -9,11 +9,13 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,6 +28,8 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
@@ -163,6 +167,26 @@ class Langchain4JAiFrameworkAdapterTest {
                   .isEqualTo("Model call failed: UnresolvedModelServerException");
               assertThat(ex.getCause()).isEqualTo(cause);
             });
+  }
+
+  @Test
+  void raisesConnectorExceptionForContentFilteredResponse() {
+    reset(chatResponse, chatMessageConverter);
+    when(chatMessageConverter.map(INPUT_MESSAGES)).thenReturn(L4J_MESSAGES);
+    when(chatResponse.metadata())
+        .thenReturn(
+            ChatResponseMetadata.builder().finishReason(FinishReason.CONTENT_FILTER).build());
+
+    assertThatThrownBy(() -> adapter.executeChatRequest(createExecutionContext(), SNAPSHOT))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            ex -> {
+              assertThat(ex.getErrorCode()).isEqualTo(ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED);
+              assertThat(ex.getMessage())
+                  .isEqualTo(
+                      "Model response was blocked by provider content filtering (finish_reason: content_filter).");
+            });
+    verify(chatMessageConverter, never()).toAssistantMessage(chatResponse);
   }
 
   @Test
