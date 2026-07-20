@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -65,14 +65,14 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
   }
 
   /**
-   * Create an envelope for a ToolCallResult array.
+   * Create an envelope for a ToolCallResultContent array.
    *
    * @param results the tool call results to wrap
    * @param objectMapper the ObjectMapper to use for serialization
    * @return the envelope
    */
   public static BlobEnvelope forToolCallResults(
-      List<ToolCallResult> results, ObjectMapper objectMapper) {
+      List<ToolCallResultContent> results, ObjectMapper objectMapper) {
     JsonNode data = objectMapper.valueToTree(results);
     ObjectNode envelope = objectMapper.createObjectNode();
     envelope.put(FIELD_BLOB_TYPE, BlobEnvelopeType.TOOL_CALL_RESULTS.getBlobType());

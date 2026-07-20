@@ -14,13 +14,22 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
@@ -80,7 +89,8 @@ public class ToolCallConverterImpl implements ToolCallConverter {
    * ObjectMapper. Document instances in the content tree are serialized as document references.
    */
   @Override
-  public ToolExecutionResultMessage asToolExecutionResultMessage(ToolCallResult toolCallResult) {
+  public ToolExecutionResultMessage asToolExecutionResultMessage(
+      ToolCallResultContent toolCallResult) {
     final var id = Objects.requireNonNullElse(toolCallResult.id(), "");
     final var name = Objects.requireNonNullElse(toolCallResult.name(), "");
 
@@ -92,15 +102,28 @@ public class ToolCallConverterImpl implements ToolCallConverter {
     return toolExecutionResultMessage(id, name, content);
   }
 
-  private @Nullable String contentAsString(String toolName, @Nullable Object result) {
+  private @Nullable String contentAsString(String toolName, List<Content> content) {
+    if (content.isEmpty()) {
+      return null;
+    }
+    return content.stream()
+        .map(e -> contentElementAsString(toolName, e))
+        .collect(Collectors.joining("\n"));
+  }
+
+  private String contentElementAsString(String toolName, Content content) {
     try {
-      if (result == null) {
-        return null;
-      }
-      if (result instanceof String s) {
-        return s;
-      }
-      return objectMapper.writeValueAsString(result);
+      return switch (content) {
+        case TextContent t -> t.text();
+        case ObjectContent o -> objectMapper.writeValueAsString(o.content());
+        case DocumentContent d -> objectMapper.writeValueAsString(d.document());
+        case ReasoningContent r ->
+            throw new IllegalArgumentException(
+                "Reasoning content is not expected in tool call results");
+        case ProviderContent p ->
+            throw new IllegalArgumentException(
+                "Provider content is not expected in tool call results");
+      };
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
           "Failed to convert result of tool call '%s' to string: %s"

@@ -15,9 +15,13 @@ import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,7 +59,7 @@ import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 public class AwsAgentCoreConversationMapper {
 
   private static final TypeReference<List<ToolCall>> TOOL_CALLS_TYPE = new TypeReference<>() {};
-  private static final TypeReference<List<ToolCallResult>> TOOL_CALL_RESULTS_TYPE =
+  private static final TypeReference<List<ToolCallResultContent>> TOOL_CALL_RESULTS_TYPE =
       new TypeReference<>() {};
   private static final TypeReference<Map<String, Object>> METADATA_TYPE = new TypeReference<>() {};
 
@@ -173,12 +177,14 @@ public class AwsAgentCoreConversationMapper {
   private List<PayloadType> mapToolCallResultMessage(ToolCallResultMessage message) {
     List<PayloadType> payloads = new ArrayList<>();
 
-    // create conversational TOOL with natural language summary
+    // create conversational TOOL with natural language summary — best-effort, joining every
+    // result's content elements; this only affects AgentCore's long-term memory extraction, not
+    // the lossless blob envelope created below
     String summary =
         message.results().stream()
-            .map(ToolCallResult::content)
-            .filter(Objects::nonNull)
-            .map(this::contentToString)
+            .flatMap(result -> result.content().stream())
+            .map(this::contentElementToSummaryString)
+            .filter(s -> !s.isBlank())
             .collect(Collectors.joining("\n"));
 
     if (!summary.isBlank()) {
@@ -204,7 +210,7 @@ public class AwsAgentCoreConversationMapper {
       List<PayloadType> payloads, Map<String, Object> metadata) throws IOException {
     List<Content> content = new ArrayList<>();
     List<ToolCall> toolCalls = List.of();
-    List<ToolCallResult> toolCallResults = null;
+    List<ToolCallResultContent> toolCallResults = null;
     Map<String, Object> properties = null;
 
     for (PayloadType payload : payloads) {
@@ -306,7 +312,7 @@ public class AwsAgentCoreConversationMapper {
     }
   }
 
-  private PayloadType createToolCallResultsBlobPayload(List<ToolCallResult> results) {
+  private PayloadType createToolCallResultsBlobPayload(List<ToolCallResultContent> results) {
     try {
       BlobEnvelope envelope = BlobEnvelope.forToolCallResults(results, objectMapper);
       Document document = envelope.toDocument(objectMapper);
@@ -344,7 +350,7 @@ public class AwsAgentCoreConversationMapper {
     return envelope.parseData(TOOL_CALLS_TYPE, objectMapper);
   }
 
-  private List<ToolCallResult> parseToolCallResultsFromEnvelope(BlobEnvelope envelope)
+  private List<ToolCallResultContent> parseToolCallResultsFromEnvelope(BlobEnvelope envelope)
       throws IOException {
     return envelope.parseData(TOOL_CALL_RESULTS_TYPE, objectMapper);
   }
@@ -370,6 +376,23 @@ public class AwsAgentCoreConversationMapper {
     } catch (JsonProcessingException e) {
       return content.toString();
     }
+  }
+
+  /**
+   * Best-effort rendering of a single {@link Content} element for the TOOL conversational summary
+   * (long-term memory extraction only — the blob envelope carries the lossless structure).
+   */
+  private String contentElementToSummaryString(Content content) {
+    return switch (content) {
+      case TextContent text -> text.text();
+      case ObjectContent object -> contentToString(object.content());
+      case DocumentContent document -> contentToString(document.document());
+      // preserve the opaque provider payload as its (best-effort) JSON representation; the
+      // blob envelope carries the lossless structure regardless.
+      case ReasoningContent reasoning ->
+          reasoning.providerPayload() == null ? "" : contentToString(reasoning.providerPayload());
+      case ProviderContent providerContent -> contentToString(providerContent.payload());
+    };
   }
 
   /**

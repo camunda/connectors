@@ -9,12 +9,12 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.to
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 
 public interface ToolCallConverter {
   ToolExecutionRequest asToolExecutionRequest(ToolCall toolCall);
 
   ToolCall asToolCall(ToolExecutionRequest toolExecutionRequest);
 
-  ToolExecutionResultMessage asToolExecutionResultMessage(ToolCallResult toolCallResult);
+  ToolExecutionResultMessage asToolExecutionResultMessage(ToolCallResultContent toolCallResult);
 }

@@ -50,11 +50,13 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
@@ -648,14 +650,14 @@ class CamundaAgentInstanceClientTest {
                   ToolCallResultMessage.builder()
                       .results(
                           List.of(
-                              ToolCallResult.builder()
+                              ToolCallResultContent.builder()
                                   .id("a")
                                   .name("getWeather")
-                                  .content("sunny")
+                                  .content(List.of(TextContent.textContent("sunny")))
                                   .elementId("getWeather")
                                   .completedAt(fastCompletedAt)
                                   .build(),
-                              ToolCallResult.builder()
+                              ToolCallResultContent.builder()
                                   .id("b")
                                   .name("getTime")
                                   .elementId("getTime")
@@ -746,11 +748,11 @@ class CamundaAgentInstanceClientTest {
                   ToolCallResultMessage.builder()
                       .results(
                           List.of(
-                              ToolCallResult.builder()
+                              ToolCallResultContent.builder()
                                   .id("orphan")
                                   .name("getWeather")
                                   .elementId("getWeather")
-                                  .content("sunny")
+                                  .content(List.of(TextContent.textContent("sunny")))
                                   .build()))
                       .build()),
               null,
@@ -783,9 +785,9 @@ class CamundaAgentInstanceClientTest {
                   ToolCallResultMessage.builder()
                       .results(
                           List.of(
-                              ToolCallResult.builder()
+                              ToolCallResultContent.builder()
                                   .elementId("getTime")
-                                  .content("partial")
+                                  .content(List.of(TextContent.textContent("partial")))
                                   .completedAt(TURN_INGESTION_TIMESTAMP)
                                   .build()))
                       .build()),
@@ -823,7 +825,11 @@ class CamundaAgentInstanceClientTest {
               1,
               List.of(
                   ToolCallResultMessage.builder()
-                      .results(List.of(ToolCallResult.builder().content("partial").build()))
+                      .results(
+                          List.of(
+                              ToolCallResultContent.builder()
+                                  .content(List.of(TextContent.textContent("partial")))
+                                  .build()))
                       .build()),
               null,
               AgentMetrics.empty());

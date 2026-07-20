@@ -20,6 +20,13 @@ import java.util.HashMap;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
+/**
+ * The transient tool-return DTO: the shape a completed BPMN element hands back to the agent, with
+ * an untyped {@code content} (whatever object the tool produced). Contrast with {@link
+ * ToolCallResultContent}, the persisted element type this is lifted into via {@link
+ * ToolCallResultContent#from(ToolCallResult)}, which carries a structured {@code List<Content>}
+ * instead.
+ */
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolCallResult.ToolCallResultJacksonProxyBuilder.class)
 public record ToolCallResult(

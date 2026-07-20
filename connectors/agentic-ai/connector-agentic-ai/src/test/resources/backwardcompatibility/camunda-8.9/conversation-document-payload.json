@@ -1,0 +1,269 @@
+{
+  "messages" : [ {
+    "role" : "system",
+    "content" : [ {
+      "type" : "text",
+      "text" : "You are a helpful, generic chat agent which can answer a wide amount of questions based on your knowledge and an optional set of available tools.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nIf you are prompted to interact with a person, never guess contact details, but use available user/person lookup tools instead and return with an error if you're not able to look up appropriate data.\n\nThinking, step by step, before you execute your tools, you think using the template `<thinking><context></context><reflection></reflection></thinking>`"
+    } ]
+  }, {
+    "role" : "user",
+    "content" : [ {
+      "type" : "text",
+      "text" : "send ervin a joke"
+    } ],
+    "metadata" : {
+      "timestamp" : "2026-07-08T20:38:44.826146+02:00"
+    }
+  }, {
+    "role" : "assistant",
+    "content" : [ {
+      "type" : "text",
+      "text" : "<thinking>\n<context>\nThe user wants me to send a joke to someone named \"Ervin\". To do this, I need to:\n1. Find Ervin's contact details (using ListUsers and potentially LoadUserByID)\n2. Get a joke (using Jokes_API)\n3. Send the joke to Ervin (using AskHumanToSendEmail)\n\nI should first list users to find Ervin, then get a joke, and finally compose an email request.\n</context>\n\n<reflection>\nI need to look up Ervin's details first before I can send them anything. I'll start by listing users to find Ervin, and I'll also fetch a joke at the same time since these are independent operations.\n</reflection>\n</thinking>"
+    } ],
+    "toolCalls" : [ {
+      "id" : "tooluse_dufWQrR3UkH35fXr479AFV",
+      "name" : "ListUsers",
+      "arguments" : { }
+    }, {
+      "id" : "tooluse_yEwwiUz1EJSa7IKqQhdzoy",
+      "name" : "Jokes_API",
+      "arguments" : { }
+    } ],
+    "metadata" : {
+      "timestamp" : "2026-07-08T20:38:49.973623+02:00",
+      "framework" : {
+        "id" : "5fa16775-d435-4d42-a6a9-3da6c606b722",
+        "finishReason" : "TOOL_EXECUTION",
+        "tokenUsage" : {
+          "inputTokenCount" : 1391,
+          "outputTokenCount" : 232,
+          "totalTokenCount" : 1623,
+          "cacheWriteInputTokens" : 0,
+          "cacheReadInputTokens" : 0
+        }
+      }
+    }
+  }, {
+    "role" : "tool_call_result",
+    "results" : [ {
+      "id" : "tooluse_dufWQrR3UkH35fXr479AFV",
+      "name" : "ListUsers",
+      "content" : [ {
+        "id" : 1,
+        "name" : "Leanne Graham",
+        "username" : "Bret"
+      }, {
+        "id" : 2,
+        "name" : "Ervin Howell",
+        "username" : "Antonette"
+      }, {
+        "id" : 3,
+        "name" : "Clementine Bauch",
+        "username" : "Samantha"
+      }, {
+        "id" : 4,
+        "name" : "Patricia Lebsack",
+        "username" : "Karianne"
+      }, {
+        "id" : 5,
+        "name" : "Chelsey Dietrich",
+        "username" : "Kamren"
+      }, {
+        "id" : 6,
+        "name" : "Mrs. Dennis Schulist",
+        "username" : "Leopoldo_Corkery"
+      }, {
+        "id" : 7,
+        "name" : "Kurtis Weissnat",
+        "username" : "Elwyn.Skiles"
+      }, {
+        "id" : 8,
+        "name" : "Nicholas Runolfsdottir V",
+        "username" : "Maxime_Nienow"
+      }, {
+        "id" : 9,
+        "name" : "Glenna Reichert",
+        "username" : "Delphine"
+      }, {
+        "id" : 10,
+        "name" : "Clementina DuBuque",
+        "username" : "Moriah.Stanton"
+      } ]
+    }, {
+      "id" : "tooluse_yEwwiUz1EJSa7IKqQhdzoy",
+      "name" : "Jokes_API",
+      "content" : "\"99.9% of the people are dumb!\"\n\n\"Fortunately I belong to the remaining 1%\""
+    } ],
+    "metadata" : {
+      "timestamp" : "2026-07-08T20:38:50.301145+02:00"
+    }
+  }, {
+    "role" : "assistant",
+    "content" : [ {
+      "type" : "text",
+      "text" : "Great! I found Ervin Howell (ID: 2). Now let me get their email address and send them the joke."
+    } ],
+    "toolCalls" : [ {
+      "id" : "tooluse_fXdwFIeEGmCkIb8NHFvB0Y",
+      "name" : "LoadUserByID",
+      "arguments" : {
+        "id" : 2
+      }
+    } ],
+    "metadata" : {
+      "timestamp" : "2026-07-08T20:38:52.712148+02:00",
+      "framework" : {
+        "id" : "bbdde8ff-d0c0-4df0-b343-79e3c04055c1",
+        "finishReason" : "TOOL_EXECUTION",
+        "tokenUsage" : {
+          "inputTokenCount" : 1937,
+          "outputTokenCount" : 84,
+          "totalTokenCount" : 2021,
+          "cacheWriteInputTokens" : 0,
+          "cacheReadInputTokens" : 0
+        }
+      }
+    }
+  }, {
+    "role" : "tool_call_result",
+    "results" : [ {
+      "id" : "tooluse_fXdwFIeEGmCkIb8NHFvB0Y",
+      "name" : "LoadUserByID",
+      "content" : {
+        "website" : "anastasia.net",
+        "name" : "Ervin Howell",
+        "email" : "Shanna@melissa.tv",
+        "username" : "Antonette",
+        "company" : {
+          "name" : "Deckow-Crist",
+          "catchPhrase" : "Proactive didactic contingency",
+          "bs" : "synergize scalable supply-chains"
+        },
+        "id" : 2,
+        "address" : {
+          "geo" : {
+            "lat" : "-43.9509",
+            "lng" : "-34.4618"
+          },
+          "street" : "Victor Plains",
+          "suite" : "Suite 879",
+          "city" : "Wisokyburgh",
+          "zipcode" : "90566-7771"
+        },
+        "phone" : "010-692-6593 x09125"
+      }
+    } ],
+    "metadata" : {
+      "timestamp" : "2026-07-08T20:38:52.912742+02:00"
+    }
+  }, {
+    "role" : "assistant",
+    "content" : [ {
+      "type" : "text",
+      "text" : "Perfect! Now I'll send the joke to Ervin Howell."
+    } ],
+    "toolCalls" : [ {
+      "id" : "tooluse_vPFebFZDBu5vbIx4UjRUPj",
+      "name" : "AskHumanToSendEmail",
+      "arguments" : {
+        "email_body" : "Hi Ervin,\n\nHere's a joke to brighten your day:\n\n\"99.9% of the people are dumb!\"\n\n\"Fortunately I belong to the remaining 1%\"\n\nHope it made you smile!\n\nBest regards",
+        "email_subject" : "A joke for you!",
+        "recipient_name" : "Ervin Howell",
+        "instructions" : "The user requested to send Ervin a joke. I've fetched a random joke and prepared this email to be sent to Ervin Howell.",
+        "recipient_email" : "Shanna@melissa.tv"
+      }
+    } ],
+    "metadata" : {
+      "timestamp" : "2026-07-08T20:38:56.977616+02:00",
+      "framework" : {
+        "id" : "753cb103-984b-47ad-8582-b497d8e0d0da",
+        "finishReason" : "TOOL_EXECUTION",
+        "tokenUsage" : {
+          "inputTokenCount" : 2173,
+          "outputTokenCount" : 249,
+          "totalTokenCount" : 2422,
+          "cacheWriteInputTokens" : 0,
+          "cacheReadInputTokens" : 0
+        }
+      }
+    }
+  }, {
+    "role" : "tool_call_result",
+    "results" : [ {
+      "id" : "tooluse_vPFebFZDBu5vbIx4UjRUPj",
+      "name" : "AskHumanToSendEmail",
+      "content" : {
+        "operatorFeedback" : "email needs more emojis",
+        "emailOk" : false
+      }
+    } ],
+    "metadata" : {
+      "timestamp" : "2026-07-08T20:39:16.893996+02:00"
+    }
+  }, {
+    "role" : "assistant",
+    "content" : [ {
+      "type" : "text",
+      "text" : "Let me add some emojis to make the email more fun!"
+    } ],
+    "toolCalls" : [ {
+      "id" : "tooluse_UUVcB4XDMQPE3UZmUjlcf7",
+      "name" : "AskHumanToSendEmail",
+      "arguments" : {
+        "email_subject" : "A joke for you! 😄",
+        "email_body" : "Hi Ervin! 👋\n\nHere's a joke to brighten your day: 😄\n\n\"99.9% of the people are dumb!\" 🤔\n\n\"Fortunately I belong to the remaining 1%\" 😂\n\nHope it made you smile! 😊\n\nBest regards ✨",
+        "recipient_name" : "Ervin Howell",
+        "instructions" : "The user requested to send Ervin a joke. I've fetched a random joke and prepared this email with emojis to be sent to Ervin Howell.",
+        "recipient_email" : "Shanna@melissa.tv"
+      }
+    } ],
+    "metadata" : {
+      "timestamp" : "2026-07-08T20:39:20.727499+02:00",
+      "framework" : {
+        "id" : "79359c4d-06f6-4a42-8904-0f69a0bda612",
+        "finishReason" : "TOOL_EXECUTION",
+        "tokenUsage" : {
+          "inputTokenCount" : 2453,
+          "outputTokenCount" : 273,
+          "totalTokenCount" : 2726,
+          "cacheWriteInputTokens" : 0,
+          "cacheReadInputTokens" : 0
+        }
+      }
+    }
+  }, {
+    "role" : "tool_call_result",
+    "results" : [ {
+      "id" : "tooluse_UUVcB4XDMQPE3UZmUjlcf7",
+      "name" : "AskHumanToSendEmail",
+      "content" : {
+        "operatorFeedback" : null,
+        "emailOk" : true,
+        "emailSent" : true
+      }
+    } ],
+    "metadata" : {
+      "timestamp" : "2026-07-08T20:39:28.814162+02:00"
+    }
+  }, {
+    "role" : "assistant",
+    "content" : [ {
+      "type" : "text",
+      "text" : "Perfect! I've successfully sent a joke to Ervin Howell at Shanna@melissa.tv. The joke was about the \"1%\" and should give him a good laugh! 😄"
+    } ],
+    "metadata" : {
+      "timestamp" : "2026-07-08T20:39:31.250736+02:00",
+      "framework" : {
+        "id" : "a0920a3d-9a12-4d3b-b6bb-5ae714057e95",
+        "finishReason" : "STOP",
+        "tokenUsage" : {
+          "inputTokenCount" : 2758,
+          "outputTokenCount" : 46,
+          "totalTokenCount" : 2804,
+          "cacheWriteInputTokens" : 0,
+          "cacheReadInputTokens" : 0
+        }
+      }
+    }
+  } ]
+}
