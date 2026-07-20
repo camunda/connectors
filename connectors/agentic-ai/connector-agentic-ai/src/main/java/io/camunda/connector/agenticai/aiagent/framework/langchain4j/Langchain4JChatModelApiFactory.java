@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
@@ -13,7 +14,10 @@ import io.camunda.connector.agenticai.aiagent.framework.api.V1ChatModelApiConfig
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetricsTokenUsageBuilder;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Adapts one LangChain4J provider to the chat model SPI. {@link #supports} matches a {@link
@@ -51,6 +55,33 @@ public abstract class Langchain4JChatModelApiFactory<T extends ProviderConfigura
   /** Creates a {@link CloseableChatModel} instance from the given configuration. */
   protected abstract CloseableChatModel createChatModel(T providerConfiguration);
 
+  /**
+   * Maps the base input/output counts on every {@link TokenUsage}. Subclasses override this to
+   * layer on cache and reasoning token detail exposed by the provider-specific {@link TokenUsage}
+   * subclass their LangChain4J client returns.
+   */
+  protected AgentMetrics.TokenUsage mapTokenUsage(@Nullable TokenUsage usage) {
+    if (usage == null) {
+      return AgentMetrics.TokenUsage.empty();
+    }
+
+    return baseTokenUsageBuilder(usage).build();
+  }
+
+  /**
+   * Base input/output token usage builder, exposed so overrides of {@link #mapTokenUsage} can
+   * extend it with provider-specific detail rather than rebuilding it from scratch.
+   */
+  protected final AgentMetricsTokenUsageBuilder baseTokenUsageBuilder(TokenUsage usage) {
+    return AgentMetrics.TokenUsage.builder()
+        .inputTokenCount(nullToZero(usage.inputTokenCount()))
+        .outputTokenCount(nullToZero(usage.outputTokenCount()));
+  }
+
+  protected static int nullToZero(@Nullable Integer value) {
+    return value != null ? value : 0;
+  }
+
   @Override
   public boolean supports(ChatModelApiConfiguration configuration) {
     return configuration instanceof V1ChatModelApiConfiguration provider
@@ -70,6 +101,7 @@ public abstract class Langchain4JChatModelApiFactory<T extends ProviderConfigura
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter,
-        capabilities);
+        capabilities,
+        this::mapTokenUsage);
   }
 }

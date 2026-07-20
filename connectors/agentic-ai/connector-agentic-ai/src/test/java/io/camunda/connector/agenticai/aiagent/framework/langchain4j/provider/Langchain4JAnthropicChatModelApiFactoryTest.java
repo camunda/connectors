@@ -22,6 +22,8 @@ import static org.mockito.Mockito.when;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.anthropic.AnthropicChatModel.AnthropicChatModelBuilder;
+import dev.langchain4j.model.anthropic.AnthropicTokenUsage;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
@@ -31,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.J
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
@@ -209,5 +212,50 @@ class Langchain4JAnthropicChatModelApiFactoryTest {
 
   static Stream<AnthropicModelParameters> nullModelParameters() {
     return Stream.of(new AnthropicModelParameters(null, null, null, null));
+  }
+
+  @Test
+  void mapsAnthropicCacheTokenCounts() {
+    final var usage =
+        AnthropicTokenUsage.builder()
+            .inputTokenCount(5)
+            .outputTokenCount(6)
+            .cacheReadInputTokens(2)
+            .cacheCreationInputTokens(3)
+            .build();
+
+    assertThat(provider.mapTokenUsage(usage))
+        .usingRecursiveComparison()
+        .isEqualTo(
+            AgentMetrics.TokenUsage.empty()
+                .withInputTokenCount(5)
+                .withOutputTokenCount(6)
+                .withCacheReadTokenCount(2)
+                .withCacheCreationTokenCount(3));
+  }
+
+  @Test
+  void mapsAnthropicCacheTokenCountsWhenNullOnTheVendorSide() {
+    final var usage = AnthropicTokenUsage.builder().inputTokenCount(5).outputTokenCount(6).build();
+
+    assertThat(provider.mapTokenUsage(usage))
+        .usingRecursiveComparison()
+        .isEqualTo(AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6));
+  }
+
+  @Test
+  void fallsBackToBaseMappingForNonAnthropicTokenUsage() {
+    final var usage = new TokenUsage(5, 6);
+
+    assertThat(provider.mapTokenUsage(usage))
+        .usingRecursiveComparison()
+        .isEqualTo(AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6));
+  }
+
+  @Test
+  void mapsEmptyTokenUsageWhenMissing() {
+    assertThat(provider.mapTokenUsage(null))
+        .usingRecursiveComparison()
+        .isEqualTo(AgentMetrics.TokenUsage.empty());
   }
 }

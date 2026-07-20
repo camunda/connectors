@@ -23,13 +23,10 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.exception.ModelNotFoundException;
 import dev.langchain4j.exception.UnresolvedModelServerException;
-import dev.langchain4j.model.anthropic.AnthropicTokenUsage;
-import dev.langchain4j.model.bedrock.BedrockTokenUsage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.openai.OpenAiTokenUsage;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
@@ -55,6 +52,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -106,9 +104,13 @@ class Langchain4JChatModelApiTest {
               null,
               new AnthropicModel("claude", null)));
 
+  private static final AgentMetrics.TokenUsage MAPPED_TOKEN_USAGE =
+      AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6);
+
   @Mock private ChatMessageConverter chatMessageConverter;
   @Mock private ToolSpecificationConverter toolSpecificationConverter;
   @Mock private JsonSchemaConverter jsonSchemaConverter;
+  @Mock private Function<TokenUsage, AgentMetrics.TokenUsage> tokenUsageMapper;
 
   @Mock private CloseableChatModel chatModel;
   @Mock private ChatResponse chatResponse;
@@ -132,6 +134,9 @@ class Langchain4JChatModelApiTest {
     lenient()
         .when(chatMessageConverter.toAssistantMessage(chatResponse))
         .thenReturn(ASSISTANT_MESSAGE);
+    // token usage interpretation is delegated entirely to the injected mapper (owned by the
+    // provider factory since D8); this test only asserts that call() delegates to it correctly.
+    lenient().when(tokenUsageMapper.apply(any())).thenReturn(MAPPED_TOKEN_USAGE);
 
     api =
         new Langchain4JChatModelApi(
@@ -139,7 +144,8 @@ class Langchain4JChatModelApiTest {
             chatMessageConverter,
             toolSpecificationConverter,
             jsonSchemaConverter,
-            Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
+            Langchain4JChatModelApi.DEFAULT_CAPABILITIES,
+            tokenUsageMapper);
   }
 
   @Test
@@ -276,120 +282,26 @@ class Langchain4JChatModelApiTest {
   }
 
   @Test
-  void returnsTokenUsageFromResponse() {
+  void returnsTokenUsageMappedByTheInjectedMapper() {
     final var result = api.call(new ChatModelRequest(createExecutionContext(), SNAPSHOT));
 
-    assertThat(result.metrics().tokenUsage())
-        .usingRecursiveComparison()
-        .isEqualTo(AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6));
+    assertThat(result.metrics().tokenUsage()).isSameAs(MAPPED_TOKEN_USAGE);
     assertThat(result.metrics().modelCalls()).isEqualTo(1);
     assertThat(result.metrics().executionTime()).isNotNull();
+    verify(tokenUsageMapper).apply(new TokenUsage(5, 6));
   }
 
   @Test
-  void returnsEmptyTokenUsageIfMissingInResponse() {
+  void passesNullTokenUsageToTheMapperIfMissingInResponse() {
     when(chatResponse.tokenUsage()).thenReturn(null);
+    when(tokenUsageMapper.apply(null)).thenReturn(AgentMetrics.TokenUsage.empty());
 
     final var result = api.call(new ChatModelRequest(createExecutionContext(), SNAPSHOT));
 
     assertThat(result.metrics().tokenUsage())
         .usingRecursiveComparison()
         .isEqualTo(AgentMetrics.TokenUsage.empty());
-  }
-
-  @Test
-  void mapsAnthropicCacheTokenCounts() {
-    when(chatResponse.tokenUsage())
-        .thenReturn(
-            AnthropicTokenUsage.builder()
-                .inputTokenCount(5)
-                .outputTokenCount(6)
-                .cacheReadInputTokens(2)
-                .cacheCreationInputTokens(3)
-                .build());
-
-    final var result = api.call(new ChatModelRequest(createExecutionContext(), SNAPSHOT));
-
-    assertThat(result.metrics().tokenUsage())
-        .usingRecursiveComparison()
-        .isEqualTo(
-            AgentMetrics.TokenUsage.empty()
-                .withInputTokenCount(5)
-                .withOutputTokenCount(6)
-                .withCacheReadTokenCount(2)
-                .withCacheCreationTokenCount(3));
-  }
-
-  @Test
-  void mapsAnthropicCacheTokenCountsWhenNullOnTheVendorSide() {
-    when(chatResponse.tokenUsage())
-        .thenReturn(AnthropicTokenUsage.builder().inputTokenCount(5).outputTokenCount(6).build());
-
-    final var result = api.call(new ChatModelRequest(createExecutionContext(), SNAPSHOT));
-
-    assertThat(result.metrics().tokenUsage())
-        .usingRecursiveComparison()
-        .isEqualTo(AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6));
-  }
-
-  @Test
-  void mapsBedrockCacheTokenCounts() {
-    when(chatResponse.tokenUsage())
-        .thenReturn(
-            BedrockTokenUsage.builder()
-                .inputTokenCount(5)
-                .outputTokenCount(6)
-                .cacheReadInputTokens(2)
-                .cacheWriteInputTokens(3)
-                .build());
-
-    final var result = api.call(new ChatModelRequest(createExecutionContext(), SNAPSHOT));
-
-    assertThat(result.metrics().tokenUsage())
-        .usingRecursiveComparison()
-        .isEqualTo(
-            AgentMetrics.TokenUsage.empty()
-                .withInputTokenCount(5)
-                .withOutputTokenCount(6)
-                .withCacheReadTokenCount(2)
-                .withCacheCreationTokenCount(3));
-  }
-
-  @Test
-  void mapsOpenAiCacheAndReasoningTokenCounts() {
-    when(chatResponse.tokenUsage())
-        .thenReturn(
-            OpenAiTokenUsage.builder()
-                .inputTokenCount(5)
-                .outputTokenCount(6)
-                .inputTokensDetails(
-                    OpenAiTokenUsage.InputTokensDetails.builder().cachedTokens(2).build())
-                .outputTokensDetails(
-                    OpenAiTokenUsage.OutputTokensDetails.builder().reasoningTokens(4).build())
-                .build());
-
-    final var result = api.call(new ChatModelRequest(createExecutionContext(), SNAPSHOT));
-
-    assertThat(result.metrics().tokenUsage())
-        .usingRecursiveComparison()
-        .isEqualTo(
-            AgentMetrics.TokenUsage.empty()
-                .withInputTokenCount(5)
-                .withOutputTokenCount(6)
-                .withCacheReadTokenCount(2)
-                .withReasoningTokenCount(4));
-  }
-
-  @Test
-  void mapsOpenAiTokenCountsWithoutNestedDetails() {
-    when(chatResponse.tokenUsage())
-        .thenReturn(OpenAiTokenUsage.builder().inputTokenCount(5).outputTokenCount(6).build());
-
-    final var result = api.call(new ChatModelRequest(createExecutionContext(), SNAPSHOT));
-
-    assertThat(result.metrics().tokenUsage())
-        .usingRecursiveComparison()
-        .isEqualTo(AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6));
+    verify(tokenUsageMapper).apply(null);
   }
 
   @Test

@@ -20,7 +20,9 @@ import static org.mockito.Mockito.verify;
 
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
+import dev.langchain4j.model.bedrock.BedrockTokenUsage;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
@@ -30,6 +32,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.J
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockConnection;
@@ -361,4 +364,40 @@ class Langchain4JBedrockChatModelApiFactoryTest {
       BedrockRuntimeClientBuilder clientBuilder,
       ResultCaptor<BedrockRuntimeClient> clientResultCaptor,
       BedrockChatModel.Builder chatModelBuilder) {}
+
+  @Test
+  void mapsBedrockCacheTokenCounts() {
+    final var usage =
+        BedrockTokenUsage.builder()
+            .inputTokenCount(5)
+            .outputTokenCount(6)
+            .cacheReadInputTokens(2)
+            .cacheWriteInputTokens(3)
+            .build();
+
+    assertThat(provider.mapTokenUsage(usage))
+        .usingRecursiveComparison()
+        .isEqualTo(
+            AgentMetrics.TokenUsage.empty()
+                .withInputTokenCount(5)
+                .withOutputTokenCount(6)
+                .withCacheReadTokenCount(2)
+                .withCacheCreationTokenCount(3));
+  }
+
+  @Test
+  void fallsBackToBaseMappingForNonBedrockTokenUsage() {
+    final var usage = new TokenUsage(5, 6);
+
+    assertThat(provider.mapTokenUsage(usage))
+        .usingRecursiveComparison()
+        .isEqualTo(AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6));
+  }
+
+  @Test
+  void mapsEmptyTokenUsageWhenMissing() {
+    assertThat(provider.mapTokenUsage(null))
+        .usingRecursiveComparison()
+        .isEqualTo(AgentMetrics.TokenUsage.empty());
+  }
 }

@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
+import dev.langchain4j.model.openai.OpenAiTokenUsage;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetricsTokenUsageBuilder;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.time.Duration;
@@ -42,5 +44,27 @@ public final class ChatModelProviderSupport {
     }
 
     return derivedTimeout;
+  }
+
+  /**
+   * Layers OpenAI cache/reasoning token detail onto an in-progress {@link
+   * AgentMetricsTokenUsageBuilder}. Shared by every LangChain4J factory whose client returns {@link
+   * OpenAiTokenUsage} (OpenAI and OpenAI-compatible today), so both get identical detail without
+   * duplicating the mapping logic.
+   */
+  public static AgentMetricsTokenUsageBuilder applyOpenAiTokenUsageDetail(
+      AgentMetricsTokenUsageBuilder builder, OpenAiTokenUsage usage) {
+    Optional.ofNullable(usage.inputTokensDetails())
+        .map(OpenAiTokenUsage.InputTokensDetails::cachedTokens)
+        .ifPresent(cachedTokens -> builder.cacheReadTokenCount(nullToZero(cachedTokens)));
+    Optional.ofNullable(usage.outputTokensDetails())
+        .map(OpenAiTokenUsage.OutputTokensDetails::reasoningTokens)
+        .ifPresent(reasoningTokens -> builder.reasoningTokenCount(nullToZero(reasoningTokens)));
+
+    return builder;
+  }
+
+  private static int nullToZero(@Nullable Integer value) {
+    return value != null ? value : 0;
   }
 }

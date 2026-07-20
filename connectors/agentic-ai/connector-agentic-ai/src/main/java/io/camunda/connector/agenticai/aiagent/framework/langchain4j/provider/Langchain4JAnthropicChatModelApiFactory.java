@@ -10,6 +10,8 @@ import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provi
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
+import dev.langchain4j.model.anthropic.AnthropicTokenUsage;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
@@ -18,9 +20,11 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableCha
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,5 +79,17 @@ public class Langchain4JAnthropicChatModelApiFactory
     }
 
     return new CloseableChatModelDelegate(builder.build(), http);
+  }
+
+  @Override
+  protected AgentMetrics.TokenUsage mapTokenUsage(@Nullable TokenUsage usage) {
+    if (usage instanceof AnthropicTokenUsage anthropicTokenUsage) {
+      return baseTokenUsageBuilder(anthropicTokenUsage)
+          .cacheReadTokenCount(nullToZero(anthropicTokenUsage.cacheReadInputTokens()))
+          .cacheCreationTokenCount(nullToZero(anthropicTokenUsage.cacheCreationInputTokens()))
+          .build();
+    }
+
+    return super.mapTokenUsage(usage);
   }
 }

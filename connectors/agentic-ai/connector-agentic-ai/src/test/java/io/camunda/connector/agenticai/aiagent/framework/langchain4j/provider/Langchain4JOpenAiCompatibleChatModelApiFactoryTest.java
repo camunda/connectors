@@ -23,6 +23,8 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
+import dev.langchain4j.model.openai.OpenAiTokenUsage;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
@@ -32,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.J
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel.OpenAiCompatibleModelParameters;
@@ -318,5 +321,55 @@ class Langchain4JOpenAiCompatibleChatModelApiFactoryTest {
 
   static Stream<OpenAiCompatibleModelParameters> nullModelParameters() {
     return Stream.of(new OpenAiCompatibleModelParameters(null, null, null, null));
+  }
+
+  @Test
+  void mapsOpenAiCacheAndReasoningTokenCountsWhenUnderlyingClientReturnsOpenAiTokenUsage() {
+    // OpenAI-compatible endpoints use LangChain4J's OpenAI client under the hood, so an
+    // OpenAI-compatible backend that happens to return OpenAiTokenUsage gets the same cache/
+    // reasoning detail as the native OpenAI factory - this must keep working after D8.
+    final var usage =
+        OpenAiTokenUsage.builder()
+            .inputTokenCount(5)
+            .outputTokenCount(6)
+            .inputTokensDetails(
+                OpenAiTokenUsage.InputTokensDetails.builder().cachedTokens(2).build())
+            .outputTokensDetails(
+                OpenAiTokenUsage.OutputTokensDetails.builder().reasoningTokens(4).build())
+            .build();
+
+    assertThat(provider.mapTokenUsage(usage))
+        .usingRecursiveComparison()
+        .isEqualTo(
+            AgentMetrics.TokenUsage.empty()
+                .withInputTokenCount(5)
+                .withOutputTokenCount(6)
+                .withCacheReadTokenCount(2)
+                .withReasoningTokenCount(4));
+  }
+
+  @Test
+  void mapsOpenAiTokenCountsWithoutNestedDetails() {
+    final var usage = OpenAiTokenUsage.builder().inputTokenCount(5).outputTokenCount(6).build();
+
+    assertThat(provider.mapTokenUsage(usage))
+        .usingRecursiveComparison()
+        .isEqualTo(AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6));
+  }
+
+  @Test
+  void fallsBackToBaseMappingForNonOpenAiTokenUsage() {
+    final var usage = new TokenUsage(5, 6);
+
+    assertThat(provider.mapTokenUsage(usage))
+        .usingRecursiveComparison()
+        .isEqualTo(AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6));
+  }
+
+  @Test
+  void mapsEmptyTokenUsageWhenMissing() {
+    assertThat(provider.mapTokenUsage(null))
+        .usingRecursiveComparison()
+        .isEqualTo(AgentMetrics.TokenUsage.empty());
   }
 }

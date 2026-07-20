@@ -21,6 +21,8 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
+import dev.langchain4j.model.openai.OpenAiTokenUsage;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
@@ -30,6 +32,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.J
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
@@ -224,5 +227,52 @@ class Langchain4JOpenAiChatModelApiFactoryTest {
 
   static Stream<OpenAiModelParameters> nullModelParameters() {
     return Stream.of(new OpenAiModelParameters(null, null, null));
+  }
+
+  @Test
+  void mapsOpenAiCacheAndReasoningTokenCounts() {
+    final var usage =
+        OpenAiTokenUsage.builder()
+            .inputTokenCount(5)
+            .outputTokenCount(6)
+            .inputTokensDetails(
+                OpenAiTokenUsage.InputTokensDetails.builder().cachedTokens(2).build())
+            .outputTokensDetails(
+                OpenAiTokenUsage.OutputTokensDetails.builder().reasoningTokens(4).build())
+            .build();
+
+    assertThat(provider.mapTokenUsage(usage))
+        .usingRecursiveComparison()
+        .isEqualTo(
+            AgentMetrics.TokenUsage.empty()
+                .withInputTokenCount(5)
+                .withOutputTokenCount(6)
+                .withCacheReadTokenCount(2)
+                .withReasoningTokenCount(4));
+  }
+
+  @Test
+  void mapsOpenAiTokenCountsWithoutNestedDetails() {
+    final var usage = OpenAiTokenUsage.builder().inputTokenCount(5).outputTokenCount(6).build();
+
+    assertThat(provider.mapTokenUsage(usage))
+        .usingRecursiveComparison()
+        .isEqualTo(AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6));
+  }
+
+  @Test
+  void fallsBackToBaseMappingForNonOpenAiTokenUsage() {
+    final var usage = new TokenUsage(5, 6);
+
+    assertThat(provider.mapTokenUsage(usage))
+        .usingRecursiveComparison()
+        .isEqualTo(AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6));
+  }
+
+  @Test
+  void mapsEmptyTokenUsageWhenMissing() {
+    assertThat(provider.mapTokenUsage(null))
+        .usingRecursiveComparison()
+        .isEqualTo(AgentMetrics.TokenUsage.empty());
   }
 }
