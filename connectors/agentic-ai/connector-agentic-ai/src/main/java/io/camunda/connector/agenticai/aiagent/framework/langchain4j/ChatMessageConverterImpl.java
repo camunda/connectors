@@ -171,7 +171,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       case LENGTH -> StopReason.LENGTH;
       case TOOL_EXECUTION -> StopReason.TOOL_USE;
       case CONTENT_FILTER -> StopReason.CONTENT_FILTERED;
-      case OTHER -> StopReason.UNKNOWN;
+      case OTHER -> new StopReason.UnknownStopReason("OTHER");
     };
   }
 

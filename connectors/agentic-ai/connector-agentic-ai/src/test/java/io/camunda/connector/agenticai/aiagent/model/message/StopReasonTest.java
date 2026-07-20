@@ -55,6 +55,13 @@ class StopReasonTest {
   }
 
   @Test
+  void legacyPersistedUnknownStringDeserializesToUnknownStopReasonCarryingTheRawString() {
+    final StopReason restored = StopReason.of("UNKNOWN");
+
+    assertThat(restored).isEqualTo(new UnknownStopReason("UNKNOWN"));
+  }
+
+  @Test
   void unknownStopReasonRoundTripsToTheSameRawString() throws Exception {
     final StopReason unknown = new UnknownStopReason("some_new_vendor_reason");
 
@@ -74,6 +81,5 @@ class StopReasonTest {
     assertThat(StopReason.GUARDRAIL).isSameAs(KnownStopReason.GUARDRAIL);
     assertThat(StopReason.ERROR).isSameAs(KnownStopReason.ERROR);
     assertThat(StopReason.ABORTED).isSameAs(KnownStopReason.ABORTED);
-    assertThat(StopReason.UNKNOWN).isSameAs(KnownStopReason.UNKNOWN);
   }
 }

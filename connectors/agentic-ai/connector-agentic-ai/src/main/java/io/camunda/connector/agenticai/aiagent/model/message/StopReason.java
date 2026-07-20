@@ -35,7 +35,6 @@ public sealed interface StopReason
   StopReason GUARDRAIL = KnownStopReason.GUARDRAIL;
   StopReason ERROR = KnownStopReason.ERROR;
   StopReason ABORTED = KnownStopReason.ABORTED;
-  StopReason UNKNOWN = KnownStopReason.UNKNOWN;
 
   /** The wire value: a known constant's name, or the verbatim vendor string when unrecognised. */
   @JsonValue
@@ -62,8 +61,7 @@ public sealed interface StopReason
     CONTENT_FILTERED,
     GUARDRAIL,
     ERROR,
-    ABORTED,
-    UNKNOWN;
+    ABORTED;
 
     @Override
     public String value() {
@@ -71,9 +69,6 @@ public sealed interface StopReason
     }
   }
 
-  /**
-   * A vendor stop reason that doesn't map to any {@link KnownStopReason}, carried verbatim rather
-   * than collapsed to {@link KnownStopReason#UNKNOWN}.
-   */
+  /** A vendor stop reason that doesn't map to any {@link KnownStopReason}, carried verbatim. */
   record UnknownStopReason(String value) implements StopReason {}
 }
