@@ -126,7 +126,7 @@ public class LocalFeelExpressionEvaluator implements FeelExpressionEvaluator {
     try {
       return (T) evaluateInternal(expression, variables);
     } catch (Exception e) {
-      throw new FeelEngineWrapperException(e.getMessage(), expression, variables, e);
+      throw wrapEvaluationException(e, expression, variables);
     }
   }
 
@@ -187,8 +187,29 @@ public class LocalFeelExpressionEvaluator implements FeelExpressionEvaluator {
         return resultToJson(result);
       } else return null;
     } catch (Exception e) {
-      throw new FeelEngineWrapperException(e.getMessage(), expression, variables, e);
+      throw wrapEvaluationException(e, expression, variables);
     }
+  }
+
+  /**
+   * feel-engine's cooperative cancellation ({@code FeelInterpreter.eval}) checks {@code
+   * Thread.interrupted()} on every AST node and throws a bare, message-less {@link
+   * InterruptedException} when the job-handling thread was interrupted (e.g. runtime shutdown while
+   * a job was in flight). Wrapping it like any other evaluation failure produces a misleading
+   * "Reason: null" incident, so it is special-cased here with a clear reason and the thread's
+   * interrupt status is restored for callers further up the stack to observe.
+   */
+  private static FeelEngineWrapperException wrapEvaluationException(
+      final Exception e, final String expression, final Object[] variables) {
+    if (e instanceof InterruptedException) {
+      Thread.currentThread().interrupt();
+      return new FeelEngineWrapperException(
+          "the evaluating thread was interrupted, likely because the connector runtime is shutting down",
+          expression,
+          variables,
+          e);
+    }
+    return new FeelEngineWrapperException(e.getMessage(), expression, variables, e);
   }
 
   private Object evaluateInternal(final String expression, final Object[] variables) {
