@@ -84,11 +84,11 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           openByDefault = false)
     },
     icon = "aiagent.svg")
-public class AiAgentTaskV2 implements AgentConnectorFunction {
+public class AiAgentTaskV2Function implements AgentConnectorFunction {
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final OutboundConnectorAgentRequestHandler agentRequestHandler;
 
-  public AiAgentTaskV2(
+  public AiAgentTaskV2Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
       OutboundConnectorAgentRequestHandler agentRequestHandler) {
     this.toolElementsResolver = toolElementsResolver;

@@ -64,7 +64,7 @@ class AiAgentV2EntryPointTest {
             config,
             new OutboundConnectorAgentRequestData(null, null, null, null, null, null, null));
 
-    // reproduces exactly what AiAgentTaskV2.execute builds
+    // reproduces exactly what AiAgentTaskV2Function.execute builds
     final var ctx =
         new OutboundConnectorAgentExecutionContext(
             mock(JobContext.class),
@@ -97,7 +97,7 @@ class AiAgentV2EntryPointTest {
     final var cannedResponse = new AiAgentTaskConnectorResponse(null, null);
     when(agentRequestHandler.handleRequest(any())).thenReturn(cannedResponse);
 
-    final var task = new AiAgentTaskV2(toolElementsResolver, agentRequestHandler);
+    final var task = new AiAgentTaskV2Function(toolElementsResolver, agentRequestHandler);
     final var response = task.execute(context);
 
     assertThat(response).isSameAs(cannedResponse);

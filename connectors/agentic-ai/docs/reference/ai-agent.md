@@ -938,7 +938,7 @@ classpath registers it with no other wiring change (see [§25.4](#254-add-a-nati
 
 ### v2 (own LLM layer) config surface
 
-The v2 connectors (`AiAgentTaskV2`, `AiAgentSubProcessV2`; connector types
+The v2 connectors (`AiAgentTaskV2Function`, `AiAgentSubProcessV2Function`; connector types
 `io.camunda.agenticai:aiagent:task:2` / `io.camunda.agenticai:aiagent:subprocess:2`) carry a
 wire-format-first config surface in package
 `io.camunda.connector.agenticai.aiagent.model.request.chatmodel`:
@@ -1243,9 +1243,9 @@ Imports:
 the shared handlers are reused (no v2 handler subclasses), and the v2 connector beans depend on
 them:
 
-- `aiAgentTaskV2` (`AiAgentTaskV2`) — `@ConditionalOnBean(OutboundConnectorAgentRequestHandler.class)`,
+- `aiAgentTaskV2Function` (`AiAgentTaskV2Function`) — `@ConditionalOnBean(OutboundConnectorAgentRequestHandler.class)`,
   toggled by `...aiagent.task-v2.enabled`.
-- `aiAgentSubProcessV2` (`AiAgentSubProcessV2`) — `@ConditionalOnBean(JobWorkerAgentRequestHandler.class)`,
+- `aiAgentSubProcessV2Function` (`AiAgentSubProcessV2Function`) — `@ConditionalOnBean(JobWorkerAgentRequestHandler.class)`,
   toggled by `...aiagent.subprocess-v2.enabled`.
 
 Separately, `AgenticAiAnthropicProviderConfiguration` registers the `anthropicChatModelApiFactory`

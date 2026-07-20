@@ -26,8 +26,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaRe
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
-import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessV2;
-import io.camunda.connector.agenticai.aiagent.AiAgentTaskV2;
+import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessV2Function;
+import io.camunda.connector.agenticai.aiagent.AiAgentTaskV2Function;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
@@ -396,10 +396,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.task-v2.enabled",
       matchIfMissing = true)
-  public AiAgentTaskV2 aiAgentTaskV2(
+  public AiAgentTaskV2Function aiAgentTaskV2Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
       OutboundConnectorAgentRequestHandler agentRequestHandler) {
-    return new AiAgentTaskV2(toolElementsResolver, agentRequestHandler);
+    return new AiAgentTaskV2Function(toolElementsResolver, agentRequestHandler);
   }
 
   @Bean
@@ -408,7 +408,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.subprocess-v2.enabled",
       matchIfMissing = true)
-  public AiAgentSubProcessV2 aiAgentSubProcessV2(JobWorkerAgentRequestHandler agentRequestHandler) {
-    return new AiAgentSubProcessV2(agentRequestHandler);
+  public AiAgentSubProcessV2Function aiAgentSubProcessV2Function(
+      JobWorkerAgentRequestHandler agentRequestHandler) {
+    return new AiAgentSubProcessV2Function(agentRequestHandler);
   }
 }

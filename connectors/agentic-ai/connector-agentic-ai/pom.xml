@@ -509,7 +509,7 @@
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
-              <connectorClass>io.camunda.connector.agenticai.aiagent.AiAgentTaskV2</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.aiagent.AiAgentTaskV2Function</connectorClass>
               <files>
                 <file>
                   <templateId>io.camunda.connectors.agenticai.ai-agent-task.v2</templateId>

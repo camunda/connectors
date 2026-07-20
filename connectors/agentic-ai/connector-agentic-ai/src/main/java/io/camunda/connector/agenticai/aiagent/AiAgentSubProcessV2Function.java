@@ -15,16 +15,16 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
 /** AI Agent Sub-process v2 connector (LLM-provider layer). Job worker on an ad-hoc sub-process. */
 @OutboundConnector(
-    name = AiAgentSubProcessV2.JOB_WORKER_NAME,
-    type = AiAgentSubProcessV2.JOB_WORKER_TYPE,
+    name = AiAgentSubProcessV2Function.JOB_WORKER_NAME,
+    type = AiAgentSubProcessV2Function.JOB_WORKER_TYPE,
     inputVariables = {
-      AiAgentSubProcessV2.AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE,
-      AiAgentSubProcessV2.AGENT_CONTEXT_VARIABLE,
-      AiAgentSubProcessV2.TOOL_CALL_RESULTS_VARIABLE,
-      AiAgentSubProcessV2.CONFIGURATION_VARIABLE,
-      AiAgentSubProcessV2.DATA_VARIABLE
+      AiAgentSubProcessV2Function.AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE,
+      AiAgentSubProcessV2Function.AGENT_CONTEXT_VARIABLE,
+      AiAgentSubProcessV2Function.TOOL_CALL_RESULTS_VARIABLE,
+      AiAgentSubProcessV2Function.CONFIGURATION_VARIABLE,
+      AiAgentSubProcessV2Function.DATA_VARIABLE
     })
-public class AiAgentSubProcessV2 implements AgentConnectorFunction {
+public class AiAgentSubProcessV2Function implements AgentConnectorFunction {
 
   public static final String JOB_WORKER_NAME = "AI Agent Sub-process";
   public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent:subprocess:2";
@@ -37,7 +37,7 @@ public class AiAgentSubProcessV2 implements AgentConnectorFunction {
 
   private final JobWorkerAgentRequestHandler agentRequestHandler;
 
-  public AiAgentSubProcessV2(JobWorkerAgentRequestHandler agentRequestHandler) {
+  public AiAgentSubProcessV2Function(JobWorkerAgentRequestHandler agentRequestHandler) {
     this.agentRequestHandler = agentRequestHandler;
   }
 
