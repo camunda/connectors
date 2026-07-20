@@ -7,6 +7,7 @@
 package io.camunda.connector.aws.dynamodb;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
@@ -17,11 +18,22 @@ public final class AwsDynamoDbClientSupplier {
 
   public static DynamoDB getDynamoDdClient(
       final AWSCredentialsProvider credentialsProvider, final String region) {
-    AmazonDynamoDB client =
-        AmazonDynamoDBClientBuilder.standard()
-            .withCredentials(credentialsProvider)
-            .withRegion(region)
-            .build();
+    return getDynamoDdClient(credentialsProvider, region, null);
+  }
+
+  public static DynamoDB getDynamoDdClient(
+      final AWSCredentialsProvider credentialsProvider,
+      final String region,
+      final String endpoint) {
+    AmazonDynamoDBClientBuilder builder =
+        AmazonDynamoDBClientBuilder.standard().withCredentials(credentialsProvider);
+    if (endpoint != null && !endpoint.isBlank()) {
+      builder.withEndpointConfiguration(
+          new AwsClientBuilder.EndpointConfiguration(endpoint, region));
+    } else {
+      builder.withRegion(region);
+    }
+    AmazonDynamoDB client = builder.build();
     return new DynamoDB(client);
   }
 }
