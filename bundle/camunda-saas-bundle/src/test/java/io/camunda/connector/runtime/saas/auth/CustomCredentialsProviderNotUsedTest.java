@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.saas.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.client.CredentialsProvider;
+import io.camunda.client.spring.configuration.CredentialsProviderConfiguration;
 import io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication;
 import io.camunda.connector.runtime.saas.SaaSSecretConfiguration;
 import io.camunda.connector.test.utils.oidc.MockOidcServer;
@@ -68,13 +68,14 @@ public class CustomCredentialsProviderNotUsedTest {
   @Test
   public void credentialsProvidedInProperties_customCredentialsProviderNotUsed() {
     // When client-id and client-secret are provided in properties,
-    // a CredentialsProvider bean should exist (from the Spring Boot starter),
-    // but the custom credentialsProvider bean from our configuration should not be registered
-    assertThat(applicationContext.getBean(CredentialsProvider.class)).isNotNull();
-    // The conditional bean "credentialsProvider" from CamundaClientSaaSConfiguration should not
-    // exist
-    var beansWithName = applicationContext.getBeansOfType(CredentialsProvider.class);
-    assertThat(beansWithName).doesNotContainKey("customConnectorsCredentialsProvider");
-    assertThat(beansWithName).containsKey("camundaClientCredentialsProvider");
+    // the SaaS CredentialsProviderConfiguration should delegate to the standard Camunda
+    // OAuth flow (not use the internal GCP secret manager).
+    // In the new multi-client architecture, no standalone CredentialsProvider beans are
+    // registered by the Camunda starter - credentials are managed by CredentialsProviderConfiguration.
+    assertThat(applicationContext.getBean(CredentialsProviderConfiguration.class)).isNotNull();
+    // No legacy custom GCP credentials provider bean should be present
+    assertThat(applicationContext.containsBean("customConnectorsCredentialsProvider")).isFalse();
+    // No standalone credentials provider bean registered by the Camunda starter
+    assertThat(applicationContext.containsBean("camundaClientCredentialsProvider")).isFalse();
   }
 }

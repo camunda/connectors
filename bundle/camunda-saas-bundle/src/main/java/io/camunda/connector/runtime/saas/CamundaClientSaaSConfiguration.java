@@ -18,11 +18,12 @@ package io.camunda.connector.runtime.saas;
 
 import io.camunda.client.CredentialsProvider;
 import io.camunda.client.impl.oauth.OAuthCredentialsProviderBuilder;
+import io.camunda.client.spring.configuration.CredentialsProviderConfiguration;
+import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.camunda.connector.api.secret.SecretProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -51,15 +52,32 @@ public class CamundaClientSaaSConfiguration {
     this.internalSecretProvider = saaSConfiguration.getInternalSecretProvider();
   }
 
+  /**
+   * Provides a custom {@link CredentialsProviderConfiguration} that supports SaaS M2M
+   * authentication. When Camunda client auth properties (client-id/secret) are not configured
+   * directly, the internal secret manager is used to retrieve M2M credentials.
+   *
+   * <p>This bean overrides the default {@link CredentialsProviderConfiguration} from the Camunda
+   * Spring Boot starter, which registers it with {@code @ConditionalOnMissingBean}.
+   */
   @Bean
-  @Conditional(AuthPropertiesNotPresentCondition.class)
-  public CredentialsProvider customConnectorsCredentialsProvider() {
-    final var builder = new OAuthCredentialsProviderBuilder();
-    builder.clientId(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID, null));
-    builder.clientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET, null));
-    builder.authorizationServerUrl(camundaClientTokenUrl);
-    builder.audience(camundaClientAudience);
-    builder.credentialsCachePath(credentialsCachePath);
-    return builder.build();
+  public CredentialsProviderConfiguration credentialsProviderConfiguration() {
+    return new CredentialsProviderConfiguration() {
+      @Override
+      public CredentialsProvider camundaClientCredentialsProvider(
+          final CamundaClientProperties properties) {
+        if (properties.getAuth().getClientId() == null
+            && properties.getAuth().getClientSecret() == null) {
+          return new OAuthCredentialsProviderBuilder()
+              .clientId(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID, null))
+              .clientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET, null))
+              .authorizationServerUrl(camundaClientTokenUrl)
+              .audience(camundaClientAudience)
+              .credentialsCachePath(credentialsCachePath)
+              .build();
+        }
+        return super.camundaClientCredentialsProvider(properties);
+      }
+    };
   }
 }
