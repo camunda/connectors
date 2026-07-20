@@ -7,6 +7,7 @@
 package io.camunda.connector.aws.s3.model.response;
 
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReturnChoice;
 
 public interface Element {
   record DocumentContent(Document document) implements Element {}
@@ -14,4 +15,12 @@ public interface Element {
   record StringContent(String content) implements Element {}
 
   record JsonContent(Object content) implements Element {}
+
+  static Element of(DocumentReturnChoice choice, Object converted) {
+    return switch (choice) {
+      case DOCUMENT -> new DocumentContent((Document) converted);
+      case TEXT -> new StringContent((String) converted);
+      case JSON -> new JsonContent(converted);
+    };
+  }
 }

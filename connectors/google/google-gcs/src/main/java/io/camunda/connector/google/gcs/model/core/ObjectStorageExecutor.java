@@ -15,6 +15,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.google.gcs.model.request.Authentication;
@@ -55,9 +56,10 @@ public class ObjectStorageExecutor {
     return new ObjectStorageExecutor(objectStorageRequest.getAuthentication(), createDocument);
   }
 
-  public Object execute(ObjectStorageOperation objectStorageOperation) {
+  public Object execute(
+      ObjectStorageOperation objectStorageOperation, boolean useDocumentReturnFlow) {
     return switch (objectStorageOperation) {
-      case DownloadObject downloadObject -> download(downloadObject);
+      case DownloadObject downloadObject -> download(downloadObject, useDocumentReturnFlow);
       case UploadObject uploadObject -> upload(uploadObject);
     };
   }
@@ -96,7 +98,45 @@ public class ObjectStorageExecutor {
     }
   }
 
-  private DownloadResponse download(DownloadObject downloadObject) {
+  private Object download(DownloadObject downloadObject, boolean useDocumentReturnFlow) {
+    if (useDocumentReturnFlow) {
+      return newDownloadPath(downloadObject);
+    } else {
+      return legacyDownloadPath(downloadObject);
+    }
+  }
+
+  private DocumentReturn<DownloadResponse> newDownloadPath(DownloadObject downloadObject) {
+    StorageOptions storageOptions =
+        StorageOptions.newBuilder()
+            .setCredentials(getSAC())
+            .setProjectId(downloadObject.project())
+            .build();
+    Storage storage = storageOptions.getService();
+    try {
+      BlobId blobId = BlobId.of(downloadObject.bucket(), downloadObject.fileName());
+      Blob blob = storage.get(blobId);
+      String contentType = blob != null ? blob.getContentType() : null;
+      ReadChannel reader = storage.reader(blobId);
+      // Ownership of `storage` transfers to GcsStorageClosingStream, which closes it when the
+      // stream is closed. Everything above can throw (e.g. missing object) before that transfer,
+      // so the catch below releases the client on any pre-transfer failure to avoid a leak.
+      return DocumentReturn.of(
+          new GcsStorageClosingStream(Channels.newInputStream(reader), storage),
+          contentType,
+          downloadObject.fileName(),
+          (converted, choice) -> DownloadResponse.of(choice, converted));
+    } catch (RuntimeException e) {
+      try {
+        storage.close();
+      } catch (Exception closeError) {
+        e.addSuppressed(closeError);
+      }
+      throw e;
+    }
+  }
+
+  private DownloadResponse legacyDownloadPath(DownloadObject downloadObject) {
     StorageOptions storageOptions =
         StorageOptions.newBuilder()
             .setCredentials(getSAC())

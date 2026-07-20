@@ -96,6 +96,13 @@
     "value" : "={\n  id: toolCall._meta.id,\n  name: toolCall._meta.name,\n  content: toolCallResult,\n  completedAt: now()\n}",
     "type" : "Hidden"
   }, {
+    "value" : "true",
+    "binding" : {
+      "name" : "io.camunda.agenticai.toolContainer",
+      "type" : "zeebe:property"
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "provider.type",
     "label" : "Provider",
     "description" : "Specify the LLM provider to use.",
