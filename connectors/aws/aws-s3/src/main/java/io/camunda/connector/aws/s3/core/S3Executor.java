@@ -9,6 +9,7 @@ package io.camunda.connector.aws.s3.core;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.s3.model.request.*;
 import io.camunda.connector.aws.s3.model.response.DeleteResponse;
@@ -52,10 +53,10 @@ public class S3Executor {
         createDocument);
   }
 
-  public Object execute(S3Action s3Action) {
+  public Object execute(S3Action s3Action, boolean useDocumentReturnFlow) {
     return switch (s3Action) {
       case DeleteObject deleteObject -> delete(deleteObject);
-      case DownloadObject downloadObject -> download(downloadObject);
+      case DownloadObject downloadObject -> download(downloadObject, useDocumentReturnFlow);
       case UploadObject uploadObject -> upload(uploadObject);
     };
   }
@@ -84,7 +85,7 @@ public class S3Executor {
         String.format("https://%s.s3.amazonaws.com/%s", uploadObject.bucket(), uploadObject.key()));
   }
 
-  private DownloadResponse download(DownloadObject downloadObject) {
+  private Object download(DownloadObject downloadObject, boolean useDocumentReturnFlow) {
     GetObjectRequest getObjectRequest =
         GetObjectRequest.builder()
             .bucket(downloadObject.bucket())
@@ -94,6 +95,36 @@ public class S3Executor {
     ResponseInputStream<GetObjectResponse> getObjectResponse =
         this.s3Client.getObject(getObjectRequest);
 
+    if (useDocumentReturnFlow) {
+      return newDownloadPath(downloadObject, getObjectResponse);
+    } else {
+      return legacyDownloadPath(downloadObject, getObjectResponse);
+    }
+  }
+
+  /**
+   * New path: build a {@link DocumentReturn} so the runtime performs the conversion uniformly based
+   * on the user's dropdown choice (read from context). The {@code wrap} lambda assembles the
+   * existing {@link DownloadResponse} shape from the converted payload.
+   */
+  private DocumentReturn<DownloadResponse> newDownloadPath(
+      DownloadObject downloadObject, ResponseInputStream<GetObjectResponse> getObjectResponse) {
+    String bucket = downloadObject.bucket();
+    String key = downloadObject.key();
+    return DocumentReturn.of(
+        getObjectResponse,
+        getObjectResponse.response().contentType(),
+        key,
+        (converted, choice) -> new DownloadResponse(bucket, key, Element.of(choice, converted)));
+  }
+
+  /**
+   * Legacy boolean path: preserves the previous behavior (content-type sniff for {@code
+   * asFile=false}, document store upload for {@code asFile=true}) verbatim so old element templates
+   * remain bit-for-bit compatible.
+   */
+  private DownloadResponse legacyDownloadPath(
+      DownloadObject downloadObject, ResponseInputStream<GetObjectResponse> getObjectResponse) {
     if (!downloadObject.asFile()) {
       try {
         return retrieveResponseWithContent(

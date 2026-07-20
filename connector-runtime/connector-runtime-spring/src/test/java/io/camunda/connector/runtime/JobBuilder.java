@@ -97,6 +97,11 @@ public class JobBuilder {
       return this;
     }
 
+    public JobBuilderStep withVariablesAsMap(Map<String, Object> variables) {
+      when(job.getVariablesAsMap()).thenReturn(variables);
+      return this;
+    }
+
     public JobBuilderStep withHeaders(Map<String, String> headers) {
       when(job.getCustomHeaders()).thenReturn(headers);
       return this;

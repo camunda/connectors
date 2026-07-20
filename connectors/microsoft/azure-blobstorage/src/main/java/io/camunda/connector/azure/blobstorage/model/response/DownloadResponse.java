@@ -7,10 +7,23 @@
 package io.camunda.connector.azure.blobstorage.model.response;
 
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReturnChoice;
 
 public sealed interface DownloadResponse
-    permits DownloadResponse.DocumentContent, DownloadResponse.StringContent {
+    permits DownloadResponse.DocumentContent,
+        DownloadResponse.StringContent,
+        DownloadResponse.JsonContent {
   record DocumentContent(Document document) implements DownloadResponse {}
 
   record StringContent(String content) implements DownloadResponse {}
+
+  record JsonContent(Object content) implements DownloadResponse {}
+
+  static DownloadResponse of(DocumentReturnChoice choice, Object converted) {
+    return switch (choice) {
+      case DOCUMENT -> new DocumentContent((Document) converted);
+      case TEXT -> new StringContent((String) converted);
+      case JSON -> new JsonContent(converted);
+    };
+  }
 }

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -14,6 +15,7 @@ import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
@@ -66,6 +68,12 @@ public class Langchain4JAiFrameworkAdapter
 
     try (final var chatModel = chatModelFactory.createChatModel(configuration.provider())) {
       final ChatResponse chatResponse = doChat(chatModel, chatRequestBuilder);
+      if (chatResponse.metadata() != null
+          && chatResponse.metadata().finishReason() == FinishReason.CONTENT_FILTER) {
+        throw new ConnectorException(
+            ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
+            "Model response was blocked by provider content filtering (finish_reason: content_filter).");
+      }
       final AssistantMessage assistantMessage =
           chatMessageConverter.toAssistantMessage(chatResponse);
 

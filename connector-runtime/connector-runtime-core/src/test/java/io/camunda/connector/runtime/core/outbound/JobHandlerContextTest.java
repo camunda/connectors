@@ -24,12 +24,16 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
+import io.camunda.connector.api.document.DocumentReturnChoice;
+import io.camunda.connector.api.document.DocumentReturnFormat;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClass;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClassString;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,6 +67,38 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn("{}");
     jobHandlerContext.getJobContext().getVariables();
     verify(activatedJob).getVariables();
+  }
+
+  @Test
+  void readDocumentReturnFormat_absentReturnsEmptyForOlderTemplates() {
+    // Older templates do not send `documentReturnFormat`. Reading it must not throw the way
+    // job.getVariable(...) would, so the connector can fall through to its legacy flow.
+    when(activatedJob.getVariablesAsMap()).thenReturn(Map.of("someOtherVar", "x"));
+
+    assertThat(jobHandlerContext.readDocumentReturnFormat()).isEmpty();
+  }
+
+  @Test
+  void readDocumentReturnFormat_parsesChoiceAndEncodingWhenPresent() {
+    when(activatedJob.getVariablesAsMap())
+        .thenReturn(
+            Map.of("documentReturnFormat", Map.of("choice", "TEXT", "encoding", "ISO-8859-1")));
+
+    Optional<DocumentReturnFormat> format = jobHandlerContext.readDocumentReturnFormat();
+
+    assertThat(format).isPresent();
+    assertThat(format.get().choice()).isEqualTo(DocumentReturnChoice.TEXT);
+    assertThat(format.get().encoding()).isEqualTo("ISO-8859-1");
+  }
+
+  @Test
+  void readDocumentReturnFormat_rejectsInvalidChoice() {
+    when(activatedJob.getVariablesAsMap())
+        .thenReturn(Map.of("documentReturnFormat", Map.of("choice", "BOGUS")));
+
+    assertThatThrownBy(() -> jobHandlerContext.readDocumentReturnFormat())
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("DOCUMENT, TEXT, JSON");
   }
 
   @Test
