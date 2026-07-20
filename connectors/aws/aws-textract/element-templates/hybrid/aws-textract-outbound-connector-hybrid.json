@@ -5,7 +5,7 @@
   "description" : "Extract text and data using AWS Textract.",
   "keywords" : [ "extract text", "extract data", "extract text from image", "extract data from image", "ocr", "OCR", "document processing", "text extraction", "analyze document", "asynchronous", "real-time" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/amazon-textract/",
-  "version" : 4,
+  "version" : 5,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -507,7 +507,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "4",
+    "value" : "5",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

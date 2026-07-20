@@ -24,7 +24,7 @@ import io.camunda.connector.jdbc.model.response.JdbcResponse;
     engineVersion = "^8.6",
     id = "io.camunda.connectors.Jdbc.v1",
     name = "Execute SQL Statement on Database",
-    version = 3,
+    version = 4,
     description =
         "Read and write data from a Camunda process directly to a SQL database (e.g., Microsoft SQL Server, MySQL, PostgreSQL)",
     keywords = {

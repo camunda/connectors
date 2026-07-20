@@ -3,7 +3,7 @@
   "name" : "Run Code with AWS Bedrock Code Interpreter",
   "id" : "io.camunda.connectors.aws.bedrock.codeinterpreter.v1",
   "description" : "Execute Python code in a secure AWS Bedrock AgentCore Code Interpreter sandbox",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -236,7 +236,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

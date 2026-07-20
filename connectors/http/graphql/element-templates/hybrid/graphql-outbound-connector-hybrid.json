@@ -5,7 +5,7 @@
   "description" : "Execute GraphQL query",
   "keywords" : [ "API", "query", "mutation", "HTTP", "web request", "GraphQL", "fetch data", "data query", "execute query", "API call" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/graphql/",
-  "version" : 9,
+  "version" : 10,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -553,7 +553,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "9",
+    "value" : "10",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

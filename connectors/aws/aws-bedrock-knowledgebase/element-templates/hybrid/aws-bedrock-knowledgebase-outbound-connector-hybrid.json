@@ -3,7 +3,7 @@
   "name" : "Hybrid Retrieve Documents from AWS Bedrock Knowledge Base",
   "id" : "io.camunda.connectors.aws.bedrock.knowledgebase.v1-hybrid",
   "description" : "Retrieve relevant documents from an AWS Bedrock Knowledge Base",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -220,7 +220,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

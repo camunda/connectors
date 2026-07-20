@@ -34,7 +34,7 @@ import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeCl
     description = "Retrieve relevant documents from an AWS Bedrock Knowledge Base",
     inputDataClass = BedrockKnowledgeBaseRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 1,
+    version = 2,
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "configuration", label = "Configuration"),

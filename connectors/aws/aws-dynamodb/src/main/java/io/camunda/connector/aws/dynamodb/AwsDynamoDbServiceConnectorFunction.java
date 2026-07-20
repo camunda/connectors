@@ -21,7 +21,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     engineVersion = "^8.6",
     id = "io.camunda.connectors.AWSDynamoDB.v1",
     name = "AWS DynamoDB Outbound Connector",
-    version = 9,
+    version = 10,
     description = "Manage tables and items with AWS DynamoDB.",
     keywords = {
       "create table",

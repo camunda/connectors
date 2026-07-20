@@ -158,4 +158,52 @@ public class JdbcRequestTest extends BaseTest {
     assertThatThrownBy(() -> context.bindVariables(JdbcRequest.class))
         .hasMessageContaining("connection credential");
   }
+
+  /**
+   * Reproduces the actual Modeler-generated shape for a credential-only diagram: {@code
+   * connection.authType} is an unconditional zeebe:input with a static default ({@code "uri"}), so
+   * it is always present even though the user never filled in the (conditionally hidden) {@code
+   * connection.uri}. This must not fail validation now that {@code configuration} is bound and
+   * takes precedence.
+   */
+  @Test
+  void bindVariablesSucceedsWithCredentialBoundDespiteUnconditionalInlineDiscriminator() {
+    String variables =
+        """
+        {
+          "database": "POSTGRESQL",
+          "connection": { "authType": "uri" },
+          "configuration": {
+            "host": "cred-host",
+            "port": "5432",
+            "databaseName": "cred-db",
+            "username": "cred-user",
+            "password": "cred-pass"
+          },
+          "data": { "returnResults": false, "query": "SELECT 1" }
+        }
+        """;
+    var context = OutboundConnectorContextBuilder.create().variables(variables).build();
+
+    var request = context.bindVariables(JdbcRequest.class);
+
+    assertThat(request.configuration()).isNotNull();
+    assertThat(request.configuration().host()).isEqualTo("cred-host");
+  }
+
+  /** Without a bound credential, the same incomplete inline connection must still fail. */
+  @Test
+  void bindVariablesFailsWithIncompleteInlineConnectionWhenNoCredentialBound() {
+    String variables =
+        """
+        {
+          "database": "POSTGRESQL",
+          "connection": { "authType": "uri" },
+          "data": { "returnResults": false, "query": "SELECT 1" }
+        }
+        """;
+    var context = OutboundConnectorContextBuilder.create().variables(variables).build();
+
+    assertThatThrownBy(() -> context.bindVariables(JdbcRequest.class)).hasMessageContaining("uri");
+  }
 }

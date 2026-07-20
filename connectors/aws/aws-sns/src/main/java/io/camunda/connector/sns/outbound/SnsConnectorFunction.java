@@ -38,7 +38,7 @@ import software.amazon.awssdk.services.sns.model.PublishResponse;
     keywords = {"send message", "publish message", "notification", "publish to topic", "FIFO"},
     inputDataClass = SnsConnectorRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 8,
+    version = 9,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Topic properties"),

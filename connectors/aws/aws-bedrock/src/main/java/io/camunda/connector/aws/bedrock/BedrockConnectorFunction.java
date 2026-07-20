@@ -37,7 +37,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     },
     inputDataClass = BedrockRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 5,
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

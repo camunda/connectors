@@ -5,7 +5,7 @@
   "description" : "Send messages to Amazon SNS.",
   "keywords" : [ "send message", "publish message", "notification", "publish to topic", "FIFO" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=outbound",
-  "version" : 8,
+  "version" : 9,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -254,7 +254,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "8",
+    "value" : "9",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

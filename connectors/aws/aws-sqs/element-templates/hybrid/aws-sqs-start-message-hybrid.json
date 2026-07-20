@@ -5,7 +5,7 @@
   "description" : "Receive messages from Amazon SQS.",
   "keywords" : [ "receive message", "receive event", "receive message from queue", "receive event from queue", "event driven", "queue", "dequeue" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
-  "version" : 10,
+  "version" : 11,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"

@@ -38,11 +38,13 @@ public record JdbcRequest(
               @TemplateProperty.DropdownPropertyChoice(label = "Oracle", value = "ORACLE"),
             })
         SupportedDatabase database,
-    // Not @NotNull: a bound connection credential (configuration) may substitute for inline
-    // connection fields. At least one source is required (enforced by
-    // isConnectionSourceProvided());
-    // when both are set, the configuration takes precedence (resolved in ConnectionHelper).
-    @Valid JdbcConnection connection,
+    // Not @NotNull, and not @Valid: a bound connection credential (configuration) may substitute
+    // for inline connection fields, and takes precedence when both are set (resolved in
+    // ConnectionHelper). The raw field is validated conditionally via
+    // getInlineConnectionWhenNoCredentialBound() below, so a Modeler-generated diagram that only
+    // sets a credential (and carries connection's unconditional default discriminator, e.g.
+    // authType=uri, with no uri set) doesn't fail validation on the losing inline path.
+    JdbcConnection connection,
     @Valid @NotNull JdbcRequestData data,
     @TemplateProperty(
             id = "connectionConfiguration",
@@ -73,5 +75,18 @@ public record JdbcRequest(
   @JsonIgnore
   public boolean isConnectionSourceProvided() {
     return connection != null || configuration != null;
+  }
+
+  /**
+   * Validates the inline {@link #connection} only when no credential is bound. When a credential is
+   * bound, it is the effective source (see {@link #isConnectionSourceProvided()} javadoc) and the
+   * inline fields are irrelevant — including a leftover discriminator (e.g. {@code authType:
+   * "uri"}) that Modeler emits unconditionally regardless of which source the user picked, which
+   * would otherwise fail {@code UriConnection}'s {@code @NotBlank uri} even though it lost.
+   */
+  @Valid
+  @JsonIgnore
+  public JdbcConnection getInlineConnectionWhenNoCredentialBound() {
+    return configuration != null ? null : connection;
   }
 }

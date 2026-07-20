@@ -43,7 +43,7 @@ import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
     },
     inputDataClass = AwsEventBridgeRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 6,
+    version = 7,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Queue properties"),

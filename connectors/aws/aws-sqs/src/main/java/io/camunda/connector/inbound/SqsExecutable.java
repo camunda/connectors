@@ -37,7 +37,7 @@ import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
     id = "io.camunda.connectors.AWSSQS.inbound.v1",
     name = "Amazon SQS Connector",
     icon = "icon.svg",
-    version = 10,
+    version = 11,
     configurations = {AwsCredentialConfiguration.class},
     inputDataClass = SqsInboundProperties.class,
     description = "Receive messages from Amazon SQS.",

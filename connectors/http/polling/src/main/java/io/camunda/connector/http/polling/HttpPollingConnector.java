@@ -21,7 +21,7 @@ import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
     id = "io.camunda:http-polling:1",
     name = "Polling Connector",
     icon = "icon.svg",
-    version = 5,
+    version = 6,
     inputDataClass = PollingRequest.class,
     description = "Polls endpoint at regular intervals",
     keywords = {

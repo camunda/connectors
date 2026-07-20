@@ -48,7 +48,7 @@ import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
     },
     inputDataClass = TextractRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 4,
+    version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

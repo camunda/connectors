@@ -45,7 +45,7 @@ import java.util.function.BiFunction;
     },
     inputDataClass = SageMakerRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 2,
+    version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

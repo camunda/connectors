@@ -5,7 +5,7 @@
   "description" : "Invoke models and converse using AWS Bedrock.",
   "keywords" : [ "invoke model", "run inference", "invokemodel API", "converse API", "converse", "AI", "LLM", "machine learning", "language model", "generative AI" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -569,7 +569,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

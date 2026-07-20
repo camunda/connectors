@@ -48,7 +48,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
     },
     inputDataClass = SqsConnectorRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 11,
+    version = 12,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Queue properties"),

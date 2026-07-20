@@ -27,7 +27,7 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
     engineVersion = "^8.10",
     id = "io.camunda.connectors.aws.bedrock.agentcore.runtime.v1",
     name = "Invoke Agent in AWS Bedrock AgentCore Runtime",
-    version = 1,
+    version = 2,
     inputDataClass = AgentCoreRuntimeRequest.class,
     configurations = {AwsCredentialConfiguration.class},
     description = "Invoke an external agent running in AWS Bedrock AgentCore Runtime",

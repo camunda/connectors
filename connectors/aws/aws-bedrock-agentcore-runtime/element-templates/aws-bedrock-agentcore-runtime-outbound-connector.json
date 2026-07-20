@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.aws.bedrock.agentcore.runtime.v1",
   "description" : "Invoke an external agent running in AWS Bedrock AgentCore Runtime",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock-agentcore-runtime/",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -188,7 +188,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

@@ -3,7 +3,7 @@
   "name" : "AWS Bedrock AgentCore Long-Term Memory Connector",
   "id" : "io.camunda.connectors.aws.bedrock.agentcore.memory.longterm.v1",
   "description" : "Retrieve persistent knowledge — facts, preferences, and summaries — from AWS Bedrock AgentCore Long-Term Memory",
-  "version" : 2,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -322,7 +322,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "3",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
