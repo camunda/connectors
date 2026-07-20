@@ -31,7 +31,7 @@ jobs:
 
       - name: Stale issues and PRs
         id: stale
-        uses: actions/stale@v9
+        uses: actions/stale@v10
         with:
           repo-token: ${{ steps.app-token.outputs.token }}
           days-before-issue-stale: 180
