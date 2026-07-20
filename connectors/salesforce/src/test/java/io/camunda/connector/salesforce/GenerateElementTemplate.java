@@ -117,12 +117,18 @@ public class GenerateElementTemplate {
             .engines(new Engines("^8.3"))
             .icon(new ElementTemplateIcon(SALESFORCE_ICON))
             .type("io.camunda:http-json:1")
+            .propertyGroups(buildOperationalGroups())
             // HTTP JSON's own oauthTokenEndpoint (user-editable) and clientAuthentication
             // (dropdown) were dropped above -- Salesforce fixes both to a single
             // computed/constant value instead of exposing them, to keep this refactor a pure
             // behavioral no-op against the previous hand-authored template. Same for
             // audience/scopes, which have no counterpart in the previous template and so are
             // simply not carried over.
+            //
+            // Must come after propertyGroups(): oauthTokenEndpoint's value references baseUrl
+            // (declared in the "endpoint" group above), and property order in the generated
+            // template is significant -- a property can only reference one appearing earlier in
+            // the list (see ElementTemplateBuilder#replaceProperty).
             .properties(
                 HiddenProperty.builder()
                     .id("authentication.oauthTokenEndpoint")
@@ -140,7 +146,6 @@ public class GenerateElementTemplate {
                     .binding(new ZeebeInput("authentication.clientAuthentication"))
                     .condition(new Equals("authentication.type", "oauth-client-credentials-flow"))
                     .build())
-            .propertyGroups(buildOperationalGroups())
             .steps(buildSteps())
             .presets(buildPresets())
             .build();

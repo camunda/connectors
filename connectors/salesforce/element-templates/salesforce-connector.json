@@ -125,36 +125,6 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "authentication.oauthTokenEndpoint",
-    "description" : "The OAuth token endpoint",
-    "value" : "=baseUrl + \"/services/oauth2/token\"",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.oauthTokenEndpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow",
-      "type" : "simple"
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "authentication.clientAuthentication",
-    "description" : "Client authentication type",
-    "value" : "credentialsBody",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.clientAuthentication",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow",
-      "type" : "simple"
-    },
-    "type" : "Hidden"
-  }, {
     "id" : "salesforceOperationType",
     "label" : "Salesforce operation type",
     "group" : "operation",
@@ -501,6 +471,36 @@
     },
     "tooltip" : "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
     "type" : "Text"
+  }, {
+    "id" : "authentication.oauthTokenEndpoint",
+    "description" : "The OAuth token endpoint",
+    "value" : "=baseUrl + \"/services/oauth2/token\"",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.oauthTokenEndpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "authentication.clientAuthentication",
+    "description" : "Client authentication type",
+    "value" : "credentialsBody",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientAuthentication",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
+    },
+    "type" : "Hidden"
   } ],
   "steps" : [ {
     "name" : "sObject record",
