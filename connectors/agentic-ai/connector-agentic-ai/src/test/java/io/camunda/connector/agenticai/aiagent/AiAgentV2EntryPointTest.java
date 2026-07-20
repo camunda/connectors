@@ -15,9 +15,9 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.framework.ChatModelApiRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
-import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.chatmodel.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequestV2;

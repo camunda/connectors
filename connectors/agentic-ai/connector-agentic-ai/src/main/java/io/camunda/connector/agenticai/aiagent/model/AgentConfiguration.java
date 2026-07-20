@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
-import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;

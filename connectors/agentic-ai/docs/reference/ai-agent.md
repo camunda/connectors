@@ -864,7 +864,7 @@ Events create their payload in `toolCallResult`:
 
 ### Chat Model SPI (the seam)
 
-The provider-neutral chat SPI, package `io.camunda.connector.agenticai.aiagent.framework.api`, is
+The provider-neutral chat SPI, package `io.camunda.connector.agenticai.aiagent.provider.api`, is
 what `BaseAgentRequestHandler.proceed()` calls to reach the LLM. It replaces the previous direct call
 to `AiFrameworkAdapter.executeMeasuringTime` — that interface has since been folded away entirely, and
 `Langchain4JChatModelApi` (see below) now converts messages and drives the LangChain4J `ChatModel`
@@ -1002,8 +1002,8 @@ Both native chat models log the LLM request and the fully-assembled response **o
 standard Spring Boot logging config (no env var, no redeploy):
 
 ```properties
-logging.level.io.camunda.connector.agenticai.aiagent.framework.openai=DEBUG
-logging.level.io.camunda.connector.agenticai.aiagent.framework.anthropic=DEBUG
+logging.level.io.camunda.connector.agenticai.aiagent.provider.openai=DEBUG
+logging.level.io.camunda.connector.agenticai.aiagent.provider.anthropic=DEBUG
 ```
 
 - Logged content is the **vendor SDK request-params object** (before the call) and the **assembled
@@ -1808,7 +1808,7 @@ them so violations fail the build. Until then, enforcement is by review, so resp
 
 Only the LangChain4J-backed package may depend on LangChain4J.
 
-- **Rule**: nothing outside `io.camunda.connector.agenticai.aiagent.framework.langchain4j.**` may
+- **Rule**: nothing outside `io.camunda.connector.agenticai.aiagent.provider.langchain4j.**` may
   import `dev.langchain4j.*`. The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the
   root `model/`, `adhoctoolsschema/`, `tool/`) stays framework-neutral.
   `aiagent.framework.api.**` is the provider-neutral chat model SPI (`ChatModelApi`,

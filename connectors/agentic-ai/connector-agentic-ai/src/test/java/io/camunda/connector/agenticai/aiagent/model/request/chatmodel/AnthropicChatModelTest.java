@@ -9,10 +9,10 @@ package io.camunda.connector.agenticai.aiagent.model.request.chatmodel;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicEffort;
-import io.camunda.connector.agenticai.aiagent.framework.anthropic.ThinkingMode;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesOverride;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesOverride;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicEffort;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicBedrockBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicConnection;

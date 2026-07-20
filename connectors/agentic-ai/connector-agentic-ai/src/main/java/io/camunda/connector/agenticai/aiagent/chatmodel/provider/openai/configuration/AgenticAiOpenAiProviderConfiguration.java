@@ -1,0 +1,35 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.configuration;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Registers the {@link OpenAiChatModelApiFactory} as a {@code ChatModelApiFactory} bean so it is
+ * picked up by {@code aiAgentChatModelApiRegistry(List<ChatModelApiFactory>)} and resolved for the
+ * configurations it supports.
+ */
+@Configuration
+public class AgenticAiOpenAiProviderConfiguration {
+
+  @Bean
+  @ConditionalOnMissingBean
+  public OpenAiChatModelApiFactory openAiChatModelApiFactory(
+      HttpTransportSupport httpTransportSupport,
+      ModelCapabilitiesResolver modelCapabilitiesResolver,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new OpenAiChatModelApiFactory(
+        httpTransportSupport, modelCapabilitiesResolver, objectMapper);
+  }
+}

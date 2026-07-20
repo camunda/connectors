@@ -18,7 +18,7 @@ import io.a2a.spec.DataPart;
 import io.a2a.spec.FilePart;
 import io.a2a.spec.FileWithBytes;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentConversionException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentConversionException;
 import io.camunda.connector.api.document.Document;
 import java.util.List;
 import java.util.Map;

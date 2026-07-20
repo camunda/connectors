@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequestV2;
 import io.camunda.connector.api.annotation.OutboundConnector;

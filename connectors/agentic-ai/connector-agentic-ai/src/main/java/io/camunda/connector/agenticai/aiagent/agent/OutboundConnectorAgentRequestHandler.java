@@ -8,12 +8,12 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.AiAgentTaskConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
-import io.camunda.connector.agenticai.aiagent.framework.multimodal.ToolCallResultStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.multimodal.ToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
 import org.jspecify.annotations.Nullable;

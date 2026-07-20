@@ -11,9 +11,9 @@ import static io.camunda.connector.agenticai.aiagent.model.request.chatmodel.Ant
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicEffort;
-import io.camunda.connector.agenticai.aiagent.framework.anthropic.ThinkingMode;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesOverride;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesOverride;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicEffort;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
