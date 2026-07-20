@@ -80,7 +80,7 @@ import org.springframework.core.io.ResourceLoader;
 @Import(CamundaDocumentTestConfiguration.class)
 @EnabledIfEnvironmentVariable(named = "RUN_NATIVE_LLM_E2E", matches = "true")
 @WireMockTest
-class NativeProviderAcceptanceIT {
+class RealProviderApiSmokeIT {
 
   static final String BPMN_RESOURCE = "classpath:native-provider-acceptance-agent.bpmn";
   static final String PROCESS_ID = "native_provider_acceptance";
@@ -132,7 +132,7 @@ class NativeProviderAcceptanceIT {
    * automatically). A capability absent from the map means the row does not support it, so its
    * scenario is skipped for this row.
    */
-  record NativeProvider(
+  record Provider(
       String label,
       String requiredEnvVar,
       Map<String, String> properties,
@@ -152,7 +152,7 @@ class NativeProviderAcceptanceIT {
       // iterating locally; mirrors DocumentToolCallResultsIT.ProviderConfig#disabled().
       boolean enabled) {
 
-    NativeProvider(
+    Provider(
         String label,
         String requiredEnvVar,
         Map<String, String> properties,
@@ -169,8 +169,8 @@ class NativeProviderAcceptanceIT {
           true);
     }
 
-    NativeProvider disabled() {
-      return new NativeProvider(
+    Provider disabled() {
+      return new Provider(
           label,
           requiredEnvVar,
           properties,
@@ -198,11 +198,11 @@ class NativeProviderAcceptanceIT {
     }
   }
 
-  static NativeProvider anthropicDirect(
+  static Provider anthropicDirect(
       String model,
       Map<Capability, Map<String, String>> capabilityProperties,
       boolean forcesReasoningTokens) {
-    return new NativeProvider(
+    return new Provider(
         "anthropic-direct/" + model,
         "ANTHROPIC_API_KEY",
         Map.of(
@@ -219,12 +219,12 @@ class NativeProviderAcceptanceIT {
         true);
   }
 
-  static NativeProvider openaiDirect(
+  static Provider openaiDirect(
       String apiFamily,
       String model,
       Map<Capability, Map<String, String>> capabilityProperties,
       boolean forcesReasoningTokens) {
-    return new NativeProvider(
+    return new Provider(
         "openai-" + apiFamily + "/" + model,
         "OPENAI_API_KEY",
         Map.of(
@@ -243,7 +243,7 @@ class NativeProviderAcceptanceIT {
         false);
   }
 
-  static Stream<NativeProvider> providers() {
+  static Stream<Provider> providers() {
     return Stream.of(
             // claude-sonnet-4-6 supports thinking mode "enabled" (explicit budget) — forced
             // thinking, so reasoning tokens are guaranteed.
@@ -323,19 +323,18 @@ class NativeProviderAcceptanceIT {
                     Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING, Map.of()),
                 false))
-        .filter(NativeProvider::isEnabled);
+        .filter(Provider::isEnabled);
   }
 
   private static String envOrPlaceholder(String envVar) {
     return System.getenv().getOrDefault(envVar, "NOT_SET");
   }
 
-  private static String providerContentTag(NativeProvider provider) {
+  private static String providerContentTag(Provider provider) {
     return provider.label().startsWith("anthropic") ? "anthropic" : "openai";
   }
 
-  private static String expectedServerToolBlockType(
-      NativeProvider provider, Capability capability) {
+  private static String expectedServerToolBlockType(Provider provider, Capability capability) {
     boolean anthropic = provider.label().startsWith("anthropic");
     return switch (capability) {
       case CODE_INTERPRETER ->
@@ -362,7 +361,7 @@ class NativeProviderAcceptanceIT {
    * Builds the applied BPMN for the given provider, with baseline props + per-scenario overrides.
    */
   BpmnModelInstance buildModel(
-      NativeProvider provider,
+      Provider provider,
       String templatePath,
       String bpmnResource,
       String systemPrompt,
@@ -448,7 +447,7 @@ class NativeProviderAcceptanceIT {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("providers")
-  void toolCallLoopSurfacesPlantedFact(NativeProvider provider) {
+  void toolCallLoopSurfacesPlantedFact(Provider provider) {
     var model =
         buildModel(
             provider,
@@ -474,7 +473,7 @@ class NativeProviderAcceptanceIT {
                             .contains(NONCE_CODE_NAME)));
   }
 
-  static Stream<NativeProvider> providersWithStructuredOutput() {
+  static Stream<Provider> providersWithStructuredOutput() {
     return providers().filter(p -> p.supports(Capability.STRUCTURED_OUTPUT));
   }
 
@@ -486,7 +485,7 @@ class NativeProviderAcceptanceIT {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithStructuredOutput")
-  void structuredOutputReturnsSchemaConformingJson(NativeProvider provider) {
+  void structuredOutputReturnsSchemaConformingJson(Provider provider) {
     var model =
         buildModel(
             provider,
@@ -527,13 +526,13 @@ class NativeProviderAcceptanceIT {
                     }));
   }
 
-  static Stream<NativeProvider> providersWithReasoning() {
+  static Stream<Provider> providersWithReasoning() {
     return providers().filter(p -> p.supports(Capability.REASONING));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithReasoning")
-  void reasoningEnabledProducesReasoningTokens(NativeProvider provider) {
+  void reasoningEnabledProducesReasoningTokens(Provider provider) {
     var model =
         buildModel(
             provider,
@@ -585,13 +584,13 @@ class NativeProviderAcceptanceIT {
               + "carefully and consistently across the whole conversation. ")
           .repeat(24);
 
-  static Stream<NativeProvider> providersWithPromptCaching() {
+  static Stream<Provider> providersWithPromptCaching() {
     return providers().filter(p -> p.supports(Capability.PROMPT_CACHING));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithPromptCaching")
-  void promptCachingReportsCacheReadAndWriteTokens(NativeProvider provider) {
+  void promptCachingReportsCacheReadAndWriteTokens(Provider provider) {
     // Pass the long system prompt as a process VARIABLE referenced by FEEL rather than baking a
     // ~5KB string literal into the element template (baking it produced a deploy-time
     // ConnectionClosedException). The resolved system prompt is identical every turn, so the
@@ -649,17 +648,17 @@ class NativeProviderAcceptanceIT {
       "You are a document analyst. Use the available tools to retrieve and analyze documents. "
           + "Always quote specific facts, numbers, dates, and names found in the documents.";
 
-  static Stream<NativeProvider> providersWithMultimodalUserMessage() {
+  static Stream<Provider> providersWithMultimodalUserMessage() {
     return providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE));
   }
 
-  static Stream<NativeProvider> providersWithMultimodalToolResult() {
+  static Stream<Provider> providersWithMultimodalToolResult() {
     return providers().filter(p -> p.supports(Capability.MULTIMODAL_TOOL_RESULT));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithMultimodalUserMessage")
-  void documentInUserMessageIsReadByModel(NativeProvider provider, WireMockRuntimeInfo wireMock) {
+  void documentInUserMessageIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
     stubPdfDownloads();
 
     // Reuses the document BPMN (which downloads downloadUrls into `downloadedFiles` before the
@@ -700,7 +699,7 @@ class NativeProviderAcceptanceIT {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithMultimodalToolResult")
-  void documentInToolResultIsReadByModel(NativeProvider provider, WireMockRuntimeInfo wireMock) {
+  void documentInToolResultIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
     stubPdfDownloads();
 
     var model =
@@ -728,13 +727,13 @@ class NativeProviderAcceptanceIT {
     assertResponseTextContains(instance, "Zypherion", "847", "Kael Thrennix");
   }
 
-  static Stream<NativeProvider> providersWithCodeInterpreter() {
+  static Stream<Provider> providersWithCodeInterpreter() {
     return providers().filter(p -> p.supports(Capability.CODE_INTERPRETER));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithCodeInterpreter")
-  void codeInterpreterComputesDeterministicResult(NativeProvider provider) {
+  void codeInterpreterComputesDeterministicResult(Provider provider) {
     var model =
         buildModel(
             provider,
@@ -769,13 +768,13 @@ class NativeProviderAcceptanceIT {
                     expectedServerToolBlockType(provider, Capability.CODE_INTERPRETER)));
   }
 
-  static Stream<NativeProvider> providersWithWebSearch() {
+  static Stream<Provider> providersWithWebSearch() {
     return providers().filter(p -> p.supports(Capability.WEB_SEARCH));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithWebSearch")
-  void webSearchCompletesAndRoundTrips(NativeProvider provider) {
+  void webSearchCompletesAndRoundTrips(Provider provider) {
     var model =
         buildModel(
             provider,
