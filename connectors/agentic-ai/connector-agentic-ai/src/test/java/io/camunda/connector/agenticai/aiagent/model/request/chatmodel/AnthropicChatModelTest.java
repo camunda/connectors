@@ -59,7 +59,7 @@ class AnthropicChatModelTest {
         }
         """;
 
-    final LlmProviderConfiguration parsed = mapper.readValue(json, LlmProviderConfiguration.class);
+    final V2ProviderConfiguration parsed = mapper.readValue(json, V2ProviderConfiguration.class);
 
     assertThat(parsed).isInstanceOf(AnthropicChatModel.class);
     assertThat(parsed.providerType()).isEqualTo("anthropic");
@@ -72,7 +72,7 @@ class AnthropicChatModelTest {
     assertThat(anthropic.anthropic().backend()).isInstanceOf(AnthropicDirectBackend.class);
 
     final String reserialised = mapper.writeValueAsString(parsed);
-    assertThat(mapper.readValue(reserialised, LlmProviderConfiguration.class)).isEqualTo(parsed);
+    assertThat(mapper.readValue(reserialised, V2ProviderConfiguration.class)).isEqualTo(parsed);
   }
 
   @Test
@@ -93,7 +93,7 @@ class AnthropicChatModelTest {
         """;
 
     final AnthropicChatModel parsed =
-        (AnthropicChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
+        (AnthropicChatModel) mapper.readValue(json, V2ProviderConfiguration.class);
 
     assertThat(parsed.backend()).isEqualTo("bedrock");
     assertThat(parsed.anthropic().backend()).isInstanceOf(AnthropicBedrockBackend.class);
@@ -168,7 +168,7 @@ class AnthropicChatModelTest {
         """;
 
     final AnthropicChatModel parsed =
-        (AnthropicChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
+        (AnthropicChatModel) mapper.readValue(json, V2ProviderConfiguration.class);
 
     final ModelCapabilitiesOverride override = parsed.capabilityOverride();
     assertThat(override).isNotNull();
@@ -177,7 +177,7 @@ class AnthropicChatModelTest {
     assertThat(override.maxOutputTokens()).isNull();
 
     final String reserialised = mapper.writeValueAsString(parsed);
-    assertThat(mapper.readValue(reserialised, LlmProviderConfiguration.class)).isEqualTo(parsed);
+    assertThat(mapper.readValue(reserialised, V2ProviderConfiguration.class)).isEqualTo(parsed);
   }
 
   @Test
@@ -207,7 +207,7 @@ class AnthropicChatModelTest {
         """;
 
     final AnthropicChatModel parsed =
-        (AnthropicChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
+        (AnthropicChatModel) mapper.readValue(json, V2ProviderConfiguration.class);
 
     final AnthropicModelParameters parameters = parsed.anthropic().model().parameters();
     assertThat(parameters).isNotNull();
@@ -217,7 +217,7 @@ class AnthropicChatModelTest {
     assertThat(parameters.customEffort()).isNull();
 
     final String reserialised = mapper.writeValueAsString(parsed);
-    assertThat(mapper.readValue(reserialised, LlmProviderConfiguration.class)).isEqualTo(parsed);
+    assertThat(mapper.readValue(reserialised, V2ProviderConfiguration.class)).isEqualTo(parsed);
   }
 
   @Test
@@ -240,7 +240,7 @@ class AnthropicChatModelTest {
         """;
 
     final AnthropicChatModel parsed =
-        (AnthropicChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
+        (AnthropicChatModel) mapper.readValue(json, V2ProviderConfiguration.class);
 
     final AnthropicModelParameters parameters = parsed.anthropic().model().parameters();
     assertThat(parameters).isNotNull();
@@ -248,7 +248,7 @@ class AnthropicChatModelTest {
     assertThat(parameters.customEffort()).isEqualTo("ultra");
 
     final String reserialised = mapper.writeValueAsString(parsed);
-    assertThat(mapper.readValue(reserialised, LlmProviderConfiguration.class)).isEqualTo(parsed);
+    assertThat(mapper.readValue(reserialised, V2ProviderConfiguration.class)).isEqualTo(parsed);
   }
 
   @Test

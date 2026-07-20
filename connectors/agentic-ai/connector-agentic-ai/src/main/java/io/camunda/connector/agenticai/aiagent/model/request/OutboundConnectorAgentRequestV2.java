@@ -7,11 +7,11 @@
 package io.camunda.connector.agenticai.aiagent.model.request;
 
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.LlmProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.V2ProviderConfiguration;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 /** v2 AI Agent Task request: wire-format-first chat-model config + the shared v1 request data. */
 public record OutboundConnectorAgentRequestV2(
-    @Valid @NotNull LlmProviderConfiguration configuration,
+    @Valid @NotNull V2ProviderConfiguration configuration,
     @Valid @NotNull OutboundConnectorAgentRequestData data) {}

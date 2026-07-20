@@ -16,21 +16,21 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.J
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetricsTokenUsageBuilder;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.V1ProviderConfiguration;
 import org.jspecify.annotations.Nullable;
 
 /**
  * Adapts one LangChain4J provider to the chat model SPI. {@link #supports} matches a {@link
- * V1ChatModelApiConfiguration} whose {@link ProviderConfiguration#providerType()} equals {@link
+ * V1ChatModelApiConfiguration} whose {@link V1ProviderConfiguration#providerType()} equals {@link
  * #providerType()}, and {@link #create} builds the underlying LangChain4J chat model once via
  * {@link #createChatModel} and wraps it in a {@link Langchain4JChatModelApi}. Each built-in
  * provider is a concrete subclass supplying its own discriminator and model construction logic,
  * registered as its own bean so an individual provider's implementation can be swapped without
  * touching the others.
  *
- * @param <T> the {@link ProviderConfiguration} subtype this factory handles
+ * @param <T> the {@link V1ProviderConfiguration} subtype this factory handles
  */
-public abstract class Langchain4JChatModelApiFactory<T extends ProviderConfiguration>
+public abstract class Langchain4JChatModelApiFactory<T extends V1ProviderConfiguration>
     implements ChatModelApiFactory {
 
   private final ChatMessageConverter chatMessageConverter;

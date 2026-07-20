@@ -34,7 +34,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     name = "type",
     description = "Specify the LLM provider to use.",
     defaultValue = ANTHROPIC_ID)
-public sealed interface ProviderConfiguration
+public sealed interface V1ProviderConfiguration
     permits AnthropicProviderConfiguration,
         BedrockProviderConfiguration,
         AzureOpenAiProviderConfiguration,

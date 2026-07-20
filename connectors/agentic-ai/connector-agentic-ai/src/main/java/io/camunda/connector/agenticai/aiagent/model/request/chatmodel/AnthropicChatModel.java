@@ -35,7 +35,7 @@ import org.jspecify.annotations.Nullable;
 /** Anthropic Messages wire format. Backends: {@code direct} (API key) and {@code bedrock} (AWS). */
 @TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
 public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
-    implements LlmProviderConfiguration {
+    implements V2ProviderConfiguration {
 
   @TemplateProperty(ignore = true)
   public static final String ANTHROPIC_ID = "anthropic";

@@ -24,7 +24,7 @@ import org.jspecify.annotations.Nullable;
 
 @TemplateSubType(id = GOOGLE_VERTEX_AI_ID, label = "Google Vertex AI")
 public record GoogleVertexAiProviderConfiguration(
-    @Valid @NotNull GoogleVertexAiConnection googleVertexAi) implements ProviderConfiguration {
+    @Valid @NotNull GoogleVertexAiConnection googleVertexAi) implements V1ProviderConfiguration {
 
   @TemplateProperty(ignore = true)
   public static final String GOOGLE_VERTEX_AI_ID = "google-vertex-ai";

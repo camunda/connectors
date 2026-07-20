@@ -18,10 +18,10 @@ import org.jspecify.annotations.Nullable;
 /**
  * Wire-format-first chat-model configuration surfaced by the v2 connectors (the #7224 target
  * shape). Each provider member nests its fields under a single provider-named component (mirroring
- * {@code ProviderConfiguration}), so generated element-template property ids are namespaced ({@code
- * provider.anthropic.*} / {@code provider.openai.*}) and the interface accessors below compute from
- * the nested data without colliding with a record component. Polymorphism is by the {@code type}
- * discriminator; the concrete member owns its backend-conditional authentication.
+ * {@code V1ProviderConfiguration}), so generated element-template property ids are namespaced
+ * ({@code provider.anthropic.*} / {@code provider.openai.*}) and the interface accessors below
+ * compute from the nested data without colliding with a record component. Polymorphism is by the
+ * {@code type} discriminator; the concrete member owns its backend-conditional authentication.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -34,7 +34,7 @@ import org.jspecify.annotations.Nullable;
     name = "type",
     description = "Specify the LLM provider to use.",
     defaultValue = ANTHROPIC_ID)
-public sealed interface LlmProviderConfiguration permits AnthropicChatModel, OpenAiChatModel {
+public sealed interface V2ProviderConfiguration permits AnthropicChatModel, OpenAiChatModel {
 
   /** Discriminator string identifying the provider (e.g. {@code anthropic}, {@code openai}). */
   String providerType();

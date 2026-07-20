@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.V1ProviderConfiguration;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -19,7 +19,7 @@ import jakarta.validation.constraints.NotNull;
 import org.jspecify.annotations.Nullable;
 
 public record OutboundConnectorAgentRequest(
-    @Valid @NotNull ProviderConfiguration provider,
+    @Valid @NotNull V1ProviderConfiguration provider,
     @Valid @NotNull OutboundConnectorAgentRequestData data) {
 
   public record OutboundConnectorAgentRequestData(

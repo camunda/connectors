@@ -21,7 +21,7 @@ import org.jspecify.annotations.Nullable;
 
 @TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
 public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection anthropic)
-    implements ProviderConfiguration {
+    implements V1ProviderConfiguration {
 
   @TemplateProperty(ignore = true)
   public static final String ANTHROPIC_ID = "anthropic";

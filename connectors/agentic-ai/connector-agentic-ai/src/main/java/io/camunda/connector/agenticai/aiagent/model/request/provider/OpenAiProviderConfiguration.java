@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
 
 @TemplateSubType(id = OPENAI_ID, label = "OpenAI")
 public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection openai)
-    implements ProviderConfiguration {
+    implements V1ProviderConfiguration {
 
   @TemplateProperty(ignore = true)
   public static final String OPENAI_ID = "openai";

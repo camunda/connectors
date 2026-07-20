@@ -31,7 +31,7 @@ import org.jspecify.annotations.Nullable;
  */
 @TemplateSubType(id = OPENAI_ID, label = "OpenAI")
 public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
-    implements LlmProviderConfiguration {
+    implements V2ProviderConfiguration {
 
   @TemplateProperty(ignore = true)
   public static final String OPENAI_ID = "openai";

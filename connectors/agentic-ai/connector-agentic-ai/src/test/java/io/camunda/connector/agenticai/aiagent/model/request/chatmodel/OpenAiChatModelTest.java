@@ -41,7 +41,7 @@ class OpenAiChatModelTest {
         }
         """;
 
-    final LlmProviderConfiguration parsed = mapper.readValue(json, LlmProviderConfiguration.class);
+    final V2ProviderConfiguration parsed = mapper.readValue(json, V2ProviderConfiguration.class);
 
     assertThat(parsed).isInstanceOf(OpenAiChatModel.class);
     final OpenAiChatModel openai = (OpenAiChatModel) parsed;
@@ -53,7 +53,7 @@ class OpenAiChatModelTest {
     assertThat(openai.openai().backend()).isInstanceOf(OpenAiDirectBackend.class);
 
     final String reserialised = mapper.writeValueAsString(parsed);
-    assertThat(mapper.readValue(reserialised, LlmProviderConfiguration.class)).isEqualTo(parsed);
+    assertThat(mapper.readValue(reserialised, V2ProviderConfiguration.class)).isEqualTo(parsed);
   }
 
   @Test
@@ -70,7 +70,7 @@ class OpenAiChatModelTest {
         }
         """;
     final OpenAiChatModel openai =
-        (OpenAiChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
+        (OpenAiChatModel) mapper.readValue(json, V2ProviderConfiguration.class);
     assertThat(openai.openai().apiFamily()).isEqualTo(OpenAiApiFamily.RESPONSES);
     assertThat(openai.apiFamilyKey()).isEqualTo("openai-responses");
   }
@@ -97,7 +97,7 @@ class OpenAiChatModelTest {
         """;
 
     final OpenAiChatModel openai =
-        (OpenAiChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
+        (OpenAiChatModel) mapper.readValue(json, V2ProviderConfiguration.class);
 
     assertThat(openai.backend()).isEqualTo("compatible");
     final OpenAiCompatibleBackend compatible = (OpenAiCompatibleBackend) openai.openai().backend();
@@ -127,7 +127,7 @@ class OpenAiChatModelTest {
         }
         """;
     final OpenAiChatModel openai =
-        (OpenAiChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
+        (OpenAiChatModel) mapper.readValue(json, V2ProviderConfiguration.class);
     final OpenAiCompatibleBackend compatible = (OpenAiCompatibleBackend) openai.openai().backend();
     assertThat(compatible.authentication()).isInstanceOf(CompatibleNoAuthentication.class);
   }
@@ -187,7 +187,7 @@ class OpenAiChatModelTest {
         """;
 
     final OpenAiChatModel parsed =
-        (OpenAiChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
+        (OpenAiChatModel) mapper.readValue(json, V2ProviderConfiguration.class);
 
     final ModelCapabilitiesOverride override = parsed.capabilityOverride();
     assertThat(override).isNotNull();
@@ -196,7 +196,7 @@ class OpenAiChatModelTest {
     assertThat(override.maxOutputTokens()).isNull();
 
     final String reserialised = mapper.writeValueAsString(parsed);
-    assertThat(mapper.readValue(reserialised, LlmProviderConfiguration.class)).isEqualTo(parsed);
+    assertThat(mapper.readValue(reserialised, V2ProviderConfiguration.class)).isEqualTo(parsed);
   }
 
   @Test
@@ -221,7 +221,7 @@ class OpenAiChatModelTest {
           }
         }
         """;
-    var model = (OpenAiChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
+    var model = (OpenAiChatModel) mapper.readValue(json, V2ProviderConfiguration.class);
     assertThat(model.openai().model().parameters().effort()).isEqualTo(OpenAiEffort.HIGH);
     assertThat(model.openai().enableWebSearch()).isTrue();
     assertThat(model.openai().enableCodeInterpreter()).isTrue();

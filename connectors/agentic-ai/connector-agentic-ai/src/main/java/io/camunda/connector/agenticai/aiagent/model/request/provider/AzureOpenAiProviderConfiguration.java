@@ -25,7 +25,7 @@ import org.jspecify.annotations.Nullable;
 
 @TemplateSubType(id = AZURE_OPENAI_ID, label = "Azure OpenAI")
 public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnection azureOpenAi)
-    implements ProviderConfiguration {
+    implements V1ProviderConfiguration {
 
   @TemplateProperty(ignore = true)
   public static final String AZURE_OPENAI_ID = "azureOpenAi";

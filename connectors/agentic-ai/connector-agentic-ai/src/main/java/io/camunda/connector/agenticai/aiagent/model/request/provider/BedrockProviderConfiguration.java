@@ -27,7 +27,7 @@ import org.jspecify.annotations.Nullable;
 
 @TemplateSubType(id = BEDROCK_ID, label = "AWS Bedrock")
 public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bedrock)
-    implements ProviderConfiguration {
+    implements V1ProviderConfiguration {
 
   @TemplateProperty(ignore = true)
   public static final String BEDROCK_ID = "bedrock";

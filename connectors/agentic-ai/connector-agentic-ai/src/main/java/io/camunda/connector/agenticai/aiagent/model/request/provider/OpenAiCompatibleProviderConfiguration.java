@@ -22,7 +22,8 @@ import java.util.Map;
 
 @TemplateSubType(id = OPENAI_COMPATIBLE_ID, label = "OpenAI Compatible")
 public record OpenAiCompatibleProviderConfiguration(
-    @Valid @NotNull OpenAiCompatibleConnection openaiCompatible) implements ProviderConfiguration {
+    @Valid @NotNull OpenAiCompatibleConnection openaiCompatible)
+    implements V1ProviderConfiguration {
 
   @TemplateProperty(ignore = true)
   public static final String OPENAI_COMPATIBLE_ID = "openaiCompatible";
