@@ -197,7 +197,7 @@ The loop operates as a distributed state machine between the connector runtime a
    - Load the stored flat message list (via `ConversationSession`) and reconstruct it into turns (`TurnReconstructor.reconstruct`)
    - Compose the next turn input (`AgentConversationTurnInputComposer.compose`) → `AgentInput` (`None` / `Cancellation` / `NextTurn`)
    - On `NextTurn`: compose the system message, `AgentConversation.rehydrate` into a pending turn, check the model-call limit
-   - Call LLM via `AiFrameworkAdapter` with a windowed `ConversationSnapshot`; `ingest` the assistant response into the turn
+   - Call LLM via the `ChatModelApi` resolved from `ChatModelApiRegistry` with a windowed `ConversationSnapshot`; `ingest` the assistant response into the turn
    - Store the updated conversation back to the memory store (via `ConversationSession`) and reduce it back to `AgentContext`
    - Transform tool calls and create response
 
@@ -864,9 +864,9 @@ Events create their payload in `toolCallResult`:
 
 ### Chat Model SPI (the seam)
 
-The provider-neutral chat SPI, package `io.camunda.connector.agenticai.aiagent.provider.api`, is
+The provider-neutral chat SPI, package `io.camunda.connector.agenticai.aiagent.chatmodel`, is
 what `BaseAgentRequestHandler.proceed()` calls to reach the LLM. It replaces the previous direct call
-to `AiFrameworkAdapter.executeMeasuringTime` — that interface has since been folded away entirely, and
+through a framework-adapter interface — that interface has since been folded away entirely, and
 `Langchain4JChatModelApi` (see below) now converts messages and drives the LangChain4J `ChatModel`
 itself, with no adapter indirection in between. See
 [ADR 009 §1–§2](../adr/009-own-the-llm-layer.md) for the full design rationale.
@@ -903,29 +903,30 @@ public interface ChatModelApiFactory {
   provider paused mid-turn, e.g. Anthropic's `pause_turn` stop reason, and must be called again with no
   new input to resume it — see the continuation-loop note below). Both carry the produced
   `assistantMessage` and per-turn `metrics`, including the measured `executionTime` for the call.
-  `capabilities()` (package `aiagent.framework.capabilities`, resolved via the model capability matrix
+  `capabilities()` (package `aiagent.capabilities`, resolved via the model capability matrix
   — see [ADR 009](../adr/009-own-the-llm-layer.md)) returns the model's modality/reasoning/context-window
   profile; it is now consumed by `BaseAgentRequestHandler.proceed()` to select the tool-result strategy
   (`toolCallResultStrategy.apply(windowedSnapshot, chatModel.capabilities())`). The native Anthropic chat
   model (below) resolves a real profile; the LangChain4J-backed implementation still returns a fixed
   conservative profile instead of resolving one.
-- **`ChatModelApiConfiguration`** is the neutral descriptor the registry dispatches on — deliberately
-  **not** the sealed `ProviderConfiguration`, so the chat-model layer stays connector-agnostic. Phase 0
-  ships one impl, `V1ChatModelApiConfiguration`, wrapping the built-in provider config; a second
-  connector variant or a custom provider contributes its own impl.
+- **`ChatModelApiConfiguration`** is the neutral marker interface the registry dispatches on. Both
+  provider-config unions implement it directly — there is no wrapper type in between: the entry
+  points hand the request's resolved `V1ProviderConfiguration` (v1, LangChain4J-routed) or
+  `V2ProviderConfiguration` (v2, wire-format-first) straight to `registry.resolve(...)`.
 - **`ChatModelApiFactory`** decides via `supports(...)` whether it can serve a configuration and
   `create(...)`s the chat model. There is no precedence between factories.
 - **`ChatModelApiRegistry`** (`ChatModelApiRegistryImpl`) collects every `ChatModelApiFactory` bean and
   resolves a configuration to the single factory whose `supports(...)` is true — else fails loud with
   `ConnectorException(ERROR_CODE_FAILED_MODEL_CALL)` if zero or more than one factory matches. This is
-  how providers move to native **one at a time**: `V1ChatModelApiConfiguration` (routed to one
-  LangChain4J-backed factory per provider, matching on `ProviderConfiguration#providerType()`) and
-  `V2ChatModelApiConfiguration` (routed to native factories, matching on the provider/backend
-  discriminator) are disjoint configuration types, so a provider's native factory and its
-  LangChain4J-backed factory never compete for the same configuration.
-- **`BaseAgentRequestHandler.proceed()`** wraps the request's provider config and resolves+calls
-  directly — `registry.resolve(new V1ChatModelApiConfiguration(config.provider())).call(...)` —
-  then ingests the returned `(assistantMessage, metrics)`.
+  how providers move to native **one at a time**: `V1ProviderConfiguration` (routed to one
+  LangChain4J-backed factory per provider, matching on `V1ProviderConfiguration#providerType()`) and
+  `V2ProviderConfiguration` (routed to native factories, matching on the provider/backend
+  discriminator, e.g. the `AnthropicChatModel` member) are disjoint configuration types, so a
+  provider's native factory and its LangChain4J-backed factory never compete for the same
+  configuration.
+- **`BaseAgentRequestHandler.proceed()`** resolves and calls the chat model directly —
+  `chatModelApiRegistry.resolve(agentConfiguration.chatModelApiConfiguration()).call(...)` — then
+  ingests the returned `(assistantMessage, metrics)`.
 
 > **A `call(...)` is a single provider round-trip; multi-round provider turns are a request-handler
 > loop, not an SPI concept.** `BaseAgentRequestHandler.proceed()` wraps the call in a `do`/`while` loop
@@ -943,22 +944,21 @@ classpath registers it with no other wiring change (see [§25.4](#254-add-a-nati
 The v2 connectors (`AiAgentTaskV2Function`, `AiAgentSubProcessV2Function`; connector types
 `io.camunda.agenticai:aiagent:task:2` / `io.camunda.agenticai:aiagent:subprocess:2`) carry a
 wire-format-first config surface in package
-`io.camunda.connector.agenticai.aiagent.model.request.chatmodel`:
+`io.camunda.connector.agenticai.aiagent.model.request.v2`:
 
-- **`LlmProviderConfiguration`** — the sealed root, `@JsonTypeInfo`/`@JsonSubTypes` on a provider
+- **`V2ProviderConfiguration`** — the sealed root, `@JsonTypeInfo`/`@JsonSubTypes` on a provider
   discriminator, currently with members `AnthropicChatModel` (Anthropic Messages wire format;
   backends `direct`/`bedrock`) and `OpenAiChatModel` (OpenAI wire formats; backends
   `direct`/`compatible`, api-family `completions`/`responses`). Each member nests all its fields
   under a single provider-named component (`anthropic` / `openai`) so generated template property
   ids are namespaced (`configuration.anthropic.*` / `configuration.openai.*`), avoiding
-  cross-provider id collisions.
-- **`V2ChatModelApiConfiguration(LlmProviderConfiguration)`** — the v2
-  `ChatModelApiConfiguration` impl the entry points wrap the request's `configuration` in and hand
+  cross-provider id collisions. `V2ProviderConfiguration` implements `ChatModelApiConfiguration`
+  directly — there is no wrapper type; the entry points hand the resolved `configuration` straight
   to the registry.
 
 A native `ChatModelApiFactory` now serves part of this surface: `AnthropicChatModelApiFactory`
-(package `aiagent.framework.anthropic`) `supports()` an `AnthropicChatModel` configuration whose
-backend is `direct` (API key), and drives the anthropic-java 2.48.0 **beta** messages
+(package `aiagent.chatmodel.provider.anthropic`) `supports()` an `AnthropicChatModel` configuration
+whose backend is `direct` (API key), and drives the anthropic-java 2.48.0 **beta** messages
 client (`client.beta().messages().createStreaming(...)`) directly, bypassing LangChain4J entirely for
 the configurations it serves. It resolves `ModelCapabilities` via the capability matrix under
 api-family `anthropic-messages`, maps the `pause_turn` stop reason to a `ChatModelResult.Continuation`
@@ -1035,13 +1035,13 @@ top-level abstraction — one implementation per built-in provider, not a single
   definitions via `ChatMessageConverter`/`ToolSpecificationConverter`, drives one `chatModel.chat(...)`
   call while timing it, converts the response back into an `AssistantMessage`, and returns a completed
   `ChatModelResult` — LangChain4J has no continuation concept.
-- **`Langchain4JChatModelApiFactory<T extends ProviderConfiguration>`** is an abstract base class, not
+- **`Langchain4JChatModelApiFactory<T extends V1ProviderConfiguration>`** is an abstract base class, not
   a single shared implementation. Each built-in provider is a concrete subclass supplying its own
   `providerType()` and `createChatModel(T)` (`Langchain4JAnthropicChatModelApiFactory`,
   `Langchain4JOpenAiChatModelApiFactory`, `Langchain4JOpenAiCompatibleChatModelApiFactory`,
   `Langchain4JBedrockChatModelApiFactory`, `Langchain4JAzureOpenAiChatModelApiFactory`,
-  `Langchain4JGoogleVertexAiChatModelApiFactory`, package `aiagent.framework.langchain4j.provider`).
-  `supports()` matches a `V1ChatModelApiConfiguration` whose `ProviderConfiguration#providerType()`
+  `Langchain4JGoogleVertexAiChatModelApiFactory`, package `aiagent.chatmodel.provider.langchain4j.factory`).
+  `supports()` matches a `V1ProviderConfiguration` whose `providerType()`
   equals the subclass's `providerType()` — there is no precedence between the subclasses, and no
   shared catch-all factory; each provider config matches exactly one.
 - **Tool execution stays outside LangChain4J**: tool calls are returned as data (via
@@ -1197,7 +1197,7 @@ For A2A error codes, see [a2a.md §15](a2a.md#15-error-codes).
 Master configuration class. Activated by `@ConditionalOnBooleanProperty("camunda.connector.agenticai.enabled", matchIfMissing=true)` — on by default.
 
 Imports:
-- `AgenticAiLangchain4JFrameworkConfiguration` — LangChain4J converter chain and adapter
+- `AgenticAiLangchain4JFrameworkConfiguration` — LangChain4J converter chain and chat model
 - `AgenticAiAnthropicProviderConfiguration` — native Anthropic `ChatModelApiFactory` (see [§12](#12-framework-abstraction))
 - `McpDiscoveryConfiguration`, `McpClientConfiguration`, `McpRemoteClientConfiguration` — MCP (see [mcp.md §14](mcp.md#14-spring-configuration))
 - `A2aClientOutboundConnectorConfiguration`, `A2aClientAgenticToolConfiguration`, `A2aClientPollingConfiguration`, `A2aClientWebhookConfiguration` — A2A (see [a2a.md §14](a2a.md#14-spring-configuration))
@@ -1205,7 +1205,7 @@ Imports:
 ### Key Differences from Standard Connectors
 
 1. **Dual activation modes**: Both an outbound connector (`AiAgentFunction`) and a job worker (`AiAgentJobWorker`) are registered. The job worker bypasses the standard connector runtime, handling variable resolution, secret injection, and exception handling directly.
-2. **Pluggable AI framework**: `AiFrameworkAdapter<?>` SPI allows the LangChain4J stack to be replaced. The LangChain4J config is guarded by `@ConditionalOnProperty(camunda.connector.agenticai.framework)` (default: `langchain4j`).
+2. **Pluggable chat model SPI**: the LLM integration sits behind the `ChatModelApi` / `ChatModelApiRegistry` SPI (see [§12](#12-framework-abstraction)); any provider can be served by a `ChatModelApiFactory` bean. The LangChain4J-backed implementation is one such family, guarded by `@ConditionalOnProperty(camunda.connector.agenticai.framework)` (default: `langchain4j`).
 3. **Pluggable system prompt contributors**: All `SystemPromptContributor` beans are auto-collected into `SystemPromptComposerImpl`.
 4. **Pluggable gateway tool handlers**: All `GatewayToolHandler` beans are auto-collected into `GatewayToolHandlerRegistryImpl`.
 5. **Caffeine caching of BPMN resolution**: Process definition fetch (API + XML parse + FEEL extraction) is cached with configurable TTL and max size.
@@ -1334,11 +1334,13 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `SystemPromptComposerImpl.compose()` → Aggregates base prompt + contributions
 - `A2aSystemPromptContributor` → A2A protocol instructions (order 100)
 
-### Framework (LangChain4J)
-- `Langchain4JAiFrameworkAdapter.executeChatRequest()` → Main LLM call path
-- `ChatMessageConverterImpl` → Message conversion chain
-- `ToolSpecificationConverterImpl` → Tool definition conversion
-- `ChatModelFactoryImpl` → Provider-specific ChatModel creation
+### Chat Model SPI
+- `ChatModelApiRegistry.resolve(...).call(ChatModelRequest)` → Main LLM call path
+- `Langchain4JChatModelApi.call()` → LangChain4J-backed round-trip (converts, calls, converts back)
+- `AnthropicChatModelApi.call()` / `OpenAiChatModelApi.call()` → native round-trips
+- `ChatMessageConverterImpl` → Message conversion chain (LangChain4J-backed path)
+- `ToolSpecificationConverterImpl` → Tool definition conversion (LangChain4J-backed path)
+- `Langchain4JChatModelApiFactory.createChatModel()` (per-provider subclass) → Provider-specific LangChain4J `ChatModel` creation
 
 ### Configuration
 - `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
@@ -1389,7 +1391,7 @@ classDiagram
 
     BaseAgentRequestHandler --> AgentInitializer
     BaseAgentRequestHandler --> AgentConversationTurnInputComposer
-    BaseAgentRequestHandler --> AiFrameworkAdapter
+    BaseAgentRequestHandler --> ChatModelApiRegistry
     BaseAgentRequestHandler --> AgentResponseHandler
     BaseAgentRequestHandler --> ConversationStoreRegistry
     BaseAgentRequestHandler --> SystemPromptComposer
@@ -1451,7 +1453,7 @@ classDiagram
     TurnReconstructor ..> AgentConversationTurn : reconstructs
     AgentConversation ..> ConversationSnapshot : window()
     AgentConversation ..> MessageWindowFilter : uses
-    AiFrameworkAdapter ..> ConversationSnapshot : consumes
+    ChatModelApi ..> ConversationSnapshot : consumes
 
     %% --- System prompt composition ---
     class SystemPromptComposer {
@@ -1464,13 +1466,42 @@ classDiagram
     AgentConversationTurnInputComposer --> GatewayToolHandlerRegistry
     SystemPromptComposer o-- SystemPromptContributor : aggregates *
 
-    %% --- Framework abstraction ---
-    class AiFrameworkAdapter~R~ {
+    %% --- Chat model SPI ---
+    class ChatModelApiRegistry {
         <<interface>>
+        +resolve(ChatModelApiConfiguration) ChatModelApi
     }
-    class Langchain4JAiFrameworkAdapter
+    class ChatModelApiRegistryImpl
+    class ChatModelApiFactory {
+        <<interface>>
+        +supports(ChatModelApiConfiguration) bool
+        +create(ChatModelApiConfiguration) ChatModelApi
+    }
+    class ChatModelApi {
+        <<interface>>
+        +call(ChatModelRequest) ChatModelResult
+        +capabilities() ModelCapabilities
+    }
+    class Langchain4JChatModelApiFactory~T~ {
+        <<abstract>>
+    }
+    class AnthropicChatModelApiFactory
+    class OpenAiChatModelApiFactory
+    class Langchain4JChatModelApi
+    class AnthropicChatModelApi
+    class OpenAiChatModelApi
 
-    Langchain4JAiFrameworkAdapter ..|> AiFrameworkAdapter
+    ChatModelApiRegistryImpl ..|> ChatModelApiRegistry
+    ChatModelApiRegistry o-- ChatModelApiFactory : resolves via *
+    Langchain4JChatModelApiFactory ..|> ChatModelApiFactory
+    AnthropicChatModelApiFactory ..|> ChatModelApiFactory
+    OpenAiChatModelApiFactory ..|> ChatModelApiFactory
+    Langchain4JChatModelApi ..|> ChatModelApi
+    AnthropicChatModelApi ..|> ChatModelApi
+    OpenAiChatModelApi ..|> ChatModelApi
+    Langchain4JChatModelApiFactory ..> Langchain4JChatModelApi : builds
+    AnthropicChatModelApiFactory ..> AnthropicChatModelApi : builds
+    OpenAiChatModelApiFactory ..> OpenAiChatModelApi : builds
 ```
 
 ### E2E Tests
@@ -1765,7 +1796,7 @@ call (`POST /v2/agent-instances/{key}/history` via `newCreateAgentHistoryItemCom
   result with a non-null id and no matching tool call is an invariant violation and fails the turn.
 - **After the chat request** — `createHistoryForAssistantMessage(turn)` emits one `ASSISTANT` item with
   the assistant text, the assistant's `toolCalls`, and per-call `metrics` (input/output tokens +
-  `durationMs`, measured via `AiFrameworkAdapter.executeMeasuringTime` and carried on the turn's
+  `durationMs`, measured around the `ChatModelApi.call()` invocation and carried on the turn's
   `AgentMetrics.executionTime`). Empty assistant content (tool-only turns) falls back to a single
   `"No content"` text block, since the API rejects empty content.
 
@@ -1808,18 +1839,18 @@ them so violations fail the build. Until then, enforcement is by review, so resp
 
 Only the LangChain4J-backed package may depend on LangChain4J.
 
-- **Rule**: nothing outside `io.camunda.connector.agenticai.aiagent.provider.langchain4j.**` may
-  import `dev.langchain4j.*`. The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the
-  root `model/`, `adhoctoolsschema/`, `tool/`) stays framework-neutral.
-  `aiagent.framework.api.**` is the provider-neutral chat model SPI (`ChatModelApi`,
-  `ChatModelApiFactory`, `ChatModelApiRegistry`, …) and must not import any vendor SDK either; future
-  native chat model implementations live under their own `aiagent.framework.<provider>.**` package,
+- **Rule**: nothing outside `io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.**`
+  may import `dev.langchain4j.*`. The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`,
+  the root `model/`, `adhoctoolsschema/`, `tool/`) stays vendor-neutral.
+  `aiagent.chatmodel.**` is the provider-neutral chat model SPI (`ChatModelApi`,
+  `ChatModelApiFactory`, `ChatModelApiRegistry`, …) and must not import any vendor SDK either; native
+  chat model implementations live under their own `aiagent.chatmodel.provider.<provider>.**` package,
   each importing only its own vendor SDK.
 - **Why**: the LLM framework sits behind an SPI (`ChatModelApi` / `ChatModelApiRegistry`, see
   [§12](#12-framework-abstraction)). Keeping LangChain4J behind that SPI means it — or any other
   provider SDK — can be replaced without touching orchestration, memory, or the data model.
 - **Verify**: `grep -rl "import dev.langchain4j" --include="*.java"
-  connector-agentic-ai/src/main/java/io/camunda/connector/agenticai | grep -v /framework/langchain4j/` returns nothing.
+  connector-agentic-ai/src/main/java/io/camunda/connector/agenticai | grep -v /chatmodel/provider/langchain4j/` returns nothing.
 
 ### I2. Domain types never leak framework types
 
@@ -1876,14 +1907,14 @@ reference implementation and its wiring for the current exact procedure, and res
 
 ### 25.1 Add an LLM provider
 
-Extend `Langchain4JChatModelApiFactory<T extends ProviderConfiguration>` (package
-`aiagent.framework.langchain4j.provider`), supplying `providerType()` and `createChatModel(T)`, and add
-the matching `ProviderConfiguration` subtype. This configures the **LangChain4J-backed
+Extend `Langchain4JChatModelApiFactory<T extends V1ProviderConfiguration>` (package
+`aiagent.chatmodel.provider.langchain4j.factory`), supplying `providerType()` and `createChatModel(T)`,
+and add the matching `V1ProviderConfiguration` subtype. This configures the **LangChain4J-backed
 implementation** specifically (see [§12](#12-framework-abstraction)) — it builds the LangChain4J
 `ChatModel` consumed directly by `Langchain4JChatModelApi`, not a hand-rolled native `ChatModelApi`.
 For a provider that bypasses LangChain4J entirely, see
 [§25.4](#254-add-a-native-chat-model-implementation). `supports()` matches a
-`V1ChatModelApiConfiguration` whose `ProviderConfiguration#providerType()` equals the subclass's
+`V1ProviderConfiguration` whose `providerType()` equals the subclass's
 `providerType()`; register the subclass as a Spring bean (see
 `AgenticAiLangchain4JChatModelConfiguration`) and `ChatModelApiRegistry` picks it up automatically.
 Reference implementation: `Langchain4JAnthropicChatModelApiFactory` with
@@ -1919,18 +1950,18 @@ own tool-calling loop). Register it as a Spring bean; `ChatModelApiRegistry` res
 to the single factory whose `supports(...)` is true — there is no precedence, so a new factory's
 `supports(...)` must not overlap with an existing factory's for the same configuration. Reference
 implementation: `AnthropicChatModelApiFactory` / `AnthropicChatModelApi` (package
-`aiagent.framework.anthropic`), matching a `V2ChatModelApiConfiguration` whose `AnthropicChatModel`
-backend is `direct`. Only the vendor-scoped package may import that vendor's SDK — keep a native chat
-model in its own `aiagent.framework.<provider>.**` package (invariant I1). Custom providers follow the
-same shape with their own `ChatModelApiConfiguration` implementation (analogous to the memory `custom`
-store).
+`aiagent.chatmodel.provider.anthropic`), matching an `AnthropicChatModel` (a `V2ProviderConfiguration`)
+whose backend is `direct`. Only the vendor-scoped package may import that vendor's SDK — keep a native
+chat model in its own `aiagent.chatmodel.provider.<provider>.**` package (invariant I1). Custom
+providers follow the same shape with their own `ChatModelApiConfiguration` implementation (analogous
+to the memory `custom` store).
 
 The v2 (own LLM layer) connectors already contribute their wire-format-first config surface in
-package `io.camunda.connector.agenticai.aiagent.model.request.chatmodel` (`LlmProviderConfiguration`
-and its `AnthropicChatModel`/`OpenAiChatModel` members), wrapped by
-`V2ChatModelApiConfiguration` at the connector entry points. A native provider added here
-`supports(...)`s a `V2ChatModelApiConfiguration` (matching on the provider discriminator, and
-on the backend for providers with several). `AnthropicChatModelApiFactory` (Anthropic `direct`
-backend) is the first such implementation; for every configuration this surface can express that has
-no supporting factory yet (OpenAI, Anthropic `bedrock`), the v2 path still fails loud
-(see [§12, v2 config surface](#12-framework-abstraction)).
+package `io.camunda.connector.agenticai.aiagent.model.request.v2` (`V2ProviderConfiguration`
+and its `AnthropicChatModel`/`OpenAiChatModel` members), each implementing `ChatModelApiConfiguration`
+directly and passed straight to `registry.resolve(...)` at the connector entry points — no wrapper
+type in between. A native provider added here `supports(...)`s a `V2ProviderConfiguration` (matching
+on the provider discriminator, and on the backend for providers with several). `AnthropicChatModelApiFactory`
+(Anthropic `direct` backend) is the first such implementation; for every configuration this surface
+can express that has no supporting factory yet (OpenAI, Anthropic `bedrock`), the v2 path still fails
+loud (see [§12, v2 config surface](#12-framework-abstraction)).
