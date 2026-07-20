@@ -26,6 +26,18 @@ if (!outputFile) {
 }
 def outputFilePath = new File((String) outputFile)
 
+def templateId = templateId
+if (!templateId) {
+    System.err.println("Error: Template id required as property")
+    System.exit(1)
+}
+
+def connectorType = connectorType
+if (!connectorType) {
+    System.err.println("Error: Connector type required as property")
+    System.exit(1)
+}
+
 def file = new File((String) sourceFile)
 if (!file.exists()) {
     System.err.println("Error: Source file ${sourceFile} not found")
@@ -51,12 +63,12 @@ if (outputFilePath.exists() && !isHybrid) {
         def versionedFile = new File(versionedDir, "${baseName}-${existingVersion}.json")
 
         Files.copy(outputFilePath.toPath(), versionedFile.toPath())
-        println("Backed up existing job worker template version ${existingVersion} to: ${versionedFile.path}")
+        println("Backed up existing template version ${existingVersion} to: ${versionedFile.path}")
     }
 }
 
 // Update template metadata
-json.id = "io.camunda.connectors.agenticai.ai-agent-subprocess.v2"
+json.id = (String) templateId
 json.name = "AI Agent Sub-process"
 json.description = "Run a multi-step AI reasoning loop with dynamic tool selection"
 json.documentationRef = replaceDocumentationLinks(json.documentationRef)
@@ -115,7 +127,7 @@ def updatedProperties = []
 
     // Update specific property values and bindings
     if (property.binding?.type == "zeebe:taskDefinition" && property.binding?.property == "type") {
-        property.value = "io.camunda.agenticai:aiagent:subprocess:2"
+        property.value = (String) connectorType
 
         // Add new hidden properties after the type property
         updatedProperties.add(property)
@@ -139,8 +151,19 @@ def updatedProperties = []
             value: "={\n  id: toolCall._meta.id,\n  name: toolCall._meta.name,\n  content: toolCallResult,\n  completedAt: now()\n}",
             type: "Hidden"
         ])
+
+        // Mark the ad-hoc sub-process as an agentic tool container so linting rules
+        // (e.g. fromAi() validation) can detect it.
+        updatedProperties.add([
+            value: "true",
+            binding: [
+                name: "io.camunda.agenticai.toolContainer",
+                type: "zeebe:property"
+            ],
+            type: "Hidden"
+        ])
     } else if (property.id == "id") {
-        property.value = "io.camunda.connectors.agenticai.ai-agent-subprocess.v2"
+        property.value = (String) templateId
         updatedProperties.add(property)
     } else if (property.id == "resultVariable") {
         property.binding = [source: "=agent", type: "zeebe:output"]

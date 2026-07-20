@@ -229,11 +229,11 @@ The JSON element templates are **generated**, not hand-edited. They are produced
 `@ElementTemplate`-annotated connector functions and their bound data models (`@TemplateProperty`
 fields), so the source of truth is the Java, not the JSON. The template version comes from the
 annotation's `version` attribute on the connector function; bumping it there bumps the generated
-template. The AI Agent Sub-process template is in turn derived from the AI Agent Task
-template via `connector-agentic-ai/bin/transform-ai-agent-job-worker-template.groovy` (gmavenplus-plugin, `process-classes`
-phase). The v2 (own LLM layer) connectors follow the same pattern: `AiAgentTaskV2Function` is generated
-from its annotations, and the v2 Sub-process template is derived from it via
-`connector-agentic-ai/bin/transform-ai-agent-subprocess-v2-template.groovy`.
+template. The AI Agent Sub-process template is in turn derived from the AI Agent Task template, and
+the v2 (own LLM layer) Sub-process template from the v2 Task template (`AiAgentTaskV2Function`), both
+via the shared `connector-agentic-ai/bin/transform-ai-agent-template.groovy` script (gmavenplus-plugin,
+`process-classes` phase, one execution per template/hybrid combination, parameterized by
+`sourceFile`/`outputFile`/`templateId`/`connectorType`).
 
 To regenerate, run `mvn clean compile -f connectors/agentic-ai/pom.xml` and commit the JSON diff; never edit
 the generated JSON by hand. For the generation mechanism and annotation reference, see the
