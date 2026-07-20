@@ -113,15 +113,27 @@ public class ObjectStorageExecutor {
             .setProjectId(downloadObject.project())
             .build();
     Storage storage = storageOptions.getService();
-    BlobId blobId = BlobId.of(downloadObject.bucket(), downloadObject.fileName());
-    Blob blob = storage.get(blobId);
-    String contentType = blob != null ? blob.getContentType() : null;
-    ReadChannel reader = storage.reader(blobId);
-    return DocumentReturn.of(
-        new GcsStorageClosingStream(Channels.newInputStream(reader), storage),
-        contentType,
-        downloadObject.fileName(),
-        (converted, choice) -> DownloadResponse.of(choice, converted));
+    try {
+      BlobId blobId = BlobId.of(downloadObject.bucket(), downloadObject.fileName());
+      Blob blob = storage.get(blobId);
+      String contentType = blob != null ? blob.getContentType() : null;
+      ReadChannel reader = storage.reader(blobId);
+      // Ownership of `storage` transfers to GcsStorageClosingStream, which closes it when the
+      // stream is closed. Everything above can throw (e.g. missing object) before that transfer,
+      // so the catch below releases the client on any pre-transfer failure to avoid a leak.
+      return DocumentReturn.of(
+          new GcsStorageClosingStream(Channels.newInputStream(reader), storage),
+          contentType,
+          downloadObject.fileName(),
+          (converted, choice) -> DownloadResponse.of(choice, converted));
+    } catch (RuntimeException e) {
+      try {
+        storage.close();
+      } catch (Exception closeError) {
+        e.addSuppressed(closeError);
+      }
+      throw e;
+    }
   }
 
   private DownloadResponse legacyDownloadPath(DownloadObject downloadObject) {

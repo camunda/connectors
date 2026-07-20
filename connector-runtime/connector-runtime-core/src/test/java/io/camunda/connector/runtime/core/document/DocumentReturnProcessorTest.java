@@ -27,6 +27,8 @@ import io.camunda.connector.api.document.DocumentReturnFormat;
 import io.camunda.connector.api.document.InlineSizeGuard;
 import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.api.error.ConnectorException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -149,5 +151,95 @@ class DocumentReturnProcessorTest {
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("JSON response payload")
         .hasMessageContaining("Document reference");
+  }
+
+  @Test
+  void textChoiceStopsReadingOnceInlineLimitIsExceeded() {
+    // A stream that throws if read beyond the limit proves the size guard fires without buffering
+    // the whole (potentially multi-GB) remote object into heap first.
+    RawPayload payload =
+        RawPayload.of(throwIfReadBeyond(InlineSizeGuard.MAX_INLINE_BYTES + 2), null, null);
+
+    DocumentReturn<String> ret =
+        new DocumentReturn<>(payload, (converted, choice) -> (String) converted);
+
+    assertThatThrownBy(() -> processor.process(ret, format(DocumentReturnChoice.TEXT)))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("exceeds the inline variable size limit");
+  }
+
+  @Test
+  void jsonChoiceStopsReadingOnceInlineLimitIsExceeded() {
+    RawPayload payload =
+        RawPayload.of(
+            throwIfReadBeyond(InlineSizeGuard.MAX_INLINE_BYTES + 2), "application/json", null);
+
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
+
+    assertThatThrownBy(() -> processor.process(ret, format(DocumentReturnChoice.JSON)))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("exceeds the inline variable size limit");
+  }
+
+  @Test
+  void invalidEncodingDoesNotFailJsonDownload() {
+    // Encoding only applies to TEXT: a stale/invalid encoding must not fail an otherwise valid JSON
+    // download.
+    String json = "{\"name\": \"alice\"}";
+    RawPayload payload =
+        RawPayload.of(json.getBytes(StandardCharsets.UTF_8), "application/json", null);
+
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
+
+    Object result =
+        processor.process(ret, format(DocumentReturnChoice.JSON, "definitely-not-a-charset"));
+    assertThat(result).isInstanceOf(Map.class);
+    assertThat(((Map<?, ?>) result).get("name")).isEqualTo("alice");
+  }
+
+  @Test
+  void invalidEncodingDoesNotFailDocumentDownload() {
+    RawPayload payload =
+        RawPayload.of("hi".getBytes(StandardCharsets.UTF_8), "text/plain", "f.txt");
+
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
+
+    Object result =
+        processor.process(ret, format(DocumentReturnChoice.DOCUMENT, "definitely-not-a-charset"));
+    assertThat(result).isInstanceOf(Document.class);
+  }
+
+  @Test
+  void invalidEncodingStillFailsTextDownload() {
+    RawPayload payload = RawPayload.of("hi".getBytes(StandardCharsets.UTF_8), null, null);
+
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
+
+    assertThatThrownBy(
+            () ->
+                processor.process(
+                    ret, format(DocumentReturnChoice.TEXT, "definitely-not-a-charset")))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Unsupported charset");
+  }
+
+  /**
+   * Returns a stream that yields {@code limit} zero-bytes and then throws — so any code that reads
+   * past {@code limit} triggers the failure, but a read bounded at {@code MAX_INLINE_BYTES + 1}
+   * does not.
+   */
+  private static InputStream throwIfReadBeyond(long limit) {
+    return new InputStream() {
+      private long served = 0;
+
+      @Override
+      public int read() throws IOException {
+        if (served >= limit) {
+          throw new IOException("stream should not be fully buffered; read past " + limit);
+        }
+        served++;
+        return 0;
+      }
+    };
   }
 }

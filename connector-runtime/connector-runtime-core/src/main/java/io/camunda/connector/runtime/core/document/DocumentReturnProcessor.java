@@ -60,18 +60,17 @@ public class DocumentReturnProcessor {
               + " element template exposes the @DocumentReturnFormat dropdown and that"
               + " 'documentReturnFormat' is listed in the connector's inputVariables.");
     }
-    Charset encoding = resolveEncoding(responseFormat.encoding());
     LOG.debug(
-        "Processing DocumentReturn: choice={}, fileName={}, contentType={}, encoding={}",
+        "Processing DocumentReturn: choice={}, fileName={}, contentType={}",
         responseFormat.choice(),
         documentReturn.payload().fileName(),
-        documentReturn.payload().contentType(),
-        responseFormat.choice() == DocumentReturnChoice.TEXT ? encoding.name() : "n/a");
-    Object converted = convert(documentReturn.payload(), responseFormat.choice(), encoding);
+        documentReturn.payload().contentType());
+    Object converted =
+        convert(documentReturn.payload(), responseFormat.choice(), responseFormat.encoding());
     return documentReturn.wrap().apply(converted, responseFormat.choice());
   }
 
-  private Object convert(RawPayload payload, DocumentReturnChoice choice, Charset encoding) {
+  private Object convert(RawPayload payload, DocumentReturnChoice choice, String encodingName) {
     try (InputStream stream = payload.stream()) {
       return switch (choice) {
         case DOCUMENT -> {
@@ -88,14 +87,18 @@ public class DocumentReturnProcessor {
           yield doc;
         }
         case TEXT -> {
-          byte[] bytes = stream.readAllBytes();
+          // Encoding is only relevant for TEXT; resolving it here means an invalid encoding left
+          // over from a previous TEXT selection can't fail an otherwise valid DOCUMENT/JSON
+          // download.
+          Charset encoding = resolveEncoding(encodingName);
+          byte[] bytes = readBounded(stream);
           ensureFitsInVariable(bytes.length, "Text");
           var text = new String(bytes, encoding);
           LOG.debug("Decoded text payload: chars={}, encoding={}", text.length(), encoding.name());
           yield text;
         }
         case JSON -> {
-          byte[] bytes = stream.readAllBytes();
+          byte[] bytes = readBounded(stream);
           ensureFitsInVariable(bytes.length, "JSON");
           var json = parseJson(bytes);
           LOG.debug(
@@ -143,17 +146,28 @@ public class DocumentReturnProcessor {
     }
   }
 
+  /**
+   * Reads at most {@link InlineSizeGuard#MAX_INLINE_BYTES} + 1 bytes from the payload stream. The
+   * one extra byte lets {@link #ensureFitsInVariable} detect an over-limit payload without
+   * buffering the whole remote object into heap first — a multi-GB download decoded as TEXT/JSON
+   * would otherwise exhaust the runtime heap before the size-limit incident could be raised.
+   */
+  private static byte[] readBounded(InputStream stream) throws IOException {
+    return stream.readNBytes((int) (InlineSizeGuard.MAX_INLINE_BYTES + 1));
+  }
+
   private static void ensureFitsInVariable(int byteLength, String formatLabel) {
     if (byteLength <= InlineSizeGuard.MAX_INLINE_BYTES) {
       return;
     }
-    double payloadMiB = byteLength / (1024.0 * 1024.0);
+    // The read is capped at MAX_INLINE_BYTES + 1, so the exact payload size is unknown here — the
+    // message reports the limit rather than a misleading truncated size.
     double limitMiB = InlineSizeGuard.MAX_INLINE_BYTES / (1024.0 * 1024.0);
     throw new ConnectorException(
         String.format(
-            "%s response payload is %.1f MiB, which exceeds the inline variable size limit of %.1f"
-                + " MiB. Re-run with 'Document reference' as the response format so the payload"
-                + " is uploaded to the document store instead.",
-            formatLabel, payloadMiB, limitMiB));
+            "%s response payload exceeds the inline variable size limit of %.1f MiB. Re-run with"
+                + " 'Document reference' as the response format so the payload is uploaded to the"
+                + " document store instead.",
+            formatLabel, limitMiB));
   }
 }

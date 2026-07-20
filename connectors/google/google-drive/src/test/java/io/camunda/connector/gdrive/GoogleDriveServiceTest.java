@@ -19,13 +19,17 @@ import com.google.api.services.docs.v1.model.Request;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.gdrive.mapper.DocumentMapper;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.MimeTypeUrl;
 import io.camunda.connector.gdrive.model.request.*;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -252,6 +256,51 @@ class GoogleDriveServiceTest extends BaseTest {
     var result = service.execute(googleDriveClient, resource, false);
 
     assertThat(result).isInstanceOf(Document.class);
+  }
+
+  @Test
+  void execute_shouldReturnDocumentReturnWhenUsingDocumentReturnFlow() throws IOException {
+    var resource = new DownloadResource(new DownloadData("1"));
+
+    Drive drive = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
+    Drive.Files files = mock(Drive.Files.class);
+    Drive.Files.Get getFile = mock(Drive.Files.Get.class);
+    when(googleDriveClient.getDriveService()).thenReturn(drive);
+    when(drive.files()).thenReturn(files);
+    when(files.get("1")).thenReturn(getFile);
+    when(getFile.setSupportsAllDrives(true)).thenReturn(getFile);
+    when(getFile.execute())
+        .thenReturn(new File().setMimeType("text/plain").setName("greeting.txt"));
+    InputStream mediaStream = new ByteArrayInputStream("hello".getBytes(StandardCharsets.UTF_8));
+    when(getFile.executeMediaAsInputStream()).thenReturn(mediaStream);
+
+    var result = service.execute(googleDriveClient, resource, true);
+
+    assertThat(result).isInstanceOf(DocumentReturn.class);
+    DocumentReturn<?> documentReturn = (DocumentReturn<?>) result;
+    assertThat(documentReturn.payload().stream()).isSameAs(mediaStream);
+    assertThat(documentReturn.payload().contentType()).isEqualTo("text/plain");
+    assertThat(documentReturn.payload().fileName()).isEqualTo("greeting.txt");
+  }
+
+  @Test
+  void execute_shouldThrowExWhileStreamingDownload() throws IOException {
+    var resource = new DownloadResource(new DownloadData("1"));
+
+    Drive drive = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
+    Drive.Files files = mock(Drive.Files.class);
+    Drive.Files.Get getFile = mock(Drive.Files.Get.class);
+    when(googleDriveClient.getDriveService()).thenReturn(drive);
+    when(drive.files()).thenReturn(files);
+    when(files.get("1")).thenReturn(getFile);
+    when(getFile.setSupportsAllDrives(true)).thenReturn(getFile);
+    when(getFile.execute()).thenReturn(new File().setMimeType("text/plain").setName("f.txt"));
+    when(getFile.executeMediaAsInputStream()).thenThrow(IOException.class);
+
+    RuntimeException ex =
+        assertThrows(
+            RuntimeException.class, () -> service.execute(googleDriveClient, resource, true));
+    assertThat(ex.getMessage()).isEqualTo(String.format(IO_EXCEPTION_MESSAGE, "downloading"));
   }
 
   private static Stream<String> successFolderRequestCases() throws IOException {
