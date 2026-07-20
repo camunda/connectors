@@ -41,7 +41,7 @@ Deep architecture lives in the reference docs, linked instead of copied:
 | Tool completion, partial results, no-op completion                       | [§9](docs/reference/ai-agent.md#9-tool-completion)                                      |
 | Concurrency & race conditions (supersession, store-ahead-of-Zeebe)       | [§10](docs/reference/ai-agent.md#10-concurrency)                                        |
 | Event handling (sub-process only)                                        | [§11](docs/reference/ai-agent.md#11-event-handling)                                     |
-| Chat model SPI & LangChain4J bridge implementation                       | [§12](docs/reference/ai-agent.md#12-framework-abstraction)                              |
+| Chat model SPI & per-provider chat model factories                       | [§12](docs/reference/ai-agent.md#12-framework-abstraction)                              |
 | System prompt composition / contributors                                 | [§13](docs/reference/ai-agent.md#13-system-prompt-composition)                          |
 | Response handling (text / JSON / full message)                           | [§14](docs/reference/ai-agent.md#14-response-handling)                                  |
 | Error codes                                                              | [§15](docs/reference/ai-agent.md#15-error-codes)                                        |
