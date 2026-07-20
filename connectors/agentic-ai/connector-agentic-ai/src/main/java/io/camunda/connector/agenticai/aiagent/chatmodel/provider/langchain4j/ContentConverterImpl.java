@@ -12,6 +12,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.doc
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -37,6 +39,12 @@ public class ContentConverterImpl implements ContentConverter {
       case ObjectContent objectContent ->
           new dev.langchain4j.data.message.TextContent(
               Objects.requireNonNull(convertToString(objectContent.content())));
+      case ReasoningContent reasoningContent ->
+          throw new UnsupportedOperationException(
+              "Reasoning content is not supported by this model");
+      case ProviderContent providerContent ->
+          throw new UnsupportedOperationException(
+              "Provider content is not supported by this model");
     };
   }
 
