@@ -71,7 +71,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Camunda internal libraries -->
     <version.camunda>8.9.13</version.camunda>
-    <version.feel-engine>1.21.0</version.feel-engine>
+    <version.feel-engine>1.22.0</version.feel-engine>
     <version.camunda-xml-model>7.24.0</version.camunda-xml-model>
 
     <!-- Third party dependencies -->
