@@ -35,7 +35,9 @@ public record ApiKeyAuthentication(
             tooltip = "Send API key in header or as query parameter.")
         ApiKeyLocation apiKeyLocation,
     @FEEL @NotEmpty @TemplateProperty(group = "authentication", label = "API key name") String name,
-    @FEEL @NotEmpty @TemplateProperty(group = "authentication", label = "API key value")
+    @FEEL
+        @NotEmpty
+        @TemplateProperty(group = "authentication", label = "API key value", secret = true)
         String value)
     implements Authentication {
   @TemplateProperty(ignore = true)

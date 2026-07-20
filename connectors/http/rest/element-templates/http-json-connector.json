@@ -158,7 +158,8 @@
       "equals" : "apiKey",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.username",
     "label" : "Username",
@@ -196,7 +197,8 @@
       "equals" : "basic",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.token",
     "label" : "Bearer token",
@@ -215,7 +217,8 @@
       "equals" : "bearer",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.oauthTokenEndpoint",
     "label" : "OAuth 2.0 token endpoint",
@@ -278,7 +281,8 @@
       "type" : "simple"
     },
     "tooltip" : "Your application's client secret from the OAuth client",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.audience",
     "label" : "Audience",
@@ -399,7 +403,8 @@
       "type" : "simple"
     },
     "tooltip" : "Your application's client secret from the OAuth client",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.oauthRefreshToken.refreshToken",
     "label" : "Refresh token",
@@ -419,7 +424,8 @@
       "type" : "simple"
     },
     "tooltip" : "The refresh token used to obtain a new access token",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.oauthRefreshToken.scopes",
     "label" : "Scopes",
@@ -785,7 +791,6 @@
     }, {
       "id" : "authentication.apiKeyLocation",
       "label" : "Api key location",
-      "description" : "Choose type: Send API key in header or as query parameter.",
       "value" : "headers",
       "constraints" : {
         "notEmpty" : true
@@ -800,6 +805,7 @@
         "equals" : "apiKey",
         "type" : "simple"
       },
+      "tooltip" : "Send API key in header or as query parameter.",
       "type" : "Dropdown",
       "choices" : [ {
         "name" : "Headers",
@@ -841,7 +847,8 @@
         "equals" : "apiKey",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.username",
       "label" : "Username",
@@ -875,7 +882,8 @@
         "equals" : "basic",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.token",
       "label" : "Bearer token",
@@ -892,11 +900,11 @@
         "equals" : "bearer",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.oauthTokenEndpoint",
       "label" : "OAuth 2.0 token endpoint",
-      "description" : "The OAuth token endpoint",
       "constraints" : {
         "notEmpty" : true,
         "pattern" : {
@@ -918,7 +926,6 @@
     }, {
       "id" : "authentication.clientId",
       "label" : "Client ID",
-      "description" : "Your application's client ID from the OAuth client",
       "constraints" : {
         "notEmpty" : true
       },
@@ -932,11 +939,11 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       },
+      "tooltip" : "Your application's client ID from the OAuth client",
       "type" : "String"
     }, {
       "id" : "authentication.clientSecret",
       "label" : "Client secret",
-      "description" : "Your application's client secret from the OAuth client",
       "constraints" : {
         "notEmpty" : true
       },
@@ -950,11 +957,12 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       },
-      "type" : "String"
+      "tooltip" : "Your application's client secret from the OAuth client",
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.audience",
       "label" : "Audience",
-      "description" : "The unique identifier of the target API you want to access",
       "group" : "authentication",
       "binding" : {
         "name" : "authentication.audience",
@@ -965,11 +973,11 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       },
+      "tooltip" : "The unique identifier of the target API you want to access",
       "type" : "String"
     }, {
       "id" : "authentication.clientAuthentication",
       "label" : "Client authentication",
-      "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
       "constraints" : {
         "notEmpty" : true
       },
@@ -983,6 +991,7 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       },
+      "tooltip" : "Send client ID and client secret as a Basic Auth header, or as client credentials in the request body",
       "type" : "Dropdown",
       "choices" : [ {
         "name" : "Send client credentials in body",
@@ -994,7 +1003,6 @@
     }, {
       "id" : "authentication.scopes",
       "label" : "Scopes",
-      "description" : "The scopes which you want to request authorization for (e.g.read:contacts)",
       "group" : "authentication",
       "binding" : {
         "name" : "authentication.scopes",
@@ -1005,11 +1013,12 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       },
+      "tooltip" : "The scopes which you want to request authorization for",
+      "placeholder" : "read:contacts",
       "type" : "String"
     }, {
       "id" : "authentication.oauthRefreshToken.oauthTokenEndpoint",
       "label" : "OAuth 2.0 token endpoint",
-      "description" : "The OAuth token endpoint",
       "constraints" : {
         "notEmpty" : true,
         "pattern" : {
@@ -1031,7 +1040,6 @@
     }, {
       "id" : "authentication.oauthRefreshToken.clientId",
       "label" : "Client ID",
-      "description" : "Your application's client ID from the OAuth client",
       "constraints" : {
         "notEmpty" : true
       },
@@ -1045,11 +1053,11 @@
         "equals" : "oauth-refresh-token",
         "type" : "simple"
       },
+      "tooltip" : "Your application's client ID from the OAuth client",
       "type" : "String"
     }, {
       "id" : "authentication.oauthRefreshToken.clientSecret",
       "label" : "Client secret",
-      "description" : "Your application's client secret from the OAuth client",
       "group" : "authentication",
       "binding" : {
         "name" : "authentication.oauthRefreshToken.clientSecret",
@@ -1060,11 +1068,12 @@
         "equals" : "oauth-refresh-token",
         "type" : "simple"
       },
-      "type" : "String"
+      "tooltip" : "Your application's client secret from the OAuth client",
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.oauthRefreshToken.refreshToken",
       "label" : "Refresh token",
-      "description" : "The refresh token used to obtain a new access token",
       "constraints" : {
         "notEmpty" : true
       },
@@ -1078,11 +1087,12 @@
         "equals" : "oauth-refresh-token",
         "type" : "simple"
       },
-      "type" : "String"
+      "tooltip" : "The refresh token used to obtain a new access token",
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.oauthRefreshToken.scopes",
       "label" : "Scopes",
-      "description" : "The scopes to request authorization for (space-separated)",
       "group" : "authentication",
       "binding" : {
         "name" : "authentication.oauthRefreshToken.scopes",
@@ -1093,6 +1103,7 @@
         "equals" : "oauth-refresh-token",
         "type" : "simple"
       },
+      "tooltip" : "The scopes to request authorization for (space-separated)",
       "type" : "String"
     } ]
   } ],

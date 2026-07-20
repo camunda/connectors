@@ -66,7 +66,7 @@ import io.camunda.connector.http.rest.model.RestAuthenticationConfiguration;
       "invoke API"
     },
     inputDataClass = HttpJsonRequest.class,
-    configurationTemplates = {RestAuthenticationConfiguration.class},
+    configurations = {RestAuthenticationConfiguration.class},
     outputDataClass = HttpCommonResult.class,
     version = 15,
     defaultResultExpression =

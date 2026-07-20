@@ -111,7 +111,8 @@
       "type" : "simple"
     },
     "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.secretKey",
     "label" : "Secret key",
@@ -131,7 +132,8 @@
       "type" : "simple"
     },
     "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "awsCredential",
     "label" : "AWS credential",
@@ -708,7 +710,8 @@
         "type" : "simple"
       },
       "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.secretKey",
       "label" : "Secret key",
@@ -726,10 +729,14 @@
         "type" : "simple"
       },
       "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "region",
       "label" : "Region",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "configuration",
       "binding" : {
         "name" : "region",

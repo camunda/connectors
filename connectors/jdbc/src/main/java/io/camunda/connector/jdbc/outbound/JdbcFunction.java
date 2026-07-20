@@ -53,7 +53,7 @@ import io.camunda.connector.jdbc.model.response.JdbcResponse;
       @ElementTemplate.PropertyGroup(id = JdbcFunction.QUERY_GROUP_ID, label = "Query"),
     },
     inputDataClass = JdbcRequest.class,
-    configurationTemplates = {JdbcConnectionConfiguration.class},
+    configurations = {JdbcConnectionConfiguration.class},
     outputDataClass = JdbcResponse.class)
 public class JdbcFunction implements OutboundConnectorFunction {
   static final String DATABASE_GROUP_ID = "database";

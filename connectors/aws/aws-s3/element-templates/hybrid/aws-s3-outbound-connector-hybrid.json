@@ -5,7 +5,7 @@
   "description" : "Execute S3 requests",
   "keywords" : [ "upload file", "download file", "delete file", "upload object", "download object", "delete object", "object storage", "bucket", "file storage" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/amazon-s3/",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -117,7 +117,8 @@
       "type" : "simple"
     },
     "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.secretKey",
     "label" : "Secret key",
@@ -137,7 +138,8 @@
       "type" : "simple"
     },
     "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "awsCredential",
     "label" : "AWS credential",
@@ -520,7 +522,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -652,7 +654,6 @@
     }, {
       "id" : "authentication.accessKey",
       "label" : "Access key",
-      "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
       "constraints" : {
         "notEmpty" : true
       },
@@ -666,11 +667,12 @@
         "equals" : "credentials",
         "type" : "simple"
       },
-      "type" : "String"
+      "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.secretKey",
       "label" : "Secret key",
-      "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
       "constraints" : {
         "notEmpty" : true
       },
@@ -684,10 +686,15 @@
         "equals" : "credentials",
         "type" : "simple"
       },
-      "type" : "String"
+      "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "region",
       "label" : "Region",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "configuration",
       "binding" : {
         "name" : "region",

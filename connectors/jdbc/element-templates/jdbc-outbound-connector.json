@@ -375,6 +375,9 @@
     "properties" : [ {
       "id" : "host",
       "label" : "Host",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "connection",
       "binding" : {
         "name" : "host",
@@ -384,6 +387,9 @@
     }, {
       "id" : "port",
       "label" : "Port",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "connection",
       "binding" : {
         "name" : "port",

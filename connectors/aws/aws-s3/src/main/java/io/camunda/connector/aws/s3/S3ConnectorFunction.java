@@ -45,7 +45,7 @@ import java.util.function.Function;
       "file storage"
     },
     inputDataClass = S3Request.class,
-    configurationTemplates = {AwsCredentialConfiguration.class},
+    configurations = {AwsCredentialConfiguration.class},
     version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Action"),

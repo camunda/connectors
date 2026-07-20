@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.http.rest.model;
 
-import io.camunda.connector.generator.java.annotation.ConfigurationTemplate;
+import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.http.base.model.auth.Authentication;
 import jakarta.validation.Valid;
@@ -26,7 +26,7 @@ import jakarta.validation.Valid;
  * {@link Authentication} union (none / basic / bearer / API key / OAuth / OAuth refresh token),
  * demonstrating that a rich multi-variant auth model maps onto the configuration-template format.
  */
-@ConfigurationTemplate(
+@Configuration(
     id = "io.camunda.connectors:rest-authentication:1",
     version = 1,
     name = "REST Authentication")

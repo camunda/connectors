@@ -11,6 +11,7 @@ import static io.camunda.connector.idp.extraction.utils.ProviderUtil.*;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.client.extraction.base.MlExtractor;
@@ -34,10 +35,11 @@ import io.camunda.connector.idp.extraction.service.UnstructuredService;
     engineVersion = "^8.7",
     id = "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
     name = "IDP extraction outbound Connector",
-    version = 2,
+    version = 3,
     description = "Execute IDP extraction requests",
     icon = "icon.svg",
     documentationRef = "https://docs.camunda.io/docs/guides/",
+    configurations = {AwsCredentialConfiguration.class},
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "input", label = "Input message data"),
       @ElementTemplate.PropertyGroup(id = "provider", label = "Provider selection"),

@@ -143,7 +143,8 @@
       "equals" : "apiKey",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.username",
     "label" : "Username",
@@ -179,7 +180,8 @@
       "equals" : "basic",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.token",
     "label" : "Bearer token",
@@ -197,7 +199,8 @@
       "equals" : "bearer",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.oauthTokenEndpoint",
     "label" : "OAuth 2.0 token endpoint",
@@ -257,7 +260,8 @@
       "type" : "simple"
     },
     "tooltip" : "Your application's client secret from the OAuth client",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.audience",
     "label" : "Audience",
@@ -373,7 +377,8 @@
       "type" : "simple"
     },
     "tooltip" : "Your application's client secret from the OAuth client",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.oauthRefreshToken.refreshToken",
     "label" : "Refresh token",
@@ -392,7 +397,8 @@
       "type" : "simple"
     },
     "tooltip" : "The refresh token used to obtain a new access token",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.oauthRefreshToken.scopes",
     "label" : "Scopes",

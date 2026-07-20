@@ -6,8 +6,9 @@
  */
 package io.camunda.connector.jdbc.model.request.connection;
 
-import io.camunda.connector.generator.java.annotation.ConfigurationTemplate;
+import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import jakarta.validation.constraints.NotBlank;
 
 /**
  * Configuration (credential) template for a reusable JDBC connection. Demonstrates the whole-object
@@ -15,13 +16,13 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
  * a {@code Configuration} chooser lets a Camunda developer pick a stored connection instead of
  * filling in the inline connection fields.
  */
-@ConfigurationTemplate(
+@Configuration(
     id = "io.camunda.connectors:jdbc-connection:1",
     version = 1,
     name = "JDBC Connection")
 public record JdbcConnectionConfiguration(
-    @TemplateProperty(group = "connection", label = "Host") String host,
-    @TemplateProperty(group = "connection", label = "Port") String port,
+    @NotBlank @TemplateProperty(group = "connection", label = "Host") String host,
+    @NotBlank @TemplateProperty(group = "connection", label = "Port") String port,
     @TemplateProperty(group = "connection", label = "Database name") String databaseName,
     @TemplateProperty(group = "authentication", label = "Username", secret = true) String username,
     @TemplateProperty(group = "authentication", label = "Password", secret = true)
