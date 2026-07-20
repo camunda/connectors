@@ -58,8 +58,8 @@ import org.springframework.core.io.Resource;
  * history round-trips those blocks back onto the wire losslessly.
  *
  * <p>Reuses {@link NativeAnthropicSkillsAndToolsWireFormatTest}'s native-Anthropic element template
- * wiring (v2/own-LLM-layer template, {@code configuration.anthropic.*} properties, skills
- * configured via {@code container.skills}).
+ * wiring (v2/own-LLM-layer template, {@code provider.anthropic.*} properties, skills configured via
+ * {@code container.skills}).
  */
 class NativeAnthropicCodeExecutionServerToolE2eTest extends BaseAiAgentJobWorkerTest {
 
@@ -106,12 +106,12 @@ class NativeAnthropicCodeExecutionServerToolE2eTest extends BaseAiAgentJobWorker
    */
   private ElementTemplate configureAnthropicWithSkills(ElementTemplate template) {
     return template
-        .property("configuration.type", "anthropic")
-        .property("configuration.anthropic.backend.type", "direct")
-        .property("configuration.anthropic.backend.direct.endpoint", wireMock.getHttpBaseUrl())
-        .property("configuration.anthropic.backend.apiKey", "dummy")
-        .property("configuration.anthropic.model.model", "test-model")
-        .property("configuration.anthropic.skills", "=[\"pptx\"]");
+        .property("provider.type", "anthropic")
+        .property("provider.anthropic.backend.type", "direct")
+        .property("provider.anthropic.backend.direct.endpoint", wireMock.getHttpBaseUrl())
+        .property("provider.anthropic.backend.apiKey", "dummy")
+        .property("provider.anthropic.model.model", "test-model")
+        .property("provider.anthropic.skills", "=[\"pptx\"]");
   }
 
   @Test

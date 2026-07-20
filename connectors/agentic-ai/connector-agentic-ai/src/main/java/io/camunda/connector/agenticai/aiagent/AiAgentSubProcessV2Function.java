@@ -21,7 +21,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
       AiAgentSubProcessV2Function.AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE,
       AiAgentSubProcessV2Function.AGENT_CONTEXT_VARIABLE,
       AiAgentSubProcessV2Function.TOOL_CALL_RESULTS_VARIABLE,
-      AiAgentSubProcessV2Function.CONFIGURATION_VARIABLE,
+      AiAgentSubProcessV2Function.PROVIDER_VARIABLE,
       AiAgentSubProcessV2Function.DATA_VARIABLE
     })
 public class AiAgentSubProcessV2Function implements AgentConnectorFunction {
@@ -32,7 +32,7 @@ public class AiAgentSubProcessV2Function implements AgentConnectorFunction {
   public static final String AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE = "adHocSubProcessElements";
   public static final String AGENT_CONTEXT_VARIABLE = "agentContext";
   public static final String TOOL_CALL_RESULTS_VARIABLE = "toolCallResults";
-  public static final String CONFIGURATION_VARIABLE = "configuration";
+  public static final String PROVIDER_VARIABLE = "provider";
   public static final String DATA_VARIABLE = "data";
 
   private final JobWorkerAgentRequestHandler agentRequestHandler;
@@ -45,7 +45,7 @@ public class AiAgentSubProcessV2Function implements AgentConnectorFunction {
   public AiAgentSubProcessConnectorResponse execute(OutboundConnectorContext context)
       throws Exception {
     var request = context.bindVariables(JobWorkerAgentRequestV2.class);
-    var config = request.configuration();
+    var config = request.provider();
     var executionContext =
         new JobWorkerAgentExecutionContext(
             context.getJobContext(),

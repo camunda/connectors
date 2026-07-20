@@ -41,7 +41,7 @@ import org.springframework.core.io.Resource;
  * Native-OpenAI-Responses-only e2e coverage for the Responses-specific reasoning/encrypted-
  * reasoning/server-tool round-trips (own-LLM-layer / v2, ADR-009 vertical pilot, Task 4 of the
  * native OpenAI deterministic-tests plan): proves that {@code
- * configuration.openai.model.parameters.effort} reaches the wire together with {@code include:
+ * provider.openai.model.parameters.effort} reaches the wire together with {@code include:
  * ["reasoning.encrypted_content"]}, that a reasoning item's opaque {@code encrypted_content}
  * round-trips byte-identical through the REAL vendor SDK {@code ResponseAccumulator}, and that a
  * server-tool item ({@code web_search_call}) is preserved as an opaque {@code ProviderContent}
@@ -49,7 +49,7 @@ import org.springframework.core.io.Resource;
  * NativeAnthropicReasoningEffortIT} and {@code NativeAnthropicCodeExecutionServerToolE2eTest}.
  *
  * <p>Reuses {@link NativeOpenAiResponsesWireFormatFixture}'s native-OpenAI-Responses element
- * template wiring (v2/own-LLM-layer template, {@code configuration.openai.*} properties, compatible
+ * template wiring (v2/own-LLM-layer template, {@code provider.openai.*} properties, compatible
  * backend pointed at WireMock) and {@link NativeOpenAiResponsesRecordedConversation} for request
  * inspection, extended (see {@link NativeOpenAiResponsesRecordedConversation#rawInputItems()},
  * {@link NativeOpenAiResponsesRecordedConversation.RecordedChatRequest#reasoningEffort()}, {@link
@@ -103,23 +103,23 @@ class NativeOpenAiResponsesAdvancedFeaturesIT extends BaseAiAgentJobWorkerTest {
   /**
    * Points the connector at this test's WireMock server via the native (v2) OpenAI Responses
    * compatible backend, same wiring as {@link NativeOpenAiResponsesWireFormatFixture}. Sets {@code
-   * configuration.openai.model.model} to {@link #REASONING_CAPABLE_MODEL} so effort validation
-   * (Task 4's reasoning tests) and server-tool API-family validation both resolve against a
-   * consistent, matched model across every test in this class.
+   * provider.openai.model.model} to {@link #REASONING_CAPABLE_MODEL} so effort validation (Task 4's
+   * reasoning tests) and server-tool API-family validation both resolve against a consistent,
+   * matched model across every test in this class.
    */
   private ElementTemplate configureOpenAiResponsesBackend(ElementTemplate template) {
     return template
-        .property("configuration.type", "openai")
-        .property("configuration.openai.apiFamily", "responses")
-        .property("configuration.openai.backend.type", "compatible")
-        .property("configuration.openai.backend.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-        .property("configuration.openai.backend.authentication.type", "apiKey")
-        .property("configuration.openai.backend.authentication.apiKey", "dummy")
-        .property("configuration.openai.model.model", REASONING_CAPABLE_MODEL);
+        .property("provider.type", "openai")
+        .property("provider.openai.apiFamily", "responses")
+        .property("provider.openai.backend.type", "compatible")
+        .property("provider.openai.backend.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+        .property("provider.openai.backend.authentication.type", "apiKey")
+        .property("provider.openai.backend.authentication.apiKey", "dummy")
+        .property("provider.openai.model.model", REASONING_CAPABLE_MODEL);
   }
 
   private Function<ElementTemplate, ElementTemplate> effort(String effort) {
-    return template -> template.property("configuration.openai.model.parameters.effort", effort);
+    return template -> template.property("provider.openai.model.parameters.effort", effort);
   }
 
   // ---------------------------------------------------------------------------
@@ -235,7 +235,7 @@ class NativeOpenAiResponsesAdvancedFeaturesIT extends BaseAiAgentJobWorkerTest {
     enqueueUserFeedback(userFollowUpFeedback(followUpPrompt), userSatisfiedFeedback());
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
-        template -> template.property("configuration.openai.enableWebSearch", "true");
+        template -> template.property("provider.openai.enableWebSearch", "true");
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));

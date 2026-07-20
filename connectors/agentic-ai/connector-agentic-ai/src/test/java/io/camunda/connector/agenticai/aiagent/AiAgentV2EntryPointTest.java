@@ -64,9 +64,9 @@ class AiAgentV2EntryPointTest {
         new OutboundConnectorAgentExecutionContext(
             mock(JobContext.class),
             request.data(),
-            new V2ChatModelApiConfiguration(request.configuration()),
-            request.configuration().model(),
-            request.configuration().providerType(),
+            new V2ChatModelApiConfiguration(request.provider()),
+            request.provider().model(),
+            request.provider().providerType(),
             mock(ProcessDefinitionAdHocToolElementsResolver.class));
 
     assertThat(ctx.configuration().chatModelApiConfiguration())

@@ -147,7 +147,7 @@ final class NativeOpenAiResponsesSseChatModelStubs {
   /**
    * A turn whose response leads with a real {@code reasoning} output item carrying {@code
    * encrypted_content} (the shape gpt-5/Responses returns when {@code
-   * configuration.openai.model.parameters.effort} triggers {@code include:
+   * provider.openai.model.parameters.effort} triggers {@code include:
    * ["reasoning.encrypted_content"]}, see {@code OpenAiResponsesRequestConverter#applyReasoning}),
    * followed by one or more client {@code function_call} items - the shape a reasoning-enabled
    * model returns when it reasons before calling a tool.

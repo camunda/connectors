@@ -89,7 +89,7 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
               optional = true,
               condition =
                   @TemplateProperty.PropertyCondition(
-                      property = "configuration.openai.apiFamily",
+                      property = "provider.openai.apiFamily",
                       equals = "responses"))
           @Nullable Boolean enableWebSearch,
       @TemplateProperty(
@@ -100,7 +100,7 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
               optional = true,
               condition =
                   @TemplateProperty.PropertyCondition(
-                      property = "configuration.openai.apiFamily",
+                      property = "provider.openai.apiFamily",
                       equals = "responses"))
           @Nullable Boolean enableCodeInterpreter,
       @Valid @Nullable TimeoutConfiguration timeouts,

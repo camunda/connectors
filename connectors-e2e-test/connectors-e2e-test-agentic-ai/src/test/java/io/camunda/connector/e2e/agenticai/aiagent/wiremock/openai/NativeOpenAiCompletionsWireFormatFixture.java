@@ -34,11 +34,11 @@ import java.util.function.Function;
  * buffers JSON), so {@link #stubConversation} uses {@link
  * NativeOpenAiCompletionsSseChatModelStubs}.
  *
- * <p>Drives the v2 element template with {@code configuration.openai.*} property ids, via the
- * compatible backend (the only OpenAI backend with a configurable endpoint) pointed at the WireMock
- * host with a trailing {@code /v1} so the SDK's {@code /chat/completions} path resolves to the
- * recorded path (the native SDK client does not re-append {@code /v1} itself, unlike the
- * langchain4j-bridge client, which expects the endpoint to already include it - see {@code
+ * <p>Drives the v2 element template with {@code provider.openai.*} property ids, via the compatible
+ * backend (the only OpenAI backend with a configurable endpoint) pointed at the WireMock host with
+ * a trailing {@code /v1} so the SDK's {@code /chat/completions} path resolves to the recorded path
+ * (the native SDK client does not re-append {@code /v1} itself, unlike the langchain4j-bridge
+ * client, which expects the endpoint to already include it - see {@code
  * OpenAiOkHttpClientFactory#applyCompatibleBackend}).
  */
 public final class NativeOpenAiCompletionsWireFormatFixture implements ProviderWireFormatFixture {
@@ -58,13 +58,13 @@ public final class NativeOpenAiCompletionsWireFormatFixture implements ProviderW
       WireMockRuntimeInfo wireMock) {
     return template ->
         template
-            .property("configuration.type", "openai")
-            .property("configuration.openai.apiFamily", "completions")
-            .property("configuration.openai.backend.type", "compatible")
-            .property("configuration.openai.backend.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-            .property("configuration.openai.backend.authentication.type", "apiKey")
-            .property("configuration.openai.backend.authentication.apiKey", "dummy")
-            .property("configuration.openai.model.model", "test-model");
+            .property("provider.type", "openai")
+            .property("provider.openai.apiFamily", "completions")
+            .property("provider.openai.backend.type", "compatible")
+            .property("provider.openai.backend.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+            .property("provider.openai.backend.authentication.type", "apiKey")
+            .property("provider.openai.backend.authentication.apiKey", "dummy")
+            .property("provider.openai.model.model", "test-model");
   }
 
   @Override

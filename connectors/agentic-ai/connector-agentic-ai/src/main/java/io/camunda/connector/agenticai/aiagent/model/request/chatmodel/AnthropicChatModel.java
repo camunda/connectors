@@ -118,7 +118,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
               optional = true,
               condition =
                   @TemplateProperty.PropertyCondition(
-                      property = "configuration.anthropic.enableCodeExecution",
+                      property = "provider.anthropic.enableCodeExecution",
                       equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
           @Nullable String codeExecutionVersion,
       @TemplateProperty(
@@ -148,7 +148,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
               optional = true,
               condition =
                   @TemplateProperty.PropertyCondition(
-                      property = "configuration.anthropic.enableWebSearch",
+                      property = "provider.anthropic.enableWebSearch",
                       equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
           @Nullable String webSearchVersion,
       @TemplateProperty(
@@ -178,7 +178,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
               optional = true,
               condition =
                   @TemplateProperty.PropertyCondition(
-                      property = "configuration.anthropic.enableWebFetch",
+                      property = "provider.anthropic.enableWebFetch",
                       equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
           @Nullable String webFetchVersion,
       @TemplateProperty(
@@ -371,7 +371,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                 optional = true,
                 condition =
                     @TemplateProperty.PropertyCondition(
-                        property = "configuration.anthropic.model.parameters.effort",
+                        property = "provider.anthropic.model.parameters.effort",
                         equals = "custom"))
             @Nullable String customEffort,
         @Valid @Nullable AnthropicThinking thinking) {}
@@ -405,7 +405,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                 optional = true,
                 condition =
                     @TemplateProperty.PropertyCondition(
-                        property = "configuration.anthropic.model.parameters.thinking.mode",
+                        property = "provider.anthropic.model.parameters.thinking.mode",
                         equals = "enabled"))
             @Nullable Integer budgetTokens,
         @TemplateProperty(
@@ -421,7 +421,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                 optional = true,
                 condition =
                     @TemplateProperty.PropertyCondition(
-                        property = "configuration.anthropic.model.parameters.thinking.mode",
+                        property = "provider.anthropic.model.parameters.thinking.mode",
                         equals = "adaptive"))
             @Nullable ThinkingDisplay display) {}
 

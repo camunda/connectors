@@ -43,5 +43,5 @@ public record JobWorkerAgentRequestV2(
         @Valid
         AgentContext agentContext,
     List<ToolCallResult> toolCallResults,
-    @Valid @NotNull V2ProviderConfiguration configuration,
+    @Valid @NotNull V2ProviderConfiguration provider,
     @Valid @NotNull JobWorkerAgentRequestData data) {}

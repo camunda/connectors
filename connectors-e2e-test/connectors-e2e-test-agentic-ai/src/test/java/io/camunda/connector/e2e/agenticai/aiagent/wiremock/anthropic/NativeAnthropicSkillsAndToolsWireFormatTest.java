@@ -104,14 +104,14 @@ class NativeAnthropicSkillsAndToolsWireFormatTest extends BaseAiAgentJobWorkerTe
    */
   private ElementTemplate configureAnthropicSkillsAndTools(ElementTemplate template) {
     return template
-        .property("configuration.type", "anthropic")
-        .property("configuration.anthropic.backend.type", "direct")
-        .property("configuration.anthropic.backend.direct.endpoint", wireMock.getHttpBaseUrl())
-        .property("configuration.anthropic.backend.apiKey", "dummy")
-        .property("configuration.anthropic.model.model", "test-model")
-        .property("configuration.anthropic.skills", "=[\"pptx\", \"custom:my-skill:my-version\"]")
-        .property("configuration.anthropic.enableWebSearch", "true")
-        .property("configuration.anthropic.enableWebFetch", "true");
+        .property("provider.type", "anthropic")
+        .property("provider.anthropic.backend.type", "direct")
+        .property("provider.anthropic.backend.direct.endpoint", wireMock.getHttpBaseUrl())
+        .property("provider.anthropic.backend.apiKey", "dummy")
+        .property("provider.anthropic.model.model", "test-model")
+        .property("provider.anthropic.skills", "=[\"pptx\", \"custom:my-skill:my-version\"]")
+        .property("provider.anthropic.enableWebSearch", "true")
+        .property("provider.anthropic.enableWebFetch", "true");
   }
 
   @Test
@@ -175,7 +175,7 @@ class NativeAnthropicSkillsAndToolsWireFormatTest extends BaseAiAgentJobWorkerTe
    * {@link #createProcessInstance(Resource, Function, Map)}.
    */
   private ElementTemplate enableCodeExecutionToggle(ElementTemplate template) {
-    return template.property("configuration.anthropic.enableCodeExecution", "true");
+    return template.property("provider.anthropic.enableCodeExecution", "true");
   }
 
   /**

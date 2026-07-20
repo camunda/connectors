@@ -13,5 +13,5 @@ import jakarta.validation.constraints.NotNull;
 
 /** v2 AI Agent Task request: wire-format-first chat-model config + the shared v1 request data. */
 public record OutboundConnectorAgentRequestV2(
-    @Valid @NotNull V2ProviderConfiguration configuration,
+    @Valid @NotNull V2ProviderConfiguration provider,
     @Valid @NotNull OutboundConnectorAgentRequestData data) {}

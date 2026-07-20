@@ -57,7 +57,7 @@ import org.springframework.core.io.Resource;
  * <p>Follows the same native-Anthropic wiring as {@link
  * NativeAnthropicSkillsAndToolsWireFormatTest} / {@link
  * NativeAnthropicCodeExecutionServerToolE2eTest}: v2/own-LLM-layer element template, {@code
- * configuration.anthropic.*} properties, {@link NativeAnthropicMessagesSseChatModelStubs} for the
+ * provider.anthropic.*} properties, {@link NativeAnthropicMessagesSseChatModelStubs} for the
  * streamed SSE response.
  */
 class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
@@ -119,20 +119,20 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
   /**
    * Points the connector at this test's WireMock server via the native (v2) Anthropic direct
    * backend, same wiring as {@link NativeAnthropicMessagesWireFormatFixture}. Deliberately does NOT
-   * set {@code configuration.anthropic.model.model} - every test sets its own model id (via its
-   * {@code elementTemplateModifier}) since the model id under test drives capability-matrix
-   * matching and must vary per scenario.
+   * set {@code provider.anthropic.model.model} - every test sets its own model id (via its {@code
+   * elementTemplateModifier}) since the model id under test drives capability-matrix matching and
+   * must vary per scenario.
    */
   private ElementTemplate configureAnthropicBackend(ElementTemplate template) {
     return template
-        .property("configuration.type", "anthropic")
-        .property("configuration.anthropic.backend.type", "direct")
-        .property("configuration.anthropic.backend.direct.endpoint", wireMock.getHttpBaseUrl())
-        .property("configuration.anthropic.backend.apiKey", "dummy");
+        .property("provider.type", "anthropic")
+        .property("provider.anthropic.backend.type", "direct")
+        .property("provider.anthropic.backend.direct.endpoint", wireMock.getHttpBaseUrl())
+        .property("provider.anthropic.backend.apiKey", "dummy");
   }
 
   private Function<ElementTemplate, ElementTemplate> model(String modelId) {
-    return template -> template.property("configuration.anthropic.model.model", modelId);
+    return template -> template.property("provider.anthropic.model.model", modelId);
   }
 
   // ---------------------------------------------------------------------------
@@ -151,11 +151,9 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
             .andThen(
                 template ->
                     template
+                        .property("provider.anthropic.model.parameters.thinking.mode", "enabled")
                         .property(
-                            "configuration.anthropic.model.parameters.thinking.mode", "enabled")
-                        .property(
-                            "configuration.anthropic.model.parameters.thinking.budgetTokens",
-                            "=2048"));
+                            "provider.anthropic.model.parameters.thinking.budgetTokens", "=2048"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
@@ -180,11 +178,9 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
             .andThen(
                 template ->
                     template
+                        .property("provider.anthropic.model.parameters.thinking.mode", "adaptive")
                         .property(
-                            "configuration.anthropic.model.parameters.thinking.mode", "adaptive")
-                        .property(
-                            "configuration.anthropic.model.parameters.thinking.display",
-                            "summarized"));
+                            "provider.anthropic.model.parameters.thinking.display", "summarized"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
@@ -207,7 +203,7 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
             .andThen(
                 template ->
                     template.property(
-                        "configuration.anthropic.model.parameters.thinking.mode", "disabled"));
+                        "provider.anthropic.model.parameters.thinking.mode", "disabled"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
@@ -233,7 +229,7 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
         model(REASONING_CAPABLE_MODEL)
             .andThen(
                 template ->
-                    template.property("configuration.anthropic.model.parameters.effort", "xhigh"));
+                    template.property("provider.anthropic.model.parameters.effort", "xhigh"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
@@ -256,9 +252,8 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
             .andThen(
                 template ->
                     template
-                        .property("configuration.anthropic.model.parameters.effort", "custom")
-                        .property(
-                            "configuration.anthropic.model.parameters.customEffort", "ultra"));
+                        .property("provider.anthropic.model.parameters.effort", "custom")
+                        .property("provider.anthropic.model.parameters.customEffort", "ultra"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
@@ -296,11 +291,9 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
             .andThen(
                 template ->
                     template
+                        .property("provider.anthropic.model.parameters.thinking.mode", "enabled")
                         .property(
-                            "configuration.anthropic.model.parameters.thinking.mode", "enabled")
-                        .property(
-                            "configuration.anthropic.model.parameters.thinking.budgetTokens",
-                            "=2048"));
+                            "provider.anthropic.model.parameters.thinking.budgetTokens", "=2048"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
@@ -374,11 +367,9 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
             .andThen(
                 template ->
                     template
+                        .property("provider.anthropic.model.parameters.thinking.mode", "enabled")
                         .property(
-                            "configuration.anthropic.model.parameters.thinking.mode", "enabled")
-                        .property(
-                            "configuration.anthropic.model.parameters.thinking.budgetTokens",
-                            "=2048"));
+                            "provider.anthropic.model.parameters.thinking.budgetTokens", "=2048"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
@@ -435,11 +426,9 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
             .andThen(
                 template ->
                     template
+                        .property("provider.anthropic.model.parameters.thinking.mode", "enabled")
                         .property(
-                            "configuration.anthropic.model.parameters.thinking.mode", "enabled")
-                        .property(
-                            "configuration.anthropic.model.parameters.thinking.budgetTokens",
-                            "=2048"));
+                            "provider.anthropic.model.parameters.thinking.budgetTokens", "=2048"));
 
     final var zeebeTest =
         awaitActiveIncidents(

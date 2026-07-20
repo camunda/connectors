@@ -314,8 +314,7 @@ public final class NativeOpenAiResponsesRecordedConversation {
 
     /**
      * The top-level {@code reasoning.effort} value, or empty if the request carried no {@code
-     * reasoning} object at all (i.e. {@code configuration.openai.model.parameters.effort} was
-     * unset).
+     * reasoning} object at all (i.e. {@code provider.openai.model.parameters.effort} was unset).
      */
     public Optional<String> reasoningEffort() {
       return Optional.ofNullable(reasoningEffort);

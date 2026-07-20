@@ -22,7 +22,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
  */
 @OutboundConnector(
     name = "AI Agent Task",
-    inputVariables = {"configuration", "data"},
+    inputVariables = {"provider", "data"},
     type = "io.camunda.agenticai:aiagent:task:2")
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.ai-agent-task.v2",
@@ -98,7 +98,7 @@ public class AiAgentTaskV2Function implements AgentConnectorFunction {
   @Override
   public AiAgentTaskConnectorResponse execute(OutboundConnectorContext context) {
     var request = context.bindVariables(OutboundConnectorAgentRequestV2.class);
-    var config = request.configuration();
+    var config = request.provider();
     var executionContext =
         new OutboundConnectorAgentExecutionContext(
             context.getJobContext(),

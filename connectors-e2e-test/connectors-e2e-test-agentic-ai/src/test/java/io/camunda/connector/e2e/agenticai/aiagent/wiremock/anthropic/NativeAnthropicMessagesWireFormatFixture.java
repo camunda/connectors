@@ -42,8 +42,9 @@ import java.util.function.Function;
  *
  * <p>Drives the v2 element template ({@link
  * AiAgentTestFixtures#AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH}), whose provider/backend
- * property ids ({@code configuration.*}) differ from the v1 template's ({@code provider.*}) — see
- * {@link #elementTemplatePath(String)} and {@link #elementTemplateBaselineProperties(Map)}.
+ * property ids share the v1 template's {@code provider.*} prefix but nest a differently-shaped
+ * schema underneath it — see {@link #elementTemplatePath(String)} and {@link
+ * #elementTemplateBaselineProperties(Map)}.
  *
  * <p>The configured endpoint is the bare WireMock host root (no trailing {@code /v1/}), unlike the
  * v1 fixture: the native Anthropic SDK ({@code com.anthropic:anthropic-java}) always appends both
@@ -68,11 +69,11 @@ public final class NativeAnthropicMessagesWireFormatFixture
       WireMockRuntimeInfo wireMock) {
     return template ->
         template
-            .property("configuration.type", "anthropic")
-            .property("configuration.anthropic.backend.type", "direct")
-            .property("configuration.anthropic.backend.direct.endpoint", wireMock.getHttpBaseUrl())
-            .property("configuration.anthropic.backend.apiKey", "dummy")
-            .property("configuration.anthropic.model.model", "test-model");
+            .property("provider.type", "anthropic")
+            .property("provider.anthropic.backend.type", "direct")
+            .property("provider.anthropic.backend.direct.endpoint", wireMock.getHttpBaseUrl())
+            .property("provider.anthropic.backend.apiKey", "dummy")
+            .property("provider.anthropic.model.model", "test-model");
   }
 
   @Override

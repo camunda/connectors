@@ -89,13 +89,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "configuration.type",
+    "id" : "provider.type",
     "label" : "Provider",
     "description" : "Specify the LLM provider to use.",
     "value" : "anthropic",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.type",
+      "name" : "provider.type",
       "type" : "zeebe:input"
     },
     "type" : "Dropdown",
@@ -107,17 +107,17 @@
       "value" : "openai"
     } ]
   }, {
-    "id" : "configuration.anthropic.backend.type",
+    "id" : "provider.anthropic.backend.type",
     "label" : "Backend",
     "description" : "Specify how the Anthropic Messages API is reached.",
     "value" : "direct",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.anthropic.backend.type",
+      "name" : "provider.anthropic.backend.type",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
@@ -130,30 +130,30 @@
       "value" : "bedrock"
     } ]
   }, {
-    "id" : "configuration.anthropic.backend.direct.endpoint",
+    "id" : "provider.anthropic.backend.direct.endpoint",
     "label" : "Custom API endpoint",
     "description" : "Optional custom API endpoint",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.anthropic.backend.endpoint",
+      "name" : "provider.anthropic.backend.endpoint",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.backend.type",
+        "property" : "provider.anthropic.backend.type",
         "equals" : "direct",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.anthropic.backend.apiKey",
+    "id" : "provider.anthropic.backend.apiKey",
     "label" : "Anthropic API key",
     "optional" : false,
     "constraints" : {
@@ -162,23 +162,23 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.anthropic.backend.apiKey",
+      "name" : "provider.anthropic.backend.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.backend.type",
+        "property" : "provider.anthropic.backend.type",
         "equals" : "direct",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.anthropic.backend.region",
+    "id" : "provider.anthropic.backend.region",
     "label" : "Region",
     "description" : "Specify the AWS region (example: <code>eu-west-1</code>)",
     "optional" : false,
@@ -188,61 +188,61 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.anthropic.backend.region",
+      "name" : "provider.anthropic.backend.region",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.backend.type",
+        "property" : "provider.anthropic.backend.type",
         "equals" : "bedrock",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.anthropic.backend.bedrock.endpoint",
+    "id" : "provider.anthropic.backend.bedrock.endpoint",
     "label" : "Custom API endpoint",
     "description" : "Custom API endpoint for VPC/PrivateLink configurations, AWS GovCloud, or other non-standard deployments.",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.anthropic.backend.endpoint",
+      "name" : "provider.anthropic.backend.endpoint",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.backend.type",
+        "property" : "provider.anthropic.backend.type",
         "equals" : "bedrock",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.anthropic.backend.authentication.type",
+    "id" : "provider.anthropic.backend.authentication.type",
     "label" : "AWS authentication",
     "description" : "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>",
     "value" : "credentials",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.anthropic.backend.authentication.type",
+      "name" : "provider.anthropic.backend.authentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.backend.type",
+        "property" : "provider.anthropic.backend.type",
         "equals" : "bedrock",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
@@ -259,7 +259,7 @@
       "value" : "defaultCredentialsChain"
     } ]
   }, {
-    "id" : "configuration.anthropic.backend.authentication.accessKey",
+    "id" : "provider.anthropic.backend.authentication.accessKey",
     "label" : "Access key",
     "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "optional" : false,
@@ -269,27 +269,27 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.anthropic.backend.authentication.accessKey",
+      "name" : "provider.anthropic.backend.authentication.accessKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.backend.authentication.type",
+        "property" : "provider.anthropic.backend.authentication.type",
         "equals" : "credentials",
         "type" : "simple"
       }, {
-        "property" : "configuration.anthropic.backend.type",
+        "property" : "provider.anthropic.backend.type",
         "equals" : "bedrock",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.anthropic.backend.authentication.secretKey",
+    "id" : "provider.anthropic.backend.authentication.secretKey",
     "label" : "Secret key",
     "description" : "Provide the secret key for the IAM access key",
     "optional" : false,
@@ -299,27 +299,27 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.anthropic.backend.authentication.secretKey",
+      "name" : "provider.anthropic.backend.authentication.secretKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.backend.authentication.type",
+        "property" : "provider.anthropic.backend.authentication.type",
         "equals" : "credentials",
         "type" : "simple"
       }, {
-        "property" : "configuration.anthropic.backend.type",
+        "property" : "provider.anthropic.backend.type",
         "equals" : "bedrock",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.anthropic.backend.authentication.apiKey",
+    "id" : "provider.anthropic.backend.authentication.apiKey",
     "label" : "API key",
     "description" : "Provide an API key with permissions to interact with your AWS Bedrock instance",
     "optional" : false,
@@ -329,44 +329,44 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.anthropic.backend.authentication.apiKey",
+      "name" : "provider.anthropic.backend.authentication.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.backend.authentication.type",
+        "property" : "provider.anthropic.backend.authentication.type",
         "equals" : "apiKey",
         "type" : "simple"
       }, {
-        "property" : "configuration.anthropic.backend.type",
+        "property" : "provider.anthropic.backend.type",
         "equals" : "bedrock",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.anthropic.timeouts.timeout",
+    "id" : "provider.anthropic.timeouts.timeout",
     "label" : "Timeout",
     "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.anthropic.timeouts.timeout",
+      "name" : "provider.anthropic.timeouts.timeout",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "configuration.openai.apiFamily",
+    "id" : "provider.openai.apiFamily",
     "label" : "API family",
     "description" : "OpenAI wire format to use.",
     "optional" : false,
@@ -376,11 +376,11 @@
     },
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.apiFamily",
+      "name" : "provider.openai.apiFamily",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "openai",
       "type" : "simple"
     },
@@ -393,17 +393,17 @@
       "value" : "responses"
     } ]
   }, {
-    "id" : "configuration.openai.backend.type",
+    "id" : "provider.openai.backend.type",
     "label" : "Backend",
     "description" : "Specify how the OpenAI-compatible API is reached.",
     "value" : "direct",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.backend.type",
+      "name" : "provider.openai.backend.type",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "openai",
       "type" : "simple"
     },
@@ -416,7 +416,7 @@
       "value" : "compatible"
     } ]
   }, {
-    "id" : "configuration.openai.backend.apiKey",
+    "id" : "provider.openai.backend.apiKey",
     "label" : "OpenAI API key",
     "optional" : false,
     "constraints" : {
@@ -425,69 +425,69 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.backend.apiKey",
+      "name" : "provider.openai.backend.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.openai.backend.type",
+        "property" : "provider.openai.backend.type",
         "equals" : "direct",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "openai",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.openai.backend.organizationId",
+    "id" : "provider.openai.backend.organizationId",
     "label" : "Organization ID",
     "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.backend.organizationId",
+      "name" : "provider.openai.backend.organizationId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.openai.backend.type",
+        "property" : "provider.openai.backend.type",
         "equals" : "direct",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "openai",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.openai.backend.projectId",
+    "id" : "provider.openai.backend.projectId",
     "label" : "Project ID",
     "description" : "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.backend.projectId",
+      "name" : "provider.openai.backend.projectId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.openai.backend.type",
+        "property" : "provider.openai.backend.type",
         "equals" : "direct",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "openai",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.openai.backend.endpoint",
+    "id" : "provider.openai.backend.endpoint",
     "label" : "API endpoint",
     "optional" : false,
     "constraints" : {
@@ -496,16 +496,16 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.backend.endpoint",
+      "name" : "provider.openai.backend.endpoint",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.openai.backend.type",
+        "property" : "provider.openai.backend.type",
         "equals" : "compatible",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "openai",
         "type" : "simple"
       } ]
@@ -513,91 +513,91 @@
     "tooltip" : "Specify an endpoint to use the connector with an OpenAI compatible API.",
     "type" : "String"
   }, {
-    "id" : "configuration.openai.backend.headers",
+    "id" : "provider.openai.backend.headers",
     "label" : "Headers",
     "description" : "Map of HTTP headers to add to the request.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.backend.headers",
+      "name" : "provider.openai.backend.headers",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.openai.backend.type",
+        "property" : "provider.openai.backend.type",
         "equals" : "compatible",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "openai",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.openai.backend.queryParameters",
+    "id" : "provider.openai.backend.queryParameters",
     "label" : "Query parameters",
     "description" : "Map of query parameters to add to the request URL.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.backend.queryParameters",
+      "name" : "provider.openai.backend.queryParameters",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.openai.backend.type",
+        "property" : "provider.openai.backend.type",
         "equals" : "compatible",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "openai",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.openai.backend.requestParameters",
+    "id" : "provider.openai.backend.requestParameters",
     "label" : "Request parameters",
     "description" : "Map of additional request (body) parameters to include.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.backend.requestParameters",
+      "name" : "provider.openai.backend.requestParameters",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.openai.backend.type",
+        "property" : "provider.openai.backend.type",
         "equals" : "compatible",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "openai",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.openai.backend.authentication.type",
+    "id" : "provider.openai.backend.authentication.type",
     "label" : "Authentication",
     "description" : "Authentication for the OpenAI-compatible gateway. Extensible: more schemes can be added later without breaking existing configs.",
     "value" : "none",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.backend.authentication.type",
+      "name" : "provider.openai.backend.authentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.openai.backend.type",
+        "property" : "provider.openai.backend.type",
         "equals" : "compatible",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "openai",
         "type" : "simple"
       } ]
@@ -611,7 +611,7 @@
       "value" : "apiKey"
     } ]
   }, {
-    "id" : "configuration.openai.backend.authentication.apiKey",
+    "id" : "provider.openai.backend.authentication.apiKey",
     "label" : "API key",
     "optional" : false,
     "constraints" : {
@@ -620,42 +620,42 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.backend.authentication.apiKey",
+      "name" : "provider.openai.backend.authentication.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.openai.backend.authentication.type",
+        "property" : "provider.openai.backend.authentication.type",
         "equals" : "apiKey",
         "type" : "simple"
       }, {
-        "property" : "configuration.openai.backend.type",
+        "property" : "provider.openai.backend.type",
         "equals" : "compatible",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "openai",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "configuration.openai.enableWebSearch",
+    "id" : "provider.openai.enableWebSearch",
     "label" : "Enable web search",
     "optional" : true,
     "feel" : "static",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.enableWebSearch",
+      "name" : "provider.openai.enableWebSearch",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.openai.apiFamily",
+        "property" : "provider.openai.apiFamily",
         "equals" : "responses",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "openai",
         "type" : "simple"
       } ]
@@ -663,22 +663,22 @@
     "tooltip" : "Enable the OpenAI web_search server tool (Responses API only).",
     "type" : "Boolean"
   }, {
-    "id" : "configuration.openai.enableCodeInterpreter",
+    "id" : "provider.openai.enableCodeInterpreter",
     "label" : "Enable code interpreter",
     "optional" : true,
     "feel" : "static",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.enableCodeInterpreter",
+      "name" : "provider.openai.enableCodeInterpreter",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.openai.apiFamily",
+        "property" : "provider.openai.apiFamily",
         "equals" : "responses",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "openai",
         "type" : "simple"
       } ]
@@ -686,24 +686,24 @@
     "tooltip" : "Enable the OpenAI code_interpreter server tool (Responses API only).",
     "type" : "Boolean"
   }, {
-    "id" : "configuration.openai.timeouts.timeout",
+    "id" : "provider.openai.timeouts.timeout",
     "label" : "Timeout",
     "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "configuration.openai.timeouts.timeout",
+      "name" : "provider.openai.timeouts.timeout",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "openai",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "configuration.anthropic.model.model",
+    "id" : "provider.anthropic.model.model",
     "label" : "Model",
     "description" : "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -713,95 +713,95 @@
     "feel" : "optional",
     "group" : "model",
     "binding" : {
-      "name" : "configuration.anthropic.model.model",
+      "name" : "provider.anthropic.model.model",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
     "placeholder" : "claude-sonnet-4-6",
     "type" : "String"
   }, {
-    "id" : "configuration.anthropic.model.parameters.maxTokens",
+    "id" : "provider.anthropic.model.parameters.maxTokens",
     "label" : "Maximum tokens",
     "optional" : true,
     "feel" : "required",
     "group" : "model",
     "binding" : {
-      "name" : "configuration.anthropic.model.parameters.maxTokens",
+      "name" : "provider.anthropic.model.parameters.maxTokens",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
     "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "configuration.anthropic.model.parameters.temperature",
+    "id" : "provider.anthropic.model.parameters.temperature",
     "label" : "Temperature",
     "optional" : true,
     "feel" : "required",
     "group" : "model",
     "binding" : {
-      "name" : "configuration.anthropic.model.parameters.temperature",
+      "name" : "provider.anthropic.model.parameters.temperature",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
     "tooltip" : "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "configuration.anthropic.model.parameters.topP",
+    "id" : "provider.anthropic.model.parameters.topP",
     "label" : "top P",
     "optional" : true,
     "feel" : "required",
     "group" : "model",
     "binding" : {
-      "name" : "configuration.anthropic.model.parameters.topP",
+      "name" : "provider.anthropic.model.parameters.topP",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
     "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "configuration.anthropic.model.parameters.topK",
+    "id" : "provider.anthropic.model.parameters.topK",
     "label" : "top K",
     "optional" : true,
     "feel" : "required",
     "group" : "model",
     "binding" : {
-      "name" : "configuration.anthropic.model.parameters.topK",
+      "name" : "provider.anthropic.model.parameters.topK",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
     "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "configuration.anthropic.model.parameters.effort",
+    "id" : "provider.anthropic.model.parameters.effort",
     "label" : "Effort",
     "optional" : true,
     "group" : "model",
     "binding" : {
-      "name" : "configuration.anthropic.model.parameters.effort",
+      "name" : "provider.anthropic.model.parameters.effort",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
@@ -827,22 +827,22 @@
       "value" : "custom"
     } ]
   }, {
-    "id" : "configuration.anthropic.model.parameters.customEffort",
+    "id" : "provider.anthropic.model.parameters.customEffort",
     "label" : "Custom effort",
     "optional" : true,
     "feel" : "optional",
     "group" : "model",
     "binding" : {
-      "name" : "configuration.anthropic.model.parameters.customEffort",
+      "name" : "provider.anthropic.model.parameters.customEffort",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.model.parameters.effort",
+        "property" : "provider.anthropic.model.parameters.effort",
         "equals" : "custom",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
@@ -850,16 +850,16 @@
     "tooltip" : "Free-text effort value sent verbatim when Effort = 'custom'.",
     "type" : "String"
   }, {
-    "id" : "configuration.anthropic.model.parameters.thinking.mode",
+    "id" : "provider.anthropic.model.parameters.thinking.mode",
     "label" : "Thinking mode",
     "optional" : true,
     "group" : "model",
     "binding" : {
-      "name" : "configuration.anthropic.model.parameters.thinking.mode",
+      "name" : "provider.anthropic.model.parameters.thinking.mode",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
@@ -876,22 +876,22 @@
       "value" : "disabled"
     } ]
   }, {
-    "id" : "configuration.anthropic.model.parameters.thinking.budgetTokens",
+    "id" : "provider.anthropic.model.parameters.thinking.budgetTokens",
     "label" : "Thinking budget tokens",
     "optional" : true,
     "feel" : "required",
     "group" : "model",
     "binding" : {
-      "name" : "configuration.anthropic.model.parameters.thinking.budgetTokens",
+      "name" : "provider.anthropic.model.parameters.thinking.budgetTokens",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.model.parameters.thinking.mode",
+        "property" : "provider.anthropic.model.parameters.thinking.mode",
         "equals" : "enabled",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
@@ -899,21 +899,21 @@
     "tooltip" : "Max tokens the model may spend on extended thinking. Required and used only when thinking mode is 'enabled' (min 1024).",
     "type" : "Number"
   }, {
-    "id" : "configuration.anthropic.model.parameters.thinking.display",
+    "id" : "provider.anthropic.model.parameters.thinking.display",
     "label" : "Thinking display",
     "optional" : true,
     "group" : "model",
     "binding" : {
-      "name" : "configuration.anthropic.model.parameters.thinking.display",
+      "name" : "provider.anthropic.model.parameters.thinking.display",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.model.parameters.thinking.mode",
+        "property" : "provider.anthropic.model.parameters.thinking.mode",
         "equals" : "adaptive",
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
@@ -928,7 +928,7 @@
       "value" : "omitted"
     } ]
   }, {
-    "id" : "configuration.openai.model.model",
+    "id" : "provider.openai.model.model",
     "label" : "Model",
     "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -939,77 +939,77 @@
     "feel" : "optional",
     "group" : "model",
     "binding" : {
-      "name" : "configuration.openai.model.model",
+      "name" : "provider.openai.model.model",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "openai",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "configuration.openai.model.parameters.maxCompletionTokens",
+    "id" : "provider.openai.model.parameters.maxCompletionTokens",
     "label" : "Maximum completion tokens",
     "optional" : true,
     "feel" : "required",
     "group" : "model",
     "binding" : {
-      "name" : "configuration.openai.model.parameters.maxCompletionTokens",
+      "name" : "provider.openai.model.parameters.maxCompletionTokens",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "openai",
       "type" : "simple"
     },
     "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "configuration.openai.model.parameters.temperature",
+    "id" : "provider.openai.model.parameters.temperature",
     "label" : "Temperature",
     "optional" : true,
     "feel" : "required",
     "group" : "model",
     "binding" : {
-      "name" : "configuration.openai.model.parameters.temperature",
+      "name" : "provider.openai.model.parameters.temperature",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "openai",
       "type" : "simple"
     },
     "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "configuration.openai.model.parameters.topP",
+    "id" : "provider.openai.model.parameters.topP",
     "label" : "top P",
     "optional" : true,
     "feel" : "required",
     "group" : "model",
     "binding" : {
-      "name" : "configuration.openai.model.parameters.topP",
+      "name" : "provider.openai.model.parameters.topP",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "openai",
       "type" : "simple"
     },
     "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "configuration.openai.model.parameters.effort",
+    "id" : "provider.openai.model.parameters.effort",
     "label" : "Reasoning effort",
     "optional" : true,
     "group" : "model",
     "binding" : {
-      "name" : "configuration.openai.model.parameters.effort",
+      "name" : "provider.openai.model.parameters.effort",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "openai",
       "type" : "simple"
     },
@@ -1035,18 +1035,18 @@
       "value" : "max"
     } ]
   }, {
-    "id" : "configuration.anthropic.skills",
+    "id" : "provider.anthropic.skills",
     "label" : "Skills",
     "description" : "Anthropic Agent Skills as <code>type:skill:version</code> strings, e.g. <code>pptx</code> or <code>custom:my-skill:v2</code>.",
     "optional" : true,
     "feel" : "required",
     "group" : "skills",
     "binding" : {
-      "name" : "configuration.anthropic.skills",
+      "name" : "provider.anthropic.skills",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
@@ -1054,41 +1054,41 @@
     "placeholder" : "=[\"pptx\", \"xlsx:20260710\", \"custom:skill_01AbCdEfGhIjKlMnOpQrStUv:latest\"]",
     "type" : "Text"
   }, {
-    "id" : "configuration.anthropic.enableCodeExecution",
+    "id" : "provider.anthropic.enableCodeExecution",
     "label" : "Enable code execution",
     "optional" : true,
     "value" : false,
     "feel" : "static",
     "group" : "skills",
     "binding" : {
-      "name" : "configuration.anthropic.enableCodeExecution",
+      "name" : "provider.anthropic.enableCodeExecution",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
     "tooltip" : "Enables Anthropic's built-in <code>code_execution</code> server tool, letting the model run code in a sandboxed container. Already enabled automatically when Skills are configured above (no duplicate tool/beta header is emitted in that case).",
     "type" : "Boolean"
   }, {
-    "id" : "configuration.anthropic.codeExecutionVersion",
+    "id" : "provider.anthropic.codeExecutionVersion",
     "label" : "Code execution tool version",
     "optional" : true,
     "value" : "code_execution_20260521",
     "feel" : "optional",
     "group" : "skills",
     "binding" : {
-      "name" : "configuration.anthropic.codeExecutionVersion",
+      "name" : "provider.anthropic.codeExecutionVersion",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.enableCodeExecution",
+        "property" : "provider.anthropic.enableCodeExecution",
         "equals" : true,
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
@@ -1096,41 +1096,41 @@
     "tooltip" : "Anthropic <code>code_execution</code> tool version string (wire <code>type</code>). Defaults to the latest GA revision <code>code_execution_20260521</code>, which needs no beta header and is required (version <code>20260120</code> or later) for the default dynamic-filtering web tools to run in the same request. This version also applies to the <code>code_execution</code> tool that Skills provision automatically. The legacy <code>code_execution_20250522</code> revision is Python-only and additionally sends the <code>code-execution-2025-05-22</code> beta header.",
     "type" : "String"
   }, {
-    "id" : "configuration.anthropic.enableWebSearch",
+    "id" : "provider.anthropic.enableWebSearch",
     "label" : "Enable web search",
     "optional" : true,
     "value" : false,
     "feel" : "static",
     "group" : "skills",
     "binding" : {
-      "name" : "configuration.anthropic.enableWebSearch",
+      "name" : "provider.anthropic.enableWebSearch",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
     "tooltip" : "Enables Anthropic's built-in <code>web_search</code> server tool, letting the model search the web for up-to-date information.",
     "type" : "Boolean"
   }, {
-    "id" : "configuration.anthropic.webSearchVersion",
+    "id" : "provider.anthropic.webSearchVersion",
     "label" : "Web search tool version",
     "optional" : true,
     "value" : "web_search_20260318",
     "feel" : "optional",
     "group" : "skills",
     "binding" : {
-      "name" : "configuration.anthropic.webSearchVersion",
+      "name" : "provider.anthropic.webSearchVersion",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.enableWebSearch",
+        "property" : "provider.anthropic.enableWebSearch",
         "equals" : true,
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
@@ -1138,41 +1138,41 @@
     "tooltip" : "Anthropic <code>web_search</code> tool version string (wire <code>type</code>). The default <code>web_search_20260318</code> uses dynamic filtering (the tool runs inside code execution) and works alongside Skills and code execution when the code execution tool is version <code>20260120</code> or later (the default). It requires a programmatic-tool-calling model and is not ZDR-eligible. Downgrade to a basic/direct revision such as <code>web_search_20250305</code> for ZDR or older/non-programmatic models.",
     "type" : "String"
   }, {
-    "id" : "configuration.anthropic.enableWebFetch",
+    "id" : "provider.anthropic.enableWebFetch",
     "label" : "Enable web fetch",
     "optional" : true,
     "value" : false,
     "feel" : "static",
     "group" : "skills",
     "binding" : {
-      "name" : "configuration.anthropic.enableWebFetch",
+      "name" : "provider.anthropic.enableWebFetch",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
     "tooltip" : "Enables Anthropic's built-in <code>web_fetch</code> server tool, letting the model retrieve the full content of a URL.",
     "type" : "Boolean"
   }, {
-    "id" : "configuration.anthropic.webFetchVersion",
+    "id" : "provider.anthropic.webFetchVersion",
     "label" : "Web fetch tool version",
     "optional" : true,
     "value" : "web_fetch_20260318",
     "feel" : "optional",
     "group" : "skills",
     "binding" : {
-      "name" : "configuration.anthropic.webFetchVersion",
+      "name" : "provider.anthropic.webFetchVersion",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "configuration.anthropic.enableWebFetch",
+        "property" : "provider.anthropic.enableWebFetch",
         "equals" : true,
         "type" : "simple"
       }, {
-        "property" : "configuration.type",
+        "property" : "provider.type",
         "equals" : "anthropic",
         "type" : "simple"
       } ]
@@ -1180,54 +1180,54 @@
     "tooltip" : "Anthropic <code>web_fetch</code> tool version string (wire <code>type</code>). The default <code>web_fetch_20260318</code> uses dynamic filtering (the tool runs inside code execution) and works alongside Skills and code execution when the code execution tool is version <code>20260120</code> or later (the default). It requires a programmatic-tool-calling model and is not ZDR-eligible. Downgrade to a basic/direct revision such as <code>web_fetch_20250910</code> for ZDR or older/non-programmatic models.",
     "type" : "String"
   }, {
-    "id" : "configuration.anthropic.capabilityOverride",
+    "id" : "provider.anthropic.capabilityOverride",
     "label" : "Model capability overrides",
     "description" : "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
     "optional" : true,
     "feel" : "required",
     "group" : "capabilities",
     "binding" : {
-      "name" : "configuration.anthropic.capabilityOverride",
+      "name" : "provider.anthropic.capabilityOverride",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
     "placeholder" : "={contextWindow: 200000, maxOutputTokens: 8192}",
     "type" : "Text"
   }, {
-    "id" : "configuration.anthropic.enablePromptCaching",
+    "id" : "provider.anthropic.enablePromptCaching",
     "label" : "Enable prompt caching",
     "optional" : true,
     "value" : false,
     "feel" : "static",
     "group" : "capabilities",
     "binding" : {
-      "name" : "configuration.anthropic.enablePromptCaching",
+      "name" : "provider.anthropic.enablePromptCaching",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "anthropic",
       "type" : "simple"
     },
     "tooltip" : "Enables Anthropic automatic prompt caching by adding a top-level <code>cache_control: {\"type\": \"ephemeral\"}</code> to each request. The API automatically caches the longest stable prefix (system prompt, tool definitions and earlier conversation messages) and reuses it across requests made within the cache lifetime (5 minutes). Cache hits require a byte-identical prefix; the system prompt and tools stay stable across turns, but note that once the message window starts evicting the oldest messages the message-history portion of the prefix shifts each turn. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">automatic caching documentation</a>.",
     "type" : "Boolean"
   }, {
-    "id" : "configuration.openai.capabilityOverride",
+    "id" : "provider.openai.capabilityOverride",
     "label" : "Model capability overrides",
     "description" : "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
     "optional" : true,
     "feel" : "required",
     "group" : "capabilities",
     "binding" : {
-      "name" : "configuration.openai.capabilityOverride",
+      "name" : "provider.openai.capabilityOverride",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "configuration.type",
+      "property" : "provider.type",
       "equals" : "openai",
       "type" : "simple"
     },
