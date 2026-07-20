@@ -49,7 +49,16 @@
       <artifactId>commons-lang3</artifactId>
     </dependency>
 
-  </dependencies>  
+    <!-- only used by golden-JSON shape tests: no production code in this module uses Jackson
+    directly, so the compile-scope dependency inherited from the root connectors POM must be
+    narrowed to test scope here. -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
 
   <build>
     <plugins>
