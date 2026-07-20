@@ -11,7 +11,6 @@ import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesReso
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
 import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
@@ -47,15 +46,13 @@ public class AnthropicChatModelApiFactory implements ChatModelApiFactory {
 
   @Override
   public boolean supports(ChatModelApiConfiguration configuration) {
-    return configuration instanceof V2ChatModelApiConfiguration llm
-        && llm.configuration() instanceof AnthropicChatModel anthropic
+    return configuration instanceof AnthropicChatModel anthropic
         && anthropic.anthropic().backend() instanceof AnthropicDirectBackend;
   }
 
   @Override
   public ChatModelApi create(ChatModelApiConfiguration configuration) {
-    final var llm = (V2ChatModelApiConfiguration) configuration;
-    final var model = (AnthropicChatModel) llm.configuration();
+    final var model = (AnthropicChatModel) configuration;
     final var connection = model.anthropic();
     final var direct = (AnthropicDirectBackend) connection.backend();
     final var timeout = connection.timeouts() != null ? connection.timeouts().timeout() : null;

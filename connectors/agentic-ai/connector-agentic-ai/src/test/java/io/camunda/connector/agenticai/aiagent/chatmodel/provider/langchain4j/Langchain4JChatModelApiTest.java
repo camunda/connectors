@@ -31,7 +31,6 @@ import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelResult;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V1ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
@@ -349,7 +348,7 @@ class Langchain4JChatModelApiTest {
     when(executionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
-                new V1ChatModelApiConfiguration(PROVIDER),
+                PROVIDER,
                 PROVIDER.model(),
                 PROVIDER.providerType(),
                 null,

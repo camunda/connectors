@@ -42,7 +42,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelResult;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V1ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -146,7 +145,7 @@ class JobWorkerAgentRequestHandlerTest {
     lenient()
         .doReturn(
             new AgentConfiguration(
-                new V1ChatModelApiConfiguration(new OpenAiProviderConfiguration(null)),
+                new OpenAiProviderConfiguration(null),
                 "model",
                 OpenAiProviderConfiguration.OPENAI_ID,
                 new PromptConfiguration.SystemPromptConfiguration(null),
@@ -805,7 +804,7 @@ class JobWorkerAgentRequestHandlerTest {
     when(agentExecutionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
-                new V1ChatModelApiConfiguration(new OpenAiProviderConfiguration(null)),
+                new OpenAiProviderConfiguration(null),
                 "model",
                 OpenAiProviderConfiguration.OPENAI_ID,
                 new PromptConfiguration.SystemPromptConfiguration(null),

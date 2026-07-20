@@ -17,8 +17,6 @@ import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Mod
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V1ChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel;
@@ -66,36 +64,34 @@ class OpenAiChatModelApiFactoryTest {
 
   @Test
   void doesNotSupportAnthropic() {
-    final var config =
-        new V2ChatModelApiConfiguration(
-            new AnthropicChatModel(
-                new AnthropicConnection(
-                    new AnthropicDirectBackend(null, "sk-ant"),
-                    new AnthropicModel(MODEL_ID, null),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null)));
+    final ChatModelApiConfiguration config =
+        new AnthropicChatModel(
+            new AnthropicConnection(
+                new AnthropicDirectBackend(null, "sk-ant"),
+                new AnthropicModel(MODEL_ID, null),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
 
     assertThat(factory.supports(config)).isFalse();
   }
 
   @Test
-  void doesNotSupportV1ChatModelApiConfiguration() {
+  void doesNotSupportV1ProviderConfiguration() {
     final ChatModelApiConfiguration config =
-        new V1ChatModelApiConfiguration(
-            new AnthropicProviderConfiguration(
-                new AnthropicProviderConfiguration.AnthropicConnection(
-                    null,
-                    new AnthropicAuthentication("api-key"),
-                    null,
-                    new AnthropicProviderConfiguration.AnthropicModel(MODEL_ID, null))));
+        new AnthropicProviderConfiguration(
+            new AnthropicProviderConfiguration.AnthropicConnection(
+                null,
+                new AnthropicAuthentication("api-key"),
+                null,
+                new AnthropicProviderConfiguration.AnthropicModel(MODEL_ID, null)));
 
     assertThat(factory.supports(config)).isFalse();
   }
@@ -145,36 +141,32 @@ class OpenAiChatModelApiFactoryTest {
         null);
   }
 
-  private static V2ChatModelApiConfiguration directConfig(
-      OpenAiApiFamily apiFamily, String modelId) {
-    return new V2ChatModelApiConfiguration(
-        new OpenAiChatModel(
-            new OpenAiConnection(
-                apiFamily,
-                new OpenAiDirectBackend("sk-openai", null, null),
-                new OpenAiModel(modelId, null),
-                null,
-                null,
-                null,
-                null)));
+  private static OpenAiChatModel directConfig(OpenAiApiFamily apiFamily, String modelId) {
+    return new OpenAiChatModel(
+        new OpenAiConnection(
+            apiFamily,
+            new OpenAiDirectBackend("sk-openai", null, null),
+            new OpenAiModel(modelId, null),
+            null,
+            null,
+            null,
+            null));
   }
 
-  private static V2ChatModelApiConfiguration compatibleConfig(
-      OpenAiApiFamily apiFamily, String modelId) {
-    return new V2ChatModelApiConfiguration(
-        new OpenAiChatModel(
-            new OpenAiConnection(
-                apiFamily,
-                new OpenAiCompatibleBackend(
-                    "https://example.com/v1",
-                    null,
-                    null,
-                    null,
-                    new CompatibleApiKeyAuthentication("api-key")),
-                new OpenAiModel(modelId, null),
+  private static OpenAiChatModel compatibleConfig(OpenAiApiFamily apiFamily, String modelId) {
+    return new OpenAiChatModel(
+        new OpenAiConnection(
+            apiFamily,
+            new OpenAiCompatibleBackend(
+                "https://example.com/v1",
                 null,
                 null,
                 null,
-                null)));
+                new CompatibleApiKeyAuthentication("api-key")),
+            new OpenAiModel(modelId, null),
+            null,
+            null,
+            null,
+            null));
   }
 }

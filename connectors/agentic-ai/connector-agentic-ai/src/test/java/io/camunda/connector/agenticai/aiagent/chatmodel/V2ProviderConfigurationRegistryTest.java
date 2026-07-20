@@ -32,56 +32,53 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 
-class V2ChatModelApiConfigurationRegistryTest {
+class V2ProviderConfigurationRegistryTest {
 
   @Test
-  void wrapsProviderConfigAndExposesCapabilityOverrideViaConfiguration() {
-    final var config =
-        new V2ChatModelApiConfiguration(
-            new AnthropicChatModel(
-                new AnthropicConnection(
-                    new AnthropicDirectBackend(null, "sk-ant"),
-                    new AnthropicModel("claude-sonnet-4-6", null),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null)));
+  void anthropicChatModelExposesCapabilityOverrideDirectly() {
+    final ChatModelApiConfiguration config =
+        new AnthropicChatModel(
+            new AnthropicConnection(
+                new AnthropicDirectBackend(null, "sk-ant"),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
 
-    assertThat(config.configuration()).isInstanceOf(AnthropicChatModel.class);
-    assertThat(config.configuration().capabilityOverride()).isNull();
+    assertThat(config).isInstanceOf(AnthropicChatModel.class);
+    assertThat(((AnthropicChatModel) config).capabilityOverride()).isNull();
   }
 
   @Test
   void directAnthropicV2ConfigResolvesToAnthropicChatModelApi() {
     // Both the LangChain4J factory and the Anthropic factory are registered; they are disjoint by
-    // configuration type (V1ChatModelApiConfiguration vs.
-    // V2ChatModelApiConfiguration
-    // with a direct backend), so only the Anthropic factory supports this configuration.
+    // configuration type (V1ProviderConfiguration vs. V2ProviderConfiguration with a direct
+    // backend), so only the Anthropic factory supports this configuration.
     final var registry =
         new ChatModelApiRegistryImpl(List.of(langchain4JFactory(), anthropicFactory()));
 
     final ChatModelApiConfiguration directConfig =
-        new V2ChatModelApiConfiguration(
-            new AnthropicChatModel(
-                new AnthropicConnection(
-                    new AnthropicDirectBackend(null, "sk-ant"),
-                    new AnthropicModel("claude-sonnet-4-6", null),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null)));
+        new AnthropicChatModel(
+            new AnthropicConnection(
+                new AnthropicDirectBackend(null, "sk-ant"),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
 
     assertThat(registry.resolve(directConfig)).isInstanceOf(AnthropicChatModelApi.class);
   }
@@ -89,28 +86,26 @@ class V2ChatModelApiConfigurationRegistryTest {
   @Test
   void bedrockAnthropicV2ConfigStillFailsLoud() {
     // Neither the Anthropic factory (direct-only) nor the LangChain4J factory
-    // (V1ChatModelApiConfiguration only) supports a bedrock-backed
-    // V2ChatModelApiConfiguration.
+    // (V1ProviderConfiguration only) supports a bedrock-backed V2ProviderConfiguration.
     final var registry =
         new ChatModelApiRegistryImpl(List.of(langchain4JFactory(), anthropicFactory()));
 
     final ChatModelApiConfiguration bedrockConfig =
-        new V2ChatModelApiConfiguration(
-            new AnthropicChatModel(
-                new AnthropicConnection(
-                    new AnthropicBedrockBackend(
-                        "eu-west-1", null, new AwsApiKeyAuthentication("api-key")),
-                    new AnthropicModel("claude-sonnet-4-6", null),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null)));
+        new AnthropicChatModel(
+            new AnthropicConnection(
+                new AnthropicBedrockBackend(
+                    "eu-west-1", null, new AwsApiKeyAuthentication("api-key")),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
 
     assertThatThrownBy(() -> registry.resolve(bedrockConfig))
         .isInstanceOf(ConnectorException.class)
@@ -121,7 +116,7 @@ class V2ChatModelApiConfigurationRegistryTest {
 
   private static ChatModelApiFactory langchain4JFactory() {
     // stands in for a registered Langchain4JChatModelApiFactory subclass, which only ever
-    // supports V1ChatModelApiConfiguration and therefore never matches the V2 configurations used
+    // supports V1ProviderConfiguration and therefore never matches the V2 configurations used
     // in this test
     return mock(ChatModelApiFactory.class);
   }

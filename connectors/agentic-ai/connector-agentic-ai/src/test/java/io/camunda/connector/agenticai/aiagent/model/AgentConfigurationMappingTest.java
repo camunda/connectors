@@ -10,7 +10,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V1ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
@@ -37,13 +36,12 @@ class AgentConfigurationMappingTest {
         new OutboundConnectorAgentExecutionContext(
             mock(JobContext.class),
             data,
-            new V1ChatModelApiConfiguration(provider),
+            provider,
             provider.model(),
             provider.providerType(),
             mock(ProcessDefinitionAdHocToolElementsResolver.class));
 
-    assertThat(ctx.configuration().chatModelApiConfiguration())
-        .isEqualTo(new V1ChatModelApiConfiguration(provider));
+    assertThat(ctx.configuration().chatModelApiConfiguration()).isEqualTo(provider);
     assertThat(ctx.configuration().modelName()).isEqualTo("claude-sonnet-4-6");
     assertThat(ctx.configuration().modelProvider()).isEqualTo("anthropic");
   }

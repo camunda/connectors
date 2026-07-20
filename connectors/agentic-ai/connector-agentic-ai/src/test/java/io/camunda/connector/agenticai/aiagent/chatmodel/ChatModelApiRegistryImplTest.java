@@ -91,13 +91,12 @@ class ChatModelApiRegistryImplTest {
   }
 
   private static ChatModelApiConfiguration validProviderConfiguration() {
-    return new V1ChatModelApiConfiguration(
-        new AnthropicProviderConfiguration(
-            new AnthropicConnection(
-                null,
-                new AnthropicAuthentication("api-key"),
-                null,
-                new AnthropicModel("claude", null))));
+    return new AnthropicProviderConfiguration(
+        new AnthropicConnection(
+            null,
+            new AnthropicAuthentication("api-key"),
+            null,
+            new AnthropicModel("claude", null)));
   }
 
   private static class FirstMatchingFactory implements ChatModelApiFactory {

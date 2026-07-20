@@ -18,7 +18,6 @@ import com.openai.models.ReasoningEffort;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import io.camunda.connector.agenticai.aiagent.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiReasoningCapabilities;
@@ -101,7 +100,7 @@ class OpenAiCompletionsRequestConverterTest {
       OpenAiChatModel model, @Nullable ResponseConfiguration response) {
     final var configuration =
         new AgentConfiguration(
-            new V2ChatModelApiConfiguration(model),
+            model,
             model.model(),
             model.providerType(),
             new SystemPromptConfiguration("system prompt"),

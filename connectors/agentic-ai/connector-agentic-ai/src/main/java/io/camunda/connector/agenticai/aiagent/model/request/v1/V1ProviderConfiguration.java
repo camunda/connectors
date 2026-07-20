@@ -15,6 +15,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProv
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiConfiguration;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -34,7 +35,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     name = "type",
     description = "Specify the LLM provider to use.",
     defaultValue = ANTHROPIC_ID)
-public sealed interface V1ProviderConfiguration
+public sealed interface V1ProviderConfiguration extends ChatModelApiConfiguration
     permits AnthropicProviderConfiguration,
         BedrockProviderConfiguration,
         AzureOpenAiProviderConfiguration,

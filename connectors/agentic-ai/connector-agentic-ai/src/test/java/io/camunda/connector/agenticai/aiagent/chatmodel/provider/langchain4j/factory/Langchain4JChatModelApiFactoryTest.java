@@ -7,12 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V1ChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Langchain4JChatModelApi;
@@ -22,6 +19,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProvider
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -46,8 +45,7 @@ class Langchain4JChatModelApiFactoryTest {
   @Test
   void supportsConfigurationMatchingProviderType() {
     final var factory = testFactory(AnthropicProviderConfiguration.ANTHROPIC_ID);
-    final ChatModelApiConfiguration configuration =
-        new V1ChatModelApiConfiguration(anthropicProviderConfiguration());
+    final ChatModelApiConfiguration configuration = anthropicProviderConfiguration();
 
     assertThat(factory.supports(configuration)).isTrue();
   }
@@ -55,16 +53,29 @@ class Langchain4JChatModelApiFactoryTest {
   @Test
   void doesNotSupportConfigurationWithDifferentProviderType() {
     final var factory = testFactory("some-other-provider");
-    final ChatModelApiConfiguration configuration =
-        new V1ChatModelApiConfiguration(anthropicProviderConfiguration());
+    final ChatModelApiConfiguration configuration = anthropicProviderConfiguration();
 
     assertThat(factory.supports(configuration)).isFalse();
   }
 
   @Test
-  void doesNotSupportNonV1ChatModelApiConfiguration() {
+  void doesNotSupportNonV1ProviderConfiguration() {
     final var factory = testFactory(AnthropicProviderConfiguration.ANTHROPIC_ID);
-    final ChatModelApiConfiguration configuration = mock(V2ChatModelApiConfiguration.class);
+    final ChatModelApiConfiguration configuration =
+        new AnthropicChatModel(
+            new AnthropicChatModel.AnthropicConnection(
+                new AnthropicDirectBackend(null, "sk-ant"),
+                new AnthropicChatModel.AnthropicModel("claude-sonnet-4-6", null),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
 
     assertThat(factory.supports(configuration)).isFalse();
   }
@@ -72,8 +83,7 @@ class Langchain4JChatModelApiFactoryTest {
   @Test
   void createBuildsChatModelOnceAndReturnsLangchain4JChatModelApi() {
     final var providerConfiguration = anthropicProviderConfiguration();
-    final ChatModelApiConfiguration configuration =
-        new V1ChatModelApiConfiguration(providerConfiguration);
+    final ChatModelApiConfiguration configuration = providerConfiguration;
     final var factory = testFactory(AnthropicProviderConfiguration.ANTHROPIC_ID);
 
     final var api = factory.create(configuration);

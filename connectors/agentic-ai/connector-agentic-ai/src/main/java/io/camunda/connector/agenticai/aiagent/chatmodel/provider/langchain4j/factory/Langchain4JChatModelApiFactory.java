@@ -11,7 +11,6 @@ import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V1ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Langchain4JChatModelApi;
@@ -24,7 +23,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Adapts one LangChain4J provider to the chat model SPI. {@link #supports} matches a {@link
- * V1ChatModelApiConfiguration} whose {@link V1ProviderConfiguration#providerType()} equals {@link
+ * V1ProviderConfiguration} whose {@link V1ProviderConfiguration#providerType()} equals {@link
  * #providerType()}, and {@link #create} builds the underlying LangChain4J chat model once via
  * {@link #createChatModel} and wraps it in a {@link Langchain4JChatModelApi}. Each built-in
  * provider is a concrete subclass supplying its own discriminator and model construction logic,
@@ -87,14 +86,13 @@ public abstract class Langchain4JChatModelApiFactory<T extends V1ProviderConfigu
 
   @Override
   public boolean supports(ChatModelApiConfiguration configuration) {
-    return configuration instanceof V1ChatModelApiConfiguration provider
-        && providerType().equals(provider.providerConfiguration().providerType());
+    return configuration instanceof V1ProviderConfiguration provider
+        && providerType().equals(provider.providerType());
   }
 
   @Override
   public ChatModelApi create(ChatModelApiConfiguration configuration) {
-    final var providerConfiguration =
-        ((V1ChatModelApiConfiguration) configuration).providerConfiguration();
+    final var providerConfiguration = (V1ProviderConfiguration) configuration;
 
     @SuppressWarnings("unchecked")
     final var chatModel = createChatModel((T) providerConfiguration);

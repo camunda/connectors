@@ -17,7 +17,6 @@ import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.Process
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequestV2;
@@ -64,13 +63,12 @@ class AiAgentV2EntryPointTest {
         new OutboundConnectorAgentExecutionContext(
             mock(JobContext.class),
             request.data(),
-            new V2ChatModelApiConfiguration(request.provider()),
+            request.provider(),
             request.provider().model(),
             request.provider().providerType(),
             mock(ProcessDefinitionAdHocToolElementsResolver.class));
 
-    assertThat(ctx.configuration().chatModelApiConfiguration())
-        .isEqualTo(new V2ChatModelApiConfiguration(config));
+    assertThat(ctx.configuration().chatModelApiConfiguration()).isEqualTo(config);
     assertThat(ctx.configuration().modelName()).isEqualTo("claude-sonnet-4-6");
     assertThat(ctx.configuration().modelProvider()).isEqualTo("anthropic");
   }
@@ -102,18 +100,17 @@ class AiAgentV2EntryPointTest {
     verify(agentRequestHandler).handleRequest(executionContextCaptor.capture());
 
     final var capturedConfiguration = executionContextCaptor.getValue().configuration();
-    assertThat(capturedConfiguration.chatModelApiConfiguration())
-        .isEqualTo(new V2ChatModelApiConfiguration(config));
+    assertThat(capturedConfiguration.chatModelApiConfiguration()).isEqualTo(config);
     assertThat(capturedConfiguration.modelName()).isEqualTo(config.model());
     assertThat(capturedConfiguration.modelProvider()).isEqualTo(config.providerType());
   }
 
   @Test
   void v2LlmProviderConfigFailsLoudThroughRegistryUntilProviderFactoryExists() {
-    // no registered factory supports a V2ChatModelApiConfiguration yet
+    // no registered factory supports this V2ProviderConfiguration yet
     final var registry = new ChatModelApiRegistryImpl(List.of(mock(ChatModelApiFactory.class)));
 
-    assertThatThrownBy(() -> registry.resolve(new V2ChatModelApiConfiguration(anthropicConfig())))
+    assertThatThrownBy(() -> registry.resolve(anthropicConfig()))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("No chat model registered for configuration");
   }

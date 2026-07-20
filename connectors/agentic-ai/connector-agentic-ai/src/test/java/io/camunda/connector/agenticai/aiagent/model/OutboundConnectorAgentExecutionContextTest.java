@@ -14,7 +14,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V1ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration;
@@ -61,7 +60,7 @@ class OutboundConnectorAgentExecutionContextTest {
         new OutboundConnectorAgentExecutionContext(
             jobContext,
             agentRequestData,
-            new V1ChatModelApiConfiguration(provider),
+            provider,
             provider.model(),
             provider.providerType(),
             toolElementsResolver);

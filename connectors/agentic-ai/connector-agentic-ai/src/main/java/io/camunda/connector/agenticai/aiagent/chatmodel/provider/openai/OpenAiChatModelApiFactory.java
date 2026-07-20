@@ -12,7 +12,6 @@ import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesReso
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
@@ -52,14 +51,12 @@ public class OpenAiChatModelApiFactory implements ChatModelApiFactory {
 
   @Override
   public boolean supports(ChatModelApiConfiguration configuration) {
-    return configuration instanceof V2ChatModelApiConfiguration llm
-        && llm.configuration() instanceof OpenAiChatModel;
+    return configuration instanceof OpenAiChatModel;
   }
 
   @Override
   public ChatModelApi create(ChatModelApiConfiguration configuration) {
-    final var llm = (V2ChatModelApiConfiguration) configuration;
-    final var model = (OpenAiChatModel) llm.configuration();
+    final var model = (OpenAiChatModel) configuration;
     final var connection = model.openai();
     final String familyKey = model.apiFamilyKey();
     final String backendType = connection.backend().type();

@@ -18,8 +18,6 @@ import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Mod
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V1ChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel;
@@ -61,37 +59,35 @@ class AnthropicChatModelApiFactoryTest {
 
   @Test
   void doesNotSupportBedrockBackend() {
-    final var config =
-        new V2ChatModelApiConfiguration(
-            new AnthropicChatModel(
-                new AnthropicConnection(
-                    new AnthropicBedrockBackend(
-                        "eu-west-1", null, new AwsApiKeyAuthentication("api-key")),
-                    new AnthropicModel(MODEL_ID, null),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null)));
+    final ChatModelApiConfiguration config =
+        new AnthropicChatModel(
+            new AnthropicConnection(
+                new AnthropicBedrockBackend(
+                    "eu-west-1", null, new AwsApiKeyAuthentication("api-key")),
+                new AnthropicModel(MODEL_ID, null),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
 
     assertThat(factory.supports(config)).isFalse();
   }
 
   @Test
-  void doesNotSupportV1ChatModelApiConfiguration() {
+  void doesNotSupportV1ProviderConfiguration() {
     final ChatModelApiConfiguration config =
-        new V1ChatModelApiConfiguration(
-            new AnthropicProviderConfiguration(
-                new AnthropicProviderConfiguration.AnthropicConnection(
-                    null,
-                    new AnthropicAuthentication("api-key"),
-                    null,
-                    new AnthropicProviderConfiguration.AnthropicModel(MODEL_ID, null))));
+        new AnthropicProviderConfiguration(
+            new AnthropicProviderConfiguration.AnthropicConnection(
+                null,
+                new AnthropicAuthentication("api-key"),
+                null,
+                new AnthropicProviderConfiguration.AnthropicModel(MODEL_ID, null)));
 
     assertThat(factory.supports(config)).isFalse();
   }
@@ -153,21 +149,20 @@ class AnthropicChatModelApiFactoryTest {
         null);
   }
 
-  private static V2ChatModelApiConfiguration directConfig(String modelId) {
-    return new V2ChatModelApiConfiguration(
-        new AnthropicChatModel(
-            new AnthropicConnection(
-                new AnthropicDirectBackend(null, "sk-ant"),
-                new AnthropicModel(modelId, null),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null)));
+  private static AnthropicChatModel directConfig(String modelId) {
+    return new AnthropicChatModel(
+        new AnthropicConnection(
+            new AnthropicDirectBackend(null, "sk-ant"),
+            new AnthropicModel(modelId, null),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null));
   }
 }

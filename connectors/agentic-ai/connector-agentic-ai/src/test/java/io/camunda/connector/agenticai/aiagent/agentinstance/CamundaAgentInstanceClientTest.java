@@ -38,7 +38,6 @@ import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.client.impl.command.CreateAgentHistoryItemCommandImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V1ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
@@ -1285,7 +1284,7 @@ class CamundaAgentInstanceClientTest {
               new OpenAiProviderConfiguration.OpenAiConnection(
                   null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null)));
       return new AgentConfiguration(
-          new V1ChatModelApiConfiguration(provider),
+          provider,
           provider.model(),
           provider.providerType(),
           new PromptConfiguration.SystemPromptConfiguration("system prompt"),

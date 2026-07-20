@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChat
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesOverride;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiConfiguration;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import org.jspecify.annotations.Nullable;
 
@@ -34,7 +35,8 @@ import org.jspecify.annotations.Nullable;
     name = "type",
     description = "Specify the LLM provider to use.",
     defaultValue = ANTHROPIC_ID)
-public sealed interface V2ProviderConfiguration permits AnthropicChatModel, OpenAiChatModel {
+public sealed interface V2ProviderConfiguration extends ChatModelApiConfiguration
+    permits AnthropicChatModel, OpenAiChatModel {
 
   /** Discriminator string identifying the provider (e.g. {@code anthropic}, {@code openai}). */
   String providerType();

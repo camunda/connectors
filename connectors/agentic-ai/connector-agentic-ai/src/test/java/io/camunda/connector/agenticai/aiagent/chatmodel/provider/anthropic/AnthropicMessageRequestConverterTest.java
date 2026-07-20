@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality;
-import io.camunda.connector.agenticai.aiagent.chatmodel.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -147,7 +146,7 @@ class AnthropicMessageRequestConverterTest {
       AnthropicChatModel model, @Nullable ResponseConfiguration response) {
     final var configuration =
         new AgentConfiguration(
-            new V2ChatModelApiConfiguration(model),
+            model,
             model.model(),
             model.providerType(),
             new SystemPromptConfiguration("system prompt"),
