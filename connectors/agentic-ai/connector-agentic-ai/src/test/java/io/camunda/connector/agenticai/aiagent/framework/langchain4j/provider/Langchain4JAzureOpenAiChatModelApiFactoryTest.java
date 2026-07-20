@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -21,9 +22,13 @@ import static org.mockito.Mockito.verify;
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ClientSecretCredential;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApi;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
@@ -49,7 +54,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AzureOpenAiChatModelProviderTest {
+class Langchain4JAzureOpenAiChatModelApiFactoryTest {
 
   private static final String AZURE_OPENAI_API_KEY = "azureOpenAiApiKey";
   private static final String AZURE_OPENAI_ENDPOINT = "https://azure-openai-endpoint.local";
@@ -68,8 +73,14 @@ class AzureOpenAiChatModelProviderTest {
               new HttpTransportSupport(
                   proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration))));
 
-  private final AzureOpenAiChatModelProvider provider =
-      new AzureOpenAiChatModelProvider(createDefaultChatModelProperties(), proxySupport);
+  private final Langchain4JAzureOpenAiChatModelApiFactory provider =
+      new Langchain4JAzureOpenAiChatModelApiFactory(
+          createDefaultChatModelProperties(),
+          proxySupport,
+          mock(ChatMessageConverter.class),
+          mock(ToolSpecificationConverter.class),
+          mock(JsonSchemaConverter.class),
+          Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
 
   @Captor ArgumentCaptor<TokenCredential> tokenCredentialsCapture;
 

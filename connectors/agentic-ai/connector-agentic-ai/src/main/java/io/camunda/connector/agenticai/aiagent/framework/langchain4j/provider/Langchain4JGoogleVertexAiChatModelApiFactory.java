@@ -8,8 +8,13 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -20,19 +25,27 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GoogleVertexAiChatModelProvider
-    implements ChatModelProvider<GoogleVertexAiProviderConfiguration> {
+public class Langchain4JGoogleVertexAiChatModelApiFactory
+    extends Langchain4JChatModelApiFactory<GoogleVertexAiProviderConfiguration> {
 
   private static final Logger LOGGER =
-      LoggerFactory.getLogger(GoogleVertexAiChatModelProvider.class);
+      LoggerFactory.getLogger(Langchain4JGoogleVertexAiChatModelApiFactory.class);
+
+  public Langchain4JGoogleVertexAiChatModelApiFactory(
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter,
+      ModelCapabilities capabilities) {
+    super(chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter, capabilities);
+  }
 
   @Override
-  public String type() {
+  protected String providerType() {
     return GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID;
   }
 
   @Override
-  public CloseableChatModel createChatModel(GoogleVertexAiProviderConfiguration vertexAi) {
+  protected CloseableChatModel createChatModel(GoogleVertexAiProviderConfiguration vertexAi) {
     final var connection = vertexAi.googleVertexAi();
     final var builder =
         VertexAiGeminiChatModel.builder()

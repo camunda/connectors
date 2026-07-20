@@ -10,36 +10,48 @@ import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provi
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AnthropicChatModelProvider
-    implements ChatModelProvider<AnthropicProviderConfiguration> {
+public class Langchain4JAnthropicChatModelApiFactory
+    extends Langchain4JChatModelApiFactory<AnthropicProviderConfiguration> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AnthropicChatModelProvider.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(Langchain4JAnthropicChatModelApiFactory.class);
 
   private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
-  public AnthropicChatModelProvider(
-      ChatModelProperties config, ChatModelHttpProxySupport proxySupport) {
+  public Langchain4JAnthropicChatModelApiFactory(
+      ChatModelProperties config,
+      ChatModelHttpProxySupport proxySupport,
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter,
+      ModelCapabilities capabilities) {
+    super(chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter, capabilities);
     this.config = config;
     this.proxySupport = proxySupport;
   }
 
   @Override
-  public String type() {
+  protected String providerType() {
     return AnthropicProviderConfiguration.ANTHROPIC_ID;
   }
 
   @Override
-  public CloseableChatModel createChatModel(AnthropicProviderConfiguration anthropic) {
+  protected CloseableChatModel createChatModel(AnthropicProviderConfiguration anthropic) {
     final var connection = anthropic.anthropic();
     final var apiTimeout =
         deriveTimeoutSetting("Anthropic model call", config, connection.timeouts(), LOGGER);

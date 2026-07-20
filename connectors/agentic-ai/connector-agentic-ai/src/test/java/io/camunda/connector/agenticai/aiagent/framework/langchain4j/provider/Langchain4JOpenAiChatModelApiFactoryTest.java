@@ -21,10 +21,14 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApi;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
@@ -48,7 +52,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class OpenAiChatModelProviderTest {
+class Langchain4JOpenAiChatModelApiFactoryTest {
 
   private static final String OPEN_AI_API_KEY = "openAiApiKey";
   private static final String OPEN_AI_MODEL = "openAiModel";
@@ -63,8 +67,14 @@ class OpenAiChatModelProviderTest {
               new HttpTransportSupport(
                   proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration))));
 
-  private final OpenAiChatModelProvider provider =
-      new OpenAiChatModelProvider(createDefaultChatModelProperties(), proxySupport);
+  private final Langchain4JOpenAiChatModelApiFactory provider =
+      new Langchain4JOpenAiChatModelApiFactory(
+          createDefaultChatModelProperties(),
+          proxySupport,
+          mock(ChatMessageConverter.class),
+          mock(ToolSpecificationConverter.class),
+          mock(JsonSchemaConverter.class),
+          Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
 
   @Captor private ArgumentCaptor<OpenAiChatRequestParameters> modelParametersArgumentCaptor;
 

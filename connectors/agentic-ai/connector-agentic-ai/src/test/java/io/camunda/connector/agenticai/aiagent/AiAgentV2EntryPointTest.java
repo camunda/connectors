@@ -16,13 +16,8 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.ChatModelApiRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApi;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequestV2;
@@ -115,15 +110,8 @@ class AiAgentV2EntryPointTest {
 
   @Test
   void v2LlmProviderConfigFailsLoudThroughRegistryUntilProviderFactoryExists() {
-    final var registry =
-        new ChatModelApiRegistryImpl(
-            List.of(
-                new Langchain4JChatModelApiFactory(
-                    mock(ChatModelProvider.class),
-                    mock(ChatMessageConverter.class),
-                    mock(ToolSpecificationConverter.class),
-                    mock(JsonSchemaConverter.class),
-                    Langchain4JChatModelApi.DEFAULT_CAPABILITIES)));
+    // no registered factory supports a V2ChatModelApiConfiguration yet
+    final var registry = new ChatModelApiRegistryImpl(List.of(mock(ChatModelApiFactory.class)));
 
     assertThatThrownBy(() -> registry.resolve(new V2ChatModelApiConfiguration(anthropicConfig())))
         .isInstanceOf(ConnectorException.class)

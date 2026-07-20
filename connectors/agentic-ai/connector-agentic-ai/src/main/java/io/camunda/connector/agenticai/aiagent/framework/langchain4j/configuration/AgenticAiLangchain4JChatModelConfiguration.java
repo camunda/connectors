@@ -6,21 +6,18 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration;
 
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AnthropicChatModelProvider;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AzureOpenAiChatModelProvider;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.BedrockChatModelProvider;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.GoogleVertexAiChatModelProvider;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiChatModelProvider;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiCompatibleChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApi;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Langchain4JAnthropicChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Langchain4JAzureOpenAiChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Langchain4JBedrockChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Langchain4JGoogleVertexAiChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Langchain4JOpenAiChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Langchain4JOpenAiCompatibleChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -38,53 +35,101 @@ public class AgenticAiLangchain4JChatModelConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelProvider<AnthropicProviderConfiguration>
-      aiAgentLangchain4JAnthropicChatModelProvider(
-          AgenticAiConnectorsConfigurationProperties config,
-          ChatModelHttpProxySupport chatModelHttpProxySupport) {
-    return new AnthropicChatModelProvider(config.aiagent().chatModel(), chatModelHttpProxySupport);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public ChatModelProvider<AzureOpenAiProviderConfiguration>
-      aiAgentLangchain4JAzureOpenAiChatModelProvider(
-          AgenticAiConnectorsConfigurationProperties config,
-          ChatModelHttpProxySupport chatModelHttpProxySupport) {
-    return new AzureOpenAiChatModelProvider(
-        config.aiagent().chatModel(), chatModelHttpProxySupport);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public ChatModelProvider<BedrockProviderConfiguration> aiAgentLangchain4JBedrockChatModelProvider(
+  public Langchain4JAnthropicChatModelApiFactory aiAgentLangchain4JAnthropicChatModelApiFactory(
       AgenticAiConnectorsConfigurationProperties config,
-      ChatModelHttpProxySupport chatModelHttpProxySupport) {
-    return new BedrockChatModelProvider(config.aiagent().chatModel(), chatModelHttpProxySupport);
+      ChatModelHttpProxySupport chatModelHttpProxySupport,
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter) {
+    return new Langchain4JAnthropicChatModelApiFactory(
+        config.aiagent().chatModel(),
+        chatModelHttpProxySupport,
+        chatMessageConverter,
+        toolSpecificationConverter,
+        jsonSchemaConverter,
+        Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelProvider<GoogleVertexAiProviderConfiguration>
-      aiAgentLangchain4JGoogleVertexAiChatModelProvider() {
-    return new GoogleVertexAiChatModelProvider();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public ChatModelProvider<OpenAiProviderConfiguration> aiAgentLangchain4JOpenAiChatModelProvider(
+  public Langchain4JBedrockChatModelApiFactory aiAgentLangchain4JBedrockChatModelApiFactory(
       AgenticAiConnectorsConfigurationProperties config,
-      ChatModelHttpProxySupport chatModelHttpProxySupport) {
-    return new OpenAiChatModelProvider(config.aiagent().chatModel(), chatModelHttpProxySupport);
+      ChatModelHttpProxySupport chatModelHttpProxySupport,
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter) {
+    return new Langchain4JBedrockChatModelApiFactory(
+        config.aiagent().chatModel(),
+        chatModelHttpProxySupport,
+        chatMessageConverter,
+        toolSpecificationConverter,
+        jsonSchemaConverter,
+        Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelProvider<OpenAiCompatibleProviderConfiguration>
-      aiAgentLangchain4JOpenAiCompatibleChatModelProvider(
+  public Langchain4JAzureOpenAiChatModelApiFactory aiAgentLangchain4JAzureOpenAiChatModelApiFactory(
+      AgenticAiConnectorsConfigurationProperties config,
+      ChatModelHttpProxySupport chatModelHttpProxySupport,
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter) {
+    return new Langchain4JAzureOpenAiChatModelApiFactory(
+        config.aiagent().chatModel(),
+        chatModelHttpProxySupport,
+        chatMessageConverter,
+        toolSpecificationConverter,
+        jsonSchemaConverter,
+        Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public Langchain4JGoogleVertexAiChatModelApiFactory
+      aiAgentLangchain4JGoogleVertexAiChatModelApiFactory(
+          ChatMessageConverter chatMessageConverter,
+          ToolSpecificationConverter toolSpecificationConverter,
+          JsonSchemaConverter jsonSchemaConverter) {
+    return new Langchain4JGoogleVertexAiChatModelApiFactory(
+        chatMessageConverter,
+        toolSpecificationConverter,
+        jsonSchemaConverter,
+        Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public Langchain4JOpenAiChatModelApiFactory aiAgentLangchain4JOpenAiChatModelApiFactory(
+      AgenticAiConnectorsConfigurationProperties config,
+      ChatModelHttpProxySupport chatModelHttpProxySupport,
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter) {
+    return new Langchain4JOpenAiChatModelApiFactory(
+        config.aiagent().chatModel(),
+        chatModelHttpProxySupport,
+        chatMessageConverter,
+        toolSpecificationConverter,
+        jsonSchemaConverter,
+        Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public Langchain4JOpenAiCompatibleChatModelApiFactory
+      aiAgentLangchain4JOpenAiCompatibleChatModelApiFactory(
           AgenticAiConnectorsConfigurationProperties config,
-          ChatModelHttpProxySupport chatModelHttpProxySupport) {
-    return new OpenAiCompatibleChatModelProvider(
-        config.aiagent().chatModel(), chatModelHttpProxySupport);
+          ChatModelHttpProxySupport chatModelHttpProxySupport,
+          ChatMessageConverter chatMessageConverter,
+          ToolSpecificationConverter toolSpecificationConverter,
+          JsonSchemaConverter jsonSchemaConverter) {
+    return new Langchain4JOpenAiCompatibleChatModelApiFactory(
+        config.aiagent().chatModel(),
+        chatModelHttpProxySupport,
+        chatMessageConverter,
+        toolSpecificationConverter,
+        jsonSchemaConverter,
+        Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
   }
 }

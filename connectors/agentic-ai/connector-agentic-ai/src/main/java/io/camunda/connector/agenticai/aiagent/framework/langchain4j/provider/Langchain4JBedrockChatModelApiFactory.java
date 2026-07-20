@@ -11,9 +11,14 @@ import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provi
 
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.net.URI;
@@ -25,26 +30,34 @@ import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
-public class BedrockChatModelProvider implements ChatModelProvider<BedrockProviderConfiguration> {
+public class Langchain4JBedrockChatModelApiFactory
+    extends Langchain4JChatModelApiFactory<BedrockProviderConfiguration> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(BedrockChatModelProvider.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(Langchain4JBedrockChatModelApiFactory.class);
 
   private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
-  public BedrockChatModelProvider(
-      ChatModelProperties config, ChatModelHttpProxySupport proxySupport) {
+  public Langchain4JBedrockChatModelApiFactory(
+      ChatModelProperties config,
+      ChatModelHttpProxySupport proxySupport,
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter,
+      ModelCapabilities capabilities) {
+    super(chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter, capabilities);
     this.config = config;
     this.proxySupport = proxySupport;
   }
 
   @Override
-  public String type() {
+  protected String providerType() {
     return BedrockProviderConfiguration.BEDROCK_ID;
   }
 
   @Override
-  public CloseableChatModel createChatModel(BedrockProviderConfiguration bedrock) {
+  protected CloseableChatModel createChatModel(BedrockProviderConfiguration bedrock) {
     final var connection = bedrock.bedrock();
     final var apiTimeout =
         deriveTimeoutSetting("Bedrock model call", config, connection.timeouts(), LOGGER);

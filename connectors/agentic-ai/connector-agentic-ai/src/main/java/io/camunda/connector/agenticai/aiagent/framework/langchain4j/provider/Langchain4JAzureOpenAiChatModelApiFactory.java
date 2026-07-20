@@ -10,9 +10,14 @@ import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provi
 
 import com.azure.identity.ClientSecretCredentialBuilder;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
@@ -22,27 +27,34 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AzureOpenAiChatModelProvider
-    implements ChatModelProvider<AzureOpenAiProviderConfiguration> {
+public class Langchain4JAzureOpenAiChatModelApiFactory
+    extends Langchain4JChatModelApiFactory<AzureOpenAiProviderConfiguration> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AzureOpenAiChatModelProvider.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(Langchain4JAzureOpenAiChatModelApiFactory.class);
 
   private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
-  public AzureOpenAiChatModelProvider(
-      ChatModelProperties config, ChatModelHttpProxySupport proxySupport) {
+  public Langchain4JAzureOpenAiChatModelApiFactory(
+      ChatModelProperties config,
+      ChatModelHttpProxySupport proxySupport,
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter,
+      ModelCapabilities capabilities) {
+    super(chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter, capabilities);
     this.config = config;
     this.proxySupport = proxySupport;
   }
 
   @Override
-  public String type() {
+  protected String providerType() {
     return AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
   }
 
   @Override
-  public CloseableChatModel createChatModel(AzureOpenAiProviderConfiguration azureOpenAi) {
+  protected CloseableChatModel createChatModel(AzureOpenAiProviderConfiguration azureOpenAi) {
     final var connection = azureOpenAi.azureOpenAi();
     final var builder =
         AzureOpenAiChatModel.builder()

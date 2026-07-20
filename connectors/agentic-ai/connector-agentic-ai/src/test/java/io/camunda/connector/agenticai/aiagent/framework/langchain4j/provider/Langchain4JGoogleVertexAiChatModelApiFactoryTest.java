@@ -22,8 +22,12 @@ import static org.mockito.Mockito.when;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel.VertexAiGeminiChatModelBuilder;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApi;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
@@ -42,7 +46,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class GoogleVertexAiChatModelProviderTest {
+class Langchain4JGoogleVertexAiChatModelApiFactoryTest {
 
   private static final String PROJECT_ID = "projectId";
   private static final String REGION = "us-central1";
@@ -51,7 +55,12 @@ class GoogleVertexAiChatModelProviderTest {
   private static final GoogleVertexAiModelParameters DEFAULT_MODEL_PARAMETERS =
       new GoogleVertexAiModelParameters(10, 1.0F, 0.8F, 100);
 
-  private final GoogleVertexAiChatModelProvider provider = new GoogleVertexAiChatModelProvider();
+  private final Langchain4JGoogleVertexAiChatModelApiFactory provider =
+      new Langchain4JGoogleVertexAiChatModelApiFactory(
+          mock(ChatMessageConverter.class),
+          mock(ToolSpecificationConverter.class),
+          mock(JsonSchemaConverter.class),
+          Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
 
   @Test
   void createsGoogleVertexAiChatModel() {

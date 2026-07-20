@@ -11,35 +11,48 @@ import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provi
 
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class OpenAiChatModelProvider implements ChatModelProvider<OpenAiProviderConfiguration> {
+public class Langchain4JOpenAiChatModelApiFactory
+    extends Langchain4JChatModelApiFactory<OpenAiProviderConfiguration> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(OpenAiChatModelProvider.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(Langchain4JOpenAiChatModelApiFactory.class);
 
   private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
-  public OpenAiChatModelProvider(
-      ChatModelProperties config, ChatModelHttpProxySupport proxySupport) {
+  public Langchain4JOpenAiChatModelApiFactory(
+      ChatModelProperties config,
+      ChatModelHttpProxySupport proxySupport,
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter,
+      ModelCapabilities capabilities) {
+    super(chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter, capabilities);
     this.config = config;
     this.proxySupport = proxySupport;
   }
 
   @Override
-  public String type() {
+  protected String providerType() {
     return OpenAiProviderConfiguration.OPENAI_ID;
   }
 
   @Override
-  public CloseableChatModel createChatModel(OpenAiProviderConfiguration openai) {
+  protected CloseableChatModel createChatModel(OpenAiProviderConfiguration openai) {
     final var connection = openai.openai();
     final var apiTimeout =
         deriveTimeoutSetting("OpenAI model call", config, connection.timeouts(), LOGGER);

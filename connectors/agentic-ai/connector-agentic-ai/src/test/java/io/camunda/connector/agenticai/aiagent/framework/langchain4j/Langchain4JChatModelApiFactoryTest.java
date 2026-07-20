@@ -8,50 +8,41 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.V1ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
-import org.junit.jupiter.api.BeforeEach;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+/**
+ * Exercises the {@code supports()}/{@code create()} behavior shared by every {@link
+ * Langchain4JChatModelApiFactory} subclass, via a minimal concrete factory. Provider-specific
+ * {@code createChatModel} and {@code mapTokenUsage} behavior is covered by the per-provider factory
+ * tests.
+ */
 @ExtendWith(MockitoExtension.class)
 class Langchain4JChatModelApiFactoryTest {
 
-  @Mock private ChatModelProvider<AnthropicProviderConfiguration> chatModelProvider;
   @Mock private ChatMessageConverter chatMessageConverter;
   @Mock private ToolSpecificationConverter toolSpecificationConverter;
   @Mock private JsonSchemaConverter jsonSchemaConverter;
   @Mock private CloseableChatModel chatModel;
 
-  private Langchain4JChatModelApiFactory factory;
-
-  @BeforeEach
-  void setUp() {
-    factory =
-        new Langchain4JChatModelApiFactory(
-            chatModelProvider,
-            chatMessageConverter,
-            toolSpecificationConverter,
-            jsonSchemaConverter,
-            Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
-  }
-
   @Test
   void supportsConfigurationMatchingProviderType() {
-    when(chatModelProvider.type()).thenReturn(AnthropicProviderConfiguration.ANTHROPIC_ID);
+    final var factory = testFactory(AnthropicProviderConfiguration.ANTHROPIC_ID);
     final ChatModelApiConfiguration configuration =
         new V1ChatModelApiConfiguration(anthropicProviderConfiguration());
 
@@ -60,7 +51,7 @@ class Langchain4JChatModelApiFactoryTest {
 
   @Test
   void doesNotSupportConfigurationWithDifferentProviderType() {
-    when(chatModelProvider.type()).thenReturn("some-other-provider");
+    final var factory = testFactory("some-other-provider");
     final ChatModelApiConfiguration configuration =
         new V1ChatModelApiConfiguration(anthropicProviderConfiguration());
 
@@ -69,6 +60,7 @@ class Langchain4JChatModelApiFactoryTest {
 
   @Test
   void doesNotSupportNonV1ChatModelApiConfiguration() {
+    final var factory = testFactory(AnthropicProviderConfiguration.ANTHROPIC_ID);
     final ChatModelApiConfiguration configuration = mock(V2ChatModelApiConfiguration.class);
 
     assertThat(factory.supports(configuration)).isFalse();
@@ -79,13 +71,23 @@ class Langchain4JChatModelApiFactoryTest {
     final var providerConfiguration = anthropicProviderConfiguration();
     final ChatModelApiConfiguration configuration =
         new V1ChatModelApiConfiguration(providerConfiguration);
-    when(chatModelProvider.createChatModel(providerConfiguration)).thenReturn(chatModel);
+    final var factory = testFactory(AnthropicProviderConfiguration.ANTHROPIC_ID);
 
     final var api = factory.create(configuration);
 
     assertThat(api).isInstanceOf(Langchain4JChatModelApi.class);
     assertThat(api.capabilities()).isSameAs(Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
-    verify(chatModelProvider).createChatModel(providerConfiguration);
+    assertThat(factory.createChatModelInvocations).containsExactly(providerConfiguration);
+  }
+
+  private TestChatModelApiFactory testFactory(String providerType) {
+    return new TestChatModelApiFactory(
+        providerType,
+        chatModel,
+        chatMessageConverter,
+        toolSpecificationConverter,
+        jsonSchemaConverter,
+        Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
   }
 
   private static AnthropicProviderConfiguration anthropicProviderConfiguration() {
@@ -95,5 +97,38 @@ class Langchain4JChatModelApiFactoryTest {
             new AnthropicAuthentication("api-key"),
             null,
             new AnthropicModel("claude", null)));
+  }
+
+  private static final class TestChatModelApiFactory
+      extends Langchain4JChatModelApiFactory<AnthropicProviderConfiguration> {
+
+    private final String providerType;
+    private final CloseableChatModel chatModel;
+    private final List<AnthropicProviderConfiguration> createChatModelInvocations =
+        new ArrayList<>();
+
+    TestChatModelApiFactory(
+        String providerType,
+        CloseableChatModel chatModel,
+        ChatMessageConverter chatMessageConverter,
+        ToolSpecificationConverter toolSpecificationConverter,
+        JsonSchemaConverter jsonSchemaConverter,
+        ModelCapabilities capabilities) {
+      super(chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter, capabilities);
+      this.providerType = providerType;
+      this.chatModel = chatModel;
+    }
+
+    @Override
+    protected String providerType() {
+      return providerType;
+    }
+
+    @Override
+    protected CloseableChatModel createChatModel(
+        AnthropicProviderConfiguration providerConfiguration) {
+      createChatModelInvocations.add(providerConfiguration);
+      return chatModel;
+    }
   }
 }

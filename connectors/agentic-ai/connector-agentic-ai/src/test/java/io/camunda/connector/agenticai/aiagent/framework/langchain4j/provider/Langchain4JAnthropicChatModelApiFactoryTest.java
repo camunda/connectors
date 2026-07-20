@@ -22,10 +22,14 @@ import static org.mockito.Mockito.when;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.anthropic.AnthropicChatModel.AnthropicChatModelBuilder;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApi;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
@@ -49,7 +53,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AnthropicChatModelProviderTest {
+class Langchain4JAnthropicChatModelApiFactoryTest {
 
   private static final String ANTHROPIC_API_KEY = "anthropicApiKey";
   private static final String ANTHROPIC_MODEL = "anthropicModel";
@@ -64,8 +68,14 @@ class AnthropicChatModelProviderTest {
               new HttpTransportSupport(
                   proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration))));
 
-  private final AnthropicChatModelProvider provider =
-      new AnthropicChatModelProvider(createDefaultChatModelProperties(), proxySupport);
+  private final Langchain4JAnthropicChatModelApiFactory provider =
+      new Langchain4JAnthropicChatModelApiFactory(
+          createDefaultChatModelProperties(),
+          proxySupport,
+          mock(ChatMessageConverter.class),
+          mock(ToolSpecificationConverter.class),
+          mock(JsonSchemaConverter.class),
+          Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
 
   @Test
   void createsAnthropicChatModel() {

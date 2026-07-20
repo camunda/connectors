@@ -22,12 +22,6 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.api.V2ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApi;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicBedrockBackend;
@@ -129,12 +123,10 @@ class V2ChatModelApiConfigurationRegistryTest {
   }
 
   private static ChatModelApiFactory langchain4JFactory() {
-    return new Langchain4JChatModelApiFactory(
-        mock(ChatModelProvider.class),
-        mock(ChatMessageConverter.class),
-        mock(ToolSpecificationConverter.class),
-        mock(JsonSchemaConverter.class),
-        Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
+    // stands in for a registered Langchain4JChatModelApiFactory subclass, which only ever
+    // supports V1ChatModelApiConfiguration and therefore never matches the V2 configurations used
+    // in this test
+    return mock(ChatModelApiFactory.class);
   }
 
   private static ChatModelApiFactory anthropicFactory() {

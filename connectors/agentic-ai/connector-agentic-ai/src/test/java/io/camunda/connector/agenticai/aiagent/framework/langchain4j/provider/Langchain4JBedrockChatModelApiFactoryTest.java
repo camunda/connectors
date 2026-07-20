@@ -21,10 +21,14 @@ import static org.mockito.Mockito.verify;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApi;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
@@ -59,7 +63,7 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilder;
 
 @ExtendWith(MockitoExtension.class)
-class BedrockChatModelProviderTest {
+class Langchain4JBedrockChatModelApiFactoryTest {
 
   private static final String BEDROCK_REGION = "eu-west-1";
   private static final String BEDROCK_API_KEY = "bedrockApiKey";
@@ -77,8 +81,14 @@ class BedrockChatModelProviderTest {
               new HttpTransportSupport(
                   proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration))));
 
-  private final BedrockChatModelProvider provider =
-      new BedrockChatModelProvider(createDefaultChatModelProperties(), proxySupport);
+  private final Langchain4JBedrockChatModelApiFactory provider =
+      new Langchain4JBedrockChatModelApiFactory(
+          createDefaultChatModelProperties(),
+          proxySupport,
+          mock(ChatMessageConverter.class),
+          mock(ToolSpecificationConverter.class),
+          mock(JsonSchemaConverter.class),
+          Langchain4JChatModelApi.DEFAULT_CAPABILITIES);
 
   @Captor private ArgumentCaptor<ChatRequestParameters> modelParametersArgumentCaptor;
   @Captor private ArgumentCaptor<AwsCredentialsProvider> credentialsProviderArgumentCaptor;
