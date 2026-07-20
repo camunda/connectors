@@ -17,7 +17,6 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseFunctionToolCall;
 import com.openai.models.responses.ResponseOutputItem;
 import com.openai.models.responses.ResponseOutputMessage;
-import com.openai.models.responses.ResponseReasoningItem;
 import com.openai.models.responses.ResponseUsage;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -32,7 +31,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,10 +45,8 @@ import org.slf4j.LoggerFactory;
  * ObjectMappers#jsonMapper()} -- {@code id}/{@code summary}/{@code encrypted_content}/... -- unlike
  * Anthropic's thinking blocks, this always includes {@code encrypted_content} rather than a
  * signature). This raw payload IS re-emitted back to OpenAI on the request side (see {@code
- * OpenAiResponsesRequestConverter}), so reasoning round-trips losslessly. The neutral {@code text}
- * field is populated from the item's {@code summary} (when present) since, unlike Anthropic's
- * thinking blocks, the human-readable reasoning summary is not otherwise recoverable from the raw
- * payload without the caller re-implementing this mapping.
+ * OpenAiResponsesRequestConverter}), so reasoning round-trips losslessly; the summary text stays
+ * inside the raw payload rather than being duplicated onto the domain type.
  *
  * <p>Server-tool items ({@code web_search_call}, {@code code_interpreter_call}) have no
  * provider-neutral representation and are captured losslessly as {@link ProviderContent}, kept
@@ -119,7 +115,7 @@ public class OpenAiResponsesResponseConverter {
                 .arguments(parseArguments(functionCall.arguments()))
                 .build());
       } else if (item.reasoning().isPresent()) {
-        content.add(toReasoningContent(item, item.reasoning().get()));
+        content.add(toReasoningContent(item));
       } else if (item.webSearchCall().isPresent()) {
         content.add(ProviderContent.providerContent("openai", "web_search_call", toRawMap(item)));
       } else if (item.codeInterpreterCall().isPresent()) {
@@ -169,19 +165,12 @@ public class OpenAiResponsesResponseConverter {
   }
 
   /**
-   * Builds the {@link ReasoningContent} for a reasoning output item: {@code text} is the joined
-   * summary text when the item carries a non-blank summary (left {@code null} otherwise, matching
-   * the Anthropic sibling's convention of not duplicating provider text that already lives in the
-   * raw payload), and {@code providerPayload} is the full raw item -- carrying {@code
-   * encrypted_content} -- so it can be replayed byte-identical on the request side.
+   * Builds the {@link ReasoningContent} for a reasoning output item: {@code providerPayload} is the
+   * full raw item -- carrying {@code encrypted_content} and the summary -- so it can be replayed
+   * byte-identical on the request side.
    */
-  private ReasoningContent toReasoningContent(
-      ResponseOutputItem item, ResponseReasoningItem reasoning) {
-    final String summaryText =
-        reasoning.summary().stream()
-            .map(ResponseReasoningItem.Summary::text)
-            .collect(Collectors.joining("\n"));
-    return new ReasoningContent(summaryText.isBlank() ? null : summaryText, toRawMap(item), null);
+  private ReasoningContent toReasoningContent(ResponseOutputItem item) {
+    return new ReasoningContent(toRawMap(item), null);
   }
 
   /**

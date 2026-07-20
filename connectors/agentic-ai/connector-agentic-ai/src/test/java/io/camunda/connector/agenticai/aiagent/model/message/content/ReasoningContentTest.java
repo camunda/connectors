@@ -19,7 +19,6 @@ class ReasoningContentTest {
   void roundTripsOpaquePayloadVerbatim() throws Exception {
     var original =
         new ReasoningContent(
-            "summary text",
             Map.of("signature", "abc123", "encrypted", "opaque-blob"),
             Map.of("provider", "anthropic"));
 
@@ -28,5 +27,17 @@ class ReasoningContentTest {
 
     assertThat(restored).isInstanceOf(ReasoningContent.class);
     assertThat(restored).isEqualTo(original);
+  }
+
+  @Test
+  void ignoresLegacyPersistedTextFieldOnRead() throws Exception {
+    var json =
+        """
+        {"type":"reasoning","text":"legacy summary","providerPayload":{"signature":"abc123"}}
+        """;
+
+    var restored = mapper.readValue(json, Content.class);
+
+    assertThat(restored).isEqualTo(new ReasoningContent(Map.of("signature", "abc123"), null));
   }
 }

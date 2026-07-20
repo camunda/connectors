@@ -98,22 +98,18 @@ public class AnthropicMessageResponseConverter {
         final var toolUse = block.toolUse().orElseThrow();
         toolCalls.add(new ToolCall(toolUse.id(), toolUse.name(), toolUseArguments(toolUse)));
       } else if (block.isThinking()) {
-        // The raw block (type/thinking/signature) is preserved in full as providerPayload so it
+        // The raw block (type/thinking/signature) is preserved verbatim as providerPayload so it
         // can be replayed byte-identical on the request side (see AnthropicContentConverter);
         // uses the SDK's own mapper for the same reason as the ProviderContent branch below.
-        // The neutral `text` is left null on purpose: the human-readable thinking already lives in
-        // the raw block's `thinking` field, so populating `text` too would store it twice in the
-        // persisted variable. The provider-specific text is recovered from the block when needed
-        // (e.g. agent instance history) rather than duplicated here.
         final Map<String, Object> raw =
             ObjectMappers.jsonMapper()
                 .convertValue(block, new TypeReference<Map<String, Object>>() {});
-        content.add(new ReasoningContent(null, raw, null));
+        content.add(new ReasoningContent(raw, null));
       } else if (block.isRedactedThinking()) {
         final Map<String, Object> raw =
             ObjectMappers.jsonMapper()
                 .convertValue(block, new TypeReference<Map<String, Object>>() {});
-        content.add(new ReasoningContent(null, raw, null));
+        content.add(new ReasoningContent(raw, null));
       } else {
         // Server-tool / provider-specific blocks (server_tool_use, code_execution_tool_result,
         // web_search_tool_result, container_upload, etc.) have no provider-neutral

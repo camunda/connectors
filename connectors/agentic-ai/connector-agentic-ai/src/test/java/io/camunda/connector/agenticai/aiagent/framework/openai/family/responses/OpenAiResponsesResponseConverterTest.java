@@ -171,17 +171,18 @@ class OpenAiResponsesResponseConverterTest {
     assertThat(result.assistantMessage().content()).hasSize(1);
     final ReasoningContent reasoningContent =
         (ReasoningContent) result.assistantMessage().content().get(0);
-    assertThat(reasoningContent.text()).isEqualTo("Thinking about it");
 
     @SuppressWarnings("unchecked")
     final Map<String, Object> payload = (Map<String, Object>) reasoningContent.providerPayload();
     assertThat(payload).containsEntry("id", "rs_1");
     assertThat(payload).containsEntry("type", "reasoning");
     assertThat(payload).containsEntry("encrypted_content", "encrypted-blob");
+    // the summary stays inside the raw payload rather than being duplicated onto the domain type
+    assertThat(payload.get("summary").toString()).contains("Thinking about it");
   }
 
   @Test
-  void mapsReasoningItemWithoutSummaryToNullText() {
+  void mapsReasoningItemWithoutSummaryPreservesRawPayload() {
     final Response response =
         baseResponse(
             """
@@ -194,7 +195,10 @@ class OpenAiResponsesResponseConverterTest {
 
     final ReasoningContent reasoningContent =
         (ReasoningContent) result.assistantMessage().content().get(0);
-    assertThat(reasoningContent.text()).isNull();
+
+    @SuppressWarnings("unchecked")
+    final Map<String, Object> payload = (Map<String, Object>) reasoningContent.providerPayload();
+    assertThat(payload).containsEntry("id", "rs_2");
   }
 
   @Test

@@ -139,8 +139,7 @@ class OpenAiContentConverterTest {
     @Test
     void mapsReasoningContentToInputTextPartFallback() {
       final var parts =
-          converter.toResponsesContentParts(
-              List.of(new ReasoningContent("some reasoning", null, null)));
+          converter.toResponsesContentParts(List.of(new ReasoningContent(null, null)));
 
       assertThat(parts).hasSize(1);
       assertThat(parts.get(0).isInputText()).isTrue();
@@ -348,8 +347,7 @@ class OpenAiContentConverterTest {
     @Test
     void mapsReasoningContentToTextPartFallback() {
       final var parts =
-          converter.toCompletionsContentParts(
-              List.of((Content) new ReasoningContent("some reasoning", null, null)));
+          converter.toCompletionsContentParts(List.of((Content) new ReasoningContent(null, null)));
 
       assertThat(parts).hasSize(1);
       assertThat(parts.get(0).isText()).isTrue();

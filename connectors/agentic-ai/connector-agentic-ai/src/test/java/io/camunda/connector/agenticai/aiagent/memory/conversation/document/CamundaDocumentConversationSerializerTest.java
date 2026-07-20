@@ -39,14 +39,14 @@ class CamundaDocumentConversationSerializerTest {
 
   @Test
   void reasoningContentWithProviderPayloadSurvivesSerializationRoundTrip() throws Exception {
-    // Mirrors the Anthropic content converter's output: neutral text is null, the raw Anthropic
-    // thinking block (type/thinking/signature) is the single source carried in providerPayload.
+    // Mirrors the Anthropic content converter's output: the raw Anthropic thinking block
+    // (type/thinking/signature) is the single source carried in providerPayload.
     final Map<String, Object> rawThinkingBlock = new LinkedHashMap<>();
     rawThinkingBlock.put("type", "thinking");
     rawThinkingBlock.put("thinking", "let me reason about ervin's email");
     rawThinkingBlock.put("signature", "EsoCCokBCA8YAipA-signature-blob");
 
-    final var reasoning = new ReasoningContent(null, rawThinkingBlock, null);
+    final var reasoning = new ReasoningContent(rawThinkingBlock, null);
     final var original =
         new DocumentContent(
             List.of(
@@ -62,13 +62,12 @@ class CamundaDocumentConversationSerializerTest {
     final DocumentContent restored = serializer.readDocumentContent(document);
 
     // The whole message (and its content list) round-trips equal, and specifically the reasoning
-    // block keeps null text plus a byte-identical providerPayload (signature included) — exactly
-    // what must be re-sent to Anthropic verbatim.
+    // block keeps a byte-identical providerPayload (signature included) — exactly what must be
+    // re-sent to Anthropic verbatim.
     assertThat(restored.messages()).isEqualTo(original.messages());
 
     final var restoredAssistant = (AssistantMessage) restored.messages().get(0);
     final var restoredReasoning = (ReasoningContent) restoredAssistant.content().get(0);
-    assertThat(restoredReasoning.text()).isNull();
     assertThat(restoredReasoning.providerPayload()).isEqualTo(rawThinkingBlock);
   }
 }

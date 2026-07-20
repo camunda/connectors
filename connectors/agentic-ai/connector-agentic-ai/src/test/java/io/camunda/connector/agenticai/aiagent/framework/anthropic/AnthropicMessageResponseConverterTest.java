@@ -125,7 +125,7 @@ class AnthropicMessageResponseConverterTest {
   }
 
   @Test
-  void mapsThinkingToReasoningContentWithRawBlockPayloadAndNullText() {
+  void mapsThinkingToReasoningContentWithRawBlockPayload() {
     final var message =
         message(
             """
@@ -145,12 +145,9 @@ class AnthropicMessageResponseConverterTest {
 
     final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
 
-    // `text` is intentionally null: the human-readable thinking is carried only once, inside the
-    // raw block payload, rather than duplicated into the neutral surface.
     assertThat(assistantMessage.content())
         .containsExactly(
             new ReasoningContent(
-                null,
                 Map.of(
                     "type",
                     "thinking",
@@ -163,7 +160,7 @@ class AnthropicMessageResponseConverterTest {
   }
 
   @Test
-  void mapsRedactedThinkingToReasoningContentWithRawBlockPayloadAndNullText() {
+  void mapsRedactedThinkingToReasoningContentWithRawBlockPayload() {
     final var message =
         message(
             """
@@ -186,7 +183,7 @@ class AnthropicMessageResponseConverterTest {
     assertThat(assistantMessage.content())
         .containsExactly(
             new ReasoningContent(
-                null, Map.of("type", "redacted_thinking", "data", "encrypted-blob"), null),
+                Map.of("type", "redacted_thinking", "data", "encrypted-blob"), null),
             TextContent.textContent("the answer"));
   }
 

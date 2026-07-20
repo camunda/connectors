@@ -457,7 +457,6 @@ class AnthropicMessageRequestConverterTest {
     // assistant turn that also contains tool use.
     final var reasoning =
         new ReasoningContent(
-            "Let me think it through",
             Map.of(
                 "type", "thinking",
                 "thinking", "Let me think it through",
@@ -495,7 +494,6 @@ class AnthropicMessageRequestConverterTest {
     // content array.
     final var reasoning =
         new ReasoningContent(
-            "Let me think it through",
             Map.of(
                 "type", "thinking",
                 "thinking", "Let me think it through",

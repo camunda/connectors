@@ -110,9 +110,7 @@ class AnthropicContentConverterTest {
       // e.g. reasoning content produced by the LangChain4J-routed path, which never populates
       // providerPayload; there is no raw block to replay, so it is skipped rather than dropped
       // silently as a null content block.
-      final var blocks =
-          converter.toContentBlockParams(
-              List.of(new ReasoningContent("some reasoning", null, null)));
+      final var blocks = converter.toContentBlockParams(List.of(new ReasoningContent(null, null)));
 
       assertThat(blocks).isEmpty();
     }
@@ -126,8 +124,7 @@ class AnthropicContentConverterTest {
               "signature", "sig-123");
 
       final var blocks =
-          converter.toContentBlockParams(
-              List.of(new ReasoningContent("Let me think it through", payload, null)));
+          converter.toContentBlockParams(List.of(new ReasoningContent(payload, null)));
 
       assertThat(blocks).hasSize(1);
       final var thinking = blocks.get(0).thinking().orElseThrow();
@@ -141,7 +138,7 @@ class AnthropicContentConverterTest {
           Map.<String, Object>of("type", "redacted_thinking", "data", "encrypted-blob");
 
       final var blocks =
-          converter.toContentBlockParams(List.of(new ReasoningContent(null, payload, null)));
+          converter.toContentBlockParams(List.of(new ReasoningContent(payload, null)));
 
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isRedactedThinking()).isTrue();
@@ -315,7 +312,8 @@ class AnthropicContentConverterTest {
     @Test
     void mapsReasoningContentToJsonTextBlockFallback() {
       final var blocks =
-          converter.toToolResultBlocks(List.of(new ReasoningContent("some reasoning", null, null)));
+          converter.toToolResultBlocks(
+              List.of(new ReasoningContent(Map.of("thinking", "some reasoning"), null)));
 
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isText()).isTrue();

@@ -95,7 +95,7 @@ class AwsAgentCoreConversationStoreReasoningRoundTripTest {
         AssistantMessage.builder()
             .content(
                 List.of(
-                    new ReasoningContent("why", Map.of("signature", "sig-xyz"), null),
+                    new ReasoningContent(Map.of("signature", "sig-xyz"), null),
                     TextContent.textContent("answer")))
             .build();
 
@@ -143,7 +143,6 @@ class AwsAgentCoreConversationStoreReasoningRoundTripTest {
       assertThat(restored.content()).containsExactlyElementsOf(assistant.content());
 
       var restoredReasoning = (ReasoningContent) restored.content().get(0);
-      assertThat(restoredReasoning.text()).isEqualTo("why");
       assertThat(restoredReasoning.providerPayload()).isEqualTo(Map.of("signature", "sig-xyz"));
     }
   }

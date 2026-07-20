@@ -439,9 +439,7 @@ class OpenAiResponsesRequestConverterTest {
   void replaysReasoningContentProviderPayloadAsInputItem() {
     final var reasoning =
         new ReasoningContent(
-            "Let me think it through",
-            Map.of("type", "reasoning", "id", "rs_123", "summary", List.of()),
-            null);
+            Map.of("type", "reasoning", "id", "rs_123", "summary", List.of()), null);
     final var snapshot =
         new ConversationSnapshot(
             List.of(AssistantMessage.builder().content(List.of(reasoning)).build()), List.of());
@@ -455,7 +453,7 @@ class OpenAiResponsesRequestConverterTest {
 
   @Test
   void skipsReasoningContentWithNullProviderPayload() {
-    final var reasoning = new ReasoningContent("Let me think it through", null, null);
+    final var reasoning = new ReasoningContent(null, null);
     final var snapshot =
         new ConversationSnapshot(
             List.of(AssistantMessage.builder().content(List.of(reasoning)).build()), List.of());
