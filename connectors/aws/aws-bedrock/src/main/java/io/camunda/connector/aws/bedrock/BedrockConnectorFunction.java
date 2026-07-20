@@ -11,11 +11,12 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.bedrock.core.BedrockExecutor;
 import io.camunda.connector.aws.bedrock.model.BedrockRequest;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @OutboundConnector(
     name = "AWS BedRock",
-    inputVariables = {"authentication", "configuration", "action", "data"},
+    inputVariables = {"authentication", "configuration", "action", "data", "awsCredential"},
     type = "io.camunda:aws-bedrock:1")
 @ElementTemplate(
     engineVersion = "^8.10",
@@ -35,7 +36,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       "generative AI"
     },
     inputDataClass = BedrockRequest.class,
-    version = 5,
+    configurations = {AwsCredentialConfiguration.class},
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

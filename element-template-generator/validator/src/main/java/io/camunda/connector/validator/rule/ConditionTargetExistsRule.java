@@ -29,8 +29,13 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Every property referenced from a {@code condition} must exist in the template's top-level {@code
- * properties[]}.
+ * Every property referenced from a {@code condition} must exist in the enclosing template's
+ * top-level {@code properties[]}.
+ *
+ * <p>An embedded configuration template ({@code configurationTemplates[*]}) is a self-contained
+ * document: its {@code properties[]} is its own scope, disjoint from the host template's, and its
+ * conditions are checked against that scope rather than the host's — the two are validated
+ * separately.
  *
  * <p>Supported condition shapes (matching the upstream Camunda element-template schema):
  *
@@ -44,9 +49,21 @@ public class ConditionTargetExistsRule implements Rule {
 
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
-    Set<String> propertyIds = collectPropertyIds(template);
     List<Finding> findings = new ArrayList<>();
-    walk(template, "", file, propertyIds, findings);
+    walk(template, "", file, collectPropertyIds(template), findings);
+
+    JsonNode configurationTemplates = template.path(ElementTemplate.CONFIGURATION_TEMPLATES);
+    if (configurationTemplates.isArray()) {
+      for (int i = 0; i < configurationTemplates.size(); i++) {
+        JsonNode configurationTemplate = configurationTemplates.get(i);
+        walk(
+            configurationTemplate,
+            "/" + ElementTemplate.CONFIGURATION_TEMPLATES + "/" + i,
+            file,
+            collectPropertyIds(configurationTemplate),
+            findings);
+      }
+    }
     return findings;
   }
 
@@ -69,6 +86,9 @@ public class ConditionTargetExistsRule implements Rule {
       JsonNode node, String pointer, Path file, Set<String> propertyIds, List<Finding> findings) {
     if (node.isObject()) {
       for (Map.Entry<String, JsonNode> entry : node.properties()) {
+        if (ElementTemplate.CONFIGURATION_TEMPLATES.equals(entry.getKey())) {
+          continue; // validated in its own scope by apply(), not the host's
+        }
         String childPointer = pointer + "/" + JsonPointers.escape(entry.getKey());
         if (ElementTemplate.CONDITION.equals(entry.getKey()) && entry.getValue().isObject()) {
           checkCondition(entry.getValue(), childPointer, file, propertyIds, findings);

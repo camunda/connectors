@@ -22,6 +22,7 @@ public final class ElementTemplate {
   private ElementTemplate() {}
 
   public static final String PROPERTIES = "properties";
+  public static final String CONFIGURATION_TEMPLATES = "configurationTemplates";
   public static final String GROUPS = "groups";
   public static final String ID = "id";
   public static final String VERSION = "version";

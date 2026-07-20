@@ -13,7 +13,9 @@ import jakarta.validation.constraints.NotEmpty;
 
 @TemplateSubType(id = BearerAuthentication.TYPE, label = "Bearer token")
 public record BearerAuthentication(
-    @FEEL @NotEmpty @TemplateProperty(group = "authentication", label = "Bearer token")
+    @FEEL
+        @NotEmpty
+        @TemplateProperty(group = "authentication", label = "Bearer token", secret = true)
         String token)
     implements Authentication {
 

@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
       "API call"
     },
     inputDataClass = GraphQLRequest.class,
-    version = 9,
+    version = 10,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),

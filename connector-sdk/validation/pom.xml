@@ -43,6 +43,14 @@
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- Test-only: lets the fixtures carry the same @JsonIgnore as real connector requests,
+         proving it does not interfere with Jakarta getter-constraint validation. -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
 </project>
