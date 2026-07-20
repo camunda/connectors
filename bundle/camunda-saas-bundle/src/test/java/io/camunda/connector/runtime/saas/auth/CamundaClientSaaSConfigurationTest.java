@@ -118,8 +118,7 @@ class CamundaClientSaaSConfigurationTest {
 
     assertThat(result).isInstanceOf(OAuthCredentialsProvider.class);
     var usedUrl = (URL) ReflectionTestUtils.getField(result, "authorizationServerUrl");
-    assertThat(usedUrl.toString())
-        .isEqualTo("https://per-client.token.example.com/oauth/token");
+    assertThat(usedUrl.toString()).isEqualTo("https://per-client.token.example.com/oauth/token");
     verify(mockSecretProvider)
         .getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_CLIENT_ID, null);
     verify(mockSecretProvider).getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_SECRET, null);

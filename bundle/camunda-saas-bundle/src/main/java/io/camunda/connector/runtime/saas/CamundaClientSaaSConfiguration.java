@@ -73,8 +73,7 @@ public class CamundaClientSaaSConfiguration {
           var auth = properties.getAuth();
           var tokenUrl =
               auth.getTokenUrl() != null ? auth.getTokenUrl().toString() : camundaClientTokenUrl;
-          var audience =
-              auth.getAudience() != null ? auth.getAudience() : camundaClientAudience;
+          var audience = auth.getAudience() != null ? auth.getAudience() : camundaClientAudience;
           var cachePath =
               auth.getCredentialsCachePath() != null
                   ? auth.getCredentialsCachePath()
