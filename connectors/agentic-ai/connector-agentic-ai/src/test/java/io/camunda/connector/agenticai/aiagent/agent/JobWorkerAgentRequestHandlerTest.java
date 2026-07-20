@@ -65,7 +65,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;

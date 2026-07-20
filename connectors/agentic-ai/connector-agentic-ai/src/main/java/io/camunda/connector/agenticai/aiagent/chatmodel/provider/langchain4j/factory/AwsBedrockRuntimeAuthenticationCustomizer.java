@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
-import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration;
 import java.util.List;
 import java.util.Map;
 import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;

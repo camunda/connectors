@@ -11,7 +11,7 @@ import com.anthropic.models.beta.messages.BetaSkillParams;
 /**
  * A parsed reference to an Anthropic Agent Skill, configured by users as a {@code
  * type:skill:version} FEEL string (see {@link
- * io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicConnection#skills()}).
+ * io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicConnection#skills()}).
  *
  * <p>Parsing splits the raw string on {@code ":"} and disambiguates by segment count:
  *

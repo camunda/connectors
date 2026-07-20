@@ -21,10 +21,10 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.V2ChatModelApiConfigurat
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequestV2;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicModel;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;

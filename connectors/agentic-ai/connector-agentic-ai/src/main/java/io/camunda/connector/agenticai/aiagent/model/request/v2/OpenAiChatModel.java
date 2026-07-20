@@ -4,15 +4,15 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.request.chatmodel;
+package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
-import static io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OPENAI_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OPENAI_ID;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesOverride;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;

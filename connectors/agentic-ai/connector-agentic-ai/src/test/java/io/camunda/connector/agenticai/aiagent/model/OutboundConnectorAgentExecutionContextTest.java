@@ -17,10 +17,10 @@ import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.Process
 import io.camunda.connector.agenticai.aiagent.chatmodel.V1ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.ToolsConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicModel;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 import java.util.stream.Stream;

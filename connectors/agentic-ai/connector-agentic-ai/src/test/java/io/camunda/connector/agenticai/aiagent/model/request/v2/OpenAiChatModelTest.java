@@ -4,19 +4,19 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.request.chatmodel;
+package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesOverride;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.CompatibleAuthentication.CompatibleApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.CompatibleAuthentication.CompatibleNoAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiBackend.OpenAiCompatibleBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.CompatibleAuthentication.CompatibleApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.CompatibleAuthentication.CompatibleNoAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend.OpenAiCompatibleBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiModel;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import java.util.Map;

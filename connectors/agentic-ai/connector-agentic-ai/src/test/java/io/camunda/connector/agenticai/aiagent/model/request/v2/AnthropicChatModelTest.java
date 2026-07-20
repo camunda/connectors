@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.request.chatmodel;
+package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -13,14 +13,14 @@ import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Mod
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicEffort;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.ThinkingMode;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicBedrockBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel.AnthropicModelParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel.AnthropicThinking;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication.AwsStaticCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicBackend.AnthropicBedrockBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicModel.AnthropicModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicModel.AnthropicThinking;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.ChatModelAwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.ChatModelAwsAuthentication.AwsStaticCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;

@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model.request;
 
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.V2ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.V2ProviderConfiguration;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 

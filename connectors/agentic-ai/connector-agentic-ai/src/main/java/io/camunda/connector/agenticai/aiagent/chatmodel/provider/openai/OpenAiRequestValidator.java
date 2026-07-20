@@ -8,9 +8,9 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiApiFamily;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiEffort;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiApiFamily;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiEffort;
 import io.camunda.connector.api.error.ConnectorException;
 import org.jspecify.annotations.Nullable;
 

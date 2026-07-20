@@ -18,10 +18,10 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Clo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Langchain4JChatModelApi;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicModel;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;

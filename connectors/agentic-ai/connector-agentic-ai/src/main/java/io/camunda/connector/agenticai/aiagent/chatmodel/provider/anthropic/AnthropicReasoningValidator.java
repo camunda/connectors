@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel.AnthropicModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicModel.AnthropicModelParameters;
 import io.camunda.connector.api.error.ConnectorException;
 import org.jspecify.annotations.Nullable;
 

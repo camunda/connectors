@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.core.http.ProxyAuthenticator;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
 import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;

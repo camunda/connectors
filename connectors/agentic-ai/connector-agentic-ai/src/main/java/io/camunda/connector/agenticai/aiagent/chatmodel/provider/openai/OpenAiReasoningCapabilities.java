@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiEffort;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiEffort;
 import java.util.List;
 
 /**

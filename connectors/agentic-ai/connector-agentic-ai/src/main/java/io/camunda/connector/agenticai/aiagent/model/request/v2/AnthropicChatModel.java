@@ -4,9 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.request.chatmodel;
+package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
-import static io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.ANTHROPIC_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.ANTHROPIC_ID;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -14,9 +14,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicEffort;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.ThinkingMode;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.ChatModelAwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;

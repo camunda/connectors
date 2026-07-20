@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.fa
 
 import dev.langchain4j.model.openai.OpenAiTokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetricsTokenUsageBuilder;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.time.Duration;
 import java.util.Optional;

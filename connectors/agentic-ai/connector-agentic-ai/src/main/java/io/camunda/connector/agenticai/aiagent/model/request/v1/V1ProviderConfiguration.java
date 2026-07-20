@@ -4,14 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.request.provider;
+package io.camunda.connector.agenticai.aiagent.model.request.v1;
 
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.ANTHROPIC_ID;
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BEDROCK_ID;
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID;
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OPENAI_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.ANTHROPIC_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v1.AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration.BEDROCK_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration.OPENAI_ID;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;

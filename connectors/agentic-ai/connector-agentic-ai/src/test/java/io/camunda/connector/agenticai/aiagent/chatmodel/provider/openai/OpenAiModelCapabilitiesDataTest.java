@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiEffort;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiEffort;
 import org.junit.jupiter.api.Test;
 
 class OpenAiModelCapabilitiesDataTest {

@@ -11,7 +11,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.V1ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.V1ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;

@@ -9,12 +9,12 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiApiFamily;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiModel;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiModel.OpenAiModelParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiEffort;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiApiFamily;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiModel.OpenAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiEffort;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import org.jspecify.annotations.Nullable;

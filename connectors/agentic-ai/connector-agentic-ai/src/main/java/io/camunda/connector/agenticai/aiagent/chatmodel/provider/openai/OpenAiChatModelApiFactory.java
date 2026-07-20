@@ -22,7 +22,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.r
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel;
 import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
 import java.util.Optional;
 import org.slf4j.Logger;

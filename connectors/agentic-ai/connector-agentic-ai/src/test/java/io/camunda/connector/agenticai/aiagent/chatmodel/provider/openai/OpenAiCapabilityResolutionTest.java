@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.capabilities.AgenticAiCapabilitiesConfiguration;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesResolver;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiEffort;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiEffort;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;

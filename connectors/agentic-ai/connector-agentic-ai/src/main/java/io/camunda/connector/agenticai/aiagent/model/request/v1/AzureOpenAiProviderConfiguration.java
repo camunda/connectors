@@ -4,14 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.request.provider;
+package io.camunda.connector.agenticai.aiagent.model.request.v1;
 
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v1.AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;

@@ -30,11 +30,11 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiApiFamily;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiApiFamily;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiModel;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;

@@ -9,9 +9,9 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.CompatibleAuthentication.CompatibleApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiBackend.OpenAiCompatibleBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.CompatibleAuthentication.CompatibleApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend.OpenAiCompatibleBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend;
 import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;

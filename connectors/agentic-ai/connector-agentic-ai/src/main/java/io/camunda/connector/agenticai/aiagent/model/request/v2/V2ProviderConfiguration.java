@@ -4,10 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.request.chatmodel;
+package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
-import static io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.ANTHROPIC_ID;
-import static io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OPENAI_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.ANTHROPIC_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OPENAI_ID;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;

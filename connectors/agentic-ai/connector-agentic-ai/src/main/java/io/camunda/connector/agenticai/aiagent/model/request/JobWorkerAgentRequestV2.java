@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest.JobWorkerAgentRequestData;
-import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.V2ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.V2ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;

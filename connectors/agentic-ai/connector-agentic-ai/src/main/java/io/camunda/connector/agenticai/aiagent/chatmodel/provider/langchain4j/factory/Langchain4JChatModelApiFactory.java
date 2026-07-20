@@ -19,7 +19,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jso
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetricsTokenUsageBuilder;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.V1ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.V1ProviderConfiguration;
 import org.jspecify.annotations.Nullable;
 
 /**

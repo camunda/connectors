@@ -4,12 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.request.provider;
+package io.camunda.connector.agenticai.aiagent.model.request.v1;
 
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.ANTHROPIC_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.ANTHROPIC_ID;
 
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;

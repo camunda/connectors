@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel;
 
-import io.camunda.connector.agenticai.aiagent.model.request.provider.V1ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.V1ProviderConfiguration;
 
 /** {@link ChatModelApiConfiguration} backed by a built-in {@link V1ProviderConfiguration}. */
 public record V1ChatModelApiConfiguration(V1ProviderConfiguration providerConfiguration)
