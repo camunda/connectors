@@ -16,15 +16,20 @@
  */
 package io.camunda.connector.runtime.saas.auth;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.impl.oauth.OAuthCredentialsProvider;
+import io.camunda.client.spring.properties.CamundaClientAuthProperties.AuthMethod;
 import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.saas.CamundaClientSaaSConfiguration;
 import io.camunda.connector.runtime.saas.SaaSSecretConfiguration;
+import java.net.URI;
+import java.net.URL;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -71,20 +76,52 @@ class CamundaClientSaaSConfigurationTest {
   }
 
   @Test
-  void whenCredentialsPresent_delegatesToSuperWithoutConsultingSecretProvider() {
+  void whenCredentialsPresent_delegatesToSuperAndReturnsOAuthProvider() {
     var config = createConfig();
     var properties = new CamundaClientProperties();
+    properties.getAuth().setMethod(AuthMethod.oidc);
     properties.getAuth().setClientId("provided-client-id");
     properties.getAuth().setClientSecret("provided-client-secret");
+    properties.getAuth().setAudience("test-audience");
+    properties.getAuth().setTokenUrl(URI.create("https://token.example.com/oauth/token"));
 
-    try {
-      // The super implementation may throw due to incomplete test properties;
-      // we only care that the internal secret provider is never consulted.
-      config.credentialsProviderConfiguration().camundaClientCredentialsProvider(properties);
-    } catch (Exception ignored) {
-      // expected: super may require additional config not available in a unit test
-    }
+    var result =
+        config.credentialsProviderConfiguration().camundaClientCredentialsProvider(properties);
 
+    assertThat(result).isInstanceOf(OAuthCredentialsProvider.class);
     verify(mockSecretProvider, never()).getSecret(any(), any());
+  }
+
+  @Test
+  void whenCredentialsMissingAndPerClientAuthValuesSet_usesPerClientValuesNotGlobal()
+      throws Exception {
+    when(mockSecretProvider.getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_CLIENT_ID, null))
+        .thenReturn("gcp-client-id");
+    when(mockSecretProvider.getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_SECRET, null))
+        .thenReturn("gcp-client-secret");
+
+    var config = new CamundaClientSaaSConfiguration(mockSaaSConfig);
+    ReflectionTestUtils.setField(
+        config, "camundaClientTokenUrl", "https://global.token.example.com/oauth/token");
+    ReflectionTestUtils.setField(config, "camundaClientAudience", "global-audience");
+    ReflectionTestUtils.setField(config, "credentialsCachePath", "/tmp/test-credentials");
+
+    var properties = new CamundaClientProperties();
+    properties
+        .getAuth()
+        .setTokenUrl(URI.create("https://per-client.token.example.com/oauth/token"));
+    properties.getAuth().setAudience("per-client-audience");
+    // clientId and clientSecret remain null -> uses internal secret provider
+
+    var result =
+        config.credentialsProviderConfiguration().camundaClientCredentialsProvider(properties);
+
+    assertThat(result).isInstanceOf(OAuthCredentialsProvider.class);
+    var usedUrl = (URL) ReflectionTestUtils.getField(result, "authorizationServerUrl");
+    assertThat(usedUrl.toString())
+        .isEqualTo("https://per-client.token.example.com/oauth/token");
+    verify(mockSecretProvider)
+        .getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_CLIENT_ID, null);
+    verify(mockSecretProvider).getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_SECRET, null);
   }
 }

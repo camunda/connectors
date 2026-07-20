@@ -70,12 +70,21 @@ public class CamundaClientSaaSConfiguration {
           final CamundaClientProperties properties) {
         if (properties.getAuth().getClientId() == null
             && properties.getAuth().getClientSecret() == null) {
+          var auth = properties.getAuth();
+          var tokenUrl =
+              auth.getTokenUrl() != null ? auth.getTokenUrl().toString() : camundaClientTokenUrl;
+          var audience =
+              auth.getAudience() != null ? auth.getAudience() : camundaClientAudience;
+          var cachePath =
+              auth.getCredentialsCachePath() != null
+                  ? auth.getCredentialsCachePath()
+                  : credentialsCachePath;
           return new OAuthCredentialsProviderBuilder()
               .clientId(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID, null))
               .clientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET, null))
-              .authorizationServerUrl(camundaClientTokenUrl)
-              .audience(camundaClientAudience)
-              .credentialsCachePath(credentialsCachePath)
+              .authorizationServerUrl(tokenUrl)
+              .audience(audience)
+              .credentialsCachePath(cachePath)
               .build();
         }
         return super.camundaClientCredentialsProvider(properties);
