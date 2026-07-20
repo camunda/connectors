@@ -74,7 +74,12 @@ public class GenerateElementTemplate {
             httpJsonTemplate.properties().stream()
                 .filter(GenerateElementTemplate::isAuthTypeDropdown)
                 .findFirst()
-                .orElseThrow();
+                .orElseThrow(
+                    () ->
+                        new IllegalStateException(
+                            "HTTP JSON's generated template no longer has an "
+                                + "\"authentication.type\" dropdown property -- has it been renamed"
+                                + " or removed?"));
 
     ElementTemplate salesforceTemplate =
         ElementTemplateBuilder.from(httpJsonTemplate)
