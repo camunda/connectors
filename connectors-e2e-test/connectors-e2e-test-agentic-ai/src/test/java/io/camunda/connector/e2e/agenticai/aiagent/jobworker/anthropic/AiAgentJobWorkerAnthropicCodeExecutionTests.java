@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic;
+package io.camunda.connector.e2e.agenticai.aiagent.jobworker.anthropic;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.jobworker.BaseAiAgentJobWorkerTest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs.ServerToolUseTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
@@ -49,7 +50,7 @@ import org.springframework.core.io.Resource;
  * End-to-end coverage for an Anthropic Skills/code-execution turn driven through the REAL {@code
  * BetaMessageAccumulator} (via {@link StreamingAnthropicMessagesSseChatModelStubs}), closing the
  * coverage gap that let a native-path {@code server_tool_use}/{@code code_execution_tool_result}
- * bug ship undetected: unlike {@link NativeAnthropicSkillsAndToolsWireFormatTest} (which only
+ * bug ship undetected: unlike {@link AiAgentJobWorkerAnthropicSkillsAndToolsTests} (which only
  * drives a plain-text turn, since server-side skill/tool execution can't be emulated by WireMock,
  * to assert the outgoing *request* shape), this test's stubbed *response* itself contains {@code
  * server_tool_use} and {@code code_execution_tool_result} content blocks - the shape a real
@@ -57,11 +58,11 @@ import org.springframework.core.io.Resource;
  * mistaking either block for a client tool call, and that a follow-up model call's assistant
  * history round-trips those blocks back onto the wire losslessly.
  *
- * <p>Reuses {@link NativeAnthropicSkillsAndToolsWireFormatTest}'s native-Anthropic element template
- * wiring (v2/own-LLM-layer template, {@code provider.anthropic.*} properties, skills configured via
- * {@code container.skills}).
+ * <p>Reuses {@link AiAgentJobWorkerAnthropicSkillsAndToolsTests}'s native-Anthropic element
+ * template wiring (v2/own-LLM-layer template, {@code provider.anthropic.*} properties, skills
+ * configured via {@code container.skills}).
  */
-class NativeAnthropicCodeExecutionServerToolE2eTest extends BaseAiAgentJobWorkerTest {
+class AiAgentJobWorkerAnthropicCodeExecutionTests extends BaseAiAgentJobWorkerTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -79,7 +80,7 @@ class NativeAnthropicCodeExecutionServerToolE2eTest extends BaseAiAgentJobWorker
    * Overridden directly (rather than the {@code withOpenAiCompatibleProvider} hook {@link
    * BaseAiAgentJobWorkerTest#createProcessInstance} composes) so this test's native-Anthropic
    * provider configuration - not the openaiCompatible default - configures the element template.
-   * Mirrors {@link NativeAnthropicSkillsAndToolsWireFormatTest#createProcessInstance}.
+   * Mirrors {@link AiAgentJobWorkerAnthropicSkillsAndToolsTests#createProcessInstance}.
    */
   @Override
   protected ZeebeTest createProcessInstance(
@@ -102,7 +103,7 @@ class NativeAnthropicCodeExecutionServerToolE2eTest extends BaseAiAgentJobWorker
    * Points the connector at this test's WireMock server via the native (v2) Anthropic direct
    * backend and configures an Anthropic-hosted skill, so the turn under test is plausible as a real
    * Skills-enabled response (a skills-configured agent triggering code execution), mirroring {@link
-   * NativeAnthropicSkillsAndToolsWireFormatTest#configureAnthropicSkillsAndTools}.
+   * AiAgentJobWorkerAnthropicSkillsAndToolsTests#configureAnthropicSkillsAndTools}.
    */
   private ElementTemplate configureAnthropicWithSkills(ElementTemplate template) {
     return template

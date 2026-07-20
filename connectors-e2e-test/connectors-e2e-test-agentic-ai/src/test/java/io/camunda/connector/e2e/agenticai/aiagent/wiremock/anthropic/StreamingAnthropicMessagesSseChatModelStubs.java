@@ -104,7 +104,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * earlier native-path bug in that block-mapping ship undetected (see {@link
  * ServerToolUseTurnStub}).
  */
-final class StreamingAnthropicMessagesSseChatModelStubs {
+public final class StreamingAnthropicMessagesSseChatModelStubs {
 
   private static final String SCENARIO_NAME = "llm-conversation-sse";
   private static final JsonMapper JSON_MAPPER = ObjectMappers.jsonMapper();
@@ -113,7 +113,7 @@ final class StreamingAnthropicMessagesSseChatModelStubs {
   private StreamingAnthropicMessagesSseChatModelStubs() {}
 
   /** Wires the scenario chain returning each turn's SSE response in order. */
-  static void stubConversation(TurnStub... turns) {
+  public static void stubConversation(TurnStub... turns) {
     if (turns.length == 0) {
       throw new IllegalArgumentException("At least one conversation turn is required");
     }
@@ -137,7 +137,7 @@ final class StreamingAnthropicMessagesSseChatModelStubs {
    * produce. This method - and {@link ServerToolUseTurnStub} - live only on this native-Anthropic
    * SSE stub instead.
    */
-  static void stubServerToolUseConversation(
+  public static void stubServerToolUseConversation(
       ServerToolUseTurnStub serverToolUseTurn, TurnStub... followUpTurns) {
     final List<String> bodies = new ArrayList<>();
     bodies.add(serverToolUseSseBody(serverToolUseTurn));
@@ -163,7 +163,7 @@ final class StreamingAnthropicMessagesSseChatModelStubs {
    * available (see {@code AnthropicContentConverter}/{@code AnthropicMessageRequestConverter
    * #assistantParam}).
    */
-  record ThinkingTurnStub(
+  public record ThinkingTurnStub(
       String thinking,
       String signature,
       List<ToolCallStub> toolCalls,
@@ -176,7 +176,8 @@ final class StreamingAnthropicMessagesSseChatModelStubs {
    * #stubServerToolUseConversation(ServerToolUseTurnStub, TurnStub...)}, just for a
    * client-tool-call turn instead of a server-tool turn.
    */
-  static void stubThinkingConversation(ThinkingTurnStub thinkingTurn, TurnStub... followUpTurns) {
+  public static void stubThinkingConversation(
+      ThinkingTurnStub thinkingTurn, TurnStub... followUpTurns) {
     final List<String> bodies = new ArrayList<>();
     bodies.add(thinkingSseBody(thinkingTurn));
     for (final TurnStub turn : followUpTurns) {
@@ -251,7 +252,7 @@ final class StreamingAnthropicMessagesSseChatModelStubs {
    * positioned before the tool-call block - on the follow-up model call once the tool result is
    * available (see {@code AnthropicContentConverter}).
    */
-  record RedactedThinkingTurnStub(
+  public record RedactedThinkingTurnStub(
       String data, List<ToolCallStub> toolCalls, int inputTokens, int outputTokens) {}
 
   /**
@@ -260,7 +261,7 @@ final class StreamingAnthropicMessagesSseChatModelStubs {
    * mirrors {@link #stubThinkingConversation(ThinkingTurnStub, TurnStub...)}, just for a redacted
    * thinking block instead of a signed one.
    */
-  static void stubRedactedThinkingConversation(
+  public static void stubRedactedThinkingConversation(
       RedactedThinkingTurnStub redactedTurn, TurnStub... followUpTurns) {
     final List<String> bodies = new ArrayList<>();
     bodies.add(redactedThinkingSseBody(redactedTurn));
@@ -374,7 +375,7 @@ final class StreamingAnthropicMessagesSseChatModelStubs {
    * with {@code stop_reason: end_turn} (never {@code tool_use}: server-tool blocks are resolved
    * server-side by Anthropic, not dispatched back to the caller as a client tool call).
    */
-  record ServerToolUseTurnStub(
+  public record ServerToolUseTurnStub(
       String precedingText,
       String serverToolUseId,
       String codeInputJson,

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai;
+package io.camunda.connector.e2e.agenticai.aiagent.jobworker.openai;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PROPERTIES;
@@ -24,9 +24,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.jobworker.BaseAiAgentJobWorkerTest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiResponsesRecordedConversation;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiResponsesRecordedConversation.RecordedChatRequest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiResponsesSseChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiResponsesSseChatModelStubs.ReasoningTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiResponsesSseChatModelStubs.ServerToolTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiResponsesWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.io.File;
@@ -46,7 +49,8 @@ import org.springframework.core.io.Resource;
  * round-trips byte-identical through the REAL vendor SDK {@code ResponseAccumulator}, and that a
  * server-tool item ({@code web_search_call}) is preserved as an opaque {@code ProviderContent}
  * block and replayed on a follow-up model call - the OpenAI analogue of {@code
- * NativeAnthropicReasoningEffortIT} and {@code NativeAnthropicCodeExecutionServerToolE2eTest}.
+ * AiAgentJobWorkerAnthropicReasoningEffortTests} and {@code
+ * AiAgentJobWorkerAnthropicCodeExecutionTests}.
  *
  * <p>Reuses {@link StreamingOpenAiResponsesWireFormatFixture}'s native-OpenAI-Responses element
  * template wiring (v2/own-LLM-layer template, {@code provider.openai.*} properties, compatible
@@ -56,13 +60,13 @@ import org.springframework.core.io.Resource;
  * {@link StreamingOpenAiResponsesRecordedConversation.RecordedChatRequest#include()}) to expose the
  * item kinds and top-level fields the shared {@code messages()} SPI mapping doesn't model.
  */
-class NativeOpenAiResponsesAdvancedFeaturesIT extends BaseAiAgentJobWorkerTest {
+class AiAgentJobWorkerOpenAiResponsesTests extends BaseAiAgentJobWorkerTest {
 
   /**
    * Matches the {@code openai-responses}/{@code gpt-5*} capability-matrix entry ({@code
    * provider.reasoning.effort-levels: [minimal, low, medium, high]}), so {@code effort=high} used
    * throughout this test validates successfully against a matched model - mirroring how {@code
-   * NativeAnthropicReasoningEffortIT} picks {@code claude-sonnet-4-6}.
+   * AiAgentJobWorkerAnthropicReasoningEffortTests} picks {@code claude-sonnet-4-6}.
    */
   private static final String REASONING_CAPABLE_MODEL = "gpt-5";
 
@@ -81,7 +85,7 @@ class NativeOpenAiResponsesAdvancedFeaturesIT extends BaseAiAgentJobWorkerTest {
    * BaseAiAgentJobWorkerTest#createProcessInstance} composes) so this test's
    * native-OpenAI-Responses provider configuration - not the openaiCompatible v1 default -
    * configures the element template. Mirrors {@code
-   * NativeAnthropicReasoningEffortIT#createProcessInstance}.
+   * AiAgentJobWorkerAnthropicReasoningEffortTests#createProcessInstance}.
    */
   @Override
   protected ZeebeTest createProcessInstance(
@@ -244,7 +248,7 @@ class NativeOpenAiResponsesAdvancedFeaturesIT extends BaseAiAgentJobWorkerTest {
     assertThat(recorded.modelCallCount()).as("recorded model-call requests").isEqualTo(2);
 
     // Scan the whole conversation rather than assuming a fixed turn index - mirrors
-    // NativeAnthropicCodeExecutionServerToolE2eTest's conversation-scanning assertion, since the
+    // AiAgentJobWorkerAnthropicCodeExecutionTests's conversation-scanning assertion, since the
     // block is replayed as part of whichever request first needs the assistant history replayed.
     assertWebSearchCallRoundTrips(recorded.requests(), webSearchCallId, searchQuery);
   }

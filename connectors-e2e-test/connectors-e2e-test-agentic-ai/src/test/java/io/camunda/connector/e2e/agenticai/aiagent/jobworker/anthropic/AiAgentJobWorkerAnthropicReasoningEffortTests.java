@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic;
+package io.camunda.connector.e2e.agenticai.aiagent.jobworker.anthropic;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -31,8 +31,10 @@ import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.jobworker.BaseAiAgentJobWorkerTest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs.RedactedThinkingTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs.ThinkingTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.io.File;
@@ -55,12 +57,12 @@ import org.springframework.core.io.Resource;
  * on the request side - not just at the unit level.
  *
  * <p>Follows the same native-Anthropic wiring as {@link
- * NativeAnthropicSkillsAndToolsWireFormatTest} / {@link
- * NativeAnthropicCodeExecutionServerToolE2eTest}: v2/own-LLM-layer element template, {@code
+ * AiAgentJobWorkerAnthropicSkillsAndToolsTests} / {@link
+ * AiAgentJobWorkerAnthropicCodeExecutionTests}: v2/own-LLM-layer element template, {@code
  * provider.anthropic.*} properties, {@link StreamingAnthropicMessagesSseChatModelStubs} for the
  * streamed SSE response.
  */
-class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
+class AiAgentJobWorkerAnthropicReasoningEffortTests extends BaseAiAgentJobWorkerTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -94,7 +96,7 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
    * Overridden directly (rather than the {@code withOpenAiCompatibleProvider} hook {@link
    * BaseAiAgentJobWorkerTest#createProcessInstance} composes) so this test's native-Anthropic
    * provider configuration - not the openaiCompatible default - configures the element template.
-   * Mirrors {@link NativeAnthropicSkillsAndToolsWireFormatTest#createProcessInstance}. Each
+   * Mirrors {@link AiAgentJobWorkerAnthropicSkillsAndToolsTests#createProcessInstance}. Each
    * {@code @Test} method supplies its own {@code elementTemplateModifier} (model id,
    * thinking/effort properties) which is applied AFTER the shared native-Anthropic backend wiring
    * below.

@@ -55,7 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * only produces {@link io.camunda.connector.agenticai.aiagent.model.message.content.TextContent}
  * for an {@code output_text} part) followed by one {@code function_call} item per tool call.
  */
-final class StreamingOpenAiResponsesSseChatModelStubs {
+public final class StreamingOpenAiResponsesSseChatModelStubs {
 
   static final String RESPONSES_PATH = "/v1/responses";
 
@@ -65,7 +65,7 @@ final class StreamingOpenAiResponsesSseChatModelStubs {
 
   private StreamingOpenAiResponsesSseChatModelStubs() {}
 
-  static void stubConversation(TurnStub... turns) {
+  public static void stubConversation(TurnStub... turns) {
     if (turns.length == 0) {
       throw new IllegalArgumentException("At least one conversation turn is required");
     }
@@ -83,7 +83,7 @@ final class StreamingOpenAiResponsesSseChatModelStubs {
    * stubThinkingConversation}, just for the Responses reasoning-item shape instead of Anthropic's
    * streamed {@code thinking} block.
    */
-  static void stubReasoningConversation(
+  public static void stubReasoningConversation(
       ReasoningTurnStub reasoningTurn, TurnStub... followUpTurns) {
     final List<String> bodies = new ArrayList<>();
     bodies.add(reasoningSseBody(reasoningTurn));
@@ -100,7 +100,7 @@ final class StreamingOpenAiResponsesSseChatModelStubs {
    * stubServerToolUseConversation}, just for OpenAI's {@code web_search_call} item instead of
    * Anthropic's {@code server_tool_use}/{@code code_execution_tool_result} block pair.
    */
-  static void stubServerToolConversation(
+  public static void stubServerToolConversation(
       ServerToolTurnStub serverToolTurn, TurnStub... followUpTurns) {
     final List<String> bodies = new ArrayList<>();
     bodies.add(serverToolSseBody(serverToolTurn));
@@ -159,7 +159,7 @@ final class StreamingOpenAiResponsesSseChatModelStubs {
    * - on the follow-up model call once the tool result is available (see {@code
    * OpenAiResponsesRequestConverter#assistantInputItems}).
    */
-  record ReasoningTurnStub(
+  public record ReasoningTurnStub(
       String reasoningId,
       String encryptedContent,
       List<ToolCallStub> toolCalls,
@@ -203,7 +203,7 @@ final class StreamingOpenAiResponsesSseChatModelStubs {
    * {@code OpenAiResponsesResponseConverter} captures it as {@code ProviderContent}, never {@code
    * toolCalls}.
    */
-  record ServerToolTurnStub(
+  public record ServerToolTurnStub(
       String text, String webSearchCallId, String searchQuery, int inputTokens, int outputTokens) {}
 
   private static String serverToolSseBody(ServerToolTurnStub turn) {
