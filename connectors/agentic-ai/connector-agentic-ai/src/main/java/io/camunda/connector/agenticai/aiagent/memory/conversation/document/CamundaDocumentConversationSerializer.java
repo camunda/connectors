@@ -26,18 +26,23 @@ public class CamundaDocumentConversationSerializer {
   }
 
   /**
-   * Reads the conversation document content, migrating its {@code messages} in place when {@code
-   * schemaVersion} predates {@link AgentContext#CURRENT_SCHEMA_VERSION} (Camunda 8.9 tool-call
-   * results persisted with a flat {@code content} field).
+   * Reads the conversation document content, migrating its {@code messages} in place when the
+   * payload's own {@code schemaVersion} predates {@link AgentContext#CURRENT_SCHEMA_VERSION}
+   * (Camunda 8.9 tool-call results persisted with a flat {@code content} field). The version is
+   * read from the document payload itself — each persisted conversation root is self-describing,
+   * mirroring the AWS AgentCore blob envelope — so a legacy payload behind a pointer-style {@code
+   * AgentContext} (whose bound {@code schemaVersion} defaults to current) is still migrated
+   * correctly.
    */
-  public DocumentContent readDocumentContent(Document document, int schemaVersion)
-      throws IOException {
-    if (schemaVersion >= AgentContext.CURRENT_SCHEMA_VERSION) {
-      return objectMapper.readValue(document.asInputStream(), DocumentContent.class);
+  public DocumentContent readDocumentContent(Document document) throws IOException {
+    final JsonNode tree = objectMapper.readTree(document.asInputStream());
+    final int schemaVersion =
+        tree.hasNonNull("schemaVersion")
+            ? tree.get("schemaVersion").asInt()
+            : AgentContext.LEGACY_SCHEMA_VERSION;
+    if (schemaVersion < AgentContext.CURRENT_SCHEMA_VERSION) {
+      ConversationSchemaMigration.upcastMessages(tree.get("messages"), objectMapper);
     }
-
-    JsonNode tree = objectMapper.readTree(document.asInputStream());
-    ConversationSchemaMigration.upcastMessages(tree.get("messages"), objectMapper);
     return objectMapper.treeToValue(tree, DocumentContent.class);
   }
 
