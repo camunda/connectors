@@ -8,11 +8,12 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSchemaMigration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.BlobEnvelope;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -49,7 +50,7 @@ class ToolCallResultMessageBackwardCompatibilityTest {
 
   @Test
   void inProcessFixtureDeserializesToolCallResultsAsStructuredContent() throws IOException {
-    AgentContext agentContext = readFixture("agentContext-inprocess.json", AgentContext.class);
+    AgentContext agentContext = readAgentContextFixture("agentContext-inprocess.json");
 
     assertThat(agentContext.conversation()).isInstanceOf(InProcessConversationContext.class);
     var conversation = (InProcessConversationContext) agentContext.conversation();
@@ -71,10 +72,7 @@ class ToolCallResultMessageBackwardCompatibilityTest {
 
   @Test
   void documentPayloadFixtureDeserializesToolCallResultsAsStructuredContent() throws IOException {
-    var documentContent =
-        readFixture(
-            "conversation-document-payload.json",
-            CamundaDocumentConversationContext.DocumentContent.class);
+    var documentContent = readDocumentContentFixture("conversation-document-payload.json");
 
     var toolCallResultMessages = toolCallResultMessages(documentContent.messages());
     assertThat(toolCallResultMessages).hasSize(4);
@@ -103,21 +101,80 @@ class ToolCallResultMessageBackwardCompatibilityTest {
   @Test
   void camundaDocumentPointerFixtureDeserializesToCamundaDocumentConversationContext()
       throws IOException {
-    AgentContext agentContext =
-        readFixture("agentContext-camunda-document.json", AgentContext.class);
+    AgentContext agentContext = readAgentContextFixture("agentContext-camunda-document.json");
 
     assertThat(agentContext.conversation()).isInstanceOf(CamundaDocumentConversationContext.class);
   }
 
   /**
+   * Regression pin for the exact collision Copilot flagged in review: an 8.9 tool-call-result whose
+   * {@code content} is a multi-block array that happens to look like a domain {@code List<Content>}
+   * (each element uses one of {@code Content}'s own type discriminators — text/object/document —
+   * and, incidentally, the same field names too). Under the removed shape-inference heuristic this
+   * would mis-split into several typed {@link
+   * io.camunda.connector.agenticai.aiagent.model.message.content.Content} blocks. The
+   * schema-version-gated migration must instead treat it as legacy data regardless of how its
+   * elements look and lift the *whole* array into a single opaque {@link ObjectContent} — exactly
+   * as it would for e.g. a persisted gateway (MCP/A2A) {@code List<McpContent>} result, whose
+   * elements share the very same type discriminator names.
+   */
+  @Test
+  void multiBlockLegacyContentThatLooksLikeContentBlocksStaysOpaque() throws IOException {
+    String json =
+        """
+        {
+          "state": "READY",
+          "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 1}},
+          "toolDefinitions": [],
+          "conversation": {
+            "type": "in-process",
+            "conversationId": "collision-test",
+            "messages": [
+              {
+                "role": "tool_call_result",
+                "results": [
+                  {
+                    "id": "call-1",
+                    "name": "gatewayTool",
+                    "content": [
+                      {"type": "text", "text": "hello"},
+                      {"type": "object", "content": {"key": "value"}}
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "properties": {}
+        }
+        """;
+
+    AgentContext agentContext =
+        ConversationSchemaMigration.migrateAndBindAgentContext(
+            objectMapper.readTree(json), objectMapper);
+
+    assertThat(agentContext.conversation()).isInstanceOf(InProcessConversationContext.class);
+    var conversation = (InProcessConversationContext) agentContext.conversation();
+    var toolCallResultMessages = toolCallResultMessages(conversation.messages());
+    assertThat(toolCallResultMessages).hasSize(1);
+
+    var result = toolCallResultMessages.get(0).results().getFirst();
+    assertThat(result.content())
+        .singleElement()
+        .isInstanceOfSatisfying(
+            ObjectContent.class,
+            objectContent -> assertThat((List<?>) objectContent.content()).hasSize(2));
+  }
+
+  /**
    * AWS AgentCore golden-fixture tests: real pre-existing (Camunda 8.9) {@code
-   * camunda.toolCallResults} {@link BlobEnvelope} JSON, captured from an actual AgentCore Memory
-   * session, must still deserialize through the exact path {@link
+   * camunda.toolCallResults} {@link BlobEnvelope} JSON — persisted at blob version 1, before the
+   * structured content shape existed — must still deserialize through the exact path {@link
    * io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper}
-   * uses on load ({@code BlobEnvelope.fromDocument(...).parseData(new
-   * TypeReference<List<ToolCallResultContent>>(){}, ...)}). AgentCore Memory is append-only, so
-   * old- and new-shape blob envelopes coexist in the same session forever; both shapes must keep
-   * deserializing.
+   * uses on load ({@code BlobEnvelope.fromDocument(...).parseToolCallResults(...)}, which upcasts
+   * when the blob's version predates {@link BlobEnvelope#CURRENT_VERSION}). AgentCore Memory is
+   * append-only, so old- and new-shape blob envelopes coexist in the same session forever; both
+   * shapes must keep deserializing.
    */
   @Test
   void toolCallResultMessage_awsAgentCoreBlobEnvelope_8_9_oldShapeLiftsToStructuredContent()
@@ -201,8 +258,7 @@ class ToolCallResultMessageBackwardCompatibilityTest {
     BlobEnvelope envelope = BlobEnvelope.forToolCallResults(original, objectMapper);
     Document document = envelope.toDocument(objectMapper);
     BlobEnvelope parsed = BlobEnvelope.fromDocument(document, objectMapper);
-    List<ToolCallResultContent> result =
-        parsed.parseData(new TypeReference<List<ToolCallResultContent>>() {}, objectMapper);
+    List<ToolCallResultContent> result = parsed.parseToolCallResults(objectMapper);
 
     assertThat(result).isEqualTo(original);
   }
@@ -218,7 +274,7 @@ class ToolCallResultMessageBackwardCompatibilityTest {
       throws IOException {
     Document blob = Document.fromString(objectMapper.writeValueAsString(envelopeNode));
     BlobEnvelope envelope = BlobEnvelope.fromDocument(blob, objectMapper);
-    return envelope.parseData(new TypeReference<List<ToolCallResultContent>>() {}, objectMapper);
+    return envelope.parseToolCallResults(objectMapper);
   }
 
   private List<JsonNode> readAwsAgentCoreEnvelopeArrayFixture(String fileName) throws IOException {
@@ -294,10 +350,34 @@ class ToolCallResultMessageBackwardCompatibilityTest {
         .toList();
   }
 
-  private <T> T readFixture(String fileName, Class<T> type) throws IOException {
+  /**
+   * Reads a persisted {@code agentContext} golden fixture through the same migrate-on-read path
+   * production code uses ({@code VersionedAgentContextDeserializer}): these 8.9 fixtures predate
+   * {@code schemaVersion}, so a direct {@code readValue} would no longer upcast legacy tool-call
+   * results by design (see {@link ToolCallResultContent}) — it must go through {@link
+   * ConversationSchemaMigration#migrateAndBindAgentContext}.
+   */
+  private AgentContext readAgentContextFixture(String fileName) throws IOException {
+    return ConversationSchemaMigration.migrateAndBindAgentContext(
+        readFixtureTree(fileName), objectMapper);
+  }
+
+  /**
+   * Reads a persisted conversation-document-store payload fixture, mirroring the store's own
+   * migrate-on-read path ({@code CamundaDocumentConversationSerializer#readDocumentContent}): this
+   * fixture predates {@code schemaVersion} (it is a legacy Camunda 8.9 payload), so its {@code
+   * messages} are upcasted before binding.
+   */
+  private DocumentContent readDocumentContentFixture(String fileName) throws IOException {
+    JsonNode tree = readFixtureTree(fileName);
+    ConversationSchemaMigration.upcastMessages(tree.get("messages"), objectMapper);
+    return objectMapper.treeToValue(tree, DocumentContent.class);
+  }
+
+  private JsonNode readFixtureTree(String fileName) throws IOException {
     try (InputStream stream = getClass().getResourceAsStream(FIXTURE_BASE_PATH + fileName)) {
       assertThat(stream).as("fixture resource %s", fileName).isNotNull();
-      return objectMapper.readValue(stream, type);
+      return objectMapper.readTree(stream);
     }
   }
 }

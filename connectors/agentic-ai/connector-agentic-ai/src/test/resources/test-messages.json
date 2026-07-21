@@ -51,16 +51,26 @@
       {
         "id": "abcdef",
         "name": "getWeather",
-        "content": "Sunny, 22°C"
+        "content": [
+          {
+            "type": "text",
+            "text": "Sunny, 22°C"
+          }
+        ]
       },
       {
         "id": "fedcba",
         "name": "getDateTime",
-        "content": {
-          "time": "15:56:50",
-          "date": "2025-04-14",
-          "iso": "2025-04-14T15:56:50"
-        }
+        "content": [
+          {
+            "type": "object",
+            "content": {
+              "time": "15:56:50",
+              "date": "2025-04-14",
+              "iso": "2025-04-14T15:56:50"
+            }
+          }
+        ]
       }
     ]
   },

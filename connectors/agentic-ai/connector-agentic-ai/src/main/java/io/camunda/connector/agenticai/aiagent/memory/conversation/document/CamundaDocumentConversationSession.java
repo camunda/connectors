@@ -90,7 +90,8 @@ public class CamundaDocumentConversationSession implements ConversationSession {
 
     try {
       final var content =
-          conversationSerializer.readDocumentContent(previousConversationContext.document());
+          conversationSerializer.readDocumentContent(
+              previousConversationContext.document(), agentContext.schemaVersion());
       return ConversationLoadResult.of(content.messages());
     } catch (IOException e) {
       throw new RuntimeException("Failed to load conversation from documentReference", e);

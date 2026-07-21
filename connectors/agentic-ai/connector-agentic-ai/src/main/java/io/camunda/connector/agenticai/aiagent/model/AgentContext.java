@@ -22,6 +22,7 @@ import org.jspecify.annotations.Nullable;
 @AgenticAiRecord
 @JsonDeserialize(builder = AgentContext.AgentContextJacksonProxyBuilder.class)
 public record AgentContext(
+    @RecordBuilder.Initializer("CURRENT_SCHEMA_VERSION") int schemaVersion,
     @RecordBuilder.Initializer("DEFAULT_STATE") AgentState state,
     @Nullable AgentMetadata metadata,
     @RecordBuilder.Initializer(source = AgentMetrics.class, value = "empty") AgentMetrics metrics,
@@ -29,6 +30,19 @@ public record AgentContext(
     @Nullable ConversationContext conversation,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties)
     implements AgentContextBuilder.With {
+
+  /**
+   * The current persisted shape of {@code AgentContext} and its conversation content. Bumped
+   * whenever a change to the persisted shape requires migrating previously-persisted state on read
+   * (see {@code ConversationSchemaMigration}).
+   */
+  public static final int CURRENT_SCHEMA_VERSION = 1;
+
+  /**
+   * Marker for state persisted before {@code schemaVersion} was introduced (Camunda 8.9). Such
+   * state is missing the field entirely; it is treated as this version and migrated on read.
+   */
+  public static final int LEGACY_SCHEMA_VERSION = 0;
 
   public static final AgentState DEFAULT_STATE = AgentState.INITIALIZING;
 
