@@ -66,8 +66,7 @@ public class EventBridgeFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) throws JsonProcessingException {
     var eventBridgeRequest = context.bindVariables(AwsEventBridgeRequest.class);
     try (EventBridgeClient client = createEventBridgeClient(eventBridgeRequest)) {
-      return objectMapper.convertValue(
-          putEvents(client, eventBridgeRequest.getInput()), Object.class);
+      return EventBridgeResult.from(putEvents(client, eventBridgeRequest.getInput()));
     }
   }
 
