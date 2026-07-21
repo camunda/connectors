@@ -56,6 +56,7 @@ public class AwsDynamoDbServiceConnectorFunction implements OutboundConnectorFun
         .invoke(
             AwsDynamoDbClientSupplier.getDynamoDdClient(
                 CredentialsProviderSupport.credentialsProvider(dynamoDbRequest),
-                dynamoDbRequest.getConfiguration().region()));
+                dynamoDbRequest.getConfiguration().region(),
+                dynamoDbRequest.getConfiguration().endpoint()));
   }
 }

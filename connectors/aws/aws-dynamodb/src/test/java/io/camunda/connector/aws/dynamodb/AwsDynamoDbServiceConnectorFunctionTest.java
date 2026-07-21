@@ -79,7 +79,7 @@ class AwsDynamoDbServiceConnectorFunctionTest extends BaseDynamoDbOperationTest 
     try (MockedStatic<AwsDynamoDbClientSupplier> clientSupplier =
         mockStatic(AwsDynamoDbClientSupplier.class)) {
       clientSupplier
-          .when(() -> AwsDynamoDbClientSupplier.getDynamoDdClient(any(), anyString()))
+          .when(() -> AwsDynamoDbClientSupplier.getDynamoDdClient(any(), anyString(), any()))
           .thenReturn(dynamoDB);
 
       Object result = new AwsDynamoDbServiceConnectorFunction().execute(context);
@@ -131,7 +131,7 @@ class AwsDynamoDbServiceConnectorFunctionTest extends BaseDynamoDbOperationTest 
     try (MockedStatic<AwsDynamoDbClientSupplier> clientSupplier =
         mockStatic(AwsDynamoDbClientSupplier.class)) {
       clientSupplier
-          .when(() -> AwsDynamoDbClientSupplier.getDynamoDdClient(any(), anyString()))
+          .when(() -> AwsDynamoDbClientSupplier.getDynamoDdClient(any(), anyString(), any()))
           .thenReturn(dynamoDB);
 
       Object result = new AwsDynamoDbServiceConnectorFunction().execute(context);
@@ -213,7 +213,7 @@ class AwsDynamoDbServiceConnectorFunctionTest extends BaseDynamoDbOperationTest 
     try (MockedStatic<AwsDynamoDbClientSupplier> clientSupplier =
         mockStatic(AwsDynamoDbClientSupplier.class)) {
       clientSupplier
-          .when(() -> AwsDynamoDbClientSupplier.getDynamoDdClient(any(), anyString()))
+          .when(() -> AwsDynamoDbClientSupplier.getDynamoDdClient(any(), anyString(), any()))
           .thenReturn(dynamoDB);
 
       Object result = new AwsDynamoDbServiceConnectorFunctionDeprecated().execute(context);
