@@ -9,10 +9,8 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.co
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverterImpl;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverterImpl;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Langchain4JAiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
@@ -32,18 +30,18 @@ import org.springframework.context.annotation.Import;
     value = "camunda.connector.agenticai.framework",
     havingValue = "langchain4j",
     matchIfMissing = true)
-@Import(AgenticAiLangchain4JChatModelConfiguration.class)
-public class AgenticAiLangchain4JFrameworkConfiguration {
+@Import(AgenticAiLangChain4JChatModelConfiguration.class)
+public class AgenticAiLangChain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public DocumentToContentConverter langchain4JDocumentToContentConverter() {
+  public DocumentToContentConverter langChain4JDocumentToContentConverter() {
     return new DocumentToContentConverterImpl();
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public ContentConverter langchain4JContentConverter(
+  public ContentConverter langChain4JContentConverter(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       DocumentToContentConverter documentToContentConverter) {
     return new ContentConverterImpl(objectMapper, documentToContentConverter);
@@ -51,42 +49,31 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ToolCallConverter langchain4JToolCallConverter(
+  public ToolCallConverter langChain4JToolCallConverter(
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new ToolCallConverterImpl(objectMapper);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public JsonSchemaConverter langchain4JJsonSchemaConverter(
+  public JsonSchemaConverter langChain4JJsonSchemaConverter(
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new JsonSchemaConverter(objectMapper);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public ToolSpecificationConverter langchain4JToolSpecificationConverter(
+  public ToolSpecificationConverter langChain4JToolSpecificationConverter(
       JsonSchemaConverter jsonSchemaConverter) {
     return new ToolSpecificationConverterImpl(jsonSchemaConverter);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatMessageConverter langchain4JChatMessageConverter(
+  public ChatMessageConverter langChain4JChatMessageConverter(
       ContentConverter contentConverter,
       ToolCallConverter toolCallConverter,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new ChatMessageConverterImpl(contentConverter, toolCallConverter, objectMapper);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public Langchain4JAiFrameworkAdapter langchain4JAiFrameworkAdapter(
-      ChatModelFactory chatModelFactory,
-      ChatMessageConverter chatMessageConverter,
-      ToolSpecificationConverter toolSpecificationConverter,
-      JsonSchemaConverter jsonSchemaConverter) {
-    return new Langchain4JAiFrameworkAdapter(
-        chatModelFactory, chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter);
   }
 }

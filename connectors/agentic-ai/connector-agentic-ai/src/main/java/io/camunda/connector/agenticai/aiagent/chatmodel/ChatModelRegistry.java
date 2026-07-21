@@ -4,10 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
+package io.camunda.connector.agenticai.aiagent.chatmodel;
 
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+/** Resolves the {@link ChatModel} responsible for a given {@link ChatModelConfiguration}. */
+public interface ChatModelRegistry {
 
-public interface ChatModelFactory {
-  CloseableChatModel createChatModel(ProviderConfiguration providerConfiguration);
+  ChatModel resolve(ChatModelConfiguration configuration);
 }

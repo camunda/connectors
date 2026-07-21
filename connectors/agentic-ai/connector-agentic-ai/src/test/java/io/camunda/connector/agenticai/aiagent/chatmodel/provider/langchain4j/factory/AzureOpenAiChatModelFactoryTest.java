@@ -4,15 +4,16 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport.MODEL_TIMEOUT;
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport.createDefaultChatModelProperties;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.MODEL_TIMEOUT;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.createDefaultChatModelProperties;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -21,9 +22,12 @@ import static org.mockito.Mockito.verify;
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ClientSecretCredential;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
@@ -48,7 +52,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AzureOpenAiChatModelProviderTest {
+class AzureOpenAiChatModelFactoryTest {
 
   private static final String AZURE_OPENAI_API_KEY = "azureOpenAiApiKey";
   private static final String AZURE_OPENAI_ENDPOINT = "https://azure-openai-endpoint.local";
@@ -66,8 +70,13 @@ class AzureOpenAiChatModelProviderTest {
           new ChatModelHttpProxySupport(
               proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
 
-  private final AzureOpenAiChatModelProvider provider =
-      new AzureOpenAiChatModelProvider(createDefaultChatModelProperties(), proxySupport);
+  private final AzureOpenAiChatModelFactory factory =
+      new AzureOpenAiChatModelFactory(
+          createDefaultChatModelProperties(),
+          proxySupport,
+          mock(ChatMessageConverter.class),
+          mock(ToolSpecificationConverter.class),
+          mock(JsonSchemaConverter.class));
 
   @Captor ArgumentCaptor<TokenCredential> tokenCredentialsCapture;
 
@@ -147,7 +156,7 @@ class AzureOpenAiChatModelProviderTest {
   @ParameterizedTest
   @NullSource
   @MethodSource(
-      "io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport#defaultTimeoutYieldingConfigs")
+      "io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport#defaultTimeoutYieldingConfigs")
   void createsAzureOpenAiChatModelWithUnspecifiedTimeouts(TimeoutConfiguration timeouts) {
     final var providerConfig =
         new AzureOpenAiProviderConfiguration(
@@ -173,7 +182,7 @@ class AzureOpenAiChatModelProviderTest {
         mockStatic(AzureOpenAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
       chatModelMock.when(AzureOpenAiChatModel::builder).thenReturn(chatModelBuilder);
 
-      final var chatModel = provider.createChatModel(providerConfig);
+      final var chatModel = factory.createChatModel(providerConfig);
       assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
       final var delegate = ((CloseableChatModelDelegate) chatModel).delegate();
       assertThat(delegate).isInstanceOf(AzureOpenAiChatModel.class);

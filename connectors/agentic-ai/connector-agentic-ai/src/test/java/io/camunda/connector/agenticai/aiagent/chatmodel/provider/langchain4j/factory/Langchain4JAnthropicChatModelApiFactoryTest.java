@@ -4,10 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport.MODEL_TIMEOUT;
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport.createDefaultChatModelProperties;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.MODEL_TIMEOUT;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.createDefaultChatModelProperties;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
@@ -22,10 +22,13 @@ import static org.mockito.Mockito.when;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.anthropic.AnthropicChatModel.AnthropicChatModelBuilder;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
@@ -48,7 +51,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AnthropicChatModelProviderTest {
+class Langchain4JAnthropicChatModelApiFactoryTest {
 
   private static final String ANTHROPIC_API_KEY = "anthropicApiKey";
   private static final String ANTHROPIC_MODEL = "anthropicModel";
@@ -62,8 +65,13 @@ class AnthropicChatModelProviderTest {
           new ChatModelHttpProxySupport(
               proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
 
-  private final AnthropicChatModelProvider provider =
-      new AnthropicChatModelProvider(createDefaultChatModelProperties(), proxySupport);
+  private final Langchain4JAnthropicChatModelApiFactory factory =
+      new Langchain4JAnthropicChatModelApiFactory(
+          createDefaultChatModelProperties(),
+          proxySupport,
+          mock(ChatMessageConverter.class),
+          mock(ToolSpecificationConverter.class),
+          mock(JsonSchemaConverter.class));
 
   @Test
   void createsAnthropicChatModel() {
@@ -131,7 +139,7 @@ class AnthropicChatModelProviderTest {
   @ParameterizedTest
   @NullSource
   @MethodSource(
-      "io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport#defaultTimeoutYieldingConfigs")
+      "io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport#defaultTimeoutYieldingConfigs")
   void createsAnthropicChatModelWithUnspecifiedTimeouts(TimeoutConfiguration timeouts) {
     final var providerConfig =
         new AnthropicProviderConfiguration(
@@ -165,7 +173,7 @@ class AnthropicChatModelProviderTest {
             mockStatic(AnthropicChatModel.class, Answers.CALLS_REAL_METHODS)) {
       httpClientMock.when(HttpClient::newBuilder).thenReturn(mockBuilder);
 
-      final var chatModel = (CloseableChatModel) provider.createChatModel(providerConfig);
+      final var chatModel = (CloseableChatModel) factory.createChatModel(providerConfig);
       assertThat(chatModel).isInstanceOf(CloseableChatModel.class);
 
       chatModel.close();
@@ -185,7 +193,7 @@ class AnthropicChatModelProviderTest {
         mockStatic(AnthropicChatModel.class, Answers.CALLS_REAL_METHODS)) {
       chatModelMock.when(AnthropicChatModel::builder).thenReturn(chatModelBuilder);
 
-      final var chatModel = provider.createChatModel(providerConfig);
+      final var chatModel = factory.createChatModel(providerConfig);
       assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
       assertThat(((CloseableChatModelDelegate) chatModel).delegate())
           .isSameAs(chatModelResultCaptor.getResult());

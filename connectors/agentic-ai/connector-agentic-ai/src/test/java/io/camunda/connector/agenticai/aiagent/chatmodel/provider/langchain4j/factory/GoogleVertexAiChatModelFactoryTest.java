@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,8 +22,11 @@ import static org.mockito.Mockito.when;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel.VertexAiGeminiChatModelBuilder;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
@@ -42,7 +45,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class GoogleVertexAiChatModelProviderTest {
+class GoogleVertexAiChatModelFactoryTest {
 
   private static final String PROJECT_ID = "projectId";
   private static final String REGION = "us-central1";
@@ -51,7 +54,11 @@ class GoogleVertexAiChatModelProviderTest {
   private static final GoogleVertexAiModelParameters DEFAULT_MODEL_PARAMETERS =
       new GoogleVertexAiModelParameters(10, 1.0F, 0.8F, 100);
 
-  private final GoogleVertexAiChatModelProvider provider = new GoogleVertexAiChatModelProvider();
+  private final GoogleVertexAiChatModelFactory factory =
+      new GoogleVertexAiChatModelFactory(
+          mock(ChatMessageConverter.class),
+          mock(ToolSpecificationConverter.class),
+          mock(JsonSchemaConverter.class));
 
   @Test
   void createsGoogleVertexAiChatModel() {
@@ -150,7 +157,7 @@ class GoogleVertexAiChatModelProviderTest {
         mockStatic(VertexAiGeminiChatModel.class, Answers.CALLS_REAL_METHODS)) {
       chatModelMock.when(VertexAiGeminiChatModel::builder).thenReturn(chatModelBuilder);
 
-      final var chatModel = provider.createChatModel(providerConfig);
+      final var chatModel = factory.createChatModel(providerConfig);
       assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
       final var delegate = ((CloseableChatModelDelegate) chatModel).delegate();
       assertThat(delegate).isInstanceOf(VertexAiGeminiChatModel.class);

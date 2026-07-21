@@ -118,6 +118,29 @@ public final class AgentConversation {
   }
 
   /**
+   * Closes the current (already-ingested) turn into {@link #previousTurns} and opens a new pending
+   * turn for a continuation round within this same invocation (e.g. an Anthropic-style {@code
+   * pause_turn}). A continuation round carries no new input messages — the model resumes on the
+   * existing conversation state — so the new pending turn starts empty; its iterationKey continues
+   * from the closed turn's.
+   *
+   * @throws IllegalStateException if the current turn has not been ingested yet
+   */
+  public AgentConversation nextContinuationRound() {
+    if (currentTurn.assistantMessage() == null) {
+      throw new IllegalStateException(
+          "nextContinuationRound() called before the current turn was ingested");
+    }
+    var updatedPreviousTurns = new ArrayList<>(previousTurns);
+    updatedPreviousTurns.add(currentTurn);
+    var nextTurn =
+        new AgentConversationTurn(
+            currentTurn.iterationKey() + 1, List.of(), null, AgentMetrics.empty());
+    return new AgentConversation(
+        configuration, currentContext, systemMessage, updatedPreviousTurns, nextTurn);
+  }
+
+  /**
    * Returns a new instance with the base agent context updated to reference the stored
    * conversation.
    */
@@ -218,10 +241,18 @@ public final class AgentConversation {
     return List.copyOf(all);
   }
 
-  /** Returns cumulative metrics: the base context metrics plus the current turn's delta. */
+  /**
+   * Returns cumulative metrics: the base context metrics, plus every previous turn's metrics, plus
+   * the current turn's delta. Durable turns reconstructed by {@link TurnReconstructor} always carry
+   * empty metrics (the cumulative counter lives on the base context instead), so they contribute
+   * zero here; the only {@link #previousTurns} entries with non-empty metrics are those rolled in
+   * by {@link #nextContinuationRound} within this invocation.
+   */
   public AgentMetrics totalMetrics() {
-    // it's currently the only total projection, as the TurnReconstructor is always assigning empty
-    // metrics per turn
-    return currentContext.metrics().add(currentTurnMetrics());
+    var sum = currentContext.metrics();
+    for (var turn : previousTurns) {
+      sum = sum.add(turn.metrics());
+    }
+    return sum.add(currentTurnMetrics());
   }
 }

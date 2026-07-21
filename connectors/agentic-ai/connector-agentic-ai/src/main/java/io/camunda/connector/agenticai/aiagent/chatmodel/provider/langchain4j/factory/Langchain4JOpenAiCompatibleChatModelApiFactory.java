@@ -4,16 +4,19 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderSupport.CONNECT_TIMEOUT;
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderSupport.CONNECT_TIMEOUT;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderSupport.deriveTimeoutSetting;
 
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
@@ -22,28 +25,33 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class OpenAiCompatibleChatModelProvider
-    implements ChatModelProvider<OpenAiCompatibleProviderConfiguration> {
+public class Langchain4JOpenAiCompatibleChatModelApiFactory
+    extends Langchain4JChatModelApiFactory<OpenAiCompatibleProviderConfiguration> {
 
   private static final Logger LOGGER =
-      LoggerFactory.getLogger(OpenAiCompatibleChatModelProvider.class);
+      LoggerFactory.getLogger(Langchain4JOpenAiCompatibleChatModelApiFactory.class);
 
   private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
-  public OpenAiCompatibleChatModelProvider(
-      ChatModelProperties config, ChatModelHttpProxySupport proxySupport) {
+  public Langchain4JOpenAiCompatibleChatModelApiFactory(
+      ChatModelProperties config,
+      ChatModelHttpProxySupport proxySupport,
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter) {
+    super(chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter);
     this.config = config;
     this.proxySupport = proxySupport;
   }
 
   @Override
-  public String type() {
+  protected String providerType() {
     return OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
   }
 
   @Override
-  public CloseableChatModel createChatModel(
+  protected CloseableChatModel createChatModel(
       OpenAiCompatibleProviderConfiguration openaiCompatible) {
     final var connection = openaiCompatible.openaiCompatible();
     final var apiTimeout =

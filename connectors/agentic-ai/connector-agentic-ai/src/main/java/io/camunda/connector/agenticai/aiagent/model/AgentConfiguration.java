@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
@@ -42,5 +43,10 @@ public record AgentConfiguration(
     return Optional.ofNullable(limits)
         .map(LimitsConfiguration::maxModelCalls)
         .orElse(DEFAULT_MAX_MODEL_CALLS);
+  }
+
+  /** The {@link ChatModelConfiguration} the {@code ChatModelRegistry} dispatches on. */
+  public ChatModelConfiguration chatModelConfiguration() {
+    return provider;
   }
 }
