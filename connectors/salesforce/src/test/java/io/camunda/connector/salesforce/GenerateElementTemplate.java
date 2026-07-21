@@ -37,6 +37,7 @@ import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.json.ElementTemplateModule;
 import io.camunda.connector.http.rest.HttpJsonFunction;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -67,6 +68,43 @@ public class GenerateElementTemplate {
       Set.of("bearer", "oauth-client-credentials-flow");
 
   public static void main(String[] args) throws Exception {
+    ElementTemplate salesforceTemplate = generate();
+
+    ObjectWriter writer =
+        new ObjectMapper()
+            .registerModule(new ElementTemplateModule())
+            .writer(
+                new DefaultPrettyPrinter()
+                    .withObjectIndenter(new DefaultIndenter().withLinefeed("\n")));
+
+    Path outputPath = templateOutputPath();
+    Files.createDirectories(outputPath.getParent());
+    writer.writeValue(outputPath.toFile(), salesforceTemplate);
+    System.out.println("Wrote " + outputPath);
+  }
+
+  /**
+   * Resolves the committed {@code element-templates/salesforce-connector.json} path via this
+   * class's own compiled location rather than a cwd-relative one: {@code mvn exec:java} runs with
+   * the reactor root (wherever {@code mvn} was invoked from) as the working directory, not this
+   * module's directory, so a plain {@code Path.of("element-templates", ...)} silently wrote to the
+   * wrong place when this module was built as part of a multi-module {@code -pl} invocation.
+   */
+  static Path templateOutputPath() throws URISyntaxException {
+    Path moduleRoot =
+        Path.of(
+                GenerateElementTemplate.class
+                    .getProtectionDomain()
+                    .getCodeSource()
+                    .getLocation()
+                    .toURI())
+            // .../target/test-classes -> .../target -> module root
+            .getParent()
+            .getParent();
+    return moduleRoot.resolve("element-templates").resolve("salesforce-connector.json");
+  }
+
+  static ElementTemplate generate() {
     ElementTemplate httpJsonTemplate =
         new ClassBasedTemplateGenerator().generate(HttpJsonFunction.class).get(0);
 
@@ -156,17 +194,7 @@ public class GenerateElementTemplate {
             .presets(buildPresets())
             .build();
 
-    ObjectWriter writer =
-        new ObjectMapper()
-            .registerModule(new ElementTemplateModule())
-            .writer(
-                new DefaultPrettyPrinter()
-                    .withObjectIndenter(new DefaultIndenter().withLinefeed("\n")));
-
-    Path outputPath = Path.of("element-templates", "salesforce-connector.json").toAbsolutePath();
-    Files.createDirectories(outputPath.getParent());
-    writer.writeValue(outputPath.toFile(), salesforceTemplate);
-    System.out.println("Wrote " + outputPath);
+    return salesforceTemplate;
   }
 
   private static boolean idIn(Property p, Set<String> ids) {
@@ -207,7 +235,7 @@ public class GenerateElementTemplate {
   /**
    * All property groups in display order. "authentication" carries no properties of its own here --
    * the actual authentication properties are inherited/hand-built directly into the flat properties
-   * list (see {@link #main}) and reference this group only via their own {@code group} field,
+   * list (see {@link #generate}) and reference this group only via their own {@code group} field,
    * matching how {@link PropertyGroup#properties()} is {@code @JsonIgnore}d anyway.
    */
   private static List<PropertyGroup> buildOperationalGroups() {
