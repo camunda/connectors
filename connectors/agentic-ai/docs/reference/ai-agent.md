@@ -333,9 +333,13 @@ ready for chat model implementations that need them.
 call result was the flat `ToolCallResult` shape — `content` was a raw scalar/object/array and any
 additional framework-internal properties were flattened as top-level fields. Old state is migrated on
 read by an **explicit persisted schema version**, not by inspecting the shape of `content`. Each
-conversation-state root carries a version — `schemaVersion` on `AgentContext` (`CURRENT_SCHEMA_VERSION`;
-absent ⇒ pre-8.10 legacy) for the process-variable payload, and the blob-envelope version for AWS
-AgentCore. On read, a shared upcaster (`ConversationSchemaMigration`) lifts the legacy flat `content`
+conversation-state root carries its own version and is migrated independently — `schemaVersion` on
+`AgentContext` (`CURRENT_SCHEMA_VERSION`; absent ⇒ pre-8.10 legacy) for the process-variable payload
+(which for the in-process store also holds the embedded messages), `schemaVersion` on the
+Camunda-document conversation payload, and the blob-envelope version for AWS AgentCore. A root's version
+is read from its own persisted form: for the pointer-based stores (Camunda document, AgentCore) the
+`AgentContext` is only a pointer, so its version says nothing about the externally-stored payload, which
+must therefore carry its own. On read, a shared upcaster (`ConversationSchemaMigration`) lifts the legacy flat `content`
 into the structured `List<Content>` before binding; `ToolCallResultContent` itself then deserializes
 only the current shape (a legacy shape reaching it un-upcasted fails loud). The lift is deliberate: a
 legacy gateway (MCP/A2A) result whose `content` was a list of provider blocks is wrapped as a single
