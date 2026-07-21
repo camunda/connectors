@@ -80,14 +80,18 @@ The SPI and its surrounding contract:
   not expose a combined `totalTokenCount` on the domain type: consumers use `inputTokenCount()` /
   `outputTokenCount()` (plus the auxiliary cache/reasoning counts) directly, since a single summed figure would
   be ambiguous about whether cache/reasoning tokens are already included.
-* **Persisted schema version**: each conversation-state root records an explicit schema version —
-  `schemaVersion` on `AgentContext` for the process-variable payload, the blob-envelope version for AWS
-  AgentCore. On read, a single shared upcaster migrates state persisted before the structured shape into it;
-  the domain types then deserialize only the current shape. The version is authoritative, rather than
-  inferring the format from the shape of `content` — a heuristic that was ambiguous with gateway (MCP/A2A)
-  tool results persisted as a list of provider content blocks sharing the same type discriminators, which
-  could be mis-read as domain content. The write path always persists the current shape, so a conversation is
-  migrated forward on its next write.
+* **Persisted schema version**: each conversation-state root records its own explicit schema version,
+  so it is self-describing and migrated independently of the others — `schemaVersion` on `AgentContext`
+  for the process-variable payload (which for the in-process store also carries the embedded messages),
+  `schemaVersion` on the Camunda-document conversation payload, and the blob-envelope version for AWS
+  AgentCore. A root's version is read from its own persisted form; for the pointer-based stores (Camunda
+  document, AgentCore) this is essential, because there the `AgentContext` is only a pointer and its
+  version says nothing about the externally-stored payload. On read, a single shared upcaster migrates
+  state persisted before the structured shape into it; the domain types then deserialize only the current
+  shape. The version is authoritative, rather than inferring the format from the shape of `content` — a
+  heuristic that was ambiguous with gateway (MCP/A2A) tool results persisted as a list of provider content
+  blocks sharing the same type discriminators, which could be mis-read as domain content. The write path
+  always persists the current shape, so a conversation is migrated forward on its next write.
 
 LangChain4J is reshaped into per-provider factories behind this SPI, with each factory's model-building logic
 unchanged.
