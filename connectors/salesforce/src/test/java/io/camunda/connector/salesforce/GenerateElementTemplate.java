@@ -73,9 +73,10 @@ public class GenerateElementTemplate {
     ObjectWriter writer =
         new ObjectMapper()
             .registerModule(new ElementTemplateModule())
-            .writer(
+            .writer()
+            .with(
                 new DefaultPrettyPrinter()
-                    .withObjectIndenter(new DefaultIndenter().withLinefeed("\n")));
+                    .withArrayIndenter(DefaultIndenter.SYSTEM_LINEFEED_INSTANCE));
 
     Path outputPath = templateOutputPath();
     Files.createDirectories(outputPath.getParent());
