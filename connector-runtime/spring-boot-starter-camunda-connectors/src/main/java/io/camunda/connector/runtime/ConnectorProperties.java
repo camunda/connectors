@@ -34,7 +34,7 @@ public record ConnectorProperties(
   // configuration annotation processor to generate the configuration properties metadata
 
   /** Configuration for the inbound webhook connector. */
-  public record Webhook(boolean enabled) {}
+  public record Webhook(boolean enabled, boolean appendPhysicalTenantAndTenantToPath) {}
 
   /** Configuration for Operate polling that enables inbound Connectors. */
   public record Polling(
