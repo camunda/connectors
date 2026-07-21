@@ -331,12 +331,17 @@ ready for chat model implementations that need them.
 
 **Backward compatibility (Camunda 8.9):** before `ToolCallResultContent` existed, a persisted tool
 call result was the flat `ToolCallResult` shape — `content` was a raw scalar/object/array and any
-additional framework-internal properties were flattened as top-level fields. A custom Jackson
-deserializer (`ToolCallResultContent.ContentJsonDeserializer`) accepts both shapes losslessly, using a
-shape test on the `content` JSON node (a content-block-list is always an array of objects carrying a
-`type` discriminator; anything else is the flat legacy shape). The write path always re-persists the
-structured shape, so a conversation touched again after upgrading is rewritten into the new format on
-its next write, even if it was originally read from 8.9 data.
+additional framework-internal properties were flattened as top-level fields. Old state is migrated on
+read by an **explicit persisted schema version**, not by inspecting the shape of `content`. Each
+conversation-state root carries a version — `schemaVersion` on `AgentContext` (`CURRENT_SCHEMA_VERSION`;
+absent ⇒ pre-8.10 legacy) for the process-variable payload, and the blob-envelope version for AWS
+AgentCore. On read, a shared upcaster (`ConversationSchemaMigration`) lifts the legacy flat `content`
+into the structured `List<Content>` before binding; `ToolCallResultContent` itself then deserializes
+only the current shape (a legacy shape reaching it un-upcasted fails loud). The lift is deliberate: a
+legacy gateway (MCP/A2A) result whose `content` was a list of provider blocks is wrapped as a single
+opaque `ObjectContent`, never re-split into typed `Content` — a shape heuristic could not distinguish
+it, since those blocks share the same `type` discriminators. The write path always re-persists the
+current shape, so a conversation touched again after upgrading is migrated forward on its next write.
 
 ---
 
@@ -912,9 +917,13 @@ per-invocation resources without a shared singleton lifecycle. A `ChatModelFacto
 (`aiagent/chatmodel/ChatModelFactory.java`) exposes `supports(ChatModelConfiguration)` and
 `create(ChatModelConfiguration)`.
 
-`ChatModelConfiguration` is a neutral, marker descriptor a factory inspects to decide whether it can
-serve a request (the sealed `ProviderConfiguration` — `AnthropicProviderConfiguration`,
-`BedrockProviderConfiguration`, etc. — is the concrete implementation contributed by this module).
+`ChatModelConfiguration` is a neutral descriptor a factory inspects to decide whether it can serve a
+request. It exposes just `provider()` (the provider discriminator) and `model()` (the model
+identifier) — enough for routing and agent-instance reporting — and is the type carried through
+`AgentConfiguration` (`chatModel()`) and dispatched on by the registry, so a provider can supply its
+own configuration through the SPI rather than being confined to the module's built-in provider union.
+The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockProviderConfiguration`,
+etc.) is the concrete implementation contributed by this module.
 `ChatModelRegistryImpl` asks every registered `ChatModelFactory` whether it `supports` the
 configuration and routes to the single match; a configuration matched by zero factories throws
 `IllegalArgumentException`, and one matched by more than one throws `IllegalStateException` — fail
@@ -950,7 +959,7 @@ factories:
   matchIfMissing = true)`) wires the converter beans; `AgenticAiLangChain4JChatModelConfiguration`
   wires one `ChatModelFactory` bean per provider.
 - `LangChain4JChatModelFactory<T extends ProviderConfiguration>` is the abstract base: `supports`
-  matches a `ProviderConfiguration` whose `providerType()` equals the factory's `providerType()`, and
+  matches a `ProviderConfiguration` whose `provider()` equals the factory's `providerType()`, and
   `create` builds the underlying LangChain4J model once via the abstract `createChatModel` and wraps it
   in a `LangChain4JChatModel`. Concrete subclasses: `AnthropicChatModelFactory`,
   `BedrockChatModelFactory`, `OpenAiChatModelFactory`, `OpenAiCompatibleChatModelFactory`,
