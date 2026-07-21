@@ -16,6 +16,12 @@
  */
 package io.camunda.connector.e2e;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
+import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -246,6 +252,26 @@ public class AwsTestHelper {
         .region(Region.of(localstack.getRegion()))
         .endpointOverride(localstack.getEndpoint())
         .build();
+  }
+
+  /**
+   * Initializes a DynamoDB document API client (mirroring the AWS DynamoDB connector's own v1 SDK
+   * client construction) for interacting with the LocalStack DynamoDB service.
+   *
+   * @param localstack The LocalStack container instance.
+   * @return Initialized DynamoDB document API client.
+   */
+  public static DynamoDB initDynamoDbClient(LocalStackContainer localstack) {
+    AmazonDynamoDB client =
+        AmazonDynamoDBClientBuilder.standard()
+            .withCredentials(
+                new AWSStaticCredentialsProvider(
+                    new BasicAWSCredentials(localstack.getAccessKey(), localstack.getSecretKey())))
+            .withEndpointConfiguration(
+                new AwsClientBuilder.EndpointConfiguration(
+                    localstack.getEndpoint().toString(), localstack.getRegion()))
+            .build();
+    return new DynamoDB(client);
   }
 
   /**

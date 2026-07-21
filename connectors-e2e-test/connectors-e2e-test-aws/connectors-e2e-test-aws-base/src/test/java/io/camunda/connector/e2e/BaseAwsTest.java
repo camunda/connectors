@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e;
 
+import static io.camunda.connector.e2e.AwsService.DYNAMODB;
 import static io.camunda.connector.e2e.AwsService.EVENTBRIDGE;
 import static io.camunda.connector.e2e.AwsService.LAMBDA;
 import static io.camunda.connector.e2e.AwsService.SNS;
@@ -69,7 +70,7 @@ public abstract class BaseAwsTest {
 
     localstack =
         new LocalStackContainer(localstackImage)
-            .withServices(LAMBDA, SNS, SQS, EVENTBRIDGE)
+            .withServices(LAMBDA, SNS, SQS, EVENTBRIDGE, DYNAMODB)
             .withEnv("DEFAULT_REGION", "us-east-1")
             .withEnv("AWS_ACCESS_KEY_ID", "myTestAccessKey")
             .withEnv("AWS_SECRET_ACCESS_KEY", "myTestSecretKey")
