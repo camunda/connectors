@@ -4,10 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport.MODEL_TIMEOUT;
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport.createDefaultChatModelProperties;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.MODEL_TIMEOUT;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.createDefaultChatModelProperties;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -21,10 +21,13 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
@@ -47,7 +50,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class OpenAiChatModelProviderTest {
+class Langchain4JOpenAiChatModelApiFactoryTest {
 
   private static final String OPEN_AI_API_KEY = "openAiApiKey";
   private static final String OPEN_AI_MODEL = "openAiModel";
@@ -61,8 +64,13 @@ class OpenAiChatModelProviderTest {
           new ChatModelHttpProxySupport(
               proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
 
-  private final OpenAiChatModelProvider provider =
-      new OpenAiChatModelProvider(createDefaultChatModelProperties(), proxySupport);
+  private final Langchain4JOpenAiChatModelApiFactory factory =
+      new Langchain4JOpenAiChatModelApiFactory(
+          createDefaultChatModelProperties(),
+          proxySupport,
+          mock(ChatMessageConverter.class),
+          mock(ToolSpecificationConverter.class),
+          mock(JsonSchemaConverter.class));
 
   @Captor private ArgumentCaptor<OpenAiChatRequestParameters> modelParametersArgumentCaptor;
 
@@ -148,7 +156,7 @@ class OpenAiChatModelProviderTest {
   @ParameterizedTest
   @NullSource
   @MethodSource(
-      "io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport#defaultTimeoutYieldingConfigs")
+      "io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport#defaultTimeoutYieldingConfigs")
   void createsOpenAiChatModelWithUnspecifiedTimeouts(TimeoutConfiguration timeouts) {
     final var providerConfig =
         new OpenAiProviderConfiguration(
@@ -180,7 +188,7 @@ class OpenAiChatModelProviderTest {
             mockStatic(OpenAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
       httpClientMock.when(HttpClient::newBuilder).thenReturn(mockBuilder);
 
-      final var chatModel = (CloseableChatModel) provider.createChatModel(providerConfig);
+      final var chatModel = (CloseableChatModel) factory.createChatModel(providerConfig);
       assertThat(chatModel).isInstanceOf(CloseableChatModel.class);
 
       chatModel.close();
@@ -200,7 +208,7 @@ class OpenAiChatModelProviderTest {
         mockStatic(OpenAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
       chatModelMock.when(OpenAiChatModel::builder).thenReturn(chatModelBuilder);
 
-      final var chatModel = provider.createChatModel(providerConfig);
+      final var chatModel = factory.createChatModel(providerConfig);
       assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
       assertThat(((CloseableChatModelDelegate) chatModel).delegate())
           .isSameAs(chatModelResultCaptor.getResult());

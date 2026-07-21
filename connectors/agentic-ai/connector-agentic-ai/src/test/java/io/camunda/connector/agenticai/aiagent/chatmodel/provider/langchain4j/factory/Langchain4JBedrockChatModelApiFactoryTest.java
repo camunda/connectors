@@ -4,10 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport.MODEL_TIMEOUT;
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport.createDefaultChatModelProperties;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.MODEL_TIMEOUT;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.createDefaultChatModelProperties;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
@@ -21,10 +21,13 @@ import static org.mockito.Mockito.verify;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockConnection;
@@ -58,7 +61,7 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilder;
 
 @ExtendWith(MockitoExtension.class)
-class BedrockChatModelProviderTest {
+class Langchain4JBedrockChatModelApiFactoryTest {
 
   private static final String BEDROCK_REGION = "eu-west-1";
   private static final String BEDROCK_API_KEY = "bedrockApiKey";
@@ -75,8 +78,13 @@ class BedrockChatModelProviderTest {
           new ChatModelHttpProxySupport(
               proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
 
-  private final BedrockChatModelProvider provider =
-      new BedrockChatModelProvider(createDefaultChatModelProperties(), proxySupport);
+  private final Langchain4JBedrockChatModelApiFactory factory =
+      new Langchain4JBedrockChatModelApiFactory(
+          createDefaultChatModelProperties(),
+          proxySupport,
+          mock(ChatMessageConverter.class),
+          mock(ToolSpecificationConverter.class),
+          mock(JsonSchemaConverter.class));
 
   @Captor private ArgumentCaptor<ChatRequestParameters> modelParametersArgumentCaptor;
   @Captor private ArgumentCaptor<AwsCredentialsProvider> credentialsProviderArgumentCaptor;
@@ -228,7 +236,7 @@ class BedrockChatModelProviderTest {
   @ParameterizedTest
   @NullSource
   @MethodSource(
-      "io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderTestSupport#defaultTimeoutYieldingConfigs")
+      "io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport#defaultTimeoutYieldingConfigs")
   void createsBedrockChatModelWithUnspecifiedTimeouts(TimeoutConfiguration timeouts) {
     final var providerConfig =
         new BedrockProviderConfiguration(
@@ -265,7 +273,7 @@ class BedrockChatModelProviderTest {
             mockStatic(BedrockChatModel.class, Answers.CALLS_REAL_METHODS)) {
       clientMock.when(BedrockRuntimeClient::builder).thenReturn(clientBuilder);
 
-      final var chatModel = provider.createChatModel(providerConfig);
+      final var chatModel = factory.createChatModel(providerConfig);
       assertThat(chatModel).isInstanceOf(CloseableChatModel.class);
 
       chatModel.close();
@@ -329,7 +337,7 @@ class BedrockChatModelProviderTest {
       final var builders =
           new BedrockBuilderContext(clientBuilder, clientResultCaptor, chatModelBuilder);
 
-      final var chatModel = provider.createChatModel(providerConfig);
+      final var chatModel = factory.createChatModel(providerConfig);
       assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModel.class);
       assertThat(((CloseableChatModelDelegate) chatModel).delegate())
           .isSameAs(chatModelResultCaptor.getResult());

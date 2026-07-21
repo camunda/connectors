@@ -4,15 +4,18 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderSupport.deriveTimeoutSetting;
 
 import com.azure.identity.ClientSecretCredentialBuilder;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
@@ -22,22 +25,27 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AzureOpenAiChatModelProvider
-    implements ChatModelProvider<AzureOpenAiProviderConfiguration> {
+public class AzureOpenAiChatModelFactory
+    extends LangChain4JChatModelFactory<AzureOpenAiProviderConfiguration> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AzureOpenAiChatModelProvider.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AzureOpenAiChatModelFactory.class);
 
   private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
-  public AzureOpenAiChatModelProvider(
-      ChatModelProperties config, ChatModelHttpProxySupport proxySupport) {
+  public AzureOpenAiChatModelFactory(
+      ChatModelProperties config,
+      ChatModelHttpProxySupport proxySupport,
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter) {
+    super(chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter);
     this.config = config;
     this.proxySupport = proxySupport;
   }
 
   @Override
-  public String type() {
+  public String providerType() {
     return AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
   }
 

@@ -32,13 +32,13 @@ import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
 import java.time.ZonedDateTime;
@@ -47,9 +47,13 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -223,6 +227,9 @@ class ChatMessageConverterTest {
               assertThat(((TextContent) content).text()).isEqualTo("AI response");
             });
 
+    assertThat(result.modelId()).isEqualTo("my-model");
+    assertThat(result.messageId()).isEqualTo("chatcmpl-123");
+
     assertThat(result.metadata()).containsKey("timestamp");
     assertThat((ZonedDateTime) result.metadata().get("timestamp"))
         .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
@@ -368,6 +375,57 @@ class ChatMessageConverterTest {
         .isEmpty();
   }
 
+  @ParameterizedTest
+  @MethodSource("finishReasonToStopReasonMappings")
+  void toAssistantMessage_mapsFinishReasonToStopReason(
+      FinishReason finishReason, StopReason expectedStopReason) {
+    final var aiMessage = AiMessage.builder().text("AI response").build();
+
+    final var chatResponseMetadata =
+        ChatResponseMetadata.builder()
+            .id("chatcmpl-123")
+            .modelName("my-model")
+            .finishReason(finishReason)
+            .tokenUsage(new TokenUsage(10, 20))
+            .build();
+
+    final var chatResponse =
+        new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    assertThat(result.stopReason()).isEqualTo(expectedStopReason);
+  }
+
+  private static Stream<Arguments> finishReasonToStopReasonMappings() {
+    return Stream.of(
+        Arguments.of(FinishReason.STOP, StopReason.STOP),
+        Arguments.of(FinishReason.LENGTH, StopReason.LENGTH),
+        Arguments.of(FinishReason.TOOL_EXECUTION, StopReason.TOOL_USE),
+        Arguments.of(FinishReason.CONTENT_FILTER, StopReason.CONTENT_FILTERED),
+        Arguments.of(FinishReason.OTHER, new StopReason.UnknownStopReason("OTHER")));
+  }
+
+  @Test
+  void toAssistantMessage_toleratesMissingModelIdAndMessageIdInResponseMetadata() {
+    final var aiMessage = AiMessage.builder().text("AI response").build();
+
+    // no id()/modelName() set — only finish reason and token usage present
+    final var chatResponseMetadata =
+        ChatResponseMetadata.builder()
+            .finishReason(FinishReason.STOP)
+            .tokenUsage(new TokenUsage(10, 20))
+            .build();
+
+    final var chatResponse =
+        new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    assertThat(result.modelId()).isNull();
+    assertThat(result.messageId()).isNull();
+  }
+
   @Test
   void toAssistantMessage_withToolExecutionRequests_convertsToolCalls() {
     final var toolExecutionRequest =
@@ -391,9 +449,12 @@ class ChatMessageConverterTest {
 
   @Test
   void fromToolCallResultMessage_convertsToolCallResults() {
-    ToolCallResult toolCallResult =
-        ToolCallResult.builder().id("toolCallId").name("toolName").content("Hello, world!").build();
-    ToolCallResultContent toolCallResultContent = ToolCallResultContent.from(toolCallResult);
+    ToolCallResultContent toolCallResultContent =
+        ToolCallResultContent.builder()
+            .id("toolCallId")
+            .name("toolName")
+            .content(List.of(TextContent.textContent("Hello, world!")))
+            .build();
     ToolCallResultMessage toolCallResultMessage =
         ToolCallResultMessage.builder().results(List.of(toolCallResultContent)).build();
 
