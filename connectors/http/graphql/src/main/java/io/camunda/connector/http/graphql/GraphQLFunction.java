@@ -8,6 +8,7 @@ package io.camunda.connector.http.graphql;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -26,10 +27,10 @@ import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "GraphQL",
-    inputVariables = {"graphql", "authentication"},
+    inputVariables = {"graphql", "authentication", "documentReturnFormat"},
     type = "io.camunda:connector-graphql:1")
 @ElementTemplate(
-    engineVersion = "^8.9",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.GraphQL.v1",
     name = "Send GraphQL Request",
     description = "Execute GraphQL query",
@@ -46,7 +47,7 @@ import org.slf4j.LoggerFactory;
       "API call"
     },
     inputDataClass = GraphQLRequest.class,
-    version = 10,
+    version = 11,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),
@@ -63,6 +64,8 @@ public class GraphQLFunction implements OutboundConnectorFunction {
 
   private final GraphQLRequestMapper graphQLRequestMapper;
 
+  private final ObjectMapper objectMapper;
+
   public GraphQLFunction() {
     this(ConnectorsObjectMapperSupplier.getCopy());
   }
@@ -70,6 +73,7 @@ public class GraphQLFunction implements OutboundConnectorFunction {
   public GraphQLFunction(final ObjectMapper objectMapper) {
     this.httpService = new HttpService();
     this.graphQLRequestMapper = new GraphQLRequestMapper(objectMapper);
+    this.objectMapper = objectMapper;
   }
 
   static final String GRAPHQL_ERROR_CODE = "GRAPHQL_ERROR";
@@ -79,20 +83,35 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     var graphQLRequest = context.bindVariables(GraphQLRequest.class);
     HttpCommonRequest commonRequest = graphQLRequestMapper.toHttpCommonRequest(graphQLRequest);
     LOGGER.debug("Executing graphql connector with request {}", commonRequest);
-    var rawResult = httpService.executeConnectorRequest(commonRequest, context);
+    var responseChoice = context.readDocumentReturnFormat().map(f -> f.choice()).orElse(null);
+    var rawResult = httpService.executeConnectorRequest(commonRequest, context, responseChoice);
+    if (rawResult instanceof DocumentReturn<?> documentReturn) {
+      // The body is only materialized inside the wrap lambda, so run the error check there too.
+      return new DocumentReturn<>(
+          documentReturn.payload(),
+          (converted, choice) ->
+              failOnGraphQLErrors(documentReturn.wrap().apply(converted, choice)));
+    }
+    return failOnGraphQLErrors(rawResult);
+  }
+
+  /** Raises a {@code GRAPHQL_ERROR} when the body is a GraphQL error envelope, else returns it. */
+  private Object failOnGraphQLErrors(Object rawResult) {
     if (!(rawResult instanceof HttpCommonResult result)) {
       return rawResult;
     }
-    if (result.body() instanceof Map<?, ?> body
-        && body.get("errors") instanceof List<?> errors
-        && !errors.isEmpty()) {
+    // JSON gives a Map directly; TEXT gives a String we parse so error detection still fires. A
+    // DOCUMENT body is a reference we cannot inspect inline (as with the legacy storeResponse
+    // path).
+    Map<?, ?> body = asErrorEnvelope(result.body());
+    if (body != null && body.get("errors") instanceof List<?> errors && !errors.isEmpty()) {
       var firstMessage =
           errors.get(0) instanceof Map<?, ?> firstError
                   && firstError.get("message") instanceof String msg
               ? msg
               : "GraphQL response contains errors";
       var responseVariables = new HashMap<String, Object>();
-      responseVariables.put("body", result.body());
+      responseVariables.put("body", body);
       responseVariables.put("headers", result.headers());
       throw new ConnectorExceptionBuilder()
           .errorCode(GRAPHQL_ERROR_CODE)
@@ -101,5 +120,22 @@ public class GraphQLFunction implements OutboundConnectorFunction {
           .build();
     }
     return result;
+  }
+
+  /**
+   * Returns the body as a Map if it is one or parses to one (TEXT choice); {@code null} otherwise.
+   */
+  private Map<?, ?> asErrorEnvelope(Object body) {
+    if (body instanceof Map<?, ?> map) {
+      return map;
+    }
+    if (body instanceof String text) {
+      try {
+        return objectMapper.readValue(text, Map.class);
+      } catch (Exception e) {
+        return null; // not JSON, so not a GraphQL error envelope
+      }
+    }
+    return null;
   }
 }

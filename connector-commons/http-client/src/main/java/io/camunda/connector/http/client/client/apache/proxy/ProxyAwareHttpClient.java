@@ -28,6 +28,7 @@ import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
 import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.SocketConfig;
@@ -81,6 +82,14 @@ public class ProxyAwareHttpClient implements Closeable {
   public <T> T execute(ClassicHttpRequest request, HttpClientResponseHandler<T> responseHandler)
       throws IOException {
     return client.execute(request, responseHandler);
+  }
+
+  /**
+   * Executes the request without closing the response. The caller MUST close the returned response
+   * and this client to release the connection.
+   */
+  public ClassicHttpResponse executeOpen(ClassicHttpRequest request) throws IOException {
+    return client.executeOpen(null, request, null);
   }
 
   private CloseableHttpClient createClient() {

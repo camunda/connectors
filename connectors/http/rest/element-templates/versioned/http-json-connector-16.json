@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Send REST Request",
-  "id" : "io.camunda.connectors.HttpJson.v2-hybrid",
+  "name" : "Send REST Request",
+  "id" : "io.camunda.connectors.HttpJson.v2",
   "description" : "Invoke REST API",
   "keywords" : [ "HTTP", "REST", "API call", "web request", "GET", "POST", "PUT", "PATCH", "DELETE", "fetch data", "send request", "invoke API" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 17,
+  "version" : 16,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,9 +18,6 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -49,14 +46,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:http-json:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "authenticationConfiguration",
     "label" : "Authentication credential",
@@ -569,6 +564,19 @@
     "tooltip" : "Map of query parameters to add to the request URL",
     "type" : "String"
   }, {
+    "id" : "storeResponse",
+    "label" : "Store response",
+    "optional" : false,
+    "value" : false,
+    "feel" : "static",
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "storeResponse",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Store the response as a document in the document store",
+    "type" : "Boolean"
+  }, {
     "id" : "skipEncoding",
     "label" : "Skip URL encoding",
     "optional" : true,
@@ -591,44 +599,6 @@
     },
     "tooltip" : "If enabled, HTTP 3xx redirects will be followed automatically. Disabled by default.",
     "type" : "Boolean"
-  }, {
-    "id" : "documentReturnFormat",
-    "label" : "Response format",
-    "value" : "JSON",
-    "group" : "endpoint",
-    "binding" : {
-      "name" : "documentReturnFormat.choice",
-      "type" : "zeebe:input"
-    },
-    "tooltip" : "How the response body should be returned. Document reference uploads the body to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Document reference",
-      "value" : "DOCUMENT"
-    }, {
-      "name" : "as text",
-      "value" : "TEXT"
-    }, {
-      "name" : "as JSON",
-      "value" : "JSON"
-    } ]
-  }, {
-    "id" : "documentReturnFormatEncoding",
-    "label" : "Encoding",
-    "description" : "Character set used to decode the response. Default UTF-8.",
-    "value" : "UTF-8",
-    "feel" : "optional",
-    "group" : "endpoint",
-    "binding" : {
-      "name" : "documentReturnFormat.encoding",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "documentReturnFormat",
-      "equals" : "TEXT",
-      "type" : "simple"
-    },
-    "type" : "String"
   }, {
     "id" : "connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
@@ -708,7 +678,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "17",
+    "value" : "16",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

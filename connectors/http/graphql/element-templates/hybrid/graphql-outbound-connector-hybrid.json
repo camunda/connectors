@@ -5,7 +5,7 @@
   "description" : "Execute GraphQL query",
   "keywords" : [ "API", "query", "mutation", "HTTP", "web request", "GraphQL", "fetch data", "data query", "execute query", "API call" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/graphql/",
-  "version" : 10,
+  "version" : 11,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -485,18 +485,43 @@
     "tooltip" : "Map of HTTP headers to add to the request",
     "type" : "String"
   }, {
-    "id" : "graphql.storeResponse",
-    "label" : "Store response",
-    "optional" : false,
-    "value" : false,
-    "feel" : "static",
+    "id" : "documentReturnFormat",
+    "label" : "Response format",
+    "value" : "JSON",
     "group" : "endpoint",
     "binding" : {
-      "name" : "graphql.storeResponse",
+      "name" : "documentReturnFormat.choice",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Store the response as a document in the document store",
-    "type" : "Boolean"
+    "tooltip" : "How the response body should be returned. Document reference uploads the body to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Document reference",
+      "value" : "DOCUMENT"
+    }, {
+      "name" : "as text",
+      "value" : "TEXT"
+    }, {
+      "name" : "as JSON",
+      "value" : "JSON"
+    } ]
+  }, {
+    "id" : "documentReturnFormatEncoding",
+    "label" : "Encoding",
+    "description" : "Character set used to decode the response. Default UTF-8.",
+    "value" : "UTF-8",
+    "feel" : "optional",
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "documentReturnFormat.encoding",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "documentReturnFormat",
+      "equals" : "TEXT",
+      "type" : "simple"
+    },
+    "type" : "String"
   }, {
     "id" : "graphql.query",
     "label" : "Query/Mutation",
@@ -553,7 +578,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "10",
+    "value" : "11",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
