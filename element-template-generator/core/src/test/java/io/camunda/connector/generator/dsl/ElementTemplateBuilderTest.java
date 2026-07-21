@@ -129,6 +129,18 @@ public class ElementTemplateBuilderTest {
   }
 
   @Test
+  void fromReconstructsReceiveTaskWhenOriginalTypeIsMissing() {
+    // RECEIVE_TASK.isMessage() is true, but a receive task has no eventDefinition of its own --
+    // resolveType() must not equate "isMessage()" with "has an eventDefinition" or this type can
+    // never be reconstructed once originalType is stripped (e.g. after deserializing from JSON).
+    var deserializedLike = withoutOriginalType(templateWithElementType(RECEIVE_TASK));
+
+    var rebuilt = ElementTemplateBuilder.from(deserializedLike).build();
+
+    assertThat(rebuilt.elementType().originalType()).isEqualTo(RECEIVE_TASK);
+  }
+
+  @Test
   void fromDisambiguatesEventTypesSharingTheSameBpmnValue() {
     // START_EVENT and MESSAGE_START_EVENT both serialize to value "bpmn:StartEvent"; only
     // eventDefinition tells them apart, and that must still resolve correctly when originalType
