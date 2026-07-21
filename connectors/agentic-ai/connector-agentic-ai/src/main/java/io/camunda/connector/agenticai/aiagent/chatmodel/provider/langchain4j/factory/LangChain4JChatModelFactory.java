@@ -22,7 +22,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Adapts one LangChain4J provider to the chat model SPI. {@link #supports} matches a {@link
- * ProviderConfiguration} whose {@link ProviderConfiguration#providerType()} equals {@link
+ * ProviderConfiguration} whose {@link ProviderConfiguration#provider()} equals {@link
  * #providerType()}, and {@link #create} builds the underlying LangChain4J chat model once via
  * {@link #createChatModel} and wraps it in a {@link LangChain4JChatModel}. Each built-in provider
  * is a concrete subclass supplying its own discriminator and model construction logic, registered
@@ -83,7 +83,7 @@ public abstract class LangChain4JChatModelFactory<T extends ProviderConfiguratio
   @Override
   public boolean supports(ChatModelConfiguration configuration) {
     return configuration instanceof ProviderConfiguration provider
-        && providerType().equals(provider.providerType());
+        && providerType().equals(provider.provider());
   }
 
   @Override

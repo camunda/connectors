@@ -11,4 +11,11 @@ package io.camunda.connector.agenticai.aiagent.chatmodel;
  * can serve a request and to build a {@link ChatModel}. Implementations are contributed by
  * connector variants and custom providers.
  */
-public interface ChatModelConfiguration {}
+public interface ChatModelConfiguration {
+
+  /** Type of the provider implementation used to resolve the backing chat model. */
+  String provider();
+
+  /** Identifier of the model to use (provider-specific format). */
+  String model();
+}
