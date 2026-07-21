@@ -27,6 +27,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
@@ -161,6 +163,44 @@ class CamundaDocumentConversationStoreTest {
       var loadResult = session.loadMessages(agentContext);
 
       assertThat(loadResult.messages()).containsExactlyElementsOf(TEST_MESSAGES);
+    }
+  }
+
+  /**
+   * Regression test for the bug Copilot flagged in review: the document store's {@code
+   * AgentContext} is only a pointer — the conversation {@code messages} live in the external
+   * document, not in {@code agentContext}. A legacy Camunda 8.9 document payload (flat {@code
+   * content}, no {@code schemaVersion}) must still be migrated on read even when the pointer-style
+   * {@code AgentContext} referencing it binds {@code schemaVersion()} to current (e.g. via {@link
+   * AgentContext#empty()}) — migration must be driven by the document payload's own version, not
+   * the pointer's.
+   */
+  @Test
+  void loadsLegacyDocumentPayloadRegardlessOfPointerAgentContextSchemaVersion() throws Exception {
+    final String legacyDocumentJson =
+        """
+        {"messages":[{"role":"tool_call_result","results":[{"id":"1","name":"t","content":"hello"}]}]}
+        """;
+
+    final var document = mock(Document.class);
+    when(document.asInputStream())
+        .thenReturn(new ByteArrayInputStream(legacyDocumentJson.getBytes(StandardCharsets.UTF_8)));
+
+    final var previousConversationContext =
+        CamundaDocumentConversationContext.builder("test-conversation").document(document).build();
+
+    // AgentContext.empty() binds schemaVersion to CURRENT_SCHEMA_VERSION even though the document
+    // behind the pointer is a legacy (Camunda 8.9) payload; the migration must not depend on this.
+    final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
+
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
+
+      assertThat(loadResult.messages()).hasSize(1);
+      var toolCallResultMessage = (ToolCallResultMessage) loadResult.messages().getFirst();
+      assertThat(toolCallResultMessage.results()).hasSize(1);
+      assertThat(toolCallResultMessage.results().getFirst().content())
+          .containsExactly(TextContent.textContent("hello"));
     }
   }
 

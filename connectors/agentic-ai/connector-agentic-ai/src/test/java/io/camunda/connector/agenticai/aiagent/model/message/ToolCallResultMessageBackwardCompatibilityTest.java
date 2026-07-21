@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSc
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.BlobEnvelope;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationSerializer;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -27,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import software.amazon.awssdk.core.document.Document;
 
 /**
@@ -363,15 +365,18 @@ class ToolCallResultMessageBackwardCompatibilityTest {
   }
 
   /**
-   * Reads a persisted conversation-document-store payload fixture, mirroring the store's own
-   * migrate-on-read path ({@code CamundaDocumentConversationSerializer#readDocumentContent}): this
-   * fixture predates {@code schemaVersion} (it is a legacy Camunda 8.9 payload), so its {@code
-   * messages} are upcasted before binding.
+   * Reads a persisted conversation-document-store payload fixture through the real production
+   * {@link CamundaDocumentConversationSerializer#readDocumentContent}: this fixture predates {@code
+   * schemaVersion} (it is a legacy Camunda 8.9 payload with no such field), so the version gate
+   * inside that method must detect absent -&gt; legacy and upcast its {@code messages} before
+   * binding.
    */
   private DocumentContent readDocumentContentFixture(String fileName) throws IOException {
-    JsonNode tree = readFixtureTree(fileName);
-    ConversationSchemaMigration.upcastMessages(tree.get("messages"), objectMapper);
-    return objectMapper.treeToValue(tree, DocumentContent.class);
+    final var serializer = new CamundaDocumentConversationSerializer(objectMapper);
+    final var document = Mockito.mock(io.camunda.connector.api.document.Document.class);
+    Mockito.when(document.asInputStream())
+        .thenReturn(getClass().getResourceAsStream(FIXTURE_BASE_PATH + fileName));
+    return serializer.readDocumentContent(document);
   }
 
   private JsonNode readFixtureTree(String fileName) throws IOException {
