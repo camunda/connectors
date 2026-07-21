@@ -24,6 +24,9 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
+import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -51,7 +54,7 @@ class PhysicalTenantIdResolutionTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-a"));
     when(registry.get("engine-a")).thenReturn(clientA);
 
-    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, 200);
+    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200);
 
     assertThat(result).containsOnlyKeys("explicit-tenant");
   }
@@ -63,7 +66,7 @@ class PhysicalTenantIdResolutionTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-b"));
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, 200);
+    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200);
 
     assertThat(result).containsOnlyKeys("engine-b");
   }
@@ -79,7 +82,7 @@ class PhysicalTenantIdResolutionTest {
         .thenThrow(new RuntimeException("client not initialized"));
     when(registry.get("engine-c")).thenReturn(uninitializedClient);
 
-    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, 200);
+    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200);
 
     assertThat(result).containsOnlyKeys("engine-c");
   }
@@ -95,9 +98,49 @@ class PhysicalTenantIdResolutionTest {
             new IllegalArgumentException("No CamundaClient configured under name 'default'"));
     var legacyClient = clientWithPhysicalTenantId("legacy-tenant");
 
-    var result = configuration.searchQueryClientsByPhysicalTenantId(registry, legacyClient, 200);
+    var result =
+        configuration.searchQueryClientsByPhysicalTenantId(registry, legacyClient, null, 200);
 
     assertThat(result).containsOnlyKeys("legacy-tenant");
+  }
+
+  @Test
+  void usesManuallySuppliedSearchQueryClientOverrideInsteadOfConstructingARealOne() {
+    // simulates the @MockitoBean SearchQueryClient pattern used across several single-client E2E
+    // test suites (e.g. HttpTests, BaseRabbitMqTest) to control process-definition search results
+    var registry = mock(CamundaClientRegistry.class);
+    var client = clientWithPhysicalTenantId("tenant");
+    when(registry.clientNames()).thenReturn(Set.of("default"));
+    when(registry.get("default")).thenReturn(client);
+    var overrideSearchQueryClient = mock(SearchQueryClient.class);
+
+    var result =
+        configuration.searchQueryClientsByPhysicalTenantId(
+            registry, null, overrideSearchQueryClient, 200);
+
+    assertThat(result).containsOnly(Map.entry("tenant", overrideSearchQueryClient));
+  }
+
+  @Test
+  void inboundCorrelationHandler_returnsTheSingleEntryForASinglePhysicalTenant() {
+    var handler = mock(InboundCorrelationHandler.class);
+
+    var result = configuration.inboundCorrelationHandler(Map.of("tenant", handler));
+
+    assertThat(result).isSameAs(handler);
+  }
+
+  @Test
+  void inboundCorrelationHandler_throwsClearErrorForMultiplePhysicalTenants() {
+    var handlerA = mock(InboundCorrelationHandler.class);
+    var handlerB = mock(InboundCorrelationHandler.class);
+
+    assertThatThrownBy(
+            () ->
+                configuration.inboundCorrelationHandler(
+                    Map.of("tenant-a", handlerA, "tenant-b", handlerB)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("InboundCorrelationHandler");
   }
 
   @Test
@@ -109,7 +152,7 @@ class PhysicalTenantIdResolutionTest {
             new IllegalArgumentException("No CamundaClient configured under name 'default'"));
 
     assertThatThrownBy(
-            () -> configuration.searchQueryClientsByPhysicalTenantId(registry, null, 200))
+            () -> configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("default");
   }
@@ -124,7 +167,7 @@ class PhysicalTenantIdResolutionTest {
     when(registry.get("engine-b")).thenReturn(clientB);
 
     assertThatThrownBy(
-            () -> configuration.searchQueryClientsByPhysicalTenantId(registry, null, 200))
+            () -> configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("same physical tenant ID");
   }

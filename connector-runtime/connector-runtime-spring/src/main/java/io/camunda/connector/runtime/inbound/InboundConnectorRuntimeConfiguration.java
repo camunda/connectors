@@ -67,6 +67,7 @@ import org.springframework.cache.support.NoOpCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.env.Environment;
 
 @Configuration
@@ -109,6 +110,20 @@ public class InboundConnectorRuntimeConfiguration {
                         connectorsInboundMetrics)));
   }
 
+  /**
+   * Backward-compatible scalar bean for existing single-physical-tenant call sites that
+   * {@code @Autowired} {@link InboundCorrelationHandler} directly rather than the
+   * per-physical-tenant map. {@code @Lazy} so it is only resolved (and only then required to be
+   * unambiguous) if something actually injects it — a genuine multi-physical-tenant context that
+   * never does so is unaffected.
+   */
+  @Bean
+  @Lazy
+  public InboundCorrelationHandler inboundCorrelationHandler(
+      Map<String, InboundCorrelationHandler> correlationHandlersByPhysicalTenantId) {
+    return onlyValue(correlationHandlersByPhysicalTenantId, InboundCorrelationHandler.class);
+  }
+
   @Bean
   public InboundConnectorContextFactory springInboundConnectorContextFactory(
       @ConnectorsObjectMapper ObjectMapper mapper,
@@ -146,7 +161,7 @@ public class InboundConnectorRuntimeConfiguration {
    * CamundaClient} bean when the registry claims the name exists (e.g. the "default" entry always
    * synthesized for legacy single-client configs) but no matching bean was actually registered —
    * for example when a {@code CamundaClient} bean is supplied manually/overridden (as in test
-   * fixtures) instead of via {@code camunda.client.clients.*}. Note {@link
+   * fixtures) instead of via {@code camunda.clients.*}. Note {@link
    * CamundaClientRegistry#find(String)} does not guard against this case itself: it still resolves
    * the underlying bean and throws if it is missing, so the fallback must catch that failure
    * directly rather than rely on an empty {@code Optional}.
@@ -203,6 +218,25 @@ public class InboundConnectorRuntimeConfiguration {
         });
   }
 
+  /**
+   * Resolves the single value of a per-physical-tenant map for backward-compatible scalar beans,
+   * failing clearly when more than one physical tenant is configured instead of silently picking an
+   * arbitrary one.
+   */
+  private static <T> T onlyValue(Map<String, T> byPhysicalTenantId, Class<T> beanType) {
+    if (byPhysicalTenantId.size() != 1) {
+      throw new IllegalStateException(
+          "No single "
+              + beanType.getSimpleName()
+              + " bean available: "
+              + byPhysicalTenantId.size()
+              + " physical tenants are configured; inject Map<String, "
+              + beanType.getSimpleName()
+              + "> instead.");
+    }
+    return byPhysicalTenantId.values().iterator().next();
+  }
+
   @Bean
   public InboundConnectorFactory springInboundConnectorFactory() {
     return new DefaultInboundConnectorFactory();
@@ -250,10 +284,19 @@ public class InboundConnectorRuntimeConfiguration {
     return new InboundInstancesService(inboundExecutableRegistry);
   }
 
+  /**
+   * Builds one {@link SearchQueryClient} per configured physical tenant. When a {@code
+   * SearchQueryClient} bean is manually supplied (e.g. a test's {@code @MockitoBean
+   * SearchQueryClient}, used across several single-client E2E test suites to control
+   * process-definition search results), that bean is used in place of constructing a real client —
+   * mirroring the {@code legacyCamundaClient} fallback above, since overriding this bean only makes
+   * sense for a single, legacy-style client configuration.
+   */
   @Bean
   Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId(
       CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
+      @Autowired(required = false) SearchQueryClient legacySearchQueryClient,
       @Value("${camunda.connector.process-definition-search.page-size:200}") int limit) {
     return registry.clientNames().stream()
         .collect(
@@ -261,8 +304,10 @@ public class InboundConnectorRuntimeConfiguration {
                 registry,
                 legacyCamundaClient,
                 name ->
-                    new SearchQueryClientImpl(
-                        resolveClient(registry, name, legacyCamundaClient), limit)));
+                    legacySearchQueryClient != null
+                        ? legacySearchQueryClient
+                        : new SearchQueryClientImpl(
+                            resolveClient(registry, name, legacyCamundaClient), limit)));
   }
 
   @Bean

@@ -17,7 +17,14 @@
 package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult;
+import jakarta.annotation.PreDestroy;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,6 +36,7 @@ public class ImportSchedulers {
 
   private final ProcessStateManager stateStore;
   private final Map<String, Importers> importersByPhysicalTenantId;
+  private final ExecutorService executor;
 
   private volatile boolean ready = true;
 
@@ -41,24 +49,14 @@ public class ImportSchedulers {
     this.activeVersionsPollingEnabled = activeVersionsPollingEnabled;
     this.stateStore = stateStore;
     this.importersByPhysicalTenantId = importersByPhysicalTenantId;
+    this.executor = Executors.newVirtualThreadPerTaskExecutor();
   }
 
   @Scheduled(
       fixedDelayString = "${camunda.connector.polling.interval:5000}",
       initialDelayString = "${camunda.connector.polling.initial-delay:0}")
   public void scheduleLatestVersionImport() {
-    boolean allOk = true;
-    for (var entry : importersByPhysicalTenantId.entrySet()) {
-      try {
-        var result = entry.getValue().importLatestVersions();
-        stateStore.update(result);
-      } catch (Exception e) {
-        LOG.error(
-            "Failed to import LATEST process versions for physical tenant '{}'", entry.getKey(), e);
-        allOk = false;
-      }
-    }
-    ready = allOk;
+    ready = pollAllPhysicalTenants("LATEST", Importers::importLatestVersions);
   }
 
   @Scheduled(
@@ -69,21 +67,50 @@ public class ImportSchedulers {
       LOG.debug("Skipping active versions polling.");
       return;
     }
-    boolean allOk = true;
-    for (var entry : importersByPhysicalTenantId.entrySet()) {
-      try {
-        var result = entry.getValue().importActiveVersions();
-        stateStore.update(result);
-      } catch (Exception e) {
-        LOG.error(
-            "Failed to import ACTIVE process versions for physical tenant '{}'", entry.getKey(), e);
-        allOk = false;
-      }
+    ready = pollAllPhysicalTenants("ACTIVE", Importers::importActiveVersions);
+  }
+
+  /**
+   * Polls every configured physical tenant concurrently, so that one tenant stalling (e.g. a
+   * connection attempt that hangs until timeout) does not delay the others from starting and
+   * completing within the same scheduled tick.
+   */
+  private boolean pollAllPhysicalTenants(
+      String importTypeLabel, Function<Importers, ImportResult> importFn) {
+    List<CompletableFuture<Boolean>> futures =
+        importersByPhysicalTenantId.entrySet().stream()
+            .map(
+                entry ->
+                    CompletableFuture.supplyAsync(
+                        () -> pollOnePhysicalTenant(importTypeLabel, importFn, entry), executor))
+            .toList();
+    return futures.stream().map(CompletableFuture::join).reduce(true, Boolean::logicalAnd);
+  }
+
+  private boolean pollOnePhysicalTenant(
+      String importTypeLabel,
+      Function<Importers, ImportResult> importFn,
+      Map.Entry<String, Importers> entry) {
+    try {
+      var result = importFn.apply(entry.getValue());
+      stateStore.update(result);
+      return true;
+    } catch (Exception e) {
+      LOG.error(
+          "Failed to import {} process versions for physical tenant '{}'",
+          importTypeLabel,
+          entry.getKey(),
+          e);
+      return false;
     }
-    ready = allOk;
   }
 
   public boolean isReady() {
     return ready;
+  }
+
+  @PreDestroy
+  public void shutdown() {
+    executor.shutdown();
   }
 }

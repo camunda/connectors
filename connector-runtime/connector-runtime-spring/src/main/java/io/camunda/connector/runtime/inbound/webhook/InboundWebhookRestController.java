@@ -183,7 +183,7 @@ public class InboundWebhookRestController {
       Map<String, String> headers,
       HttpServletRequest httpServletRequest)
       throws IOException {
-    LOG.trace("Received inbound hook on {}", context);
+    LOG.trace("Received inbound hook on {}", sanitizeForLog(context));
     // Body must be read before any call that triggers form-parameter parsing (e.g.
     // getParameterMap).
     // For application/x-www-form-urlencoded requests, Tomcat consumes the input stream when
@@ -514,6 +514,14 @@ public class InboundWebhookRestController {
     }
 
     return sb.toString();
+  }
+
+  /**
+   * Strips CR/LF from a user-controlled value before it is written to the log, so a crafted path
+   * segment cannot forge additional log lines/entries (log injection, CWE-117).
+   */
+  private static String sanitizeForLog(String value) {
+    return value == null ? null : value.replaceAll("[\r\n]", "_");
   }
 
   private static Map<String, String> extractQueryParams(String queryString) {
