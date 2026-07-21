@@ -57,7 +57,10 @@ The SPI and its surrounding contract:
   closed per request (try-with-resources), so a provider may hold per-invocation resources without a shared
   singleton lifecycle.
 * **`ChatModelRegistry`** resolves a provider by `supports(configuration)` and fails loud when zero or more
-  than one factory matches, replacing the previous fixed adapter binding.
+  than one factory matches, replacing the previous fixed adapter binding. It dispatches on a neutral
+  `ChatModelConfiguration` — the type carried through the agent configuration, exposing only `provider()` and
+  `model()` — so a provider can supply its own configuration through the SPI rather than being confined to the
+  module's built-in provider union.
 * **Turn-based continuation**: `ChatResult` is a sealed `Completed | Continuation`. The request handler
   loops while the result is a `Continuation`, persisting each round as a separate turn. LangChain4J always
   returns `Completed`, so the loop runs exactly once for it — behavior-identical to the previous single call.
@@ -66,8 +69,9 @@ The SPI and its surrounding contract:
   ingesting the response), so every current and future provider inherits it rather than each reimplementing it.
 * **Structured content model**: tool-call results are persisted as a structured `List<Content>`
   (`ToolCallResultContent`) instead of an untyped payload, and the sealed content model gains `ReasoningContent`
-  (an opaque provider reasoning payload) and `ProviderContent` (a provider-native block preserved verbatim). A
-  backward-compatible deserializer reads the flat pre-existing (Camunda 8.9) shape. This shapes the SPI to
+  (an opaque provider reasoning payload) and `ProviderContent` (a provider-native block preserved verbatim).
+  Pre-existing (Camunda 8.9) state is migrated on read (see *Persisted schema version* below) rather than
+  inferred from the JSON shape. This shapes the SPI to
   support state-of-the-art tool-call-result handling; the capability-aware routing that *consumes* the
   structure is a later change, and the current document handling defined in
   [ADR 004](004-document-handling-in-tool-call-results.md) is preserved unchanged.
@@ -76,6 +80,14 @@ The SPI and its surrounding contract:
   not expose a combined `totalTokenCount` on the domain type: consumers use `inputTokenCount()` /
   `outputTokenCount()` (plus the auxiliary cache/reasoning counts) directly, since a single summed figure would
   be ambiguous about whether cache/reasoning tokens are already included.
+* **Persisted schema version**: each conversation-state root records an explicit schema version —
+  `schemaVersion` on `AgentContext` for the process-variable payload, the blob-envelope version for AWS
+  AgentCore. On read, a single shared upcaster migrates state persisted before the structured shape into it;
+  the domain types then deserialize only the current shape. The version is authoritative, rather than
+  inferring the format from the shape of `content` — a heuristic that was ambiguous with gateway (MCP/A2A)
+  tool results persisted as a list of provider content blocks sharing the same type discriminators, which
+  could be mis-read as domain content. The write path always persists the current shape, so a conversation is
+  migrated forward on its next write.
 
 LangChain4J is reshaped into per-provider factories behind this SPI, with each factory's model-building logic
 unchanged.
@@ -98,8 +110,8 @@ Deliberately out of scope here and addressed by separate ADRs / changes:
 
 ### Negative Consequences
 
-* The persisted tool-call-result format changes, requiring backward-compatible reads of pre-existing state
-  (handled by the deserializer and covered by golden-state tests).
+* The persisted tool-call-result format changes, requiring migration of pre-existing state on read (handled by
+  an explicit persisted schema version and a shared upcaster, covered by golden-state tests).
 * The new content blocks and metric fields are additive and not yet produced or consumed by every path.
 
 ## Pros and Cons of the Options
