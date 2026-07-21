@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSchemaMigration;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -38,7 +39,19 @@ import software.amazon.awssdk.core.document.Document;
  */
 public record BlobEnvelope(String blobType, int version, JsonNode data) {
 
-  public static final int CURRENT_VERSION = 1;
+  /**
+   * Bumped from 1 to 2 to mark the {@code TOOL_CALL_RESULTS} content shape change: pre-existing
+   * (Camunda 8.9) blobs persisted a flat {@code content} field on each result, which version 1 does
+   * not distinguish from the current structured {@code List<Content>} shape. New writes emit
+   * version 2; {@link #parseToolCallResults} upcasts on read when a blob's version is lower.
+   */
+  public static final int CURRENT_VERSION = 2;
+
+  /** The lowest {@code TOOL_CALL_RESULTS} blob version that already has structured content. */
+  private static final int STRUCTURED_TOOL_CALL_RESULTS_VERSION = 2;
+
+  private static final TypeReference<List<ToolCallResultContent>> TOOL_CALL_RESULTS_TYPE =
+      new TypeReference<>() {};
 
   private static final String FIELD_BLOB_TYPE = "blobType";
   private static final String FIELD_VERSION = "version";
@@ -184,6 +197,26 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
   public <T> T parseData(Class<T> clazz, ObjectMapper objectMapper) throws IOException {
     JsonNode dataNode = extractDataNode();
     return objectMapper.treeToValue(dataNode, clazz);
+  }
+
+  /**
+   * Parse this envelope's {@code results} field as a {@code List<ToolCallResultContent>}, upcasting
+   * legacy (pre-{@link #STRUCTURED_TOOL_CALL_RESULTS_VERSION}) flat {@code content} values to the
+   * current structured shape first. AgentCore Memory is append-only, so old- and new-shape {@code
+   * TOOL_CALL_RESULTS} envelopes coexist in the same session forever; both must keep deserializing.
+   *
+   * @param objectMapper the ObjectMapper to use
+   * @return the deserialized tool call results
+   * @throws IOException if deserialization fails
+   */
+  public List<ToolCallResultContent> parseToolCallResults(ObjectMapper objectMapper)
+      throws IOException {
+    JsonNode resultsNode = extractDataNode();
+    if (version < STRUCTURED_TOOL_CALL_RESULTS_VERSION) {
+      resultsNode = resultsNode.deepCopy();
+      ConversationSchemaMigration.upcastToolCallResults(resultsNode, objectMapper);
+    }
+    return objectMapper.readerFor(TOOL_CALL_RESULTS_TYPE).readValue(resultsNode);
   }
 
   /**

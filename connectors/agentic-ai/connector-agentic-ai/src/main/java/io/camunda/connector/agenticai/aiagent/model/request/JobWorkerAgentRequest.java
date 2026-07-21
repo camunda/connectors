@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
@@ -39,6 +40,7 @@ public record JobWorkerAgentRequest(
             type = TemplateProperty.PropertyType.Text,
             feel = FeelMode.required)
         @Valid
+        @JsonDeserialize(using = VersionedAgentContextDeserializer.class)
         AgentContext agentContext,
     List<ToolCallResult> toolCallResults,
     @Valid @NotNull ProviderConfiguration provider,

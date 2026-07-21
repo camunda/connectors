@@ -59,8 +59,6 @@ import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 public class AwsAgentCoreConversationMapper {
 
   private static final TypeReference<List<ToolCall>> TOOL_CALLS_TYPE = new TypeReference<>() {};
-  private static final TypeReference<List<ToolCallResultContent>> TOOL_CALL_RESULTS_TYPE =
-      new TypeReference<>() {};
   private static final TypeReference<Map<String, Object>> METADATA_TYPE = new TypeReference<>() {};
 
   static final String PROPERTY_ROLE = "role";
@@ -352,7 +350,7 @@ public class AwsAgentCoreConversationMapper {
 
   private List<ToolCallResultContent> parseToolCallResultsFromEnvelope(BlobEnvelope envelope)
       throws IOException {
-    return envelope.parseData(TOOL_CALL_RESULTS_TYPE, objectMapper);
+    return envelope.parseToolCallResults(objectMapper);
   }
 
   private static @Nullable Role resolveRoleFromProperties(

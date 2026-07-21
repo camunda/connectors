@@ -445,7 +445,7 @@ class AwsAgentCoreConversationStoreTest {
         """
         {
           "blobType": "camunda.toolCalls",
-          "version": 1,
+          "version": 2,
           "toolCalls": [
             { "id": "call_123", "name": "getWeather", "arguments": { "location": "Seattle" } },
             { "id": "call_456", "name": "getTime", "arguments": {} }

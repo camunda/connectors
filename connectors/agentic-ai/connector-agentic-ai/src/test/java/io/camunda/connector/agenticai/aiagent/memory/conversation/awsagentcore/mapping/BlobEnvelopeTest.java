@@ -53,7 +53,7 @@ class BlobEnvelopeTest {
 
     // then
     assertThat(envelope.blobType()).isEqualTo("camunda.toolCalls");
-    assertThat(envelope.version()).isEqualTo(1);
+    assertThat(envelope.version()).isEqualTo(BlobEnvelope.CURRENT_VERSION);
     assertThat(envelope.is(BlobEnvelopeType.TOOL_CALLS)).isTrue();
   }
 
@@ -98,7 +98,7 @@ class BlobEnvelopeTest {
 
     // then
     assertThat(envelope.blobType()).isEqualTo("camunda.toolCallResults");
-    assertThat(envelope.version()).isEqualTo(1);
+    assertThat(envelope.version()).isEqualTo(BlobEnvelope.CURRENT_VERSION);
     assertThat(envelope.is(BlobEnvelopeType.TOOL_CALL_RESULTS)).isTrue();
   }
 
@@ -131,6 +131,53 @@ class BlobEnvelopeTest {
   }
 
   @Test
+  void shouldUpcastLegacyVersion1ToolCallResultsOnRead() throws Exception {
+    // given - a Camunda 8.9 blob: version 1, flat content field
+    String legacyJson =
+        """
+        {
+          "blobType": "camunda.toolCallResults",
+          "version": 1,
+          "results": [
+            {"id": "call-1", "name": "search", "content": "Found 3 items"}
+          ]
+        }
+        """;
+    Document document = Document.fromString(legacyJson);
+    BlobEnvelope envelope = BlobEnvelope.fromDocument(document, objectMapper);
+
+    // when
+    List<ToolCallResultContent> result = envelope.parseToolCallResults(objectMapper);
+
+    // then
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).id()).isEqualTo("call-1");
+    assertThat(result.get(0).name()).isEqualTo("search");
+    assertThat(result.get(0).content()).containsExactly(TextContent.textContent("Found 3 items"));
+  }
+
+  @Test
+  void shouldParseCurrentVersionToolCallResultsWithoutUpcasting() throws Exception {
+    // given
+    List<ToolCallResultContent> original =
+        List.of(
+            ToolCallResultContent.builder()
+                .id("call-1")
+                .name("search")
+                .content(List.of(TextContent.textContent("hi")))
+                .build());
+    BlobEnvelope envelope = BlobEnvelope.forToolCallResults(original, objectMapper);
+    Document document = envelope.toDocument(objectMapper);
+    BlobEnvelope parsed = BlobEnvelope.fromDocument(document, objectMapper);
+
+    // when
+    List<ToolCallResultContent> result = parsed.parseToolCallResults(objectMapper);
+
+    // then
+    assertThat(result).isEqualTo(original);
+  }
+
+  @Test
   void shouldCreateMessageContentEnvelope() throws Exception {
     // given
     Content content = DocumentContent.documentContent(createTestDocument());
@@ -140,7 +187,7 @@ class BlobEnvelopeTest {
 
     // then
     assertThat(envelope.blobType()).isEqualTo("camunda.messageContent");
-    assertThat(envelope.version()).isEqualTo(1);
+    assertThat(envelope.version()).isEqualTo(BlobEnvelope.CURRENT_VERSION);
     assertThat(envelope.is(BlobEnvelopeType.MESSAGE_CONTENT)).isTrue();
   }
 
@@ -260,7 +307,7 @@ class BlobEnvelopeTest {
 
     // then
     assertThat(envelope.blobType()).isEqualTo("camunda.messageMetadata");
-    assertThat(envelope.version()).isEqualTo(1);
+    assertThat(envelope.version()).isEqualTo(BlobEnvelope.CURRENT_VERSION);
     assertThat(envelope.is(BlobEnvelopeType.MESSAGE_METADATA)).isTrue();
   }
 

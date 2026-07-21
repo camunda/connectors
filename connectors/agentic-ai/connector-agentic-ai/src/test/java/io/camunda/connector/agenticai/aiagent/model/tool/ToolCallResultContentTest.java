@@ -7,9 +7,11 @@
 package io.camunda.connector.agenticai.aiagent.model.tool;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -113,13 +115,15 @@ class ToolCallResultContentTest {
     }
 
     @Test
-    void legacyJsonWithFlattenedPropertyPreservesPropertiesAndLiftsContent() throws Exception {
+    void unknownTopLevelPropertyIsPreservedWhenContentIsCurrentShape() throws Exception {
+      // the @JsonAnySetter mechanism for flattened 8.9 top-level properties (e.g. interrupted)
+      // is independent of the content shape and must keep working once content is current-shape
       String json =
           """
           {
             "id": "call-1",
             "name": "search",
-            "content": "x",
+            "content": [{"type": "text", "text": "x"}],
             "interrupted": true
           }
           """;
@@ -134,58 +138,14 @@ class ToolCallResultContentTest {
     }
 
     @Test
-    void legacyJsonWithDocumentReferenceContentBecomesDocumentContent() throws Exception {
-      // shaped like the real 8.9 golden fixtures' document objects (discriminator key +
-      // storeId/documentId/contentHash/metadata)
-      String json =
-          """
-          {
-            "id": "call-1",
-            "name": "download",
-            "content": {
-              "camunda.document.type": "camunda",
-              "storeId": "in-memory",
-              "documentId": "31127ad5-411e-485a-a67b-f7b4512bc075",
-              "contentHash": "37aab54a0d7d35291088a50ff9095845cdd292bc7b811008625cab10e75d2d0d",
-              "metadata": {
-                "contentType": "application/json",
-                "fileName": "test.json"
-              }
-            }
-          }
-          """;
+    void legacyFlatContentFailsToDeserializeDirectly() {
+      // ToolCallResultContent's own `content` field only binds the current structured shape now
+      // (see ConversationSchemaMigrationTest for the lift-on-read coverage of legacy shapes); a
+      // legacy flat value reaching this type un-upcasted is the intended safety net firing loud
+      String json = "{\"id\": \"call-1\", \"name\": \"search\", \"content\": \"x\"}";
 
-      ToolCallResultContent deserialized =
-          objectMapper.readValue(json, ToolCallResultContent.class);
-
-      assertThat(deserialized.content()).singleElement().isInstanceOf(DocumentContent.class);
-    }
-
-    @Test
-    void legacyJsonWithNullContentBecomesEmptyList() throws Exception {
-      String json = "{\"id\": \"call-1\", \"name\": \"search\", \"content\": null}";
-
-      ToolCallResultContent deserialized =
-          objectMapper.readValue(json, ToolCallResultContent.class);
-
-      assertThat(deserialized.content()).isEmpty();
-    }
-
-    @Test
-    void legacyJsonWithObjectContentBecomesObjectContent() throws Exception {
-      String json =
-          """
-          {
-            "id": "call-1",
-            "name": "listUsers",
-            "content": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]
-          }
-          """;
-
-      ToolCallResultContent deserialized =
-          objectMapper.readValue(json, ToolCallResultContent.class);
-
-      assertThat(deserialized.content()).singleElement().isInstanceOf(ObjectContent.class);
+      assertThatThrownBy(() -> objectMapper.readValue(json, ToolCallResultContent.class))
+          .isInstanceOf(MismatchedInputException.class);
     }
 
     @Test

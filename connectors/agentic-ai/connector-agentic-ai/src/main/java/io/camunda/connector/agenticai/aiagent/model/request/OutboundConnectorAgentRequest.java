@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
@@ -41,6 +42,7 @@ public record OutboundConnectorAgentRequest(
               feel = FeelMode.required,
               defaultValue = "=agent.context")
           @Valid
+          @JsonDeserialize(using = VersionedAgentContextDeserializer.class)
           AgentContext context,
       @Valid @NotNull SystemPromptConfiguration systemPrompt,
       @Valid @NotNull UserPromptConfiguration userPrompt,
