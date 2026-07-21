@@ -87,15 +87,15 @@ public class ProcessDefinitionInspector {
     INBOUND_ELIGIBLE_TYPES.add(BoundaryEvent.class);
   }
 
-  private final SearchQueryClient searchQueryClient;
+  private final Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId;
   private final Cache processDefinitionCache;
   private final ConnectorsInboundMetrics metrics;
 
   public ProcessDefinitionInspector(
-      SearchQueryClient searchQueryClient,
+      Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId,
       Cache processDefinitionCache,
       ConnectorsInboundMetrics metrics) {
-    this.searchQueryClient = searchQueryClient;
+    this.searchQueryClientsByPhysicalTenantId = searchQueryClientsByPhysicalTenantId;
     if (processDefinitionCache == null) {
       throw new IllegalArgumentException("processDefinitionCache must not be null");
     }
@@ -106,17 +106,21 @@ public class ProcessDefinitionInspector {
   public List<InboundConnectorElement> findInboundConnectors(
       ProcessDefinitionRef identifier, long processDefinitionKey) {
 
+    var cacheKey =
+        new CachedProcessDefinitionKey(identifier.physicalTenantId(), processDefinitionKey);
+
     // The value loader only runs on a cache miss, so it doubles as our hit/miss signal.
     AtomicBoolean cacheMiss = new AtomicBoolean(false);
     List<InboundConnectorElement> connectors =
         processDefinitionCache.get(
-            processDefinitionKey,
+            cacheKey,
             () -> {
               cacheMiss.set(true);
               LOG.debug(
-                  "Cache miss for process {} (key {}), fetching and parsing BPMN model.",
+                  "Cache miss for process {} (key {}, physical tenant {}), fetching and parsing BPMN model.",
                   identifier.bpmnProcessId(),
-                  processDefinitionKey);
+                  processDefinitionKey,
+                  identifier.physicalTenantId());
               return fetchAndParseConnectors(identifier, processDefinitionKey);
             });
 
@@ -128,10 +132,22 @@ public class ProcessDefinitionInspector {
     return connectors;
   }
 
+  private SearchQueryClient searchQueryClient(ProcessDefinitionRef identifier) {
+    var client = searchQueryClientsByPhysicalTenantId.get(identifier.physicalTenantId());
+    if (client == null) {
+      throw new IllegalStateException(
+          "No CamundaClient configured for physical tenant '"
+              + identifier.physicalTenantId()
+              + "'");
+    }
+    return client;
+  }
+
   private List<InboundConnectorElement> fetchAndParseConnectors(
       ProcessDefinitionRef identifier, long processDefinitionKey) {
 
-    BpmnModelInstance modelInstance = searchQueryClient.getProcessModel(processDefinitionKey);
+    BpmnModelInstance modelInstance =
+        searchQueryClient(identifier).getProcessModel(processDefinitionKey);
 
     var processes =
         modelInstance.getDefinitions().getChildElementsByType(Process.class).stream()
@@ -158,7 +174,8 @@ public class ProcessDefinitionInspector {
     // In general it is not possible to get it from previously fetched data (only possible for
     // latest version imports, not for active version imports). Thus +1 call per process here,
     // but only if inbound connectors are found => should not be too bad for performance.
-    var processDefinition = searchQueryClient.getProcessDefinition(processDefinitionKey);
+    var processDefinition =
+        searchQueryClient(identifier).getProcessDefinition(processDefinitionKey);
     var version = new DeployedVersionRef(processDefinitionKey, processDefinition.getVersion());
 
     List<InboundConnectorElement> discoveredInboundConnectors = new ArrayList<>();
@@ -193,6 +210,7 @@ public class ProcessDefinitionInspector {
               element.getAttributeValue(NAME_ATTRIBUTE),
               element.getElementType().getTypeName(),
               identifier.tenantId(),
+              identifier.physicalTenantId(),
               getElementTemplateDetails(element),
               rawProperties);
       InboundConnectorElement def =
@@ -414,6 +432,13 @@ public class ProcessDefinitionInspector {
                     .findAny()
                     .map(ZeebeProperty::getValue));
   }
+
+  /**
+   * Cache key for parsed BPMN connector elements. Includes the physical tenant ID since {@code
+   * processDefinitionKey} values are only guaranteed unique within a single Zeebe cluster, not
+   * across physical tenants.
+   */
+  public record CachedProcessDefinitionKey(String physicalTenantId, long processDefinitionKey) {}
 
   private static ElementTemplateDetails getElementTemplateDetails(BaseElement element) {
     final String NAMESPACE = "http://camunda.org/schema/zeebe/1.0";

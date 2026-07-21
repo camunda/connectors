@@ -31,14 +31,16 @@ public class Importers {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Importers.class);
 
+  private final String physicalTenantId;
   private final SearchQueryClient searchQueryClient;
 
-  public Importers(SearchQueryClient searchQueryClient) {
+  public Importers(String physicalTenantId, SearchQueryClient searchQueryClient) {
+    this.physicalTenantId = physicalTenantId;
     this.searchQueryClient = searchQueryClient;
   }
 
   public ImportResult importLatestVersions() {
-    LOGGER.debug("Starting import of LATEST versions");
+    LOGGER.debug("Starting import of LATEST versions for physicalTenantId '{}'", physicalTenantId);
 
     Map<ProcessDefinitionRef, Set<Long>> result =
         PaginatedSearchUtil.queryAllPages(searchQueryClient::queryProcessDefinitions)
@@ -46,7 +48,9 @@ public class Importers {
                 Collectors.toMap(
                     definition ->
                         new ProcessDefinitionRef(
-                            definition.getProcessDefinitionId(), definition.getTenantId()),
+                            physicalTenantId,
+                            definition.getProcessDefinitionId(),
+                            definition.getTenantId()),
                     definition -> Collections.singleton(definition.getProcessDefinitionKey())));
 
     LOGGER.debug("Imported {} latest process versions", result.size());
@@ -63,11 +67,11 @@ public class Importers {
               .orElse("none"));
     }
 
-    return new ImportResult(result, ImportType.LATEST_VERSIONS);
+    return new ImportResult(result, ImportType.LATEST_VERSIONS, physicalTenantId);
   }
 
   public ImportResult importActiveVersions() {
-    LOGGER.debug("Starting import of ACTIVE versions");
+    LOGGER.debug("Starting import of ACTIVE versions for physicalTenantId '{}'", physicalTenantId);
 
     Map<ProcessDefinitionRef, Set<Long>> result =
         PaginatedSearchUtil.queryAllPages(searchQueryClient::queryMessageSubscriptionStatistics)
@@ -75,7 +79,7 @@ public class Importers {
                 Collectors.groupingBy(
                     stats ->
                         new ProcessDefinitionRef(
-                            stats.getProcessDefinitionId(), stats.getTenantId()),
+                            physicalTenantId, stats.getProcessDefinitionId(), stats.getTenantId()),
                     Collectors.mapping(
                         stats -> Long.parseLong(stats.getProcessDefinitionKey()),
                         Collectors.toSet())));
@@ -94,6 +98,6 @@ public class Importers {
               .orElse("none"));
     }
 
-    return new ImportResult(result, ImportType.HAVE_ACTIVE_SUBSCRIPTIONS);
+    return new ImportResult(result, ImportType.HAVE_ACTIVE_SUBSCRIPTIONS, physicalTenantId);
   }
 }

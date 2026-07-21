@@ -76,13 +76,15 @@ public class InboundExecutableStateTransitionService {
   /**
    * Computes the current state for a process.
    *
+   * @param physicalTenantId the physical tenant this process is deployed on
    * @param bpmnProcessId the BPMN process ID
    * @param tenantId the tenant ID
    * @return the current state
    */
-  public CurrentState computeCurrentState(String bpmnProcessId, String tenantId) {
+  public CurrentState computeCurrentState(
+      String physicalTenantId, String bpmnProcessId, String tenantId) {
     Set<ExecutableId> executableIds =
-        stateStore.getExecutableIdsForProcess(bpmnProcessId, tenantId);
+        stateStore.getExecutableIdsForProcess(physicalTenantId, bpmnProcessId, tenantId);
     return new CurrentState(executableIds);
   }
 

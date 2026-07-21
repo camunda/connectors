@@ -17,13 +17,18 @@
 package io.camunda.connector.runtime.inbound.search;
 
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class ProcessInstanceClientConfiguration {
   @Bean
-  public ProcessInstanceClient springProcessInstanceClient(SearchQueryClient searchQueryClient) {
-    return new ProcessInstanceClientImpl(searchQueryClient);
+  public Map<String, ProcessInstanceClient> processInstanceClientsByPhysicalTenantId(
+      Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId) {
+    return searchQueryClientsByPhysicalTenantId.entrySet().stream()
+        .collect(
+            Collectors.toMap(Map.Entry::getKey, e -> new ProcessInstanceClientImpl(e.getValue())));
   }
 }

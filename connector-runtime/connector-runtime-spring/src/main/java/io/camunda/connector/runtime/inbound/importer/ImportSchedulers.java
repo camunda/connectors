@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,31 +28,37 @@ public class ImportSchedulers {
   private static final Logger LOG = LoggerFactory.getLogger(ImportSchedulers.class);
 
   private final ProcessStateManager stateStore;
-  private final Importers importers;
+  private final Map<String, Importers> importersByPhysicalTenantId;
 
-  private boolean ready = true;
+  private volatile boolean ready = true;
 
   private final boolean activeVersionsPollingEnabled;
 
   public ImportSchedulers(
-      ProcessStateManager stateStore, Importers importers, boolean activeVersionsPollingEnabled) {
+      ProcessStateManager stateStore,
+      Map<String, Importers> importersByPhysicalTenantId,
+      boolean activeVersionsPollingEnabled) {
     this.activeVersionsPollingEnabled = activeVersionsPollingEnabled;
     this.stateStore = stateStore;
-    this.importers = importers;
+    this.importersByPhysicalTenantId = importersByPhysicalTenantId;
   }
 
   @Scheduled(
       fixedDelayString = "${camunda.connector.polling.interval:5000}",
       initialDelayString = "${camunda.connector.polling.initial-delay:0}")
   public void scheduleLatestVersionImport() {
-    try {
-      var result = importers.importLatestVersions();
-      stateStore.update(result);
-      ready = true;
-    } catch (Exception e) {
-      LOG.error("Failed to import LATEST process versions", e);
-      ready = false;
+    boolean allOk = true;
+    for (var entry : importersByPhysicalTenantId.entrySet()) {
+      try {
+        var result = entry.getValue().importLatestVersions();
+        stateStore.update(result);
+      } catch (Exception e) {
+        LOG.error(
+            "Failed to import LATEST process versions for physical tenant '{}'", entry.getKey(), e);
+        allOk = false;
+      }
     }
+    ready = allOk;
   }
 
   @Scheduled(
@@ -62,14 +69,18 @@ public class ImportSchedulers {
       LOG.debug("Skipping active versions polling.");
       return;
     }
-    try {
-      var result = importers.importActiveVersions();
-      stateStore.update(result);
-      ready = true;
-    } catch (Exception e) {
-      LOG.error("Failed to import ACTIVE process versions", e);
-      ready = false;
+    boolean allOk = true;
+    for (var entry : importersByPhysicalTenantId.entrySet()) {
+      try {
+        var result = entry.getValue().importActiveVersions();
+        stateStore.update(result);
+      } catch (Exception e) {
+        LOG.error(
+            "Failed to import ACTIVE process versions for physical tenant '{}'", entry.getKey(), e);
+        allOk = false;
+      }
     }
+    ready = allOk;
   }
 
   public boolean isReady() {

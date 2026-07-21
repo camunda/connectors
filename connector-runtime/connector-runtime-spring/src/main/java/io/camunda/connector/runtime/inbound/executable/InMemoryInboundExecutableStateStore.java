@@ -61,22 +61,28 @@ public class InMemoryInboundExecutableStateStore implements InboundExecutableSta
   }
 
   @Override
-  public Set<ExecutableId> getExecutableIdsForProcess(String bpmnProcessId, String tenantId) {
+  public Set<ExecutableId> getExecutableIdsForProcess(
+      String physicalTenantId, String bpmnProcessId, String tenantId) {
     return executables.entrySet().stream()
-        .filter(entry -> matchesProcess(entry.getValue(), bpmnProcessId, tenantId))
+        .filter(
+            entry -> matchesProcess(entry.getValue(), physicalTenantId, bpmnProcessId, tenantId))
         .map(Map.Entry::getKey)
         .collect(Collectors.toSet());
   }
 
   private boolean matchesProcess(
-      RegisteredExecutable executable, String bpmnProcessId, String tenantId) {
+      RegisteredExecutable executable,
+      String physicalTenantId,
+      String bpmnProcessId,
+      String tenantId) {
     var elements = getElementsFromExecutable(executable);
     if (elements.isEmpty()) {
       return false;
     }
     var firstElement = elements.getFirst();
     return firstElement.element().bpmnProcessId().equals(bpmnProcessId)
-        && firstElement.element().tenantId().equals(tenantId);
+        && firstElement.element().tenantId().equals(tenantId)
+        && firstElement.physicalTenantId().equals(physicalTenantId);
   }
 
   private List<InboundConnectorElement> getElementsFromExecutable(RegisteredExecutable executable) {
