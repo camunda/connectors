@@ -73,21 +73,52 @@ public record AgentMetrics(
   @JsonPOJOBuilder(withPrefix = "")
   public static class AgentMetricsJacksonProxyBuilder extends AgentMetricsBuilder {}
 
+  /**
+   * Per-turn token consumption reported by the provider. {@code inputTokenCount} is always the
+   * count of <b>new, non-cached</b> input tokens: {@code cacheReadTokenCount} and {@code
+   * cacheCreationTokenCount} are separate, disjoint auxiliary buckets that are never also included
+   * in {@code inputTokenCount} (Anthropic/Bedrock already report {@code input_tokens} excluding
+   * cached tokens; the OpenAI path subtracts cached tokens back out so the semantics stay uniform
+   * across providers). {@code reasoningTokenCount}, in contrast, is a breakdown <b>within</b>
+   * {@code outputTokenCount} (reasoning is billed output) rather than a disjoint bucket — it is
+   * informational only and is already included in {@code outputTokenCount}. There is intentionally
+   * no combined total-token accessor: a single summed figure would be ambiguous about whether
+   * cache/reasoning tokens are already included, so callers combine the fields they need directly.
+   *
+   * <ul>
+   *   <li>{@code inputTokenCount} – new, non-cached input tokens.
+   *   <li>{@code outputTokenCount} – all output tokens, including any reasoning tokens.
+   *   <li>{@code cacheReadTokenCount} – input tokens served from a prompt cache; disjoint from
+   *       {@code inputTokenCount}. Omitted from persisted JSON when zero.
+   *   <li>{@code cacheCreationTokenCount} – input tokens written to a prompt cache; disjoint from
+   *       {@code inputTokenCount}. Omitted from persisted JSON when zero.
+   *   <li>{@code reasoningTokenCount} – the subset of {@code outputTokenCount} spent on reasoning;
+   *       informational, not additive. Omitted from persisted JSON when zero.
+   * </ul>
+   */
   @AgenticAiRecord
   @JsonDeserialize(builder = TokenUsage.AgentMetricsTokenUsageJacksonProxyBuilder.class)
-  public record TokenUsage(int inputTokenCount, int outputTokenCount)
+  public record TokenUsage(
+      int inputTokenCount,
+      int outputTokenCount,
+      @JsonInclude(JsonInclude.Include.NON_DEFAULT) int cacheReadTokenCount,
+      @JsonInclude(JsonInclude.Include.NON_DEFAULT) int cacheCreationTokenCount,
+      @JsonInclude(JsonInclude.Include.NON_DEFAULT) int reasoningTokenCount)
       implements AgentMetricsTokenUsageBuilder.With {
 
-    public int totalTokenCount() {
-      return inputTokenCount + outputTokenCount;
+    public TokenUsage(int inputTokenCount, int outputTokenCount) {
+      this(inputTokenCount, outputTokenCount, 0, 0, 0);
     }
 
-    public TokenUsage add(TokenUsage tokenUsage) {
+    public TokenUsage add(TokenUsage other) {
       return with(
-          builder ->
-              builder
-                  .inputTokenCount(builder.inputTokenCount() + tokenUsage.inputTokenCount())
-                  .outputTokenCount(builder.outputTokenCount() + tokenUsage.outputTokenCount()));
+          b ->
+              b.inputTokenCount(b.inputTokenCount() + other.inputTokenCount())
+                  .outputTokenCount(b.outputTokenCount() + other.outputTokenCount())
+                  .cacheReadTokenCount(b.cacheReadTokenCount() + other.cacheReadTokenCount())
+                  .cacheCreationTokenCount(
+                      b.cacheCreationTokenCount() + other.cacheCreationTokenCount())
+                  .reasoningTokenCount(b.reasoningTokenCount() + other.reasoningTokenCount()));
     }
 
     public static TokenUsage empty() {

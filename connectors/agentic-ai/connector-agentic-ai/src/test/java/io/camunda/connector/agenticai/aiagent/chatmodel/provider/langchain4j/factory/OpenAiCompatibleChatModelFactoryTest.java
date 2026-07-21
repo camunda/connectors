@@ -23,6 +23,8 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
+import dev.langchain4j.model.openai.OpenAiTokenUsage;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
@@ -30,6 +32,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Clo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel.OpenAiCompatibleModelParameters;
@@ -54,7 +57,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class Langchain4JOpenAiCompatibleChatModelApiFactoryTest {
+class OpenAiCompatibleChatModelFactoryTest {
 
   private static final String API_KEY = "compatibleApiKey";
   private static final String ENDPOINT = "https://compatible.local/v1";
@@ -69,8 +72,8 @@ class Langchain4JOpenAiCompatibleChatModelApiFactoryTest {
           new ChatModelHttpProxySupport(
               proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
 
-  private final Langchain4JOpenAiCompatibleChatModelApiFactory factory =
-      new Langchain4JOpenAiCompatibleChatModelApiFactory(
+  private final OpenAiCompatibleChatModelFactory factory =
+      new OpenAiCompatibleChatModelFactory(
           createDefaultChatModelProperties(),
           proxySupport,
           mock(ChatMessageConverter.class),
@@ -289,6 +292,35 @@ class Langchain4JOpenAiCompatibleChatModelApiFactoryTest {
 
       verify(mockHttpClient).close();
     }
+  }
+
+  @Test
+  void mapsOpenAiTokenUsageWithCacheAndReasoningTokenDetail() {
+    final var usage =
+        OpenAiTokenUsage.builder()
+            .inputTokenCount(10)
+            .outputTokenCount(20)
+            .inputTokensDetails(
+                OpenAiTokenUsage.InputTokensDetails.builder().cachedTokens(5).build())
+            .outputTokensDetails(
+                OpenAiTokenUsage.OutputTokensDetails.builder().reasoningTokens(7).build())
+            .build();
+
+    final var tokenUsage = factory.mapTokenUsage(usage);
+
+    // OpenAI's prompt_tokens (here: inputTokenCount) includes cached tokens; the domain model
+    // keeps inputTokenCount and cacheReadTokenCount disjoint, so cached tokens are subtracted back
+    // out of inputTokenCount.
+    assertThat(tokenUsage).isEqualTo(new AgentMetrics.TokenUsage(5, 20, 5, 0, 7));
+  }
+
+  @Test
+  void fallsBackToBaseMappingForNonOpenAiTokenUsage() {
+    final var usage = new TokenUsage(10, 20);
+
+    final var tokenUsage = factory.mapTokenUsage(usage);
+
+    assertThat(tokenUsage).isEqualTo(new AgentMetrics.TokenUsage(10, 20));
   }
 
   private void testOpenAiCompatibleChatModelBuilder(

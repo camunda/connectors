@@ -9,29 +9,33 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.fa
 import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderSupport.CONNECT_TIMEOUT;
 import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderSupport.deriveTimeoutSetting;
 
-import dev.langchain4j.model.anthropic.AnthropicChatModel;
+import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
+import dev.langchain4j.model.openai.OpenAiTokenUsage;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Langchain4JAnthropicChatModelApiFactory
-    extends Langchain4JChatModelApiFactory<AnthropicProviderConfiguration> {
+public class OpenAiChatModelFactory
+    extends LangChain4JOpenAiBaseChatModelFactory<OpenAiProviderConfiguration> {
 
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(Langchain4JAnthropicChatModelApiFactory.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(OpenAiChatModelFactory.class);
 
   private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
-  public Langchain4JAnthropicChatModelApiFactory(
+  public OpenAiChatModelFactory(
       ChatModelProperties config,
       ChatModelHttpProxySupport proxySupport,
       ChatMessageConverter chatMessageConverter,
@@ -43,34 +47,49 @@ public class Langchain4JAnthropicChatModelApiFactory
   }
 
   @Override
-  protected String providerType() {
-    return AnthropicProviderConfiguration.ANTHROPIC_ID;
+  public String providerType() {
+    return OpenAiProviderConfiguration.OPENAI_ID;
   }
 
   @Override
-  protected CloseableChatModel createChatModel(AnthropicProviderConfiguration anthropic) {
-    final var connection = anthropic.anthropic();
+  public CloseableChatModel createChatModel(OpenAiProviderConfiguration openai) {
+    final var connection = openai.openai();
     final var apiTimeout =
-        deriveTimeoutSetting("Anthropic model call", config, connection.timeouts(), LOGGER);
+        deriveTimeoutSetting("OpenAI model call", config, connection.timeouts(), LOGGER);
 
     final var http = proxySupport.createJdkHttpClientBuilder();
     final var builder =
-        AnthropicChatModel.builder()
+        OpenAiChatModel.builder()
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
             .timeout(apiTimeout)
             .httpClientBuilder(http.connectTimeout(CONNECT_TIMEOUT).readTimeout(apiTimeout));
 
-    Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
+    Optional.ofNullable(connection.authentication().organizationId())
+        .ifPresent(builder::organizationId);
+    Optional.ofNullable(connection.authentication().projectId()).ifPresent(builder::projectId);
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
-      Optional.ofNullable(modelParameters.maxTokens()).ifPresent(builder::maxTokens);
-      Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
-      Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
-      Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
+      final var requestParametersBuilder = OpenAiChatRequestParameters.builder();
+      Optional.ofNullable(modelParameters.maxCompletionTokens())
+          .ifPresent(requestParametersBuilder::maxCompletionTokens);
+      Optional.ofNullable(modelParameters.temperature())
+          .ifPresent(requestParametersBuilder::temperature);
+      Optional.ofNullable(modelParameters.topP()).ifPresent(requestParametersBuilder::topP);
+
+      builder.defaultRequestParameters(requestParametersBuilder.build());
     }
 
     return new CloseableChatModelDelegate(builder.build(), http);
+  }
+
+  @Override
+  protected AgentMetrics.TokenUsage mapTokenUsage(@Nullable TokenUsage usage) {
+    if (usage instanceof OpenAiTokenUsage openAiTokenUsage) {
+      return applyOpenAiTokenUsageDetail(baseTokenUsageBuilder(openAiTokenUsage), openAiTokenUsage)
+          .build();
+    }
+    return super.mapTokenUsage(usage);
   }
 }

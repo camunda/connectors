@@ -22,6 +22,8 @@ import static org.mockito.Mockito.when;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.anthropic.AnthropicChatModel.AnthropicChatModelBuilder;
+import dev.langchain4j.model.anthropic.AnthropicTokenUsage;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
@@ -29,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Clo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
@@ -51,7 +54,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class Langchain4JAnthropicChatModelApiFactoryTest {
+class AnthropicChatModelFactoryTest {
 
   private static final String ANTHROPIC_API_KEY = "anthropicApiKey";
   private static final String ANTHROPIC_MODEL = "anthropicModel";
@@ -65,8 +68,8 @@ class Langchain4JAnthropicChatModelApiFactoryTest {
           new ChatModelHttpProxySupport(
               proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
 
-  private final Langchain4JAnthropicChatModelApiFactory factory =
-      new Langchain4JAnthropicChatModelApiFactory(
+  private final AnthropicChatModelFactory factory =
+      new AnthropicChatModelFactory(
           createDefaultChatModelProperties(),
           proxySupport,
           mock(ChatMessageConverter.class),
@@ -180,6 +183,30 @@ class Langchain4JAnthropicChatModelApiFactoryTest {
 
       verify(mockHttpClient).close();
     }
+  }
+
+  @Test
+  void mapsAnthropicTokenUsageWithCacheTokenDetail() {
+    final var usage =
+        AnthropicTokenUsage.builder()
+            .inputTokenCount(10)
+            .outputTokenCount(20)
+            .cacheReadInputTokens(5)
+            .cacheCreationInputTokens(7)
+            .build();
+
+    final var tokenUsage = factory.mapTokenUsage(usage);
+
+    assertThat(tokenUsage).isEqualTo(new AgentMetrics.TokenUsage(10, 20, 5, 7, 0));
+  }
+
+  @Test
+  void fallsBackToBaseMappingForNonAnthropicTokenUsage() {
+    final var usage = new TokenUsage(10, 20);
+
+    final var tokenUsage = factory.mapTokenUsage(usage);
+
+    assertThat(tokenUsage).isEqualTo(new AgentMetrics.TokenUsage(10, 20));
   }
 
   private void testAnthropicChatModelBuilder(
