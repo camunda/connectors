@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
@@ -22,7 +21,7 @@ import org.jspecify.annotations.Nullable;
  * handler invocation; does not change mid-conversation.
  */
 public record AgentConfiguration(
-    ProviderConfiguration provider,
+    ChatModelConfiguration chatModel,
     SystemPromptConfiguration systemPrompt,
     UserPromptConfiguration userPrompt,
     @Nullable MemoryConfiguration memory,
@@ -43,10 +42,5 @@ public record AgentConfiguration(
     return Optional.ofNullable(limits)
         .map(LimitsConfiguration::maxModelCalls)
         .orElse(DEFAULT_MAX_MODEL_CALLS);
-  }
-
-  /** The {@link ChatModelConfiguration} the {@code ChatModelRegistry} dispatches on. */
-  public ChatModelConfiguration chatModelConfiguration() {
-    return provider;
   }
 }

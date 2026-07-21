@@ -31,7 +31,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
   public static final String AZURE_OPENAI_ID = "azureOpenAi";
 
   @Override
-  public String providerType() {
+  public String provider() {
     return AZURE_OPENAI_ID;
   }
 

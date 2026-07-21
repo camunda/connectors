@@ -162,8 +162,7 @@ public abstract class BaseAgentRequestHandler<
         OffsetDateTime.now());
 
     var workingConversation = conversation;
-    try (final var chatModel =
-        chatModelRegistry.resolve(agentConfiguration.chatModelConfiguration())) {
+    try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
       // Continuation loop (ADR-009): a provider may pause mid-turn (e.g. Anthropic pause_turn) and
       // return a Continuation rather than a Completed result. Each Continuation becomes its own
       // persisted turn and the model is re-called until a Completed ends the loop.

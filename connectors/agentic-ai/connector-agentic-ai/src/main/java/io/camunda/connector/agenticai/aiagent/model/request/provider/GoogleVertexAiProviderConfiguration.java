@@ -30,7 +30,7 @@ public record GoogleVertexAiProviderConfiguration(
   public static final String GOOGLE_VERTEX_AI_ID = "google-vertex-ai";
 
   @Override
-  public String providerType() {
+  public String provider() {
     return GOOGLE_VERTEX_AI_ID;
   }
 
