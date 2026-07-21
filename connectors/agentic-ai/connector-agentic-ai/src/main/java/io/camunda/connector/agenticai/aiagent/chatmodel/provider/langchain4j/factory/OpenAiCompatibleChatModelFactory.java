@@ -11,30 +11,34 @@ import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchai
 
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
+import dev.langchain4j.model.openai.OpenAiTokenUsage;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Langchain4JOpenAiCompatibleChatModelApiFactory
-    extends Langchain4JChatModelApiFactory<OpenAiCompatibleProviderConfiguration> {
+public class OpenAiCompatibleChatModelFactory
+    extends LangChain4JOpenAiBaseChatModelFactory<OpenAiCompatibleProviderConfiguration> {
 
   private static final Logger LOGGER =
-      LoggerFactory.getLogger(Langchain4JOpenAiCompatibleChatModelApiFactory.class);
+      LoggerFactory.getLogger(OpenAiCompatibleChatModelFactory.class);
 
   private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
-  public Langchain4JOpenAiCompatibleChatModelApiFactory(
+  public OpenAiCompatibleChatModelFactory(
       ChatModelProperties config,
       ChatModelHttpProxySupport proxySupport,
       ChatMessageConverter chatMessageConverter,
@@ -46,12 +50,12 @@ public class Langchain4JOpenAiCompatibleChatModelApiFactory
   }
 
   @Override
-  protected String providerType() {
+  public String providerType() {
     return OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
   }
 
   @Override
-  protected CloseableChatModel createChatModel(
+  public CloseableChatModel createChatModel(
       OpenAiCompatibleProviderConfiguration openaiCompatible) {
     final var connection = openaiCompatible.openaiCompatible();
     final var apiTimeout =
@@ -98,5 +102,14 @@ public class Langchain4JOpenAiCompatibleChatModelApiFactory
     }
 
     return new CloseableChatModelDelegate(builder.build(), http);
+  }
+
+  @Override
+  protected AgentMetrics.TokenUsage mapTokenUsage(@Nullable TokenUsage usage) {
+    if (usage instanceof OpenAiTokenUsage openAiTokenUsage) {
+      return applyOpenAiTokenUsageDetail(baseTokenUsageBuilder(openAiTokenUsage), openAiTokenUsage)
+          .build();
+    }
+    return super.mapTokenUsage(usage);
   }
 }

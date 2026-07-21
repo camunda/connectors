@@ -19,7 +19,7 @@ public final class ChatModelProviderSupport {
    * TCP connect timeout applied to every chat model HTTP client. Kept short and constant — a
    * healthy public LLM endpoint accepts connections in well under a second, and anything in the
    * "seconds" range indicates DNS/firewall/proxy misconfiguration rather than model latency.
-   * Matches the LangChain4j JDK client default so behavior stays consistent across providers.
+   * Matches the LangChain4J JDK client default so behavior stays consistent across providers.
    */
   public static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(15);
 

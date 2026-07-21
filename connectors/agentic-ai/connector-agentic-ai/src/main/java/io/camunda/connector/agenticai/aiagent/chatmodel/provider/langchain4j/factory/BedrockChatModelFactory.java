@@ -11,33 +11,36 @@ import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchai
 
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
+import dev.langchain4j.model.bedrock.BedrockTokenUsage;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
-public class Langchain4JBedrockChatModelApiFactory
-    extends Langchain4JChatModelApiFactory<BedrockProviderConfiguration> {
+public class BedrockChatModelFactory
+    extends LangChain4JChatModelFactory<BedrockProviderConfiguration> {
 
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(Langchain4JBedrockChatModelApiFactory.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BedrockChatModelFactory.class);
 
   private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
-  public Langchain4JBedrockChatModelApiFactory(
+  public BedrockChatModelFactory(
       ChatModelProperties config,
       ChatModelHttpProxySupport proxySupport,
       ChatMessageConverter chatMessageConverter,
@@ -49,12 +52,12 @@ public class Langchain4JBedrockChatModelApiFactory
   }
 
   @Override
-  protected String providerType() {
+  public String providerType() {
     return BedrockProviderConfiguration.BEDROCK_ID;
   }
 
   @Override
-  protected CloseableChatModel createChatModel(BedrockProviderConfiguration bedrock) {
+  public CloseableChatModel createChatModel(BedrockProviderConfiguration bedrock) {
     final var connection = bedrock.bedrock();
     final var apiTimeout =
         deriveTimeoutSetting("Bedrock model call", config, connection.timeouts(), LOGGER);
@@ -120,5 +123,16 @@ public class Langchain4JBedrockChatModelApiFactory
     Optional.ofNullable(modelParameters.topP()).ifPresent(requestParametersBuilder::topP);
 
     builder.defaultRequestParameters(requestParametersBuilder.build());
+  }
+
+  @Override
+  protected AgentMetrics.TokenUsage mapTokenUsage(@Nullable TokenUsage usage) {
+    if (usage instanceof BedrockTokenUsage bedrockTokenUsage) {
+      return baseTokenUsageBuilder(bedrockTokenUsage)
+          .cacheReadTokenCount(nullToZero(bedrockTokenUsage.cacheReadInputTokens()))
+          .cacheCreationTokenCount(nullToZero(bedrockTokenUsage.cacheWriteInputTokens()))
+          .build();
+    }
+    return super.mapTokenUsage(usage);
   }
 }

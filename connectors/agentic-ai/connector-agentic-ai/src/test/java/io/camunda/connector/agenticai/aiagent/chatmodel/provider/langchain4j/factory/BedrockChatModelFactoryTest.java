@@ -20,7 +20,9 @@ import static org.mockito.Mockito.verify;
 
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
+import dev.langchain4j.model.bedrock.BedrockTokenUsage;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
@@ -28,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Clo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockConnection;
@@ -61,7 +64,7 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilder;
 
 @ExtendWith(MockitoExtension.class)
-class Langchain4JBedrockChatModelApiFactoryTest {
+class BedrockChatModelFactoryTest {
 
   private static final String BEDROCK_REGION = "eu-west-1";
   private static final String BEDROCK_API_KEY = "bedrockApiKey";
@@ -78,8 +81,8 @@ class Langchain4JBedrockChatModelApiFactoryTest {
           new ChatModelHttpProxySupport(
               proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
 
-  private final Langchain4JBedrockChatModelApiFactory factory =
-      new Langchain4JBedrockChatModelApiFactory(
+  private final BedrockChatModelFactory factory =
+      new BedrockChatModelFactory(
           createDefaultChatModelProperties(),
           proxySupport,
           mock(ChatMessageConverter.class),
@@ -280,6 +283,30 @@ class Langchain4JBedrockChatModelApiFactoryTest {
 
       verify(mockClient).close();
     }
+  }
+
+  @Test
+  void mapsBedrockTokenUsageWithCacheTokenDetail() {
+    final var usage =
+        BedrockTokenUsage.builder()
+            .inputTokenCount(10)
+            .outputTokenCount(20)
+            .cacheReadInputTokens(5)
+            .cacheWriteInputTokens(7)
+            .build();
+
+    final var tokenUsage = factory.mapTokenUsage(usage);
+
+    assertThat(tokenUsage).isEqualTo(new AgentMetrics.TokenUsage(10, 20, 5, 7, 0));
+  }
+
+  @Test
+  void fallsBackToBaseMappingForNonBedrockTokenUsage() {
+    final var usage = new TokenUsage(10, 20);
+
+    final var tokenUsage = factory.mapTokenUsage(usage);
+
+    assertThat(tokenUsage).isEqualTo(new AgentMetrics.TokenUsage(10, 20));
   }
 
   private void testCreateBedrockChatModelWithCredentials(
