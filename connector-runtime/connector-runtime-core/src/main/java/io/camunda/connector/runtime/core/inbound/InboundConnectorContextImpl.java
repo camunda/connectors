@@ -366,13 +366,13 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public InboundConnectorDefinition getDefinition() {
+    var elements = connectorDetails.connectorElements();
     return new InboundConnectorDefinition(
         connectorDetails.type(),
         connectorDetails.tenantId(),
         connectorDetails.deduplicationId(),
-        connectorDetails.connectorElements().stream()
-            .map(InboundConnectorElement::element)
-            .collect(Collectors.toList()));
+        elements.stream().map(InboundConnectorElement::element).collect(Collectors.toList()),
+        elements.isEmpty() ? null : elements.getFirst().physicalTenantId());
   }
 
   @Override

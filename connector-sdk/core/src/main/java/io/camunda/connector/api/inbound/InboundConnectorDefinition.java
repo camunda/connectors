@@ -22,4 +22,5 @@ public record InboundConnectorDefinition(
     String type,
     String tenantId,
     String deduplicationId,
-    List<? extends ProcessElement> elements) {}
+    List<? extends ProcessElement> elements,
+    String physicalTenantId) {}

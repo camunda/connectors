@@ -32,9 +32,13 @@ public record ProcessElementWithRuntimeData(
     @Nullable String elementName,
     @Nullable String elementType,
     String tenantId,
+    String physicalTenantId,
     ElementTemplateDetails elementTemplateDetails,
     Map<String, String> properties)
     implements ProcessElement {
+
+  /** Physical tenant ID used for single-cluster deployments and by test fixtures. */
+  public static final String DEFAULT_PHYSICAL_TENANT_ID = "default";
 
   public ProcessElementWithRuntimeData(
       String bpmnProcessId,
@@ -52,6 +56,7 @@ public record ProcessElementWithRuntimeData(
         null,
         null,
         tenantId,
+        DEFAULT_PHYSICAL_TENANT_ID,
         new ElementTemplateDetails("Test", "1", "icon"),
         Map.of());
   }

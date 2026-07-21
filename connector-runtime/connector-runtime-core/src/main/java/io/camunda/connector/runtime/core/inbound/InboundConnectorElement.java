@@ -51,6 +51,10 @@ public record InboundConnectorElement(
     return element.tenantId();
   }
 
+  public String physicalTenantId() {
+    return element.physicalTenantId();
+  }
+
   public @Nullable String resultExpression() {
     return rawProperties.get(Keywords.RESULT_EXPRESSION_KEYWORD);
   }
@@ -87,7 +91,13 @@ public record InboundConnectorElement(
     if (deduplicationMode == null) {
       // legacy deployment, return a deterministic unique id
       LOG.debug("Missing deduplicationMode property, using legacy deduplicationId computation");
-      return element.tenantId() + "-" + element.processDefinitionKey() + "-" + element.elementId();
+      return physicalTenantId()
+          + "-"
+          + element.tenantId()
+          + "-"
+          + element.processDefinitionKey()
+          + "-"
+          + element.elementId();
     } else if (DeduplicationMode.AUTO.name().equals(deduplicationMode)) {
       // auto mode, compute deduplicationId from properties
       LOG.debug("Using deduplicationMode=AUTO, computing deduplicationId from properties");
@@ -120,7 +130,7 @@ public record InboundConnectorElement(
   }
 
   private String tenantIdAndBpmnProcessId() {
-    return tenantId() + "-" + element.bpmnProcessId();
+    return physicalTenantId() + "-" + tenantId() + "-" + element.bpmnProcessId();
   }
 
   public Map<String, String> connectorLevelProperties() {
