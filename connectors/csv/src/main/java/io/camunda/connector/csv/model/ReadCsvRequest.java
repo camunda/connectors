@@ -6,15 +6,20 @@
  */
 package io.camunda.connector.csv.model;
 
-import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 public record ReadCsvRequest(
-    @TemplateProperty(
-            label = "Data",
-            tooltip = "CSV as a document or text",
-            feel = FeelMode.optional)
-        Object data,
+    // Legacy input from element-template versions <= 2: raw CSV text or a document reference bound
+    // directly to `data`. Kept (but hidden) so old templates and already-running instances keep
+    // working under the new runtime. Superseded by the `document` input below.
+    @TemplateProperty(ignore = true) Object data,
+    @TemplateDocumentProperty(
+            id = "document",
+            binding = @TemplateProperty.PropertyBinding(name = "document"),
+            tooltip = "The CSV document to read.")
+        Document document,
     CsvFormat format,
     @TemplateProperty(
             label = "Row Type",
