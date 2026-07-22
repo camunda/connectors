@@ -117,10 +117,10 @@ public class ToolCallConverterImpl implements ToolCallConverter {
         case TextContent t -> t.text();
         case ObjectContent o -> objectMapper.writeValueAsString(o.content());
         case DocumentContent d -> objectMapper.writeValueAsString(d.document());
-        case ReasoningContent r ->
+        case ReasoningContent ignored ->
             throw new IllegalArgumentException(
                 "Reasoning content is not expected in tool call results");
-        case ProviderContent p ->
+        case ProviderContent ignored ->
             throw new IllegalArgumentException(
                 "Provider content is not expected in tool call results");
       };

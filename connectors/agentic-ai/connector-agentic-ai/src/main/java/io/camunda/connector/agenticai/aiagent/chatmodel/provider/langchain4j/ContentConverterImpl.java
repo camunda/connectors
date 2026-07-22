@@ -39,10 +39,10 @@ public class ContentConverterImpl implements ContentConverter {
       case ObjectContent objectContent ->
           new dev.langchain4j.data.message.TextContent(
               Objects.requireNonNull(convertToString(objectContent.content())));
-      case ReasoningContent reasoningContent ->
+      case ReasoningContent ignored ->
           throw new UnsupportedOperationException(
               "Reasoning content is not supported by this model");
-      case ProviderContent providerContent ->
+      case ProviderContent ignored ->
           throw new UnsupportedOperationException(
               "Provider content is not supported by this model");
     };
