@@ -119,18 +119,20 @@ class AiAgentJobWorkerAnthropicReasoningEffortTests extends BaseAiAgentJobWorker
   }
 
   /**
-   * Points the connector at this test's WireMock server via the native (v2) Anthropic direct
-   * backend, same wiring as {@link StreamingAnthropicMessagesWireFormatFixture}. Deliberately does
-   * NOT set {@code provider.anthropic.model.model} - every test sets its own model id (via its
-   * {@code elementTemplateModifier}) since the model id under test drives capability-matrix
-   * matching and must vary per scenario.
+   * Points the connector at this test's WireMock server via the native (v2) Anthropic compatible
+   * backend (the only Anthropic backend with a configurable endpoint), same wiring as {@link
+   * StreamingAnthropicMessagesWireFormatFixture}. Deliberately does NOT set {@code
+   * provider.anthropic.model.model} - every test sets its own model id (via its {@code
+   * elementTemplateModifier}) since the model id under test drives capability-matrix matching and
+   * must vary per scenario.
    */
   private ElementTemplate configureAnthropicBackend(ElementTemplate template) {
     return template
         .property("provider.type", "anthropic")
-        .property("provider.anthropic.backend.type", "direct")
-        .property("provider.anthropic.backend.direct.endpoint", wireMock.getHttpBaseUrl())
-        .property("provider.anthropic.backend.apiKey", "dummy");
+        .property("provider.anthropic.backend.type", "compatible")
+        .property("provider.anthropic.backend.endpoint", wireMock.getHttpBaseUrl())
+        .property("provider.anthropic.backend.compatibleAuthentication.type", "apiKey")
+        .property("provider.anthropic.backend.compatibleAuthentication.apiKey", "dummy");
   }
 
   private Function<ElementTemplate, ElementTemplate> model(String modelId) {

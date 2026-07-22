@@ -100,17 +100,19 @@ class AiAgentJobWorkerAnthropicCodeExecutionTests extends BaseAiAgentJobWorkerTe
   }
 
   /**
-   * Points the connector at this test's WireMock server via the native (v2) Anthropic direct
-   * backend and configures an Anthropic-hosted skill, so the turn under test is plausible as a real
-   * Skills-enabled response (a skills-configured agent triggering code execution), mirroring {@link
+   * Points the connector at this test's WireMock server via the native (v2) Anthropic compatible
+   * backend (the only Anthropic backend with a configurable endpoint) and configures an
+   * Anthropic-hosted skill, so the turn under test is plausible as a real Skills-enabled response
+   * (a skills-configured agent triggering code execution), mirroring {@link
    * AiAgentJobWorkerAnthropicSkillsAndToolsTests#configureAnthropicSkillsAndTools}.
    */
   private ElementTemplate configureAnthropicWithSkills(ElementTemplate template) {
     return template
         .property("provider.type", "anthropic")
-        .property("provider.anthropic.backend.type", "direct")
-        .property("provider.anthropic.backend.direct.endpoint", wireMock.getHttpBaseUrl())
-        .property("provider.anthropic.backend.apiKey", "dummy")
+        .property("provider.anthropic.backend.type", "compatible")
+        .property("provider.anthropic.backend.endpoint", wireMock.getHttpBaseUrl())
+        .property("provider.anthropic.backend.compatibleAuthentication.type", "apiKey")
+        .property("provider.anthropic.backend.compatibleAuthentication.apiKey", "dummy")
         .property("provider.anthropic.model.model", "test-model")
         .property("provider.anthropic.skills", "=[\"pptx\"]");
   }

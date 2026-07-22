@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend.OpenAiCompatibleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend;
@@ -139,7 +140,7 @@ class OpenAiChatModelTest {
             new OpenAiConnection(
                 OpenAiApiFamily.COMPLETIONS,
                 new OpenAiDirectBackend("   ", null, null),
-                null,
+                ModelCapabilitiesMode.AUTO,
                 null,
                 new OpenAiModel("gpt-5.4", null),
                 null,
@@ -161,7 +162,7 @@ class OpenAiChatModelTest {
                     Map.of(),
                     Map.of(),
                     new CompatibleNoAuthentication()),
-                null,
+                ModelCapabilitiesMode.AUTO,
                 null,
                 new OpenAiModel("custom-model", null),
                 null,

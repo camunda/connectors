@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiConfiguration;
@@ -67,8 +68,8 @@ class OpenAiChatModelApiFactoryTest {
     final ChatModelApiConfiguration config =
         new AnthropicChatModel(
             new AnthropicConnection(
-                new AnthropicDirectBackend(null, "sk-ant"),
-                null,
+                new AnthropicDirectBackend("sk-ant"),
+                ModelCapabilitiesMode.AUTO,
                 null,
                 new AnthropicModel(MODEL_ID, null),
                 null,
@@ -147,7 +148,7 @@ class OpenAiChatModelApiFactoryTest {
         new OpenAiConnection(
             apiFamily,
             new OpenAiDirectBackend("sk-openai", null, null),
-            null,
+            ModelCapabilitiesMode.AUTO,
             null,
             new OpenAiModel(modelId, null),
             null,
@@ -165,7 +166,7 @@ class OpenAiChatModelApiFactoryTest {
                 null,
                 null,
                 new CompatibleApiKeyAuthentication("api-key")),
-            null,
+            ModelCapabilitiesMode.AUTO,
             null,
             new OpenAiModel(modelId, null),
             null,

@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicEffort;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.ThinkingMode;
@@ -109,8 +110,8 @@ class AnthropicChatModelTest {
     final var model =
         new AnthropicChatModel(
             new AnthropicConnection(
-                new AnthropicDirectBackend(null, "  "),
-                null,
+                new AnthropicDirectBackend("  "),
+                ModelCapabilitiesMode.AUTO,
                 null,
                 new AnthropicModel(
                     "claude-sonnet-4-6",
@@ -134,8 +135,8 @@ class AnthropicChatModelTest {
     final var model =
         new AnthropicChatModel(
             new AnthropicConnection(
-                new AnthropicDirectBackend(null, "sk-ant-123"),
-                null,
+                new AnthropicDirectBackend("sk-ant-123"),
+                ModelCapabilitiesMode.AUTO,
                 null,
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null,
@@ -184,7 +185,7 @@ class AnthropicChatModelTest {
 
   @Test
   void directBackendRedactsApiKeyInToString() {
-    final var direct = new AnthropicDirectBackend(null, "sk-ant-super-secret");
+    final var direct = new AnthropicDirectBackend("sk-ant-super-secret");
 
     assertThat(direct.toString()).doesNotContain("sk-ant-super-secret").contains("[REDACTED]");
   }
@@ -228,8 +229,8 @@ class AnthropicChatModelTest {
     final var model =
         new AnthropicChatModel(
             new AnthropicConnection(
-                new AnthropicDirectBackend(null, "sk-ant-123"),
-                null,
+                new AnthropicDirectBackend("sk-ant-123"),
+                ModelCapabilitiesMode.AUTO,
                 null,
                 new AnthropicModel("claude-sonnet-4-6", parameters),
                 null,
@@ -293,7 +294,7 @@ class AnthropicChatModelTest {
     return new AnthropicChatModel(
         new AnthropicConnection(
             new AnthropicBedrockBackend("eu-west-1", null, authentication),
-            null,
+            ModelCapabilitiesMode.AUTO,
             null,
             new AnthropicModel("claude-sonnet-4-6", null),
             null,

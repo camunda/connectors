@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -110,8 +111,8 @@ class AnthropicMessageRequestConverterTest {
       @Nullable String webFetchVersion) {
     return new AnthropicChatModel(
         new AnthropicConnection(
-            new AnthropicDirectBackend(null, "sk-ant-test"),
-            null,
+            new AnthropicDirectBackend("sk-ant-test"),
+            ModelCapabilitiesMode.AUTO,
             null,
             new AnthropicModel("claude-sonnet-4-6", parameters),
             null,
@@ -129,8 +130,8 @@ class AnthropicMessageRequestConverterTest {
   private static AnthropicChatModel promptCachingModel(@Nullable Boolean enablePromptCaching) {
     return new AnthropicChatModel(
         new AnthropicConnection(
-            new AnthropicDirectBackend(null, "sk-ant-test"),
-            null,
+            new AnthropicDirectBackend("sk-ant-test"),
+            ModelCapabilitiesMode.AUTO,
             null,
             new AnthropicModel("claude-sonnet-4-6", null),
             null,

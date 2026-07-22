@@ -18,6 +18,7 @@ import com.openai.models.ReasoningEffort;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import io.camunda.connector.agenticai.aiagent.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiReasoningCapabilities;
@@ -77,7 +78,7 @@ class OpenAiCompletionsRequestConverterTest {
         new OpenAiConnection(
             OpenAiApiFamily.COMPLETIONS,
             new OpenAiDirectBackend("sk-test", null, null),
-            null,
+            ModelCapabilitiesMode.AUTO,
             null,
             new OpenAiModel("gpt-4o", parameters),
             enableWebSearch,
@@ -90,7 +91,7 @@ class OpenAiCompletionsRequestConverterTest {
         new OpenAiConnection(
             OpenAiApiFamily.COMPLETIONS,
             backend,
-            null,
+            ModelCapabilitiesMode.AUTO,
             null,
             new OpenAiModel("gpt-4o", null),
             null,

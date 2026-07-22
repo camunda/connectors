@@ -66,7 +66,8 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
   /** All Anthropic-specific configuration, nested under the {@code anthropic} wire key. */
   public record AnthropicConnection(
       @Valid @NotNull AnthropicBackend backend,
-      @TemplateProperty(
+      @NotNull
+          @TemplateProperty(
               group = "capabilities",
               label = "Model capabilities",
               description =
@@ -76,9 +77,8 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
               choices = {
                 @DropdownPropertyChoice(value = "auto", label = "Auto"),
                 @DropdownPropertyChoice(value = "custom", label = "Custom")
-              },
-              optional = true)
-          @Nullable ModelCapabilitiesMode capabilityMode,
+              })
+          ModelCapabilitiesMode capabilityMode,
       @Valid
           @TemplateProperty(
               group = "capabilities",
@@ -240,18 +240,6 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
 
     @TemplateSubType(id = "direct", label = "Anthropic API")
     record AnthropicDirectBackend(
-        @HttpUrl
-            @TemplateProperty(
-                id = "direct.endpoint",
-                binding = @TemplateProperty.PropertyBinding(name = "endpoint"),
-                group = "provider",
-                label = "Custom API endpoint",
-                description = "Optional custom API endpoint",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.optional,
-                placeholder = "https://api.anthropic.com",
-                optional = true)
-            @Nullable String endpoint,
         @NotBlank
             @TemplateProperty(
                 group = "provider",
@@ -269,7 +257,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
 
       @Override
       public String toString() {
-        return "AnthropicDirectBackend{endpoint=%s, apiKey=[REDACTED]}".formatted(endpoint);
+        return "AnthropicDirectBackend{apiKey=[REDACTED]}";
       }
     }
 

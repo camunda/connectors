@@ -64,7 +64,7 @@ class Langchain4JChatModelApiFactoryTest {
     final ChatModelApiConfiguration configuration =
         new AnthropicChatModel(
             new AnthropicChatModel.AnthropicConnection(
-                new AnthropicDirectBackend(null, "sk-ant"),
+                new AnthropicDirectBackend("sk-ant"),
                 null,
                 null,
                 new AnthropicChatModel.AnthropicModel("claude-sonnet-4-6", null),

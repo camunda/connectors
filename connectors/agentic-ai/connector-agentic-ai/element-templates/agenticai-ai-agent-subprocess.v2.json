@@ -149,30 +149,6 @@
       "value" : "compatible"
     } ]
   }, {
-    "id" : "provider.anthropic.backend.direct.endpoint",
-    "label" : "Custom API endpoint",
-    "description" : "Optional custom API endpoint",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend.endpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.backend.type",
-        "equals" : "direct",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "placeholder" : "https://api.anthropic.com",
-    "type" : "String"
-  }, {
     "id" : "provider.anthropic.backend.apiKey",
     "label" : "Anthropic API key",
     "optional" : false,
@@ -1045,8 +1021,11 @@
     "id" : "provider.anthropic.capabilityMode",
     "label" : "Model capabilities",
     "description" : "How model capabilities are resolved. 'Auto' uses the built-in capability data for the selected model; 'Custom' lets you supply the overrides below.",
-    "optional" : true,
+    "optional" : false,
     "value" : "auto",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "group" : "capabilities",
     "binding" : {
       "name" : "provider.anthropic.capabilityMode",
@@ -1161,8 +1140,11 @@
     "id" : "provider.openai.capabilityMode",
     "label" : "Model capabilities",
     "description" : "How model capabilities are resolved. 'Auto' uses the built-in capability data for the selected model; 'Custom' lets you supply the overrides below.",
-    "optional" : true,
+    "optional" : false,
     "value" : "auto",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "group" : "capabilities",
     "binding" : {
       "name" : "provider.openai.capabilityMode",

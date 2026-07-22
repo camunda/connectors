@@ -97,19 +97,20 @@ class AiAgentJobWorkerAnthropicSkillsAndToolsTests extends BaseAiAgentJobWorkerT
   }
 
   /**
-   * Points the connector at this test's WireMock server via the native (v2) Anthropic direct
-   * backend (same wiring as {@link StreamingAnthropicMessagesWireFormatFixture}) and configures two
-   * Skills - one Anthropic-hosted (single-token form, defaulting type/version), one custom (3-token
-   * form) - plus the web-search and web-fetch toggles. {@code enableCodeExecution} is left unset so
-   * the {@code code_execution} tool/beta under test are proven to come from the skills auto-add
-   * path, not the explicit toggle.
+   * Points the connector at this test's WireMock server via the native (v2) Anthropic compatible
+   * backend (the only Anthropic backend with a configurable endpoint; same wiring as {@link
+   * StreamingAnthropicMessagesWireFormatFixture}) and configures two Skills - one Anthropic-hosted
+   * (single-token form, defaulting type/version), one custom (3-token form) - plus the web-search
+   * and web-fetch toggles. {@code enableCodeExecution} is left unset so the {@code code_execution}
+   * tool/beta under test are proven to come from the skills auto-add path, not the explicit toggle.
    */
   private ElementTemplate configureAnthropicSkillsAndTools(ElementTemplate template) {
     return template
         .property("provider.type", "anthropic")
-        .property("provider.anthropic.backend.type", "direct")
-        .property("provider.anthropic.backend.direct.endpoint", wireMock.getHttpBaseUrl())
-        .property("provider.anthropic.backend.apiKey", "dummy")
+        .property("provider.anthropic.backend.type", "compatible")
+        .property("provider.anthropic.backend.endpoint", wireMock.getHttpBaseUrl())
+        .property("provider.anthropic.backend.compatibleAuthentication.type", "apiKey")
+        .property("provider.anthropic.backend.compatibleAuthentication.apiKey", "dummy")
         .property("provider.anthropic.model.model", "test-model")
         .property("provider.anthropic.skills", "=[\"pptx\", \"custom:my-skill:my-version\"]")
         .property("provider.anthropic.enableWebSearch", "true")

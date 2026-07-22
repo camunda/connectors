@@ -18,6 +18,7 @@ import com.openai.models.responses.EasyInputMessage;
 import com.openai.models.responses.ResponseCreateParams;
 import io.camunda.connector.agenticai.aiagent.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiReasoningCapabilities;
@@ -78,7 +79,7 @@ class OpenAiResponsesRequestConverterTest {
         new OpenAiConnection(
             OpenAiApiFamily.RESPONSES,
             new OpenAiDirectBackend("sk-test", null, null),
-            null,
+            ModelCapabilitiesMode.AUTO,
             null,
             new OpenAiModel("gpt-5", parameters),
             enableWebSearch,
@@ -91,7 +92,7 @@ class OpenAiResponsesRequestConverterTest {
         new OpenAiConnection(
             OpenAiApiFamily.RESPONSES,
             backend,
-            null,
+            ModelCapabilitiesMode.AUTO,
             null,
             new OpenAiModel("gpt-5", null),
             null,

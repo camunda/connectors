@@ -82,7 +82,8 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
               })
           OpenAiApiFamily apiFamily,
       @Valid @NotNull OpenAiBackend backend,
-      @TemplateProperty(
+      @NotNull
+          @TemplateProperty(
               group = "capabilities",
               label = "Model capabilities",
               description =
@@ -92,9 +93,8 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
               choices = {
                 @DropdownPropertyChoice(value = "auto", label = "Auto"),
                 @DropdownPropertyChoice(value = "custom", label = "Custom")
-              },
-              optional = true)
-          @Nullable ModelCapabilitiesMode capabilityMode,
+              })
+          ModelCapabilitiesMode capabilityMode,
       @Valid
           @TemplateProperty(
               group = "capabilities",

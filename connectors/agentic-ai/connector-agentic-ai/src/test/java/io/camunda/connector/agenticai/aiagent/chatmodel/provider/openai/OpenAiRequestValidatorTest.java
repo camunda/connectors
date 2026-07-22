@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiApiFamily;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiConnection;
@@ -30,7 +31,7 @@ class OpenAiRequestValidatorTest {
     return new OpenAiConnection(
         apiFamily,
         new OpenAiDirectBackend("k", null, null),
-        null,
+        ModelCapabilitiesMode.AUTO,
         null,
         new OpenAiModel("model-id", new OpenAiModelParameters(null, null, null, null, effort)),
         enableWebSearch,

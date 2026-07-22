@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
@@ -36,8 +37,8 @@ class AiAgentV2EntryPointTest {
   private AnthropicChatModel anthropicConfig() {
     return new AnthropicChatModel(
         new AnthropicConnection(
-            new AnthropicDirectBackend(null, "sk-ant"),
-            null,
+            new AnthropicDirectBackend("sk-ant"),
+            ModelCapabilitiesMode.AUTO,
             null,
             new AnthropicModel("claude-sonnet-4-6", null),
             null,

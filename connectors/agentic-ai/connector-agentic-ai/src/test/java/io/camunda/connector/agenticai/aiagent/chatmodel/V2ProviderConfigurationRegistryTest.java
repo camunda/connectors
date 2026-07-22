@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.capabilities.CoreModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelApi;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelApiFactory;
@@ -39,8 +40,8 @@ class V2ProviderConfigurationRegistryTest {
     final ChatModelApiConfiguration config =
         new AnthropicChatModel(
             new AnthropicConnection(
-                new AnthropicDirectBackend(null, "sk-ant"),
-                null,
+                new AnthropicDirectBackend("sk-ant"),
+                ModelCapabilitiesMode.AUTO,
                 null,
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null,
@@ -68,8 +69,8 @@ class V2ProviderConfigurationRegistryTest {
     final ChatModelApiConfiguration directConfig =
         new AnthropicChatModel(
             new AnthropicConnection(
-                new AnthropicDirectBackend(null, "sk-ant"),
-                null,
+                new AnthropicDirectBackend("sk-ant"),
+                ModelCapabilitiesMode.AUTO,
                 null,
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null,
@@ -97,7 +98,7 @@ class V2ProviderConfigurationRegistryTest {
             new AnthropicConnection(
                 new AnthropicBedrockBackend(
                     "eu-west-1", null, new AwsApiKeyAuthentication("api-key")),
-                null,
+                ModelCapabilitiesMode.AUTO,
                 null,
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null,

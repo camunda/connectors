@@ -17,6 +17,7 @@ import com.openai.models.responses.ResponseInputItem;
 import com.openai.models.responses.ResponseOutputItem;
 import io.camunda.connector.agenticai.aiagent.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
@@ -168,7 +169,7 @@ class OpenAiProviderContentRoundTripTest {
             new OpenAiConnection(
                 OpenAiApiFamily.RESPONSES,
                 new OpenAiDirectBackend("sk-test", null, null),
-                null,
+                ModelCapabilitiesMode.AUTO,
                 null,
                 new OpenAiModel("gpt-5", null),
                 null,

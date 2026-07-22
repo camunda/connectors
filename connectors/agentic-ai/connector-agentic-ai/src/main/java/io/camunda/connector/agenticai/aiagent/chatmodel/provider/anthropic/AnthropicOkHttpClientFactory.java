@@ -77,9 +77,6 @@ public class AnthropicOkHttpClientFactory implements AnthropicClientFactory {
   private void applyDirectBackend(
       AnthropicOkHttpClient.Builder builder, AnthropicDirectBackend direct) {
     builder.apiKey(direct.apiKey());
-    if (direct.endpoint() != null && !direct.endpoint().isBlank()) {
-      builder.baseUrl(direct.endpoint());
-    }
   }
 
   private void applyCompatibleBackend(

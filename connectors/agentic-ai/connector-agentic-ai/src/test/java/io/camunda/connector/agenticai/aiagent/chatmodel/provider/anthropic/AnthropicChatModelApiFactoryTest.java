@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiConfiguration;
@@ -70,7 +71,7 @@ class AnthropicChatModelApiFactoryTest {
                     null,
                     null,
                     new CompatibleNoAuthentication()),
-                null,
+                ModelCapabilitiesMode.AUTO,
                 null,
                 new AnthropicModel(MODEL_ID, null),
                 null,
@@ -109,7 +110,7 @@ class AnthropicChatModelApiFactoryTest {
                     null,
                     null,
                     new CompatibleNoAuthentication()),
-                null,
+                ModelCapabilitiesMode.AUTO,
                 null,
                 new AnthropicModel(MODEL_ID, null),
                 null,
@@ -136,7 +137,7 @@ class AnthropicChatModelApiFactoryTest {
             new AnthropicConnection(
                 new AnthropicBedrockBackend(
                     "eu-west-1", null, new AwsApiKeyAuthentication("api-key")),
-                null,
+                ModelCapabilitiesMode.AUTO,
                 null,
                 new AnthropicModel(MODEL_ID, null),
                 null,
@@ -225,8 +226,8 @@ class AnthropicChatModelApiFactoryTest {
   private static AnthropicChatModel directConfig(String modelId) {
     return new AnthropicChatModel(
         new AnthropicConnection(
-            new AnthropicDirectBackend(null, "sk-ant"),
-            null,
+            new AnthropicDirectBackend("sk-ant"),
+            ModelCapabilitiesMode.AUTO,
             null,
             new AnthropicModel(modelId, null),
             null,
