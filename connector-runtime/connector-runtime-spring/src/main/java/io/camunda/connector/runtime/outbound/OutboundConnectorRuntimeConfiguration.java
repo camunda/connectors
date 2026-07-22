@@ -125,11 +125,13 @@ public class OutboundConnectorRuntimeConfiguration {
       ConfigurationValidationRegistry configurationValidationRegistry,
       FeelExpressionEvaluator feelExpressionEvaluator,
       SecretProviderAggregator secretProviderAggregator,
+      ValidationProvider validationProvider,
       @OutboundConnectorObjectMapper ObjectMapper objectMapper) {
     return new ConfigurationValidationService(
         configurationValidationRegistry,
         feelExpressionEvaluator,
         secretProviderAggregator,
+        validationProvider,
         objectMapper);
   }
 

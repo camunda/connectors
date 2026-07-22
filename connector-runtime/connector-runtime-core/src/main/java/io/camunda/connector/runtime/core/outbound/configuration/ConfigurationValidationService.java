@@ -22,6 +22,7 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidator;
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.outbound.configuration.ConfigurationValidationRegistry.RegisteredValidator;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
@@ -30,14 +31,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Resolves a stored configuration referenced by a validation request and invokes its {@link
- * ConfigurationValidator#validate()}, mapping the outcome to a {@link
+ * Resolves a stored configuration referenced by a validation request, applies bean validation, and
+ * invokes its {@link ConfigurationValidator}, mapping the outcome to a {@link
  * ConfigurationValidationResult}.
  *
- * <p>Resolution pipeline: look up the configuration class by id, resolve {@code credentialRef} to
- * JSON via the (cluster-backed) FEEL evaluator, replace secret placeholders, deserialize into that
- * class, then call {@code validate()}. A missing registration yields {@code UNSUPPORTED}; a failed
- * resolution or a thrown exception yields {@code FAILURE}.
+ * <p>Pipeline: look up the registered validator by id; resolve {@code credentialRef} to JSON via
+ * the (cluster-backed) FEEL evaluator; replace secret placeholders; deserialize into the registered
+ * configuration class; run Jakarta bean validation (as normal connector binding does); then call
+ * the validator. A missing registration yields {@code UNSUPPORTED}; anything else that goes wrong
+ * yields {@code FAILURE}.
+ *
+ * <p><b>Message-safety policy.</b> The resolved configuration and everything derived from it
+ * (deserialization errors, constraint-violation messages, exceptions thrown from connector code)
+ * can contain resolved <em>secret material</em>. Surfacing any of it would turn this endpoint into
+ * a secret oracle. Therefore the client-facing {@code message} is populated <b>only</b> from a
+ * validator's explicitly returned {@link ConfigurationValidationResult#failure(String, String)} —
+ * text the connector author deliberately chose. Every failure this service generates itself returns
+ * a static, value-free message; the real detail is logged server-side only.
  */
 public class ConfigurationValidationService {
 
@@ -45,21 +55,32 @@ public class ConfigurationValidationService {
 
   private static final String DEFAULT_FAILURE_CODE = "ERROR";
   private static final String RESOLUTION_FAILURE_CODE = "RESOLUTION_ERROR";
+  private static final String INPUT_VALIDATION_FAILURE_CODE = "INVALID_INPUT";
+
+  // Static, value-free messages. Never interpolate resolved configuration content into these.
+  private static final String RESOLUTION_FAILURE_MESSAGE =
+      "The configuration reference could not be resolved.";
+  private static final String INPUT_VALIDATION_FAILURE_MESSAGE =
+      "The resolved configuration is not valid.";
+  private static final String VALIDATOR_ERROR_MESSAGE = "Validation could not be completed.";
 
   private final ConfigurationValidationRegistry registry;
   private final FeelExpressionEvaluator feelExpressionEvaluator;
   private final SecretHandler secretHandler;
+  private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
 
   public ConfigurationValidationService(
       ConfigurationValidationRegistry registry,
       FeelExpressionEvaluator feelExpressionEvaluator,
       SecretProvider secretProvider,
+      ValidationProvider validationProvider,
       ObjectMapper objectMapper) {
     this.registry = registry;
     this.feelExpressionEvaluator = feelExpressionEvaluator;
     // Out-of-band validation has no process/element scope, so no secret allow-list applies.
     this.secretHandler = new SecretHandler(secretProvider, SecretFilter.allowAll());
+    this.validationProvider = validationProvider;
     this.objectMapper = objectMapper;
   }
 
@@ -73,25 +94,39 @@ public class ConfigurationValidationService {
     try {
       configuration = resolveConfiguration(request, registered.configurationClass());
     } catch (Exception e) {
+      // Do NOT surface e.getMessage(): FEEL/secret/JSON errors can echo resolved secret material.
       LOG.warn(
-          "Failed to resolve configuration '{}' from ref '{}'",
-          request.credentialId(),
-          request.credentialRef(),
-          e);
-      return ConfigurationValidationResult.failure(RESOLUTION_FAILURE_CODE, e.getMessage());
+          "Failed to resolve configuration '{}' from its reference", request.credentialId(), e);
+      return ConfigurationValidationResult.failure(
+          RESOLUTION_FAILURE_CODE, RESOLUTION_FAILURE_MESSAGE);
+    }
+
+    try {
+      // Same object graph and constraints the normal binding path validates (JobHandlerContext).
+      validationProvider.validate(configuration);
+    } catch (Exception e) {
+      // Do NOT surface e.getMessage(): constraint-violation messages can contain the invalid value.
+      LOG.warn("Resolved configuration '{}' failed input validation", request.credentialId(), e);
+      return ConfigurationValidationResult.failure(
+          INPUT_VALIDATION_FAILURE_CODE, INPUT_VALIDATION_FAILURE_MESSAGE);
     }
 
     try {
       @SuppressWarnings("unchecked")
       ConfigurationValidator<Object> validator =
           (ConfigurationValidator<Object>) registered.validator();
+      // A validator's returned result (including its message) is passed through unchanged: that
+      // text
+      // is author-authored and deliberate. A *thrown* exception is not — it may wrap SDK/framework
+      // messages carrying credential material — so its message is logged, never surfaced.
       return validator.validate(configuration);
     } catch (Exception e) {
+      LOG.warn("Validator for configuration '{}' threw", request.credentialId(), e);
       String code =
           e instanceof ConnectorException ce && ce.getErrorCode() != null
               ? ce.getErrorCode()
               : DEFAULT_FAILURE_CODE;
-      return ConfigurationValidationResult.failure(code, e.getMessage());
+      return ConfigurationValidationResult.failure(code, VALIDATOR_ERROR_MESSAGE);
     }
   }
 
