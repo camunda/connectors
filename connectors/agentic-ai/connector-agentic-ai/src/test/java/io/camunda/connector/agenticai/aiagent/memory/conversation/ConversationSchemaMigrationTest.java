@@ -11,11 +11,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
@@ -352,6 +356,90 @@ class ConversationSchemaMigrationTest {
     }
 
     @Test
+    void explicitLowerSchemaVersionIsStampedToCurrent() throws Exception {
+      JsonNode tree =
+          objectMapper.readTree(
+              """
+              {
+                "schemaVersion": 0,
+                "state": "READY",
+                "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 1}},
+                "toolDefinitions": [],
+                "conversation": {
+                  "type": "in-process",
+                  "conversationId": "test",
+                  "messages": [
+                    {
+                      "role": "tool_call_result",
+                      "results": [
+                        {"id": "call-1", "name": "search", "content": "Found 3 items"}
+                      ]
+                    }
+                  ]
+                },
+                "properties": {}
+              }
+              """);
+
+      AgentContext agentContext =
+          ConversationSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+
+      assertThat(agentContext).isNotNull();
+      // an explicit lower schemaVersion (not just a missing one) is also stamped to current, so
+      // it isn't re-upcasted (and content re-wrapped) on the next read/write cycle
+      assertThat(agentContext.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+    }
+
+    @Test
+    void reRunOnMigratedAndReserializedTreeIsIdempotent() throws Exception {
+      JsonNode tree =
+          objectMapper.readTree(
+              """
+              {
+                "state": "READY",
+                "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 1}},
+                "toolDefinitions": [],
+                "conversation": {
+                  "type": "in-process",
+                  "conversationId": "test",
+                  "messages": [
+                    {
+                      "role": "tool_call_result",
+                      "results": [
+                        {"id": "call-1", "name": "search", "content": "Found 3 items"}
+                      ]
+                    }
+                  ]
+                },
+                "properties": {}
+              }
+              """);
+
+      AgentContext firstPass =
+          ConversationSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+      assertThat(firstPass).isNotNull();
+
+      // simulate the write-then-read-again cycle: reserialize the migrated context back to a
+      // tree (as it would be persisted), then migrate-and-bind it a second time
+      JsonNode reserializedTree = objectMapper.valueToTree(firstPass);
+      AgentContext secondPass =
+          ConversationSchemaMigration.migrateAndBindAgentContext(reserializedTree, objectMapper);
+
+      assertThat(secondPass).isNotNull();
+      assertThat(secondPass.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+
+      InProcessConversationContext conversation =
+          (InProcessConversationContext) secondPass.conversation();
+      assertThat(conversation).isNotNull();
+      ToolCallResultMessage message = (ToolCallResultMessage) conversation.messages().get(0);
+      // content stays a single TextContent -- it must not be re-wrapped into a nested/opaque
+      // ObjectContent by a redundant second upcast pass
+      assertThat(message.results().get(0).content())
+          .containsExactly(TextContent.textContent("Found 3 items"));
+      assertThat(secondPass).isEqualTo(firstPass);
+    }
+
+    @Test
     void newerThanCurrentVersionThrows() throws Exception {
       final int futureVersion = AgentContext.CURRENT_SCHEMA_VERSION + 1;
       JsonNode tree = objectMapper.readTree("{\"schemaVersion\": %d}".formatted(futureVersion));
@@ -362,6 +450,62 @@ class ConversationSchemaMigrationTest {
           .hasMessageContaining(String.valueOf(futureVersion))
           .hasMessageContaining("newer")
           .hasMessageContaining("not supported");
+    }
+
+    @Test
+    void toolCallResultSiblingFieldsAndMessageMetadataSurviveUpcasting() throws Exception {
+      JsonNode tree =
+          objectMapper.readTree(
+              """
+              {
+                "state": "READY",
+                "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 1}},
+                "toolDefinitions": [],
+                "conversation": {
+                  "type": "in-process",
+                  "conversationId": "test",
+                  "messages": [
+                    {
+                      "role": "tool_call_result",
+                      "metadata": {"timestamp": "2026-01-01T10:15:30Z"},
+                      "results": [
+                        {
+                          "id": "call-1",
+                          "name": "search",
+                          "elementId": "Activity_1",
+                          "completedAt": "2026-01-01T10:15:30Z",
+                          "content": "Found 3 items",
+                          "interrupted": true
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "properties": {}
+              }
+              """);
+
+      AgentContext agentContext =
+          ConversationSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+
+      assertThat(agentContext).isNotNull();
+      InProcessConversationContext conversation =
+          (InProcessConversationContext) agentContext.conversation();
+      assertThat(conversation).isNotNull();
+      ToolCallResultMessage message = (ToolCallResultMessage) conversation.messages().get(0);
+
+      // message-level metadata survives
+      assertThat(message.metadata()).containsEntry("timestamp", "2026-01-01T10:15:30Z");
+
+      ToolCallResultContent result = message.results().get(0);
+      // content was lifted to a single TextContent
+      assertThat(result.content()).containsExactly(TextContent.textContent("Found 3 items"));
+      // every sibling field of the lifted content survives untouched
+      assertThat(result.id()).isEqualTo("call-1");
+      assertThat(result.name()).isEqualTo("search");
+      assertThat(result.elementId()).isEqualTo("Activity_1");
+      assertThat(result.completedAt()).isEqualTo(OffsetDateTime.parse("2026-01-01T10:15:30Z"));
+      assertThat(result.properties()).containsEntry("interrupted", true);
     }
 
     @Test
