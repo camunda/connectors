@@ -6,21 +6,33 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.table;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
-import com.amazonaws.services.dynamodbv2.model.BillingMode;
-import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
-import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
-import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import io.camunda.connector.aws.dynamodb.model.CreateTable;
+import io.camunda.connector.aws.dynamodb.model.TableDescriptionResult;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import software.amazon.awssdk.core.waiters.WaiterOverrideConfiguration;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
+import software.amazon.awssdk.services.dynamodb.model.BillingMode;
+import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement;
+import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
 
 public class CreateTableOperation implements AwsDynamoDbOperation {
+
+  // v1's Table#waitForActive() defaulted to 25 attempts x 5s poll delay (125s max). v2's default
+  // DynamoDbWaiter poll interval/attempt count for TableExists is much longer, so an explicit
+  // override caps the total wait near the v1 behavior to stay under the Zeebe job timeout.
+  private static final WaiterOverrideConfiguration WAITER_OVERRIDE_CONFIGURATION =
+      WaiterOverrideConfiguration.builder()
+          .maxAttempts(25)
+          .waitTimeout(Duration.ofSeconds(125))
+          .build();
 
   private final CreateTable createTableModel;
 
@@ -28,49 +40,67 @@ public class CreateTableOperation implements AwsDynamoDbOperation {
     this.createTableModel = createTableModel;
   }
 
-  public TableDescription invoke(final DynamoDB dynamoDB) {
-    try {
-      return dynamoDB.createTable(buildCreateTableRequest()).waitForActive();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
+  @Override
+  public TableDescriptionResult invoke(final DynamoDbClient client) {
+    client.createTable(buildCreateTableRequest());
+    var response =
+        client
+            .waiter()
+            .waitUntilTableExists(
+                DescribeTableRequest.builder().tableName(createTableModel.tableName()).build(),
+                WAITER_OVERRIDE_CONFIGURATION)
+            .matched()
+            .response()
+            .orElseThrow(
+                () ->
+                    new RuntimeException(
+                        "Timed out waiting for table ["
+                            + createTableModel.tableName()
+                            + "] to become ACTIVE"));
+    return TableDescriptionResult.from(response.table());
   }
 
   private CreateTableRequest buildCreateTableRequest() {
     List<KeySchemaElement> keySchemaElements = buildKeySchemaElements();
     List<AttributeDefinition> attributeDefinitions = buildAttributeDefinitions();
 
-    CreateTableRequest request =
-        new CreateTableRequest()
-            .withTableName(createTableModel.tableName())
-            .withKeySchema(keySchemaElements)
-            .withAttributeDefinitions(attributeDefinitions)
-            .withDeletionProtectionEnabled(createTableModel.deletionProtection());
+    CreateTableRequest.Builder builder =
+        CreateTableRequest.builder()
+            .tableName(createTableModel.tableName())
+            .keySchema(keySchemaElements)
+            .attributeDefinitions(attributeDefinitions)
+            .deletionProtectionEnabled(createTableModel.deletionProtection());
 
     BillingMode billingMode =
         Optional.ofNullable(createTableModel.billingModeStr())
-            .map(BillingMode::valueOf)
+            .map(BillingMode::fromValue)
             .orElse(BillingMode.PROVISIONED);
-
-    request.withBillingMode(billingMode);
+    builder.billingMode(billingMode);
 
     if (BillingMode.PROVISIONED == billingMode) {
-      request.withProvisionedThroughput(
-          new ProvisionedThroughput()
-              .withReadCapacityUnits(createTableModel.readCapacityUnits())
-              .withWriteCapacityUnits(createTableModel.writeCapacityUnits()));
+      builder.provisionedThroughput(
+          ProvisionedThroughput.builder()
+              .readCapacityUnits(createTableModel.readCapacityUnits())
+              .writeCapacityUnits(createTableModel.writeCapacityUnits())
+              .build());
     }
 
-    return request;
+    return builder.build();
   }
 
   private List<KeySchemaElement> buildKeySchemaElements() {
     List<KeySchemaElement> keySchemaElements = new ArrayList<>();
     keySchemaElements.add(
-        new KeySchemaElement(createTableModel.partitionKey(), createTableModel.partitionKeyRole()));
+        KeySchemaElement.builder()
+            .attributeName(createTableModel.partitionKey())
+            .keyType(createTableModel.partitionKeyRole())
+            .build());
     if (Objects.nonNull(createTableModel.sortKey()) && !createTableModel.sortKey().isBlank()) {
       keySchemaElements.add(
-          new KeySchemaElement(createTableModel.sortKey(), createTableModel.sortKeyRole()));
+          KeySchemaElement.builder()
+              .attributeName(createTableModel.sortKey())
+              .keyType(createTableModel.sortKeyRole())
+              .build());
     }
     return keySchemaElements;
   }
@@ -78,11 +108,16 @@ public class CreateTableOperation implements AwsDynamoDbOperation {
   private List<AttributeDefinition> buildAttributeDefinitions() {
     List<AttributeDefinition> attributeDefinitions = new ArrayList<>();
     attributeDefinitions.add(
-        new AttributeDefinition(
-            createTableModel.partitionKey(), createTableModel.partitionKeyType()));
+        AttributeDefinition.builder()
+            .attributeName(createTableModel.partitionKey())
+            .attributeType(createTableModel.partitionKeyType())
+            .build());
     if (Objects.nonNull(createTableModel.sortKey()) && !createTableModel.sortKey().isBlank()) {
       attributeDefinitions.add(
-          new AttributeDefinition(createTableModel.sortKey(), createTableModel.sortKeyType()));
+          AttributeDefinition.builder()
+              .attributeName(createTableModel.sortKey())
+              .attributeType(createTableModel.sortKeyType())
+              .build());
     }
     return attributeDefinitions;
   }

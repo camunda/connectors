@@ -6,12 +6,17 @@
  */
 package io.camunda.connector.aws.dynamodb;
 
+import static io.camunda.connector.aws.AwsUtils.extractRegionOrDefault;
+
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.aws.CredentialsProviderSupport;
+import io.camunda.connector.aws.CredentialsProviderSupportV2;
+import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import java.util.Optional;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 @OutboundConnector(
     name = "AWS DynamoDB",
@@ -49,16 +54,33 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     icon = "icon.svg")
 public class AwsDynamoDbServiceConnectorFunction implements OutboundConnectorFunction {
 
+  private final DynamoDbClientSupplier dynamoDbClientSupplier;
+
+  public AwsDynamoDbServiceConnectorFunction() {
+    this(new DefaultDynamoDbClientSupplier());
+  }
+
+  public AwsDynamoDbServiceConnectorFunction(final DynamoDbClientSupplier dynamoDbClientSupplier) {
+    this.dynamoDbClientSupplier = dynamoDbClientSupplier;
+  }
+
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
     final AwsDynamoDbOperationFactory operationFactory = AwsDynamoDbOperationFactory.getInstance();
     final AwsDynamoDbRequest dynamoDbRequest = context.bindVariables(AwsDynamoDbRequest.class);
-    return operationFactory
-        .createOperation(dynamoDbRequest.getInput())
-        .invoke(
-            AwsDynamoDbClientSupplier.getDynamoDdClient(
-                CredentialsProviderSupport.credentialsProvider(dynamoDbRequest),
-                dynamoDbRequest.getConfiguration().region(),
-                dynamoDbRequest.getConfiguration().endpoint()));
+    try (DynamoDbClient client = createDynamoDbClient(dynamoDbRequest)) {
+      return operationFactory.createOperation(dynamoDbRequest.getInput()).invoke(client);
+    }
+  }
+
+  private DynamoDbClient createDynamoDbClient(final AwsDynamoDbRequest request) {
+    var region =
+        extractRegionOrDefault(request.getConfiguration(), request.getConfiguration().region());
+    Optional<String> endpoint =
+        Optional.ofNullable(request.getConfiguration()).map(AwsBaseConfiguration::endpoint);
+    var credentialsProvider = CredentialsProviderSupportV2.credentialsProvider(request);
+    return endpoint
+        .map(ep -> dynamoDbClientSupplier.dynamoDbClient(credentialsProvider, region, ep))
+        .orElseGet(() -> dynamoDbClientSupplier.dynamoDbClient(credentialsProvider, region));
   }
 }

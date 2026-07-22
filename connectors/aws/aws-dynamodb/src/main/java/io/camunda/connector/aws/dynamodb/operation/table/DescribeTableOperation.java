@@ -6,9 +6,11 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.table;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import io.camunda.connector.aws.dynamodb.model.DescribeTable;
+import io.camunda.connector.aws.dynamodb.model.TableDescriptionResult;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
 
 public class DescribeTableOperation implements AwsDynamoDbOperation {
   private final DescribeTable describeTableModel;
@@ -18,7 +20,10 @@ public class DescribeTableOperation implements AwsDynamoDbOperation {
   }
 
   @Override
-  public Object invoke(final DynamoDB dynamoDB) {
-    return dynamoDB.getTable(describeTableModel.tableName()).describe();
+  public TableDescriptionResult invoke(final DynamoDbClient client) {
+    var response =
+        client.describeTable(
+            DescribeTableRequest.builder().tableName(describeTableModel.tableName()).build());
+    return TableDescriptionResult.from(response.table());
   }
 }

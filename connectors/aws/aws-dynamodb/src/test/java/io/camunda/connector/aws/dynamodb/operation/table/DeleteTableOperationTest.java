@@ -7,8 +7,10 @@
 package io.camunda.connector.aws.dynamodb.operation.table;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -17,20 +19,39 @@ import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsDynamoDbResult;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.DeleteTable;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import software.amazon.awssdk.core.waiters.WaiterOverrideConfiguration;
+import software.amazon.awssdk.services.dynamodb.model.DeleteTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
+import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbWaiter;
 
 class DeleteTableOperationTest extends BaseDynamoDbOperationTest {
 
+  @Mock private DynamoDbWaiter waiter;
+
+  @BeforeEach
+  public void init() {
+    when(dynamoDbClient.waiter()).thenReturn(waiter);
+  }
+
   @Test
-  public void invoke_shouldDeleteDynamoDbTableAndReturnStatusOk() throws InterruptedException {
+  public void invoke_shouldDeleteDynamoDbTableAndReturnStatusOk() {
     // Given
     DeleteTable deleteTable = new DeleteTable(TestDynamoDBData.ActualValue.TABLE_NAME);
     DeleteTableOperation operation = new DeleteTableOperation(deleteTable);
     // When
-    Object invoke = operation.invoke(dynamoDB);
+    Object invoke = operation.invoke(dynamoDbClient);
     // Then
-    verify(table, times(1)).delete();
-    verify(table, times(1)).waitForDelete();
+    verify(dynamoDbClient, times(1))
+        .deleteTable(
+            DeleteTableRequest.builder()
+                .tableName(TestDynamoDBData.ActualValue.TABLE_NAME)
+                .build());
+    verify(waiter, times(1))
+        .waitUntilTableNotExists(
+            any(DescribeTableRequest.class), any(WaiterOverrideConfiguration.class));
 
     assertThat(invoke).isNotNull();
     AwsDynamoDbResult result = (AwsDynamoDbResult) invoke;
@@ -51,7 +72,7 @@ class DeleteTableOperationTest extends BaseDynamoDbOperationTest {
     DeleteTable deleteTable = new DeleteTable(TestDynamoDBData.ActualValue.TABLE_NAME);
     DeleteTableOperation operation = new DeleteTableOperation(deleteTable);
 
-    Object result = operation.invoke(dynamoDB);
+    Object result = operation.invoke(dynamoDbClient);
 
     JsonNode actual = objectMapper.readTree(objectMapper.writeValueAsString(result));
     String expectedJson =
@@ -64,9 +85,6 @@ class DeleteTableOperationTest extends BaseDynamoDbOperationTest {
         """;
     JsonNode expected = objectMapper.readTree(expectedJson);
     assertThat(actual).isEqualTo(expected);
-    // Deliberately no exact writeValueAsString() pin: AwsDynamoDbResult is a plain JavaBean with
-    // no @JsonPropertyOrder; see AddItemOperationTest for why we don't rely on Jackson's
-    // reflection-based property order even for our own unannotated types.
   }
 
   @Test
