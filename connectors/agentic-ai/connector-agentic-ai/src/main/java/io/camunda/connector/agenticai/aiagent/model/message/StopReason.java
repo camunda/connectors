@@ -10,10 +10,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * Provider-neutral, normalized finish reason. Diagnostics + a thin predicate surface only — never
- * load-bearing for control flow (that keys off {@link AssistantMessage#hasToolCalls()}). The raw
- * vendor value is always preserved in {@link AssistantMessage#metadata()} in addition to living on
- * this field for a genuinely unrecognised value (see {@link UnknownStopReason} below).
+ * Provider-neutral, normalized finish reason. Primarily diagnostic (tool-call continuation keys off
+ * {@link AssistantMessage#hasToolCalls()}, not this field), but it IS consulted for control flow in
+ * at least one case: {@code BaseAgentRequestHandler} throws when this reason is {@link
+ * KnownStopReason#CONTENT_FILTERED}, failing the job rather than ingesting a filtered response. The
+ * raw vendor value is always preserved in {@link AssistantMessage#metadata()} in addition to living
+ * on this field for a genuinely unrecognised value (see {@link UnknownStopReason} below).
  *
  * <p>This is a sealed interface, not an enum: {@link KnownStopReason} covers the recognised values,
  * while {@link UnknownStopReason} carries a vendor stop reason verbatim when it doesn't map to any

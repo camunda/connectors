@@ -8,8 +8,10 @@ package io.camunda.connector.agenticai.aiagent.chatmodel;
 
 /**
  * Neutral, connector-agnostic descriptor a {@link ChatModelFactory} inspects to decide whether it
- * can serve a request and to build a {@link ChatModel}. Implementations are contributed by
- * connector variants and custom providers.
+ * can serve a request and to build a {@link ChatModel}. Today the built-in AI Agent request
+ * supplies configurations via the sealed {@code ProviderConfiguration} union; the SPI is the seam
+ * for custom/native providers to contribute their own {@link ChatModelConfiguration}
+ * implementation, whose request-side wiring lands with the v2 request types.
  */
 public interface ChatModelConfiguration {
 
