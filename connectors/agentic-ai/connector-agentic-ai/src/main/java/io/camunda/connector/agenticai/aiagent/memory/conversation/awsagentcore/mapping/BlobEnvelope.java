@@ -38,12 +38,6 @@ import software.amazon.awssdk.core.document.Document;
  */
 public record BlobEnvelope(String blobType, int version, JsonNode data) {
 
-  /**
-   * The AWS AgentCore conversation store shipped on the 8.10 track (never in Camunda 8.9), so
-   * version 1 is its first and current shape for every blob type, including {@code
-   * TOOL_CALL_RESULTS}'s structured {@code List<Content>} content — there is no legacy flat-{@code
-   * content} shape to migrate from, unlike the in-process and Camunda-document conversation stores.
-   */
   public static final int CURRENT_VERSION = 1;
 
   private static final TypeReference<List<ToolCallResultContent>> TOOL_CALL_RESULTS_TYPE =
