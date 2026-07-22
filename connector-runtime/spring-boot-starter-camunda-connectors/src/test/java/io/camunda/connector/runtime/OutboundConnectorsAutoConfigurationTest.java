@@ -31,7 +31,6 @@ import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.spring.configuration.CamundaAutoConfiguration;
 import io.camunda.client.spring.configuration.ExecutorServiceConfiguration;
 import io.camunda.client.spring.properties.CamundaClientProperties;
-import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
@@ -113,11 +112,6 @@ class OutboundConnectorsAutoConfigurationTest {
     @Bean
     SecretProviderAggregator secretProviderAggregator() {
       return new SecretProviderAggregator(List.of());
-    }
-
-    @Bean
-    FeelExpressionEvaluator feelExpressionEvaluator() {
-      return mock(FeelExpressionEvaluator.class);
     }
 
     @Bean

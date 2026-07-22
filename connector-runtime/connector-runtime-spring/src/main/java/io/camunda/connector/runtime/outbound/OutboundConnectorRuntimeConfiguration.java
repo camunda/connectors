@@ -25,9 +25,7 @@ import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
-import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -35,14 +33,11 @@ import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
-import io.camunda.connector.runtime.core.outbound.configuration.ConfigurationValidationRegistry;
-import io.camunda.connector.runtime.core.outbound.configuration.ConfigurationValidationService;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.runtime.instances.InstanceForwardingConfiguration;
 import io.camunda.connector.runtime.instances.service.OutboundConnectorsService;
-import io.camunda.connector.runtime.outbound.controller.ConfigurationValidationRestController;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorsRestController;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
@@ -52,11 +47,9 @@ import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCa
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.ServiceLoader;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -72,48 +65,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 
 @Configuration
-@Import({
-  OutboundConnectorsRestController.class,
-  ConfigurationValidationRestController.class,
-  InstanceForwardingConfiguration.class
-})
+@Import({OutboundConnectorsRestController.class, InstanceForwardingConfiguration.class})
 public class OutboundConnectorRuntimeConfiguration {
-
-  @Bean
-  public ConfigurationValidationRegistry configurationValidationRegistry() {
-    return new ConfigurationValidationRegistry(discoverConfigurationValidators());
-  }
-
-  /**
-   * Discovers {@code ConfigurationValidator} implementations via the SPI {@link ServiceLoader},
-   * mirroring how connectors themselves are discovered ({@code SPIConnectorDiscovery}). This is
-   * package-independent: a third-party connector's validator (e.g. under {@code com.acme}) is found
-   * as long as it is declared in {@code META-INF/services}, whereas a fixed base-package scan would
-   * silently miss it and always answer {@code UNSUPPORTED}.
-   */
-  @SuppressWarnings("rawtypes")
-  private static List<ConfigurationValidator<?>> discoverConfigurationValidators() {
-    List<ConfigurationValidator<?>> validators = new ArrayList<>();
-    for (ConfigurationValidator validator : ServiceLoader.load(ConfigurationValidator.class)) {
-      validators.add(validator);
-    }
-    return validators;
-  }
-
-  @Bean
-  public ConfigurationValidationService configurationValidationService(
-      ConfigurationValidationRegistry configurationValidationRegistry,
-      FeelExpressionEvaluator feelExpressionEvaluator,
-      SecretProviderAggregator secretProviderAggregator,
-      ValidationProvider validationProvider,
-      @OutboundConnectorObjectMapper ObjectMapper objectMapper) {
-    return new ConfigurationValidationService(
-        configurationValidationRegistry,
-        feelExpressionEvaluator,
-        secretProviderAggregator,
-        validationProvider,
-        objectMapper);
-  }
 
   @Bean
   @ConditionalOnMissingBean(OutboundConnectorFactory.class)

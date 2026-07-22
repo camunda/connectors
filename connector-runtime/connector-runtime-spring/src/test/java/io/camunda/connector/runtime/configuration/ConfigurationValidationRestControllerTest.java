@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.outbound.controller;
+package io.camunda.connector.runtime.configuration;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -23,8 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.camunda.connector.api.validation.ConfigurationValidationResult;
-import io.camunda.connector.runtime.core.outbound.configuration.ConfigurationValidationRequest;
-import io.camunda.connector.runtime.core.outbound.configuration.ConfigurationValidationService;
+import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRequest;
+import io.camunda.connector.runtime.core.configuration.ConfigurationValidationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -55,9 +55,7 @@ class ConfigurationValidationRestControllerTest {
 
     mockMvc
         .perform(
-            post("/outbound/configurations/validate")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(BODY))
+            post("/configurations/validate").contentType(MediaType.APPLICATION_JSON).content(BODY))
         .andExpect(status().isOk())
         // code/message are null and must be omitted from the response.
         .andExpect(content().string("{\"status\":\"SUCCESS\"}"));
@@ -70,9 +68,7 @@ class ConfigurationValidationRestControllerTest {
 
     mockMvc
         .perform(
-            post("/outbound/configurations/validate")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(BODY))
+            post("/configurations/validate").contentType(MediaType.APPLICATION_JSON).content(BODY))
         .andExpect(status().isOk())
         .andExpect(
             content()
@@ -86,9 +82,7 @@ class ConfigurationValidationRestControllerTest {
 
     mockMvc
         .perform(
-            post("/outbound/configurations/validate")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(BODY))
+            post("/configurations/validate").contentType(MediaType.APPLICATION_JSON).content(BODY))
         .andExpect(status().isOk())
         .andExpect(content().string("{\"status\":\"UNSUPPORTED\"}"));
   }

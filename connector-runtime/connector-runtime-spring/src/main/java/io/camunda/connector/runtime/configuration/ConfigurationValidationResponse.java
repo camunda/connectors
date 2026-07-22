@@ -14,15 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.outbound.configuration;
+package io.camunda.connector.runtime.configuration;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import io.camunda.connector.api.validation.ConfigurationValidationResult;
 
 /**
- * Payload of the configuration validation endpoint.
- *
- * @param credentialId the configuration id to validate (matches {@code @Configuration#id})
- * @param credentialRef a FEEL expression pointing at the stored configuration (cluster variable),
- *     e.g. {@code =camunda.vars.env.awsProd}
- * @param tenantId the tenant the configuration belongs to; used for secret resolution
+ * HTTP response of the configuration validation endpoint. {@code code} and {@code message} are
+ * omitted when absent, so a success serializes to {@code {"status":"SUCCESS"}}.
  */
-public record ConfigurationValidationRequest(
-    String credentialId, String credentialRef, String tenantId) {}
+@JsonInclude(Include.NON_NULL)
+public record ConfigurationValidationResponse(
+    ConfigurationValidationResult.Status status, String code, String message) {
+
+  public static ConfigurationValidationResponse from(ConfigurationValidationResult result) {
+    return new ConfigurationValidationResponse(result.status(), result.code(), result.message());
+  }
+}

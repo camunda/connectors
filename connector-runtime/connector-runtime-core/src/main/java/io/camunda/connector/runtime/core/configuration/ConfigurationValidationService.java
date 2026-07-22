@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.outbound.configuration;
+package io.camunda.connector.runtime.core.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
@@ -24,7 +24,7 @@ import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
-import io.camunda.connector.runtime.core.outbound.configuration.ConfigurationValidationRegistry.RegisteredValidator;
+import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry.RegisteredValidator;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretHandler;
 import org.slf4j.Logger;

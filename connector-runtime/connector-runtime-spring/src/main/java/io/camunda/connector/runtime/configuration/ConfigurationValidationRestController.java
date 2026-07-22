@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.outbound.controller;
+package io.camunda.connector.runtime.configuration;
 
-import io.camunda.connector.runtime.core.outbound.configuration.ConfigurationValidationRequest;
-import io.camunda.connector.runtime.core.outbound.configuration.ConfigurationValidationService;
+import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRequest;
+import io.camunda.connector.runtime.core.configuration.ConfigurationValidationService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,12 +27,15 @@ import org.springframework.web.bind.annotation.RestController;
  * Validates a stored configuration (credential) out-of-band by invoking the {@code
  * ConfigurationValidator} registered for the given {@code credentialId}.
  *
- * <p>{@code POST /outbound/configurations/validate} with {@code {credentialId, credentialRef,
- * tenantId}} returns one of {@code {"status":"SUCCESS"}}, {@code {"status":"FAILURE","code":...,
- * "message":...}}, or {@code {"status":"UNSUPPORTED"}}.
+ * <p>Configuration validation is direction-agnostic — the same configuration types are consumed by
+ * both inbound and outbound connectors — so this endpoint is not scoped under {@code /outbound}.
+ *
+ * <p>{@code POST /configurations/validate} with {@code {credentialId, credentialRef, tenantId}}
+ * returns one of {@code {"status":"SUCCESS"}}, {@code
+ * {"status":"FAILURE","code":...,"message":...}}, or {@code {"status":"UNSUPPORTED"}}.
  */
 @RestController
-@RequestMapping("/outbound/configurations")
+@RequestMapping("/configurations")
 public class ConfigurationValidationRestController {
 
   private final ConfigurationValidationService configurationValidationService;
