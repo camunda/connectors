@@ -9,6 +9,7 @@ package io.camunda.connector.sagemaker.caller;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.sagemaker.model.SageMakerAsyncResponse;
 import io.camunda.connector.sagemaker.model.SageMakerRequest;
+import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
 import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeAsyncClient;
 import software.amazon.awssdk.services.sagemakerruntime.model.InvokeEndpointAsyncRequest;
@@ -41,6 +42,10 @@ public final class SageMakerAsyncCaller {
               // SageMakerAsyncResponse, matching the pre-v2 (blocking) behavior.
               var result = runtime.invokeEndpointAsync(invokeEndpointRequest).join();
               return new SageMakerAsyncResponse(result);
+            } catch (CompletionException e) {
+              // join() wraps the actual SDK failure in a CompletionException; unwrap it so the
+              // reported error matches the blocking caller's error contract (pre-v2 shape).
+              throw new ConnectorException(e.getCause() != null ? e.getCause() : e);
             } catch (Exception e) {
               throw new ConnectorException(e);
             }

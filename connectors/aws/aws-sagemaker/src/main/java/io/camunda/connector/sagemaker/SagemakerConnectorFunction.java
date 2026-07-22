@@ -84,17 +84,19 @@ public class SagemakerConnectorFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) {
     final var request = context.bindVariables(SageMakerRequest.class);
     if (request.getInput().invocationType() == SageMakerInvocationType.ASYNC) {
-      return asyncCallerFunction.apply(
+      try (var client =
           sageMakeClientSupplier.getAsyncClient(
               CredentialsProviderSupportV2.credentialsProvider(request),
-              request.getConfiguration().region()),
-          request);
+              request.getConfiguration().region())) {
+        return asyncCallerFunction.apply(client, request);
+      }
     } else {
-      return syncCallerFunction.apply(
+      try (var client =
           sageMakeClientSupplier.getSyncClient(
               CredentialsProviderSupportV2.credentialsProvider(request),
-              request.getConfiguration().region()),
-          request);
+              request.getConfiguration().region())) {
+        return syncCallerFunction.apply(client, request);
+      }
     }
   }
 }

@@ -22,6 +22,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.sagemaker.model.SageMakerAsyncResponse;
 import io.camunda.connector.sagemaker.model.SageMakerRequest;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -74,6 +75,29 @@ class SageMakerAsyncCallerTest {
         .thenThrow(new RuntimeException("Something went terribly wrong!"));
     Assertions.assertThrows(
         ConnectorException.class, () -> SageMakerAsyncCaller.ASYNC_CALLER.apply(runtime, request));
+  }
+
+  @Test
+  void sageMakerAsyncCaller_UnwrapsCompletionExceptionFromJoin() throws JsonProcessingException {
+    var runtime = mock(SageMakerRuntimeAsyncClient.class);
+    var request =
+        ObjectMapperSupplier.getMapperInstance()
+            .readValue(ASYNC_EXECUTION_JSON, SageMakerRequest.class);
+    var sdkFailure = new RuntimeException("boom");
+    // Simulate a future that AWS completed exceptionally: .join() on it throws a
+    // CompletionException wrapping the real SDK failure, not the failure itself.
+    when(runtime.invokeEndpointAsync(any(InvokeEndpointAsyncRequest.class)))
+        .thenReturn(CompletableFuture.failedFuture(sdkFailure));
+
+    var thrown =
+        Assertions.assertThrows(
+            ConnectorException.class,
+            () -> SageMakerAsyncCaller.ASYNC_CALLER.apply(runtime, request));
+
+    // The reported cause must be the unwrapped SDK failure, not the CompletionException that
+    // join() throws internally.
+    assertThat(thrown.getCause()).isNotInstanceOf(CompletionException.class);
+    assertThat(thrown.getCause()).isSameAs(sdkFailure);
   }
 
   /**

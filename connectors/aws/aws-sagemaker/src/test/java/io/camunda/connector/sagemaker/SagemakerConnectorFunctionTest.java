@@ -56,6 +56,7 @@ class SagemakerConnectorFunctionTest {
 
     Mockito.verify(syncCallerFunction).apply(any(), any());
     Mockito.verify(asyncCallerFunction, Mockito.never()).apply(any(), any());
+    Mockito.verify(syncRuntime).close();
     Assertions.assertThat(result).isSameAs(executionResult);
   }
 
@@ -89,6 +90,7 @@ class SagemakerConnectorFunctionTest {
 
     Mockito.verify(syncCallerFunction, Mockito.never()).apply(any(), any());
     Mockito.verify(asyncCallerFunction).apply(any(), any());
+    Mockito.verify(asyncRuntime).close();
     Assertions.assertThat(result).isSameAs(executionResult);
   }
 }
