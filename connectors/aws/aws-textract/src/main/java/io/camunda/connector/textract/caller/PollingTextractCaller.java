@@ -145,7 +145,12 @@ public class PollingTextractCaller
 
                   JobStatus status = polled.jobStatus();
 
-                  if (status == JobStatus.SUCCEEDED) {
+                  if (status == JobStatus.SUCCEEDED || status == JobStatus.PARTIAL_SUCCESS) {
+                    // PARTIAL_SUCCESS is a terminal status too: the job finished but some pages
+                    // could not be analyzed. It still carries usable blocks (plus warnings), so it
+                    // must be treated as complete - otherwise the connector would poll a job that
+                    // will never reach SUCCEEDED until the polling window times out, discarding
+                    // the partial result.
                     return polled;
                   } else if (status == JobStatus.FAILED) {
                     throw new ConnectorInputException("Textract polling job: " + polled);
