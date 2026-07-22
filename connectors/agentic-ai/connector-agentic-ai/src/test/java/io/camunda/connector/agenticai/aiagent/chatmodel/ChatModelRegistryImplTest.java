@@ -16,6 +16,8 @@ import org.junit.jupiter.api.Test;
 
 class ChatModelRegistryImplTest {
 
+  private static final String SENSITIVE_MARKER = "SECRET-TOKEN";
+
   private final ChatModelConfiguration configuration = mock(ChatModelConfiguration.class);
 
   @Test
@@ -49,7 +51,45 @@ class ChatModelRegistryImplTest {
         .hasMessageContaining("Multiple chat model factories match configuration");
   }
 
+  @Test
+  void noMatchExceptionContainsProviderAndModelButNotSensitiveConfigurationDetails() {
+    final var sensitiveConfiguration = sensitiveConfiguration();
+    final var registry = new ChatModelRegistryImpl(List.of(factory(sensitiveConfiguration, false)));
+
+    assertThatThrownBy(() -> registry.resolve(sensitiveConfiguration))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("acme-provider")
+        .hasMessageContaining("acme-model")
+        .satisfies(e -> assertThat(e.getMessage()).doesNotContain(SENSITIVE_MARKER));
+  }
+
+  @Test
+  void multiMatchExceptionContainsProviderAndModelButNotSensitiveConfigurationDetails() {
+    final var sensitiveConfiguration = sensitiveConfiguration();
+    final var registry =
+        new ChatModelRegistryImpl(
+            List.of(factory(sensitiveConfiguration, true), factory(sensitiveConfiguration, true)));
+
+    assertThatThrownBy(() -> registry.resolve(sensitiveConfiguration))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("acme-provider")
+        .hasMessageContaining("acme-model")
+        .satisfies(e -> assertThat(e.getMessage()).doesNotContain(SENSITIVE_MARKER));
+  }
+
+  private ChatModelConfiguration sensitiveConfiguration() {
+    final ChatModelConfiguration sensitiveConfiguration = mock(ChatModelConfiguration.class);
+    when(sensitiveConfiguration.provider()).thenReturn("acme-provider");
+    when(sensitiveConfiguration.model()).thenReturn("acme-model");
+    when(sensitiveConfiguration.toString()).thenReturn(SENSITIVE_MARKER);
+    return sensitiveConfiguration;
+  }
+
   private ChatModelFactory factory(boolean supports) {
+    return factory(configuration, supports);
+  }
+
+  private ChatModelFactory factory(ChatModelConfiguration configuration, boolean supports) {
     final ChatModelFactory factory = mock(ChatModelFactory.class);
     when(factory.supports(configuration)).thenReturn(supports);
     return factory;

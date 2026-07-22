@@ -30,7 +30,8 @@ public class ChatModelRegistryImpl implements ChatModelRegistry {
 
     if (matches.isEmpty()) {
       throw new IllegalArgumentException(
-          "No chat model registered for configuration: " + configuration);
+          "No chat model registered for configuration: provider=%s, model=%s"
+              .formatted(configuration.provider(), configuration.model()));
     }
 
     if (matches.size() > 1) {
@@ -39,8 +40,8 @@ public class ChatModelRegistryImpl implements ChatModelRegistry {
               .map(factory -> factory.getClass().getSimpleName())
               .collect(Collectors.joining(", "));
       throw new IllegalStateException(
-          "Multiple chat model factories match configuration: %s (matched factories: %s)"
-              .formatted(configuration, factoryNames));
+          "Multiple chat model factories match configuration: provider=%s, model=%s (matched factories: %s)"
+              .formatted(configuration.provider(), configuration.model(), factoryNames));
     }
 
     return matches.get(0).create(configuration);
