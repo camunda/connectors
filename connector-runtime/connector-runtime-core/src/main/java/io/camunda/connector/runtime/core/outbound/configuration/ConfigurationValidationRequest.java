@@ -19,7 +19,7 @@ package io.camunda.connector.runtime.core.outbound.configuration;
 /**
  * Payload of the configuration validation endpoint.
  *
- * @param credentialId the configuration id to validate (matches {@code @ConfigurationTemplate#id})
+ * @param credentialId the configuration id to validate (matches {@code @Configuration#id})
  * @param credentialRef a FEEL expression pointing at the stored configuration (cluster variable),
  *     e.g. {@code =camunda.vars.env.awsProd}
  * @param tenantId the tenant the configuration belongs to; used for secret resolution
