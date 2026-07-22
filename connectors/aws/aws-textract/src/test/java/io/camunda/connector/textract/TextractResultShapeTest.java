@@ -64,8 +64,11 @@ class TextractResultShapeTest {
   }
 
   private static SdkHttpResponse sdkHttpResponse(int statusCode, String... headerKeyValuePairs) {
+    if (headerKeyValuePairs.length % 2 != 0) {
+      throw new IllegalArgumentException("headerKeyValuePairs must have an even length");
+    }
     SdkHttpResponse.Builder builder = SdkHttpResponse.builder().statusCode(statusCode);
-    for (int i = 0; i < headerKeyValuePairs.length; i += 2) {
+    for (int i = 0; i + 1 < headerKeyValuePairs.length; i += 2) {
       builder.putHeader(headerKeyValuePairs[i], headerKeyValuePairs[i + 1]);
     }
     return builder.build();
