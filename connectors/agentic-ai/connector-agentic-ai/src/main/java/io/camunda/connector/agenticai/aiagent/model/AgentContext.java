@@ -22,6 +22,11 @@ import org.jspecify.annotations.Nullable;
 @AgenticAiRecord
 @JsonDeserialize(builder = AgentContext.AgentContextJacksonProxyBuilder.class)
 public record AgentContext(
+    // a MISSING schemaVersion (pre-versioning 8.9 data) binds to the current version by design:
+    // legacy detection happens on the raw JSON tree in ConversationSchemaMigration BEFORE
+    // binding, and migrated trees are explicitly stamped to current there too, so the bound
+    // object always reports the current version -- this initializer only ever fires for state
+    // that truly never carried the field (e.g. constructed fresh via the builder).
     @RecordBuilder.Initializer("CURRENT_SCHEMA_VERSION") int schemaVersion,
     @RecordBuilder.Initializer("DEFAULT_STATE") AgentState state,
     @Nullable AgentMetadata metadata,
@@ -39,10 +44,10 @@ public record AgentContext(
   public static final int CURRENT_SCHEMA_VERSION = 1;
 
   /**
-   * Marker for state persisted before {@code schemaVersion} was introduced (Camunda 8.9). Such
-   * state is missing the field entirely; it is treated as this version and migrated on read.
+   * Marker for state whose {@code schemaVersion} field was absent (pre-versioning / Camunda 8.9).
+   * Such state is missing the field entirely; it is treated as this version and migrated on read.
    */
-  public static final int LEGACY_SCHEMA_VERSION = 0;
+  public static final int UNVERSIONED_SCHEMA_VERSION = 0;
 
   public static final AgentState DEFAULT_STATE = AgentState.INITIALIZING;
 

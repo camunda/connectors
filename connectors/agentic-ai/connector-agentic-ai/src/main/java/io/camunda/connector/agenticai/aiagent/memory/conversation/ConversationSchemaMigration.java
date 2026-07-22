@@ -104,7 +104,7 @@ public final class ConversationSchemaMigration {
   private static int schemaVersionOf(JsonNode agentContextTree) {
     return agentContextTree.hasNonNull(FIELD_SCHEMA_VERSION)
         ? agentContextTree.get(FIELD_SCHEMA_VERSION).asInt()
-        : AgentContext.LEGACY_SCHEMA_VERSION;
+        : AgentContext.UNVERSIONED_SCHEMA_VERSION;
   }
 
   /**
