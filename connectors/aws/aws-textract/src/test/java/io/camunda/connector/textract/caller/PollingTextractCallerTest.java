@@ -144,6 +144,73 @@ class PollingTextractCallerTest {
         .getDocumentAnalysis(any(GetDocumentAnalysisRequest.class));
   }
 
+  /**
+   * The migration requirement preserves retries for transient/technical failures (e.g. throttling
+   * or network errors surfaced via {@code CompletionException} from {@code .join()}). Only a
+   * genuine FAILED job status should abort retries early; any other exception must still be retried
+   * up to {@code maxAttempts}.
+   */
+  @Test
+  void transientFailureThenSuccess_retriesAndReturnsResult() throws Exception {
+    String jobId = "job-transient-failure";
+    TextractAsyncClient asyncClient = mock(TextractAsyncClient.class);
+    when(asyncClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                StartDocumentAnalysisResponse.builder().jobId(jobId).build()));
+
+    GetDocumentAnalysisResponse succeededResponse =
+        GetDocumentAnalysisResponse.builder().jobStatus(JobStatus.SUCCEEDED).build();
+
+    CompletableFuture<GetDocumentAnalysisResponse> transientFailure = new CompletableFuture<>();
+    transientFailure.completeExceptionally(new RuntimeException("transient network error"));
+
+    when(asyncClient.getDocumentAnalysis(any(GetDocumentAnalysisRequest.class)))
+        .thenReturn(transientFailure)
+        .thenReturn(CompletableFuture.completedFuture(succeededResponse));
+
+    PollingTextractCaller caller = new PollingTextractCaller(3, Duration.ofMillis(1));
+
+    GetDocumentAnalysisResult result = caller.call(FULL_FILLED_ASYNC_TEXTRACT_DATA, asyncClient);
+
+    assertThat(result.jobStatus()).isEqualTo(succeededResponse.jobStatusAsString());
+    verify(asyncClient, times(2)).getDocumentAnalysis(any(GetDocumentAnalysisRequest.class));
+  }
+
+  /**
+   * PARTIAL_SUCCESS is also a terminal GetDocumentAnalysis status (the job finished, but some pages
+   * could not be analyzed) and must be treated as complete rather than still-in-progress -
+   * otherwise the connector polls the completed job until the window times out and discards the
+   * partial result.
+   */
+  @Test
+  void partialSuccessJobStatus_treatedAsComplete() throws Exception {
+    String jobId = "job-partial-success";
+    TextractAsyncClient asyncClient = mock(TextractAsyncClient.class);
+    when(asyncClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                StartDocumentAnalysisResponse.builder().jobId(jobId).build()));
+
+    GetDocumentAnalysisResponse partialSuccessResponse =
+        GetDocumentAnalysisResponse.builder()
+            .jobStatus(JobStatus.PARTIAL_SUCCESS)
+            .blocks(Block.builder().id("block-partial").text("partial").build())
+            .build();
+    when(asyncClient.getDocumentAnalysis(any(GetDocumentAnalysisRequest.class)))
+        .thenReturn(CompletableFuture.completedFuture(partialSuccessResponse));
+
+    // maxAttempts is intentionally larger than 1: if PARTIAL_SUCCESS regresses to being treated
+    // as still-in-progress, this test observes more than a single poll (or ultimately a
+    // ConnectorException once the window is exhausted) instead of an immediate result.
+    PollingTextractCaller caller = new PollingTextractCaller(2, Duration.ofMillis(1));
+
+    GetDocumentAnalysisResult result = caller.call(FULL_FILLED_ASYNC_TEXTRACT_DATA, asyncClient);
+
+    assertThat(result.jobStatus()).isEqualTo(partialSuccessResponse.jobStatusAsString());
+    verify(asyncClient, times(1)).getDocumentAnalysis(any(GetDocumentAnalysisRequest.class));
+  }
+
   private List<Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResponse>>
       getRequestResponseSequence() {
     String jobId = "1";

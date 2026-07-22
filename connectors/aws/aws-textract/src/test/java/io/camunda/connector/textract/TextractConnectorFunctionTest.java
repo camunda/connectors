@@ -11,6 +11,8 @@ import static io.camunda.connector.textract.util.TextractTestUtils.ASYNC_EXECUTI
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -30,6 +32,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.textract.TextractAsyncClient;
+import software.amazon.awssdk.services.textract.TextractClient;
 
 @ExtendWith(MockitoExtension.class)
 class TextractConnectorFunctionTest {
@@ -39,6 +43,9 @@ class TextractConnectorFunctionTest {
   @Mock private AsyncTextractCaller asyncCaller;
 
   @Mock private AmazonTextractClientSupplier clientSupplier;
+
+  @Mock private TextractClient syncClient;
+  @Mock private TextractAsyncClient asyncClient;
 
   @InjectMocks private TextractConnectorFunction textractConnectorFunction;
 
@@ -77,6 +84,96 @@ class TextractConnectorFunctionTest {
 
     var result = textractConnectorFunction.execute(outBounderContext);
     assertThat(result).isInstanceOf(GetDocumentAnalysisResult.class);
+  }
+
+  @Test
+  void executeSyncReq_closesClientOnSuccess() throws Exception {
+    var outBounderContext = prepareConnectorContext(TextractTestUtils.SYNC_EXECUTION_JSON);
+
+    when(clientSupplier.getSyncTextractClient(any())).thenReturn(syncClient);
+    when(syncCaller.call(any(), any()))
+        .thenReturn(new AnalyzeDocumentResult(null, null, null, null, null, null));
+
+    textractConnectorFunction.execute(outBounderContext);
+
+    verify(syncClient, times(1)).close();
+  }
+
+  @Test
+  void executePollingReq_closesClientOnSuccess() throws Exception {
+    var outBounderContext = prepareConnectorContext(TextractTestUtils.POLLING_EXECUTION_JSON);
+
+    when(clientSupplier.getAsyncTextractClient(any())).thenReturn(asyncClient);
+    when(pollingCaller.call(any(), any()))
+        .thenReturn(
+            new GetDocumentAnalysisResult(null, null, null, null, null, null, null, null, null));
+
+    textractConnectorFunction.execute(outBounderContext);
+
+    verify(asyncClient, times(1)).close();
+  }
+
+  @Test
+  void executeAsyncReq_closesClientOnSuccess() throws Exception {
+    var outBounderContext = prepareConnectorContext(TextractTestUtils.ASYNC_EXECUTION_JSON);
+
+    when(clientSupplier.getAsyncTextractClient(any())).thenReturn(asyncClient);
+    when(asyncCaller.call(any(), any()))
+        .thenReturn(new StartDocumentAnalysisResult(null, null, null));
+
+    textractConnectorFunction.execute(outBounderContext);
+
+    verify(asyncClient, times(1)).close();
+  }
+
+  @Test
+  void executeSyncReq_closesClientEvenWhenCallerThrows() {
+    var outBounderContext = prepareConnectorContext(TextractTestUtils.SYNC_EXECUTION_JSON);
+
+    when(clientSupplier.getSyncTextractClient(any())).thenReturn(syncClient);
+    RuntimeException callerException = new RuntimeException("caller boom");
+    when(syncCaller.call(any(), any())).thenThrow(callerException);
+
+    Exception exception =
+        assertThrows(
+            RuntimeException.class, () -> textractConnectorFunction.execute(outBounderContext));
+
+    assertThat(exception).isSameAs(callerException);
+    // The try-with-resources block must still close the client when the caller throws -
+    // otherwise a caller-side failure would leak the underlying HTTP client/connection pool.
+    verify(syncClient, times(1)).close();
+  }
+
+  @Test
+  void executePollingReq_closesClientEvenWhenCallerThrows() throws Exception {
+    var outBounderContext = prepareConnectorContext(TextractTestUtils.POLLING_EXECUTION_JSON);
+
+    when(clientSupplier.getAsyncTextractClient(any())).thenReturn(asyncClient);
+    RuntimeException callerException = new RuntimeException("caller boom");
+    when(pollingCaller.call(any(), any())).thenThrow(callerException);
+
+    Exception exception =
+        assertThrows(
+            RuntimeException.class, () -> textractConnectorFunction.execute(outBounderContext));
+
+    assertThat(exception).isSameAs(callerException);
+    verify(asyncClient, times(1)).close();
+  }
+
+  @Test
+  void executeAsyncReq_closesClientEvenWhenCallerThrows() {
+    var outBounderContext = prepareConnectorContext(TextractTestUtils.ASYNC_EXECUTION_JSON);
+
+    when(clientSupplier.getAsyncTextractClient(any())).thenReturn(asyncClient);
+    RuntimeException callerException = new RuntimeException("caller boom");
+    when(asyncCaller.call(any(), any())).thenThrow(callerException);
+
+    Exception exception =
+        assertThrows(
+            RuntimeException.class, () -> textractConnectorFunction.execute(outBounderContext));
+
+    assertThat(exception).isSameAs(callerException);
+    verify(asyncClient, times(1)).close();
   }
 
   @ParameterizedTest
