@@ -61,17 +61,35 @@ public final class ConversationSchemaMigration {
       return null;
     }
 
-    if (agentContextTree.isObject()
-        && schemaVersionOf(agentContextTree) < AgentContext.CURRENT_SCHEMA_VERSION) {
-      JsonNode conversation = agentContextTree.get(FIELD_CONVERSATION);
-      if (conversation != null
-          && conversation.isObject()
-          && conversation.hasNonNull(FIELD_MESSAGES)) {
-        upcastMessages(conversation.get(FIELD_MESSAGES), mapper);
+    if (agentContextTree.isObject()) {
+      int schemaVersion = schemaVersionOf(agentContextTree);
+      rejectIfNewerThanSupported(schemaVersion);
+
+      if (schemaVersion < AgentContext.CURRENT_SCHEMA_VERSION) {
+        JsonNode conversation = agentContextTree.get(FIELD_CONVERSATION);
+        if (conversation != null
+            && conversation.isObject()
+            && conversation.hasNonNull(FIELD_MESSAGES)) {
+          upcastMessages(conversation.get(FIELD_MESSAGES), mapper);
+        }
       }
     }
 
     return mapper.treeToValue(agentContextTree, AgentContext.class);
+  }
+
+  /**
+   * Rejects a persisted {@code agentContext} schema version newer than {@link
+   * AgentContext#CURRENT_SCHEMA_VERSION}. A rolled-back or older connector runtime reading state
+   * written by a newer one must fail loud rather than silently binding a shape it doesn't fully
+   * understand and rewriting it under a lower version.
+   */
+  private static void rejectIfNewerThanSupported(int schemaVersion) {
+    if (schemaVersion > AgentContext.CURRENT_SCHEMA_VERSION) {
+      throw new IllegalStateException(
+          "Persisted conversation schema version %d is newer than the highest version supported by this connector (%d). This state was written by a newer connector version; rolling back to an older connector version is not supported. Upgrade the connector runtime to the version that wrote this state."
+              .formatted(schemaVersion, AgentContext.CURRENT_SCHEMA_VERSION));
+    }
   }
 
   private static int schemaVersionOf(JsonNode agentContextTree) {

@@ -40,6 +40,11 @@ public class CamundaDocumentConversationSerializer {
         tree.hasNonNull("schemaVersion")
             ? tree.get("schemaVersion").asInt()
             : AgentContext.LEGACY_SCHEMA_VERSION;
+    if (schemaVersion > AgentContext.CURRENT_SCHEMA_VERSION) {
+      throw new IllegalStateException(
+          "Persisted conversation schema version %d is newer than the highest version supported by this connector (%d). This state was written by a newer connector version; rolling back to an older connector version is not supported. Upgrade the connector runtime to the version that wrote this state."
+              .formatted(schemaVersion, AgentContext.CURRENT_SCHEMA_VERSION));
+    }
     if (schemaVersion < AgentContext.CURRENT_SCHEMA_VERSION) {
       ConversationSchemaMigration.upcastMessages(tree.get("messages"), objectMapper);
     }

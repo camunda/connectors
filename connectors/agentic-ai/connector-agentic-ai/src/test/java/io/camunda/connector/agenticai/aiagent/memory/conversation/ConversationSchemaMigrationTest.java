@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -348,6 +349,19 @@ class ConversationSchemaMigrationTest {
       // the in-memory object is current-shape after upcast, even though it was read from
       // legacy-shaped JSON without a schemaVersion field
       assertThat(agentContext.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+    }
+
+    @Test
+    void newerThanCurrentVersionThrows() throws Exception {
+      final int futureVersion = AgentContext.CURRENT_SCHEMA_VERSION + 1;
+      JsonNode tree = objectMapper.readTree("{\"schemaVersion\": %d}".formatted(futureVersion));
+
+      assertThatThrownBy(
+              () -> ConversationSchemaMigration.migrateAndBindAgentContext(tree, objectMapper))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining(String.valueOf(futureVersion))
+          .hasMessageContaining("newer")
+          .hasMessageContaining("not supported");
     }
 
     @Test
