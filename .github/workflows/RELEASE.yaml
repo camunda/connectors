@@ -292,7 +292,10 @@ jobs:
   version-bump-docs-links:
     needs: [setup, e2e-tests]
     name: Version bump documentation links, if this is the first minor release
-    if: needs.setup.result == 'success' && (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -355,7 +358,11 @@ jobs:
     needs: [setup, e2e-tests]
     name: Create a maven release
     runs-on: ubuntu-latest
-    if: ${{ !inputs.skip-maven-release }}
+    if: |
+      always() &&
+      !inputs.skip-maven-release &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     permissions:
       contents: read
     steps:
@@ -469,7 +476,11 @@ jobs:
     needs: [setup, e2e-tests]
     runs-on: ubuntu-latest
     name: Docker release - ${{ matrix.name }}
-    if: ${{ !inputs.skip-docker-release }}
+    if: |
+      always() &&
+      !inputs.skip-docker-release &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     strategy:
       matrix:
         include:
@@ -579,7 +590,10 @@ jobs:
   bundle-and-build-changelog:
     needs: [setup, e2e-tests]
     name: Bundle and generate changelogs
-    if: needs.setup.result == 'success' && (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -621,7 +635,12 @@ jobs:
 
   helm-deploy:
     needs: [ setup, e2e-tests, docker-release ]
-    if: ${{ !inputs.skip-docker-release }}
+    if: |
+      always() &&
+      !inputs.skip-docker-release &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped') &&
+      needs.docker-release.result == 'success'
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
@@ -647,6 +666,7 @@ jobs:
       contents: read
 
     if: |
+      always() &&
       needs.setup.result == 'success' &&
       (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped') &&
       (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
@@ -708,6 +728,7 @@ jobs:
 
     # Automatically notify PRs for non-RC releases (case-insensitive check)
     if: |
+      always() &&
       !contains(inputs.version, 'rc') &&
       needs.setup.result == 'success' &&
       (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped') &&
