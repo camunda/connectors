@@ -34,17 +34,21 @@ import org.junit.jupiter.api.Test;
 class ConfigurationValidationServiceTest {
 
   @Configuration(id = "ok", name = "Ok")
-  record OkConfig(String value) implements ConfigurationValidator {
+  record OkConfig(String value) {}
+
+  @Configuration(id = "throws", name = "Throws")
+  record ThrowingConfig(String value) {}
+
+  static class OkValidator implements ConfigurationValidator<OkConfig> {
     @Override
-    public ConfigurationValidationResult validate() {
+    public ConfigurationValidationResult validate(OkConfig configuration) {
       return ConfigurationValidationResult.success();
     }
   }
 
-  @Configuration(id = "throws", name = "Throws")
-  record ThrowingConfig(String value) implements ConfigurationValidator {
+  static class ThrowingValidator implements ConfigurationValidator<ThrowingConfig> {
     @Override
-    public ConfigurationValidationResult validate() {
+    public ConfigurationValidationResult validate(ThrowingConfig configuration) {
       throw new ConnectorException("UNAUTHORIZED", "invalid key");
     }
   }
@@ -77,7 +81,7 @@ class ConfigurationValidationServiceTest {
 
   private ConfigurationValidationService serviceWith(String resolvedJson) {
     var registry =
-        new ConfigurationValidationRegistry(List.of(OkConfig.class, ThrowingConfig.class));
+        new ConfigurationValidationRegistry(List.of(new OkValidator(), new ThrowingValidator()));
     SecretProvider noSecrets =
         new SecretProvider() {
           @Override

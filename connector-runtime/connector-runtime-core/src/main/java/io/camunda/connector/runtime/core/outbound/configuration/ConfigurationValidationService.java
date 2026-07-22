@@ -23,6 +23,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.runtime.core.outbound.configuration.ConfigurationValidationRegistry.RegisteredValidator;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretHandler;
 import org.slf4j.Logger;
@@ -63,15 +64,14 @@ public class ConfigurationValidationService {
   }
 
   public ConfigurationValidationResult validate(ConfigurationValidationRequest request) {
-    Class<? extends ConfigurationValidator> configurationClass =
-        registry.findById(request.credentialId()).orElse(null);
-    if (configurationClass == null) {
+    RegisteredValidator registered = registry.findById(request.credentialId()).orElse(null);
+    if (registered == null) {
       return ConfigurationValidationResult.unsupported();
     }
 
-    final ConfigurationValidator configuration;
+    final Object configuration;
     try {
-      configuration = resolveConfiguration(request, configurationClass);
+      configuration = resolveConfiguration(request, registered.configurationClass());
     } catch (Exception e) {
       LOG.warn(
           "Failed to resolve configuration '{}' from ref '{}'",
@@ -82,7 +82,10 @@ public class ConfigurationValidationService {
     }
 
     try {
-      return configuration.validate();
+      @SuppressWarnings("unchecked")
+      ConfigurationValidator<Object> validator =
+          (ConfigurationValidator<Object>) registered.validator();
+      return validator.validate(configuration);
     } catch (Exception e) {
       String code =
           e instanceof ConnectorException ce && ce.getErrorCode() != null
@@ -92,10 +95,8 @@ public class ConfigurationValidationService {
     }
   }
 
-  private ConfigurationValidator resolveConfiguration(
-      ConfigurationValidationRequest request,
-      Class<? extends ConfigurationValidator> configurationClass)
-      throws Exception {
+  private Object resolveConfiguration(
+      ConfigurationValidationRequest request, Class<?> configurationClass) throws Exception {
     String rawJson = feelExpressionEvaluator.evaluateToJson(request.credentialRef());
     String withSecrets =
         secretHandler.replaceSecrets(rawJson, new SecretContext(request.tenantId(), null));

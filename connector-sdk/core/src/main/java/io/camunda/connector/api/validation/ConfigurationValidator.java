@@ -17,20 +17,27 @@
 package io.camunda.connector.api.validation;
 
 /**
- * Implemented by a configuration (credential) class to make it validatable out-of-band.
+ * Validates a configuration (credential) of type {@code T} out-of-band.
  *
- * <p>A configuration class is a data class annotated with {@code @ConfigurationTemplate} (e.g.
- * {@code AwsCredentialConfiguration}). By implementing this interface, it declares how to check
- * whether an instance of itself is usable — for a credential, typically whether it can
- * authenticate. Because the logic lives on the configuration class, it is shared by every connector
- * that consumes that configuration rather than duplicated per connector.
+ * <p>{@code T} is a data class annotated with {@code @Configuration} (e.g. {@code
+ * AwsCredentialConfiguration}); its {@code @Configuration#id()} is how a validator is matched to a
+ * stored configuration. A single implementation validates one configuration type and is therefore
+ * shared by every connector that consumes it — the validation is written once, for the
+ * configuration, not per connector.
  *
- * <p>The runtime resolves a stored configuration instance, deserializes it into this class, and
- * calls {@link #validate()}. Implementations return {@link ConfigurationValidationResult#success()}
- * or {@link ConfigurationValidationResult#failure(String, String)}; a thrown exception is mapped to
- * a failure by the runtime.
+ * <p>Keeping the validator separate from the configuration class lets the configuration class stay
+ * a pure modeling artifact (loadable by the element-template generator with no runtime SDKs), while
+ * the validator carries the heavy runtime dependencies (an AWS/HTTP/JDBC client) that only the
+ * runtime needs.
+ *
+ * <p>The runtime resolves a stored configuration instance, deserializes it into {@code T}, and
+ * calls {@link #validate(Object)}. Implementations return {@link
+ * ConfigurationValidationResult#success()} or {@link ConfigurationValidationResult#failure(String,
+ * String)}; a thrown exception is mapped to a failure by the runtime.
+ *
+ * @param <T> the configuration type this validator handles
  */
-public interface ConfigurationValidator {
+public interface ConfigurationValidator<T> {
 
-  ConfigurationValidationResult validate();
+  ConfigurationValidationResult validate(T configuration);
 }

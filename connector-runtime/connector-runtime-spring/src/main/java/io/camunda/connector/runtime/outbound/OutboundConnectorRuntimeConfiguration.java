@@ -25,6 +25,7 @@ import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
+import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
@@ -73,7 +74,7 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
-import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.core.type.filter.AssignableTypeFilter;
 
 @Configuration
 @Import({
@@ -86,36 +87,37 @@ public class OutboundConnectorRuntimeConfiguration {
   private static final Logger LOG =
       LoggerFactory.getLogger(OutboundConnectorRuntimeConfiguration.class);
 
-  /** Base package scanned for {@code @Configuration} classes exposing a configuration validator. */
+  /** Base package scanned for {@code ConfigurationValidator} implementations. */
   private static final String CONFIGURATION_SCAN_BASE_PACKAGE = "io.camunda.connector";
 
   @Bean
   public ConfigurationValidationRegistry configurationValidationRegistry() {
     return new ConfigurationValidationRegistry(
-        scanConfigurationClasses(CONFIGURATION_SCAN_BASE_PACKAGE));
+        scanConfigurationValidators(CONFIGURATION_SCAN_BASE_PACKAGE));
   }
 
   /**
-   * Discovers configuration (credential) classes on the classpath by their SDK
-   * {@code @Configuration} annotation, independently of any connector. The registry keeps those
-   * that also implement {@code ConfigurationValidator}.
+   * Discovers {@code ConfigurationValidator} implementations on the classpath, independently of any
+   * connector, and instantiates them via their no-arg constructor.
    */
-  private static Collection<Class<?>> scanConfigurationClasses(String basePackage) {
+  private static Collection<ConfigurationValidator<?>> scanConfigurationValidators(
+      String basePackage) {
     var scanner = new ClassPathScanningCandidateComponentProvider(false);
-    scanner.addIncludeFilter(
-        new AnnotationTypeFilter(io.camunda.connector.api.annotation.Configuration.class));
-    List<Class<?>> classes = new ArrayList<>();
+    scanner.addIncludeFilter(new AssignableTypeFilter(ConfigurationValidator.class));
+    List<ConfigurationValidator<?>> validators = new ArrayList<>();
     for (BeanDefinition candidate : scanner.findCandidateComponents(basePackage)) {
       try {
-        classes.add(Class.forName(candidate.getBeanClassName()));
-      } catch (ClassNotFoundException e) {
+        Class<?> validatorClass = Class.forName(candidate.getBeanClassName());
+        validators.add(
+            (ConfigurationValidator<?>) validatorClass.getDeclaredConstructor().newInstance());
+      } catch (ReflectiveOperationException | ClassCastException e) {
         LOG.warn(
-            "Could not load configuration candidate '{}'; skipping",
+            "Could not instantiate configuration validator '{}'; skipping",
             candidate.getBeanClassName(),
             e);
       }
     }
-    return classes;
+    return validators;
   }
 
   @Bean

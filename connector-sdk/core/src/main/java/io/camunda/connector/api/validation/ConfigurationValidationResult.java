@@ -17,7 +17,8 @@
 package io.camunda.connector.api.validation;
 
 /**
- * Outcome of validating a configuration (credential) via {@link ConfigurationValidator#validate()}.
+ * Outcome of validating a configuration (credential) via {@link
+ * ConfigurationValidator#validate(Object)}.
  *
  * <ul>
  *   <li>{@code SUCCESS} — the configuration is usable.

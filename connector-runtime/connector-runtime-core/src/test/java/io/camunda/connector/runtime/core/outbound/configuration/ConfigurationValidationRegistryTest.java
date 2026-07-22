@@ -22,84 +22,92 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidator;
+import io.camunda.connector.runtime.core.outbound.configuration.ConfigurationValidationRegistry.RegisteredValidator;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class ConfigurationValidationRegistryTest {
 
   @Configuration(id = "cfg:1", name = "Config One")
-  record ValidatableConfig(String value) implements ConfigurationValidator {
+  record ConfigOne(String value) {}
+
+  @Configuration(id = "cfg:2", name = "Config Two")
+  record ConfigTwo(String value) {}
+
+  /** Configuration type not annotated with {@code @Configuration}. */
+  record UnannotatedConfig(String value) {}
+
+  static class ConfigOneValidator implements ConfigurationValidator<ConfigOne> {
     @Override
-    public ConfigurationValidationResult validate() {
+    public ConfigurationValidationResult validate(ConfigOne configuration) {
       return ConfigurationValidationResult.success();
     }
   }
 
-  /** Same id as {@link ValidatableConfig}, different class — a conflict. */
-  @Configuration(id = "cfg:1", name = "Conflicting")
-  record ConflictingConfig(String value) implements ConfigurationValidator {
+  /** A second validator for the same configuration id — a conflict. */
+  static class OtherConfigOneValidator implements ConfigurationValidator<ConfigOne> {
     @Override
-    public ConfigurationValidationResult validate() {
+    public ConfigurationValidationResult validate(ConfigOne configuration) {
       return ConfigurationValidationResult.success();
     }
   }
 
-  /** A configuration that declares no validation logic. */
-  @Configuration(id = "cfg:plain", name = "Plain")
-  record PlainConfig(String value) {}
-
-  /** Validatable but not a configuration (no {@code @Configuration}). */
-  record UnannotatedConfig(String value) implements ConfigurationValidator {
+  static class ConfigTwoValidator implements ConfigurationValidator<ConfigTwo> {
     @Override
-    public ConfigurationValidationResult validate() {
+    public ConfigurationValidationResult validate(ConfigTwo configuration) {
+      return ConfigurationValidationResult.success();
+    }
+  }
+
+  static class UnannotatedConfigValidator implements ConfigurationValidator<UnannotatedConfig> {
+    @Override
+    public ConfigurationValidationResult validate(UnannotatedConfig configuration) {
       return ConfigurationValidationResult.success();
     }
   }
 
   @Test
-  void registersValidatableConfiguration() {
-    var registry = new ConfigurationValidationRegistry(List.of(ValidatableConfig.class));
+  void registersValidatorUnderConfigurationId() {
+    var registry = new ConfigurationValidationRegistry(List.of(new ConfigOneValidator()));
 
-    assertThat(registry.findById("cfg:1")).get().isEqualTo(ValidatableConfig.class);
+    assertThat(registry.findById("cfg:1"))
+        .get()
+        .extracting(RegisteredValidator::configurationClass)
+        .isEqualTo(ConfigOne.class);
   }
 
   @Test
-  void ignoresConfigurationWithoutValidator() {
-    var registry = new ConfigurationValidationRegistry(List.of(PlainConfig.class));
+  void registersMultipleDistinctValidators() {
+    var registry =
+        new ConfigurationValidationRegistry(
+            List.of(new ConfigOneValidator(), new ConfigTwoValidator()));
 
-    assertThat(registry.findById("cfg:plain")).isEmpty();
-  }
-
-  @Test
-  void ignoresValidatorWithoutConfigurationAnnotation() {
-    var registry = new ConfigurationValidationRegistry(List.of(UnannotatedConfig.class));
-
-    assertThat(registry.findById("cfg:1")).isEmpty();
+    assertThat(registry.findById("cfg:1")).isPresent();
+    assertThat(registry.findById("cfg:2")).isPresent();
   }
 
   @Test
   void returnsEmptyForUnknownId() {
-    var registry = new ConfigurationValidationRegistry(List.of(ValidatableConfig.class));
+    var registry = new ConfigurationValidationRegistry(List.of(new ConfigOneValidator()));
 
     assertThat(registry.findById("does-not-exist")).isEmpty();
   }
 
   @Test
-  void sameConfigurationClassListedTwiceIsRegisteredOnce() {
-    var registry =
-        new ConfigurationValidationRegistry(
-            List.of(ValidatableConfig.class, ValidatableConfig.class));
-
-    assertThat(registry.findById("cfg:1")).get().isEqualTo(ValidatableConfig.class);
-  }
-
-  @Test
-  void failsFastWhenTwoClassesClaimTheSameId() {
+  void failsFastWhenTwoValidatorsClaimTheSameId() {
     assertThatThrownBy(
             () ->
                 new ConfigurationValidationRegistry(
-                    List.of(ValidatableConfig.class, ConflictingConfig.class)))
+                    List.of(new ConfigOneValidator(), new OtherConfigOneValidator())))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("Duplicate configuration validator for id 'cfg:1'");
+  }
+
+  @Test
+  void failsFastWhenConfigurationTypeLacksAnnotation() {
+    assertThatThrownBy(
+            () -> new ConfigurationValidationRegistry(List.of(new UnannotatedConfigValidator())))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("not annotated with @Configuration");
   }
 }

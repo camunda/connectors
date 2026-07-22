@@ -18,6 +18,8 @@ package io.camunda.connector.runtime.core.outbound.configuration;
 
 import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.api.validation.ConfigurationValidator;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,50 +28,77 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Builds and holds the {@code configurationId -> configuration class} map used to validate stored
+ * Builds and holds the {@code configurationId -> validator} map used to validate stored
  * configurations out-of-band.
  *
- * <p>The candidate classes are discovered elsewhere (a classpath scan for {@link Configuration})
- * and handed to this registry, which keeps those that also implement {@link ConfigurationValidator}
- * and registers each under the id from its {@link Configuration#id()}. Two <em>different</em>
- * classes claiming the same id is a conflict and fails fast at construction time.
+ * <p>Validators are discovered elsewhere (a classpath scan for {@link ConfigurationValidator}
+ * implementations) and handed to this registry. For each validator, the configuration type {@code
+ * T} is resolved from its {@code ConfigurationValidator<T>} interface, and the id is read from that
+ * type's {@link Configuration#id()}. Two validators claiming the same id is a conflict and fails
+ * fast at construction time.
  */
 public class ConfigurationValidationRegistry {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConfigurationValidationRegistry.class);
 
-  private final Map<String, Class<? extends ConfigurationValidator>> classById = new HashMap<>();
+  /** A validator together with the configuration type its argument must be deserialized into. */
+  public record RegisteredValidator(
+      Class<?> configurationClass, ConfigurationValidator<?> validator) {}
 
-  public ConfigurationValidationRegistry(Collection<Class<?>> configurationClasses) {
-    for (Class<?> configurationClass : configurationClasses) {
-      register(configurationClass);
+  private final Map<String, RegisteredValidator> byId = new HashMap<>();
+
+  public ConfigurationValidationRegistry(Collection<ConfigurationValidator<?>> validators) {
+    for (ConfigurationValidator<?> validator : validators) {
+      register(validator);
     }
-    LOG.info("Registered {} configuration validator(s): {}", classById.size(), classById.keySet());
+    LOG.info("Registered {} configuration validator(s): {}", byId.size(), byId.keySet());
   }
 
-  private void register(Class<?> configurationClass) {
-    Configuration configuration = configurationClass.getAnnotation(Configuration.class);
-    if (configuration == null
-        || !ConfigurationValidator.class.isAssignableFrom(configurationClass)) {
-      // Not validatable: either not a configuration, or it declares no validation logic.
-      return;
+  private void register(ConfigurationValidator<?> validator) {
+    Class<?> configurationClass = resolveConfigurationType(validator.getClass());
+    if (configurationClass == null) {
+      throw new IllegalStateException(
+          String.format(
+              "Cannot determine the configuration type of validator %s; it must directly implement"
+                  + " ConfigurationValidator<T>",
+              validator.getClass().getName()));
     }
-    @SuppressWarnings("unchecked")
-    Class<? extends ConfigurationValidator> validatorClass =
-        (Class<? extends ConfigurationValidator>) configurationClass;
+    Configuration configuration = configurationClass.getAnnotation(Configuration.class);
+    if (configuration == null) {
+      throw new IllegalStateException(
+          String.format(
+              "Configuration type %s validated by %s is not annotated with @Configuration",
+              configurationClass.getName(), validator.getClass().getName()));
+    }
 
-    Class<? extends ConfigurationValidator> existing = classById.get(configuration.id());
-    if (existing != null && !existing.equals(validatorClass)) {
+    RegisteredValidator existing = byId.get(configuration.id());
+    if (existing != null && !existing.validator().getClass().equals(validator.getClass())) {
       throw new IllegalStateException(
           String.format(
               "Duplicate configuration validator for id '%s': %s and %s",
-              configuration.id(), existing.getName(), validatorClass.getName()));
+              configuration.id(),
+              existing.validator().getClass().getName(),
+              validator.getClass().getName()));
     }
-    classById.put(configuration.id(), validatorClass);
+    byId.put(configuration.id(), new RegisteredValidator(configurationClass, validator));
   }
 
-  /** Returns the configuration class registered for the given id, if any. */
-  public Optional<Class<? extends ConfigurationValidator>> findById(String configurationId) {
-    return Optional.ofNullable(classById.get(configurationId));
+  /**
+   * Resolves {@code T} from a {@code ConfigurationValidator<T>} implemented directly by the class.
+   */
+  private static Class<?> resolveConfigurationType(Class<?> validatorClass) {
+    for (Type genericInterface : validatorClass.getGenericInterfaces()) {
+      if (genericInterface instanceof ParameterizedType parameterized
+          && parameterized.getRawType() == ConfigurationValidator.class
+          && parameterized.getActualTypeArguments()[0] instanceof Class<?> configurationClass) {
+        return configurationClass;
+      }
+    }
+    return null;
+  }
+
+  /** Returns the validator registered for the given configuration id, if any. */
+  public Optional<RegisteredValidator> findById(String configurationId) {
+    return Optional.ofNullable(byId.get(configurationId));
   }
 }
