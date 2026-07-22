@@ -60,7 +60,9 @@ The SPI and its surrounding contract:
   than one factory matches, replacing the previous fixed adapter binding. It dispatches on a neutral
   `ChatModelConfiguration` — the type carried through the agent configuration, exposing only `provider()` and
   `model()` — so a provider can supply its own configuration through the SPI rather than being confined to the
-  module's built-in provider union.
+  module's built-in provider union. In this PR, the request-side binding for such a custom configuration is
+  not yet wired up: both v1 requests bind the sealed `ProviderConfiguration`, and that wiring for
+  custom/native configurations is delivered incrementally by the v2 request types.
 * **Turn-based continuation**: `ChatResult` is a sealed `Completed | Continuation`. The request handler
   loops while the result is a `Continuation`, persisting each round as a separate turn. LangChain4J always
   returns `Completed`, so the loop runs exactly once for it — behavior-identical to the previous single call.

@@ -927,7 +927,9 @@ identifier) — enough for routing and agent-instance reporting — and is the t
 `AgentConfiguration` (`chatModel()`) and dispatched on by the registry, so a provider can supply its
 own configuration through the SPI rather than being confined to the module's built-in provider union.
 The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockProviderConfiguration`,
-etc.) is the concrete implementation contributed by this module.
+etc.) is the concrete implementation contributed by this module. Today the v1 request supplies
+configurations through this sealed union only; request-side binding for a custom/native
+`ChatModelConfiguration` is delivered incrementally by the v2 request types.
 `ChatModelRegistryImpl` asks every registered `ChatModelFactory` whether it `supports` the
 configuration and routes to the single match; a configuration matched by zero factories throws
 `IllegalArgumentException`, and one matched by more than one throws `IllegalStateException` — fail
