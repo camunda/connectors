@@ -69,7 +69,7 @@ Missing (this pilot builds it):
 
 ## Architecture
 
-New package `io.camunda.connector.agenticai.aiagent.framework.openai/`, mirroring
+New package `io.camunda.connector.agenticai.aiagent.provider.openai/`, mirroring
 `framework/anthropic/`, with a **per-family strategy** inside one `OpenAiChatModelApi` (the two
 wire shapes diverge enough to isolate cleanly):
 

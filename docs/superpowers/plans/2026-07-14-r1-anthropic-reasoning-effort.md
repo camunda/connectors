@@ -126,23 +126,27 @@ Run: `mvn -q -o test-compile -f connectors/agentic-ai/pom.xml`. Expected: `Anthr
 - [ ] **Step 3: Create the enums and descriptor**
 
 `ThinkingMode.java`:
-```java
-package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
-public enum ThinkingMode { ENABLED, ADAPTIVE, DISABLED }
+```java
+package io.camunda.connector.agenticai.aiagent.provider.anthropic;
+
+public enum ThinkingMode {ENABLED, ADAPTIVE, DISABLED}
 ```
 `AnthropicEffort.java`:
+
 ```java
-package io.camunda.connector.agenticai.aiagent.framework.anthropic;
+package io.camunda.connector.agenticai.aiagent.provider.anthropic;
 
 /** Anthropic effort levels. CUSTOM is a config-only escape hatch (never appears in the matrix). */
-public enum AnthropicEffort { LOW, MEDIUM, HIGH, XHIGH, MAX, CUSTOM }
+public enum AnthropicEffort {LOW, MEDIUM, HIGH, XHIGH, MAX, CUSTOM}
 ```
 `AnthropicReasoningCapabilities.java`:
+
 ```java
-package io.camunda.connector.agenticai.aiagent.framework.anthropic;
+package io.camunda.connector.agenticai.aiagent.provider.anthropic;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 
 /**
@@ -152,23 +156,25 @@ import java.util.List;
  * {@code effort-levels} lists supported effort values (empty ⇒ effort unsupported).
  */
 public record AnthropicReasoningCapabilities(
-    @JsonProperty("thinking-modes") List<ThinkingMode> thinkingModes,
-    @JsonProperty("effort-levels") List<AnthropicEffort> effortLevels) {
+	@JsonProperty("thinking-modes") List<ThinkingMode> thinkingModes,
+	@JsonProperty("effort-levels") List<AnthropicEffort> effortLevels) {
 
-  public AnthropicReasoningCapabilities {
-    thinkingModes = thinkingModes == null ? List.of() : List.copyOf(thinkingModes);
-    effortLevels = effortLevels == null ? List.of() : List.copyOf(effortLevels);
-  }
+	public AnthropicReasoningCapabilities {
+		thinkingModes = thinkingModes == null ? List.of() : List.copyOf(thinkingModes);
+		effortLevels = effortLevels == null ? List.of() : List.copyOf(effortLevels);
+	}
 }
 ```
 `AnthropicProviderCapabilities.java`:
+
 ```java
-package io.camunda.connector.agenticai.aiagent.framework.anthropic;
+package io.camunda.connector.agenticai.aiagent.provider.anthropic;
 
 import org.jspecify.annotations.Nullable;
 
 /** Typed interpretation of the opaque {@code provider} capability bag for the Anthropic family. */
-public record AnthropicProviderCapabilities(@Nullable AnthropicReasoningCapabilities reasoning) {}
+public record AnthropicProviderCapabilities(@Nullable AnthropicReasoningCapabilities reasoning) {
+}
 ```
 
 - [ ] **Step 4: Reshape `AnthropicModelCapabilities`**

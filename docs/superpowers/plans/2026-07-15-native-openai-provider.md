@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - **Module root (main):** `connectors/agentic-ai/connector-agentic-ai/`. Java source root: `src/main/java/io/camunda/connector/agenticai/`. Abbreviated below as `…/agenticai/`.
-- **Package for all new runtime code:** `io.camunda.connector.agenticai.aiagent.framework.openai`.
+- **Package for all new runtime code:** `io.camunda.connector.agenticai.aiagent.provider.openai`.
 - **License headers:** main module (`connector-agentic-ai`) files use the **proprietary** Camunda header ("Licensed under a proprietary license. See the License.txt"); the **e2e-test module** files use the **Apache 2.0** header. Copy the header from an existing file in the same module — never mix them.
 - **Never `mvn install` to `~/.m2`** — another worktree iterates the same `8.10.0-SNAPSHOT`. Use `mvn test` / `mvn test-compile` only. `-am` (build upstream modules in-reactor) is fine.
 - **Run Maven and git with the sandbox disabled** (Mockito MockMaker + network): every `Bash` call that runs `mvn` or `git` sets `dangerouslyDisableSandbox: true`.
@@ -95,7 +95,7 @@ Add to the `maven-dependency-plugin` `<ignoredDependencies>`/`<ignoredUnusedDecl
 
 ```java
 // Apache/proprietary header per module (this is main module → proprietary)
-package io.camunda.connector.agenticai.aiagent.framework.openai;
+package io.camunda.connector.agenticai.aiagent.provider.openai;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -124,30 +124,30 @@ import org.junit.jupiter.api.Test;
  */
 class OpenAiSdkSurfaceTest {
 
-  @Test
-  void buildsClient() {
-    OpenAIClient client =
-        OpenAIOkHttpClient.builder().apiKey("test-key").build();
-    assertThat(client).isNotNull();
-  }
+	@Test
+	void buildsClient() {
+		OpenAIClient client =
+			OpenAIOkHttpClient.builder().apiKey("test-key").build();
+		assertThat(client).isNotNull();
+	}
 
-  @Test
-  void buildsResponsesParamsWithReasoningAndTools() {
-    // Build a ResponseCreateParams that sets: model, input, instructions,
-    // reasoning(effort=HIGH), include(reasoning.encrypted_content), store(false),
-    // a function tool, a web_search tool, a code_interpreter tool, and text json_schema.
-    // Assert it builds (compiler validates the method names).
-  }
+	@Test
+	void buildsResponsesParamsWithReasoningAndTools() {
+		// Build a ResponseCreateParams that sets: model, input, instructions,
+		// reasoning(effort=HIGH), include(reasoning.encrypted_content), store(false),
+		// a function tool, a web_search tool, a code_interpreter tool, and text json_schema.
+		// Assert it builds (compiler validates the method names).
+	}
 
-  @Test
-  void buildsCompletionsParamsWithToolAndResponseFormat() {
-    // Build a ChatCompletionCreateParams with a function tool + responseFormat(json_schema). Assert it builds.
-  }
+	@Test
+	void buildsCompletionsParamsWithToolAndResponseFormat() {
+		// Build a ChatCompletionCreateParams with a function tool + responseFormat(json_schema). Assert it builds.
+	}
 
-  @Test
-  void accumulatorsExist() {
-    // Instantiate ResponseAccumulator + ChatCompletionAccumulator.create(); assert non-null.
-  }
+	@Test
+	void accumulatorsExist() {
+		// Instantiate ResponseAccumulator + ChatCompletionAccumulator.create(); assert non-null.
+	}
 }
 ```
 
@@ -337,9 +337,10 @@ Mirror `framework/anthropic/AnthropicModelCapabilities*`, dropping the `thinking
 - Produces: `OpenAiModelCapabilities(CoreModelCapabilities core, @Nullable OpenAiReasoningCapabilities reasoning)` with `supportsReasoning()`; `OpenAiModelCapabilitiesData implements ModelCapabilitiesData<OpenAiModelCapabilities>`; `OpenAiReasoningCapabilities(List<OpenAiEffort> effortLevels)`.
 
 - [ ] **Step 1: Write the failing test**
+
 ```java
 // proprietary header
-package io.camunda.connector.agenticai.aiagent.framework.openai;
+package io.camunda.connector.agenticai.aiagent.provider.openai;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -349,27 +350,27 @@ import org.junit.jupiter.api.Test;
 
 class OpenAiModelCapabilitiesDataTest {
 
-  private final ObjectMapper mapper = new ObjectMapper()
-      .findAndRegisterModules(); // snake_case handled by @JsonNaming on the record
+	private final ObjectMapper mapper = new ObjectMapper()
+		.findAndRegisterModules(); // snake_case handled by @JsonNaming on the record
 
-  @Test
-  void projectsReasoningEffortLevels() throws Exception {
-    var yaml = """
-        { "context_window": 128000, "max_output_tokens": 16384,
-          "provider": { "reasoning": { "effort-levels": ["low","medium","high"] } } }
-        """;
-    var data = mapper.readValue(yaml, OpenAiModelCapabilitiesData.class);
-    var caps = data.toModelCapabilities();
-    assertThat(caps.supportsReasoning()).isTrue();
-    assertThat(caps.reasoning().effortLevels())
-        .containsExactly(OpenAiEffort.LOW, OpenAiEffort.MEDIUM, OpenAiEffort.HIGH);
-  }
+	@Test
+	void projectsReasoningEffortLevels() throws Exception {
+		var yaml = """
+			{ "context_window": 128000, "max_output_tokens": 16384,
+			  "provider": { "reasoning": { "effort-levels": ["low","medium","high"] } } }
+			""";
+		var data = mapper.readValue(yaml, OpenAiModelCapabilitiesData.class);
+		var caps = data.toModelCapabilities();
+		assertThat(caps.supportsReasoning()).isTrue();
+		assertThat(caps.reasoning().effortLevels())
+			.containsExactly(OpenAiEffort.LOW, OpenAiEffort.MEDIUM, OpenAiEffort.HIGH);
+	}
 
-  @Test
-  void noReasoningWhenProviderAbsent() throws Exception {
-    var data = mapper.readValue("{ \"context_window\": 128000 }", OpenAiModelCapabilitiesData.class);
-    assertThat(data.toModelCapabilities().supportsReasoning()).isFalse();
-  }
+	@Test
+	void noReasoningWhenProviderAbsent() throws Exception {
+		var data = mapper.readValue("{ \"context_window\": 128000 }", OpenAiModelCapabilitiesData.class);
+		assertThat(data.toModelCapabilities().supportsReasoning()).isFalse();
+	}
 }
 ```
 
@@ -445,30 +446,31 @@ git commit -m "feat(agentic-ai): add OpenAI model-capability projection types"
 - Consumes: `ModelCapabilitiesResolver` (bean from `AgenticAiCapabilitiesConfiguration`), `OpenAiModelCapabilitiesData` (Task 3), `OpenAiApiFamily.RESPONSES.familyKey()` = `"openai-responses"`, `COMPLETIONS.familyKey()` = `"openai-completions"`.
 
 - [ ] **Step 1: Write the failing test** (a lightweight resolver test — load the yaml via the same mechanism `AgenticAiCapabilitiesConfiguration` uses; if that needs Spring, use `@SpringBootTest(classes = AgenticAiCapabilitiesConfiguration.class)` and inject `ModelCapabilitiesResolver`):
+
 ```java
 // proprietary header
-package io.camunda.connector.agenticai.aiagent.framework.openai;
+package io.camunda.connector.agenticai.aiagent.provider.openai;
 
 import static org.assertj.core.api.Assertions.assertThat;
 // ... Spring test wiring mirroring the existing Anthropic capability resolution test ...
 
 class OpenAiCapabilityResolutionTest {
-  // inject ModelCapabilitiesResolver resolver;
+	// inject ModelCapabilitiesResolver resolver;
 
-  @Test
-  void gpt5OnResponsesDeclaresReasoning() {
-    var caps = resolver.resolve("openai-responses", "gpt-5", "direct",
-        java.util.Optional.empty(), OpenAiModelCapabilitiesData.class);
-    assertThat(caps.supportsReasoning()).isTrue();
-    assertThat(caps.reasoning().effortLevels()).isNotEmpty();
-  }
+	@Test
+	void gpt5OnResponsesDeclaresReasoning() {
+		var caps = resolver.resolve("openai-responses", "gpt-5", "direct",
+			java.util.Optional.empty(), OpenAiModelCapabilitiesData.class);
+		assertThat(caps.supportsReasoning()).isTrue();
+		assertThat(caps.reasoning().effortLevels()).isNotEmpty();
+	}
 
-  @Test
-  void gpt5OnCompletionsHasNoReasoning() {
-    var caps = resolver.resolve("openai-completions", "gpt-5", "direct",
-        java.util.Optional.empty(), OpenAiModelCapabilitiesData.class);
-    assertThat(caps.supportsReasoning()).isFalse();
-  }
+	@Test
+	void gpt5OnCompletionsHasNoReasoning() {
+		var caps = resolver.resolve("openai-completions", "gpt-5", "direct",
+			java.util.Optional.empty(), OpenAiModelCapabilitiesData.class);
+		assertThat(caps.supportsReasoning()).isFalse();
+	}
 }
 ```
 (Find the existing Anthropic resolver test — likely `ModelCapabilitiesResolverImplTest` or an `AnthropicModelCapabilities*Test` — and copy its exact wiring for loading the yaml.)
@@ -514,9 +516,10 @@ Mirror `AnthropicReasoningValidator`, replacing thinking-mode rules with effort-
 - Produces: `static void OpenAiRequestValidator.validate(OpenAiConnection connection, @Nullable OpenAiReasoningCapabilities reasoning, boolean modelMatched, String modelId)`.
 
 - [ ] **Step 1: Write the failing test** (one test per rule):
+
 ```java
 // proprietary header
-package io.camunda.connector.agenticai.aiagent.framework.openai;
+package io.camunda.connector.agenticai.aiagent.provider.openai;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -525,45 +528,45 @@ import org.junit.jupiter.api.Test;
 
 class OpenAiRequestValidatorTest {
 
-  // helper to build an OpenAiConnection(apiFamily, effort, enableWebSearch, enableCodeInterpreter)
+	// helper to build an OpenAiConnection(apiFamily, effort, enableWebSearch, enableCodeInterpreter)
 
-  @Test
-  void passesThroughUnmatchedModel() {
-    assertThatCode(() -> OpenAiRequestValidator.validate(
-        conn(OpenAiApiFamily.RESPONSES, OpenAiEffort.HIGH, false, false), null, false, "unknown"))
-        .doesNotThrowAnyException();
-  }
+	@Test
+	void passesThroughUnmatchedModel() {
+		assertThatCode(() -> OpenAiRequestValidator.validate(
+			conn(OpenAiApiFamily.RESPONSES, OpenAiEffort.HIGH, false, false), null, false, "unknown"))
+			.doesNotThrowAnyException();
+	}
 
-  @Test
-  void failsEffortWithoutReasoningCapability() {
-    assertThatThrownBy(() -> OpenAiRequestValidator.validate(
-        conn(OpenAiApiFamily.RESPONSES, OpenAiEffort.HIGH, false, false), null, true, "gpt-4o"))
-        .isInstanceOf(io.camunda.connector.api.error.ConnectorException.class);
-  }
+	@Test
+	void failsEffortWithoutReasoningCapability() {
+		assertThatThrownBy(() -> OpenAiRequestValidator.validate(
+			conn(OpenAiApiFamily.RESPONSES, OpenAiEffort.HIGH, false, false), null, true, "gpt-4o"))
+			.isInstanceOf(io.camunda.connector.api.error.ConnectorException.class);
+	}
 
-  @Test
-  void failsEffortNotInEffortLevels() {
-    var reasoning = new OpenAiReasoningCapabilities(java.util.List.of(OpenAiEffort.LOW));
-    assertThatThrownBy(() -> OpenAiRequestValidator.validate(
-        conn(OpenAiApiFamily.RESPONSES, OpenAiEffort.HIGH, false, false), reasoning, true, "gpt-5"))
-        .isInstanceOf(io.camunda.connector.api.error.ConnectorException.class);
-  }
+	@Test
+	void failsEffortNotInEffortLevels() {
+		var reasoning = new OpenAiReasoningCapabilities(java.util.List.of(OpenAiEffort.LOW));
+		assertThatThrownBy(() -> OpenAiRequestValidator.validate(
+			conn(OpenAiApiFamily.RESPONSES, OpenAiEffort.HIGH, false, false), reasoning, true, "gpt-5"))
+			.isInstanceOf(io.camunda.connector.api.error.ConnectorException.class);
+	}
 
-  @Test
-  void passesEffortInEffortLevels() {
-    var reasoning = new OpenAiReasoningCapabilities(java.util.List.of(OpenAiEffort.HIGH));
-    assertThatCode(() -> OpenAiRequestValidator.validate(
-        conn(OpenAiApiFamily.RESPONSES, OpenAiEffort.HIGH, false, false), reasoning, true, "gpt-5"))
-        .doesNotThrowAnyException();
-  }
+	@Test
+	void passesEffortInEffortLevels() {
+		var reasoning = new OpenAiReasoningCapabilities(java.util.List.of(OpenAiEffort.HIGH));
+		assertThatCode(() -> OpenAiRequestValidator.validate(
+			conn(OpenAiApiFamily.RESPONSES, OpenAiEffort.HIGH, false, false), reasoning, true, "gpt-5"))
+			.doesNotThrowAnyException();
+	}
 
-  @Test
-  void failsServerToolOnCompletions() {
-    assertThatThrownBy(() -> OpenAiRequestValidator.validate(
-        conn(OpenAiApiFamily.COMPLETIONS, null, true, false), null, true, "gpt-4o"))
-        .isInstanceOf(io.camunda.connector.api.error.ConnectorException.class)
-        .hasMessageContaining("Responses API");
-  }
+	@Test
+	void failsServerToolOnCompletions() {
+		assertThatThrownBy(() -> OpenAiRequestValidator.validate(
+			conn(OpenAiApiFamily.COMPLETIONS, null, true, false), null, true, "gpt-4o"))
+			.isInstanceOf(io.camunda.connector.api.error.ConnectorException.class)
+			.hasMessageContaining("Responses API");
+	}
 }
 ```
 
@@ -630,9 +633,10 @@ Mirror `AnthropicClientFactory` / `AnthropicOkHttpClientFactory`, supporting bot
 - Produces: `interface OpenAiClientFactory { OpenAIClient create(); }`; `OpenAiOkHttpClientFactory(OpenAiBackend backend, @Nullable Duration timeout, HttpTransportSupport transport)`.
 
 - [ ] **Step 1: Write the failing test** (builds a client for each backend, no network):
+
 ```java
 // proprietary header
-package io.camunda.connector.agenticai.aiagent.framework.openai;
+package io.camunda.connector.agenticai.aiagent.provider.openai;
 
 import static org.assertj.core.api.Assertions.assertThat;
 // imports: OpenAiChatModel.OpenAiBackend.*, CompatibleAuthentication.*, HttpTransportSupport, Duration, Mockito
@@ -640,23 +644,23 @@ import org.junit.jupiter.api.Test;
 
 class OpenAiOkHttpClientFactoryTest {
 
-  private final HttpTransportSupport transport = org.mockito.Mockito.mock(HttpTransportSupport.class);
+	private final HttpTransportSupport transport = org.mockito.Mockito.mock(HttpTransportSupport.class);
 
-  @Test
-  void buildsDirectClient() {
-    var backend = new OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend("k", "org", "proj");
-    var client = new OpenAiOkHttpClientFactory(backend, Duration.ofSeconds(30), transport).create();
-    assertThat(client).isNotNull();
-  }
+	@Test
+	void buildsDirectClient() {
+		var backend = new OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend("k", "org", "proj");
+		var client = new OpenAiOkHttpClientFactory(backend, Duration.ofSeconds(30), transport).create();
+		assertThat(client).isNotNull();
+	}
 
-  @Test
-  void buildsCompatibleClientWithEndpoint() {
-    var backend = new OpenAiChatModel.OpenAiBackend.OpenAiCompatibleBackend(
-        "https://example.test/v1", null, null, null,
-        new OpenAiChatModel.CompatibleAuthentication.CompatibleApiKeyAuthentication("k"));
-    var client = new OpenAiOkHttpClientFactory(backend, null, transport).create();
-    assertThat(client).isNotNull();
-  }
+	@Test
+	void buildsCompatibleClientWithEndpoint() {
+		var backend = new OpenAiChatModel.OpenAiBackend.OpenAiCompatibleBackend(
+			"https://example.test/v1", null, null, null,
+			new OpenAiChatModel.CompatibleAuthentication.CompatibleApiKeyAuthentication("k"));
+		var client = new OpenAiOkHttpClientFactory(backend, null, transport).create();
+		assertThat(client).isNotNull();
+	}
 }
 ```
 

@@ -24,7 +24,7 @@ Introduce a single-pass, capability-keyed `ToolCallResultStrategy` that transfor
 
 ## Architecture
 
-The strategy is a dependency-free, provider-neutral SPI collaborator in a new package `io.camunda.connector.agenticai.aiagent.framework.multimodal`, wired as a Spring bean and injected into `BaseAgentRequestHandler` (both subclass constructors + autoconfiguration beans). It reads `DocumentContent` **directly** from the self-describing `ToolCallResultContent.content` (no `GatewayToolHandlerRegistry` — extraction/gateway-awareness lives in the composer). `DocumentModality` maps a document's MIME type to a `Modality` bucket; unknown/blank → `DOCUMENT` (conservative, gates to fallback).
+The strategy is a dependency-free, provider-neutral SPI collaborator in a new package `io.camunda.connector.agenticai.aiagent.provider.multimodal`, wired as a Spring bean and injected into `BaseAgentRequestHandler` (both subclass constructors + autoconfiguration beans). It reads `DocumentContent` **directly** from the self-describing `ToolCallResultContent.content` (no `GatewayToolHandlerRegistry` — extraction/gateway-awareness lives in the composer). `DocumentModality` maps a document's MIME type to a `Modality` bucket; unknown/blank → `DOCUMENT` (conservative, gates to fallback).
 
 ## C5 Global Constraints (copied verbatim from the parent plan's "Global Constraints")
 
@@ -104,9 +104,9 @@ Mapping (spec §7): `image/* → IMAGE`; `audio/* → AUDIO`; `video/* → VIDEO
 - [ ] **Step 1 — Failing test.** Create `DocumentModalityTest.java`:
 
 ```java
-package io.camunda.connector.agenticai.aiagent.framework.multimodal;
+package io.camunda.connector.agenticai.aiagent.provider.multimodal;
 
-import static io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
+import static io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities.Modality;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
@@ -115,36 +115,36 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 class DocumentModalityTest {
 
-  @ParameterizedTest
-  @CsvSource({
-    "image/png, IMAGE",
-    "image/jpeg, IMAGE",
-    "application/pdf, DOCUMENT",
-    "text/plain, TEXT",
-    "text/csv, TEXT",
-    "application/json, TEXT",
-    "application/xml, TEXT",
-    "application/yaml, TEXT",
-    "application/vnd.api+json, TEXT",
-    "audio/mpeg, AUDIO",
-    "video/mp4, VIDEO",
-    "application/octet-stream, DOCUMENT",
-    "application/vnd.ms-excel, DOCUMENT"
-  })
-  void mapsMimeToModality(String contentType, Modality expected) {
-    assertThat(DocumentModality.fromContentType(contentType)).isEqualTo(expected);
-  }
+	@ParameterizedTest
+	@CsvSource({
+		"image/png, IMAGE",
+		"image/jpeg, IMAGE",
+		"application/pdf, DOCUMENT",
+		"text/plain, TEXT",
+		"text/csv, TEXT",
+		"application/json, TEXT",
+		"application/xml, TEXT",
+		"application/yaml, TEXT",
+		"application/vnd.api+json, TEXT",
+		"audio/mpeg, AUDIO",
+		"video/mp4, VIDEO",
+		"application/octet-stream, DOCUMENT",
+		"application/vnd.ms-excel, DOCUMENT"
+	})
+	void mapsMimeToModality(String contentType, Modality expected) {
+		assertThat(DocumentModality.fromContentType(contentType)).isEqualTo(expected);
+	}
 
-  @Test
-  void stripsParametersAndIsCaseInsensitive() {
-    assertThat(DocumentModality.fromContentType("Text/Plain; charset=UTF-8")).isEqualTo(Modality.TEXT);
-  }
+	@Test
+	void stripsParametersAndIsCaseInsensitive() {
+		assertThat(DocumentModality.fromContentType("Text/Plain; charset=UTF-8")).isEqualTo(Modality.TEXT);
+	}
 
-  @Test
-  void defaultsToDocumentForNullOrBlank() {
-    assertThat(DocumentModality.fromContentType(null)).isEqualTo(Modality.DOCUMENT);
-    assertThat(DocumentModality.fromContentType("  ")).isEqualTo(Modality.DOCUMENT);
-  }
+	@Test
+	void defaultsToDocumentForNullOrBlank() {
+		assertThat(DocumentModality.fromContentType(null)).isEqualTo(Modality.DOCUMENT);
+		assertThat(DocumentModality.fromContentType("  ")).isEqualTo(Modality.DOCUMENT);
+	}
 }
 ```
 
@@ -154,12 +154,14 @@ class DocumentModalityTest {
 - [ ] **Step 3 — Minimal impl.** Create `DocumentModality.java`:
 
 ```java
-package io.camunda.connector.agenticai.aiagent.framework.multimodal;
+package io.camunda.connector.agenticai.aiagent.provider.multimodal;
 
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
+
 import java.util.Locale;
+
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -168,45 +170,46 @@ import org.jspecify.annotations.Nullable;
  */
 public final class DocumentModality {
 
-  private DocumentModality() {}
+	private DocumentModality() {
+	}
 
-  public static Modality fromDocument(Document document) {
-    final DocumentMetadata metadata = document.metadata();
-    return fromContentType(metadata != null ? metadata.getContentType() : null);
-  }
+	public static Modality fromDocument(Document document) {
+		final DocumentMetadata metadata = document.metadata();
+		return fromContentType(metadata != null ? metadata.getContentType() : null);
+	}
 
-  public static Modality fromContentType(@Nullable String contentType) {
-    if (contentType == null || contentType.isBlank()) {
-      return Modality.DOCUMENT;
-    }
-    var mime = contentType.toLowerCase(Locale.ROOT).trim();
-    final int paramIdx = mime.indexOf(';');
-    if (paramIdx >= 0) {
-      mime = mime.substring(0, paramIdx).trim();
-    }
-    if (mime.startsWith("image/")) {
-      return Modality.IMAGE;
-    }
-    if (mime.startsWith("audio/")) {
-      return Modality.AUDIO;
-    }
-    if (mime.startsWith("video/")) {
-      return Modality.VIDEO;
-    }
-    if (mime.equals("application/pdf")) {
-      return Modality.DOCUMENT;
-    }
-    if (mime.startsWith("text/")
-        || mime.equals("application/json")
-        || mime.equals("application/xml")
-        || mime.equals("application/yaml")
-        || mime.equals("application/x-yaml")
-        || mime.endsWith("+json")
-        || mime.endsWith("+xml")) {
-      return Modality.TEXT;
-    }
-    return Modality.DOCUMENT;
-  }
+	public static Modality fromContentType(@Nullable String contentType) {
+		if (contentType == null || contentType.isBlank()) {
+			return Modality.DOCUMENT;
+		}
+		var mime = contentType.toLowerCase(Locale.ROOT).trim();
+		final int paramIdx = mime.indexOf(';');
+		if (paramIdx >= 0) {
+			mime = mime.substring(0, paramIdx).trim();
+		}
+		if (mime.startsWith("image/")) {
+			return Modality.IMAGE;
+		}
+		if (mime.startsWith("audio/")) {
+			return Modality.AUDIO;
+		}
+		if (mime.startsWith("video/")) {
+			return Modality.VIDEO;
+		}
+		if (mime.equals("application/pdf")) {
+			return Modality.DOCUMENT;
+		}
+		if (mime.startsWith("text/")
+			|| mime.equals("application/json")
+			|| mime.equals("application/xml")
+			|| mime.equals("application/yaml")
+			|| mime.equals("application/x-yaml")
+			|| mime.endsWith("+json")
+			|| mime.endsWith("+xml")) {
+			return Modality.TEXT;
+		}
+		return Modality.DOCUMENT;
+	}
 }
 ```
 
@@ -331,14 +334,14 @@ public interface ToolCallResultStrategy {
 - [ ] **Step 2 — Failing test.** Create `CapabilityAwareToolCallResultStrategyTest.java`:
 
 ```java
-package io.camunda.connector.agenticai.aiagent.framework.multimodal;
+package io.camunda.connector.agenticai.aiagent.provider.multimodal;
 
-import static io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
+import static io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities.Modality;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -352,125 +355,127 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 
 class CapabilityAwareToolCallResultStrategyTest {
 
-  private static ModelCapabilities caps(List<Modality> toolResult, List<Modality> userMessage) {
-    return ModelCapabilities.builder()
-        .userMessageModalities(userMessage)
-        .toolResultModalities(toolResult)
-        .assistantMessageModalities(List.of(Modality.TEXT))
-        .build();
-  }
+	private static ModelCapabilities caps(List<Modality> toolResult, List<Modality> userMessage) {
+		return ModelCapabilities.builder()
+			.userMessageModalities(userMessage)
+			.toolResultModalities(toolResult)
+			.assistantMessageModalities(List.of(Modality.TEXT))
+			.build();
+	}
 
-  private static final ModelCapabilities BRIDGE_CAPS =
-      caps(List.of(Modality.TEXT), List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT));
-  private static final ModelCapabilities NATIVE_DOC_CAPS =
-      caps(
-          List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
-          List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT));
+	private static final ModelCapabilities BRIDGE_CAPS =
+		caps(List.of(Modality.TEXT), List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT));
+	private static final ModelCapabilities NATIVE_DOC_CAPS =
+		caps(
+			List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
+			List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT));
 
-  private final DocumentFactoryImpl documentFactory =
-      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
-  private final ToolCallResultStrategy strategy = new CapabilityAwareToolCallResultStrategy();
+	private final DocumentFactoryImpl documentFactory =
+		new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+	private final ToolCallResultStrategy strategy = new CapabilityAwareToolCallResultStrategy();
 
-  private Document doc(String content, String contentType, String fileName) {
-    return documentFactory.create(
-        DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
-            .contentType(contentType)
-            .fileName(fileName)
-            .build());
-  }
+	private Document doc(String content, String contentType, String fileName) {
+		return documentFactory.create(
+			DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
+				.contentType(contentType)
+				.fileName(fileName)
+				.build());
+	}
 
-  private ConversationSnapshot snapshot(Message... messages) {
-    return new ConversationSnapshot(List.of(messages), List.of());
-  }
+	private ConversationSnapshot snapshot(Message... messages) {
+		return new ConversationSnapshot(List.of(messages), List.of());
+	}
 
-  /** Mirrors the composer's self-describing lift: from(raw) content + appended DocumentContent. */
-  private ToolCallResultMessage toolResult(String id, String name, Object rawContent, Document... docs) {
-    final var base =
-        ToolCallResultContent.from(
-            ToolCallResult.builder().id(id).name(name).content(rawContent).build());
-    final var content = new ArrayList<>(base.content());
-    for (var d : docs) {
-      content.add(DocumentContent.documentContent(d));
-    }
-    return ToolCallResultMessage.builder().results(List.of(base.withContent(content))).build();
-  }
+	/** Mirrors the composer's self-describing lift: from(raw) content + appended DocumentContent. */
+	private ToolCallResultMessage toolResult(String id, String name, Object rawContent, Document... docs) {
+		final var base =
+			ToolCallResultContent.from(
+				ToolCallResult.builder().id(id).name(name).content(rawContent).build());
+		final var content = new ArrayList<>(base.content());
+		for (var d : docs) {
+			content.add(DocumentContent.documentContent(d));
+		}
+		return ToolCallResultMessage.builder().results(List.of(base.withContent(content))).build();
+	}
 
-  @Test
-  void unsupportedToolResultModality_stripsDocAndInsertsSyntheticFallback() {
-    var pdf = doc("pdf-bytes", "application/pdf", "report.pdf");
-    var trm = toolResult("call_1", "getReport", Map.of("k", "v"), pdf);
+	@Test
+	void unsupportedToolResultModality_stripsDocAndInsertsSyntheticFallback() {
+		var pdf = doc("pdf-bytes", "application/pdf", "report.pdf");
+		var trm = toolResult("call_1", "getReport", Map.of("k", "v"), pdf);
 
-    var out = strategy.apply(snapshot(trm), BRIDGE_CAPS).messages();
+		var out = strategy.apply(snapshot(trm), BRIDGE_CAPS).messages();
 
-    assertThat(out).hasSize(2);
-    var strippedTrm = (ToolCallResultMessage) out.get(0);
-    assertThat(strippedTrm.results().getFirst().content())
-        .noneMatch(DocumentContent.class::isInstance)
-        .anyMatch(ObjectContent.class::isInstance); // object content preserved
-    var synthetic = (UserMessage) out.get(1);
-    assertThat(synthetic.metadata()).containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-    assertThat(synthetic.content().getFirst())
-        .isEqualTo(textContent(ToolCallResultStrategy.TOOL_CALL_DOCUMENTS_PREAMBLE));
-    assertThat(synthetic.content()).contains(DocumentContent.documentContent(pdf));
-  }
+		assertThat(out).hasSize(2);
+		var strippedTrm = (ToolCallResultMessage) out.get(0);
+		assertThat(strippedTrm.results().getFirst().content())
+			.noneMatch(DocumentContent.class::isInstance)
+			.anyMatch(ObjectContent.class::isInstance); // object content preserved
+		var synthetic = (UserMessage) out.get(1);
+		assertThat(synthetic.metadata()).containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+		assertThat(synthetic.content().getFirst())
+			.isEqualTo(textContent(ToolCallResultStrategy.TOOL_CALL_DOCUMENTS_PREAMBLE));
+		assertThat(synthetic.content()).contains(DocumentContent.documentContent(pdf));
+	}
 
-  @Test
-  void supportedToolResultModality_keepsDocInlineAndSynthesizesNothing() {
-    var pdf = doc("pdf-bytes", "application/pdf", "report.pdf");
-    var trm = toolResult("call_1", "getReport", Map.of("k", "v"), pdf);
+	@Test
+	void supportedToolResultModality_keepsDocInlineAndSynthesizesNothing() {
+		var pdf = doc("pdf-bytes", "application/pdf", "report.pdf");
+		var trm = toolResult("call_1", "getReport", Map.of("k", "v"), pdf);
 
-    var out = strategy.apply(snapshot(trm), NATIVE_DOC_CAPS).messages();
+		var out = strategy.apply(snapshot(trm), NATIVE_DOC_CAPS).messages();
 
-    assertThat(out).hasSize(1);
-    var keptTrm = (ToolCallResultMessage) out.getFirst();
-    assertThat(keptTrm.results().getFirst().content())
-        .contains(DocumentContent.documentContent(pdf));
-  }
+		assertThat(out).hasSize(1);
+		var keptTrm = (ToolCallResultMessage) out.getFirst();
+		assertThat(keptTrm.results().getFirst().content())
+			.contains(DocumentContent.documentContent(pdf));
+	}
 
-  @Test
-  void mixedModalities_stripsOnlyUnsupportedDocs() {
-    var pdf = doc("pdf", "application/pdf", "report.pdf");
-    var png = doc("png", "image/png", "chart.png");
-    var trm = toolResult("c1", "t", Map.of("k", "v"), pdf, png);
+	@Test
+	void mixedModalities_stripsOnlyUnsupportedDocs() {
+		var pdf = doc("pdf", "application/pdf", "report.pdf");
+		var png = doc("png", "image/png", "chart.png");
+		var trm = toolResult("c1", "t", Map.of("k", "v"), pdf, png);
 
-    // toolResult supports IMAGE but not DOCUMENT
-    var out =
-        strategy
-            .apply(snapshot(trm), caps(List.of(Modality.TEXT, Modality.IMAGE), List.of(Modality.TEXT)))
-            .messages();
+		// toolResult supports IMAGE but not DOCUMENT
+		var out =
+			strategy
+				.apply(snapshot(trm), caps(List.of(Modality.TEXT, Modality.IMAGE), List.of(Modality.TEXT)))
+				.messages();
 
-    assertThat(out).hasSize(2);
-    var strippedTrm = (ToolCallResultMessage) out.get(0);
-    assertThat(strippedTrm.results().getFirst().content())
-        .contains(DocumentContent.documentContent(png)) // image kept inline
-        .doesNotContain(DocumentContent.documentContent(pdf)); // pdf stripped
-    assertThat(((UserMessage) out.get(1)).content())
-        .contains(DocumentContent.documentContent(pdf))
-        .doesNotContain(DocumentContent.documentContent(png));
-  }
+		assertThat(out).hasSize(2);
+		var strippedTrm = (ToolCallResultMessage) out.get(0);
+		assertThat(strippedTrm.results().getFirst().content())
+			.contains(DocumentContent.documentContent(png)) // image kept inline
+			.doesNotContain(DocumentContent.documentContent(pdf)); // pdf stripped
+		assertThat(((UserMessage) out.get(1)).content())
+			.contains(DocumentContent.documentContent(pdf))
+			.doesNotContain(DocumentContent.documentContent(png));
+	}
 
-  @Test
-  void userMessageDoc_unsupportedModality_failsLoud() {
-    var pdf = doc("pdf", "application/pdf", "report.pdf");
-    var userMessage =
-        UserMessage.builder().content(List.of(DocumentContent.documentContent(pdf))).build();
+	@Test
+	void userMessageDoc_unsupportedModality_failsLoud() {
+		var pdf = doc("pdf", "application/pdf", "report.pdf");
+		var userMessage =
+			UserMessage.builder().content(List.of(DocumentContent.documentContent(pdf))).build();
 
-    assertThatThrownBy(
-            () ->
-                strategy.apply(
-                    snapshot(userMessage), caps(List.of(Modality.TEXT), List.of(Modality.TEXT))))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("DOCUMENT")
-        .hasMessageContaining("report.pdf");
-  }
+		assertThatThrownBy(
+			() ->
+				strategy.apply(
+					snapshot(userMessage), caps(List.of(Modality.TEXT), List.of(Modality.TEXT))))
+			.isInstanceOf(ConnectorException.class)
+			.hasMessageContaining("DOCUMENT")
+			.hasMessageContaining("report.pdf");
+	}
 }
 ```
 
@@ -480,12 +485,12 @@ class CapabilityAwareToolCallResultStrategyTest {
 - [ ] **Step 4 — Minimal impl.** Create `CapabilityAwareToolCallResultStrategy.java`:
 
 ```java
-package io.camunda.connector.agenticai.aiagent.framework.multimodal;
+package io.camunda.connector.agenticai.aiagent.provider.multimodal;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -496,107 +501,110 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
+
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.jspecify.annotations.Nullable;
 
 public class CapabilityAwareToolCallResultStrategy implements ToolCallResultStrategy {
 
-  private record FallbackGroup(
-      @Nullable String toolCallId, @Nullable String toolCallName, List<Document> documents) {}
+	private record FallbackGroup(
+		@Nullable String toolCallId, @Nullable String toolCallName, List<Document> documents) {
+	}
 
-  @Override
-  public ConversationSnapshot apply(ConversationSnapshot snapshot, ModelCapabilities capabilities) {
-    final var out = new ArrayList<Message>(snapshot.messages().size());
-    for (Message message : snapshot.messages()) {
-      switch (message) {
-        case UserMessage userMessage when !isToolCallDocumentMessage(userMessage) -> {
-          validateUserMessageModalities(userMessage, capabilities);
-          out.add(userMessage);
-        }
-        case ToolCallResultMessage trm -> routeToolResult(trm, capabilities, out);
-        default -> out.add(message);
-      }
-    }
-    return new ConversationSnapshot(out, snapshot.toolDefinitions());
-  }
+	@Override
+	public ConversationSnapshot apply(ConversationSnapshot snapshot, ModelCapabilities capabilities) {
+		final var out = new ArrayList<Message>(snapshot.messages().size());
+		for (Message message : snapshot.messages()) {
+			switch (message) {
+				case UserMessage userMessage when !isToolCallDocumentMessage(userMessage) -> {
+					validateUserMessageModalities(userMessage, capabilities);
+					out.add(userMessage);
+				}
+				case ToolCallResultMessage trm -> routeToolResult(trm, capabilities, out);
+				default -> out.add(message);
+			}
+		}
+		return new ConversationSnapshot(out, snapshot.toolDefinitions());
+	}
 
-  private void routeToolResult(
-      ToolCallResultMessage trm, ModelCapabilities capabilities, List<Message> out) {
-    final var supported = capabilities.toolResultModalities();
-    final var newResults = new ArrayList<ToolCallResultContent>(trm.results().size());
-    final var fallbackGroups = new ArrayList<FallbackGroup>();
-    boolean stripped = false;
+	private void routeToolResult(
+		ToolCallResultMessage trm, ModelCapabilities capabilities, List<Message> out) {
+		final var supported = capabilities.toolResultModalities();
+		final var newResults = new ArrayList<ToolCallResultContent>(trm.results().size());
+		final var fallbackGroups = new ArrayList<FallbackGroup>();
+		boolean stripped = false;
 
-    for (ToolCallResultContent result : trm.results()) {
-      final var kept = new ArrayList<Content>(result.content().size());
-      final var unsupported = new ArrayList<Document>();
-      for (Content content : result.content()) {
-        if (content instanceof DocumentContent dc
-            && !supported.contains(DocumentModality.fromDocument(dc.document()))) {
-          unsupported.add(dc.document());
-        } else {
-          kept.add(content);
-        }
-      }
-      if (unsupported.isEmpty()) {
-        newResults.add(result);
-      } else {
-        stripped = true;
-        newResults.add(result.withContent(kept));
-        fallbackGroups.add(new FallbackGroup(result.id(), result.name(), unsupported));
-      }
-    }
+		for (ToolCallResultContent result : trm.results()) {
+			final var kept = new ArrayList<Content>(result.content().size());
+			final var unsupported = new ArrayList<Document>();
+			for (Content content : result.content()) {
+				if (content instanceof DocumentContent dc
+					&& !supported.contains(DocumentModality.fromDocument(dc.document()))) {
+					unsupported.add(dc.document());
+				} else {
+					kept.add(content);
+				}
+			}
+			if (unsupported.isEmpty()) {
+				newResults.add(result);
+			} else {
+				stripped = true;
+				newResults.add(result.withContent(kept));
+				fallbackGroups.add(new FallbackGroup(result.id(), result.name(), unsupported));
+			}
+		}
 
-    out.add(stripped ? trm.withResults(newResults) : trm);
-    if (!fallbackGroups.isEmpty()) {
-      out.add(buildSyntheticMessage(fallbackGroups));
-    }
-  }
+		out.add(stripped ? trm.withResults(newResults) : trm);
+		if (!fallbackGroups.isEmpty()) {
+			out.add(buildSyntheticMessage(fallbackGroups));
+		}
+	}
 
-  private UserMessage buildSyntheticMessage(List<FallbackGroup> groups) {
-    final var content = new ArrayList<Content>();
-    content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
-    for (var group : groups) {
-      for (var document : group.documents()) {
-        content.add(
-            textContent(
-                DocumentReferenceXmlTag.from(document, group.toolCallId(), group.toolCallName())
-                    .toXml()));
-        content.add(DocumentContent.documentContent(document));
-      }
-    }
-    final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
-    metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-    return UserMessage.builder().content(content).metadata(metadata).build();
-  }
+	private UserMessage buildSyntheticMessage(List<FallbackGroup> groups) {
+		final var content = new ArrayList<Content>();
+		content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
+		for (var group : groups) {
+			for (var document : group.documents()) {
+				content.add(
+					textContent(
+						DocumentReferenceXmlTag.from(document, group.toolCallId(), group.toolCallName())
+							.toXml()));
+				content.add(DocumentContent.documentContent(document));
+			}
+		}
+		final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
+		metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+		return UserMessage.builder().content(content).metadata(metadata).build();
+	}
 
-  private void validateUserMessageModalities(UserMessage message, ModelCapabilities capabilities) {
-    for (Content content : message.content()) {
-      if (content instanceof DocumentContent dc) {
-        final var modality = DocumentModality.fromDocument(dc.document());
-        if (!capabilities.userMessageModalities().contains(modality)) {
-          throw new ConnectorException(
-              ERROR_CODE_FAILED_MODEL_CALL,
-              "Document '%s' requires modality %s which the model does not support for user messages (supported: %s)."
-                  .formatted(
-                      dc.document().reference(), modality, capabilities.userMessageModalities()));
-        }
-      }
-    }
-  }
+	private void validateUserMessageModalities(UserMessage message, ModelCapabilities capabilities) {
+		for (Content content : message.content()) {
+			if (content instanceof DocumentContent dc) {
+				final var modality = DocumentModality.fromDocument(dc.document());
+				if (!capabilities.userMessageModalities().contains(modality)) {
+					throw new ConnectorException(
+						ERROR_CODE_FAILED_MODEL_CALL,
+						"Document '%s' requires modality %s which the model does not support for user messages (supported: %s)."
+							.formatted(
+								dc.document().reference(), modality, capabilities.userMessageModalities()));
+				}
+			}
+		}
+	}
 
-  private boolean isToolCallDocumentMessage(UserMessage message) {
-    return message.metadata() != null
-        && Boolean.TRUE.equals(message.metadata().get(UserMessage.METADATA_TOOL_CALL_DOCUMENTS));
-  }
+	private boolean isToolCallDocumentMessage(UserMessage message) {
+		return message.metadata() != null
+			&& Boolean.TRUE.equals(message.metadata().get(UserMessage.METADATA_TOOL_CALL_DOCUMENTS));
+	}
 
-  private Map<String, Object> defaultMessageMetadata() {
-    return Map.of("timestamp", ZonedDateTime.now());
-  }
+	private Map<String, Object> defaultMessageMetadata() {
+		return Map.of("timestamp", ZonedDateTime.now());
+	}
 }
 ```
 

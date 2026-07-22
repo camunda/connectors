@@ -84,49 +84,51 @@ Replace the body of `ModelCapabilitiesTest.java` (it currently constructs the ol
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.framework.capabilities;
+package io.camunda.connector.agenticai.aiagent.provider.capabilities;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities.Modality;
+
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 class ModelCapabilitiesTest {
 
-  @Test
-  void modalityEnumValuesAreOrderedTextImageDocumentAudioVideo() {
-    assertThat(Modality.values())
-        .containsExactly(
-            Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT, Modality.AUDIO, Modality.VIDEO);
-  }
+	@Test
+	void modalityEnumValuesAreOrderedTextImageDocumentAudioVideo() {
+		assertThat(Modality.values())
+			.containsExactly(
+				Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT, Modality.AUDIO, Modality.VIDEO);
+	}
 
-  @Test
-  void coreModelCapabilitiesExposesModalitiesAndLimits() {
-    final ModelCapabilities caps =
-        new CoreModelCapabilities(
-            List.of(Modality.TEXT, Modality.IMAGE),
-            List.of(Modality.TEXT),
-            List.of(Modality.TEXT),
-            128000,
-            4096);
+	@Test
+	void coreModelCapabilitiesExposesModalitiesAndLimits() {
+		final ModelCapabilities caps =
+			new CoreModelCapabilities(
+				List.of(Modality.TEXT, Modality.IMAGE),
+				List.of(Modality.TEXT),
+				List.of(Modality.TEXT),
+				128000,
+				4096);
 
-    assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
-    assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
-    assertThat(caps.assistantMessageModalities()).containsExactly(Modality.TEXT);
-    assertThat(((CoreModelCapabilities) caps).contextWindow()).isEqualTo(128000);
-    assertThat(((CoreModelCapabilities) caps).maxOutputTokens()).isEqualTo(4096);
-  }
+		assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
+		assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
+		assertThat(caps.assistantMessageModalities()).containsExactly(Modality.TEXT);
+		assertThat(((CoreModelCapabilities) caps).contextWindow()).isEqualTo(128000);
+		assertThat(((CoreModelCapabilities) caps).maxOutputTokens()).isEqualTo(4096);
+	}
 
-  @Test
-  void coreModelCapabilitiesAllowsNullLimits() {
-    final var caps =
-        new CoreModelCapabilities(
-            List.of(Modality.TEXT), List.of(Modality.TEXT), List.of(Modality.TEXT), null, null);
+	@Test
+	void coreModelCapabilitiesAllowsNullLimits() {
+		final var caps =
+			new CoreModelCapabilities(
+				List.of(Modality.TEXT), List.of(Modality.TEXT), List.of(Modality.TEXT), null, null);
 
-    assertThat(caps.contextWindow()).isNull();
-    assertThat(caps.maxOutputTokens()).isNull();
-  }
+		assertThat(caps.contextWindow()).isNull();
+		assertThat(caps.maxOutputTokens()).isNull();
+	}
 }
 ```
 
@@ -139,46 +141,48 @@ Create `.../anthropic/AnthropicModelCapabilitiesTest.java`:
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.framework.anthropic;
+package io.camunda.connector.agenticai.aiagent.provider.anthropic;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.CoreModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities.Modality;
+
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 class AnthropicModelCapabilitiesTest {
 
-  private static final CoreModelCapabilities CORE =
-      new CoreModelCapabilities(
-          List.of(Modality.TEXT, Modality.IMAGE),
-          List.of(Modality.TEXT),
-          List.of(Modality.TEXT),
-          200000,
-          8192);
+	private static final CoreModelCapabilities CORE =
+		new CoreModelCapabilities(
+			List.of(Modality.TEXT, Modality.IMAGE),
+			List.of(Modality.TEXT),
+			List.of(Modality.TEXT),
+			200000,
+			8192);
 
-  @Test
-  void delegatesModalityMethodsToCore() {
-    final ModelCapabilities caps = new AnthropicModelCapabilities(CORE, true, true, false, false);
+	@Test
+	void delegatesModalityMethodsToCore() {
+		final ModelCapabilities caps = new AnthropicModelCapabilities(CORE, true, true, false, false);
 
-    assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
-    assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
-    assertThat(caps.assistantMessageModalities()).containsExactly(Modality.TEXT);
-  }
+		assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
+		assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
+		assertThat(caps.assistantMessageModalities()).containsExactly(Modality.TEXT);
+	}
 
-  @Test
-  void exposesAnthropicSpecificFlags() {
-    final var caps = new AnthropicModelCapabilities(CORE, true, true, false, false);
+	@Test
+	void exposesAnthropicSpecificFlags() {
+		final var caps = new AnthropicModelCapabilities(CORE, true, true, false, false);
 
-    assertThat(caps.supportsReasoning()).isTrue();
-    assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
-    assertThat(caps.supportsPromptCaching()).isFalse();
-    assertThat(caps.supportsParallelToolCalls()).isFalse();
-    assertThat(caps.core().contextWindow()).isEqualTo(200000);
-    assertThat(caps.core().maxOutputTokens()).isEqualTo(8192);
-  }
+		assertThat(caps.supportsReasoning()).isTrue();
+		assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
+		assertThat(caps.supportsPromptCaching()).isFalse();
+		assertThat(caps.supportsParallelToolCalls()).isFalse();
+		assertThat(caps.core().contextWindow()).isEqualTo(200000);
+		assertThat(caps.core().maxOutputTokens()).isEqualTo(8192);
+	}
 }
 ```
 
@@ -192,9 +196,10 @@ Expected: compilation failure — `CoreModelCapabilities`, `AnthropicModelCapabi
 Replace the whole file. Keep the copyright header. Keep the `Modality` enum verbatim (including the `@JsonProperty` lowercase annotations and the full javadoc on the enum — the resolver's raw-JSON round-trip test depends on them). Drop `@AgenticAiRecord`, the `builder()` method, `implements ModelCapabilitiesBuilder.With`, and the `AgenticAiRecord` import.
 
 ```java
-package io.camunda.connector.agenticai.aiagent.framework.capabilities;
+package io.camunda.connector.agenticai.aiagent.provider.capabilities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 
 /**
@@ -208,36 +213,38 @@ import java.util.List;
  */
 public interface ModelCapabilities {
 
-  List<Modality> userMessageModalities();
+	List<Modality> userMessageModalities();
 
-  List<Modality> toolResultModalities();
+	List<Modality> toolResultModalities();
 
-  List<Modality> assistantMessageModalities();
+	List<Modality> assistantMessageModalities();
 
-  /* Modality enum: copy the enum declaration and its full javadoc VERBATIM from the current file,
-     including the @JsonProperty("text"/"image"/"document"/"audio"/"video") annotations. */
-  enum Modality {
-    @JsonProperty("text")
-    TEXT,
-    @JsonProperty("image")
-    IMAGE,
-    @JsonProperty("document")
-    DOCUMENT,
-    @JsonProperty("audio")
-    AUDIO,
-    @JsonProperty("video")
-    VIDEO
-  }
+	/* Modality enum: copy the enum declaration and its full javadoc VERBATIM from the current file,
+       including the @JsonProperty("text"/"image"/"document"/"audio"/"video") annotations. */
+	enum Modality {
+		@JsonProperty("text")
+		TEXT,
+		@JsonProperty("image")
+		IMAGE,
+		@JsonProperty("document")
+		DOCUMENT,
+		@JsonProperty("audio")
+		AUDIO,
+		@JsonProperty("video")
+		VIDEO
+	}
 }
 ```
 
 - [ ] **Step 4: Create `CoreModelCapabilities.java`**
 
 ```java
-package io.camunda.connector.agenticai.aiagent.framework.capabilities;
+package io.camunda.connector.agenticai.aiagent.provider.capabilities;
 
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities.Modality;
+
 import java.util.List;
+
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -249,12 +256,13 @@ import org.jspecify.annotations.Nullable;
  * not as interface methods.
  */
 public record CoreModelCapabilities(
-    List<Modality> userMessageModalities,
-    List<Modality> toolResultModalities,
-    List<Modality> assistantMessageModalities,
-    @Nullable Integer contextWindow,
-    @Nullable Integer maxOutputTokens)
-    implements ModelCapabilities {}
+	List<Modality> userMessageModalities,
+	List<Modality> toolResultModalities,
+	List<Modality> assistantMessageModalities,
+	@Nullable Integer contextWindow,
+	@Nullable Integer maxOutputTokens)
+	implements ModelCapabilities {
+}
 ```
 
 - [ ] **Step 5: Replace `ModelCapabilitiesData.java` with the generic projection interface**
@@ -262,7 +270,7 @@ public record CoreModelCapabilities(
 The old file was a package-private Anthropic-shaped record. Replace its entire body with:
 
 ```java
-package io.camunda.connector.agenticai.aiagent.framework.capabilities;
+package io.camunda.connector.agenticai.aiagent.provider.capabilities;
 
 /**
  * Projects a fully-merged capability matrix tree (materialised via Jackson {@code treeToValue})
@@ -272,7 +280,7 @@ package io.camunda.connector.agenticai.aiagent.framework.capabilities;
  * the DTO class.
  */
 public interface ModelCapabilitiesData<T extends ModelCapabilities> {
-  T toModelCapabilities();
+	T toModelCapabilities();
 }
 ```
 
@@ -281,15 +289,17 @@ public interface ModelCapabilitiesData<T extends ModelCapabilities> {
 Port the flat sparse-DTO from the old `ModelCapabilitiesData` record: keep the `@JsonNaming(SnakeCaseStrategy)` + `@JsonInclude(ALWAYS)` annotations, the nullable flat fields, and the nested `InputModalities`/`OutputModalities` records with the same annotations. Retarget `toModelCapabilities()` to build an `AnthropicModelCapabilities` wrapping a `CoreModelCapabilities`. Make it `public` (the resolver test in the capabilities package and the factory reference it).
 
 ```java
-package io.camunda.connector.agenticai.aiagent.framework.anthropic;
+package io.camunda.connector.agenticai.aiagent.provider.anthropic;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesData;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.CoreModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilitiesData;
+
 import java.util.List;
+
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -303,67 +313,70 @@ import org.jspecify.annotations.Nullable;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public record AnthropicModelCapabilitiesData(
-    @Nullable InputModalities inputModalities,
-    @Nullable OutputModalities outputModalities,
-    @Nullable Boolean supportsReasoning,
-    @Nullable Boolean supportsReasoningSignatureRoundtrip,
-    @Nullable Boolean supportsPromptCaching,
-    @Nullable Boolean supportsParallelToolCalls,
-    @Nullable Integer contextWindow,
-    @Nullable Integer maxOutputTokens)
-    implements ModelCapabilitiesData<AnthropicModelCapabilities> {
+	@Nullable InputModalities inputModalities,
+	@Nullable OutputModalities outputModalities,
+	@Nullable Boolean supportsReasoning,
+	@Nullable Boolean supportsReasoningSignatureRoundtrip,
+	@Nullable Boolean supportsPromptCaching,
+	@Nullable Boolean supportsParallelToolCalls,
+	@Nullable Integer contextWindow,
+	@Nullable Integer maxOutputTokens)
+	implements ModelCapabilitiesData<AnthropicModelCapabilities> {
 
-  @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-  @JsonInclude(JsonInclude.Include.ALWAYS)
-  public record InputModalities(
-      @Nullable List<Modality> userMessage, @Nullable List<Modality> toolResult) {}
+	@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+	@JsonInclude(JsonInclude.Include.ALWAYS)
+	public record InputModalities(
+		@Nullable List<Modality> userMessage, @Nullable List<Modality> toolResult) {
+	}
 
-  @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-  @JsonInclude(JsonInclude.Include.ALWAYS)
-  public record OutputModalities(@Nullable List<Modality> assistantMessage) {}
+	@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+	@JsonInclude(JsonInclude.Include.ALWAYS)
+	public record OutputModalities(@Nullable List<Modality> assistantMessage) {
+	}
 
-  @Override
-  public AnthropicModelCapabilities toModelCapabilities() {
-    return new AnthropicModelCapabilities(
-        new CoreModelCapabilities(
-            userMessageModalities(),
-            toolResultModalities(),
-            assistantMessageModalities(),
-            contextWindow,
-            maxOutputTokens),
-        Boolean.TRUE.equals(supportsReasoning),
-        Boolean.TRUE.equals(supportsReasoningSignatureRoundtrip),
-        Boolean.TRUE.equals(supportsPromptCaching),
-        Boolean.TRUE.equals(supportsParallelToolCalls));
-  }
+	@Override
+	public AnthropicModelCapabilities toModelCapabilities() {
+		return new AnthropicModelCapabilities(
+			new CoreModelCapabilities(
+				userMessageModalities(),
+				toolResultModalities(),
+				assistantMessageModalities(),
+				contextWindow,
+				maxOutputTokens),
+			Boolean.TRUE.equals(supportsReasoning),
+			Boolean.TRUE.equals(supportsReasoningSignatureRoundtrip),
+			Boolean.TRUE.equals(supportsPromptCaching),
+			Boolean.TRUE.equals(supportsParallelToolCalls));
+	}
 
-  private List<Modality> userMessageModalities() {
-    return inputModalities != null && inputModalities.userMessage() != null
-        ? inputModalities.userMessage()
-        : List.of(Modality.TEXT);
-  }
+	private List<Modality> userMessageModalities() {
+		return inputModalities != null && inputModalities.userMessage() != null
+			? inputModalities.userMessage()
+			: List.of(Modality.TEXT);
+	}
 
-  private List<Modality> toolResultModalities() {
-    return inputModalities != null && inputModalities.toolResult() != null
-        ? inputModalities.toolResult()
-        : List.of(Modality.TEXT);
-  }
+	private List<Modality> toolResultModalities() {
+		return inputModalities != null && inputModalities.toolResult() != null
+			? inputModalities.toolResult()
+			: List.of(Modality.TEXT);
+	}
 
-  private List<Modality> assistantMessageModalities() {
-    return outputModalities != null && outputModalities.assistantMessage() != null
-        ? outputModalities.assistantMessage()
-        : List.of(Modality.TEXT);
-  }
+	private List<Modality> assistantMessageModalities() {
+		return outputModalities != null && outputModalities.assistantMessage() != null
+			? outputModalities.assistantMessage()
+			: List.of(Modality.TEXT);
+	}
 }
 ```
 
 - [ ] **Step 7: Create `AnthropicModelCapabilities.java`**
 
 ```java
-package io.camunda.connector.agenticai.aiagent.framework.anthropic;
+package io.camunda.connector.agenticai.aiagent.provider.anthropic;
 
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.CoreModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities;
+
 import java.util.List;
 
 /**
@@ -372,27 +385,27 @@ import java.util.List;
  * AnthropicReasoningCapabilities reasoning} component.
  */
 public record AnthropicModelCapabilities(
-    CoreModelCapabilities core,
-    boolean supportsReasoning,
-    boolean supportsReasoningSignatureRoundtrip,
-    boolean supportsPromptCaching,
-    boolean supportsParallelToolCalls)
-    implements ModelCapabilities {
+	CoreModelCapabilities core,
+	boolean supportsReasoning,
+	boolean supportsReasoningSignatureRoundtrip,
+	boolean supportsPromptCaching,
+	boolean supportsParallelToolCalls)
+	implements ModelCapabilities {
 
-  @Override
-  public List<Modality> userMessageModalities() {
-    return core.userMessageModalities();
-  }
+	@Override
+	public List<Modality> userMessageModalities() {
+		return core.userMessageModalities();
+	}
 
-  @Override
-  public List<Modality> toolResultModalities() {
-    return core.toolResultModalities();
-  }
+	@Override
+	public List<Modality> toolResultModalities() {
+		return core.toolResultModalities();
+	}
 
-  @Override
-  public List<Modality> assistantMessageModalities() {
-    return core.assistantMessageModalities();
-  }
+	@Override
+	public List<Modality> assistantMessageModalities() {
+		return core.assistantMessageModalities();
+	}
 }
 ```
 
@@ -501,18 +514,20 @@ Replace `import ...capabilities.ModelCapabilities;` with nothing (same-package c
 Replace the `BRIDGE_CAPABILITIES` builder chain with a `CoreModelCapabilities` constructor (same three modality values + null limits). Keep the existing javadoc comment on the constant verbatim.
 
 ```java
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.CoreModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities.Modality;
+
 import java.util.List;
+
 // ...
-  private static final ModelCapabilities BRIDGE_CAPABILITIES =
-      new CoreModelCapabilities(
-          List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
-          List.of(),
-          List.of(Modality.TEXT),
-          null,
-          null);
+private static final ModelCapabilities BRIDGE_CAPABILITIES =
+	new CoreModelCapabilities(
+		List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
+		List.of(),
+		List.of(Modality.TEXT),
+		null,
+		null);
 ```
 
 - [ ] **Step 14: Update the resolver test (`ModelCapabilitiesResolverTest.java`)**

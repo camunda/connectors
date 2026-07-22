@@ -13,7 +13,7 @@ Anthropic v2 config now resolves to this native path; bedrock still fails loud (
 
 ## Architecture
 
-- New package `io.camunda.connector.agenticai.aiagent.framework.anthropic`, importing only its own
+- New package `io.camunda.connector.agenticai.aiagent.provider.anthropic`, importing only its own
   vendor SDK (`com.anthropic.*`) — obeying the invariant that native impls live under their own
   `framework/<provider>/**` package. The provider-neutral SPI (`framework/api/**`) and domain model
   (`model/**`) never import `com.anthropic.*`; translation is confined to this package.
@@ -299,7 +299,7 @@ connectors-e2e-test/connectors-e2e-test-agentic-ai/
 **Interfaces**
 - Consumes: domain `Content` (`TextContent(text)`, `DocumentContent(Document document)` with
   `Document#asBase64()` + `Document#metadata().getContentType()`, `ObjectContent(Object content)`,
-  `ReasoningContent`), `io.camunda.connector.agenticai.aiagent.framework.multimodal.DocumentModality#fromDocument(Document): Modality`,
+  `ReasoningContent`), `io.camunda.connector.agenticai.aiagent.provider.multimodal.DocumentModality#fromDocument(Document): Modality`,
   `com.fasterxml.jackson.databind.ObjectMapper`.
 - Produces:
   - `List<ContentBlockParam> toContentBlockParams(List<Content> content)` (for user/assistant message bodies)
@@ -1079,7 +1079,7 @@ connectors-e2e-test/connectors-e2e-test-agentic-ai/
    statement. This registers the native factory as an additional `ChatModelApiFactory` bean that
    `chatModelApiRegistry(List<ChatModelApiFactory>)` picks up automatically.
 6. Run the two test classes → **pass**. Then run the full framework test package to confirm no regression:
-   `mvn test -pl connector-agentic-ai -f connectors/agentic-ai/pom.xml -Dtest='io.camunda.connector.agenticai.aiagent.framework.*'`.
+   `mvn test -pl connector-agentic-ai -f connectors/agentic-ai/pom.xml -Dtest='io.camunda.connector.agenticai.aiagent.provider.*'`.
 7. Commit: `Register native Anthropic factory and resolve direct-backend v2 configs to it`.
 
 ---

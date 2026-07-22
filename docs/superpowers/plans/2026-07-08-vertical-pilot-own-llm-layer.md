@@ -59,14 +59,14 @@ Ordering may adjust at execution time; C1–C6 are strictly foundational and unl
 
 These are the types each chunk **produces** and later chunks **consume**. Keep names/signatures exact.
 
-**C1 — `io.camunda.connector.agenticai.aiagent.framework.transport`**
+**C1 — `io.camunda.connector.agenticai.aiagent.provider.transport`**
 - `HttpTransportSupport` (provider-neutral): `java.net.http.HttpClient jdkHttpClient()`, `software.amazon.awssdk.http.apache.ApacheHttpClient.Builder awsHttpClientBuilder(@Nullable java.net.URI endpointOverride)`, `java.util.Optional<com.azure.core.http.ProxyOptions> azureProxyOptions(String endpoint)`. Built from the existing `AgenticAiHttpProxySupport`. The L4J `ChatModelHttpProxySupport` is refactored to delegate to it (keeps its `CloseableJdkHttpClientBuilder`/`JdkHttpClientBuilder` wrapper on top).
 
-**C2 — `io.camunda.connector.agenticai.aiagent.framework.api`**
+**C2 — `io.camunda.connector.agenticai.aiagent.provider.api`**
 - `sealed interface ChatModelResult permits Completed, Continuation { AssistantMessage assistantMessage(); AgentMetrics metrics(); }` with nested `record Completed(AssistantMessage assistantMessage, AgentMetrics metrics)` and `record Continuation(AssistantMessage assistantMessage, AgentMetrics metrics)`.
 - Handler loops over `ChatModelApi.call(...)` while the result is a `Continuation`.
 
-**C3 — `io.camunda.connector.agenticai.aiagent.framework.capabilities`**
+**C3 — `io.camunda.connector.agenticai.aiagent.provider.capabilities`**
 - `record ModelCapabilities(List<Modality> userMessageModalities, List<Modality> toolResultModalities, List<Modality> assistantMessageModalities, boolean supportsReasoning, boolean supportsReasoningSignatureRoundtrip, boolean supportsPromptCaching, boolean supportsParallelToolCalls, @Nullable Integer contextWindow, @Nullable Integer maxOutputTokens)` with `enum Modality { TEXT, IMAGE, DOCUMENT, AUDIO, VIDEO }`.
 - `interface ModelCapabilitiesResolver { ModelCapabilities resolve(String apiFamily, String modelId, Optional<ModelCapabilities> override); }`
 - `ChatModelApi` gains `ModelCapabilities capabilities();` (bridge returns the uniform conservative profile).
@@ -76,7 +76,7 @@ These are the types each chunk **produces** and later chunks **consume**. Keep n
 - `ToolCallResultMessage(List<ToolCallResultContent> results, Map<String,Object> metadata)` (component type changes from `List<ToolCallResult>`).
 - `ToolCallResult` (tool-return) is **unchanged**.
 
-**C5 — `io.camunda.connector.agenticai.aiagent.framework.multimodal`**
+**C5 — `io.camunda.connector.agenticai.aiagent.provider.multimodal`**
 - `interface ToolCallResultStrategy { Result apply(ConversationSnapshot snapshot, ModelCapabilities capabilities); record Result(ConversationSnapshot snapshot, List<UserMessage> syntheticContextMessages) {} }`
 - `DocumentModality` (MIME → `Modality`).
 
@@ -111,36 +111,37 @@ These are the types each chunk **produces** and later chunks **consume**. Keep n
 - [ ] **Step 2: Write the failing test for the neutral seam.** Create `HttpTransportSupportTest.java`:
 
 ```java
-package io.camunda.connector.agenticai.aiagent.framework.transport;
+package io.camunda.connector.agenticai.aiagent.provider.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+
 import java.net.http.HttpClient;
-import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 
 class HttpTransportSupportTest {
 
-  private final HttpTransportSupport transport =
-      new HttpTransportSupport(ProxyConfiguration.NONE, /* configurator */ null);
+	private final HttpTransportSupport transport =
+		new HttpTransportSupport(ProxyConfiguration.NONE, /* configurator */ null);
 
-  @Test
-  void buildsAJdkHttpClientWithoutProxy() {
-    final HttpClient client = transport.jdkHttpClient();
-    assertThat(client).isNotNull();
-    assertThat(client.proxy()).isEmpty();
-  }
+	@Test
+	void buildsAJdkHttpClientWithoutProxy() {
+		final HttpClient client = transport.jdkHttpClient();
+		assertThat(client).isNotNull();
+		assertThat(client.proxy()).isEmpty();
+	}
 
-  @Test
-  void buildsAnAwsApacheHttpClientBuilder() {
-    assertThat(transport.awsHttpClientBuilder(null)).isNotNull();
-  }
+	@Test
+	void buildsAnAwsApacheHttpClientBuilder() {
+		assertThat(transport.awsHttpClientBuilder(null)).isNotNull();
+	}
 
-  @Test
-  void azureProxyOptionsAbsentWhenNoProxy() {
-    assertThat(transport.azureProxyOptions("https://example.test")).isEmpty();
-  }
+	@Test
+	void azureProxyOptionsAbsentWhenNoProxy() {
+		assertThat(transport.azureProxyOptions("https://example.test")).isEmpty();
+	}
 }
 ```
 (Adjust the constructor/`null` configurator to match what Step 1 shows the current class needs — if `jdkHttpClient()` requires the configurator, pass a real/mocked one.)

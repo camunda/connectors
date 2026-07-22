@@ -36,7 +36,7 @@ Between C6 and C7 a v2 element template **applies fine in Modeler** but a v2 age
 
 Key facts established by exploration (do not re-derive):
 
-- **SPI.** `io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration` is a plain **marker interface** (no Jackson). The only impl today is `record ProviderChatModelApiConfiguration(ProviderConfiguration providerConfiguration) implements ChatModelApiConfiguration` (constructed programmatically, never deserialized). `ChatModelApiFactory.supports/create/getOrder`; `ChatModelApiRegistryImpl` sorts factories by `getOrder()` ascending and throws `ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, ...)` when none supports.
+- **SPI.** `io.camunda.connector.agenticai.aiagent.provider.api.ChatModelApiConfiguration` is a plain **marker interface** (no Jackson). The only impl today is `record ProviderChatModelApiConfiguration(ProviderConfiguration providerConfiguration) implements ChatModelApiConfiguration` (constructed programmatically, never deserialized). `ChatModelApiFactory.supports/create/getOrder`; `ChatModelApiRegistryImpl` sorts factories by `getOrder()` ascending and throws `ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, ...)` when none supports.
 - **Legacy config.** `io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration` is a sealed, Jackson-polymorphic (`@JsonTypeInfo(use=NAME, property="type")`) interface with plain records (NOT `@AgenticAiRecord`), individually-applied `@TemplateProperty`/`@Valid`/`@NotNull`/`@NotBlank`, `toString()` secret redaction, and per-member auth dropdowns (`BedrockProviderConfiguration.AwsAuthentication` sealed with `credentials`/`apiKey`/`defaultCredentialsChain`; `AzureAuthentication` sealed). Shared helpers `provider.shared.TimeoutConfiguration` and `provider.shared.HttpUrl` are neutral — **reuse them**.
 - **Handler boundary.** `BaseAgentRequestHandler` (line 171) does `chatModelApiRegistry.resolve(new ProviderChatModelApiConfiguration(executionContext.configuration().provider()))`. `AgentConfiguration.provider()` (type `ProviderConfiguration`) is read ONLY by (a) that line and (b) `CamundaAgentInstanceClient.executeCreate` (`configuration.provider().model()` + `.providerType()`, run during agent init, BEFORE the model call). `AgentConfiguration` is **transient** (not persisted) — changing its shape has no backward-compat impact on stored data.
 - **Capabilities.** `ModelCapabilitiesResolver.resolve(String apiFamily, String modelId, @Nullable String backend, Optional<ModelCapabilities> override)`. `ModelCapabilitiesResolverImpl` has a placeholder that returns `override.get()` verbatim (`resolve()` lines ~71–75) and a `deepMerge`/`merge`/`conservativeBase`/`ModelCapabilitiesData` machinery. The resolver is called **only from tests today** (the bridge uses a hardcoded `BRIDGE_CAPABILITIES` and never calls the resolver; LLM-provider factories that will call it arrive in C7+). The bundled `model-capabilities.yaml` families are `anthropic-messages`, `openai-completions`, `openai-responses`.
@@ -203,7 +203,7 @@ The public override uses the **full names** matching `ModelCapabilities` (not th
   }
 ```
 
-   (`resolverFor(...)`, `Modality`, `Optional`, `List`, `assertThat` are already imported/used in this test class. Confirm `import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;` exists — it is used by the deleted test — keep it. Add `import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesOverride;` only if the class is in a different package; here it is the same package, so no import needed.)
+   (`resolverFor(...)`, `Modality`, `Optional`, `List`, `assertThat` are already imported/used in this test class. Confirm `import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities.Modality;` exists — it is used by the deleted test — keep it. Add `import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilitiesOverride;` only if the class is in a different package; here it is the same package, so no import needed.)
 
 2. **Run-fail (compile error expected):**
 
@@ -221,14 +221,16 @@ Expected: compilation failure — `cannot find symbol: class ModelCapabilitiesOv
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.framework.capabilities;
+package io.camunda.connector.agenticai.aiagent.provider.capabilities;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilities.Modality;
+
 import java.util.List;
+
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -254,73 +256,73 @@ import org.jspecify.annotations.Nullable;
  * expression evaluates to a sparse map/context whose keys are these component names.
  */
 public record ModelCapabilitiesOverride(
-    @Nullable List<Modality> userMessageModalities,
-    @Nullable List<Modality> toolResultModalities,
-    @Nullable List<Modality> assistantMessageModalities,
-    @Nullable Boolean supportsReasoning,
-    @Nullable Boolean supportsReasoningSignatureRoundtrip,
-    @Nullable Boolean supportsPromptCaching,
-    @Nullable Boolean supportsParallelToolCalls,
-    @Nullable Integer contextWindow,
-    @Nullable Integer maxOutputTokens) {
+	@Nullable List<Modality> userMessageModalities,
+	@Nullable List<Modality> toolResultModalities,
+	@Nullable List<Modality> assistantMessageModalities,
+	@Nullable Boolean supportsReasoning,
+	@Nullable Boolean supportsReasoningSignatureRoundtrip,
+	@Nullable Boolean supportsPromptCaching,
+	@Nullable Boolean supportsParallelToolCalls,
+	@Nullable Integer contextWindow,
+	@Nullable Integer maxOutputTokens) {
 
-  /**
-   * Projects this sparse override onto a {@link ModelCapabilitiesData}-shaped {@link JsonNode},
-   * omitting every null field (and omitting an empty {@code input_modalities} / {@code
-   * output_modalities} branch), so it can be deep-merged as the top overlay.
-   */
-  public JsonNode toSparseJsonNode(ObjectMapper mapper) {
-    final ObjectNode root = mapper.createObjectNode();
+	/**
+	 * Projects this sparse override onto a {@link ModelCapabilitiesData}-shaped {@link JsonNode},
+	 * omitting every null field (and omitting an empty {@code input_modalities} / {@code
+	 * output_modalities} branch), so it can be deep-merged as the top overlay.
+	 */
+	public JsonNode toSparseJsonNode(ObjectMapper mapper) {
+		final ObjectNode root = mapper.createObjectNode();
 
-    final ObjectNode input = mapper.createObjectNode();
-    if (userMessageModalities != null) {
-      input.set("user_message", modalitiesArray(mapper, userMessageModalities));
-    }
-    if (toolResultModalities != null) {
-      input.set("tool_result", modalitiesArray(mapper, toolResultModalities));
-    }
-    if (!input.isEmpty()) {
-      root.set("input_modalities", input);
-    }
+		final ObjectNode input = mapper.createObjectNode();
+		if (userMessageModalities != null) {
+			input.set("user_message", modalitiesArray(mapper, userMessageModalities));
+		}
+		if (toolResultModalities != null) {
+			input.set("tool_result", modalitiesArray(mapper, toolResultModalities));
+		}
+		if (!input.isEmpty()) {
+			root.set("input_modalities", input);
+		}
 
-    final ObjectNode output = mapper.createObjectNode();
-    if (assistantMessageModalities != null) {
-      output.set("assistant_message", modalitiesArray(mapper, assistantMessageModalities));
-    }
-    if (!output.isEmpty()) {
-      root.set("output_modalities", output);
-    }
+		final ObjectNode output = mapper.createObjectNode();
+		if (assistantMessageModalities != null) {
+			output.set("assistant_message", modalitiesArray(mapper, assistantMessageModalities));
+		}
+		if (!output.isEmpty()) {
+			root.set("output_modalities", output);
+		}
 
-    if (supportsReasoning != null) {
-      root.put("supports_reasoning", supportsReasoning);
-    }
-    if (supportsReasoningSignatureRoundtrip != null) {
-      root.put("supports_reasoning_signature_roundtrip", supportsReasoningSignatureRoundtrip);
-    }
-    if (supportsPromptCaching != null) {
-      root.put("supports_prompt_caching", supportsPromptCaching);
-    }
-    if (supportsParallelToolCalls != null) {
-      root.put("supports_parallel_tool_calls", supportsParallelToolCalls);
-    }
-    if (contextWindow != null) {
-      root.put("context_window", contextWindow);
-    }
-    if (maxOutputTokens != null) {
-      root.put("max_output_tokens", maxOutputTokens);
-    }
+		if (supportsReasoning != null) {
+			root.put("supports_reasoning", supportsReasoning);
+		}
+		if (supportsReasoningSignatureRoundtrip != null) {
+			root.put("supports_reasoning_signature_roundtrip", supportsReasoningSignatureRoundtrip);
+		}
+		if (supportsPromptCaching != null) {
+			root.put("supports_prompt_caching", supportsPromptCaching);
+		}
+		if (supportsParallelToolCalls != null) {
+			root.put("supports_parallel_tool_calls", supportsParallelToolCalls);
+		}
+		if (contextWindow != null) {
+			root.put("context_window", contextWindow);
+		}
+		if (maxOutputTokens != null) {
+			root.put("max_output_tokens", maxOutputTokens);
+		}
 
-    return root;
-  }
+		return root;
+	}
 
-  private static ArrayNode modalitiesArray(ObjectMapper mapper, List<Modality> modalities) {
-    final ArrayNode array = mapper.createArrayNode();
-    for (Modality modality : modalities) {
-      // Modality carries lowercase @JsonProperty values ("text"/"image"/...) matching the YAML.
-      array.add(mapper.convertValue(modality, String.class));
-    }
-    return array;
-  }
+	private static ArrayNode modalitiesArray(ObjectMapper mapper, List<Modality> modalities) {
+		final ArrayNode array = mapper.createArrayNode();
+		for (Modality modality : modalities) {
+			// Modality carries lowercase @JsonProperty values ("text"/"image"/...) matching the YAML.
+			array.add(mapper.convertValue(modality, String.class));
+		}
+		return array;
+	}
 }
 ```
 
@@ -731,9 +733,11 @@ import static io.camunda.connector.agenticai.aiagent.model.request.chatmodel.Ant
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesOverride;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
+
 import java.util.Optional;
+
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -744,28 +748,28 @@ import org.jspecify.annotations.Nullable;
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-  @JsonSubTypes.Type(value = AnthropicChatModel.class, name = ANTHROPIC_ID)
+	@JsonSubTypes.Type(value = AnthropicChatModel.class, name = ANTHROPIC_ID)
 })
 @TemplateDiscriminatorProperty(
-    label = "Provider",
-    group = "provider",
-    name = "type",
-    description = "Specify the LLM provider to use.",
-    defaultValue = ANTHROPIC_ID)
+	label = "Provider",
+	group = "provider",
+	name = "type",
+	description = "Specify the LLM provider to use.",
+	defaultValue = ANTHROPIC_ID)
 public sealed interface LlmProviderConfiguration permits AnthropicChatModel {
 
-  /** Discriminator string identifying the provider (e.g. {@code anthropic}, {@code openai}). */
-  String type();
+	/** Discriminator string identifying the provider (e.g. {@code anthropic}, {@code openai}). */
+	String type();
 
-  /** The model id / deployment the request targets. */
-  String model();
+	/** The model id / deployment the request targets. */
+	String model();
 
-  /** The backend discriminator (e.g. {@code direct}, {@code bedrock}, {@code compatible}). */
-  @Nullable
-  String backend();
+	/** The backend discriminator (e.g. {@code direct}, {@code bedrock}, {@code compatible}). */
+	@Nullable
+	String backend();
 
-  /** Optional sparse per-element capability override, highest-precedence overlay for the matrix. */
-  Optional<ModelCapabilitiesOverride> capabilityOverride();
+	/** Optional sparse per-element capability override, highest-precedence overlay for the matrix. */
+	Optional<ModelCapabilitiesOverride> capabilityOverride();
 }
 ```
 
@@ -784,7 +788,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.chatmodel.Ant
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesOverride;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
@@ -797,191 +801,194 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
 import java.util.Optional;
+
 import org.jspecify.annotations.Nullable;
 
 /** Anthropic Messages wire format. Backends: {@code direct} (API key) and {@code bedrock} (AWS). */
 @TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
 public record AnthropicChatModel(
-    @Valid @NotNull AnthropicBackend backend,
-    @Valid @NotNull AnthropicModel model,
-    @Valid @Nullable TimeoutConfiguration timeouts,
-    @FEEL
-        @Valid
-        @TemplateProperty(
-            group = "capabilities",
-            label = "Model capability overrides",
-            description =
-                "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
-            feel = FeelMode.required,
-            optional = true)
-        @Nullable ModelCapabilitiesOverride capabilityOverride)
-    implements LlmProviderConfiguration {
+	@Valid @NotNull AnthropicBackend backend,
+	@Valid @NotNull AnthropicModel model,
+	@Valid @Nullable TimeoutConfiguration timeouts,
+	@FEEL
+	@Valid
+	@TemplateProperty(
+		group = "capabilities",
+		label = "Model capability overrides",
+		description =
+			"Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
+		feel = FeelMode.required,
+		optional = true)
+	@Nullable ModelCapabilitiesOverride capabilityOverride)
+	implements LlmProviderConfiguration {
 
-  @TemplateProperty(ignore = true)
-  public static final String ANTHROPIC_ID = "anthropic";
+	@TemplateProperty(ignore = true)
+	public static final String ANTHROPIC_ID = "anthropic";
 
-  @Override
-  public String type() {
-    return ANTHROPIC_ID;
-  }
+	@Override
+	public String type() {
+		return ANTHROPIC_ID;
+	}
 
-  @Override
-  public String model() {
-    return model.model();
-  }
+	@Override
+	public String model() {
+		return model.model();
+	}
 
-  @Override
-  public String backend() {
-    return backend.type();
-  }
+	@Override
+	public String backend() {
+		return backend.type();
+	}
 
-  @Override
-  public Optional<ModelCapabilitiesOverride> capabilityOverride() {
-    return Optional.ofNullable(capabilityOverride);
-  }
+	@Override
+	public Optional<ModelCapabilitiesOverride> capabilityOverride() {
+		return Optional.ofNullable(capabilityOverride);
+	}
 
-  /** Convenience accessor for the backend config record (distinct from the discriminator string). */
-  public AnthropicBackend backendConfig() {
-    return backend;
-  }
+	/** Convenience accessor for the backend config record (distinct from the discriminator string). */
+	public AnthropicBackend backendConfig() {
+		return backend;
+	}
 
-  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-  @JsonSubTypes({
-    @JsonSubTypes.Type(value = AnthropicBackend.AnthropicDirectBackend.class, name = "direct"),
-    @JsonSubTypes.Type(value = AnthropicBackend.AnthropicBedrockBackend.class, name = "bedrock")
-  })
-  @TemplateDiscriminatorProperty(
-      label = "Backend",
-      group = "provider",
-      name = "type",
-      defaultValue = "direct",
-      description = "Specify how the Anthropic Messages API is reached.")
-  public sealed interface AnthropicBackend {
+	@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+	@JsonSubTypes({
+		@JsonSubTypes.Type(value = AnthropicBackend.AnthropicDirectBackend.class, name = "direct"),
+		@JsonSubTypes.Type(value = AnthropicBackend.AnthropicBedrockBackend.class, name = "bedrock")
+	})
+	@TemplateDiscriminatorProperty(
+		label = "Backend",
+		group = "provider",
+		name = "type",
+		defaultValue = "direct",
+		description = "Specify how the Anthropic Messages API is reached.")
+	public sealed interface AnthropicBackend {
 
-    /** The backend discriminator string. */
-    String type();
+		/** The backend discriminator string. */
+		String type();
 
-    @TemplateSubType(id = "direct", label = "Anthropic (direct)")
-    record AnthropicDirectBackend(
-        @HttpUrl
-            @TemplateProperty(
-                group = "provider",
-                label = "Custom API endpoint",
-                description = "Optional custom API endpoint",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.optional,
-                optional = true)
-            @Nullable String endpoint,
-        @NotBlank
-            @TemplateProperty(
-                group = "provider",
-                label = "Anthropic API key",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.optional,
-                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-            String apiKey)
-        implements AnthropicBackend {
+		@TemplateSubType(id = "direct", label = "Anthropic (direct)")
+		record AnthropicDirectBackend(
+			@HttpUrl
+			@TemplateProperty(
+				group = "provider",
+				label = "Custom API endpoint",
+				description = "Optional custom API endpoint",
+				type = TemplateProperty.PropertyType.String,
+				feel = FeelMode.optional,
+				optional = true)
+			@Nullable String endpoint,
+			@NotBlank
+			@TemplateProperty(
+				group = "provider",
+				label = "Anthropic API key",
+				type = TemplateProperty.PropertyType.String,
+				feel = FeelMode.optional,
+				constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+			String apiKey)
+			implements AnthropicBackend {
 
-      @Override
-      public String type() {
-        return "direct";
-      }
+			@Override
+			public String type() {
+				return "direct";
+			}
 
-      @Override
-      public String toString() {
-        return "AnthropicDirectBackend{endpoint=%s, apiKey=[REDACTED]}".formatted(endpoint);
-      }
-    }
+			@Override
+			public String toString() {
+				return "AnthropicDirectBackend{endpoint=%s, apiKey=[REDACTED]}".formatted(endpoint);
+			}
+		}
 
-    @TemplateSubType(id = "bedrock", label = "AWS Bedrock")
-    record AnthropicBedrockBackend(
-        @NotBlank
-            @TemplateProperty(
-                group = "provider",
-                label = "Region",
-                description = "Specify the AWS region (example: <code>eu-west-1</code>)",
-                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-            String region,
-        @HttpUrl
-            @FEEL
-            @TemplateProperty(
-                group = "provider",
-                label = "Custom API endpoint",
-                description =
-                    "Custom API endpoint for VPC/PrivateLink configurations, AWS GovCloud, or other non-standard deployments.",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.optional,
-                optional = true)
-            @Nullable String endpoint,
-        @Valid @NotNull ChatModelAwsAuthentication authentication)
-        implements AnthropicBackend {
+		@TemplateSubType(id = "bedrock", label = "AWS Bedrock")
+		record AnthropicBedrockBackend(
+			@NotBlank
+			@TemplateProperty(
+				group = "provider",
+				label = "Region",
+				description = "Specify the AWS region (example: <code>eu-west-1</code>)",
+				constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+			String region,
+			@HttpUrl
+			@FEEL
+			@TemplateProperty(
+				group = "provider",
+				label = "Custom API endpoint",
+				description =
+					"Custom API endpoint for VPC/PrivateLink configurations, AWS GovCloud, or other non-standard deployments.",
+				type = TemplateProperty.PropertyType.String,
+				feel = FeelMode.optional,
+				optional = true)
+			@Nullable String endpoint,
+			@Valid @NotNull ChatModelAwsAuthentication authentication)
+			implements AnthropicBackend {
 
-      @Override
-      public String type() {
-        return "bedrock";
-      }
-    }
-  }
+			@Override
+			public String type() {
+				return "bedrock";
+			}
+		}
+	}
 
-  public record AnthropicModel(
-      @NotBlank
-          @TemplateProperty(
-              group = "model",
-              label = "Model",
-              description =
-                  "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
-              type = TemplateProperty.PropertyType.String,
-              feel = FeelMode.optional,
-              defaultValue = "",
-              defaultValueType = TemplateProperty.DefaultValueType.String,
-              placeholder = "claude-sonnet-4-6",
-              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-          String model,
-      @Valid @Nullable AnthropicModelParameters parameters) {
+	public record AnthropicModel(
+		@NotBlank
+		@TemplateProperty(
+			group = "model",
+			label = "Model",
+			description =
+				"Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
+			type = TemplateProperty.PropertyType.String,
+			feel = FeelMode.optional,
+			defaultValue = "",
+			defaultValueType = TemplateProperty.DefaultValueType.String,
+			placeholder = "claude-sonnet-4-6",
+			constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+		String model,
+		@Valid @Nullable AnthropicModelParameters parameters) {
 
-    public record AnthropicModelParameters(
-        @Min(0)
-            @TemplateProperty(
-                group = "model",
-                label = "Maximum tokens",
-                tooltip =
-                    "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
-                type = TemplateProperty.PropertyType.Number,
-                feel = FeelMode.required,
-                optional = true)
-            @Nullable Integer maxTokens,
-        @Min(0)
-            @TemplateProperty(
-                group = "model",
-                label = "Temperature",
-                tooltip =
-                    "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
-                type = TemplateProperty.PropertyType.Number,
-                feel = FeelMode.required,
-                optional = true)
-            @Nullable Double temperature,
-        @Min(0)
-            @TemplateProperty(
-                group = "model",
-                label = "top P",
-                tooltip =
-                    "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
-                type = TemplateProperty.PropertyType.Number,
-                feel = FeelMode.required,
-                optional = true)
-            @Nullable Double topP,
-        @Min(0)
-            @TemplateProperty(
-                group = "model",
-                label = "top K",
-                tooltip =
-                    "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
-                type = TemplateProperty.PropertyType.Number,
-                feel = FeelMode.required,
-                optional = true)
-            @Nullable Integer topK) {}
-  }
+		public record AnthropicModelParameters(
+			@Min(0)
+			@TemplateProperty(
+				group = "model",
+				label = "Maximum tokens",
+				tooltip =
+					"The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
+				type = TemplateProperty.PropertyType.Number,
+				feel = FeelMode.required,
+				optional = true)
+			@Nullable Integer maxTokens,
+			@Min(0)
+			@TemplateProperty(
+				group = "model",
+				label = "Temperature",
+				tooltip =
+					"Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
+				type = TemplateProperty.PropertyType.Number,
+				feel = FeelMode.required,
+				optional = true)
+			@Nullable Double temperature,
+			@Min(0)
+			@TemplateProperty(
+				group = "model",
+				label = "top P",
+				tooltip =
+					"Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
+				type = TemplateProperty.PropertyType.Number,
+				feel = FeelMode.required,
+				optional = true)
+			@Nullable Double topP,
+			@Min(0)
+			@TemplateProperty(
+				group = "model",
+				label = "top K",
+				tooltip =
+					"Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
+				type = TemplateProperty.PropertyType.Number,
+				feel = FeelMode.required,
+				optional = true)
+			@Nullable Integer topK) {
+		}
+	}
 }
 ```
 
@@ -1265,7 +1272,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.chatmodel.Ope
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesOverride;
+import io.camunda.connector.agenticai.aiagent.provider.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.api.annotation.FEEL;
@@ -1277,262 +1284,266 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
 import java.util.Map;
 import java.util.Optional;
+
 import org.jspecify.annotations.Nullable;
 
 /** OpenAI wire formats ({@code completions}/{@code responses}); backends {@code direct}/{@code compatible}. */
 @TemplateSubType(id = OPENAI_ID, label = "OpenAI")
 public record OpenAiChatModel(
-    @NotNull
-        @TemplateProperty(
-            group = "provider",
-            label = "API family",
-            description = "OpenAI wire format to use.",
-            type = TemplateProperty.PropertyType.Dropdown,
-            defaultValue = "completions",
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(value = "completions", label = "Chat Completions"),
-              @TemplateProperty.DropdownPropertyChoice(value = "responses", label = "Responses")
-            })
-        OpenAiApiFamily apiFamily,
-    @Valid @NotNull OpenAiBackend backend,
-    @Valid @NotNull OpenAiModel model,
-    @Valid @Nullable TimeoutConfiguration timeouts,
-    @FEEL
-        @Valid
-        @TemplateProperty(
-            group = "capabilities",
-            label = "Model capability overrides",
-            description =
-                "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
-            feel = FeelMode.required,
-            optional = true)
-        @Nullable ModelCapabilitiesOverride capabilityOverride)
-    implements LlmProviderConfiguration {
+	@NotNull
+	@TemplateProperty(
+		group = "provider",
+		label = "API family",
+		description = "OpenAI wire format to use.",
+		type = TemplateProperty.PropertyType.Dropdown,
+		defaultValue = "completions",
+		choices = {
+			@TemplateProperty.DropdownPropertyChoice(value = "completions", label = "Chat Completions"),
+			@TemplateProperty.DropdownPropertyChoice(value = "responses", label = "Responses")
+		})
+	OpenAiApiFamily apiFamily,
+	@Valid @NotNull OpenAiBackend backend,
+	@Valid @NotNull OpenAiModel model,
+	@Valid @Nullable TimeoutConfiguration timeouts,
+	@FEEL
+	@Valid
+	@TemplateProperty(
+		group = "capabilities",
+		label = "Model capability overrides",
+		description =
+			"Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
+		feel = FeelMode.required,
+		optional = true)
+	@Nullable ModelCapabilitiesOverride capabilityOverride)
+	implements LlmProviderConfiguration {
 
-  @TemplateProperty(ignore = true)
-  public static final String OPENAI_ID = "openai";
+	@TemplateProperty(ignore = true)
+	public static final String OPENAI_ID = "openai";
 
-  @Override
-  public String type() {
-    return OPENAI_ID;
-  }
+	@Override
+	public String type() {
+		return OPENAI_ID;
+	}
 
-  @Override
-  public String model() {
-    return model.model();
-  }
+	@Override
+	public String model() {
+		return model.model();
+	}
 
-  @Override
-  public String backend() {
-    return backend.type();
-  }
+	@Override
+	public String backend() {
+		return backend.type();
+	}
 
-  @Override
-  public Optional<ModelCapabilitiesOverride> capabilityOverride() {
-    return Optional.ofNullable(capabilityOverride);
-  }
+	@Override
+	public Optional<ModelCapabilitiesOverride> capabilityOverride() {
+		return Optional.ofNullable(capabilityOverride);
+	}
 
-  /** The capability-matrix api-family key ({@code openai-completions} / {@code openai-responses}). */
-  public String apiFamilyKey() {
-    return apiFamily.familyKey();
-  }
+	/** The capability-matrix api-family key ({@code openai-completions} / {@code openai-responses}). */
+	public String apiFamilyKey() {
+		return apiFamily.familyKey();
+	}
 
-  /** Convenience accessor for the backend config record (distinct from the discriminator string). */
-  public OpenAiBackend backendConfig() {
-    return backend;
-  }
+	/** Convenience accessor for the backend config record (distinct from the discriminator string). */
+	public OpenAiBackend backendConfig() {
+		return backend;
+	}
 
-  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-  @JsonSubTypes({
-    @JsonSubTypes.Type(value = OpenAiBackend.OpenAiDirectBackend.class, name = "direct"),
-    @JsonSubTypes.Type(value = OpenAiBackend.OpenAiCompatibleBackend.class, name = "compatible")
-  })
-  @TemplateDiscriminatorProperty(
-      label = "Backend",
-      group = "provider",
-      name = "type",
-      defaultValue = "direct",
-      description = "Specify how the OpenAI-compatible API is reached.")
-  public sealed interface OpenAiBackend {
+	@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+	@JsonSubTypes({
+		@JsonSubTypes.Type(value = OpenAiBackend.OpenAiDirectBackend.class, name = "direct"),
+		@JsonSubTypes.Type(value = OpenAiBackend.OpenAiCompatibleBackend.class, name = "compatible")
+	})
+	@TemplateDiscriminatorProperty(
+		label = "Backend",
+		group = "provider",
+		name = "type",
+		defaultValue = "direct",
+		description = "Specify how the OpenAI-compatible API is reached.")
+	public sealed interface OpenAiBackend {
 
-    /** The backend discriminator string. */
-    String type();
+		/** The backend discriminator string. */
+		String type();
 
-    @TemplateSubType(id = "direct", label = "OpenAI (direct)")
-    record OpenAiDirectBackend(
-        @NotBlank
-            @TemplateProperty(
-                group = "provider",
-                label = "OpenAI API key",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.optional,
-                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-            String apiKey,
-        @TemplateProperty(
-                group = "provider",
-                label = "Organization ID",
-                description =
-                    "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.optional,
-                optional = true)
-            @Nullable String organizationId,
-        @TemplateProperty(
-                group = "provider",
-                label = "Project ID",
-                description =
-                    "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.optional,
-                optional = true)
-            @Nullable String projectId)
-        implements OpenAiBackend {
+		@TemplateSubType(id = "direct", label = "OpenAI (direct)")
+		record OpenAiDirectBackend(
+			@NotBlank
+			@TemplateProperty(
+				group = "provider",
+				label = "OpenAI API key",
+				type = TemplateProperty.PropertyType.String,
+				feel = FeelMode.optional,
+				constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+			String apiKey,
+			@TemplateProperty(
+				group = "provider",
+				label = "Organization ID",
+				description =
+					"For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
+				type = TemplateProperty.PropertyType.String,
+				feel = FeelMode.optional,
+				optional = true)
+			@Nullable String organizationId,
+			@TemplateProperty(
+				group = "provider",
+				label = "Project ID",
+				description =
+					"For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
+				type = TemplateProperty.PropertyType.String,
+				feel = FeelMode.optional,
+				optional = true)
+			@Nullable String projectId)
+			implements OpenAiBackend {
 
-      @Override
-      public String type() {
-        return "direct";
-      }
+			@Override
+			public String type() {
+				return "direct";
+			}
 
-      @Override
-      public String toString() {
-        return "OpenAiDirectBackend{apiKey=[REDACTED], organizationId=%s, projectId=%s}"
-            .formatted(organizationId, projectId);
-      }
-    }
+			@Override
+			public String toString() {
+				return "OpenAiDirectBackend{apiKey=[REDACTED], organizationId=%s, projectId=%s}"
+					.formatted(organizationId, projectId);
+			}
+		}
 
-    @TemplateSubType(id = "compatible", label = "OpenAI Compatible")
-    record OpenAiCompatibleBackend(
-        @NotBlank
-            @HttpUrl
-            @TemplateProperty(
-                group = "provider",
-                label = "API endpoint",
-                tooltip = "Specify an endpoint to use the connector with an OpenAI compatible API.",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.optional,
-                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-            String endpoint,
-        @FEEL
-            @TemplateProperty(
-                group = "provider",
-                label = "Headers",
-                description = "Map of HTTP headers to add to the request.",
-                feel = FeelMode.required,
-                optional = true)
-            @Nullable Map<String, String> headers,
-        @FEEL
-            @Valid
-            @TemplateProperty(
-                group = "provider",
-                label = "Query parameters",
-                description = "Map of query parameters to add to the request URL.",
-                feel = FeelMode.required,
-                optional = true)
-            @Nullable Map<@NotBlank String, String> queryParameters,
-        @FEEL
-            @TemplateProperty(
-                group = "provider",
-                label = "Request parameters",
-                description = "Map of additional request (body) parameters to include.",
-                feel = FeelMode.required,
-                optional = true)
-            @Nullable Map<String, Object> requestParameters,
-        @Valid @NotNull CompatibleAuthentication authentication)
-        implements OpenAiBackend {
+		@TemplateSubType(id = "compatible", label = "OpenAI Compatible")
+		record OpenAiCompatibleBackend(
+			@NotBlank
+			@HttpUrl
+			@TemplateProperty(
+				group = "provider",
+				label = "API endpoint",
+				tooltip = "Specify an endpoint to use the connector with an OpenAI compatible API.",
+				type = TemplateProperty.PropertyType.String,
+				feel = FeelMode.optional,
+				constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+			String endpoint,
+			@FEEL
+			@TemplateProperty(
+				group = "provider",
+				label = "Headers",
+				description = "Map of HTTP headers to add to the request.",
+				feel = FeelMode.required,
+				optional = true)
+			@Nullable Map<String, String> headers,
+			@FEEL
+			@Valid
+			@TemplateProperty(
+				group = "provider",
+				label = "Query parameters",
+				description = "Map of query parameters to add to the request URL.",
+				feel = FeelMode.required,
+				optional = true)
+			@Nullable Map<@NotBlank String, String> queryParameters,
+			@FEEL
+			@TemplateProperty(
+				group = "provider",
+				label = "Request parameters",
+				description = "Map of additional request (body) parameters to include.",
+				feel = FeelMode.required,
+				optional = true)
+			@Nullable Map<String, Object> requestParameters,
+			@Valid @NotNull CompatibleAuthentication authentication)
+			implements OpenAiBackend {
 
-      @Override
-      public String type() {
-        return "compatible";
-      }
-    }
-  }
+			@Override
+			public String type() {
+				return "compatible";
+			}
+		}
+	}
 
-  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-  @JsonSubTypes({
-    @JsonSubTypes.Type(value = CompatibleAuthentication.CompatibleNoAuthentication.class, name = "none"),
-    @JsonSubTypes.Type(
-        value = CompatibleAuthentication.CompatibleApiKeyAuthentication.class, name = "apiKey")
-  })
-  @TemplateDiscriminatorProperty(
-      label = "Authentication",
-      group = "provider",
-      name = "type",
-      defaultValue = "none",
-      description =
-          "Authentication for the OpenAI-compatible gateway. Extensible: more schemes can be added later without breaking existing configs.")
-  public sealed interface CompatibleAuthentication {
+	@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+	@JsonSubTypes({
+		@JsonSubTypes.Type(value = CompatibleAuthentication.CompatibleNoAuthentication.class, name = "none"),
+		@JsonSubTypes.Type(
+			value = CompatibleAuthentication.CompatibleApiKeyAuthentication.class, name = "apiKey")
+	})
+	@TemplateDiscriminatorProperty(
+		label = "Authentication",
+		group = "provider",
+		name = "type",
+		defaultValue = "none",
+		description =
+			"Authentication for the OpenAI-compatible gateway. Extensible: more schemes can be added later without breaking existing configs.")
+	public sealed interface CompatibleAuthentication {
 
-    @TemplateSubType(id = "none", label = "None")
-    record CompatibleNoAuthentication() implements CompatibleAuthentication {}
+		@TemplateSubType(id = "none", label = "None")
+		record CompatibleNoAuthentication() implements CompatibleAuthentication {
+		}
 
-    @TemplateSubType(id = "apiKey", label = "API key")
-    record CompatibleApiKeyAuthentication(
-        @NotBlank
-            @TemplateProperty(
-                group = "provider",
-                label = "API key",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.optional,
-                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-            String apiKey)
-        implements CompatibleAuthentication {
+		@TemplateSubType(id = "apiKey", label = "API key")
+		record CompatibleApiKeyAuthentication(
+			@NotBlank
+			@TemplateProperty(
+				group = "provider",
+				label = "API key",
+				type = TemplateProperty.PropertyType.String,
+				feel = FeelMode.optional,
+				constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+			String apiKey)
+			implements CompatibleAuthentication {
 
-      @Override
-      public String toString() {
-        return "CompatibleApiKeyAuthentication{apiKey=[REDACTED]}";
-      }
-    }
-  }
+			@Override
+			public String toString() {
+				return "CompatibleApiKeyAuthentication{apiKey=[REDACTED]}";
+			}
+		}
+	}
 
-  public record OpenAiModel(
-      @NotBlank
-          @TemplateProperty(
-              group = "model",
-              label = "Model",
-              description =
-                  "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
-              type = TemplateProperty.PropertyType.String,
-              feel = FeelMode.optional,
-              defaultValue = "gpt-5.4",
-              defaultValueType = TemplateProperty.DefaultValueType.String,
-              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-          String model,
-      @Valid @Nullable OpenAiModelParameters parameters) {
+	public record OpenAiModel(
+		@NotBlank
+		@TemplateProperty(
+			group = "model",
+			label = "Model",
+			description =
+				"Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
+			type = TemplateProperty.PropertyType.String,
+			feel = FeelMode.optional,
+			defaultValue = "gpt-5.4",
+			defaultValueType = TemplateProperty.DefaultValueType.String,
+			constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+		String model,
+		@Valid @Nullable OpenAiModelParameters parameters) {
 
-    public record OpenAiModelParameters(
-        @Min(0)
-            @TemplateProperty(
-                group = "model",
-                label = "Maximum completion tokens",
-                tooltip =
-                    "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
-                type = TemplateProperty.PropertyType.Number,
-                feel = FeelMode.required,
-                optional = true)
-            @Nullable Integer maxCompletionTokens,
-        @Min(0)
-            @TemplateProperty(
-                group = "model",
-                label = "Temperature",
-                tooltip =
-                    "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
-                type = TemplateProperty.PropertyType.Number,
-                feel = FeelMode.required,
-                optional = true)
-            @Nullable Double temperature,
-        @Min(0)
-            @TemplateProperty(
-                group = "model",
-                label = "top P",
-                tooltip =
-                    "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
-                type = TemplateProperty.PropertyType.Number,
-                feel = FeelMode.required,
-                optional = true)
-            @Nullable Double topP) {}
-  }
+		public record OpenAiModelParameters(
+			@Min(0)
+			@TemplateProperty(
+				group = "model",
+				label = "Maximum completion tokens",
+				tooltip =
+					"The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
+				type = TemplateProperty.PropertyType.Number,
+				feel = FeelMode.required,
+				optional = true)
+			@Nullable Integer maxCompletionTokens,
+			@Min(0)
+			@TemplateProperty(
+				group = "model",
+				label = "Temperature",
+				tooltip =
+					"Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
+				type = TemplateProperty.PropertyType.Number,
+				feel = FeelMode.required,
+				optional = true)
+			@Nullable Double temperature,
+			@Min(0)
+			@TemplateProperty(
+				group = "model",
+				label = "top P",
+				tooltip =
+					"Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
+				type = TemplateProperty.PropertyType.Number,
+				feel = FeelMode.required,
+				optional = true)
+			@Nullable Double topP) {
+		}
+	}
 }
 ```
 
@@ -1585,62 +1596,64 @@ git add -A && git commit -m "Add OpenAiChatModel member with apiFamily, direct/c
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.framework;
+package io.camunda.connector.agenticai.aiagent.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
-import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.provider.api.ChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.provider.api.ChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.provider.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.provider.langchain4j.Langchain4JAiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.provider.langchain4j.Langchain4JChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel;
 import io.camunda.connector.api.error.ConnectorException;
+
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 class LlmProviderChatModelApiConfigurationRegistryTest {
 
-  @Test
-  void wrapsProviderConfigAndExposesCapabilityOverrideViaConfiguration() {
-    final var config =
-        new LlmProviderChatModelApiConfiguration(
-            new AnthropicChatModel(
-                new AnthropicDirectBackend(null, "sk-ant"),
-                new AnthropicModel("claude-sonnet-4-6", null),
-                null,
-                null));
+	@Test
+	void wrapsProviderConfigAndExposesCapabilityOverrideViaConfiguration() {
+		final var config =
+			new LlmProviderChatModelApiConfiguration(
+				new AnthropicChatModel(
+					new AnthropicDirectBackend(null, "sk-ant"),
+					new AnthropicModel("claude-sonnet-4-6", null),
+					null,
+					null));
 
-    assertThat(config.configuration()).isInstanceOf(AnthropicChatModel.class);
-    assertThat(config.configuration().capabilityOverride()).isEmpty();
-  }
+		assertThat(config.configuration()).isInstanceOf(AnthropicChatModel.class);
+		assertThat(config.configuration().capabilityOverride()).isEmpty();
+	}
 
-  @Test
-  void registryFailsLoudWhenNoFactorySupportsLlmProviderConfiguration() {
-    // Only the bridge factory is registered; it supports ProviderChatModelApiConfiguration only.
-    final ChatModelApiFactory bridge =
-        new Langchain4JChatModelApiFactory(mock(Langchain4JAiFrameworkAdapter.class));
-    final var registry = new ChatModelApiRegistryImpl(List.of(bridge));
+	@Test
+	void registryFailsLoudWhenNoFactorySupportsLlmProviderConfiguration() {
+		// Only the bridge factory is registered; it supports ProviderChatModelApiConfiguration only.
+		final ChatModelApiFactory bridge =
+			new Langchain4JChatModelApiFactory(mock(Langchain4JAiFrameworkAdapter.class));
+		final var registry = new ChatModelApiRegistryImpl(List.of(bridge));
 
-    final ChatModelApiConfiguration llmProviderConfig =
-        new LlmProviderChatModelApiConfiguration(
-            new AnthropicChatModel(
-                new AnthropicDirectBackend(null, "sk-ant"),
-                new AnthropicModel("claude-sonnet-4-6", null),
-                null,
-                null));
+		final ChatModelApiConfiguration llmProviderConfig =
+			new LlmProviderChatModelApiConfiguration(
+				new AnthropicChatModel(
+					new AnthropicDirectBackend(null, "sk-ant"),
+					new AnthropicModel("claude-sonnet-4-6", null),
+					null,
+					null));
 
-    assertThatThrownBy(() -> registry.resolve(llmProviderConfig))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("No chat model registered for configuration")
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-  }
+		assertThatThrownBy(() -> registry.resolve(llmProviderConfig))
+			.isInstanceOf(ConnectorException.class)
+			.hasMessageContaining("No chat model registered for configuration")
+			.extracting(e -> ((ConnectorException) e).getErrorCode())
+			.isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+	}
 }
 ```
 
@@ -1660,7 +1673,7 @@ Expected: compilation failure — `cannot find symbol: class LlmProviderChatMode
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.framework.api;
+package io.camunda.connector.agenticai.aiagent.provider.api;
 
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.LlmProviderConfiguration;
 
@@ -1673,7 +1686,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.LlmProvide
  * component here.
  */
 public record LlmProviderChatModelApiConfiguration(LlmProviderConfiguration configuration)
-    implements ChatModelApiConfiguration {}
+	implements ChatModelApiConfiguration {
+}
 ```
 
 4. **Run-pass:**
@@ -1743,7 +1757,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.provider.api.ProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
@@ -1754,31 +1768,31 @@ import org.junit.jupiter.api.Test;
 
 class AgentConfigurationMappingTest {
 
-  @Test
-  void outboundContextCarriesWrappedProviderConfigAndTelemetryStrings() {
-    final var provider =
-        new AnthropicProviderConfiguration(
-            new AnthropicConnection(
-                null,
-                new AnthropicAuthentication("sk-ant"),
-                null,
-                new AnthropicModel("claude-sonnet-4-6", null)));
-    final var data = new OutboundConnectorAgentRequestData(null, null, null, null, null, null, null);
+	@Test
+	void outboundContextCarriesWrappedProviderConfigAndTelemetryStrings() {
+		final var provider =
+			new AnthropicProviderConfiguration(
+				new AnthropicConnection(
+					null,
+					new AnthropicAuthentication("sk-ant"),
+					null,
+					new AnthropicModel("claude-sonnet-4-6", null)));
+		final var data = new OutboundConnectorAgentRequestData(null, null, null, null, null, null, null);
 
-    final var ctx =
-        new OutboundConnectorAgentExecutionContext(
-            mock(JobContext.class),
-            data,
-            new ProviderChatModelApiConfiguration(provider),
-            provider.model(),
-            provider.providerType(),
-            mock(ProcessDefinitionAdHocToolElementsResolver.class));
+		final var ctx =
+			new OutboundConnectorAgentExecutionContext(
+				mock(JobContext.class),
+				data,
+				new ProviderChatModelApiConfiguration(provider),
+				provider.model(),
+				provider.providerType(),
+				mock(ProcessDefinitionAdHocToolElementsResolver.class));
 
-    assertThat(ctx.configuration().chatModelApiConfiguration())
-        .isEqualTo(new ProviderChatModelApiConfiguration(provider));
-    assertThat(ctx.configuration().modelName()).isEqualTo("claude-sonnet-4-6");
-    assertThat(ctx.configuration().modelProvider()).isEqualTo("anthropic");
-  }
+		assertThat(ctx.configuration().chatModelApiConfiguration())
+			.isEqualTo(new ProviderChatModelApiConfiguration(provider));
+		assertThat(ctx.configuration().modelName()).isEqualTo("claude-sonnet-4-6");
+		assertThat(ctx.configuration().modelProvider()).isEqualTo("anthropic");
+	}
 }
 ```
    (`OutboundConnectorAgentRequestData`'s 7 components are `context`,`systemPrompt`,`userPrompt`,`tools`,`memory`,`limits`,`response` — all nullable for this construction; the context only stores them.)
@@ -1801,14 +1815,16 @@ Expected: compilation failure — the new `OutboundConnectorAgentExecutionContex
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
-import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.provider.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
+
 import java.util.Optional;
+
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -1819,30 +1835,30 @@ import org.jspecify.annotations.Nullable;
  * are captured explicitly by the connector entry point). Transient — never persisted.
  */
 public record AgentConfiguration(
-    ChatModelApiConfiguration chatModelApiConfiguration,
-    String modelName,
-    String modelProvider,
-    SystemPromptConfiguration systemPrompt,
-    UserPromptConfiguration userPrompt,
-    @Nullable MemoryConfiguration memory,
-    @Nullable LimitsConfiguration limits,
-    @Nullable EventHandlingConfiguration events,
-    @Nullable ResponseConfiguration response) {
+	ChatModelApiConfiguration chatModelApiConfiguration,
+	String modelName,
+	String modelProvider,
+	SystemPromptConfiguration systemPrompt,
+	UserPromptConfiguration userPrompt,
+	@Nullable MemoryConfiguration memory,
+	@Nullable LimitsConfiguration limits,
+	@Nullable EventHandlingConfiguration events,
+	@Nullable ResponseConfiguration response) {
 
-  public static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
-  public static final int DEFAULT_MAX_MODEL_CALLS = 10;
+	public static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
+	public static final int DEFAULT_MAX_MODEL_CALLS = 10;
 
-  public int contextWindowSize() {
-    return Optional.ofNullable(memory)
-        .map(MemoryConfiguration::contextWindowSize)
-        .orElse(DEFAULT_CONTEXT_WINDOW_SIZE);
-  }
+	public int contextWindowSize() {
+		return Optional.ofNullable(memory)
+			.map(MemoryConfiguration::contextWindowSize)
+			.orElse(DEFAULT_CONTEXT_WINDOW_SIZE);
+	}
 
-  public int maxModelCalls() {
-    return Optional.ofNullable(limits)
-        .map(LimitsConfiguration::maxModelCalls)
-        .orElse(DEFAULT_MAX_MODEL_CALLS);
-  }
+	public int maxModelCalls() {
+		return Optional.ofNullable(limits)
+			.map(LimitsConfiguration::maxModelCalls)
+			.orElse(DEFAULT_MAX_MODEL_CALLS);
+	}
 }
 ```
 
@@ -1859,104 +1875,107 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.provider.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobContext;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
 import org.jspecify.annotations.Nullable;
 
 /** Version-agnostic execution context for the AI Agent Task flavor (serves v1 and v2). */
 public class OutboundConnectorAgentExecutionContext implements AgentExecutionContext {
 
-  private final JobContext jobContext;
-  private final OutboundConnectorAgentRequestData data;
-  private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
-  private final AgentConfiguration configuration;
+	private final JobContext jobContext;
+	private final OutboundConnectorAgentRequestData data;
+	private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
+	private final AgentConfiguration configuration;
 
-  @Nullable private List<AdHocToolElement> toolElements;
+	@Nullable
+	private List<AdHocToolElement> toolElements;
 
-  public OutboundConnectorAgentExecutionContext(
-      JobContext jobContext,
-      OutboundConnectorAgentRequestData data,
-      ChatModelApiConfiguration chatModelApiConfiguration,
-      String modelName,
-      String modelProvider,
-      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
-    this.jobContext = jobContext;
-    this.data = data;
-    this.toolElementsResolver = toolElementsResolver;
-    this.configuration =
-        new AgentConfiguration(
-            chatModelApiConfiguration,
-            modelName,
-            modelProvider,
-            data.systemPrompt(),
-            data.userPrompt(),
-            data.memory(),
-            data.limits(),
-            // the outbound connector flavor does not support event handling
-            null,
-            data.response());
-  }
+	public OutboundConnectorAgentExecutionContext(
+		JobContext jobContext,
+		OutboundConnectorAgentRequestData data,
+		ChatModelApiConfiguration chatModelApiConfiguration,
+		String modelName,
+		String modelProvider,
+		ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
+		this.jobContext = jobContext;
+		this.data = data;
+		this.toolElementsResolver = toolElementsResolver;
+		this.configuration =
+			new AgentConfiguration(
+				chatModelApiConfiguration,
+				modelName,
+				modelProvider,
+				data.systemPrompt(),
+				data.userPrompt(),
+				data.memory(),
+				data.limits(),
+				// the outbound connector flavor does not support event handling
+				null,
+				data.response());
+	}
 
-  @Override
-  public JobContext jobContext() {
-    return jobContext;
-  }
+	@Override
+	public JobContext jobContext() {
+		return jobContext;
+	}
 
-  @Override
-  public AgentContext initialAgentContext() {
-    return data.context();
-  }
+	@Override
+	public AgentContext initialAgentContext() {
+		return data.context();
+	}
 
-  @Override
-  public List<ToolCallResult> initialToolCallResults() {
-    return Optional.ofNullable(data.tools())
-        .map(ToolsConfiguration::toolCallResults)
-        .orElseGet(Collections::emptyList);
-  }
+	@Override
+	public List<ToolCallResult> initialToolCallResults() {
+		return Optional.ofNullable(data.tools())
+			.map(ToolsConfiguration::toolCallResults)
+			.orElseGet(Collections::emptyList);
+	}
 
-  @Override
-  public List<AdHocToolElement> toolElements() {
-    if (toolElements != null) {
-      return toolElements;
-    }
-    return toolElements = resolveToolElements();
-  }
+	@Override
+	public List<AdHocToolElement> toolElements() {
+		if (toolElements != null) {
+			return toolElements;
+		}
+		return toolElements = resolveToolElements();
+	}
 
-  private List<AdHocToolElement> resolveToolElements() {
-    final var toolsContainerElementId =
-        Optional.ofNullable(data.tools())
-            .map(ToolsConfiguration::containerElementId)
-            .filter(id -> !id.isBlank())
-            .orElse(null);
+	private List<AdHocToolElement> resolveToolElements() {
+		final var toolsContainerElementId =
+			Optional.ofNullable(data.tools())
+				.map(ToolsConfiguration::containerElementId)
+				.filter(id -> !id.isBlank())
+				.orElse(null);
 
-    if (toolsContainerElementId == null) {
-      return Collections.emptyList();
-    }
+		if (toolsContainerElementId == null) {
+			return Collections.emptyList();
+		}
 
-    return toolElementsResolver.resolveToolElements(
-        jobContext.getProcessDefinitionKey(), toolsContainerElementId);
-  }
+		return toolElementsResolver.resolveToolElements(
+			jobContext.getProcessDefinitionKey(), toolsContainerElementId);
+	}
 
-  @Override
-  public UserPromptConfiguration userPrompt() {
-    return data.userPrompt();
-  }
+	@Override
+	public UserPromptConfiguration userPrompt() {
+		return data.userPrompt();
+	}
 
-  public @Nullable ToolsConfiguration tools() {
-    return data.tools();
-  }
+	public @Nullable ToolsConfiguration tools() {
+		return data.tools();
+	}
 
-  @Override
-  public AgentConfiguration configuration() {
-    return configuration;
-  }
+	@Override
+	public AgentConfiguration configuration() {
+		return configuration;
+	}
 }
 ```
 
@@ -1972,91 +1991,92 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
 package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.provider.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest.JobWorkerAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobContext;
+
 import java.util.List;
 
 /** Version-agnostic execution context for the AI Agent Sub-process flavor (serves v1 and v2). */
 public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
-  private final JobContext jobContext;
-  private final JobWorkerAgentRequestData data;
-  private final AgentContext initialAgentContext;
-  private final List<ToolCallResult> initialToolCallResults;
-  private final List<AdHocToolElement> toolElements;
-  private final AgentConfiguration configuration;
+	private final JobContext jobContext;
+	private final JobWorkerAgentRequestData data;
+	private final AgentContext initialAgentContext;
+	private final List<ToolCallResult> initialToolCallResults;
+	private final List<AdHocToolElement> toolElements;
+	private final AgentConfiguration configuration;
 
-  public JobWorkerAgentExecutionContext(
-      JobContext jobContext,
-      JobWorkerAgentRequestData data,
-      AgentContext initialAgentContext,
-      List<ToolCallResult> initialToolCallResults,
-      List<AdHocToolElement> toolElements,
-      ChatModelApiConfiguration chatModelApiConfiguration,
-      String modelName,
-      String modelProvider) {
-    this.jobContext = jobContext;
-    this.data = data;
-    this.initialAgentContext = initialAgentContext;
-    this.initialToolCallResults = initialToolCallResults;
-    this.toolElements = toolElements;
-    this.configuration =
-        new AgentConfiguration(
-            chatModelApiConfiguration,
-            modelName,
-            modelProvider,
-            data.systemPrompt(),
-            data.userPrompt(),
-            data.memory(),
-            data.limits(),
-            data.events(),
-            data.response());
-  }
+	public JobWorkerAgentExecutionContext(
+		JobContext jobContext,
+		JobWorkerAgentRequestData data,
+		AgentContext initialAgentContext,
+		List<ToolCallResult> initialToolCallResults,
+		List<AdHocToolElement> toolElements,
+		ChatModelApiConfiguration chatModelApiConfiguration,
+		String modelName,
+		String modelProvider) {
+		this.jobContext = jobContext;
+		this.data = data;
+		this.initialAgentContext = initialAgentContext;
+		this.initialToolCallResults = initialToolCallResults;
+		this.toolElements = toolElements;
+		this.configuration =
+			new AgentConfiguration(
+				chatModelApiConfiguration,
+				modelName,
+				modelProvider,
+				data.systemPrompt(),
+				data.userPrompt(),
+				data.memory(),
+				data.limits(),
+				data.events(),
+				data.response());
+	}
 
-  @Override
-  public JobContext jobContext() {
-    return jobContext;
-  }
+	@Override
+	public JobContext jobContext() {
+		return jobContext;
+	}
 
-  @Override
-  public AgentContext initialAgentContext() {
-    return initialAgentContext;
-  }
+	@Override
+	public AgentContext initialAgentContext() {
+		return initialAgentContext;
+	}
 
-  @Override
-  public List<ToolCallResult> initialToolCallResults() {
-    return initialToolCallResults;
-  }
+	@Override
+	public List<ToolCallResult> initialToolCallResults() {
+		return initialToolCallResults;
+	}
 
-  @Override
-  public List<AdHocToolElement> toolElements() {
-    return toolElements;
-  }
+	@Override
+	public List<AdHocToolElement> toolElements() {
+		return toolElements;
+	}
 
-  @Override
-  public UserPromptConfiguration userPrompt() {
-    return data.userPrompt();
-  }
+	@Override
+	public UserPromptConfiguration userPrompt() {
+		return data.userPrompt();
+	}
 
-  @Override
-  public AgentConfiguration configuration() {
-    return configuration;
-  }
+	@Override
+	public AgentConfiguration configuration() {
+		return configuration;
+	}
 
-  /**
-   * Job-worker-specific response configuration. Exposes {@code includeAgentContext}, which is not
-   * part of the generic {@link io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration}.
-   */
-  public JobWorkerResponseConfiguration response() {
-    return data.response();
-  }
+	/**
+	 * Job-worker-specific response configuration. Exposes {@code includeAgentContext}, which is not
+	 * part of the generic {@link io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration}.
+	 */
+	public JobWorkerResponseConfiguration response() {
+		return data.response();
+	}
 }
 ```
 
-6. **Impl — `AiAgentFunction.java`.** Add `import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;` and replace the `execute` method body:
+6. **Impl — `AiAgentFunction.java`.** Add `import io.camunda.connector.agenticai.aiagent.provider.api.ProviderChatModelApiConfiguration;` and replace the `execute` method body:
 
 ```java
   @Override
@@ -2075,7 +2095,7 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   }
 ```
 
-7. **Impl — `AiAgentJobWorker.java`.** Add `import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;` and replace the `execute` method body (constants/fields unchanged):
+7. **Impl — `AiAgentJobWorker.java`.** Add `import io.camunda.connector.agenticai.aiagent.provider.api.ProviderChatModelApiConfiguration;` and replace the `execute` method body (constants/fields unchanged):
 
 ```java
   @Override
@@ -2097,7 +2117,7 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   }
 ```
 
-8. **Impl — `BaseAgentRequestHandler.java`.** DELETE the import `import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;` (line ~19; now unused). In `proceed(...)`, replace the resolve block (currently `final var chatModel = chatModelApiRegistry.resolve(new ProviderChatModelApiConfiguration(executionContext.configuration().provider()));`) with:
+8. **Impl — `BaseAgentRequestHandler.java`.** DELETE the import `import io.camunda.connector.agenticai.aiagent.provider.api.ProviderChatModelApiConfiguration;` (line ~19; now unused). In `proceed(...)`, replace the resolve block (currently `final var chatModel = chatModelApiRegistry.resolve(new ProviderChatModelApiConfiguration(executionContext.configuration().provider()));`) with:
 
 ```java
     final var chatModel =
@@ -2126,7 +2146,7 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
 ```
    (Keep the rest of the method — `limits`, `execute()`, logging — unchanged.)
 
-10. **Impl — `Langchain4JAiFrameworkAdapter.java`.** In `executeChatRequest(...)`, unwrap the SPI config. Add `import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;` and replace the try-with-resources head (currently `try (final var chatModel = chatModelFactory.createChatModel(configuration.provider())) {`) with:
+10. **Impl — `Langchain4JAiFrameworkAdapter.java`.** In `executeChatRequest(...)`, unwrap the SPI config. Add `import io.camunda.connector.agenticai.aiagent.provider.api.ProviderChatModelApiConfiguration;` and replace the try-with-resources head (currently `try (final var chatModel = chatModelFactory.createChatModel(configuration.provider())) {`) with:
 
 ```java
     final var providerConfiguration =
@@ -2225,10 +2245,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.aiagent.framework.ChatModelApiRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.provider.api.ChatModelApiRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.provider.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.provider.langchain4j.Langchain4JAiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.provider.langchain4j.Langchain4JChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequestV2;
@@ -2237,53 +2257,55 @@ import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicC
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
+
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 class AiAgentV2EntryPointTest {
 
-  private AnthropicChatModel anthropicConfig() {
-    return new AnthropicChatModel(
-        new AnthropicDirectBackend(null, "sk-ant"),
-        new AnthropicModel("claude-sonnet-4-6", null),
-        null,
-        null);
-  }
+	private AnthropicChatModel anthropicConfig() {
+		return new AnthropicChatModel(
+			new AnthropicDirectBackend(null, "sk-ant"),
+			new AnthropicModel("claude-sonnet-4-6", null),
+			null,
+			null);
+	}
 
-  @Test
-  void v2EntryPointMappingWrapsLlmProviderConfigAndTelemetryWithoutNpe() {
-    final var config = anthropicConfig();
-    final var request =
-        new OutboundConnectorAgentRequestV2(
-            config, new OutboundConnectorAgentRequestData(null, null, null, null, null, null, null));
+	@Test
+	void v2EntryPointMappingWrapsLlmProviderConfigAndTelemetryWithoutNpe() {
+		final var config = anthropicConfig();
+		final var request =
+			new OutboundConnectorAgentRequestV2(
+				config, new OutboundConnectorAgentRequestData(null, null, null, null, null, null, null));
 
-    // reproduces exactly what AiAgentTaskV2.execute builds
-    final var ctx =
-        new OutboundConnectorAgentExecutionContext(
-            mock(JobContext.class),
-            request.data(),
-            new LlmProviderChatModelApiConfiguration(request.configuration()),
-            request.configuration().model(),
-            request.configuration().type(),
-            mock(ProcessDefinitionAdHocToolElementsResolver.class));
+		// reproduces exactly what AiAgentTaskV2.execute builds
+		final var ctx =
+			new OutboundConnectorAgentExecutionContext(
+				mock(JobContext.class),
+				request.data(),
+				new LlmProviderChatModelApiConfiguration(request.configuration()),
+				request.configuration().model(),
+				request.configuration().type(),
+				mock(ProcessDefinitionAdHocToolElementsResolver.class));
 
-    assertThat(ctx.configuration().chatModelApiConfiguration())
-        .isEqualTo(new LlmProviderChatModelApiConfiguration(config));
-    assertThat(ctx.configuration().modelName()).isEqualTo("claude-sonnet-4-6");
-    assertThat(ctx.configuration().modelProvider()).isEqualTo("anthropic");
-  }
+		assertThat(ctx.configuration().chatModelApiConfiguration())
+			.isEqualTo(new LlmProviderChatModelApiConfiguration(config));
+		assertThat(ctx.configuration().modelName()).isEqualTo("claude-sonnet-4-6");
+		assertThat(ctx.configuration().modelProvider()).isEqualTo("anthropic");
+	}
 
-  @Test
-  void v2LlmProviderConfigFailsLoudThroughRegistryUntilProviderFactoryExists() {
-    final var registry =
-        new ChatModelApiRegistryImpl(
-            List.of(new Langchain4JChatModelApiFactory(mock(Langchain4JAiFrameworkAdapter.class))));
+	@Test
+	void v2LlmProviderConfigFailsLoudThroughRegistryUntilProviderFactoryExists() {
+		final var registry =
+			new ChatModelApiRegistryImpl(
+				List.of(new Langchain4JChatModelApiFactory(mock(Langchain4JAiFrameworkAdapter.class))));
 
-    assertThatThrownBy(
-            () -> registry.resolve(new LlmProviderChatModelApiConfiguration(anthropicConfig())))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("No chat model registered for configuration");
-  }
+		assertThatThrownBy(
+			() -> registry.resolve(new LlmProviderChatModelApiConfiguration(anthropicConfig())))
+			.isInstanceOf(ConnectorException.class)
+			.hasMessageContaining("No chat model registered for configuration");
+	}
 }
 ```
 
@@ -2378,7 +2400,7 @@ package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.provider.api.LlmProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequestV2;
@@ -2389,59 +2411,59 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
 
 /** AI Agent Task v2 connector (LLM-provider layer). Service-task flavor; reuses the shared handler. */
 @OutboundConnector(
-    name = "AI Agent Task",
-    inputVariables = {"configuration", "data"},
-    type = "io.camunda.agenticai:aiagent:task:2")
+	name = "AI Agent Task",
+	inputVariables = {"configuration", "data"},
+	type = "io.camunda.agenticai:aiagent:task:2")
 @ElementTemplate(
-    id = "io.camunda.connectors.agenticai.ai-agent-task.v2",
-    name = "AI Agent Task",
-    description = "Execute a single AI-powered action with tool calling capabilities",
-    keywords = {"AI", "AI Agent", "agentic orchestration"},
-    documentationRef =
-        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
-    engineVersion = "^8.10",
-    version = 1,
-    category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
-    inputDataClass = OutboundConnectorAgentRequestV2.class,
-    outputDataClass = AgentResponse.class,
-    defaultResultVariable = "agent",
-    propertyGroups = {
-      @PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),
-      @PropertyGroup(id = "model", label = "Model", openByDefault = false),
-      @PropertyGroup(id = "systemPrompt", label = "System prompt", openByDefault = false),
-      @PropertyGroup(id = "userPrompt", label = "User prompt", openByDefault = false),
-      @PropertyGroup(id = "tools", label = "Tools", openByDefault = false),
-      @PropertyGroup(id = "memory", label = "Memory", openByDefault = false),
-      @PropertyGroup(id = "limits", label = "Limits", openByDefault = false),
-      @PropertyGroup(id = "response", label = "Response", openByDefault = false),
-      @PropertyGroup(id = "capabilities", label = "Model capabilities", openByDefault = false)
-    },
-    icon = "aiagent.svg")
+	id = "io.camunda.connectors.agenticai.ai-agent-task.v2",
+	name = "AI Agent Task",
+	description = "Execute a single AI-powered action with tool calling capabilities",
+	keywords = {"AI", "AI Agent", "agentic orchestration"},
+	documentationRef =
+		"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
+	engineVersion = "^8.10",
+	version = 1,
+	category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
+	inputDataClass = OutboundConnectorAgentRequestV2.class,
+	outputDataClass = AgentResponse.class,
+	defaultResultVariable = "agent",
+	propertyGroups = {
+		@PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),
+		@PropertyGroup(id = "model", label = "Model", openByDefault = false),
+		@PropertyGroup(id = "systemPrompt", label = "System prompt", openByDefault = false),
+		@PropertyGroup(id = "userPrompt", label = "User prompt", openByDefault = false),
+		@PropertyGroup(id = "tools", label = "Tools", openByDefault = false),
+		@PropertyGroup(id = "memory", label = "Memory", openByDefault = false),
+		@PropertyGroup(id = "limits", label = "Limits", openByDefault = false),
+		@PropertyGroup(id = "response", label = "Response", openByDefault = false),
+		@PropertyGroup(id = "capabilities", label = "Model capabilities", openByDefault = false)
+	},
+	icon = "aiagent.svg")
 public class AiAgentTaskV2 implements AgentConnectorFunction {
-  private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
-  private final OutboundConnectorAgentRequestHandler agentRequestHandler;
+	private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
+	private final OutboundConnectorAgentRequestHandler agentRequestHandler;
 
-  public AiAgentTaskV2(
-      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      OutboundConnectorAgentRequestHandler agentRequestHandler) {
-    this.toolElementsResolver = toolElementsResolver;
-    this.agentRequestHandler = agentRequestHandler;
-  }
+	public AiAgentTaskV2(
+		ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+		OutboundConnectorAgentRequestHandler agentRequestHandler) {
+		this.toolElementsResolver = toolElementsResolver;
+		this.agentRequestHandler = agentRequestHandler;
+	}
 
-  @Override
-  public AiAgentTaskConnectorResponse execute(OutboundConnectorContext context) {
-    var request = context.bindVariables(OutboundConnectorAgentRequestV2.class);
-    var config = request.configuration();
-    var executionContext =
-        new OutboundConnectorAgentExecutionContext(
-            context.getJobContext(),
-            request.data(),
-            new LlmProviderChatModelApiConfiguration(config),
-            config.model(),
-            config.type(),
-            toolElementsResolver);
-    return agentRequestHandler.handleRequest(executionContext);
-  }
+	@Override
+	public AiAgentTaskConnectorResponse execute(OutboundConnectorContext context) {
+		var request = context.bindVariables(OutboundConnectorAgentRequestV2.class);
+		var config = request.configuration();
+		var executionContext =
+			new OutboundConnectorAgentExecutionContext(
+				context.getJobContext(),
+				request.data(),
+				new LlmProviderChatModelApiConfiguration(config),
+				config.model(),
+				config.type(),
+				toolElementsResolver);
+		return agentRequestHandler.handleRequest(executionContext);
+	}
 }
 ```
    NOTE: copy the exact group tooltips from `AiAgentFunction` (v1) for `systemPrompt`/`userPrompt`/`tools`/`memory`/`response` verbatim so the generated v2 template wording matches v1 (abbreviated above for brevity; the code compiles without the tooltips — it is a fidelity note). The `capabilities` group backs the FEEL `capabilityOverride` property on the config members.
@@ -2458,7 +2480,7 @@ public class AiAgentTaskV2 implements AgentConnectorFunction {
 package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.provider.api.LlmProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequestV2;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -2466,49 +2488,49 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
 /** AI Agent Sub-process v2 connector (LLM-provider layer). Job worker on an ad-hoc sub-process. */
 @OutboundConnector(
-    name = AiAgentSubProcessV2.JOB_WORKER_NAME,
-    type = AiAgentSubProcessV2.JOB_WORKER_TYPE,
-    inputVariables = {
-      AiAgentSubProcessV2.AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE,
-      AiAgentSubProcessV2.AGENT_CONTEXT_VARIABLE,
-      AiAgentSubProcessV2.TOOL_CALL_RESULTS_VARIABLE,
-      AiAgentSubProcessV2.CONFIGURATION_VARIABLE,
-      AiAgentSubProcessV2.DATA_VARIABLE
-    })
+	name = AiAgentSubProcessV2.JOB_WORKER_NAME,
+	type = AiAgentSubProcessV2.JOB_WORKER_TYPE,
+	inputVariables = {
+		AiAgentSubProcessV2.AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE,
+		AiAgentSubProcessV2.AGENT_CONTEXT_VARIABLE,
+		AiAgentSubProcessV2.TOOL_CALL_RESULTS_VARIABLE,
+		AiAgentSubProcessV2.CONFIGURATION_VARIABLE,
+		AiAgentSubProcessV2.DATA_VARIABLE
+	})
 public class AiAgentSubProcessV2 implements AgentConnectorFunction {
 
-  public static final String JOB_WORKER_NAME = "AI Agent Sub-process";
-  public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent:subprocess:2";
+	public static final String JOB_WORKER_NAME = "AI Agent Sub-process";
+	public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent:subprocess:2";
 
-  public static final String AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE = "adHocSubProcessElements";
-  public static final String AGENT_CONTEXT_VARIABLE = "agentContext";
-  public static final String TOOL_CALL_RESULTS_VARIABLE = "toolCallResults";
-  public static final String CONFIGURATION_VARIABLE = "configuration";
-  public static final String DATA_VARIABLE = "data";
+	public static final String AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE = "adHocSubProcessElements";
+	public static final String AGENT_CONTEXT_VARIABLE = "agentContext";
+	public static final String TOOL_CALL_RESULTS_VARIABLE = "toolCallResults";
+	public static final String CONFIGURATION_VARIABLE = "configuration";
+	public static final String DATA_VARIABLE = "data";
 
-  private final JobWorkerAgentRequestHandler agentRequestHandler;
+	private final JobWorkerAgentRequestHandler agentRequestHandler;
 
-  public AiAgentSubProcessV2(JobWorkerAgentRequestHandler agentRequestHandler) {
-    this.agentRequestHandler = agentRequestHandler;
-  }
+	public AiAgentSubProcessV2(JobWorkerAgentRequestHandler agentRequestHandler) {
+		this.agentRequestHandler = agentRequestHandler;
+	}
 
-  @Override
-  public AiAgentSubProcessConnectorResponse execute(OutboundConnectorContext context)
-      throws Exception {
-    var request = context.bindVariables(JobWorkerAgentRequestV2.class);
-    var config = request.configuration();
-    var executionContext =
-        new JobWorkerAgentExecutionContext(
-            context.getJobContext(),
-            request.data(),
-            request.agentContext(),
-            request.toolCallResults(),
-            request.toolElements(),
-            new LlmProviderChatModelApiConfiguration(config),
-            config.model(),
-            config.type());
-    return agentRequestHandler.handleRequest(executionContext);
-  }
+	@Override
+	public AiAgentSubProcessConnectorResponse execute(OutboundConnectorContext context)
+		throws Exception {
+		var request = context.bindVariables(JobWorkerAgentRequestV2.class);
+		var config = request.configuration();
+		var executionContext =
+			new JobWorkerAgentExecutionContext(
+				context.getJobContext(),
+				request.data(),
+				request.agentContext(),
+				request.toolCallResults(),
+				request.toolElements(),
+				new LlmProviderChatModelApiConfiguration(config),
+				config.model(),
+				config.type());
+		return agentRequestHandler.handleRequest(executionContext);
+	}
 }
 ```
 
