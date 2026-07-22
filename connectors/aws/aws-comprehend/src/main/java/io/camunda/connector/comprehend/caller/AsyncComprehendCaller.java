@@ -8,9 +8,7 @@ package io.camunda.connector.comprehend.caller;
 
 import static io.camunda.connector.comprehend.model.ComprehendDocumentReadAction.TEXTRACT_ANALYZE_DOCUMENT;
 
-import com.amazonaws.services.comprehend.AmazonComprehendClient;
-import com.amazonaws.services.comprehend.model.*;
-import com.amazonaws.util.CollectionUtils;
+import io.camunda.connector.comprehend.ComprehendClassificationJobResult;
 import io.camunda.connector.comprehend.model.ComprehendAsyncRequestData;
 import io.camunda.connector.comprehend.model.ComprehendDocumentReadAction;
 import io.camunda.connector.comprehend.model.ComprehendDocumentReadMode;
@@ -22,9 +20,27 @@ import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.comprehend.ComprehendAsyncClient;
+import software.amazon.awssdk.services.comprehend.model.DocumentReadFeatureTypes;
+import software.amazon.awssdk.services.comprehend.model.DocumentReaderConfig;
+import software.amazon.awssdk.services.comprehend.model.InputDataConfig;
+import software.amazon.awssdk.services.comprehend.model.OutputDataConfig;
+import software.amazon.awssdk.services.comprehend.model.StartDocumentClassificationJobRequest;
+import software.amazon.awssdk.services.comprehend.model.Tag;
+import software.amazon.awssdk.services.comprehend.model.VpcConfig;
 
+/**
+ * Submits an async {@code StartDocumentClassificationJob} using the real AWS SDK v2 {@link
+ * ComprehendAsyncClient} -- unlike AWS SDK v1 (where the async client was a subtype of the sync
+ * client, so the pre-migration version of this class could get away with declaring its {@code
+ * call()} parameter as the sync client type), v2's {@code ComprehendAsyncClient} and {@code
+ * ComprehendClient} are unrelated sibling interfaces. The async client returns a {@code
+ * CompletableFuture}; this caller blocks on it (via {@code join()}) to preserve the connector's
+ * existing synchronous calling convention.
+ */
 public class AsyncComprehendCaller
-    implements ComprehendCaller<StartDocumentClassificationJobResult, ComprehendAsyncRequestData> {
+    implements ComprehendCaller<
+        ComprehendAsyncClient, ComprehendAsyncRequestData, ComprehendClassificationJobResult> {
 
   public static final String VPC_CONFIG_EXCEPTION_MSG =
       "Or both VpcConfig fields SecurityGroupIds and Subnets or none";
@@ -34,69 +50,72 @@ public class AsyncComprehendCaller
   private static final int INITIAL_FEATURES_CAPACITY = 2;
 
   @Override
-  public StartDocumentClassificationJobResult call(
-      AmazonComprehendClient client, ComprehendAsyncRequestData asyncRequest) {
+  public ComprehendClassificationJobResult call(
+      ComprehendAsyncClient client, ComprehendAsyncRequestData asyncRequest) {
     LOGGER.debug(
         "Starting async comprehend task for document classification with request data: {}",
         asyncRequest);
-    var docClassificationRequest = new StartDocumentClassificationJobRequest();
+    var requestBuilder = StartDocumentClassificationJobRequest.builder();
 
     if (StringUtils.isNotBlank(asyncRequest.clientRequestToken())) {
-      docClassificationRequest.withClientRequestToken(asyncRequest.clientRequestToken());
+      requestBuilder.clientRequestToken(asyncRequest.clientRequestToken());
     }
 
-    docClassificationRequest.withDataAccessRoleArn(asyncRequest.dataAccessRoleArn());
+    requestBuilder.dataAccessRoleArn(asyncRequest.dataAccessRoleArn());
 
     if (StringUtils.isNotBlank(asyncRequest.documentClassifierArn())) {
-      docClassificationRequest.withDocumentClassifierArn(asyncRequest.documentClassifierArn());
+      requestBuilder.documentClassifierArn(asyncRequest.documentClassifierArn());
     }
 
     if (StringUtils.isNotBlank(asyncRequest.flywheelArn())) {
-      docClassificationRequest.withFlywheelArn(asyncRequest.flywheelArn());
+      requestBuilder.flywheelArn(asyncRequest.flywheelArn());
     }
 
-    docClassificationRequest.withInputDataConfig(prepareInputConfig(asyncRequest));
+    requestBuilder.inputDataConfig(prepareInputConfig(asyncRequest));
 
     if (StringUtils.isNotBlank(asyncRequest.jobName())) {
-      docClassificationRequest.withJobName(asyncRequest.jobName());
+      requestBuilder.jobName(asyncRequest.jobName());
     }
 
-    docClassificationRequest.withOutputDataConfig(prepareOutputDataConf(asyncRequest));
+    requestBuilder.outputDataConfig(prepareOutputDataConf(asyncRequest));
 
     if (asyncRequest.tags() != null && !asyncRequest.tags().isEmpty()) {
-      docClassificationRequest.withTags(prepareTags(asyncRequest));
+      requestBuilder.tags(prepareTags(asyncRequest));
     }
 
     if (StringUtils.isNotBlank(asyncRequest.volumeKmsKeyId())) {
-      docClassificationRequest.withVolumeKmsKeyId(asyncRequest.volumeKmsKeyId());
+      requestBuilder.volumeKmsKeyId(asyncRequest.volumeKmsKeyId());
     }
 
-    docClassificationRequest.withVpcConfig(prepareVpcConfig(asyncRequest));
+    requestBuilder.vpcConfig(prepareVpcConfig(asyncRequest));
 
-    return client.startDocumentClassificationJob(docClassificationRequest);
+    StartDocumentClassificationJobRequest docClassificationRequest = requestBuilder.build();
+
+    return ComprehendClassificationJobResult.from(
+        client.startDocumentClassificationJob(docClassificationRequest).join());
   }
 
   private InputDataConfig prepareInputConfig(ComprehendAsyncRequestData request) {
-    var inputConfig =
-        new InputDataConfig()
-            .withS3Uri(request.inputS3Uri())
-            .withDocumentReaderConfig(prepareDocumentReaderConfig(request));
+    var inputConfigBuilder =
+        InputDataConfig.builder()
+            .s3Uri(request.inputS3Uri())
+            .documentReaderConfig(prepareDocumentReaderConfig(request));
 
     if (request.comprehendInputFormat() != ComprehendInputFormat.NO_DATA) {
-      inputConfig.withInputFormat(request.comprehendInputFormat().name());
+      inputConfigBuilder.inputFormat(request.comprehendInputFormat().name());
     }
 
-    return inputConfig;
+    return inputConfigBuilder.build();
   }
 
   private OutputDataConfig prepareOutputDataConf(ComprehendAsyncRequestData request) {
-    var outputConf = new OutputDataConfig().withS3Uri(request.outputS3Uri());
+    var outputConfBuilder = OutputDataConfig.builder().s3Uri(request.outputS3Uri());
 
     if (StringUtils.isNotBlank(request.outputKmsKeyId())) {
-      outputConf.withKmsKeyId(request.outputKmsKeyId());
+      outputConfBuilder.kmsKeyId(request.outputKmsKeyId());
     }
 
-    return outputConf;
+    return outputConfBuilder.build();
   }
 
   private List<Tag> prepareTags(ComprehendAsyncRequestData request) {
@@ -104,23 +123,27 @@ public class AsyncComprehendCaller
   }
 
   private Tag creatTag(Map.Entry<String, String> entry) {
-    return new Tag().withKey(entry.getKey()).withValue(entry.getValue());
+    return Tag.builder().key(entry.getKey()).value(entry.getValue()).build();
   }
 
   private VpcConfig prepareVpcConfig(ComprehendAsyncRequestData request) {
     List<String> groupIds = request.securityGroupIds();
     List<String> subnets = request.subnets();
 
-    if (CollectionUtils.isNullOrEmpty(groupIds) && CollectionUtils.isNullOrEmpty(subnets)) {
+    if (isNullOrEmpty(groupIds) && isNullOrEmpty(subnets)) {
       return null;
     }
 
-    if (!CollectionUtils.isNullOrEmpty(groupIds) && !CollectionUtils.isNullOrEmpty(subnets)) {
-      return new VpcConfig().withSecurityGroupIds(groupIds).withSubnets(subnets);
+    if (!isNullOrEmpty(groupIds) && !isNullOrEmpty(subnets)) {
+      return VpcConfig.builder().securityGroupIds(groupIds).subnets(subnets).build();
     } else {
       LOGGER.warn(VPC_CONFIG_EXCEPTION_MSG);
       throw new IllegalArgumentException(VPC_CONFIG_EXCEPTION_MSG);
     }
+  }
+
+  private static boolean isNullOrEmpty(List<String> list) {
+    return list == null || list.isEmpty();
   }
 
   private DocumentReaderConfig prepareDocumentReaderConfig(ComprehendAsyncRequestData requestData) {
@@ -128,11 +151,11 @@ public class AsyncComprehendCaller
       return null;
     }
 
-    var documentReaderConfig =
-        new DocumentReaderConfig().withDocumentReadAction(requestData.documentReadAction().name());
+    var documentReaderConfigBuilder =
+        DocumentReaderConfig.builder().documentReadAction(requestData.documentReadAction().name());
 
     if (requestData.documentReadMode() != (ComprehendDocumentReadMode.NO_DATA)) {
-      documentReaderConfig.withDocumentReadMode(requestData.documentReadMode().name());
+      documentReaderConfigBuilder.documentReadMode(requestData.documentReadMode().name());
     }
 
     if (requestData.documentReadAction() == TEXTRACT_ANALYZE_DOCUMENT) {
@@ -141,10 +164,10 @@ public class AsyncComprehendCaller
         LOGGER.warn("DocumentReadAction: TEXTRACT_ANALYZE_DOCUMENT, but features not selected.");
         throw new IllegalArgumentException(READ_ACTION_WITHOUT_FEATURES_EX);
       }
-      documentReaderConfig.withFeatureTypes(features);
+      documentReaderConfigBuilder.featureTypesWithStrings(features);
     }
 
-    return documentReaderConfig;
+    return documentReaderConfigBuilder.build();
   }
 
   private List<String> prepareFeatures(ComprehendAsyncRequestData requestData) {

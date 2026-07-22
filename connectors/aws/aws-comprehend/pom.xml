@@ -39,9 +39,27 @@
     </dependency>
 
     <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-comprehend</artifactId>
-      <version>${version.aws-java-sdk}</version>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>comprehend</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>aws-core</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>http-client-spi</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+
+    <!-- test-only: golden-JSON shape tests build fixture responses via the AWS SDK v2 response
+    builders' inherited SdkResponse.Builder#sdkHttpResponse(...), which is declared in sdk-core;
+    production code never references sdk-core directly (aws-core/http-client-spi suffice). -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sdk-core</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <dependency>

@@ -9,12 +9,12 @@ package io.camunda.connector.comprehend.caller;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.comprehend.AmazonComprehendClient;
-import com.amazonaws.services.comprehend.model.ClassifyDocumentRequest;
-import com.amazonaws.services.comprehend.model.ClassifyDocumentResult;
 import io.camunda.connector.comprehend.model.ComprehendSyncRequestData;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
+import software.amazon.awssdk.services.comprehend.model.ClassifyDocumentRequest;
+import software.amazon.awssdk.services.comprehend.model.ClassifyDocumentResponse;
 
 class SyncComprehendCallerTest {
 
@@ -25,13 +25,14 @@ class SyncComprehendCallerTest {
     var syncRequest = new ComprehendSyncRequestData("text", "arn::");
 
     var expectedClassifyDocumentRequest =
-        new ClassifyDocumentRequest()
-            .withText(syncRequest.text())
-            .withEndpointArn(syncRequest.endpointArn());
+        ClassifyDocumentRequest.builder()
+            .text(syncRequest.text())
+            .endpointArn(syncRequest.endpointArn())
+            .build();
 
-    AmazonComprehendClient syncClient = Mockito.mock(AmazonComprehendClient.class);
+    ComprehendClient syncClient = Mockito.mock(ComprehendClient.class);
     when(syncClient.classifyDocument(expectedClassifyDocumentRequest))
-        .thenReturn(new ClassifyDocumentResult());
+        .thenReturn(ClassifyDocumentResponse.builder().build());
 
     syncCaller.call(syncClient, syncRequest);
 
