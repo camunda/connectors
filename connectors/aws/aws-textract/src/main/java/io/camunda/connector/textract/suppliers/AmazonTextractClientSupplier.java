@@ -6,26 +6,18 @@
  */
 package io.camunda.connector.textract.suppliers;
 
-import com.amazonaws.services.textract.AmazonTextract;
-import com.amazonaws.services.textract.AmazonTextractAsync;
-import com.amazonaws.services.textract.AmazonTextractAsyncClientBuilder;
-import com.amazonaws.services.textract.AmazonTextractClientBuilder;
-import io.camunda.connector.aws.CredentialsProviderSupport;
+import io.camunda.connector.aws.AwsClientSupport;
 import io.camunda.connector.textract.model.TextractRequest;
+import software.amazon.awssdk.services.textract.TextractAsyncClient;
+import software.amazon.awssdk.services.textract.TextractClient;
 
 public class AmazonTextractClientSupplier {
 
-  public AmazonTextract getSyncTextractClient(final TextractRequest request) {
-    return AmazonTextractClientBuilder.standard()
-        .withCredentials(CredentialsProviderSupport.credentialsProvider(request))
-        .withRegion(request.getConfiguration().region())
-        .build();
+  public TextractClient getSyncTextractClient(final TextractRequest request) {
+    return AwsClientSupport.createClient(TextractClient.builder(), request);
   }
 
-  public AmazonTextractAsync getAsyncTextractClient(final TextractRequest request) {
-    return AmazonTextractAsyncClientBuilder.standard()
-        .withCredentials(CredentialsProviderSupport.credentialsProvider(request))
-        .withRegion(request.getConfiguration().region())
-        .build();
+  public TextractAsyncClient getAsyncTextractClient(final TextractRequest request) {
+    return AwsClientSupport.createClient(TextractAsyncClient.builder(), request);
   }
 }
