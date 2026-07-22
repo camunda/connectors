@@ -25,11 +25,11 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiApiFamily;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.CompatibleAuthentication.CompatibleApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend.OpenAiCompatibleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
 import java.util.List;
 import java.util.Optional;

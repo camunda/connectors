@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -150,7 +151,7 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
     /** The backend discriminator string. */
     String type();
 
-    @TemplateSubType(id = "direct", label = "OpenAI (direct)")
+    @TemplateSubType(id = "direct", label = "OpenAI API")
     record OpenAiDirectBackend(
         @NotBlank
             @TemplateProperty(
@@ -199,9 +200,13 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
             @TemplateProperty(
                 group = "provider",
                 label = "API endpoint",
-                tooltip = "Specify an endpoint to use the connector with an OpenAI compatible API.",
+                description =
+                    "Base URL of the OpenAI-compatible API (e.g. ending in <code>/v1</code>).",
+                tooltip =
+                    "The connector appends <code>/chat/completions</code> (Chat Completions) or <code>/responses</code> (Responses) based on the selected API family.",
                 type = TemplateProperty.PropertyType.String,
                 feel = FeelMode.optional,
+                placeholder = "https://api.openai.com/v1",
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String endpoint,
         @TemplateProperty(
@@ -232,46 +237,6 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
       @Override
       public String type() {
         return "compatible";
-      }
-    }
-  }
-
-  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-  @JsonSubTypes({
-    @JsonSubTypes.Type(
-        value = CompatibleAuthentication.CompatibleNoAuthentication.class,
-        name = "none"),
-    @JsonSubTypes.Type(
-        value = CompatibleAuthentication.CompatibleApiKeyAuthentication.class,
-        name = "apiKey")
-  })
-  @TemplateDiscriminatorProperty(
-      label = "Authentication",
-      group = "provider",
-      name = "type",
-      defaultValue = "none",
-      description =
-          "Authentication for the OpenAI-compatible gateway. Extensible: more schemes can be added later without breaking existing configs.")
-  public sealed interface CompatibleAuthentication {
-
-    @TemplateSubType(id = "none", label = "None")
-    record CompatibleNoAuthentication() implements CompatibleAuthentication {}
-
-    @TemplateSubType(id = "apiKey", label = "API key")
-    record CompatibleApiKeyAuthentication(
-        @NotBlank
-            @TemplateProperty(
-                group = "provider",
-                label = "API key",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.optional,
-                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-            String apiKey)
-        implements CompatibleAuthentication {
-
-      @Override
-      public String toString() {
-        return "CompatibleApiKeyAuthentication{apiKey=[REDACTED]}";
       }
     }
   }

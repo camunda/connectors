@@ -118,11 +118,14 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Anthropic (direct)",
+      "name" : "Anthropic API",
       "value" : "direct"
     }, {
       "name" : "AWS Bedrock",
       "value" : "bedrock"
+    }, {
+      "name" : "Anthropic Compatible",
+      "value" : "compatible"
     } ]
   }, {
     "id" : "provider.anthropic.backend.direct.endpoint",
@@ -146,6 +149,7 @@
         "type" : "simple"
       } ]
     },
+    "placeholder" : "https://api.anthropic.com",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.backend.apiKey",
@@ -344,6 +348,161 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.anthropic.backend.endpoint",
+    "label" : "API endpoint",
+    "description" : "Base URL of the Anthropic-compatible Messages API (e.g. <code>https://api.anthropic.com</code>).",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "compatible",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The connector appends <code>/v1/messages</code>.",
+    "placeholder" : "https://api.anthropic.com",
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.headers",
+    "label" : "Headers",
+    "description" : "Map of HTTP headers to add to the request.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "compatible",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.queryParameters",
+    "label" : "Query parameters",
+    "description" : "Map of query parameters to add to the request URL.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "compatible",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.requestParameters",
+    "label" : "Request parameters",
+    "description" : "Map of additional request (body) parameters to include.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.requestParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "compatible",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.compatibleAuthentication.type",
+    "label" : "Authentication",
+    "description" : "Authentication for the compatible API.",
+    "value" : "none",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.compatibleAuthentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "compatible",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
+      "name" : "API key",
+      "value" : "apiKey"
+    } ]
+  }, {
+    "id" : "provider.anthropic.backend.compatibleAuthentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.compatibleAuthentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.compatibleAuthentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "compatible",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.anthropic.timeouts.timeout",
     "label" : "Timeout",
     "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
@@ -404,7 +563,7 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "OpenAI (direct)",
+      "name" : "OpenAI API",
       "value" : "direct"
     }, {
       "name" : "OpenAI Compatible",
@@ -484,6 +643,7 @@
   }, {
     "id" : "provider.openai.backend.endpoint",
     "label" : "API endpoint",
+    "description" : "Base URL of the OpenAI-compatible API (e.g. ending in <code>/v1</code>).",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -505,7 +665,8 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Specify an endpoint to use the connector with an OpenAI compatible API.",
+    "tooltip" : "The connector appends <code>/chat/completions</code> (Chat Completions) or <code>/responses</code> (Responses) based on the selected API family.",
+    "placeholder" : "https://api.openai.com/v1",
     "type" : "String"
   }, {
     "id" : "provider.openai.backend.headers",
@@ -579,7 +740,7 @@
   }, {
     "id" : "provider.openai.backend.authentication.type",
     "label" : "Authentication",
-    "description" : "Authentication for the OpenAI-compatible gateway. Extensible: more schemes can be added later without breaking existing configs.",
+    "description" : "Authentication for the compatible API.",
     "value" : "none",
     "group" : "provider",
     "binding" : {

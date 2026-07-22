@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.Think
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.ChatModelAwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -31,6 +32,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /** Anthropic Messages wire format. Backends: {@code direct} (API key) and {@code bedrock} (AWS). */
@@ -220,7 +222,10 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
     @JsonSubTypes.Type(value = AnthropicBackend.AnthropicDirectBackend.class, name = "direct"),
-    @JsonSubTypes.Type(value = AnthropicBackend.AnthropicBedrockBackend.class, name = "bedrock")
+    @JsonSubTypes.Type(value = AnthropicBackend.AnthropicBedrockBackend.class, name = "bedrock"),
+    @JsonSubTypes.Type(
+        value = AnthropicBackend.AnthropicCompatibleBackend.class,
+        name = "compatible")
   })
   @TemplateDiscriminatorProperty(
       label = "Backend",
@@ -233,7 +238,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
     /** The backend discriminator string. */
     String type();
 
-    @TemplateSubType(id = "direct", label = "Anthropic (direct)")
+    @TemplateSubType(id = "direct", label = "Anthropic API")
     record AnthropicDirectBackend(
         @HttpUrl
             @TemplateProperty(
@@ -244,6 +249,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                 description = "Optional custom API endpoint",
                 type = TemplateProperty.PropertyType.String,
                 feel = FeelMode.optional,
+                placeholder = "https://api.anthropic.com",
                 optional = true)
             @Nullable String endpoint,
         @NotBlank
@@ -302,6 +308,52 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
         return ConnectorUtils.isSaaS()
             && authentication
                 instanceof ChatModelAwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+      }
+    }
+
+    @TemplateSubType(id = "compatible", label = "Anthropic Compatible")
+    record AnthropicCompatibleBackend(
+        @NotBlank
+            @HttpUrl
+            @TemplateProperty(
+                group = "provider",
+                label = "API endpoint",
+                description =
+                    "Base URL of the Anthropic-compatible Messages API (e.g. <code>https://api.anthropic.com</code>).",
+                tooltip = "The connector appends <code>/v1/messages</code>.",
+                type = TemplateProperty.PropertyType.String,
+                feel = FeelMode.optional,
+                placeholder = "https://api.anthropic.com",
+                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+            String endpoint,
+        @TemplateProperty(
+                group = "provider",
+                label = "Headers",
+                description = "Map of HTTP headers to add to the request.",
+                feel = FeelMode.required,
+                optional = true)
+            @Nullable Map<String, String> headers,
+        @Valid
+            @TemplateProperty(
+                group = "provider",
+                label = "Query parameters",
+                description = "Map of query parameters to add to the request URL.",
+                feel = FeelMode.required,
+                optional = true)
+            @Nullable Map<@NotBlank String, String> queryParameters,
+        @TemplateProperty(
+                group = "provider",
+                label = "Request parameters",
+                description = "Map of additional request (body) parameters to include.",
+                feel = FeelMode.required,
+                optional = true)
+            @Nullable Map<String, Object> requestParameters,
+        @Valid @NotNull CompatibleAuthentication compatibleAuthentication)
+        implements AnthropicBackend {
+
+      @Override
+      public String type() {
+        return "compatible";
       }
     }
   }

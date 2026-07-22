@@ -45,6 +45,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicBackend.AnthropicCompatibleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicModel.AnthropicModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -147,6 +148,7 @@ public class AnthropicMessageRequestConverter {
     applyOutputConfig(builder, ctx.configuration().response(), params);
     applySkillsAndBuiltInTools(builder, model.anthropic());
     applyPromptCaching(builder, model.anthropic());
+    applyCompatibleRequestParameters(builder, model.anthropic());
 
     return builder.build();
   }
@@ -258,6 +260,23 @@ public class AnthropicMessageRequestConverter {
       MessageCreateParams.Builder builder, AnthropicChatModel.AnthropicConnection connection) {
     if (Boolean.TRUE.equals(connection.enablePromptCaching())) {
       builder.cacheControl(BetaCacheControlEphemeral.builder().build());
+    }
+  }
+
+  /**
+   * Merges the {@code compatible} backend's raw request (body) parameters onto the built request
+   * (e.g. vendor-specific extensions unsupported by the SDK's typed builder). {@code headers}/
+   * {@code queryParameters} on the same backend are applied at the client level (see {@code
+   * AnthropicOkHttpClientFactory}), but body parameters can only be merged here, at request-
+   * building time.
+   */
+  private void applyCompatibleRequestParameters(
+      MessageCreateParams.Builder builder, AnthropicChatModel.AnthropicConnection connection) {
+    if (connection.backend() instanceof AnthropicCompatibleBackend compatible
+        && compatible.requestParameters() != null) {
+      compatible
+          .requestParameters()
+          .forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));
     }
   }
 

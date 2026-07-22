@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicBackend.AnthropicCompatibleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
 import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
 import java.util.Optional;
@@ -19,8 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@link ChatModelApiFactory} for the Anthropic Messages wire format's {@code direct} (API key)
- * backend.
+ * {@link ChatModelApiFactory} for the Anthropic Messages wire format's {@code direct} (API key) and
+ * {@code compatible} (Anthropic-compatible API) backends.
  *
  * <p>The {@code bedrock} backend is deliberately not yet supported here; such configurations still
  * fail loud via the registry until a Bedrock-backed implementation exists to serve them.
@@ -47,35 +48,37 @@ public class AnthropicChatModelApiFactory implements ChatModelApiFactory {
   @Override
   public boolean supports(ChatModelApiConfiguration configuration) {
     return configuration instanceof AnthropicChatModel anthropic
-        && anthropic.anthropic().backend() instanceof AnthropicDirectBackend;
+        && (anthropic.anthropic().backend() instanceof AnthropicDirectBackend
+            || anthropic.anthropic().backend() instanceof AnthropicCompatibleBackend);
   }
 
   @Override
   public ChatModelApi create(ChatModelApiConfiguration configuration) {
     final var model = (AnthropicChatModel) configuration;
     final var connection = model.anthropic();
-    final var direct = (AnthropicDirectBackend) connection.backend();
+    final String backendType = connection.backend().type();
     final var timeout = connection.timeouts() != null ? connection.timeouts().timeout() : null;
 
     final AnthropicModelCapabilities capabilities =
         capabilitiesResolver.resolve(
             API_FAMILY,
             connection.model().model(),
-            direct.type(),
+            backendType,
             Optional.ofNullable(model.capabilityOverride()),
             AnthropicModelCapabilitiesData.class);
     final boolean modelMatched =
-        capabilitiesResolver.matches(API_FAMILY, connection.model().model(), direct.type());
+        capabilitiesResolver.matches(API_FAMILY, connection.model().model(), backendType);
 
     LOG.debug(
         "Resolved model capabilities for api-family={}, model={}, backend={}, matched={}: {}",
         API_FAMILY,
         connection.model().model(),
-        direct.type(),
+        backendType,
         modelMatched,
         capabilities);
 
-    final var client = new AnthropicOkHttpClientFactory(direct, timeout, transport).create();
+    final var client =
+        new AnthropicOkHttpClientFactory(connection.backend(), timeout, transport).create();
     final var contentConverter = new AnthropicContentConverter(objectMapper);
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);

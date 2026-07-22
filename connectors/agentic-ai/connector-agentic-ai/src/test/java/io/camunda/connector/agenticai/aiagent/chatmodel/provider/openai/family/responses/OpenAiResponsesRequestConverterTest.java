@@ -40,7 +40,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiApiFamily;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.CompatibleAuthentication.CompatibleApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend.OpenAiCompatibleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend;
@@ -48,6 +47,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.O
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModel.OpenAiModel.OpenAiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiEffort;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;

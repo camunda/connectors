@@ -22,10 +22,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProvider
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicBackend.AnthropicBedrockBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicBackend.AnthropicCompatibleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModel.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.ChatModelAwsAuthentication.AwsApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleNoAuthentication;
 import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
 import java.util.List;
 import java.util.Optional;
@@ -55,6 +57,76 @@ class AnthropicChatModelApiFactoryTest {
   @Test
   void supportsAnthropicDirectV2Config() {
     assertThat(factory.supports(directConfig(MODEL_ID))).isTrue();
+  }
+
+  @Test
+  void supportsAnthropicCompatibleV2Config() {
+    final ChatModelApiConfiguration config =
+        new AnthropicChatModel(
+            new AnthropicConnection(
+                new AnthropicCompatibleBackend(
+                    "https://compatible.example.com",
+                    null,
+                    null,
+                    null,
+                    new CompatibleNoAuthentication()),
+                null,
+                null,
+                new AnthropicModel(MODEL_ID, null),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
+
+    assertThat(factory.supports(config)).isTrue();
+  }
+
+  @Test
+  void createResolvesCapabilitiesForCompatibleBackend() {
+    final var capabilities = anthropicCaps();
+    when(transport.okHttpProxy(any())).thenReturn(Optional.empty());
+    when(capabilitiesResolver.resolve(
+            eq("anthropic-messages"),
+            eq(MODEL_ID),
+            eq("compatible"),
+            any(),
+            eq(AnthropicModelCapabilitiesData.class)))
+        .thenReturn(capabilities);
+    when(capabilitiesResolver.matches("anthropic-messages", MODEL_ID, "compatible"))
+        .thenReturn(false);
+
+    final ChatModelApiConfiguration config =
+        new AnthropicChatModel(
+            new AnthropicConnection(
+                new AnthropicCompatibleBackend(
+                    "https://compatible.example.com",
+                    null,
+                    null,
+                    null,
+                    new CompatibleNoAuthentication()),
+                null,
+                null,
+                new AnthropicModel(MODEL_ID, null),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
+
+    final ChatModelApi api = factory.create(config);
+
+    assertThat(api).isNotNull();
+    assertThat(api.capabilities()).isEqualTo(capabilities);
+    verify(capabilitiesResolver).matches("anthropic-messages", MODEL_ID, "compatible");
   }
 
   @Test
