@@ -19,8 +19,10 @@ import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsDynamoDbResult;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.DeleteTable;
+import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import software.amazon.awssdk.core.waiters.WaiterOverrideConfiguration;
 import software.amazon.awssdk.services.dynamodb.model.DeleteTableRequest;
@@ -58,6 +60,32 @@ class DeleteTableOperationTest extends BaseDynamoDbOperationTest {
     assertThat(result.getAction())
         .isEqualTo("delete Table [" + TestDynamoDBData.ActualValue.TABLE_NAME + "]");
     assertThat(result.getStatus()).isEqualTo("OK");
+  }
+
+  /**
+   * Regression guard for the waiter backoff: the v2 DynamoDbWaiter's TableNotExists default poll
+   * delay is a fixed 20s backoff, and its override merge reads only the caller's {@code
+   * backoffStrategyV2}, so {@code maxAttempts} alone would leave 20s spacing (only ~7 checks). The
+   * operation must set an explicit 5s fixed backoff to reproduce v1's 25 x 5s behavior, with {@code
+   * maxAttempts} as the sole binding constraint (no wall-clock cap).
+   */
+  @Test
+  public void invoke_appliesFixedFiveSecondWaiterBackoff() {
+    DeleteTable deleteTable = new DeleteTable(TestDynamoDBData.ActualValue.TABLE_NAME);
+    DeleteTableOperation operation = new DeleteTableOperation(deleteTable);
+
+    operation.invoke(dynamoDbClient);
+
+    ArgumentCaptor<WaiterOverrideConfiguration> configCaptor =
+        ArgumentCaptor.forClass(WaiterOverrideConfiguration.class);
+    verify(waiter).waitUntilTableNotExists(any(DescribeTableRequest.class), configCaptor.capture());
+    WaiterOverrideConfiguration config = configCaptor.getValue();
+
+    assertThat(config.maxAttempts()).contains(25);
+    assertThat(config.waitTimeout()).isEmpty();
+    assertThat(config.backoffStrategyV2()).isPresent();
+    assertThat(config.backoffStrategyV2().get().computeDelay(1)).isEqualTo(Duration.ofSeconds(5));
+    assertThat(config.backoffStrategyV2().get().computeDelay(10)).isEqualTo(Duration.ofSeconds(5));
   }
 
   /**

@@ -8,7 +8,6 @@ package io.camunda.connector.aws.dynamodb;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -68,7 +67,8 @@ class AwsDynamoDbServiceConnectorFunctionTest extends BaseDynamoDbOperationTest 
     responseBuilder.sdkHttpResponse(buildSdkHttpResponse(200));
     PutItemResponse response = responseBuilder.build();
     when(dynamoDbClient.putItem(any(PutItemRequest.class))).thenReturn(response);
-    when(dynamoDbClientSupplier.dynamoDbClient(any(), anyString())).thenReturn(dynamoDbClient);
+    when(dynamoDbClientSupplier.dynamoDbClient(any(AwsDynamoDbRequest.class)))
+        .thenReturn(dynamoDbClient);
 
     OutboundConnectorContext context =
         contextFor(
@@ -117,7 +117,8 @@ class AwsDynamoDbServiceConnectorFunctionTest extends BaseDynamoDbOperationTest 
         buildRealisticTableDescription(TestDynamoDBData.ActualValue.TABLE_NAME);
     when(dynamoDbClient.describeTable(any(DescribeTableRequest.class)))
         .thenReturn(DescribeTableResponse.builder().table(realDescription).build());
-    when(dynamoDbClientSupplier.dynamoDbClient(any(), anyString())).thenReturn(dynamoDbClient);
+    when(dynamoDbClientSupplier.dynamoDbClient(any(AwsDynamoDbRequest.class)))
+        .thenReturn(dynamoDbClient);
 
     OutboundConnectorContext context =
         contextFor(
@@ -193,7 +194,8 @@ class AwsDynamoDbServiceConnectorFunctionTest extends BaseDynamoDbOperationTest 
     itemAttributes.put("name", AttributeValue.fromS("Alice"));
     when(dynamoDbClient.getItem(any(GetItemRequest.class)))
         .thenReturn(GetItemResponse.builder().item(itemAttributes).build());
-    when(dynamoDbClientSupplier.dynamoDbClient(any(), anyString())).thenReturn(dynamoDbClient);
+    when(dynamoDbClientSupplier.dynamoDbClient(any(AwsDynamoDbRequest.class)))
+        .thenReturn(dynamoDbClient);
 
     OutboundConnectorContext context =
         contextFor(

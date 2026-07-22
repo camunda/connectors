@@ -20,6 +20,7 @@ import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.CreateTable;
 import io.camunda.connector.aws.dynamodb.model.TableDescriptionResult;
+import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -111,6 +112,31 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
         .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY_ROLE_HASH);
     assertThat(value.deletionProtectionEnabled()).isTrue();
     assertThat(value.billingModeAsString()).isEqualTo(BillingMode.PROVISIONED.name());
+  }
+
+  /**
+   * Regression guard for the waiter backoff: the v2 DynamoDbWaiter's TableExists default poll delay
+   * is a fixed 20s backoff, and its override merge reads only the caller's {@code
+   * backoffStrategyV2}, so {@code maxAttempts} alone would leave 20s spacing (only ~7 checks). The
+   * operation must set an explicit 5s fixed backoff to reproduce v1's 25 x 5s behavior, with {@code
+   * maxAttempts} as the sole binding constraint (no wall-clock cap).
+   */
+  @Test
+  public void invoke_appliesFixedFiveSecondWaiterBackoff() {
+    CreateTableOperation operation = new CreateTableOperation(createTable);
+
+    operation.invoke(dynamoDbClient);
+
+    ArgumentCaptor<WaiterOverrideConfiguration> configCaptor =
+        ArgumentCaptor.forClass(WaiterOverrideConfiguration.class);
+    verify(waiter).waitUntilTableExists(any(DescribeTableRequest.class), configCaptor.capture());
+    WaiterOverrideConfiguration config = configCaptor.getValue();
+
+    assertThat(config.maxAttempts()).contains(25);
+    assertThat(config.waitTimeout()).isEmpty();
+    assertThat(config.backoffStrategyV2()).isPresent();
+    assertThat(config.backoffStrategyV2().get().computeDelay(1)).isEqualTo(Duration.ofSeconds(5));
+    assertThat(config.backoffStrategyV2().get().computeDelay(10)).isEqualTo(Duration.ofSeconds(5));
   }
 
   @Test
