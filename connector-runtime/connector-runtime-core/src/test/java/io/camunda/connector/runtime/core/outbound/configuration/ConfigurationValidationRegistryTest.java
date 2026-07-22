@@ -19,22 +19,15 @@ package io.camunda.connector.runtime.core.outbound.configuration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidator;
-import io.camunda.connector.generator.java.annotation.ConfigurationTemplate;
-import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class ConfigurationValidationRegistryTest {
 
-  @ConfigurationTemplate(id = "cfg:1", name = "Config One")
+  @Configuration(id = "cfg:1", name = "Config One")
   record ValidatableConfig(String value) implements ConfigurationValidator {
     @Override
     public ConfigurationValidationResult validate() {
@@ -43,7 +36,7 @@ class ConfigurationValidationRegistryTest {
   }
 
   /** Same id as {@link ValidatableConfig}, different class — a conflict. */
-  @ConfigurationTemplate(id = "cfg:1", name = "Conflicting")
+  @Configuration(id = "cfg:1", name = "Conflicting")
   record ConflictingConfig(String value) implements ConfigurationValidator {
     @Override
     public ConfigurationValidationResult validate() {
@@ -51,116 +44,51 @@ class ConfigurationValidationRegistryTest {
     }
   }
 
-  /** A configuration template that declares no validation logic. */
-  @ConfigurationTemplate(id = "cfg:plain", name = "Plain")
+  /** A configuration that declares no validation logic. */
+  @Configuration(id = "cfg:plain", name = "Plain")
   record PlainConfig(String value) {}
 
-  @ElementTemplate(
-      id = "conn:1",
-      name = "Conn 1",
-      configurationTemplates = {ValidatableConfig.class})
-  static class ValidatableConnector implements OutboundConnectorFunction {
+  /** Validatable but not a configuration (no {@code @Configuration}). */
+  record UnannotatedConfig(String value) implements ConfigurationValidator {
     @Override
-    public Object execute(OutboundConnectorContext context) {
-      return null;
+    public ConfigurationValidationResult validate() {
+      return ConfigurationValidationResult.success();
     }
-  }
-
-  @ElementTemplate(
-      id = "conn:2",
-      name = "Conn 2",
-      configurationTemplates = {ValidatableConfig.class})
-  static class OtherConnectorSharingConfig implements OutboundConnectorFunction {
-    @Override
-    public Object execute(OutboundConnectorContext context) {
-      return null;
-    }
-  }
-
-  @ElementTemplate(
-      id = "conn:c",
-      name = "Conn C",
-      configurationTemplates = {ConflictingConfig.class})
-  static class ConflictingConnector implements OutboundConnectorFunction {
-    @Override
-    public Object execute(OutboundConnectorContext context) {
-      return null;
-    }
-  }
-
-  @ElementTemplate(
-      id = "conn:p",
-      name = "Conn P",
-      configurationTemplates = {PlainConfig.class})
-  static class PlainConfigConnector implements OutboundConnectorFunction {
-    @Override
-    public Object execute(OutboundConnectorContext context) {
-      return null;
-    }
-  }
-
-  static class NoTemplateConnector implements OutboundConnectorFunction {
-    @Override
-    public Object execute(OutboundConnectorContext context) {
-      return null;
-    }
-  }
-
-  private OutboundConnectorFactory factoryFor(OutboundConnectorFunction... connectors) {
-    return new OutboundConnectorFactory() {
-      @Override
-      public Collection<OutboundConnectorConfiguration> getActiveConfigurations() {
-        int[] idx = {0};
-        return Arrays.stream(connectors)
-            .map(
-                c ->
-                    new OutboundConnectorConfiguration(
-                        c.getClass().getSimpleName(), new String[0], "type:" + (idx[0]++), () -> c))
-            .toList();
-      }
-
-      @Override
-      public Collection<
-              io.camunda.connector.runtime.core.common.AbstractConnectorFactory
-                      .ConnectorRuntimeConfiguration<
-                  OutboundConnectorConfiguration>>
-          getRuntimeConfigurations() {
-        return List.of();
-      }
-
-      @Override
-      public OutboundConnectorFunction getInstance(String type) {
-        return connectors[Integer.parseInt(type.substring("type:".length()))];
-      }
-    };
   }
 
   @Test
   void registersValidatableConfiguration() {
-    var registry = new ConfigurationValidationRegistry(factoryFor(new ValidatableConnector()));
+    var registry = new ConfigurationValidationRegistry(List.of(ValidatableConfig.class));
 
     assertThat(registry.findById("cfg:1")).get().isEqualTo(ValidatableConfig.class);
   }
 
   @Test
   void ignoresConfigurationWithoutValidator() {
-    var registry = new ConfigurationValidationRegistry(factoryFor(new PlainConfigConnector()));
+    var registry = new ConfigurationValidationRegistry(List.of(PlainConfig.class));
 
     assertThat(registry.findById("cfg:plain")).isEmpty();
   }
 
   @Test
+  void ignoresValidatorWithoutConfigurationAnnotation() {
+    var registry = new ConfigurationValidationRegistry(List.of(UnannotatedConfig.class));
+
+    assertThat(registry.findById("cfg:1")).isEmpty();
+  }
+
+  @Test
   void returnsEmptyForUnknownId() {
-    var registry = new ConfigurationValidationRegistry(factoryFor(new ValidatableConnector()));
+    var registry = new ConfigurationValidationRegistry(List.of(ValidatableConfig.class));
 
     assertThat(registry.findById("does-not-exist")).isEmpty();
   }
 
   @Test
-  void sameConfigurationClassAcrossConnectorsIsRegisteredOnce() {
+  void sameConfigurationClassListedTwiceIsRegisteredOnce() {
     var registry =
         new ConfigurationValidationRegistry(
-            factoryFor(new ValidatableConnector(), new OtherConnectorSharingConfig()));
+            List.of(ValidatableConfig.class, ValidatableConfig.class));
 
     assertThat(registry.findById("cfg:1")).get().isEqualTo(ValidatableConfig.class);
   }
@@ -170,15 +98,8 @@ class ConfigurationValidationRegistryTest {
     assertThatThrownBy(
             () ->
                 new ConfigurationValidationRegistry(
-                    factoryFor(new ValidatableConnector(), new ConflictingConnector())))
+                    List.of(ValidatableConfig.class, ConflictingConfig.class)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("Duplicate configuration validator for id 'cfg:1'");
-  }
-
-  @Test
-  void skipsConnectorsWithoutElementTemplate() {
-    var registry = new ConfigurationValidationRegistry(factoryFor(new NoTemplateConnector()));
-
-    assertThat(registry.findById("cfg:1")).isEmpty();
   }
 }

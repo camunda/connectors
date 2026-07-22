@@ -51,22 +51,29 @@ import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCa
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.cache.support.NoOpCacheManager;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
 
 @Configuration
 @Import({
@@ -76,10 +83,39 @@ import org.springframework.core.env.Environment;
 })
 public class OutboundConnectorRuntimeConfiguration {
 
+  private static final Logger LOG =
+      LoggerFactory.getLogger(OutboundConnectorRuntimeConfiguration.class);
+
+  /** Base package scanned for {@code @Configuration} classes exposing a configuration validator. */
+  private static final String CONFIGURATION_SCAN_BASE_PACKAGE = "io.camunda.connector";
+
   @Bean
-  public ConfigurationValidationRegistry configurationValidationRegistry(
-      OutboundConnectorFactory connectorFactory) {
-    return new ConfigurationValidationRegistry(connectorFactory);
+  public ConfigurationValidationRegistry configurationValidationRegistry() {
+    return new ConfigurationValidationRegistry(
+        scanConfigurationClasses(CONFIGURATION_SCAN_BASE_PACKAGE));
+  }
+
+  /**
+   * Discovers configuration (credential) classes on the classpath by their SDK
+   * {@code @Configuration} annotation, independently of any connector. The registry keeps those
+   * that also implement {@code ConfigurationValidator}.
+   */
+  private static Collection<Class<?>> scanConfigurationClasses(String basePackage) {
+    var scanner = new ClassPathScanningCandidateComponentProvider(false);
+    scanner.addIncludeFilter(
+        new AnnotationTypeFilter(io.camunda.connector.api.annotation.Configuration.class));
+    List<Class<?>> classes = new ArrayList<>();
+    for (BeanDefinition candidate : scanner.findCandidateComponents(basePackage)) {
+      try {
+        classes.add(Class.forName(candidate.getBeanClassName()));
+      } catch (ClassNotFoundException e) {
+        LOG.warn(
+            "Could not load configuration candidate '{}'; skipping",
+            candidate.getBeanClassName(),
+            e);
+      }
+    }
+    return classes;
   }
 
   @Bean

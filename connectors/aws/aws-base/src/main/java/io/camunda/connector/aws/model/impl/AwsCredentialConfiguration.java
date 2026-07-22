@@ -29,28 +29,29 @@ import software.amazon.awssdk.services.sts.model.StsException;
  */
 @Configuration(id = "io.camunda:aws-credential:1", version = 1, name = "AWS Credential")
 public record AwsCredentialConfiguration(
-        @Valid @TemplateProperty(group = "authentication") AwsAuthentication authentication,
-        @NotBlank
+    @Valid @TemplateProperty(group = "authentication") AwsAuthentication authentication,
+    @NotBlank
         @TemplateProperty(
-                group = "configuration",
-                label = "Region",
-                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-        String region) implements ConfigurationValidator {
+            group = "configuration",
+            label = "Region",
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+        String region)
+    implements ConfigurationValidator {
 
-    @Override
-    public ConfigurationValidationResult validate() {
-        try (StsClient sts =
-                     StsClient.builder()
-                             .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(authentication))
-                             .region(Region.of(region))
-                             .build()) {
-            sts.getCallerIdentity();
-            return ConfigurationValidationResult.success();
-        } catch (StsException e) {
-            String code = e.statusCode() == 403 || e.statusCode() == 401 ? "UNAUTHORIZED" : "ERROR";
-            return ConfigurationValidationResult.failure(code, e.getMessage());
-        } catch (Exception e) {
-            return ConfigurationValidationResult.failure("ERROR", e.getMessage());
-        }
+  @Override
+  public ConfigurationValidationResult validate() {
+    try (StsClient sts =
+        StsClient.builder()
+            .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(authentication))
+            .region(Region.of(region))
+            .build()) {
+      sts.getCallerIdentity();
+      return ConfigurationValidationResult.success();
+    } catch (StsException e) {
+      String code = e.statusCode() == 403 || e.statusCode() == 401 ? "UNAUTHORIZED" : "ERROR";
+      return ConfigurationValidationResult.failure(code, e.getMessage());
+    } catch (Exception e) {
+      return ConfigurationValidationResult.failure("ERROR", e.getMessage());
     }
+  }
 }

@@ -20,26 +20,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidationResult.Status;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
-import io.camunda.connector.generator.java.annotation.ConfigurationTemplate;
-import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
-import java.util.Collection;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class ConfigurationValidationServiceTest {
 
-  @ConfigurationTemplate(id = "ok", name = "Ok")
+  @Configuration(id = "ok", name = "Ok")
   record OkConfig(String value) implements ConfigurationValidator {
     @Override
     public ConfigurationValidationResult validate() {
@@ -47,22 +41,11 @@ class ConfigurationValidationServiceTest {
     }
   }
 
-  @ConfigurationTemplate(id = "throws", name = "Throws")
+  @Configuration(id = "throws", name = "Throws")
   record ThrowingConfig(String value) implements ConfigurationValidator {
     @Override
     public ConfigurationValidationResult validate() {
       throw new ConnectorException("UNAUTHORIZED", "invalid key");
-    }
-  }
-
-  @ElementTemplate(
-      id = "conn",
-      name = "Conn",
-      configurationTemplates = {OkConfig.class, ThrowingConfig.class})
-  static class TestConnector implements OutboundConnectorFunction {
-    @Override
-    public Object execute(OutboundConnectorContext context) {
-      return null;
     }
   }
 
@@ -93,31 +76,8 @@ class ConfigurationValidationServiceTest {
   }
 
   private ConfigurationValidationService serviceWith(String resolvedJson) {
-    var connector = new TestConnector();
-    OutboundConnectorFactory factory =
-        new OutboundConnectorFactory() {
-          @Override
-          public Collection<OutboundConnectorConfiguration> getActiveConfigurations() {
-            return List.of(
-                new OutboundConnectorConfiguration(
-                    "Test", new String[0], "test:1", () -> connector));
-          }
-
-          @Override
-          public Collection<
-                  io.camunda.connector.runtime.core.common.AbstractConnectorFactory
-                          .ConnectorRuntimeConfiguration<
-                      OutboundConnectorConfiguration>>
-              getRuntimeConfigurations() {
-            return List.of();
-          }
-
-          @Override
-          public OutboundConnectorFunction getInstance(String type) {
-            return connector;
-          }
-        };
-    var registry = new ConfigurationValidationRegistry(factory);
+    var registry =
+        new ConfigurationValidationRegistry(List.of(OkConfig.class, ThrowingConfig.class));
     SecretProvider noSecrets =
         new SecretProvider() {
           @Override
