@@ -244,6 +244,43 @@ class AgentConversationTest {
   }
 
   @Test
+  void jobMetrics_noContinuation_equalsCurrentTurnMetrics() {
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("hello"), new AgentMetrics(1, new TokenUsage(10, 5), 0));
+
+    assertThat(conv.jobMetrics()).isEqualTo(conv.currentTurnMetrics());
+  }
+
+  @Test
+  void jobMetrics_afterContinuationRound_sumsAllRoundsAndExcludesBaseContextMetrics() {
+    // a non-zero base-context cumulative counter must not leak into jobMetrics(): it is the
+    // per-job delta pushed additively to the agent instance, not the running total.
+    var contextWithHistory =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .metrics(new AgentMetrics(9, new TokenUsage(100, 200), 4))
+            .build();
+    var history = TurnReconstructor.reconstruct(List.of());
+    var firstRoundMetrics = new AgentMetrics(1, new TokenUsage(10, 20), 0);
+    var secondRoundMetrics = new AgentMetrics(1, new TokenUsage(5, 8), 0);
+
+    var conv =
+        AgentConversation.rehydrate(
+                CONFIG,
+                contextWithHistory,
+                history,
+                systemMessage("sys"),
+                List.of(userMessage("hi")))
+            .ingest(assistantMessage("partial"), firstRoundMetrics)
+            .nextContinuationRound()
+            .ingest(assistantMessage("done"), secondRoundMetrics);
+
+    assertThat(conv.jobMetrics()).isEqualTo(firstRoundMetrics.add(secondRoundMetrics));
+    assertThat(conv.totalMetrics()).isEqualTo(contextWithHistory.metrics().add(conv.jobMetrics()));
+  }
+
+  @Test
   void lastTurn_whileCurrentPending_isTurnPrecedingCurrent() {
     // while the current turn is still pending, lastTurn() resolves to the turn preceding it — the
     // one whose assistant message requested the tools answered by the current turn's results
