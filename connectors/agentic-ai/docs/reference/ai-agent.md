@@ -960,10 +960,10 @@ than each reimplementing it. Continuation states (e.g. `pause_turn`) are represe
 
 LangChain4J is the first (and currently only) implementation behind the SPI, reshaped into per-provider
 factories:
-- `AgenticAiLangChain4JFrameworkConfiguration` (guarded by
-  `@ConditionalOnProperty(camunda.connector.agenticai.framework, havingValue = "langchain4j",
-  matchIfMissing = true)`) wires the converter beans; `AgenticAiLangChain4JChatModelConfiguration`
-  wires one `ChatModelFactory` bean per provider.
+- `AgenticAiLangChain4JFrameworkConfiguration` wires the converter beans;
+  `AgenticAiLangChain4JChatModelConfiguration` wires one `ChatModelFactory` bean per provider. Provider
+  selection is by `ChatModelFactory.supports(...)` via the SPI registry, so the configuration loads
+  unconditionally rather than behind a global framework toggle.
 - `LangChain4JChatModelFactory<T extends ProviderConfiguration>` is the abstract base: `supports`
   matches a `ProviderConfiguration` whose `provider()` equals the factory's `providerType()`, and
   `create` builds the underlying LangChain4J model once via the abstract `createChatModel` and wraps it
@@ -1002,7 +1002,7 @@ LangChain4JChatModel
 - **`JsonSchemaElementModule`**: Custom Jackson module needed because LangChain4J doesn't expose standard polymorphic annotations on `JsonSchemaElement`. Serializer/deserializer handle all concrete types (`JsonObjectSchema`, `JsonEnumSchema`, `JsonStringSchema`, `JsonArraySchema`, `JsonAnyOfSchema`, `JsonReferenceSchema`, etc.).
 - **`DocumentToContentModule`**: Jackson module registering `DocumentToContentSerializer` for Camunda `Document` objects in tool call result content — serializes to `{type, media_type, data}` structure.
 
-All converter beans are `@ConditionalOnMissingBean`, activated when `camunda.connector.agenticai.framework=langchain4j` (default).
+All converter beans are `@ConditionalOnMissingBean`, so an application can override any of them by declaring its own bean of the same type.
 
 ---
 
@@ -1131,7 +1131,7 @@ Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatM
 ### Key Differences from Standard Connectors
 
 1. **Dual activation modes**: Both an outbound connector (`AiAgentFunction`) and a job worker (`AiAgentJobWorker`) are registered. The job worker bypasses the standard connector runtime, handling variable resolution, secret injection, and exception handling directly.
-2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([§12](#12-framework-abstraction)) allows the LangChain4J stack to be replaced or extended per provider. The LangChain4J config is guarded by `@ConditionalOnProperty(camunda.connector.agenticai.framework)` (default: `langchain4j`).
+2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([§12](#12-framework-abstraction)) allows the LangChain4J stack to be replaced or extended per provider. Provider selection is by `ChatModelFactory.supports(...)` via the SPI registry; the LangChain4J configuration loads unconditionally.
 3. **Pluggable system prompt contributors**: All `SystemPromptContributor` beans are auto-collected into `SystemPromptComposerImpl`.
 4. **Pluggable gateway tool handlers**: All `GatewayToolHandler` beans are auto-collected into `GatewayToolHandlerRegistryImpl`.
 5. **Caffeine caching of BPMN resolution**: Process definition fetch (API + XML parse + FEEL extraction) is cached with configurable TTL and max size.
@@ -1145,7 +1145,6 @@ Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatM
 | `camunda.connector.agenticai.aiagent.outbound-connector.enabled`  | `true`       | AI Agent Task connector            |
 | `camunda.connector.agenticai.aiagent.job-worker.enabled`          | `true`       | AI Agent Sub-process job worker    |
 | `camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled` | `true`     | Ad-Hoc Tools Schema connector     |
-| `camunda.connector.agenticai.framework`                           | `langchain4j` | AI framework implementation      |
 
 ### Key Configuration Defaults
 
