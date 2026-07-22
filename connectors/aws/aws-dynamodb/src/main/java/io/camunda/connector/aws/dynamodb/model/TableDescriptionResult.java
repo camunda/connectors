@@ -385,7 +385,7 @@ public record TableDescriptionResult(
     "replicaArn",
     "replicaStatusDescription",
     "replicaStatusPercentProgress",
-    "kmsMasterKeyId",
+    "kmsmasterKeyId",
     "provisionedThroughputOverride",
     "onDemandThroughputOverride",
     "warmThroughput",
@@ -399,7 +399,7 @@ public record TableDescriptionResult(
       String replicaArn,
       String replicaStatusDescription,
       String replicaStatusPercentProgress,
-      String kmsMasterKeyId,
+      String kmsmasterKeyId,
       ProvisionedThroughputOverrideResult provisionedThroughputOverride,
       OnDemandThroughputOverrideResult onDemandThroughputOverride,
       TableWarmThroughputResult warmThroughput,
@@ -457,9 +457,9 @@ public record TableDescriptionResult(
     }
   }
 
-  @JsonPropertyOrder({"status", "sseType", "kmsMasterKeyArn", "inaccessibleEncryptionDateTime"})
+  @JsonPropertyOrder({"status", "ssetype", "kmsmasterKeyArn", "inaccessibleEncryptionDateTime"})
   public record SSEDescriptionResult(
-      String status, String sseType, String kmsMasterKeyArn, Date inaccessibleEncryptionDateTime) {
+      String status, String ssetype, String kmsmasterKeyArn, Date inaccessibleEncryptionDateTime) {
     static SSEDescriptionResult from(final SSEDescription description) {
       if (description == null) {
         return null;

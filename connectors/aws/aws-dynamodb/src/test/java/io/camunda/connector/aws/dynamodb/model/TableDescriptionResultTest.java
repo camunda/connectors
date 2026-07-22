@@ -20,6 +20,11 @@ import software.amazon.awssdk.services.dynamodb.model.LocalSecondaryIndexDescrip
 import software.amazon.awssdk.services.dynamodb.model.Projection;
 import software.amazon.awssdk.services.dynamodb.model.ProjectionType;
 import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughputDescription;
+import software.amazon.awssdk.services.dynamodb.model.ReplicaDescription;
+import software.amazon.awssdk.services.dynamodb.model.ReplicaStatus;
+import software.amazon.awssdk.services.dynamodb.model.SSEDescription;
+import software.amazon.awssdk.services.dynamodb.model.SSEStatus;
+import software.amazon.awssdk.services.dynamodb.model.SSEType;
 import software.amazon.awssdk.services.dynamodb.model.TableDescription;
 
 /**
@@ -138,5 +143,74 @@ class TableDescriptionResultTest {
         ]
         """;
     assertThat(json.get("globalSecondaryIndexes")).isEqualTo(objectMapper.readTree(expectedJson));
+  }
+
+  @Test
+  void from_mapsSseDescription_toDocumentedLegacyManglingSerializedShape() throws Exception {
+    SSEDescription sse =
+        SSEDescription.builder()
+            .status(SSEStatus.ENABLED)
+            .sseType(SSEType.KMS)
+            .kmsMasterKeyArn("arn:aws:kms:us-east-1:123456789012:key/my-key")
+            .build();
+    TableDescription table =
+        TableDescription.builder().tableName("my_table").sseDescription(sse).build();
+
+    TableDescriptionResult result = TableDescriptionResult.from(table);
+
+    JsonNode json = objectMapper.readTree(objectMapper.writeValueAsString(result));
+    // v1's Jackson bean introspection mangles a getter with 2+ leading capitals (e.g.
+    // getSSEType(), getKMSMasterKeyArn()) by lower-casing every leading capital run, producing
+    // "ssetype"/"kmsmasterKeyArn" rather than the intuitive camelCase "sseType"/"kmsMasterKeyArn"
+    // - the same quirk already pinned for the top-level "ssedescription" key.
+    String expectedJson =
+        """
+        {
+          "status": "ENABLED",
+          "ssetype": "KMS",
+          "kmsmasterKeyArn": "arn:aws:kms:us-east-1:123456789012:key/my-key",
+          "inaccessibleEncryptionDateTime": null
+        }
+        """;
+    assertThat(json.get("ssedescription")).isEqualTo(objectMapper.readTree(expectedJson));
+  }
+
+  @Test
+  void from_mapsReplicas_toDocumentedLegacyManglingSerializedShape() throws Exception {
+    ReplicaDescription replica =
+        ReplicaDescription.builder()
+            .regionName("eu-central-1")
+            .replicaStatus(ReplicaStatus.ACTIVE)
+            .kmsMasterKeyId("arn:aws:kms:eu-central-1:123456789012:key/replica-key")
+            .build();
+    TableDescription table =
+        TableDescription.builder().tableName("my_table").replicas(replica).build();
+
+    TableDescriptionResult result = TableDescriptionResult.from(table);
+
+    assertThat(result.replicas()).hasSize(1);
+    JsonNode json = objectMapper.readTree(objectMapper.writeValueAsString(result));
+    // Same legacy-mangling quirk as SSEDescription: v1's getKMSMasterKeyId() serializes as
+    // "kmsmasterKeyId", not "kmsMasterKeyId".
+    String expectedJson =
+        """
+        [
+          {
+            "regionName": "eu-central-1",
+            "replicaStatus": "ACTIVE",
+            "replicaArn": null,
+            "replicaStatusDescription": null,
+            "replicaStatusPercentProgress": null,
+            "kmsmasterKeyId": "arn:aws:kms:eu-central-1:123456789012:key/replica-key",
+            "provisionedThroughputOverride": null,
+            "onDemandThroughputOverride": null,
+            "warmThroughput": null,
+            "globalSecondaryIndexes": null,
+            "replicaInaccessibleDateTime": null,
+            "replicaTableClassSummary": null
+          }
+        ]
+        """;
+    assertThat(json.get("replicas")).isEqualTo(objectMapper.readTree(expectedJson));
   }
 }
