@@ -393,10 +393,14 @@ invocation and transformed through copy-on-write methods.
 - `toAgentContext()`: reduces back to the serialized `AgentContext`, incrementing the durable
   `AgentContext.metrics` by the current turn's delta and, once the current turn has been `ingest`ed,
   stamping `AgentMetadata.lastIterationKey` with its `iterationKey` (when metadata is present).
-- `totalMetrics()`: returns the durable `AgentContext.metrics()` plus the current turn's delta —
-  **not** a sum over the reconstructed turns, which always carry `AgentMetrics.empty()`. The
-  model-call limit check (`BaseAgentRequestHandler.throwIfLimitsReached`) relies on this cumulative
-  counter.
+- `jobMetrics()`: the metrics accrued in this invocation — every turn produced by this job (the
+  current turn plus any continuation rounds rolled into `previousTurns`), excluding the durable base
+  counter. Reconstructed prior-job turns carry `AgentMetrics.empty()` and contribute zero. This is
+  the single delta pushed to the agent instance per job; on the non-continuation path it equals the
+  current turn's delta.
+- `totalMetrics()`: returns the durable `AgentContext.metrics()` plus `jobMetrics()` — **not** a sum
+  over the reconstructed turns, which always carry `AgentMetrics.empty()`. The model-call limit check
+  (`BaseAgentRequestHandler.throwIfLimitsReached`) relies on this cumulative counter.
 
 `AgentConversationTurn` (record, `...aiagent.model`) is one LLM call:
 `(int iterationKey, List<Message> inputMessages, @Nullable AssistantMessage assistantMessage,
@@ -939,10 +943,17 @@ loud rather than resolving implicitly.
 
 `BaseAgentRequestHandler.proceed` drives the SPI in a `do { … } while (continued)` loop: each
 iteration calls `chatModel.execute(request)`, enforces the content-filter guard (below), ingests the
-assistant message into the turn, and — only if the result was a `Continuation` — reports that round's
-metrics, checks the model-call limit, and starts the next continuation round on a fresh turn before
-looping. A `Completed` result ends the loop. LangChain4J always returns `Completed`, so the loop runs
-exactly once for it — behavior-identical to the pre-SPI single call.
+assistant message into the turn, and — only if the result was a `Continuation` — checks the
+model-call limit and starts the next continuation round on a fresh turn before looping. A `Completed`
+result ends the loop. LangChain4J always returns `Completed`, so the loop runs exactly once for it —
+behavior-identical to the pre-SPI single call.
+
+Agent-instance metrics are reported **once per job**, not per continuation round: the single
+post-loop push (synchronous or deferred, see [metrics reporting](adr/005-agent-instance-metrics-reporting.md))
+carries `AgentConversation.jobMetrics()` — the summed delta across every round produced this
+invocation. The engine applies metric updates additively, so collapsing the rounds into one push
+keeps the counters correct while minimizing PATCH round-trips (and narrows the retry double-count
+window pending the API-level idempotency fix).
 
 ### Normalized stop reasons & the content-filter guard
 
