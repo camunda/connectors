@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -57,6 +58,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -296,6 +298,31 @@ class JobWorkerAgentRequestHandlerTest {
     // snapshot is captured before the assistant message is ingested
     assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
         .containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
+  }
+
+  @Test
+  void throwsWhenModelResponseIsContentFilteredBeforeIngestOrHistoryWrite() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var filteredAssistantMessage =
+        AssistantMessage.builder().stopReason(StopReason.CONTENT_FILTERED).build();
+    mockFrameworkExecution(filteredAssistantMessage);
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED));
+
+    // the guard fires before the assistant message is ingested or its history written
+    verify(agentInstanceClient, never())
+        .createHistoryForAssistantMessage(any(), any(), any(), any());
+    verifyNoInteractions(responseHandler);
   }
 
   @Test

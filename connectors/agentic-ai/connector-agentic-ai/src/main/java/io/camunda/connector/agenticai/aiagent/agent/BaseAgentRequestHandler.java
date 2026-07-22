@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
@@ -184,6 +185,11 @@ public abstract class BaseAgentRequestHandler<
             toolCallResultStrategy.routeToolResults(windowedSnapshot, chatModel.capabilities());
         final var chatResult =
             chatModel.call(new ChatModelRequest(executionContext, toolResultRoutedSnapshot));
+        if (chatResult.assistantMessage().stopReason() == StopReason.CONTENT_FILTERED) {
+          throw new ConnectorException(
+              AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
+              "Model response was blocked by provider content filtering.");
+        }
         workingConversation =
             workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
 
