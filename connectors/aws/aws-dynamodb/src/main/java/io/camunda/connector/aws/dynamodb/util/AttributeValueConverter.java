@@ -11,9 +11,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
@@ -136,9 +138,15 @@ public final class AttributeValueConverter {
       case BOOL -> value.bool();
       case NUL -> null;
       case B -> value.b().asByteArray();
-      case SS -> value.ss();
-      case NS -> value.ns().stream().map(BigDecimal::new).toList();
-      case BS -> value.bs().stream().map(SdkBytes::asByteArray).toList();
+      case SS -> new LinkedHashSet<>(value.ss());
+      case NS ->
+          value.ns().stream()
+              .map(BigDecimal::new)
+              .collect(Collectors.toCollection(LinkedHashSet::new));
+      case BS ->
+          value.bs().stream()
+              .map(SdkBytes::asByteArray)
+              .collect(Collectors.toCollection(LinkedHashSet::new));
       case M -> toPlainMap(value.m());
       case L -> value.l().stream().map(AttributeValueConverter::toPlainValue).toList();
       default ->
