@@ -445,7 +445,7 @@ class AwsAgentCoreConversationStoreTest {
         """
         {
           "blobType": "camunda.toolCalls",
-          "version": 2,
+          "version": 1,
           "toolCalls": [
             { "id": "call_123", "name": "getWeather", "arguments": { "location": "Seattle" } },
             { "id": "call_456", "name": "getTime", "arguments": {} }
@@ -506,7 +506,7 @@ class AwsAgentCoreConversationStoreTest {
     final var agentContext = AgentContext.empty();
 
     final String toolCallResultsBlobJson =
-        "{\"blobType\":\"camunda.toolCallResults\",\"version\":1,\"results\":[{\"id\":\"call_1\",\"name\":\"myTool\",\"content\":\"tool output\"}]}";
+        "{\"blobType\":\"camunda.toolCallResults\",\"version\":1,\"results\":[{\"id\":\"call_1\",\"name\":\"myTool\",\"content\":[{\"type\":\"text\",\"text\":\"tool output\"}]}]}";
 
     final var toolConversational =
         Conversational.builder()

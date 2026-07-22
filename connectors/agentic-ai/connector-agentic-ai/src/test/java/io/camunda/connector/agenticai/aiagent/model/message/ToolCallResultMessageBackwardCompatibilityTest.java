@@ -24,7 +24,6 @@ import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -42,8 +41,6 @@ import software.amazon.awssdk.core.document.Document;
 class ToolCallResultMessageBackwardCompatibilityTest {
 
   private static final String FIXTURE_BASE_PATH = "/backwardcompatibility/camunda-8.9/";
-  private static final String AWS_AGENTCORE_FIXTURE_BASE_PATH =
-      "/backwardcompatibility/aws-agentcore/";
 
   // the connectors ObjectMapper, incl. the document module — see AgentContextTest for the
   // equivalent setup pattern (that test uses a plain ObjectMapper since it has no document
@@ -169,83 +166,10 @@ class ToolCallResultMessageBackwardCompatibilityTest {
   }
 
   /**
-   * AWS AgentCore golden-fixture tests: real pre-existing (Camunda 8.9) {@code
-   * camunda.toolCallResults} {@link BlobEnvelope} JSON — persisted at blob version 1, before the
-   * structured content shape existed — must still deserialize through the exact path {@link
-   * io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper}
-   * uses on load ({@code BlobEnvelope.fromDocument(...).parseToolCallResults(...)}, which upcasts
-   * when the blob's version predates {@link BlobEnvelope#CURRENT_VERSION}). AgentCore Memory is
-   * append-only, so old- and new-shape blob envelopes coexist in the same session forever; both
-   * shapes must keep deserializing.
+   * AWS AgentCore golden-fixture test: this store shipped on the 8.10 track (never in Camunda 8.9),
+   * so blob version 1 is its first and current shape — a {@code camunda.toolCallResults} envelope
+   * always carries the structured content shape and round-trips without any upcasting.
    */
-  @Test
-  void toolCallResultMessage_awsAgentCoreBlobEnvelope_8_9_oldShapeLiftsToStructuredContent()
-      throws IOException {
-    List<JsonNode> envelopes =
-        readAwsAgentCoreEnvelopeArrayFixture("toolcallresults-blob-envelopes.json");
-    assertThat(envelopes).hasSize(4);
-
-    // envelope 0: AskHumanToSendEmail, content = Map {emailSent: true}
-    var askHumanToSendEmail1 = parseAwsAgentCoreToolCallResults(envelopes.get(0));
-    assertThat(askHumanToSendEmail1).hasSize(1);
-    var askHumanResult1 = askHumanToSendEmail1.getFirst();
-    assertAwsAgentCoreResultMetadata(
-        askHumanResult1, "tooluse_eB2dGtO9m9Te1MB1zPi2xs", "AskHumanToSendEmail");
-    assertThat(askHumanResult1.content())
-        .singleElement()
-        .isInstanceOfSatisfying(
-            ObjectContent.class,
-            objectContent -> assertThat(objectContent.content()).isInstanceOf(Map.class));
-
-    // envelope 1: AskHumanToSendEmail, content = Map {operatorFeedback, emailOk}
-    var askHumanToSendEmail2 = parseAwsAgentCoreToolCallResults(envelopes.get(1));
-    assertThat(askHumanToSendEmail2).hasSize(1);
-    var askHumanResult2 = askHumanToSendEmail2.getFirst();
-    assertAwsAgentCoreResultMetadata(
-        askHumanResult2, "tooluse_3zcGCrRa1IgtD8jngwrNi6", "AskHumanToSendEmail");
-    assertThat(askHumanResult2.content())
-        .singleElement()
-        .isInstanceOfSatisfying(
-            ObjectContent.class,
-            objectContent -> assertThat(objectContent.content()).isInstanceOf(Map.class));
-
-    // envelope 2: LoadUserByID, content = Map
-    var loadUserByID = parseAwsAgentCoreToolCallResults(envelopes.get(2));
-    assertThat(loadUserByID).hasSize(1);
-    var loadUserByIdResult = loadUserByID.getFirst();
-    assertAwsAgentCoreResultMetadata(
-        loadUserByIdResult, "tooluse_H02aOM5gXPDhUGsBp9OMjy", "LoadUserByID");
-    assertThat(loadUserByIdResult.content())
-        .singleElement()
-        .isInstanceOfSatisfying(
-            ObjectContent.class,
-            objectContent -> assertThat(objectContent.content()).isInstanceOf(Map.class));
-
-    // envelope 3: ListUsers (content = List of 10 maps) + Jokes_API (content = String)
-    var listUsersAndJokes = parseAwsAgentCoreToolCallResults(envelopes.get(3));
-    assertThat(listUsersAndJokes).hasSize(2);
-
-    var listUsersResult = listUsersAndJokes.get(0);
-    assertAwsAgentCoreResultMetadata(
-        listUsersResult, "tooluse_FOcMCCJ59OWJOJLmfMu2gy", "ListUsers");
-    assertThat(listUsersResult.content())
-        .singleElement()
-        .isInstanceOfSatisfying(
-            ObjectContent.class,
-            objectContent -> {
-              assertThat(objectContent.content()).isInstanceOf(List.class);
-              assertThat((List<?>) objectContent.content()).hasSize(10);
-            });
-
-    var jokesApiResult = listUsersAndJokes.get(1);
-    assertAwsAgentCoreResultMetadata(jokesApiResult, "tooluse_oPt3Jcwpl536eciGfi8jC3", "Jokes_API");
-    assertThat(jokesApiResult.content())
-        .containsExactly(
-            TextContent.textContent(
-                "I just got fired from my job at the keyboard factory.\n\n"
-                    + "They told me I wasn't putting in enough shifts."));
-  }
-
   @Test
   void toolCallResultMessage_awsAgentCoreBlobEnvelope_newShapeRoundTrips() throws IOException {
     List<ToolCallResultContent> original =
@@ -263,31 +187,6 @@ class ToolCallResultMessageBackwardCompatibilityTest {
     List<ToolCallResultContent> result = parsed.parseToolCallResults(objectMapper);
 
     assertThat(result).isEqualTo(original);
-  }
-
-  private void assertAwsAgentCoreResultMetadata(
-      ToolCallResultContent result, String expectedId, String expectedName) {
-    assertThat(result.id()).isEqualTo(expectedId);
-    assertThat(result.name()).isEqualTo(expectedName);
-    assertThat(result.completedAt()).isNotNull();
-  }
-
-  private List<ToolCallResultContent> parseAwsAgentCoreToolCallResults(JsonNode envelopeNode)
-      throws IOException {
-    Document blob = Document.fromString(objectMapper.writeValueAsString(envelopeNode));
-    BlobEnvelope envelope = BlobEnvelope.fromDocument(blob, objectMapper);
-    return envelope.parseToolCallResults(objectMapper);
-  }
-
-  private List<JsonNode> readAwsAgentCoreEnvelopeArrayFixture(String fileName) throws IOException {
-    try (InputStream stream =
-        getClass().getResourceAsStream(AWS_AGENTCORE_FIXTURE_BASE_PATH + fileName)) {
-      assertThat(stream).as("fixture resource %s", fileName).isNotNull();
-      JsonNode root = objectMapper.readTree(stream);
-      List<JsonNode> envelopes = new ArrayList<>();
-      root.elements().forEachRemaining(envelopes::add);
-      return envelopes;
-    }
   }
 
   private void assertListUsersAndJokesApiMessage(

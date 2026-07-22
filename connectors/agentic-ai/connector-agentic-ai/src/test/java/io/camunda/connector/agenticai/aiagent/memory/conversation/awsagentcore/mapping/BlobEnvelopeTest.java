@@ -131,32 +131,6 @@ class BlobEnvelopeTest {
   }
 
   @Test
-  void shouldUpcastLegacyVersion1ToolCallResultsOnRead() throws Exception {
-    // given - a Camunda 8.9 blob: version 1, flat content field
-    String legacyJson =
-        """
-        {
-          "blobType": "camunda.toolCallResults",
-          "version": 1,
-          "results": [
-            {"id": "call-1", "name": "search", "content": "Found 3 items"}
-          ]
-        }
-        """;
-    Document document = Document.fromString(legacyJson);
-    BlobEnvelope envelope = BlobEnvelope.fromDocument(document, objectMapper);
-
-    // when
-    List<ToolCallResultContent> result = envelope.parseToolCallResults(objectMapper);
-
-    // then
-    assertThat(result).hasSize(1);
-    assertThat(result.get(0).id()).isEqualTo("call-1");
-    assertThat(result.get(0).name()).isEqualTo("search");
-    assertThat(result.get(0).content()).containsExactly(TextContent.textContent("Found 3 items"));
-  }
-
-  @Test
   void shouldParseCurrentVersionToolCallResultsWithoutUpcasting() throws Exception {
     // given
     List<ToolCallResultContent> original =
