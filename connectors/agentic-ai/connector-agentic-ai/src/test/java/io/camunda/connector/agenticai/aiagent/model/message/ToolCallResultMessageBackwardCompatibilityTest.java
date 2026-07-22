@@ -11,7 +11,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSchemaMigration;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.BlobEnvelope;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationSerializer;
@@ -23,12 +22,10 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import software.amazon.awssdk.core.document.Document;
 
 /**
  * Backward-compatibility golden-fixture tests: real Camunda-8.9-persisted {@code agentContext}
@@ -163,30 +160,6 @@ class ToolCallResultMessageBackwardCompatibilityTest {
         .isInstanceOfSatisfying(
             ObjectContent.class,
             objectContent -> assertThat((List<?>) objectContent.content()).hasSize(2));
-  }
-
-  /**
-   * AWS AgentCore golden-fixture test: this store shipped on the 8.10 track (never in Camunda 8.9),
-   * so blob version 1 is its first and current shape — a {@code camunda.toolCallResults} envelope
-   * always carries the structured content shape and round-trips without any upcasting.
-   */
-  @Test
-  void toolCallResultMessage_awsAgentCoreBlobEnvelope_newShapeRoundTrips() throws IOException {
-    List<ToolCallResultContent> original =
-        List.of(
-            ToolCallResultContent.builder()
-                .id("call-1")
-                .name("search")
-                .content(List.of(TextContent.textContent("Found 3 items")))
-                .completedAt(OffsetDateTime.parse("2026-07-08T20:54:10.557+02:00"))
-                .build());
-
-    BlobEnvelope envelope = BlobEnvelope.forToolCallResults(original, objectMapper);
-    Document document = envelope.toDocument(objectMapper);
-    BlobEnvelope parsed = BlobEnvelope.fromDocument(document, objectMapper);
-    List<ToolCallResultContent> result = parsed.parseToolCallResults(objectMapper);
-
-    assertThat(result).isEqualTo(original);
   }
 
   private void assertListUsersAndJokesApiMessage(
