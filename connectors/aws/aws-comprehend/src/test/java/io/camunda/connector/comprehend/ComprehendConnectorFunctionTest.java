@@ -7,6 +7,7 @@
 package io.camunda.connector.comprehend;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -54,6 +55,22 @@ class ComprehendConnectorFunctionTest {
 
     var result = comprehendConnectorFunction.execute(outBounderContext);
     assertThat(result).isInstanceOf(ComprehendClassifyResult.class);
+    Mockito.verify(syncClient).close();
+  }
+
+  @Test
+  void executeSyncRequestClosesClientWhenCallerThrows() {
+    var outBounderContext = prepareConnectorContext(ComprehendTestUtils.SYNC_EXECUTION_JSON);
+
+    ComprehendClient syncClient = Mockito.mock(ComprehendClient.class);
+    when(syncClient.classifyDocument(any(ClassifyDocumentRequest.class)))
+        .thenThrow(new RuntimeException("boom"));
+
+    when(clientSupplier.getSyncClient(any(ComprehendRequest.class))).thenReturn(syncClient);
+
+    assertThrows(
+        RuntimeException.class, () -> comprehendConnectorFunction.execute(outBounderContext));
+    Mockito.verify(syncClient).close();
   }
 
   @Test
@@ -71,6 +88,23 @@ class ComprehendConnectorFunctionTest {
 
     var result = comprehendConnectorFunction.execute(outBounderContext);
     assertThat(result).isInstanceOf(ComprehendClassificationJobResult.class);
+    Mockito.verify(asyncClient).close();
+  }
+
+  @Test
+  void executeAsyncRequestClosesClientWhenCallerThrows() {
+    var outBounderContext = prepareConnectorContext(ComprehendTestUtils.ASYNC_EXECUTION_JSON);
+
+    ComprehendAsyncClient asyncClient = Mockito.mock(ComprehendAsyncClient.class);
+    when(asyncClient.startDocumentClassificationJob(
+            any(StartDocumentClassificationJobRequest.class)))
+        .thenThrow(new RuntimeException("boom"));
+
+    when(clientSupplier.getAsyncClient(any(ComprehendRequest.class))).thenReturn(asyncClient);
+
+    assertThrows(
+        RuntimeException.class, () -> comprehendConnectorFunction.execute(outBounderContext));
+    Mockito.verify(asyncClient).close();
   }
 
   private OutboundConnectorContextBuilder.TestConnectorContext prepareConnectorContext(
