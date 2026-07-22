@@ -77,7 +77,7 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
 
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
-    <version.grpc>1.82.2</version.grpc>
+    <version.grpc>1.83.0</version.grpc>
 
     <!-- Protobuf version has to be equal or greater than the one from the Camunda client -->
     <version.protobuf>4.35.1</version.protobuf>
@@ -101,7 +101,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.38</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.48.4</version.aws-sdk2>
+    <version.aws-sdk2>2.49.0</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -141,7 +141,7 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>4.3.1</version.kafka-clients>
 
-    <version.microsoft-graph>6.66.1</version.microsoft-graph>
+    <version.microsoft-graph>6.67.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.3</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.4</version.azure-identity>
@@ -177,8 +177,8 @@ limitations under the License.</license.inlineheader>
 
     <version.langchain4j>1.18.0</version.langchain4j>
     <version.mcp-sdk>2.0.0</version.mcp-sdk>
-    <version.elasticsearch-java>8.19.18</version.elasticsearch-java>
-    <version.elasticsearch-rest-client>8.19.18</version.elasticsearch-rest-client>
+    <version.elasticsearch-java>8.19.19</version.elasticsearch-java>
+    <version.elasticsearch-rest-client>8.19.19</version.elasticsearch-rest-client>
 
     <version.scala>3.8.4</version.scala>
 
@@ -186,13 +186,13 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.6.3</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
-    <plugin.version.license>5.0.0</plugin.version.license>
+    <plugin.version.license>5.1.1</plugin.version.license>
     <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>3.8.0</plugin.version.spotless-maven-plugin>
-    <plugin.version.maven-jar-plugin>3.5.0</plugin.version.maven-jar-plugin>
+    <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
 
     <plugin.version.maven-dependency-plugin>3.11.0</plugin.version.maven-dependency-plugin>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
