@@ -6,35 +6,40 @@
  */
 package io.camunda.connector.sagemaker.caller;
 
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntimeAsync;
-import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointAsyncRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.sagemaker.model.SageMakerAsyncResponse;
 import io.camunda.connector.sagemaker.model.SageMakerRequest;
 import java.util.function.BiFunction;
+import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeAsyncClient;
+import software.amazon.awssdk.services.sagemakerruntime.model.InvokeEndpointAsyncRequest;
 
 public final class SageMakerAsyncCaller {
   public static final BiFunction<
-          AmazonSageMakerRuntimeAsync, SageMakerRequest, SageMakerAsyncResponse>
+          SageMakerRuntimeAsyncClient, SageMakerRequest, SageMakerAsyncResponse>
       ASYNC_CALLER =
           (runtime, request) -> {
             try {
-              InvokeEndpointAsyncRequest invokeEndpointRequest = new InvokeEndpointAsyncRequest();
-              invokeEndpointRequest.setEndpointName(request.getInput().endpointName());
-              invokeEndpointRequest.setContentType(request.getInput().contentType());
-              invokeEndpointRequest.setAccept(request.getInput().accept());
-              invokeEndpointRequest.setCustomAttributes(request.getInput().customAttributes());
-              invokeEndpointRequest.setInferenceId(request.getInput().inferenceId());
-              invokeEndpointRequest.setInputLocation(request.getInput().inputLocation());
-              invokeEndpointRequest.setInvocationTimeoutSeconds(
-                  request.getInput().invocationTimeoutSeconds() != null
-                      ? Integer.parseInt(request.getInput().invocationTimeoutSeconds())
-                      : null);
-              invokeEndpointRequest.setRequestTTLSeconds(
-                  request.getInput().requestTTLSeconds() != null
-                      ? Integer.parseInt(request.getInput().requestTTLSeconds())
-                      : null);
-              var result = runtime.invokeEndpointAsync(invokeEndpointRequest);
+              InvokeEndpointAsyncRequest invokeEndpointRequest =
+                  InvokeEndpointAsyncRequest.builder()
+                      .endpointName(request.getInput().endpointName())
+                      .contentType(request.getInput().contentType())
+                      .accept(request.getInput().accept())
+                      .customAttributes(request.getInput().customAttributes())
+                      .inferenceId(request.getInput().inferenceId())
+                      .inputLocation(request.getInput().inputLocation())
+                      .invocationTimeoutSeconds(
+                          request.getInput().invocationTimeoutSeconds() != null
+                              ? Integer.parseInt(request.getInput().invocationTimeoutSeconds())
+                              : null)
+                      .requestTTLSeconds(
+                          request.getInput().requestTTLSeconds() != null
+                              ? Integer.parseInt(request.getInput().requestTTLSeconds())
+                              : null)
+                      .build();
+              // SageMakerRuntimeAsyncClient is the SDK v2 non-blocking (Future-based) client;
+              // .join() blocks for the result so this caller keeps returning a plain
+              // SageMakerAsyncResponse, matching the pre-v2 (blocking) behavior.
+              var result = runtime.invokeEndpointAsync(invokeEndpointRequest).join();
               return new SageMakerAsyncResponse(result);
             } catch (Exception e) {
               throw new ConnectorException(e);
