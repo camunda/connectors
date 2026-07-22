@@ -56,20 +56,31 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     OUTBOUND_ELIGIBLE_TYPES.add(BusinessRuleTask.class);
   }
 
+  private final String physicalTenantId;
   private final CamundaClient camundaClient;
   private final Cache cache;
 
-  public ProcessDefinitionSecretKeyCache(CamundaClient camundaClient, Cache cache) {
+  /**
+   * @param physicalTenantId identifies the physical tenant this instance's {@code camundaClient}
+   *     belongs to. Mixed into the (shared, bounded) cache key so that two physical tenants whose
+   *     {@code processDefinitionKey} values happen to collide don't return each other's secret keys
+   *     — mirrors the equivalent fix for {@code ProcessDefinitionInspector} on the inbound side.
+   */
+  public ProcessDefinitionSecretKeyCache(
+      String physicalTenantId, CamundaClient camundaClient, Cache cache) {
+    this.physicalTenantId = physicalTenantId;
     this.camundaClient = camundaClient;
     this.cache = cache;
   }
 
+  private record CachedProcessDefinitionKey(String physicalTenantId, long processDefinitionKey) {}
+
   @Override
   public List<String> getSecretKeys(SecretKeyContext secretKeyContext) {
+    var cacheKey =
+        new CachedProcessDefinitionKey(physicalTenantId, secretKeyContext.processDefinitionKey());
     return cache
-        .get(
-            secretKeyContext.processDefinitionKey(),
-            () -> fetchSecretKeysByElementIds(secretKeyContext.processDefinitionKey()))
+        .get(cacheKey, () -> fetchSecretKeysByElementIds(secretKeyContext.processDefinitionKey()))
         .getOrDefault(secretKeyContext.elementId(), Collections.emptyList());
   }
 
