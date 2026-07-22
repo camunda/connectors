@@ -242,17 +242,29 @@ public final class AgentConversation {
   }
 
   /**
-   * Returns cumulative metrics: the base context metrics, plus every previous turn's metrics, plus
-   * the current turn's delta. Durable turns reconstructed by {@link TurnReconstructor} always carry
-   * empty metrics (the cumulative counter lives on the base context instead), so they contribute
-   * zero here; the only {@link #previousTurns} entries with non-empty metrics are those rolled in
-   * by {@link #nextContinuationRound} within this invocation.
+   * Returns the metrics accrued during THIS invocation: the current turn's delta plus any
+   * continuation-round turns rolled into {@link #previousTurns} by {@link #nextContinuationRound}
+   * within this invocation. Durable turns reconstructed by {@link TurnReconstructor} carry empty
+   * metrics, so turns from prior invocations contribute zero here. This is the per-job delta pushed
+   * to the agent instance (the engine applies it additively): it must cover the whole invocation —
+   * not just the final continuation round — and must exclude the cumulative base-context counter.
    */
-  public AgentMetrics totalMetrics() {
-    var sum = currentContext.metrics();
+  public AgentMetrics jobMetrics() {
+    var sum = AgentMetrics.empty();
     for (var turn : previousTurns) {
       sum = sum.add(turn.metrics());
     }
     return sum.add(currentTurnMetrics());
+  }
+
+  /**
+   * Returns cumulative metrics: the base context metrics plus {@link #jobMetrics()} (every previous
+   * turn's metrics plus the current turn's delta). Durable turns reconstructed by {@link
+   * TurnReconstructor} always carry empty metrics (the cumulative counter lives on the base context
+   * instead), so they contribute zero here; the only {@link #previousTurns} entries with non-empty
+   * metrics are those rolled in by {@link #nextContinuationRound} within this invocation.
+   */
+  public AgentMetrics totalMetrics() {
+    return currentContext.metrics().add(jobMetrics());
   }
 }

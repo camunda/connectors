@@ -202,16 +202,6 @@ public abstract class BaseAgentRequestHandler<
               "Provider requested continuation (iterationKey={}); resuming with another round",
               workingConversation.currentTurn().iterationKey());
 
-          // Report this round's own metrics now: its history item and metrics are rolled into
-          // previousTurns and would otherwise never reach the instance-level counters (only the
-          // final round's delta is pushed after the loop). No status change — still mid-turn.
-          notifyMetrics(
-              executionContext,
-              workingConversation.toAgentContext(),
-              workingConversation.currentTurnMetrics(),
-              null,
-              false);
-
           throwIfLimitsReached(workingConversation, agentConfiguration);
           workingConversation = workingConversation.nextContinuationRound();
         }
@@ -367,8 +357,11 @@ public abstract class BaseAgentRequestHandler<
       AgentConversation conversation,
       AgentResponse response,
       boolean rethrowOnFailure) {
-    final var metricsDelta = conversation.currentTurnMetrics();
-    final var nextState = nextAgentInstanceState(metricsDelta.toolCalls());
+    final var metricsDelta = conversation.jobMetrics();
+    // Continuation rounds are pauses (no client tool calls), so the final turn owns the tool-call
+    // count; status must reflect the final turn, while the pushed delta covers the whole
+    // invocation.
+    final var nextState = nextAgentInstanceState(conversation.currentTurnMetrics().toolCalls());
     final var agentContext = response.context();
 
     notifyMetrics(executionContext, agentContext, metricsDelta, nextState, rethrowOnFailure);
@@ -419,7 +412,7 @@ public abstract class BaseAgentRequestHandler<
 
       @Override
       public void onJobCompletionFailed(JobCompletionFailure failure) {
-        final var strippedDelta = conversation.currentTurnMetrics().withToolCalls(0);
+        final var strippedDelta = conversation.jobMetrics().withToolCalls(0);
         if (failure instanceof JobCompletionFailure.CommandFailure.CommandIgnored) {
           // Superseded job: report model/token cost but don't overwrite the current status
           notifyMetrics(executionContext, response.context(), strippedDelta, null, false);
