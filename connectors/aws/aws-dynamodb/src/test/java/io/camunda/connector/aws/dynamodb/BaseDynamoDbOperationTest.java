@@ -6,63 +6,51 @@
  */
 package io.camunda.connector.aws.dynamodb;
 
-import static org.mockito.Mockito.when;
-
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.http.SdkHttpMetadata;
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Table;
-import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
-import com.amazonaws.services.dynamodbv2.model.BillingModeSummary;
-import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
-import com.amazonaws.services.dynamodbv2.model.KeyType;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputDescription;
-import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
-import com.amazonaws.services.dynamodbv2.model.TableDescription;
-import com.amazonaws.services.dynamodbv2.model.TableStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
-import java.util.Date;
-import java.util.List;
+import java.time.Instant;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import software.amazon.awssdk.awscore.AwsResponseMetadata;
+import software.amazon.awssdk.awscore.DefaultAwsResponseMetadata;
+import software.amazon.awssdk.http.SdkHttpResponse;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
+import software.amazon.awssdk.services.dynamodb.model.BillingModeSummary;
+import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement;
+import software.amazon.awssdk.services.dynamodb.model.KeyType;
+import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughputDescription;
+import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
+import software.amazon.awssdk.services.dynamodb.model.TableDescription;
+import software.amazon.awssdk.services.dynamodb.model.TableStatus;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 public abstract class BaseDynamoDbOperationTest {
   protected static final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
-  @Mock protected DynamoDB dynamoDB;
-  @Mock protected Table table;
+  @Mock protected DynamoDbClient dynamoDbClient;
 
   /**
-   * Builds a {@link ResponseMetadata} the way a live AWS SDK v1 call would populate it via {@code
-   * AmazonWebServiceResult#setSdkResponseMetadata}.
+   * Builds an {@link AwsResponseMetadata} the way a live AWS SDK v2 call would populate it (via the
+   * {@code AWS_REQUEST_ID} entry in the raw metadata map the SDK's response unmarshaller attaches
+   * to every response).
    */
-  protected static ResponseMetadata buildSdkResponseMetadata(String requestId) {
-    return new ResponseMetadata(Map.of(ResponseMetadata.AWS_REQUEST_ID, requestId));
+  protected static AwsResponseMetadata buildSdkResponseMetadata(String requestId) {
+    return DefaultAwsResponseMetadata.create(Map.of("AWS_REQUEST_ID", requestId));
   }
 
-  /**
-   * Builds a {@link SdkHttpMetadata} the way a live AWS SDK v1 call would populate it via {@code
-   * AmazonWebServiceResult#setSdkHttpMetadata}. {@link SdkHttpMetadata}'s only public factory,
-   * {@code SdkHttpMetadata.from(HttpResponse)}, requires a {@code com.amazonaws.http.HttpResponse}
-   * that in turn requires an Apache HttpClient request object to construct; reflection avoids
-   * pulling that transitive dependency into this test-only module just to build a fixture.
-   */
-  protected static SdkHttpMetadata buildSdkHttpMetadata(int statusCode)
-      throws ReflectiveOperationException {
-    var constructor = SdkHttpMetadata.class.getDeclaredConstructor(Map.class, Map.class, int.class);
-    constructor.setAccessible(true);
-    Map<String, String> httpHeaders = Map.of("Content-Length", "85");
-    Map<String, List<String>> allHttpHeaders = Map.of("Content-Length", List.of("85"));
-    return constructor.newInstance(httpHeaders, allHttpHeaders, statusCode);
+  /** Builds an {@link SdkHttpResponse} the way a live AWS SDK v2 call would populate it. */
+  protected static SdkHttpResponse buildSdkHttpResponse(int statusCode) {
+    return SdkHttpResponse.builder()
+        .statusCode(statusCode)
+        .putHeader("Content-Length", "85")
+        .build();
   }
 
   /**
@@ -73,32 +61,38 @@ public abstract class BaseDynamoDbOperationTest {
    * serialize as explicit JSON nulls under the production mapper.
    */
   protected static TableDescription buildRealisticTableDescription(String tableName) {
-    return new TableDescription()
-        .withTableName(tableName)
-        .withTableStatus(TableStatus.ACTIVE)
-        .withCreationDateTime(new Date(1700000000000L))
-        .withKeySchema(
-            new KeySchemaElement(TestDynamoDBData.ActualValue.PARTITION_KEY, KeyType.HASH),
-            new KeySchemaElement(TestDynamoDBData.ActualValue.SORT_KEY, KeyType.RANGE))
-        .withAttributeDefinitions(
-            new AttributeDefinition(
-                TestDynamoDBData.ActualValue.PARTITION_KEY, ScalarAttributeType.N),
-            new AttributeDefinition(TestDynamoDBData.ActualValue.SORT_KEY, ScalarAttributeType.S))
-        .withItemCount(0L)
-        .withTableSizeBytes(0L)
-        .withTableArn("arn:aws:dynamodb:us-east-1:123456789012:table/" + tableName)
-        .withProvisionedThroughput(
-            new ProvisionedThroughputDescription()
-                .withReadCapacityUnits(TestDynamoDBData.ActualValue.READ_CAPACITY)
-                .withWriteCapacityUnits(TestDynamoDBData.ActualValue.WRITE_CAPACITY))
-        .withBillingModeSummary(new BillingModeSummary().withBillingMode("PROVISIONED"));
-  }
-
-  @BeforeEach
-  public void beforeEach() {
-    when(dynamoDB.getTable(TestDynamoDBData.ActualValue.TABLE_NAME)).thenReturn(table);
-    when(table.describe())
-        .thenReturn(new TableDescription().withTableName(TestDynamoDBData.ActualValue.TABLE_NAME));
+    return TableDescription.builder()
+        .tableName(tableName)
+        .tableStatus(TableStatus.ACTIVE)
+        .creationDateTime(Instant.ofEpochMilli(1700000000000L))
+        .keySchema(
+            KeySchemaElement.builder()
+                .attributeName(TestDynamoDBData.ActualValue.PARTITION_KEY)
+                .keyType(KeyType.HASH)
+                .build(),
+            KeySchemaElement.builder()
+                .attributeName(TestDynamoDBData.ActualValue.SORT_KEY)
+                .keyType(KeyType.RANGE)
+                .build())
+        .attributeDefinitions(
+            AttributeDefinition.builder()
+                .attributeName(TestDynamoDBData.ActualValue.PARTITION_KEY)
+                .attributeType(ScalarAttributeType.N)
+                .build(),
+            AttributeDefinition.builder()
+                .attributeName(TestDynamoDBData.ActualValue.SORT_KEY)
+                .attributeType(ScalarAttributeType.S)
+                .build())
+        .itemCount(0L)
+        .tableSizeBytes(0L)
+        .tableArn("arn:aws:dynamodb:us-east-1:123456789012:table/" + tableName)
+        .provisionedThroughput(
+            ProvisionedThroughputDescription.builder()
+                .readCapacityUnits(TestDynamoDBData.ActualValue.READ_CAPACITY)
+                .writeCapacityUnits(TestDynamoDBData.ActualValue.WRITE_CAPACITY)
+                .build())
+        .billingModeSummary(BillingModeSummary.builder().billingMode("PROVISIONED").build())
+        .build();
   }
 
   public OutboundConnectorContext getContextWithSecrets(String variables) {

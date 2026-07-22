@@ -19,18 +19,8 @@ package io.camunda.connector.e2e;
 import static io.camunda.process.test.api.CamundaAssert.setAssertionTimeout;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
-import com.amazonaws.services.dynamodbv2.document.Table;
-import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
-import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
-import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,7 +29,7 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.File;
 import java.time.Duration;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -47,12 +37,25 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DeleteTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement;
+import software.amazon.awssdk.services.dynamodb.model.KeyType;
+import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
+import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
 
 /**
- * End-to-end baseline coverage for all 8 operations of the (v1 SDK) AWS DynamoDB connector,
+ * End-to-end baseline coverage for all 8 operations of the AWS SDK v2 AWS DynamoDB connector,
  * exercised through the committed element template and a deployed BPMN model against a LocalStack
- * DynamoDB instance. Assertions target the actual JSON content of the connector's result variable
- * so that this baseline can be diffed against the future v2 SDK port (#7973).
+ * DynamoDB instance. Assertions target the actual JSON content of the connector's result variable.
  */
 @SlowTest
 public class AwsDynamoDbTest extends BaseAwsTest {
@@ -61,7 +64,7 @@ public class AwsDynamoDbTest extends BaseAwsTest {
       "../../../connectors/aws/aws-dynamodb/element-templates/aws-dynamodb-outbound-connector.json";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private static DynamoDB dynamoDb;
+  private static DynamoDbClient dynamoDb;
 
   private String tableName;
 
@@ -77,32 +80,51 @@ public class AwsDynamoDbTest extends BaseAwsTest {
   public void cleanup() {
     if (tableName != null) {
       try {
-        Table table = dynamoDb.getTable(tableName);
-        table.delete();
-        table.waitForDelete();
+        dynamoDb.deleteTable(DeleteTableRequest.builder().tableName(tableName).build());
+        dynamoDb
+            .waiter()
+            .waitUntilTableNotExists(DescribeTableRequest.builder().tableName(tableName).build());
       } catch (ResourceNotFoundException e) {
         // table already gone (e.g. deleteTable was the operation under test) - nothing to do
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new AssertionError("Interrupted while waiting for DynamoDB table deletion", e);
       }
     }
   }
 
-  private Table createRawTable(String name) throws InterruptedException {
-    Table table =
-        dynamoDb.createTable(
-            name,
-            List.of(new KeySchemaElement("id", "HASH")),
-            List.of(new AttributeDefinition("id", "S")),
-            new ProvisionedThroughput(5L, 5L));
-    table.waitForActive();
-    return table;
+  private void createRawTable(String name) {
+    dynamoDb.createTable(
+        CreateTableRequest.builder()
+            .tableName(name)
+            .keySchema(KeySchemaElement.builder().attributeName("id").keyType(KeyType.HASH).build())
+            .attributeDefinitions(
+                AttributeDefinition.builder()
+                    .attributeName("id")
+                    .attributeType(ScalarAttributeType.S)
+                    .build())
+            .provisionedThroughput(
+                ProvisionedThroughput.builder()
+                    .readCapacityUnits(5L)
+                    .writeCapacityUnits(5L)
+                    .build())
+            .build());
+    dynamoDb.waiter().waitUntilTableExists(DescribeTableRequest.builder().tableName(name).build());
+  }
+
+  private void putRawItem(String name, String id, String attributeName, String attributeValue) {
+    dynamoDb.putItem(
+        PutItemRequest.builder()
+            .tableName(name)
+            .item(
+                Map.of(
+                    "id",
+                    AttributeValue.fromS(id),
+                    attributeName,
+                    AttributeValue.fromS(attributeValue)))
+            .build());
   }
 
   private boolean tableExists(String name) {
     try {
-      dynamoDb.getTable(name).describe();
+      dynamoDb.describeTable(DescribeTableRequest.builder().tableName(name).build());
       return true;
     } catch (ResourceNotFoundException e) {
       return false;
@@ -219,7 +241,7 @@ public class AwsDynamoDbTest extends BaseAwsTest {
   }
 
   @Test
-  public void testDescribeTableOperation() throws InterruptedException {
+  public void testDescribeTableOperation() {
     tableName = "e2e-describe-table";
     createRawTable(tableName);
 
@@ -241,7 +263,7 @@ public class AwsDynamoDbTest extends BaseAwsTest {
   }
 
   @Test
-  public void testDeleteTableOperation() throws InterruptedException {
+  public void testDeleteTableOperation() {
     tableName = "e2e-delete-table";
     createRawTable(tableName);
 
@@ -263,11 +285,11 @@ public class AwsDynamoDbTest extends BaseAwsTest {
   }
 
   @Test
-  public void testScanTableOperation() throws InterruptedException {
+  public void testScanTableOperation() {
     tableName = "e2e-scan-table";
-    Table table = createRawTable(tableName);
-    table.putItem(new Item().withPrimaryKey("id", "item-1").withString("color", "blue"));
-    table.putItem(new Item().withPrimaryKey("id", "item-2").withString("color", "red"));
+    createRawTable(tableName);
+    putRawItem(tableName, "item-1", "color", "blue");
+    putRawItem(tableName, "item-2", "color", "red");
 
     var elementTemplate =
         baseElementTemplate()
@@ -289,7 +311,7 @@ public class AwsDynamoDbTest extends BaseAwsTest {
   }
 
   @Test
-  public void testAddItemOperation() throws InterruptedException {
+  public void testAddItemOperation() {
     tableName = "e2e-add-item-table";
     createRawTable(tableName);
 
@@ -304,7 +326,7 @@ public class AwsDynamoDbTest extends BaseAwsTest {
         elementTemplate,
         "add-item",
         result -> {
-          // AddItemOperation returns the raw v1 PutItemOutcome bean: {"item": null,
+          // AddItemOperation returns the connector-owned AddItemResult envelope: {"item": null,
           // "putItemResult": {...}} - "item" is null because PutItem was not asked to return
           // attributes (no ReturnValues requested).
           assertTrue(result.path("item").isNull());
@@ -315,16 +337,21 @@ public class AwsDynamoDbTest extends BaseAwsTest {
           assertTrue(putItemResult.path("attributes").isNull());
         });
 
-    Item storedItem = dynamoDb.getTable(tableName).getItem(new PrimaryKey("id", "item-1"));
-    assertNotNull(storedItem, "The item should have been written to DynamoDB");
-    assertEquals("green", storedItem.getString("color"));
+    GetItemResponse storedItem =
+        dynamoDb.getItem(
+            GetItemRequest.builder()
+                .tableName(tableName)
+                .key(Map.of("id", AttributeValue.fromS("item-1")))
+                .build());
+    assertTrue(storedItem.hasItem(), "The item should have been written to DynamoDB");
+    assertEquals("green", storedItem.item().get("color").s());
   }
 
   @Test
-  public void testGetItemOperation() throws InterruptedException {
+  public void testGetItemOperation() {
     tableName = "e2e-get-item-table";
-    Table table = createRawTable(tableName);
-    table.putItem(new Item().withPrimaryKey("id", "item-1").withString("color", "yellow"));
+    createRawTable(tableName);
+    putRawItem(tableName, "item-1", "color", "yellow");
 
     var elementTemplate =
         baseElementTemplate()
@@ -337,10 +364,8 @@ public class AwsDynamoDbTest extends BaseAwsTest {
         elementTemplate,
         "get-item",
         result -> {
-          // Today's v1 GetItemOperation returns Item::attributes(), an
-          // Iterable<Map.Entry<String,Object>> rather than a plain Map - which serializes as a
-          // JSON array of single-key objects, NOT as one flat JSON object. This is the actual
-          // production shape and is captured here deliberately (see mission: document reality).
+          // getItem returns an array of single-key objects, one per attribute, NOT one flat JSON
+          // object - see GetItemOperation/AttributeValueConverter#toSingleKeyEntries.
           assertTrue(
               result.isArray(), "getItem result should serialize as a JSON array: " + result);
           assertEquals(2, result.size());
@@ -358,10 +383,10 @@ public class AwsDynamoDbTest extends BaseAwsTest {
   }
 
   @Test
-  public void testUpdateItemOperation() throws InterruptedException {
+  public void testUpdateItemOperation() {
     tableName = "e2e-update-item-table";
-    Table table = createRawTable(tableName);
-    table.putItem(new Item().withPrimaryKey("id", "item-1").withString("color", "black"));
+    createRawTable(tableName);
+    putRawItem(tableName, "item-1", "color", "black");
 
     var elementTemplate =
         baseElementTemplate()
@@ -376,9 +401,9 @@ public class AwsDynamoDbTest extends BaseAwsTest {
         elementTemplate,
         "update-item",
         result -> {
-          // UpdateItemOperation returns the raw v1 UpdateItemOutcome bean: {"updateItemResult":
-          // {...}, "item": null} - "item" is null because UpdateItem was not asked to return
-          // attributes (no ReturnValues requested).
+          // UpdateItemOperation returns the connector-owned UpdateItemResult envelope:
+          // {"updateItemResult": {...}, "item": null} - "item" is null because UpdateItem was not
+          // asked to return attributes (no ReturnValues requested).
           assertTrue(result.path("item").isNull());
           JsonNode updateItemResult = result.path("updateItemResult");
           assertEquals(
@@ -388,16 +413,21 @@ public class AwsDynamoDbTest extends BaseAwsTest {
           assertTrue(updateItemResult.path("attributes").isNull());
         });
 
-    Item updatedItem = dynamoDb.getTable(tableName).getItem(new PrimaryKey("id", "item-1"));
-    assertNotNull(updatedItem);
-    assertEquals("white", updatedItem.getString("color"));
+    GetItemResponse updatedItem =
+        dynamoDb.getItem(
+            GetItemRequest.builder()
+                .tableName(tableName)
+                .key(Map.of("id", AttributeValue.fromS("item-1")))
+                .build());
+    assertTrue(updatedItem.hasItem());
+    assertEquals("white", updatedItem.item().get("color").s());
   }
 
   @Test
-  public void testDeleteItemOperation() throws InterruptedException {
+  public void testDeleteItemOperation() {
     tableName = "e2e-delete-item-table";
-    Table table = createRawTable(tableName);
-    table.putItem(new Item().withPrimaryKey("id", "item-1").withString("color", "purple"));
+    createRawTable(tableName);
+    putRawItem(tableName, "item-1", "color", "purple");
 
     var elementTemplate =
         baseElementTemplate()
@@ -410,9 +440,9 @@ public class AwsDynamoDbTest extends BaseAwsTest {
         elementTemplate,
         "delete-item",
         result -> {
-          // DeleteItemOperation returns the raw v1 DeleteItemOutcome bean: {"deleteItemResult":
-          // {...}, "item": null} - "item" is null because DeleteItem was not asked to return
-          // attributes (no ReturnValues requested).
+          // DeleteItemOperation returns the connector-owned DeleteItemResult envelope:
+          // {"deleteItemResult": {...}, "item": null} - "item" is null because DeleteItem was not
+          // asked to return attributes (no ReturnValues requested).
           assertTrue(result.path("item").isNull());
           JsonNode deleteItemResult = result.path("deleteItemResult");
           assertEquals(
@@ -422,7 +452,12 @@ public class AwsDynamoDbTest extends BaseAwsTest {
           assertTrue(deleteItemResult.path("attributes").isNull());
         });
 
-    Item deletedItem = dynamoDb.getTable(tableName).getItem(new PrimaryKey("id", "item-1"));
-    assertNull(deletedItem, "The item should have been removed from DynamoDB");
+    GetItemResponse deletedItem =
+        dynamoDb.getItem(
+            GetItemRequest.builder()
+                .tableName(tableName)
+                .key(Map.of("id", AttributeValue.fromS("item-1")))
+                .build());
+    assertFalse(deletedItem.hasItem(), "The item should have been removed from DynamoDB");
   }
 }

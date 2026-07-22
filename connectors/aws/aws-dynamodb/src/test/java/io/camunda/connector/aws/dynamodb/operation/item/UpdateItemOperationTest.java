@@ -10,12 +10,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.dynamodbv2.document.AttributeUpdate;
-import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
-import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
-import com.amazonaws.services.dynamodbv2.document.UpdateItemOutcome;
-import com.amazonaws.services.dynamodbv2.model.AttributeAction;
-import com.amazonaws.services.dynamodbv2.model.UpdateItemResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -23,6 +17,7 @@ import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.UpdateItem;
+import io.camunda.connector.aws.dynamodb.util.AttributeValueConverter;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -33,50 +28,47 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.Mock;
+import software.amazon.awssdk.services.dynamodb.model.AttributeAction;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValueUpdate;
+import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse;
 
 class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
-  @Mock private UpdateItemOutcome updateItemOutcome;
-  @Captor private ArgumentCaptor<PrimaryKey> primaryKeyArgumentCaptor;
-  @Captor private ArgumentCaptor<AttributeUpdate[]> attributeUpdateArgumentCaptor;
 
   @ParameterizedTest
   @MethodSource("updateItemCases")
   void testUpdateItemOperation(String attributeName, Object newValue) {
-    // Setup
-    AttributeUpdate attributeUpdate = new AttributeUpdate(attributeName).put(newValue);
-    Map<String, Object> attributeUpdates = Map.of(attributeUpdate.getAttributeName(), newValue);
+    // Given
+    Map<String, Object> attributeUpdates = Map.of(attributeName, newValue);
     UpdateItem updateItem =
         new UpdateItem(
             TestDynamoDBData.ActualValue.TABLE_NAME, Map.of("id", "123"), attributeUpdates, "PUT");
     UpdateItemOperation operation = new UpdateItemOperation(updateItem);
+    ArgumentCaptor<UpdateItemRequest> requestCaptor =
+        ArgumentCaptor.forClass(UpdateItemRequest.class);
+    when(dynamoDbClient.updateItem(requestCaptor.capture()))
+        .thenReturn(UpdateItemResponse.builder().build());
 
-    // Given
-    when(table.updateItem(
-            primaryKeyArgumentCaptor.capture(), attributeUpdateArgumentCaptor.capture()))
-        .thenReturn(updateItemOutcome);
     // When
-    Object result = operation.invoke(dynamoDB);
+    Object result = operation.invoke(dynamoDbClient);
+
     // Then
-    assertThat(result).isInstanceOf(UpdateItemOutcome.class);
+    assertThat(result).isNotNull();
+    UpdateItemRequest request = requestCaptor.getValue();
+    assertThat(request.key()).isEqualTo(Map.of("id", AttributeValue.fromS("123")));
 
-    PrimaryKey value = primaryKeyArgumentCaptor.getValue();
-
-    assertThat(value.getComponents().contains(new KeyAttribute("id", "123"))).isTrue();
-
-    AttributeUpdate expectedAttributeUpdate = attributeUpdateArgumentCaptor.getValue()[0];
-    assertThat(expectedAttributeUpdate.getAttributeName()).isEqualTo(attributeName);
-    assertThat(expectedAttributeUpdate.getValue()).isEqualTo(newValue);
-    assertThat(expectedAttributeUpdate.getAction()).isEqualTo(AttributeAction.PUT);
+    AttributeValueUpdate expectedAttributeUpdate = request.attributeUpdates().get(attributeName);
+    assertThat(expectedAttributeUpdate.action()).isEqualTo(AttributeAction.PUT);
+    assertThat(expectedAttributeUpdate.value())
+        .isEqualTo(AttributeValueConverter.toAttributeValue(newValue));
   }
 
   @ParameterizedTest
   @MethodSource("updateItemCases")
   void testDeleteItemOperation(String attributeName, Object newValue) {
-    // Setup
-    AttributeUpdate attributeUpdate = new AttributeUpdate(attributeName).put(newValue);
-    Map<String, Object> attributeUpdates = Map.of(attributeUpdate.getAttributeName(), newValue);
+    // Given
+    Map<String, Object> attributeUpdates = Map.of(attributeName, newValue);
     UpdateItem updateItem =
         new UpdateItem(
             TestDynamoDBData.ActualValue.TABLE_NAME,
@@ -84,24 +76,22 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
             attributeUpdates,
             "DELETE");
     UpdateItemOperation operation = new UpdateItemOperation(updateItem);
+    ArgumentCaptor<UpdateItemRequest> requestCaptor =
+        ArgumentCaptor.forClass(UpdateItemRequest.class);
+    when(dynamoDbClient.updateItem(requestCaptor.capture()))
+        .thenReturn(UpdateItemResponse.builder().build());
 
-    // Given
-    when(table.updateItem(
-            primaryKeyArgumentCaptor.capture(), attributeUpdateArgumentCaptor.capture()))
-        .thenReturn(updateItemOutcome);
     // When
-    Object result = operation.invoke(dynamoDB);
+    Object result = operation.invoke(dynamoDbClient);
+
     // Then
-    assertThat(result).isInstanceOf(UpdateItemOutcome.class);
+    assertThat(result).isNotNull();
+    UpdateItemRequest request = requestCaptor.getValue();
+    assertThat(request.key()).isEqualTo(Map.of("id", AttributeValue.fromS("123")));
 
-    PrimaryKey value = primaryKeyArgumentCaptor.getValue();
-
-    assertThat(value.getComponents().contains(new KeyAttribute("id", "123"))).isTrue();
-
-    AttributeUpdate expectedAttributeUpdate = attributeUpdateArgumentCaptor.getValue()[0];
-    assertThat(expectedAttributeUpdate.getAttributeName()).isEqualTo(attributeName);
-    assertThat(expectedAttributeUpdate.getValue()).isNull();
-    assertThat(expectedAttributeUpdate.getAction()).isEqualTo(AttributeAction.DELETE);
+    AttributeValueUpdate expectedAttributeUpdate = request.attributeUpdates().get(attributeName);
+    assertThat(expectedAttributeUpdate.action()).isEqualTo(AttributeAction.DELETE);
+    assertThat(expectedAttributeUpdate.value()).isNull();
   }
 
   static Stream<Arguments> updateItemCases() {
@@ -153,10 +143,7 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
         // Map with nested Set of Numbers
         Arguments.of(
             "mapWithNestedNumberSet",
-            Map.of("numberSetKey", Set.of(new BigDecimal(3), new BigDecimal(4))),
-            Map.of(
-                ":mapWithNestedNumberSet",
-                Map.of("numberSetKey", Set.of(new BigDecimal(3), new BigDecimal(4))))),
+            Map.of("numberSetKey", Set.of(new BigDecimal(3), new BigDecimal(4)))),
 
         // Map with nested Set of Strings
         Arguments.of("mapWithNestedStringSet", Map.of("stringSetKey", Set.of("C", "D"))),
@@ -172,23 +159,16 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
   /**
    * Golden-JSON shape test: pins the exact JSON the v1 updateItem operation writes to process
    * variables today, so the AWS SDK v2 migration must reproduce it unchanged (migration contract
-   * for #7973). Models the response the production overload actually returns: {@link
-   * UpdateItemOperation} calls {@code Table.updateItem(PrimaryKey, AttributeUpdate...)}, which
-   * never sets {@code ReturnValues}, so a live call gets {@code NONE} and comes back with no
-   * attributes -- but the SDK always attaches request-id and HTTP metadata to every successful call
-   * (see AddItemOperationTest for the same shape). The raw-{@code AttributeValue} lowercase-
-   * key/all-null-padding quirk this operation can never actually surface is instead pinned directly
-   * against the model classes in AttributeValueSerializationTest.
+   * for #7973). {@link UpdateItemOperation} never sets {@code ReturnValues}, so a live call gets
+   * {@code NONE} and comes back with no attributes -- but the SDK always attaches request-id and
+   * HTTP metadata to every successful call (see AddItemOperationTest for the same shape).
    */
   @Test
   public void updateItemOutcome_serializesToDocumentedV1JsonShape() throws Exception {
-    // Given a realistic UpdateItem response. UpdateItemOperation never requests ReturnValues, so
-    // a live call returns no attributes -- but the SDK always attaches request-id and HTTP
-    // metadata to every successful call.
-    UpdateItemResult updateItemResult = new UpdateItemResult();
-    updateItemResult.setSdkResponseMetadata(buildSdkResponseMetadata("929bf054-193b-48e6-req"));
-    updateItemResult.setSdkHttpMetadata(buildSdkHttpMetadata(200));
-    UpdateItemOutcome realOutcome = new UpdateItemOutcome(updateItemResult);
+    UpdateItemResponse.Builder responseBuilder = UpdateItemResponse.builder();
+    responseBuilder.responseMetadata(buildSdkResponseMetadata("929bf054-193b-48e6-req"));
+    responseBuilder.sdkHttpResponse(buildSdkHttpResponse(200));
+    UpdateItemResponse response = responseBuilder.build();
 
     UpdateItem updateItem =
         new UpdateItem(
@@ -197,17 +177,13 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
             Map.of("status", "Active"),
             "PUT");
     UpdateItemOperation operation = new UpdateItemOperation(updateItem);
-    when(table.updateItem(any(PrimaryKey.class), any(AttributeUpdate[].class)))
-        .thenReturn(realOutcome);
+    when(dynamoDbClient.updateItem(any(UpdateItemRequest.class))).thenReturn(response);
 
     // When
-    Object result = operation.invoke(dynamoDB);
+    Object result = operation.invoke(dynamoDbClient);
 
-    // Then: no ReturnValues means the response carries no attributes, so
-    // UpdateItemOutcome#getItem() returns null here, not {}.
-    // Built via readTree(writeValueAsString(...)), not valueToTree(): see AddItemOperationTest
-    // for why (valueToTree() strips trailing zeroes off BigDecimal values -- not relevant to
-    // *this* fixture's values, but kept consistent with the other golden tests in this module).
+    // Then: no ReturnValues means the response carries no attributes, so item/attributes are
+    // null here, not {}.
     JsonNode actual = objectMapper.readTree(objectMapper.writeValueAsString(result));
     String expectedJson =
         """
@@ -228,13 +204,6 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
         """;
     JsonNode expected = objectMapper.readTree(expectedJson);
     assertThat(actual).isEqualTo(expected);
-
-    // Deliberately no exact writeValueAsString() pin here: AWS SDK v1's model classes
-    // (UpdateItemResult, AttributeValue, ...) are plain, unannotated JavaBeans with no
-    // @JsonPropertyOrder, and Jackson's reflection-based property order for them was empirically
-    // observed to change between separate JVM invocations of this exact test on this exact SDK
-    // version (see AddItemOperationTest for details). Tree equality above -- which compares JSON
-    // objects key-by-key regardless of order -- is the reliable way to pin this shape.
   }
 
   @Test
