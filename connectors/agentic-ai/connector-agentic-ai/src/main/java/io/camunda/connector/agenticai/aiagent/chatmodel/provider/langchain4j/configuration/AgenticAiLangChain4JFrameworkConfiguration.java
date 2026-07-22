@@ -20,16 +20,11 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.too
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverterImpl;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
-@ConditionalOnProperty(
-    value = "camunda.connector.agenticai.framework",
-    havingValue = "langchain4j",
-    matchIfMissing = true)
 @Import(AgenticAiLangChain4JChatModelConfiguration.class)
 public class AgenticAiLangChain4JFrameworkConfiguration {
 
