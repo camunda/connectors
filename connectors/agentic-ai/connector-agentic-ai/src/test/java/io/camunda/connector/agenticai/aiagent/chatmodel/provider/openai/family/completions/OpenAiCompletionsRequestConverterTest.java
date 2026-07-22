@@ -66,7 +66,7 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   private static OpenAiModelParameters parameters(@Nullable OpenAiEffort effort) {
-    return new OpenAiModelParameters(null, null, null, effort);
+    return new OpenAiModelParameters(null, null, null, null, effort);
   }
 
   private static OpenAiChatModel model(
@@ -77,10 +77,11 @@ class OpenAiCompletionsRequestConverterTest {
         new OpenAiConnection(
             OpenAiApiFamily.COMPLETIONS,
             new OpenAiDirectBackend("sk-test", null, null),
+            null,
+            null,
             new OpenAiModel("gpt-4o", parameters),
             enableWebSearch,
             enableCodeInterpreter,
-            null,
             null));
   }
 
@@ -89,8 +90,9 @@ class OpenAiCompletionsRequestConverterTest {
         new OpenAiConnection(
             OpenAiApiFamily.COMPLETIONS,
             backend,
-            new OpenAiModel("gpt-4o", null),
             null,
+            null,
+            new OpenAiModel("gpt-4o", null),
             null,
             null,
             null));
@@ -364,7 +366,7 @@ class OpenAiCompletionsRequestConverterTest {
   void throwsWhenValidatorRejectsUnsupportedEffort() {
     // caps() declares no reasoning capability -> effort configured but unsupported, so the
     // validator rejects the request before any mapping happens.
-    final var parameters = new OpenAiModelParameters(null, null, null, OpenAiEffort.HIGH);
+    final var parameters = new OpenAiModelParameters(null, null, null, null, OpenAiEffort.HIGH);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     assertThatThrownBy(
@@ -387,7 +389,7 @@ class OpenAiCompletionsRequestConverterTest {
 
   @Test
   void mapsModelParameters() {
-    final var parameters = new OpenAiModelParameters(512, 0.5, 0.9, null);
+    final var parameters = new OpenAiModelParameters(512, null, 0.5, 0.9, null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params =

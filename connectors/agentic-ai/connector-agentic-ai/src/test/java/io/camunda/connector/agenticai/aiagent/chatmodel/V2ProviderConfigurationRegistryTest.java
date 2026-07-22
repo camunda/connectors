@@ -40,8 +40,9 @@ class V2ProviderConfigurationRegistryTest {
         new AnthropicChatModel(
             new AnthropicConnection(
                 new AnthropicDirectBackend(null, "sk-ant"),
-                new AnthropicModel("claude-sonnet-4-6", null),
                 null,
+                null,
+                new AnthropicModel("claude-sonnet-4-6", null),
                 null,
                 null,
                 null,
@@ -68,8 +69,9 @@ class V2ProviderConfigurationRegistryTest {
         new AnthropicChatModel(
             new AnthropicConnection(
                 new AnthropicDirectBackend(null, "sk-ant"),
-                new AnthropicModel("claude-sonnet-4-6", null),
                 null,
+                null,
+                new AnthropicModel("claude-sonnet-4-6", null),
                 null,
                 null,
                 null,
@@ -95,8 +97,9 @@ class V2ProviderConfigurationRegistryTest {
             new AnthropicConnection(
                 new AnthropicBedrockBackend(
                     "eu-west-1", null, new AwsApiKeyAuthentication("api-key")),
-                new AnthropicModel("claude-sonnet-4-6", null),
                 null,
+                null,
+                new AnthropicModel("claude-sonnet-4-6", null),
                 null,
                 null,
                 null,

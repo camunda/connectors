@@ -242,30 +242,6 @@ class AiAgentJobWorkerAnthropicReasoningEffortTests extends BaseAiAgentJobWorker
         .isEqualTo("xhigh");
   }
 
-  @Test
-  void customEffortSendsFreeTextValueVerbatimOnTheWire() throws Exception {
-    final var userPrompt = "Write a haiku about the sea";
-
-    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
-    enqueueUserFeedback(userSatisfiedFeedback());
-
-    final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
-        model(REASONING_CAPABLE_MODEL)
-            .andThen(
-                template ->
-                    template
-                        .property("provider.anthropic.model.parameters.effort", "custom")
-                        .property("provider.anthropic.model.parameters.customEffort", "ultra"));
-
-    awaitProcessCompletion(
-        createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
-
-    final var request = parseBody(soleRecordedRequest());
-    assertThat(request.path("output_config").path("effort").asText())
-        .as("output_config.effort")
-        .isEqualTo("ultra");
-  }
-
   // ---------------------------------------------------------------------------
   // Round-trip replay: signed thinking block survives a follow-up model call
   // ---------------------------------------------------------------------------

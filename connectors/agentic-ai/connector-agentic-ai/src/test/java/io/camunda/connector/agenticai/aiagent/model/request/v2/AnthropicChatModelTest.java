@@ -110,10 +110,11 @@ class AnthropicChatModelTest {
         new AnthropicChatModel(
             new AnthropicConnection(
                 new AnthropicDirectBackend(null, "  "),
+                null,
+                null,
                 new AnthropicModel(
                     "claude-sonnet-4-6",
-                    new AnthropicModelParameters(1, null, null, null, null, null, null)),
-                null,
+                    new AnthropicModelParameters(1, null, null, null, null, null)),
                 null,
                 null,
                 null,
@@ -134,8 +135,9 @@ class AnthropicChatModelTest {
         new AnthropicChatModel(
             new AnthropicConnection(
                 new AnthropicDirectBackend(null, "sk-ant-123"),
-                new AnthropicModel("claude-sonnet-4-6", null),
                 null,
+                null,
+                new AnthropicModel("claude-sonnet-4-6", null),
                 null,
                 null,
                 null,
@@ -214,38 +216,6 @@ class AnthropicChatModelTest {
     assertThat(parameters.thinking())
         .isEqualTo(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null));
     assertThat(parameters.effort()).isEqualTo(AnthropicEffort.HIGH);
-    assertThat(parameters.customEffort()).isNull();
-
-    final String reserialised = mapper.writeValueAsString(parsed);
-    assertThat(mapper.readValue(reserialised, V2ProviderConfiguration.class)).isEqualTo(parsed);
-  }
-
-  @Test
-  void deserialisesCustomEffortAndRoundTrips() throws Exception {
-    final String json =
-        """
-        {
-          "type": "anthropic",
-          "anthropic": {
-            "backend": { "type": "direct", "apiKey": "sk-ant-123" },
-            "model": {
-              "model": "claude-sonnet-4-6",
-              "parameters": {
-                "effort": "custom",
-                "customEffort": "ultra"
-              }
-            }
-          }
-        }
-        """;
-
-    final AnthropicChatModel parsed =
-        (AnthropicChatModel) mapper.readValue(json, V2ProviderConfiguration.class);
-
-    final AnthropicModelParameters parameters = parsed.anthropic().model().parameters();
-    assertThat(parameters).isNotNull();
-    assertThat(parameters.effort()).isEqualTo(AnthropicEffort.CUSTOM);
-    assertThat(parameters.customEffort()).isEqualTo("ultra");
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, V2ProviderConfiguration.class)).isEqualTo(parsed);
@@ -254,14 +224,14 @@ class AnthropicChatModelTest {
   @Test
   void thinkingBudgetTokensRejectsValuesBelowMinimum() {
     final var thinking = new AnthropicThinking(ThinkingMode.ENABLED, 512, null);
-    final var parameters =
-        new AnthropicModelParameters(null, null, null, null, null, null, thinking);
+    final var parameters = new AnthropicModelParameters(null, null, null, null, null, thinking);
     final var model =
         new AnthropicChatModel(
             new AnthropicConnection(
                 new AnthropicDirectBackend(null, "sk-ant-123"),
-                new AnthropicModel("claude-sonnet-4-6", parameters),
                 null,
+                null,
+                new AnthropicModel("claude-sonnet-4-6", parameters),
                 null,
                 null,
                 null,
@@ -323,8 +293,9 @@ class AnthropicChatModelTest {
     return new AnthropicChatModel(
         new AnthropicConnection(
             new AnthropicBedrockBackend("eu-west-1", null, authentication),
-            new AnthropicModel("claude-sonnet-4-6", null),
             null,
+            null,
+            new AnthropicModel("claude-sonnet-4-6", null),
             null,
             null,
             null,

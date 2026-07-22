@@ -114,8 +114,8 @@ public class OpenAiResponsesRequestConverter {
     if (params == null) {
       return;
     }
-    if (params.maxCompletionTokens() != null) {
-      builder.maxOutputTokens(params.maxCompletionTokens().longValue());
+    if (params.maxOutputTokens() != null) {
+      builder.maxOutputTokens(params.maxOutputTokens().longValue());
     }
     if (params.temperature() != null) {
       builder.temperature(params.temperature());

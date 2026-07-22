@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicC
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicEffort;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.ThinkingMode;
@@ -63,8 +64,19 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
   /** All Anthropic-specific configuration, nested under the {@code anthropic} wire key. */
   public record AnthropicConnection(
       @Valid @NotNull AnthropicBackend backend,
-      @Valid @NotNull AnthropicModel model,
-      @Valid @Nullable TimeoutConfiguration timeouts,
+      @TemplateProperty(
+              group = "capabilities",
+              label = "Model capabilities",
+              description =
+                  "How model capabilities are resolved. 'Auto' uses the built-in capability data for the selected model; 'Custom' lets you supply the overrides below.",
+              type = TemplateProperty.PropertyType.Dropdown,
+              defaultValue = "auto",
+              choices = {
+                @DropdownPropertyChoice(value = "auto", label = "Auto"),
+                @DropdownPropertyChoice(value = "custom", label = "Custom")
+              },
+              optional = true)
+          @Nullable ModelCapabilitiesMode capabilityMode,
       @Valid
           @TemplateProperty(
               group = "capabilities",
@@ -73,9 +85,15 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                   "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
               type = TemplateProperty.PropertyType.Text,
               feel = FeelMode.required,
-              placeholder = "={contextWindow: 200000, maxOutputTokens: 8192}",
-              optional = true)
+              placeholder = "{contextWindow: 200000, maxOutputTokens: 8192}",
+              optional = true,
+              condition =
+                  @TemplateProperty.PropertyCondition(
+                      property = "provider.anthropic.capabilityMode",
+                      equals = "custom"))
           @Nullable ModelCapabilitiesOverride capabilityOverride,
+      @Valid @NotNull AnthropicModel model,
+      @Valid @Nullable TimeoutConfiguration timeouts,
       @FEEL
           @TemplateProperty(
               group = "skills",
@@ -87,7 +105,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
               type = TemplateProperty.PropertyType.Text,
               feel = FeelMode.required,
               placeholder =
-                  "=[\"pptx\", \"xlsx:20260710\", \"custom:skill_01AbCdEfGhIjKlMnOpQrStUv:latest\"]",
+                  "[\"pptx\", \"xlsx:20260710\", \"custom:skill_01AbCdEfGhIjKlMnOpQrStUv:latest\"]",
               optional = true)
           @Nullable List<@NotBlank String> skills,
       @TemplateProperty(
@@ -182,7 +200,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                       equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
           @Nullable String webFetchVersion,
       @TemplateProperty(
-              group = "capabilities",
+              group = "model",
               label = "Enable prompt caching",
               tooltip =
                   "Enables Anthropic automatic prompt caching by adding a top-level "
@@ -307,7 +325,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
     public record AnthropicModelParameters(
         @Min(0)
             @TemplateProperty(
-                group = "model",
+                group = "capabilities",
                 label = "Maximum tokens",
                 tooltip =
                     "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
@@ -317,7 +335,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
             @Nullable Integer maxTokens,
         @Min(0)
             @TemplateProperty(
-                group = "model",
+                group = "capabilities",
                 label = "Temperature",
                 tooltip =
                     "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
@@ -327,7 +345,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
             @Nullable Double temperature,
         @Min(0)
             @TemplateProperty(
-                group = "model",
+                group = "capabilities",
                 label = "top P",
                 tooltip =
                     "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
@@ -337,7 +355,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
             @Nullable Double topP,
         @Min(0)
             @TemplateProperty(
-                group = "model",
+                group = "capabilities",
                 label = "top K",
                 tooltip =
                     "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
@@ -348,32 +366,19 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
         @TemplateProperty(
                 group = "model",
                 label = "Effort",
+                description = "Leave unset to use the model default.",
                 tooltip =
-                    "General effort dial (affects text, tool calls and thinking). Not supported on all "
-                        + "models. 'custom' sends the free-text value below verbatim. Unset ⇒ model default (high).",
+                    "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. It affects all output — text, tool calls and extended thinking. <code>low</code> is the most efficient (fewest tokens, fastest, some capability reduction); <code>medium</code> balances speed, cost and quality; <code>high</code> is full capability; <code>xhigh</code> targets long-running coding and agentic work; <code>max</code> gives maximum capability with no token constraints. Not supported on all models. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/effort\" target=\"_blank\">effort documentation</a>.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
                   @DropdownPropertyChoice(value = "low", label = "low"),
                   @DropdownPropertyChoice(value = "medium", label = "medium"),
                   @DropdownPropertyChoice(value = "high", label = "high"),
                   @DropdownPropertyChoice(value = "xhigh", label = "xhigh"),
-                  @DropdownPropertyChoice(value = "max", label = "max"),
-                  @DropdownPropertyChoice(value = "custom", label = "custom")
+                  @DropdownPropertyChoice(value = "max", label = "max")
                 },
                 optional = true)
             @Nullable AnthropicEffort effort,
-        @TemplateProperty(
-                group = "model",
-                label = "Custom effort",
-                tooltip = "Free-text effort value sent verbatim when Effort = 'custom'.",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.optional,
-                optional = true,
-                condition =
-                    @TemplateProperty.PropertyCondition(
-                        property = "provider.anthropic.model.parameters.effort",
-                        equals = "custom"))
-            @Nullable String customEffort,
         @Valid @Nullable AnthropicThinking thinking) {}
 
     /** Anthropic extended-thinking configuration for a single model. */
@@ -412,12 +417,14 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                 group = "model",
                 label = "Thinking display",
                 tooltip =
-                    "Adaptive-thinking output display ('summarized' or 'omitted'). Applies only to 'adaptive'.",
+                    "Controls how the model's extended thinking is returned: <code>summarized</code> includes a plain-text summary of the thinking in the response; <code>omitted</code> leaves it out.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
                   @DropdownPropertyChoice(value = "summarized", label = "summarized"),
                   @DropdownPropertyChoice(value = "omitted", label = "omitted")
                 },
+                defaultValue = "summarized",
+                defaultValueType = TemplateProperty.DefaultValueType.String,
                 optional = true,
                 condition =
                     @TemplateProperty.PropertyCondition(

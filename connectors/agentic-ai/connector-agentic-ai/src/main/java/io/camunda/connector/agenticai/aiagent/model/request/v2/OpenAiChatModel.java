@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChat
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesMode;
 import io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
@@ -80,9 +81,37 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
               })
           OpenAiApiFamily apiFamily,
       @Valid @NotNull OpenAiBackend backend,
+      @TemplateProperty(
+              group = "capabilities",
+              label = "Model capabilities",
+              description =
+                  "How model capabilities are resolved. 'Auto' uses the built-in capability data for the selected model; 'Custom' lets you supply the overrides below.",
+              type = TemplateProperty.PropertyType.Dropdown,
+              defaultValue = "auto",
+              choices = {
+                @DropdownPropertyChoice(value = "auto", label = "Auto"),
+                @DropdownPropertyChoice(value = "custom", label = "Custom")
+              },
+              optional = true)
+          @Nullable ModelCapabilitiesMode capabilityMode,
+      @Valid
+          @TemplateProperty(
+              group = "capabilities",
+              label = "Model capability overrides",
+              description =
+                  "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
+              type = TemplateProperty.PropertyType.Text,
+              feel = FeelMode.required,
+              placeholder = "{contextWindow: 200000, maxOutputTokens: 8192}",
+              optional = true,
+              condition =
+                  @TemplateProperty.PropertyCondition(
+                      property = "provider.openai.capabilityMode",
+                      equals = "custom"))
+          @Nullable ModelCapabilitiesOverride capabilityOverride,
       @Valid @NotNull OpenAiModel model,
       @TemplateProperty(
-              group = "provider",
+              group = "skills",
               label = "Enable web search",
               tooltip = "Enable the OpenAI web_search server tool (Responses API only).",
               type = TemplateProperty.PropertyType.Boolean,
@@ -93,7 +122,7 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
                       equals = "responses"))
           @Nullable Boolean enableWebSearch,
       @TemplateProperty(
-              group = "provider",
+              group = "skills",
               label = "Enable code interpreter",
               tooltip = "Enable the OpenAI code_interpreter server tool (Responses API only).",
               type = TemplateProperty.PropertyType.Boolean,
@@ -103,18 +132,7 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
                       property = "provider.openai.apiFamily",
                       equals = "responses"))
           @Nullable Boolean enableCodeInterpreter,
-      @Valid @Nullable TimeoutConfiguration timeouts,
-      @Valid
-          @TemplateProperty(
-              group = "capabilities",
-              label = "Model capability overrides",
-              description =
-                  "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
-              type = TemplateProperty.PropertyType.Text,
-              feel = FeelMode.required,
-              placeholder = "={contextWindow: 200000, maxOutputTokens: 8192}",
-              optional = true)
-          @Nullable ModelCapabilitiesOverride capabilityOverride) {}
+      @Valid @Nullable TimeoutConfiguration timeouts) {}
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
@@ -276,17 +294,35 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
     public record OpenAiModelParameters(
         @Min(0)
             @TemplateProperty(
-                group = "model",
+                group = "capabilities",
                 label = "Maximum completion tokens",
                 tooltip =
                     "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
-                optional = true)
+                optional = true,
+                condition =
+                    @TemplateProperty.PropertyCondition(
+                        property = "provider.openai.apiFamily",
+                        equals = "completions"))
             @Nullable Integer maxCompletionTokens,
         @Min(0)
             @TemplateProperty(
-                group = "model",
+                group = "capabilities",
+                label = "Maximum output tokens",
+                tooltip =
+                    "The maximum number of tokens per request the model may generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-max_output_tokens\" target=\"_blank\">documentation</a>.",
+                type = TemplateProperty.PropertyType.Number,
+                feel = FeelMode.required,
+                optional = true,
+                condition =
+                    @TemplateProperty.PropertyCondition(
+                        property = "provider.openai.apiFamily",
+                        equals = "responses"))
+            @Nullable Integer maxOutputTokens,
+        @Min(0)
+            @TemplateProperty(
+                group = "capabilities",
                 label = "Temperature",
                 tooltip =
                     "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
@@ -296,7 +332,7 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
             @Nullable Double temperature,
         @Min(0)
             @TemplateProperty(
-                group = "model",
+                group = "capabilities",
                 label = "top P",
                 tooltip =
                     "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
@@ -307,8 +343,9 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
         @TemplateProperty(
                 group = "model",
                 label = "Reasoning effort",
+                description = "Leave unset to use the model default.",
                 tooltip =
-                    "Reasoning effort for reasoning-capable models. " + "Unset ⇒ model default.",
+                    "Guides how much reasoning a reasoning-capable model applies before answering, trading speed and cost against answer quality; the model reasons adaptively, spending fewer tokens on simple tasks and more on hard ones. <code>minimal</code> for the fastest, cheapest responses; <code>low</code> for tool use and light planning; <code>medium</code> balances quality and latency; <code>high</code> for complex debugging and agentic tasks; <code>xhigh</code> and <code>max</code> for the deepest reasoning on the hardest problems. Only applies to reasoning models. See the <a href=\"https://developers.openai.com/api/docs/guides/reasoning\" target=\"_blank\">reasoning documentation</a>.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
                   @DropdownPropertyChoice(value = "minimal", label = "minimal"),

@@ -38,19 +38,6 @@ final class AnthropicReasoningValidator {
       String modelId) {
     final AnthropicEffort effort = params == null ? null : params.effort();
 
-    // Config-completeness check, model-independent (runs even for unmatched/pass-through models):
-    // selecting CUSTOM effort but leaving the free-text value blank is malformed config. Fail fast
-    // rather than sending an empty "effort" string the API would reject with an opaque 400. This is
-    // a required-field check, NOT matrix validation — CUSTOM still bypasses the matrix effort
-    // rules.
-    if (effort == AnthropicEffort.CUSTOM
-        && (params == null || params.customEffort() == null || params.customEffort().isBlank())) {
-      throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL,
-          "Effort is set to 'custom' but no custom effort value was provided for model '%s'"
-              .formatted(modelId));
-    }
-
     if (!modelMatched) {
       return;
     }
@@ -59,10 +46,7 @@ final class AnthropicReasoningValidator {
     final boolean thinkingSet = thinking != null && thinking.mode() != null;
 
     if (reasoning == null) {
-      // effort == CUSTOM is a full escape hatch: it is sent verbatim and bypasses ALL matrix
-      // effort validation, including this "model declares no reasoning" gate. Thinking has no such
-      // hatch, so a set thinking mode still fails here.
-      if (thinkingSet || (effort != null && effort != AnthropicEffort.CUSTOM)) {
+      if (thinkingSet || effort != null) {
         throw new ConnectorException(
             ERROR_CODE_FAILED_MODEL_CALL,
             ("Model '%s' does not declare any reasoning capabilities in the capability matrix, so "
@@ -89,7 +73,7 @@ final class AnthropicReasoningValidator {
       }
     }
 
-    if (effort != null && effort != AnthropicEffort.CUSTOM) {
+    if (effort != null) {
       if (reasoning.effortLevels().isEmpty()) {
         throw new ConnectorException(
             ERROR_CODE_FAILED_MODEL_CALL,
@@ -102,7 +86,5 @@ final class AnthropicReasoningValidator {
                 .formatted(modelId, effort, reasoning.effortLevels()));
       }
     }
-    // effort == CUSTOM bypasses effort-level validation entirely (the free-text value is sent
-    // verbatim regardless of the matrix's declared effort-levels).
   }
 }

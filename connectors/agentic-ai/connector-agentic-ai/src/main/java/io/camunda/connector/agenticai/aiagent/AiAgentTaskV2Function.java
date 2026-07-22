@@ -39,13 +39,13 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),
       @PropertyGroup(id = "model", label = "Model", openByDefault = false),
+      @PropertyGroup(id = "capabilities", label = "Advanced model options", openByDefault = false),
       @PropertyGroup(
           id = "skills",
-          label = "Skills & Tools",
+          label = "Model Tools",
           tooltip =
               "Agent Skills and built-in server tools (code execution, web search, web fetch) available to the model.",
           openByDefault = false),
-      @PropertyGroup(id = "capabilities", label = "Advanced model options", openByDefault = false),
       @PropertyGroup(
           id = "systemPrompt",
           label = "System prompt",

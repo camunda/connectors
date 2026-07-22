@@ -30,10 +30,11 @@ class OpenAiRequestValidatorTest {
     return new OpenAiConnection(
         apiFamily,
         new OpenAiDirectBackend("k", null, null),
-        new OpenAiModel("model-id", new OpenAiModelParameters(null, null, null, effort)),
+        null,
+        null,
+        new OpenAiModel("model-id", new OpenAiModelParameters(null, null, null, null, effort)),
         enableWebSearch,
         enableCodeInterpreter,
-        null,
         null);
   }
 

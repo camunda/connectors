@@ -23,10 +23,8 @@ class AnthropicReasoningValidatorTest {
   private static final String MODEL_ID = "claude-sonnet-4-6";
 
   private static AnthropicModelParameters params(
-      @Nullable AnthropicThinking thinking,
-      @Nullable AnthropicEffort effort,
-      @Nullable String customEffort) {
-    return new AnthropicModelParameters(null, null, null, null, effort, customEffort, thinking);
+      @Nullable AnthropicThinking thinking, @Nullable AnthropicEffort effort) {
+    return new AnthropicModelParameters(null, null, null, null, effort, thinking);
   }
 
   private static AnthropicReasoningCapabilities reasoning(
@@ -45,7 +43,7 @@ class AnthropicReasoningValidatorTest {
 
   @Test
   void failsWhenThinkingSetAndMatchedModelDeclaresNoReasoning() {
-    final var params = params(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null), null, null);
+    final var params = params(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null), null);
 
     assertThatThrownBy(() -> validate(params, null, true))
         .isInstanceOf(ConnectorException.class)
@@ -55,7 +53,7 @@ class AnthropicReasoningValidatorTest {
 
   @Test
   void failsWhenEffortSetAndMatchedModelDeclaresNoReasoning() {
-    final var params = params(null, AnthropicEffort.HIGH, null);
+    final var params = params(null, AnthropicEffort.HIGH);
 
     assertThatThrownBy(() -> validate(params, null, true))
         .isInstanceOf(ConnectorException.class)
@@ -65,7 +63,7 @@ class AnthropicReasoningValidatorTest {
 
   @Test
   void passesWhenNeitherThinkingNorEffortSetAndReasoningIsNull() {
-    assertThatCode(() -> validate(params(null, null, null), null, true)).doesNotThrowAnyException();
+    assertThatCode(() -> validate(params(null, null), null, true)).doesNotThrowAnyException();
     assertThatCode(() -> validate(null, null, true)).doesNotThrowAnyException();
   }
 
@@ -75,7 +73,7 @@ class AnthropicReasoningValidatorTest {
   void thinkingWithNullModeIsTreatedAsUnsetEvenWithoutReasoningCapabilities() {
     // Modeler filled in a budget but left the mode dropdown blank (Task 2 review note): this must
     // not be treated as "thinking set" and must not trigger rule 1.
-    final var params = params(new AnthropicThinking(null, 4096, null), null, null);
+    final var params = params(new AnthropicThinking(null, 4096, null), null);
 
     assertThatCode(() -> validate(params, null, true)).doesNotThrowAnyException();
   }
@@ -84,7 +82,7 @@ class AnthropicReasoningValidatorTest {
 
   @Test
   void failsWhenThinkingModeNotInDeclaredThinkingModes() {
-    final var params = params(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null), null, null);
+    final var params = params(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null), null);
     final var reasoning = reasoning(List.of(ThinkingMode.ADAPTIVE), List.of());
 
     assertThatThrownBy(() -> validate(params, reasoning, true))
@@ -95,7 +93,7 @@ class AnthropicReasoningValidatorTest {
 
   @Test
   void passesWhenThinkingModeIsInDeclaredThinkingModes() {
-    final var params = params(new AnthropicThinking(ThinkingMode.ADAPTIVE, null, null), null, null);
+    final var params = params(new AnthropicThinking(ThinkingMode.ADAPTIVE, null, null), null);
     final var reasoning = reasoning(List.of(ThinkingMode.ADAPTIVE), List.of());
 
     assertThatCode(() -> validate(params, reasoning, true)).doesNotThrowAnyException();
@@ -105,7 +103,7 @@ class AnthropicReasoningValidatorTest {
 
   @Test
   void failsWhenEnabledThinkingHasNullBudgetTokens() {
-    final var params = params(new AnthropicThinking(ThinkingMode.ENABLED, null, null), null, null);
+    final var params = params(new AnthropicThinking(ThinkingMode.ENABLED, null, null), null);
     final var reasoning = reasoning(List.of(ThinkingMode.ENABLED), List.of());
 
     assertThatThrownBy(() -> validate(params, reasoning, true))
@@ -116,7 +114,7 @@ class AnthropicReasoningValidatorTest {
 
   @Test
   void passesWhenEnabledThinkingHasBudgetTokens() {
-    final var params = params(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null), null, null);
+    final var params = params(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null), null);
     final var reasoning = reasoning(List.of(ThinkingMode.ENABLED), List.of());
 
     assertThatCode(() -> validate(params, reasoning, true)).doesNotThrowAnyException();
@@ -124,7 +122,7 @@ class AnthropicReasoningValidatorTest {
 
   @Test
   void passesWhenDisabledThinkingHasNoBudgetTokens() {
-    final var params = params(new AnthropicThinking(ThinkingMode.DISABLED, null, null), null, null);
+    final var params = params(new AnthropicThinking(ThinkingMode.DISABLED, null, null), null);
     final var reasoning = reasoning(List.of(ThinkingMode.DISABLED), List.of());
 
     assertThatCode(() -> validate(params, reasoning, true)).doesNotThrowAnyException();
@@ -133,20 +131,17 @@ class AnthropicReasoningValidatorTest {
   @Test
   void passesWhenAdaptiveThinkingHasDisplaySetAndNoBudget() {
     final var params =
-        params(
-            new AnthropicThinking(ThinkingMode.ADAPTIVE, null, ThinkingDisplay.OMITTED),
-            null,
-            null);
+        params(new AnthropicThinking(ThinkingMode.ADAPTIVE, null, ThinkingDisplay.OMITTED), null);
     final var reasoning = reasoning(List.of(ThinkingMode.ADAPTIVE), List.of());
 
     assertThatCode(() -> validate(params, reasoning, true)).doesNotThrowAnyException();
   }
 
-  // --- Rule 4: effort (non-CUSTOM) set but the model declares no effort levels ---------------
+  // --- Rule 4: effort set but the model declares no effort levels ----------------------------
 
   @Test
   void failsWhenEffortSetAndDeclaredEffortLevelsAreEmpty() {
-    final var params = params(null, AnthropicEffort.HIGH, null);
+    final var params = params(null, AnthropicEffort.HIGH);
     final var reasoning = reasoning(List.of(), List.of());
 
     assertThatThrownBy(() -> validate(params, reasoning, true))
@@ -155,11 +150,11 @@ class AnthropicReasoningValidatorTest {
         .isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
   }
 
-  // --- Rule 5: effort (non-CUSTOM) not in the declared effort-levels --------------------------
+  // --- Rule 5: effort not in the declared effort-levels ---------------------------------------
 
   @Test
   void failsWhenEffortNotInDeclaredEffortLevels() {
-    final var params = params(null, AnthropicEffort.XHIGH, null);
+    final var params = params(null, AnthropicEffort.XHIGH);
     final var reasoning = reasoning(List.of(), List.of(AnthropicEffort.LOW, AnthropicEffort.HIGH));
 
     assertThatThrownBy(() -> validate(params, reasoning, true))
@@ -170,61 +165,24 @@ class AnthropicReasoningValidatorTest {
 
   @Test
   void passesWhenEffortIsInDeclaredEffortLevels() {
-    final var params = params(null, AnthropicEffort.HIGH, null);
+    final var params = params(null, AnthropicEffort.HIGH);
     final var reasoning = reasoning(List.of(), List.of(AnthropicEffort.LOW, AnthropicEffort.HIGH));
 
     assertThatCode(() -> validate(params, reasoning, true)).doesNotThrowAnyException();
-  }
-
-  // --- Rule 6: effort == CUSTOM always bypasses effort-level validation ----------------------
-
-  @Test
-  void customEffortBypassesEffortLevelValidationEvenWithEmptyDeclaredLevels() {
-    final var params = params(null, AnthropicEffort.CUSTOM, "verbose");
-    final var reasoning = reasoning(List.of(), List.of());
-
-    assertThatCode(() -> validate(params, reasoning, true)).doesNotThrowAnyException();
-  }
-
-  @Test
-  void customEffortBypassesRule1EvenWhenTheMatchedModelDeclaresNoReasoningAtAll() {
-    // effort == CUSTOM is a full escape hatch: it is sent verbatim and bypasses ALL matrix effort
-    // validation, including rule 1 (the "model declares no reasoning at all" gate). A matched model
-    // with no `reasoning` block whatsoever therefore accepts a CUSTOM effort — the API decides.
-    // (Thinking has no such hatch: a set thinking mode still trips rule 1 — covered separately.)
-    final var params = params(null, AnthropicEffort.CUSTOM, "verbose");
-
-    assertThatCode(() -> validate(params, null, true)).doesNotThrowAnyException();
-  }
-
-  @Test
-  void customEffortWithBlankValueFailsFastRegardlessOfModelMatch() {
-    // Selecting CUSTOM but leaving the free-text value blank is malformed config: fail fast with a
-    // clear error instead of sending an empty "effort" string. This completeness check is
-    // model-independent — it fires even for an unmatched/pass-through model.
-    for (final String blank : new String[] {null, "", "   "}) {
-      for (final boolean matched : new boolean[] {true, false}) {
-        assertThatThrownBy(
-                () -> validate(params(null, AnthropicEffort.CUSTOM, blank), null, matched))
-            .isInstanceOf(ConnectorException.class)
-            .extracting(e -> ((ConnectorException) e).getErrorCode())
-            .isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
-      }
-    }
   }
 
   // --- Unmatched model: pass-through, no validation at all ------------------------------------
 
   @Test
   void unmatchedModelWithThinkingSetAndNoReasoningPassesThrough() {
-    final var params = params(new AnthropicThinking(ThinkingMode.ENABLED, null, null), null, null);
+    final var params = params(new AnthropicThinking(ThinkingMode.ENABLED, null, null), null);
 
     assertThatCode(() -> validate(params, null, false)).doesNotThrowAnyException();
   }
 
   @Test
   void unmatchedModelWithUnsupportedEffortPassesThrough() {
-    final var params = params(null, AnthropicEffort.XHIGH, null);
+    final var params = params(null, AnthropicEffort.XHIGH);
     final var reasoning = reasoning(List.of(), List.of(AnthropicEffort.LOW));
 
     assertThatCode(() -> validate(params, reasoning, false)).doesNotThrowAnyException();
@@ -232,7 +190,7 @@ class AnthropicReasoningValidatorTest {
 
   @Test
   void unmatchedModelWithUnsupportedThinkingModePassesThrough() {
-    final var params = params(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null), null, null);
+    final var params = params(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null), null);
     final var reasoning = reasoning(List.of(ThinkingMode.ADAPTIVE), List.of());
 
     assertThatCode(() -> validate(params, reasoning, false)).doesNotThrowAnyException();

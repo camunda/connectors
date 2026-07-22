@@ -139,8 +139,9 @@ class OpenAiChatModelTest {
             new OpenAiConnection(
                 OpenAiApiFamily.COMPLETIONS,
                 new OpenAiDirectBackend("   ", null, null),
-                new OpenAiModel("gpt-5.4", null),
                 null,
+                null,
+                new OpenAiModel("gpt-5.4", null),
                 null,
                 null,
                 null));
@@ -160,8 +161,9 @@ class OpenAiChatModelTest {
                     Map.of(),
                     Map.of(),
                     new CompatibleNoAuthentication()),
-                new OpenAiModel("custom-model", null),
                 null,
+                null,
+                new OpenAiModel("custom-model", null),
                 null,
                 null,
                 null));

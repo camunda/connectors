@@ -64,8 +64,9 @@ class AnthropicChatModelApiFactoryTest {
             new AnthropicConnection(
                 new AnthropicBedrockBackend(
                     "eu-west-1", null, new AwsApiKeyAuthentication("api-key")),
-                new AnthropicModel(MODEL_ID, null),
                 null,
+                null,
+                new AnthropicModel(MODEL_ID, null),
                 null,
                 null,
                 null,
@@ -153,8 +154,9 @@ class AnthropicChatModelApiFactoryTest {
     return new AnthropicChatModel(
         new AnthropicConnection(
             new AnthropicDirectBackend(null, "sk-ant"),
-            new AnthropicModel(modelId, null),
             null,
+            null,
+            new AnthropicModel(modelId, null),
             null,
             null,
             null,

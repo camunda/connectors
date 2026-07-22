@@ -78,10 +78,11 @@ class OpenAiResponsesRequestConverterTest {
         new OpenAiConnection(
             OpenAiApiFamily.RESPONSES,
             new OpenAiDirectBackend("sk-test", null, null),
+            null,
+            null,
             new OpenAiModel("gpt-5", parameters),
             enableWebSearch,
             enableCodeInterpreter,
-            null,
             null));
   }
 
@@ -90,8 +91,9 @@ class OpenAiResponsesRequestConverterTest {
         new OpenAiConnection(
             OpenAiApiFamily.RESPONSES,
             backend,
-            new OpenAiModel("gpt-5", null),
             null,
+            null,
+            new OpenAiModel("gpt-5", null),
             null,
             null,
             null));
@@ -405,7 +407,7 @@ class OpenAiResponsesRequestConverterTest {
 
   @Test
   void mapsEffortToReasoningIncludeEncryptedContentAndDisablesStore() {
-    final var parameters = new OpenAiModelParameters(null, null, null, OpenAiEffort.HIGH);
+    final var parameters = new OpenAiModelParameters(null, null, null, null, OpenAiEffort.HIGH);
     final var caps = caps(new OpenAiReasoningCapabilities(List.of(OpenAiEffort.HIGH)));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
@@ -425,7 +427,7 @@ class OpenAiResponsesRequestConverterTest {
 
   @Test
   void throwsWhenValidatorRejectsUnsupportedEffort() {
-    final var parameters = new OpenAiModelParameters(null, null, null, OpenAiEffort.HIGH);
+    final var parameters = new OpenAiModelParameters(null, null, null, null, OpenAiEffort.HIGH);
     // caps() declares no reasoning capability at all -> effort configured but unsupported.
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 

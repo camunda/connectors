@@ -53,7 +53,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
@@ -514,12 +513,7 @@ public class AnthropicMessageRequestConverter {
     }
 
     if (effort != null) {
-      final String customEffort = params == null ? null : params.customEffort();
-      final BetaOutputConfig.Effort wireEffort =
-          effort == AnthropicEffort.CUSTOM
-              ? BetaOutputConfig.Effort.of(Objects.requireNonNullElse(customEffort, ""))
-              : BetaOutputConfig.Effort.of(effort.name().toLowerCase());
-      outputConfigBuilder.effort(wireEffort);
+      outputConfigBuilder.effort(BetaOutputConfig.Effort.of(effort.name().toLowerCase()));
     }
 
     builder.outputConfig(outputConfigBuilder.build());

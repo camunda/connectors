@@ -168,8 +168,9 @@ class OpenAiProviderContentRoundTripTest {
             new OpenAiConnection(
                 OpenAiApiFamily.RESPONSES,
                 new OpenAiDirectBackend("sk-test", null, null),
-                new OpenAiModel("gpt-5", null),
                 null,
+                null,
+                new OpenAiModel("gpt-5", null),
                 null,
                 null,
                 null));

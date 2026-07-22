@@ -68,8 +68,9 @@ class OpenAiChatModelApiFactoryTest {
         new AnthropicChatModel(
             new AnthropicConnection(
                 new AnthropicDirectBackend(null, "sk-ant"),
-                new AnthropicModel(MODEL_ID, null),
                 null,
+                null,
+                new AnthropicModel(MODEL_ID, null),
                 null,
                 null,
                 null,
@@ -146,8 +147,9 @@ class OpenAiChatModelApiFactoryTest {
         new OpenAiConnection(
             apiFamily,
             new OpenAiDirectBackend("sk-openai", null, null),
-            new OpenAiModel(modelId, null),
             null,
+            null,
+            new OpenAiModel(modelId, null),
             null,
             null,
             null));
@@ -163,8 +165,9 @@ class OpenAiChatModelApiFactoryTest {
                 null,
                 null,
                 new CompatibleApiKeyAuthentication("api-key")),
-            new OpenAiModel(modelId, null),
             null,
+            null,
+            new OpenAiModel(modelId, null),
             null,
             null,
             null));

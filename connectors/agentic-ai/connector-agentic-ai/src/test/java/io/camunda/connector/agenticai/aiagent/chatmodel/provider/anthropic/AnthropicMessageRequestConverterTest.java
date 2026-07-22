@@ -111,8 +111,9 @@ class AnthropicMessageRequestConverterTest {
     return new AnthropicChatModel(
         new AnthropicConnection(
             new AnthropicDirectBackend(null, "sk-ant-test"),
-            new AnthropicModel("claude-sonnet-4-6", parameters),
             null,
+            null,
+            new AnthropicModel("claude-sonnet-4-6", parameters),
             null,
             skills,
             enableCodeExecution,
@@ -129,8 +130,9 @@ class AnthropicMessageRequestConverterTest {
     return new AnthropicChatModel(
         new AnthropicConnection(
             new AnthropicDirectBackend(null, "sk-ant-test"),
-            new AnthropicModel("claude-sonnet-4-6", null),
             null,
+            null,
+            new AnthropicModel("claude-sonnet-4-6", null),
             null,
             null,
             null,
@@ -524,7 +526,7 @@ class AnthropicMessageRequestConverterTest {
   @SuppressWarnings(
       "deprecation") // temperature()/topP()/topK() deprecated in anthropic-java 2.48.0
   void usesConfiguredMaxTokensAndModelParams() {
-    final var parameters = new AnthropicModelParameters(2048, 0.5, 0.9, 40, null, null, null);
+    final var parameters = new AnthropicModelParameters(2048, 0.5, 0.9, 40, null, null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
     final var response =
         new JobWorkerResponseConfiguration(new TextResponseFormatConfiguration(true), null, null);
@@ -934,12 +936,11 @@ class AnthropicMessageRequestConverterTest {
   // --- Reasoning: thinking / effort mapping (Task 3) --------------------------------------
 
   private static AnthropicModelParameters thinkingParams(@Nullable AnthropicThinking thinking) {
-    return new AnthropicModelParameters(null, null, null, null, null, null, thinking);
+    return new AnthropicModelParameters(null, null, null, null, null, thinking);
   }
 
-  private static AnthropicModelParameters effortParams(
-      @Nullable AnthropicEffort effort, @Nullable String customEffort) {
-    return new AnthropicModelParameters(null, null, null, null, effort, customEffort, null);
+  private static AnthropicModelParameters effortParams(@Nullable AnthropicEffort effort) {
+    return new AnthropicModelParameters(null, null, null, null, effort, null);
   }
 
   @Test
@@ -1069,7 +1070,7 @@ class AnthropicMessageRequestConverterTest {
                 AnthropicEffort.XHIGH, "xhigh",
                 AnthropicEffort.MAX, "max")
             .entrySet()) {
-      final var parameters = effortParams(entry.getKey(), null);
+      final var parameters = effortParams(entry.getKey());
       final var params =
           converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps);
 
@@ -1082,21 +1083,6 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void customEffortSendsFreeTextValueVerbatim() {
-    final var parameters = effortParams(AnthropicEffort.CUSTOM, "extra-verbose");
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-    final var caps = capsWithReasoning(List.of(), List.of());
-
-    final var params =
-        converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps);
-
-    assertThat(params.outputConfig().orElseThrow().effort().orElseThrow().asString())
-        .isEqualTo("extra-verbose");
-    assertThat(requestBodyAsJson(params).path("output_config").path("effort").asText())
-        .isEqualTo("extra-verbose");
-  }
-
-  @Test
   void effortAndJsonResponseFormatBothLandOnTheSameOutputConfigWithoutClobbering() {
     // Regression guard: MessageCreateParams.Builder#outputConfig(BetaOutputConfig) is a plain
     // setter that replaces the whole field, so effort and the JSON schema format must be combined
@@ -1106,7 +1092,7 @@ class AnthropicMessageRequestConverterTest {
     final var response =
         new JobWorkerResponseConfiguration(
             new JsonResponseFormatConfiguration(schema, "Answer"), null, null);
-    final var parameters = effortParams(AnthropicEffort.HIGH, null);
+    final var parameters = effortParams(AnthropicEffort.HIGH);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
     final var caps = capsWithReasoning(List.of(), List.of(AnthropicEffort.HIGH));
 
@@ -1133,7 +1119,7 @@ class AnthropicMessageRequestConverterTest {
 
   @Test
   void failsFastWhenEffortIsSetButMatchedModelDeclaresNoReasoning() {
-    final var parameters = effortParams(AnthropicEffort.HIGH, null);
+    final var parameters = effortParams(AnthropicEffort.HIGH);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     assertThatThrownBy(

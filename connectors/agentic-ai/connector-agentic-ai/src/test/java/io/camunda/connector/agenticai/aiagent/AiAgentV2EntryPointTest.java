@@ -37,8 +37,9 @@ class AiAgentV2EntryPointTest {
     return new AnthropicChatModel(
         new AnthropicConnection(
             new AnthropicDirectBackend(null, "sk-ant"),
-            new AnthropicModel("claude-sonnet-4-6", null),
             null,
+            null,
+            new AnthropicModel("claude-sonnet-4-6", null),
             null,
             null,
             null,

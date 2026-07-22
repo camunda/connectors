@@ -9,8 +9,8 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Anthropic effort levels. CUSTOM is a config-only escape hatch (never appears in the matrix).
- * Carries lowercase {@link JsonProperty} values (matching {@link ThinkingMode} and {@link
+ * Anthropic effort levels. Carries lowercase {@link JsonProperty} values (matching {@link
+ * ThinkingMode} and {@link
  * io.camunda.connector.agenticai.aiagent.capabilities.ModelCapabilities.Modality}) so it
  * round-trips the lowercase values used throughout the bundled YAML regardless of the consuming
  * {@link com.fasterxml.jackson.databind.ObjectMapper}'s case-sensitivity configuration.
@@ -25,7 +25,5 @@ public enum AnthropicEffort {
   @JsonProperty("xhigh")
   XHIGH,
   @JsonProperty("max")
-  MAX,
-  @JsonProperty("custom")
-  CUSTOM
+  MAX
 }

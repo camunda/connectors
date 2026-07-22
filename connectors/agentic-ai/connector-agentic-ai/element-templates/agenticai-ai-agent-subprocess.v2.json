@@ -26,13 +26,13 @@
     "label" : "Model",
     "openByDefault" : false
   }, {
-    "id" : "skills",
-    "label" : "Skills & Tools",
-    "tooltip" : "Agent Skills and built-in server tools (code execution, web search, web fetch) available to the model.",
-    "openByDefault" : false
-  }, {
     "id" : "capabilities",
     "label" : "Advanced model options",
+    "openByDefault" : false
+  }, {
+    "id" : "skills",
+    "label" : "Model Tools",
+    "tooltip" : "Agent Skills and built-in server tools (code execution, web search, web fetch) available to the model.",
     "openByDefault" : false
   }, {
     "id" : "systemPrompt",
@@ -656,52 +656,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.openai.enableWebSearch",
-    "label" : "Enable web search",
-    "optional" : true,
-    "feel" : "static",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.enableWebSearch",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.apiFamily",
-        "equals" : "responses",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Enable the OpenAI web_search server tool (Responses API only).",
-    "type" : "Boolean"
-  }, {
-    "id" : "provider.openai.enableCodeInterpreter",
-    "label" : "Enable code interpreter",
-    "optional" : true,
-    "feel" : "static",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.enableCodeInterpreter",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.apiFamily",
-        "equals" : "responses",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Enable the OpenAI code_interpreter server tool (Responses API only).",
-    "type" : "Boolean"
-  }, {
     "id" : "provider.openai.timeouts.timeout",
     "label" : "Timeout",
     "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
@@ -740,76 +694,9 @@
     "placeholder" : "claude-sonnet-4-6",
     "type" : "String"
   }, {
-    "id" : "provider.anthropic.model.parameters.maxTokens",
-    "label" : "Maximum tokens",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.maxTokens",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.anthropic.model.parameters.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "tooltip" : "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.anthropic.model.parameters.topP",
-    "label" : "top P",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.topP",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.anthropic.model.parameters.topK",
-    "label" : "top K",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.topK",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
     "id" : "provider.anthropic.model.parameters.effort",
     "label" : "Effort",
+    "description" : "Leave unset to use the model default.",
     "optional" : true,
     "group" : "model",
     "binding" : {
@@ -821,7 +708,7 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
-    "tooltip" : "General effort dial (affects text, tool calls and thinking). Not supported on all models. 'custom' sends the free-text value below verbatim. Unset ⇒ model default (high).",
+    "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. It affects all output — text, tool calls and extended thinking. <code>low</code> is the most efficient (fewest tokens, fastest, some capability reduction); <code>medium</code> balances speed, cost and quality; <code>high</code> is full capability; <code>xhigh</code> targets long-running coding and agentic work; <code>max</code> gives maximum capability with no token constraints. Not supported on all models. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/effort\" target=\"_blank\">effort documentation</a>.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "low",
@@ -838,33 +725,7 @@
     }, {
       "name" : "max",
       "value" : "max"
-    }, {
-      "name" : "custom",
-      "value" : "custom"
     } ]
-  }, {
-    "id" : "provider.anthropic.model.parameters.customEffort",
-    "label" : "Custom effort",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.customEffort",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.anthropic.model.parameters.effort",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Free-text effort value sent verbatim when Effort = 'custom'.",
-    "type" : "String"
   }, {
     "id" : "provider.anthropic.model.parameters.thinking.mode",
     "label" : "Thinking mode",
@@ -918,6 +779,7 @@
     "id" : "provider.anthropic.model.parameters.thinking.display",
     "label" : "Thinking display",
     "optional" : true,
+    "value" : "summarized",
     "group" : "model",
     "binding" : {
       "name" : "provider.anthropic.model.parameters.thinking.display",
@@ -934,7 +796,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Adaptive-thinking output display ('summarized' or 'omitted'). Applies only to 'adaptive'.",
+    "tooltip" : "Controls how the model's extended thinking is returned: <code>summarized</code> includes a plain-text summary of the thinking in the response; <code>omitted</code> leaves it out.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "summarized",
@@ -943,6 +805,24 @@
       "name" : "omitted",
       "value" : "omitted"
     } ]
+  }, {
+    "id" : "provider.anthropic.enablePromptCaching",
+    "label" : "Enable prompt caching",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.enablePromptCaching",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Enables Anthropic automatic prompt caching by adding a top-level <code>cache_control: {\"type\": \"ephemeral\"}</code> to each request. The API automatically caches the longest stable prefix (system prompt, tool definitions and earlier conversation messages) and reuses it across requests made within the cache lifetime (5 minutes). Cache hits require a byte-identical prefix; the system prompt and tools stay stable across turns, but note that once the message window starts evicting the oldest messages the message-history portion of the prefix shifts each turn. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">automatic caching documentation</a>.",
+    "type" : "Boolean"
   }, {
     "id" : "provider.openai.model.model",
     "label" : "Model",
@@ -965,59 +845,9 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.openai.model.parameters.maxCompletionTokens",
-    "label" : "Maximum completion tokens",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.openai.model.parameters.maxCompletionTokens",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.openai.model.parameters.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.openai.model.parameters.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.openai.model.parameters.topP",
-    "label" : "top P",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.openai.model.parameters.topP",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
     "id" : "provider.openai.model.parameters.effort",
     "label" : "Reasoning effort",
+    "description" : "Leave unset to use the model default.",
     "optional" : true,
     "group" : "model",
     "binding" : {
@@ -1029,7 +859,7 @@
       "equals" : "openai",
       "type" : "simple"
     },
-    "tooltip" : "Reasoning effort for reasoning-capable models. Unset ⇒ model default.",
+    "tooltip" : "Guides how much reasoning a reasoning-capable model applies before answering, trading speed and cost against answer quality; the model reasons adaptively, spending fewer tokens on simple tasks and more on hard ones. <code>minimal</code> for the fastest, cheapest responses; <code>low</code> for tool use and light planning; <code>medium</code> balances quality and latency; <code>high</code> for complex debugging and agentic tasks; <code>xhigh</code> and <code>max</code> for the deepest reasoning on the hardest problems. Only applies to reasoning models. See the <a href=\"https://developers.openai.com/api/docs/guides/reasoning\" target=\"_blank\">reasoning documentation</a>.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "minimal",
@@ -1051,6 +881,250 @@
       "value" : "max"
     } ]
   }, {
+    "id" : "provider.anthropic.capabilityMode",
+    "label" : "Model capabilities",
+    "description" : "How model capabilities are resolved. 'Auto' uses the built-in capability data for the selected model; 'Custom' lets you supply the overrides below.",
+    "optional" : true,
+    "value" : "auto",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "provider.anthropic.capabilityMode",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Auto",
+      "value" : "auto"
+    }, {
+      "name" : "Custom",
+      "value" : "custom"
+    } ]
+  }, {
+    "id" : "provider.anthropic.capabilityOverride",
+    "label" : "Model capability overrides",
+    "description" : "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "provider.anthropic.capabilityOverride",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.capabilityMode",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "placeholder" : "{contextWindow: 200000, maxOutputTokens: 8192}",
+    "type" : "Text"
+  }, {
+    "id" : "provider.anthropic.model.parameters.maxTokens",
+    "label" : "Maximum tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.maxTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.anthropic.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.anthropic.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.anthropic.model.parameters.topK",
+    "label" : "top K",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.topK",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.capabilityMode",
+    "label" : "Model capabilities",
+    "description" : "How model capabilities are resolved. 'Auto' uses the built-in capability data for the selected model; 'Custom' lets you supply the overrides below.",
+    "optional" : true,
+    "value" : "auto",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "provider.openai.capabilityMode",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Auto",
+      "value" : "auto"
+    }, {
+      "name" : "Custom",
+      "value" : "custom"
+    } ]
+  }, {
+    "id" : "provider.openai.capabilityOverride",
+    "label" : "Model capability overrides",
+    "description" : "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "provider.openai.capabilityOverride",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.capabilityMode",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "placeholder" : "{contextWindow: 200000, maxOutputTokens: 8192}",
+    "type" : "Text"
+  }, {
+    "id" : "provider.openai.model.parameters.maxCompletionTokens",
+    "label" : "Maximum completion tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "provider.openai.model.parameters.maxCompletionTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.apiFamily",
+        "equals" : "completions",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.model.parameters.maxOutputTokens",
+    "label" : "Maximum output tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "provider.openai.model.parameters.maxOutputTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.apiFamily",
+        "equals" : "responses",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The maximum number of tokens per request the model may generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-max_output_tokens\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "provider.openai.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "provider.openai.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
     "id" : "provider.anthropic.skills",
     "label" : "Skills",
     "description" : "Anthropic Agent Skills as <code>type:skill:version</code> strings, e.g. <code>pptx</code> or <code>custom:my-skill:v2</code>.",
@@ -1067,7 +1141,7 @@
       "type" : "simple"
     },
     "tooltip" : "Skills made available to the model. Type and version default to <code>anthropic</code>/<code>latest</code>. Custom skills must be uploaded to Anthropic before they can be referenced here; Anthropic-provided skills (such as <code>pptx</code>) need no upload. Configuring skills automatically enables the <code>code_execution</code> tool and the required beta headers. Maximum of 8 skills. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/skills-guide\" target=\"_blank\">Agent Skills documentation</a>.",
-    "placeholder" : "=[\"pptx\", \"xlsx:20260710\", \"custom:skill_01AbCdEfGhIjKlMnOpQrStUv:latest\"]",
+    "placeholder" : "[\"pptx\", \"xlsx:20260710\", \"custom:skill_01AbCdEfGhIjKlMnOpQrStUv:latest\"]",
     "type" : "Text"
   }, {
     "id" : "provider.anthropic.enableCodeExecution",
@@ -1196,59 +1270,51 @@
     "tooltip" : "Anthropic <code>web_fetch</code> tool version string (wire <code>type</code>). The default <code>web_fetch_20260318</code> uses dynamic filtering (the tool runs inside code execution) and works alongside Skills and code execution when the code execution tool is version <code>20260120</code> or later (the default). It requires a programmatic-tool-calling model and is not ZDR-eligible. Downgrade to a basic/direct revision such as <code>web_fetch_20250910</code> for ZDR or older/non-programmatic models.",
     "type" : "String"
   }, {
-    "id" : "provider.anthropic.capabilityOverride",
-    "label" : "Model capability overrides",
-    "description" : "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
+    "id" : "provider.openai.enableWebSearch",
+    "label" : "Enable web search",
     "optional" : true,
-    "feel" : "required",
-    "group" : "capabilities",
-    "binding" : {
-      "name" : "provider.anthropic.capabilityOverride",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "placeholder" : "={contextWindow: 200000, maxOutputTokens: 8192}",
-    "type" : "Text"
-  }, {
-    "id" : "provider.anthropic.enablePromptCaching",
-    "label" : "Enable prompt caching",
-    "optional" : true,
-    "value" : false,
     "feel" : "static",
-    "group" : "capabilities",
+    "group" : "skills",
     "binding" : {
-      "name" : "provider.anthropic.enablePromptCaching",
+      "name" : "provider.openai.enableWebSearch",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "provider.openai.apiFamily",
+        "equals" : "responses",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
     },
-    "tooltip" : "Enables Anthropic automatic prompt caching by adding a top-level <code>cache_control: {\"type\": \"ephemeral\"}</code> to each request. The API automatically caches the longest stable prefix (system prompt, tool definitions and earlier conversation messages) and reuses it across requests made within the cache lifetime (5 minutes). Cache hits require a byte-identical prefix; the system prompt and tools stay stable across turns, but note that once the message window starts evicting the oldest messages the message-history portion of the prefix shifts each turn. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">automatic caching documentation</a>.",
+    "tooltip" : "Enable the OpenAI web_search server tool (Responses API only).",
     "type" : "Boolean"
   }, {
-    "id" : "provider.openai.capabilityOverride",
-    "label" : "Model capability overrides",
-    "description" : "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
+    "id" : "provider.openai.enableCodeInterpreter",
+    "label" : "Enable code interpreter",
     "optional" : true,
-    "feel" : "required",
-    "group" : "capabilities",
+    "feel" : "static",
+    "group" : "skills",
     "binding" : {
-      "name" : "provider.openai.capabilityOverride",
+      "name" : "provider.openai.enableCodeInterpreter",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "provider.openai.apiFamily",
+        "equals" : "responses",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
     },
-    "placeholder" : "={contextWindow: 200000, maxOutputTokens: 8192}",
-    "type" : "Text"
+    "tooltip" : "Enable the OpenAI code_interpreter server tool (Responses API only).",
+    "type" : "Boolean"
   }, {
     "id" : "data.systemPrompt.prompt",
     "label" : "System prompt",
