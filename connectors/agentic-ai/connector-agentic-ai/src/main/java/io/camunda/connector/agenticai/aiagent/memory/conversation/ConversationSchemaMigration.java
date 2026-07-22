@@ -46,8 +46,9 @@ public final class ConversationSchemaMigration {
 
   /**
    * Reads an {@code agentContext} JSON tree, upcasts its in-process conversation messages if the
-   * tree was persisted before {@link AgentContext#CURRENT_SCHEMA_VERSION}, then binds the (possibly
-   * upcasted) tree via {@code AgentContext}'s builder deserializer.
+   * tree was persisted before {@link AgentContext#CURRENT_SCHEMA_VERSION}, stamps the tree's {@code
+   * schemaVersion} to current so the migration is idempotent-safe on every later read/write cycle,
+   * then binds the (possibly upcasted) tree via {@code AgentContext}'s builder deserializer.
    *
    * <p>Shared by the request-field deserializer ({@code VersionedAgentContextDeserializer}) and the
    * backward-compatibility tests, so both exercise the same migration path. Binding via {@code
@@ -61,17 +62,25 @@ public final class ConversationSchemaMigration {
       return null;
     }
 
-    if (agentContextTree.isObject()) {
-      int schemaVersion = schemaVersionOf(agentContextTree);
+    if (agentContextTree instanceof ObjectNode agentContextObject) {
+      int schemaVersion = schemaVersionOf(agentContextObject);
       rejectIfNewerThanSupported(schemaVersion);
 
       if (schemaVersion < AgentContext.CURRENT_SCHEMA_VERSION) {
-        JsonNode conversation = agentContextTree.get(FIELD_CONVERSATION);
+        JsonNode conversation = agentContextObject.get(FIELD_CONVERSATION);
         if (conversation != null
             && conversation.isObject()
             && conversation.hasNonNull(FIELD_MESSAGES)) {
           upcastMessages(conversation.get(FIELD_MESSAGES), mapper);
         }
+
+        // stamp the tree to current regardless of whether the source version was missing
+        // (schemaVersion defaults on the bound record via its @Initializer) or an explicit lower
+        // number: without this, a context read with an explicit lower version binds and is later
+        // re-persisted still tagged with that lower version, so the next read would re-upcast
+        // already-structured content into a single ObjectContent. Stamping here makes migration
+        // idempotent-safe regardless of whether the source version was missing or explicit.
+        agentContextObject.put(FIELD_SCHEMA_VERSION, AgentContext.CURRENT_SCHEMA_VERSION);
       }
     }
 
