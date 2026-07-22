@@ -53,13 +53,14 @@
       <version>${version.aws-sdk2}</version>
     </dependency>
 
-    <!-- test-only: golden-JSON shape tests build fixture responses via the AWS SDK v2 response
-    builders' inherited SdkResponse.Builder#sdkHttpResponse(...), which is declared in sdk-core;
-    production code never references sdk-core directly (aws-core/http-client-spi suffice). -->
+    <!-- Required at compile scope: the v2 client/response types (e.g. ComprehendClient,
+    ClassifyDocumentResponse) implement supertypes declared in sdk-core (SdkClient, SdkResponse,
+    SdkPojo, SdkRequest, ...). javac must resolve those supertypes even though this module's code
+    never imports them by name, so sdk-core cannot be narrowed to test scope here; matching how
+    aws-eventbridge, aws-s3 and aws-lambda declare it. -->
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sdk-core</artifactId>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -80,6 +81,18 @@
 
   <build>
     <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+          <!-- sdk-core is required at compile scope for javac to resolve the v2 client/response
+          supertypes (SdkClient, SdkResponse, SdkPojo, SdkRequest, ...), but bytecode-level
+          dependency analysis only sees it referenced from test classes, so it is otherwise
+          flagged as a "non-test scoped test only dependency". -->
+          <ignoredNonTestScopedDependencies combine.children="append">
+            <dependency>software.amazon.awssdk:sdk-core</dependency>
+          </ignoredNonTestScopedDependencies>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>

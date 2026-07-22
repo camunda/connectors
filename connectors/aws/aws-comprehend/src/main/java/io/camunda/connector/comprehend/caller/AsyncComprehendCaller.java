@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,7 +94,24 @@ public class AsyncComprehendCaller
     StartDocumentClassificationJobRequest docClassificationRequest = requestBuilder.build();
 
     return ComprehendClassificationJobResult.from(
-        client.startDocumentClassificationJob(docClassificationRequest).join());
+        joinUnwrapped(client.startDocumentClassificationJob(docClassificationRequest)));
+  }
+
+  /**
+   * Blocks on the async SDK call's future and unwraps {@link CompletionException} so a failing call
+   * surfaces the original AWS SDK exception (e.g. {@code ComprehendException}) to callers, matching
+   * the exception type that the pre-migration (AWS SDK v1) synchronous-call-based async caller
+   * propagated, rather than the future's wrapper exception.
+   */
+  private static <T> T joinUnwrapped(CompletableFuture<T> future) {
+    try {
+      return future.join();
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof RuntimeException runtimeException) {
+        throw runtimeException;
+      }
+      throw e;
+    }
   }
 
   private InputDataConfig prepareInputConfig(ComprehendAsyncRequestData request) {

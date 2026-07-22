@@ -9,6 +9,7 @@ package io.camunda.connector.comprehend.caller;
 import static io.camunda.connector.comprehend.caller.ComprehendCaller.READ_ACTION_WITHOUT_FEATURES_EX;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.comprehend.ComprehendAsyncClient;
+import software.amazon.awssdk.services.comprehend.model.ComprehendException;
 import software.amazon.awssdk.services.comprehend.model.DocumentReadFeatureTypes;
 import software.amazon.awssdk.services.comprehend.model.DocumentReaderConfig;
 import software.amazon.awssdk.services.comprehend.model.InputDataConfig;
@@ -192,6 +194,27 @@ class AsyncComprehendCallerTest {
     Exception ex =
         assertThrows(IllegalArgumentException.class, () -> asyncCaller.call(client, asyncRequest));
     assertThat(ex.getMessage()).isEqualTo(READ_ACTION_WITHOUT_FEATURES_EX);
+  }
+
+  @Test
+  void callUnwrapsCompletionExceptionToPropagateOriginalAwsException() {
+    var asyncRequest =
+        prepareAsyncRequest(
+            ComprehendDocumentReadMode.SERVICE_DEFAULT,
+            ComprehendDocumentReadAction.TEXTRACT_ANALYZE_DOCUMENT,
+            true,
+            true);
+    var client = mock(ComprehendAsyncClient.class);
+    var awsException = ComprehendException.builder().message("boom").build();
+    var failedFuture = new CompletableFuture<StartDocumentClassificationJobResponse>();
+    failedFuture.completeExceptionally(awsException);
+
+    when(client.startDocumentClassificationJob(any(StartDocumentClassificationJobRequest.class)))
+        .thenReturn(failedFuture);
+
+    Exception ex =
+        assertThrows(ComprehendException.class, () -> asyncCaller.call(client, asyncRequest));
+    assertThat(ex).isSameAs(awsException);
   }
 
   @Test
