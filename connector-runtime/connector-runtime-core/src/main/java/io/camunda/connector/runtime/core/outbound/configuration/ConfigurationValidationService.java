@@ -94,9 +94,12 @@ public class ConfigurationValidationService {
     try {
       configuration = resolveConfiguration(request, registered.configurationClass());
     } catch (Exception e) {
-      // Do NOT surface e.getMessage(): FEEL/secret/JSON errors can echo resolved secret material.
+      // Log only the exception type, never the throwable: FEEL/secret/JSON error messages (and
+      // stack-trace detail) can echo resolved secret material into the logs.
       LOG.warn(
-          "Failed to resolve configuration '{}' from its reference", request.credentialId(), e);
+          "Failed to resolve configuration '{}' from its reference ({})",
+          request.credentialId(),
+          e.getClass().getName());
       return ConfigurationValidationResult.failure(
           RESOLUTION_FAILURE_CODE, RESOLUTION_FAILURE_MESSAGE);
     }
@@ -105,8 +108,12 @@ public class ConfigurationValidationService {
       // Same object graph and constraints the normal binding path validates (JobHandlerContext).
       validationProvider.validate(configuration);
     } catch (Exception e) {
-      // Do NOT surface e.getMessage(): constraint-violation messages can contain the invalid value.
-      LOG.warn("Resolved configuration '{}' failed input validation", request.credentialId(), e);
+      // Log only the exception type, never the throwable: constraint-violation messages can
+      // interpolate the invalid (secret) value.
+      LOG.warn(
+          "Resolved configuration '{}' failed input validation ({})",
+          request.credentialId(),
+          e.getClass().getName());
       return ConfigurationValidationResult.failure(
           INPUT_VALIDATION_FAILURE_CODE, INPUT_VALIDATION_FAILURE_MESSAGE);
     }
@@ -121,7 +128,12 @@ public class ConfigurationValidationService {
       // messages carrying credential material — so its message is logged, never surfaced.
       return validator.validate(configuration);
     } catch (Exception e) {
-      LOG.warn("Validator for configuration '{}' threw", request.credentialId(), e);
+      // Log only the exception type, never the throwable: a validator exception can wrap
+      // SDK/framework messages carrying credential material.
+      LOG.warn(
+          "Validator for configuration '{}' threw ({})",
+          request.credentialId(),
+          e.getClass().getName());
       String code =
           e instanceof ConnectorException ce && ce.getErrorCode() != null
               ? ce.getErrorCode()

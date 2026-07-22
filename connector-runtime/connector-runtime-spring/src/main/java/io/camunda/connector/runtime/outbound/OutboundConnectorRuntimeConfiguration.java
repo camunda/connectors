@@ -54,27 +54,22 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.cache.support.NoOpCacheManager;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
-import org.springframework.core.type.filter.AssignableTypeFilter;
 
 @Configuration
 @Import({
@@ -84,38 +79,23 @@ import org.springframework.core.type.filter.AssignableTypeFilter;
 })
 public class OutboundConnectorRuntimeConfiguration {
 
-  private static final Logger LOG =
-      LoggerFactory.getLogger(OutboundConnectorRuntimeConfiguration.class);
-
-  /** Base package scanned for {@code ConfigurationValidator} implementations. */
-  private static final String CONFIGURATION_SCAN_BASE_PACKAGE = "io.camunda.connector";
-
   @Bean
   public ConfigurationValidationRegistry configurationValidationRegistry() {
-    return new ConfigurationValidationRegistry(
-        scanConfigurationValidators(CONFIGURATION_SCAN_BASE_PACKAGE));
+    return new ConfigurationValidationRegistry(discoverConfigurationValidators());
   }
 
   /**
-   * Discovers {@code ConfigurationValidator} implementations on the classpath, independently of any
-   * connector, and instantiates them via their no-arg constructor.
+   * Discovers {@code ConfigurationValidator} implementations via the SPI {@link ServiceLoader},
+   * mirroring how connectors themselves are discovered ({@code SPIConnectorDiscovery}). This is
+   * package-independent: a third-party connector's validator (e.g. under {@code com.acme}) is found
+   * as long as it is declared in {@code META-INF/services}, whereas a fixed base-package scan would
+   * silently miss it and always answer {@code UNSUPPORTED}.
    */
-  private static Collection<ConfigurationValidator<?>> scanConfigurationValidators(
-      String basePackage) {
-    var scanner = new ClassPathScanningCandidateComponentProvider(false);
-    scanner.addIncludeFilter(new AssignableTypeFilter(ConfigurationValidator.class));
+  @SuppressWarnings("rawtypes")
+  private static List<ConfigurationValidator<?>> discoverConfigurationValidators() {
     List<ConfigurationValidator<?>> validators = new ArrayList<>();
-    for (BeanDefinition candidate : scanner.findCandidateComponents(basePackage)) {
-      try {
-        Class<?> validatorClass = Class.forName(candidate.getBeanClassName());
-        validators.add(
-            (ConfigurationValidator<?>) validatorClass.getDeclaredConstructor().newInstance());
-      } catch (ReflectiveOperationException | ClassCastException e) {
-        LOG.warn(
-            "Could not instantiate configuration validator '{}'; skipping",
-            candidate.getBeanClassName(),
-            e);
-      }
+    for (ConfigurationValidator validator : ServiceLoader.load(ConfigurationValidator.class)) {
+      validators.add(validator);
     }
     return validators;
   }

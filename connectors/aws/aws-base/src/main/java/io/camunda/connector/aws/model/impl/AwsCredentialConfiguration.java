@@ -10,6 +10,7 @@ import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * Configuration (credential) template for reusable AWS credentials, shared by AWS connectors.
@@ -23,7 +24,7 @@ import jakarta.validation.constraints.NotBlank;
  */
 @Configuration(id = "io.camunda:aws-credential:1", version = 1, name = "AWS Credential")
 public record AwsCredentialConfiguration(
-    @Valid @TemplateProperty(group = "authentication") AwsAuthentication authentication,
+    @Valid @NotNull @TemplateProperty(group = "authentication") AwsAuthentication authentication,
     @NotBlank
         @TemplateProperty(
             group = "configuration",

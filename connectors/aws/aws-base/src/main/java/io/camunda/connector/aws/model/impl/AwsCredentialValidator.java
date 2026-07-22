@@ -21,11 +21,57 @@ import software.amazon.awssdk.services.sts.model.StsException;
  *
  * <p>The AWS SDK dependency lives here, not on the configuration record, so the element-template
  * generator can load the record without the runtime SDK on its classpath.
+ *
+ * <p>Messages returned to the caller are static and value-free: raw AWS SDK exception text can
+ * carry endpoints, request ids, profile paths, or credential-identifying detail, so it is never
+ * surfaced.
  */
 public class AwsCredentialValidator implements ConfigurationValidator<AwsCredentialConfiguration> {
 
+  static final String UNAUTHORIZED_CODE = "UNAUTHORIZED";
+  static final String ERROR_CODE = "ERROR";
+  static final String INVALID_INPUT_CODE = "INVALID_INPUT";
+  static final String UNAUTHORIZED_MESSAGE = "AWS rejected the credential (unauthorized).";
+  static final String GENERIC_MESSAGE = "The AWS credential could not be validated.";
+  static final String MISSING_AUTH_MESSAGE = "Authentication is required.";
+
+  /** Seam for testing: performs the authenticated call, throwing on failure. */
+  @FunctionalInterface
+  interface IdentityCheck {
+    void run(AwsCredentialConfiguration configuration);
+  }
+
+  private final IdentityCheck identityCheck;
+
+  public AwsCredentialValidator() {
+    this(AwsCredentialValidator::callGetCallerIdentity);
+  }
+
+  AwsCredentialValidator(IdentityCheck identityCheck) {
+    this.identityCheck = identityCheck;
+  }
+
   @Override
   public ConfigurationValidationResult validate(AwsCredentialConfiguration configuration) {
+    // Defensive: a null authentication would otherwise fall through to the runtime's default
+    // credential chain and validate using the runtime's own identity. Normally rejected upstream by
+    // @NotNull, but guarded here in case the validator is invoked without prior bean validation.
+    if (configuration.authentication() == null) {
+      return ConfigurationValidationResult.failure(INVALID_INPUT_CODE, MISSING_AUTH_MESSAGE);
+    }
+    try {
+      identityCheck.run(configuration);
+      return ConfigurationValidationResult.success();
+    } catch (StsException e) {
+      String code = e.statusCode() == 403 || e.statusCode() == 401 ? UNAUTHORIZED_CODE : ERROR_CODE;
+      String message = code.equals(UNAUTHORIZED_CODE) ? UNAUTHORIZED_MESSAGE : GENERIC_MESSAGE;
+      return ConfigurationValidationResult.failure(code, message);
+    } catch (Exception e) {
+      return ConfigurationValidationResult.failure(ERROR_CODE, GENERIC_MESSAGE);
+    }
+  }
+
+  private static void callGetCallerIdentity(AwsCredentialConfiguration configuration) {
     try (StsClient sts =
         StsClient.builder()
             .credentialsProvider(
@@ -33,12 +79,6 @@ public class AwsCredentialValidator implements ConfigurationValidator<AwsCredent
             .region(Region.of(configuration.region()))
             .build()) {
       sts.getCallerIdentity();
-      return ConfigurationValidationResult.success();
-    } catch (StsException e) {
-      String code = e.statusCode() == 403 || e.statusCode() == 401 ? "UNAUTHORIZED" : "ERROR";
-      return ConfigurationValidationResult.failure(code, e.getMessage());
-    } catch (Exception e) {
-      return ConfigurationValidationResult.failure("ERROR", e.getMessage());
     }
   }
 }
