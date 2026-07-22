@@ -22,10 +22,12 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -123,22 +125,31 @@ class PhysicalTenantIdResolutionTest {
 
   @Test
   void inboundCorrelationHandler_returnsTheSingleEntryForASinglePhysicalTenant() {
-    var handler = mock(InboundCorrelationHandler.class);
+    var registry = mock(CamundaClientRegistry.class);
+    var client = clientWithPhysicalTenantId("tenant");
+    when(registry.clientNames()).thenReturn(Set.of("engine-a"));
+    when(registry.get("engine-a")).thenReturn(client);
 
-    var result = configuration.inboundCorrelationHandler(Map.of("tenant", handler));
+    var result =
+        configuration.inboundCorrelationHandler(
+            registry, null, mock(ObjectMapper.class), mock(ConnectorsInboundMetrics.class));
 
-    assertThat(result).isSameAs(handler);
+    assertThat(result).isInstanceOf(InboundCorrelationHandler.class);
   }
 
   @Test
   void inboundCorrelationHandler_throwsClearErrorForMultiplePhysicalTenants() {
-    var handlerA = mock(InboundCorrelationHandler.class);
-    var handlerB = mock(InboundCorrelationHandler.class);
+    var registry = mock(CamundaClientRegistry.class);
+    var clientA = clientWithPhysicalTenantId("tenant-a");
+    var clientB = clientWithPhysicalTenantId("tenant-b");
+    when(registry.clientNames()).thenReturn(Set.of("engine-a", "engine-b"));
+    when(registry.get("engine-a")).thenReturn(clientA);
+    when(registry.get("engine-b")).thenReturn(clientB);
 
     assertThatThrownBy(
             () ->
                 configuration.inboundCorrelationHandler(
-                    Map.of("tenant-a", handlerA, "tenant-b", handlerB)))
+                    registry, null, mock(ObjectMapper.class), mock(ConnectorsInboundMetrics.class)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("InboundCorrelationHandler");
   }
