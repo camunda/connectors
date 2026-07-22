@@ -11,17 +11,20 @@ import io.camunda.connector.aws.dynamodb.model.DeleteTable;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import java.time.Duration;
 import software.amazon.awssdk.core.waiters.WaiterOverrideConfiguration;
+import software.amazon.awssdk.retries.api.BackoffStrategy;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.DeleteTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
 
 public class DeleteTableOperation implements AwsDynamoDbOperation {
 
-  // See CreateTableOperation: caps the total wait near v1's 25 attempts x 5s (125s) default.
+  // See CreateTableOperation: the v2 DynamoDbWaiter's TableNotExists default is a fixed 20s poll
+  // delay, so we must set the 5s backoff explicitly (not just maxAttempts) to reproduce v1's
+  // 25x5s (~125s) behavior; maxAttempts is the sole binding constraint.
   private static final WaiterOverrideConfiguration WAITER_OVERRIDE_CONFIGURATION =
       WaiterOverrideConfiguration.builder()
           .maxAttempts(25)
-          .waitTimeout(Duration.ofSeconds(125))
+          .backoffStrategyV2(BackoffStrategy.fixedDelayWithoutJitter(Duration.ofSeconds(5)))
           .build();
 
   private final DeleteTable deleteTableModel;

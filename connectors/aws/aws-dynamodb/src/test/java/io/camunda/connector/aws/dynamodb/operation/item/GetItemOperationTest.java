@@ -54,6 +54,26 @@ class GetItemOperationTest extends BaseDynamoDbOperationTest {
     assertThat(result).isEqualTo(AttributeValueConverter.toSingleKeyEntries(itemAttributes));
   }
 
+  /**
+   * Numeric-key preservation: a numeric primary-key component must be sent as an {@code N}
+   * AttributeValue (via {@code AttributeValue.fromN}), not coerced to a string. This guards the
+   * plain-value -> AttributeValue conversion path the SDK v2 migration reprogrammed by hand ({@link
+   * AttributeValueConverter}); every other operation-level key test uses a string key, so this is
+   * the only one exercising the numeric branch that motivated the conversion path.
+   */
+  @Test
+  void invoke_sendsNumericPrimaryKeyComponentAsNumberAttribute() {
+    GetItem getItem = new GetItem(TestDynamoDBData.ActualValue.TABLE_NAME, Map.of("id", 123));
+    getItemOperation = new GetItemOperation(getItem);
+    ArgumentCaptor<GetItemRequest> requestCaptor = ArgumentCaptor.forClass(GetItemRequest.class);
+    when(dynamoDbClient.getItem(requestCaptor.capture()))
+        .thenReturn(GetItemResponse.builder().build());
+
+    getItemOperation.invoke(dynamoDbClient);
+
+    assertThat(requestCaptor.getValue().key()).containsEntry("id", AttributeValue.fromN("123"));
+  }
+
   @Test
   void invoke_shouldReturnNull_whenItemDoesNotExist() {
     // Given

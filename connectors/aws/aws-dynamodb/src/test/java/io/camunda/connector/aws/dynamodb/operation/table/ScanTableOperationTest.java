@@ -73,6 +73,64 @@ class ScanTableOperationTest extends BaseDynamoDbOperationTest {
             TestDynamoDBData.ActualValue.EXPRESSION_ATTRIBUTE_VALUES);
   }
 
+  /**
+   * Pagination test: proves {@code scanPaginator} walks past the first page. Page 1 returns an item
+   * plus a continuation key ({@code lastEvaluatedKey}); {@link ScanIterable} must then issue a
+   * second scan whose {@code exclusiveStartKey} echoes that key, and page 2's item must also be
+   * collected. The single-response tests can't catch a regression to first-page-only behavior --
+   * this one can, because it asserts both the resumed request and the merged two-page result.
+   */
+  @Test
+  public void invoke_collectsItemsAcrossPages() {
+    scanTable = new ScanTable(TestDynamoDBData.ActualValue.TABLE_NAME, null, null, null, null);
+    scanTableOperation = new ScanTableOperation(scanTable);
+
+    Map<String, AttributeValue> continuationKey = Map.of("id", AttributeValue.fromS("123"));
+    ScanResponse page1 =
+        ScanResponse.builder()
+            .items(
+                List.of(
+                    Map.of(
+                        "id", AttributeValue.fromS("123"),
+                        "name", AttributeValue.fromS("John"))))
+            .lastEvaluatedKey(continuationKey)
+            .build();
+    ScanResponse page2 =
+        ScanResponse.builder()
+            .items(
+                List.of(
+                    Map.of(
+                        "id", AttributeValue.fromS("456"),
+                        "name", AttributeValue.fromS("Jane"))))
+            .build(); // no lastEvaluatedKey -> paginator stops after this page
+
+    ArgumentCaptor<ScanRequest> requestCaptor = ArgumentCaptor.forClass(ScanRequest.class);
+    when(dynamoDbClient.scan(requestCaptor.capture()))
+        .thenAnswer(
+            invocation -> {
+              ScanRequest req = invocation.getArgument(0);
+              return req.exclusiveStartKey() == null || req.exclusiveStartKey().isEmpty()
+                  ? page1
+                  : page2;
+            });
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> items =
+        (List<Map<String, Object>>)
+            ((AwsDynamoDbResult) scanTableOperation.invoke(dynamoDbClient)).getResponse();
+
+    // Both pages' items are collected, in page order.
+    assertThat(items).hasSize(2);
+    assertThat(items.get(0).get("id")).isEqualTo("123");
+    assertThat(items.get(1).get("id")).isEqualTo("456");
+
+    // A second page was actually requested, resuming from page 1's continuation key.
+    List<ScanRequest> requests = requestCaptor.getAllValues();
+    assertThat(requests).hasSize(2);
+    assertThat(requests.get(0).exclusiveStartKey()).isNullOrEmpty();
+    assertThat(requests.get(1).exclusiveStartKey()).isEqualTo(continuationKey);
+  }
+
   @Test
   public void invoke_shouldScanTableWithoutFilter() {
     // Given

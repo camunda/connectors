@@ -6,31 +6,20 @@
  */
 package io.camunda.connector.aws.dynamodb;
 
-import java.net.URI;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
+import io.camunda.connector.aws.AwsClientSupport;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 public class DefaultDynamoDbClientSupplier implements DynamoDbClientSupplier {
 
+  /**
+   * Builds the production client through the shared {@link AwsClientSupport#createClient}, so
+   * credentials, region, and endpoint are configured exactly as every other AWS SDK v2 connector
+   * (issue #7973/#7083). In particular {@code AwsClientSupport} ignores a null/blank endpoint,
+   * which keeps the region-only client path intact instead of feeding {@code URI.create("")} to
+   * {@code endpointOverride}.
+   */
   @Override
-  public DynamoDbClient dynamoDbClient(
-      final AwsCredentialsProvider credentialsProvider, final String region) {
-    return DynamoDbClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(region))
-        .build();
-  }
-
-  @Override
-  public DynamoDbClient dynamoDbClient(
-      final AwsCredentialsProvider credentialsProvider,
-      final String region,
-      final String endpoint) {
-    return DynamoDbClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(region))
-        .endpointOverride(URI.create(endpoint))
-        .build();
+  public DynamoDbClient dynamoDbClient(final AwsDynamoDbRequest request) {
+    return AwsClientSupport.createClient(DynamoDbClient.builder(), request);
   }
 }

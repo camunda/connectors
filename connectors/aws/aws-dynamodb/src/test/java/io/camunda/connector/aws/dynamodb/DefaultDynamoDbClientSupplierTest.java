@@ -7,23 +7,27 @@
 package io.camunda.connector.aws.dynamodb;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
+import io.camunda.connector.aws.model.impl.AwsAuthentication.AwsStaticCredentialsAuthentication;
+import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import org.junit.jupiter.api.Test;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 class DefaultDynamoDbClientSupplierTest {
 
-  private static final AwsCredentialsProvider CREDENTIALS_PROVIDER =
-      StaticCredentialsProvider.create(AwsBasicCredentials.create("key", "secret"));
-
   private final DefaultDynamoDbClientSupplier supplier = new DefaultDynamoDbClientSupplier();
+
+  private static AwsDynamoDbRequest requestWith(final String region, final String endpoint) {
+    AwsDynamoDbRequest request = new AwsDynamoDbRequest();
+    request.setAuthentication(new AwsStaticCredentialsAuthentication("key", "secret"));
+    request.setConfiguration(new AwsBaseConfiguration(region, endpoint));
+    return request;
+  }
 
   @Test
   void buildsClientWithRegionOnly() {
-    try (DynamoDbClient client = supplier.dynamoDbClient(CREDENTIALS_PROVIDER, "eu-central-1")) {
+    try (DynamoDbClient client = supplier.dynamoDbClient(requestWith("eu-central-1", null))) {
       assertThat(client).isNotNull();
     }
   }
@@ -31,8 +35,31 @@ class DefaultDynamoDbClientSupplierTest {
   @Test
   void buildsClientWithEndpointOverrideWhenEndpointIsSet() {
     try (DynamoDbClient client =
-        supplier.dynamoDbClient(CREDENTIALS_PROVIDER, "eu-central-1", "http://localhost:4566")) {
+        supplier.dynamoDbClient(requestWith("eu-central-1", "http://localhost:4566"))) {
       assertThat(client).isNotNull();
     }
+  }
+
+  /**
+   * Regression guard for the blank-endpoint bug: an optional endpoint that arrives as an empty or
+   * blank string must be treated as "no endpoint" (the region-only client path), not fed to {@code
+   * URI.create("")} / {@code endpointOverride}. Delegating to {@code AwsClientSupport} guarantees
+   * this because it only applies a non-blank endpoint; a blank one must build a client without
+   * throwing.
+   */
+  @Test
+  void buildsClientWithoutEndpointOverrideWhenEndpointIsBlank() {
+    assertThatCode(
+            () -> {
+              try (DynamoDbClient client =
+                  supplier.dynamoDbClient(requestWith("eu-central-1", ""))) {
+                assertThat(client).isNotNull();
+              }
+              try (DynamoDbClient client =
+                  supplier.dynamoDbClient(requestWith("eu-central-1", "   "))) {
+                assertThat(client).isNotNull();
+              }
+            })
+        .doesNotThrowAnyException();
   }
 }

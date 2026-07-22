@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import software.amazon.awssdk.core.waiters.WaiterOverrideConfiguration;
+import software.amazon.awssdk.retries.api.BackoffStrategy;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
 import software.amazon.awssdk.services.dynamodb.model.BillingMode;
@@ -25,13 +26,17 @@ import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
 
 public class CreateTableOperation implements AwsDynamoDbOperation {
 
-  // v1's Table#waitForActive() defaulted to 25 attempts x 5s poll delay (125s max). v2's default
-  // DynamoDbWaiter poll interval/attempt count for TableExists is much longer, so an explicit
-  // override caps the total wait near the v1 behavior to stay under the Zeebe job timeout.
+  // v1's Table#waitForActive() defaulted to 25 attempts x 5s poll delay (~125s total). v2's
+  // generated DynamoDbWaiter defaults the TableExists poll delay to a *fixed 20s* backoff (see
+  // DefaultDynamoDbWaiter#tableExistsWaiterConfig), and its override merge reads only the caller's
+  // backoffStrategyV2 -- so setting maxAttempts alone leaves the 20s spacing in place, and a
+  // wait-timeout cap would then permit only ~7 checks. We must set the 5s backoff explicitly to
+  // reproduce v1's 25x5s behavior; maxAttempts is the sole binding constraint (v1 had no separate
+  // wall-clock cap), bounding the wait to ~120s.
   private static final WaiterOverrideConfiguration WAITER_OVERRIDE_CONFIGURATION =
       WaiterOverrideConfiguration.builder()
           .maxAttempts(25)
-          .waitTimeout(Duration.ofSeconds(125))
+          .backoffStrategyV2(BackoffStrategy.fixedDelayWithoutJitter(Duration.ofSeconds(5)))
           .build();
 
   private final CreateTable createTableModel;
