@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -314,6 +315,72 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(reconstructed.content()).hasSize(2);
     assertThat(reconstructed.content().get(0)).isInstanceOf(TextContent.class);
     assertThat(reconstructed.content().get(1)).isInstanceOf(ObjectContent.class);
+  }
+
+  @Test
+  void shouldRoundTripAssistantMessageWithModelIdMessageIdAndKnownStopReason() {
+    // given
+    AssistantMessage original =
+        AssistantMessage.builder()
+            .content(List.of(textContent("Here's the answer")))
+            .modelId("gpt-4o")
+            .messageId("msg-123")
+            .stopReason(StopReason.STOP)
+            .build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    AssistantMessage reconstructed = (AssistantMessage) message;
+    assertThat(reconstructed.modelId()).isEqualTo("gpt-4o");
+    assertThat(reconstructed.messageId()).isEqualTo("msg-123");
+    assertThat(reconstructed.stopReason()).isEqualTo(StopReason.STOP);
+  }
+
+  @Test
+  void shouldRoundTripAssistantMessageWithUnknownStopReason() {
+    // given
+    AssistantMessage original =
+        AssistantMessage.builder()
+            .content(List.of(textContent("Here's the answer")))
+            .modelId("claude-opus")
+            .messageId("msg-456")
+            .stopReason(StopReason.of("vendor_specific_reason"))
+            .build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    AssistantMessage reconstructed = (AssistantMessage) message;
+    assertThat(reconstructed.modelId()).isEqualTo("claude-opus");
+    assertThat(reconstructed.messageId()).isEqualTo("msg-456");
+    assertThat(reconstructed.stopReason())
+        .isEqualTo(StopReason.of("vendor_specific_reason"))
+        .isInstanceOf(StopReason.UnknownStopReason.class);
+  }
+
+  @Test
+  void shouldRoundTripAssistantMessageWithoutModelIdMessageIdOrStopReason() {
+    // given - existing behavior must not regress: absent fields stay absent
+    AssistantMessage original =
+        AssistantMessage.builder().content(List.of(textContent("No metadata here"))).build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    AssistantMessage reconstructed = (AssistantMessage) message;
+    assertThat(reconstructed.modelId()).isNull();
+    assertThat(reconstructed.messageId()).isNull();
+    assertThat(reconstructed.stopReason()).isNull();
   }
 
   // ==================== ToolCallResultMessage Tests ====================
