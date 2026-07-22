@@ -259,6 +259,23 @@ class BlobEnvelopeTest {
   }
 
   @Test
+  void shouldRejectBlobVersionNewerThanCurrentVersion() {
+    // given
+    int futureVersion = BlobEnvelope.CURRENT_VERSION + 1;
+    String json =
+        "{\"blobType\": \"camunda.toolCalls\", \"version\": %d, \"toolCalls\": []}"
+            .formatted(futureVersion);
+    Document document = Document.fromString(json);
+
+    // when/then
+    assertThatThrownBy(() -> BlobEnvelope.fromDocument(document, objectMapper))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining(String.valueOf(futureVersion))
+        .hasMessageContaining("newer")
+        .hasMessageContaining("not supported");
+  }
+
+  @Test
   void shouldFailWhenBlobMissingVersionField() {
     // given
     String invalidJson = "{\"blobType\": \"camunda.toolCalls\", \"toolCalls\": []}";

@@ -205,6 +205,30 @@ class CamundaDocumentConversationStoreTest {
   }
 
   @Test
+  void throwsWhenDocumentPayloadSchemaVersionIsNewerThanSupported() throws Exception {
+    final int futureVersion = AgentContext.CURRENT_SCHEMA_VERSION + 1;
+    final String futureDocumentJson =
+        "{\"schemaVersion\": %d, \"messages\": []}".formatted(futureVersion);
+
+    final var document = mock(Document.class);
+    when(document.asInputStream())
+        .thenReturn(new ByteArrayInputStream(futureDocumentJson.getBytes(StandardCharsets.UTF_8)));
+
+    final var previousConversationContext =
+        CamundaDocumentConversationContext.builder("test-conversation").document(document).build();
+
+    final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
+
+    try (var session = store.createSession(executionContext, agentContext)) {
+      assertThatThrownBy(() -> session.loadMessages(agentContext))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining(String.valueOf(futureVersion))
+          .hasMessageContaining("newer")
+          .hasMessageContaining("not supported");
+    }
+  }
+
+  @Test
   void throwsExceptionForUnsupportedConversationContext() {
     final var agentContext =
         AgentContext.empty().withConversation(new TestConversationContext("dummy"));

@@ -158,6 +158,12 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
     String blobType = root.get(FIELD_BLOB_TYPE).asText();
     int version = root.get(FIELD_VERSION).asInt();
 
+    if (version > CURRENT_VERSION) {
+      throw new IllegalStateException(
+          "Persisted blob version %d is newer than the highest version supported by this connector (%d). This state was written by a newer connector version; rolling back to an older connector version is not supported. Upgrade the connector runtime to the version that wrote this state."
+              .formatted(version, CURRENT_VERSION));
+    }
+
     return new BlobEnvelope(blobType, version, root);
   }
 
