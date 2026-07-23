@@ -30,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
@@ -56,6 +57,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderCo
 import io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelFactoryOverrides.CustomAnthropicProviderConfig.CustomAnthropicChatModelFactory;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelFactoryOverrides.CustomAzureOpenAiProviderConfig.CustomAzureOpenAiChatModelFactory;
@@ -105,7 +110,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentSubProcessV1Function.class,
           AgentSubProcessV2Function.class,
           AgentInstanceClient.class,
-          ChatModelRegistry.class);
+          ChatModelRegistry.class,
+          AnthropicChatModelApiFactory.class);
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
       List.of(
@@ -287,6 +293,29 @@ class AgenticAiConnectorsAutoConfigurationTest {
               assertThat(httpProxySupport.getProxyConfiguration().getProxyDetails("https"))
                   .isEmpty();
             });
+  }
+
+  @Test
+  void whenAnthropicChatModelConfigurationIsResolved_thenAnthropicChatModelApiFactoryHandlesIt() {
+    contextRunner.run(
+        context -> {
+          assertThat(context).hasSingleBean(AnthropicChatModelApiFactory.class);
+
+          final var chatModelRegistry = context.getBean(ChatModelRegistry.class);
+          final var configuration =
+              new AnthropicChatModelConfiguration(
+                  new AnthropicConnection(
+                      new AnthropicApiBackend("sk-ant-test"),
+                      new AnthropicModel("claude-sonnet-4-6", null),
+                      null,
+                      null));
+
+          // resolving must not throw the registry's "no chat model registered" error -- the
+          // Anthropic factory bean must actually be wired in and matched
+          try (var chatModel = chatModelRegistry.resolve(configuration)) {
+            assertThat(chatModel).isNotNull();
+          }
+        });
   }
 
   @Nested

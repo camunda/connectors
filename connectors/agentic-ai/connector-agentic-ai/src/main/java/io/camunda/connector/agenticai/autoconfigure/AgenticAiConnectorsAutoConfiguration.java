@@ -47,6 +47,7 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.CamundaAgentInstance
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.configuration.AgenticAiAnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -63,6 +64,7 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptContribut
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
@@ -88,6 +90,7 @@ import org.springframework.context.annotation.Import;
 @EnableConfigurationProperties(AgenticAiConnectorsConfigurationProperties.class)
 @Import({
   AgenticAiLangChain4JFrameworkConfiguration.class,
+  AgenticAiAnthropicProviderConfiguration.class,
   McpDiscoveryConfiguration.class,
   McpClientConfiguration.class,
   McpRemoteClientConfiguration.class,
@@ -111,6 +114,13 @@ public class AgenticAiConnectorsAutoConfiguration {
             : ProxyConfiguration.NONE;
 
     return new AgenticAiHttpProxySupport(proxyConfiguration);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public HttpTransportSupport agenticAiHttpTransportSupport(
+      AgenticAiHttpProxySupport proxySupport) {
+    return new HttpTransportSupport(proxySupport.getProxyConfiguration());
   }
 
   @Bean
