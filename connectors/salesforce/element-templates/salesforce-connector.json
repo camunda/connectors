@@ -65,14 +65,6 @@
   ],
   "properties" : [
     {
-      "value" : "io.camunda:http-json:1",
-      "binding" : {
-        "property" : "type",
-        "type" : "zeebe:taskDefinition"
-      },
-      "type" : "Hidden"
-    },
-    {
       "id" : "baseUrl",
       "label" : "Salesforce base URL",
       "constraints" : {
@@ -582,6 +574,14 @@
       },
       "tooltip" : "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "type" : "Text"
+    },
+    {
+      "value" : "io.camunda:http-json:1",
+      "binding" : {
+        "property" : "type",
+        "type" : "zeebe:taskDefinition"
+      },
+      "type" : "Hidden"
     }
   ],
   "steps" : [
@@ -656,29 +656,29 @@
     {
       "id" : "sObject_get",
       "properties" : {
-        "salesforceOperationType" : "sObject",
-        "interactionType" : "get"
+        "interactionType" : "get",
+        "salesforceOperationType" : "sObject"
       }
     },
     {
       "id" : "sObject_post",
       "properties" : {
-        "salesforceOperationType" : "sObject",
-        "interactionType" : "post"
+        "interactionType" : "post",
+        "salesforceOperationType" : "sObject"
       }
     },
     {
       "id" : "sObject_patch",
       "properties" : {
-        "salesforceOperationType" : "sObject",
-        "interactionType" : "patch"
+        "interactionType" : "patch",
+        "salesforceOperationType" : "sObject"
       }
     },
     {
       "id" : "sObject_delete",
       "properties" : {
-        "salesforceOperationType" : "sObject",
-        "interactionType" : "delete"
+        "interactionType" : "delete",
+        "salesforceOperationType" : "sObject"
       }
     },
     {
