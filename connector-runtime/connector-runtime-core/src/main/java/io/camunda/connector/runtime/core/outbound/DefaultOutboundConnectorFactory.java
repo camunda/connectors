@@ -41,17 +41,101 @@ public class DefaultOutboundConnectorFactory
     extends AbstractConnectorFactory<OutboundConnectorFunction, OutboundConnectorConfiguration>
     implements OutboundConnectorFactory {
 
+  /**
+   * Pairs an {@link OutboundConnectorFunction} type (for reading its {@link OutboundConnector}
+   * annotation) with a {@link Supplier} that resolves an instance of it. Unlike a plain
+   * already-constructed instance, the supplier is invoked lazily and repeatedly — e.g. once per
+   * physical tenant by {@code OutboundConnectorManager} — so a supplier backed by a Spring {@code
+   * BeanFactory#getBean(String, Class)} lookup yields a genuinely fresh instance per call for
+   * prototype-scoped beans, while still returning the same shared instance for (the default)
+   * singleton-scoped beans.
+   */
+  public record FunctionRegistration(
+      Class<? extends OutboundConnectorFunction> type,
+      Supplier<OutboundConnectorFunction> supplier) {}
+
+  /** See {@link FunctionRegistration}; the equivalent for {@link OutboundConnectorProvider}. */
+  public record ProviderRegistration(
+      Class<? extends OutboundConnectorProvider> type,
+      Supplier<OutboundConnectorProvider> supplier) {}
+
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
       connectorInstanceCache = new ConcurrentHashMap<>();
 
   private final Function<String, String> propertyProvider;
 
+  /**
+   * Original public constructor, preserved unchanged for source/binary compatibility: callers
+   * passing already-resolved {@link OutboundConnectorFunction}/{@link OutboundConnectorProvider}
+   * instances (e.g. non-Spring runtimes, tests) continue to work exactly as before #6961, with each
+   * instance wrapped in a constant-returning supplier (no fresh-instance-per-call capability). Use
+   * {@link #fromRegistrations} instead when per-tenant instance isolation is required.
+   */
   public DefaultOutboundConnectorFactory(
       ObjectMapper objectMapper,
       ValidationProvider validationProvider,
       List<OutboundConnectorFunction> constructorFunctions,
       List<OutboundConnectorProvider> constructorProviders,
       Function<String, String> propertyProvider) {
+    this(
+        objectMapper,
+        validationProvider,
+        constructorFunctions.stream()
+            .map(f -> new FunctionRegistration(f.getClass(), () -> f))
+            .toList(),
+        constructorProviders.stream()
+            .map(p -> new ProviderRegistration(p.getClass(), () -> p))
+            .toList(),
+        propertyProvider,
+        RegistrationMarker.INSTANCE);
+  }
+
+  /**
+   * Factory for callers that need genuine per-tenant instance isolation (#6961): each {@link
+   * FunctionRegistration}/{@link ProviderRegistration}'s {@link Supplier} is invoked lazily and
+   * repeatedly — e.g. once per physical tenant by {@code OutboundConnectorManager} — so a supplier
+   * that creates a brand-new bean instance on every call (e.g. via {@code
+   * AutowireCapableBeanFactory#createBean(Class)}) yields real isolation regardless of the bean's
+   * declared Spring scope.
+   *
+   * <p>Exposed as a distinctly-named static factory rather than an overloaded constructor: {@code
+   * List<FunctionRegistration>}/{@code List<ProviderRegistration>} erase to the same {@code List}
+   * as {@code List<OutboundConnectorFunction>}/{@code List<OutboundConnectorProvider>}, so
+   * overloading the public constructor would silently break already-compiled callers of the
+   * original constructor (same erased signature, different expected element type — a {@code
+   * ClassCastException} at runtime, not a compile error).
+   */
+  public static DefaultOutboundConnectorFactory fromRegistrations(
+      ObjectMapper objectMapper,
+      ValidationProvider validationProvider,
+      List<FunctionRegistration> functionRegistrations,
+      List<ProviderRegistration> providerRegistrations,
+      Function<String, String> propertyProvider) {
+    return new DefaultOutboundConnectorFactory(
+        objectMapper,
+        validationProvider,
+        functionRegistrations,
+        providerRegistrations,
+        propertyProvider,
+        RegistrationMarker.INSTANCE);
+  }
+
+  /**
+   * Marker type used only to give the private registration-based constructor below a distinct
+   * erased signature from the public instance-based constructor above (both would otherwise erase
+   * to the same {@code (ObjectMapper, ValidationProvider, List, List, Function)}).
+   */
+  private enum RegistrationMarker {
+    INSTANCE
+  }
+
+  private DefaultOutboundConnectorFactory(
+      ObjectMapper objectMapper,
+      ValidationProvider validationProvider,
+      List<FunctionRegistration> constructorFunctionRegistrations,
+      List<ProviderRegistration> constructorProviderRegistrations,
+      Function<String, String> propertyProvider,
+      RegistrationMarker marker) {
     this.propertyProvider = propertyProvider;
     List<OutboundConnectorConfiguration> envVarConfigurations = new ArrayList<>();
     Stream<ServiceLoader.Provider<OutboundConnectorFunction>> spiFunctions = Stream.empty();
@@ -90,10 +174,17 @@ public class DefaultOutboundConnectorFactory
 
     // 3. Constructor supplied functions
     allConfigs.addAll(
-        toConfigurations(constructorFunctions.stream(), outboundFunction -> outboundFunction));
+        toConfigurations(
+            constructorFunctionRegistrations.stream(),
+            FunctionRegistration::type,
+            fr -> fr.supplier().get()));
 
     // 4. Constructor supplied providers
-    allConfigs.addAll(toConfigurations(constructorProviders.stream(), fromProviderToFunction));
+    allConfigs.addAll(
+        toConfigurations(
+            constructorProviderRegistrations.stream(),
+            ProviderRegistration::type,
+            pr -> fromProviderToFunction.apply(pr.supplier().get())));
 
     // 5. Env vars discovered configurations
     allConfigs.addAll(envVarConfigurations);

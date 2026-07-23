@@ -152,17 +152,17 @@
       <artifactId>jsr305</artifactId>
     </dependency>
 
-    <!-- Test -->
+    <!-- Needed to build per-physical-tenant outbound ObjectMappers (see #6961) -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-document</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-feel</artifactId>
-      <scope>test</scope>
     </dependency>
+
+    <!-- Test -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-validation</artifactId>
