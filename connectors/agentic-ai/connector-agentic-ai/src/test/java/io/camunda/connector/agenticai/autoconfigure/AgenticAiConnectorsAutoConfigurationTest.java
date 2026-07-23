@@ -18,14 +18,14 @@ import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.Process
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
-import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
+import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
+import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
-import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
@@ -48,12 +48,12 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.A
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AzureOpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiCompatibleProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelFactoryOverrides.CustomAnthropicProviderConfig.CustomAnthropicChatModelFactory;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelFactoryOverrides.CustomAzureOpenAiProviderConfig.CustomAzureOpenAiChatModelFactory;
@@ -96,10 +96,10 @@ class AgenticAiConnectorsAutoConfigurationTest {
           ConversationStoreRegistry.class,
           AgentConversationTurnInputComposer.class,
           AgentResponseHandler.class,
-          OutboundConnectorAgentRequestHandler.class,
-          AiAgentFunction.class,
-          JobWorkerAgentRequestHandler.class,
-          AiAgentJobWorker.class,
+          AgentTaskRequestHandler.class,
+          AgentTaskV1Function.class,
+          AgentSubProcessRequestHandler.class,
+          AgentSubProcessV1Function.class,
           AgentInstanceClient.class,
           ChatModelRegistry.class);
 
@@ -143,7 +143,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
   }
 
   @Test
-  void whenAiAgentConnectorDisabled_thenNoAiAgentFunctionIsCreated() {
+  void whenAgentTaskConnectorDisabled_thenNoAgentTaskFunctionIsCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.aiagent.outbound-connector.enabled=false")
         .run(
@@ -151,18 +151,16 @@ class AgenticAiConnectorsAutoConfigurationTest {
               assertHasAllBeansOf(
                   context,
                   ALL_BEANS.stream()
-                      .filter(
-                          notAnyOf(
-                              OutboundConnectorAgentRequestHandler.class, AiAgentFunction.class))
+                      .filter(notAnyOf(AgentTaskRequestHandler.class, AgentTaskV1Function.class))
                       .toList());
               assertThat(context)
-                  .doesNotHaveBean(OutboundConnectorAgentRequestHandler.class)
-                  .doesNotHaveBean(AiAgentFunction.class);
+                  .doesNotHaveBean(AgentTaskRequestHandler.class)
+                  .doesNotHaveBean(AgentTaskV1Function.class);
             });
   }
 
   @Test
-  void whenAiAgentJobWorkerConnectorDisabled_thenNoAiAgentJobWorkerIsCreated() {
+  void whenAgentSubProcessConnectorDisabled_thenNoAgentSubProcessFunctionIsCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.aiagent.job-worker.enabled=false")
         .run(
@@ -170,11 +168,13 @@ class AgenticAiConnectorsAutoConfigurationTest {
               assertHasAllBeansOf(
                   context,
                   ALL_BEANS.stream()
-                      .filter(notAnyOf(JobWorkerAgentRequestHandler.class, AiAgentJobWorker.class))
+                      .filter(
+                          notAnyOf(
+                              AgentSubProcessRequestHandler.class, AgentSubProcessV1Function.class))
                       .toList());
               assertThat(context)
-                  .doesNotHaveBean(JobWorkerAgentRequestHandler.class)
-                  .doesNotHaveBean(AiAgentJobWorker.class);
+                  .doesNotHaveBean(AgentSubProcessRequestHandler.class)
+                  .doesNotHaveBean(AgentSubProcessV1Function.class);
             });
   }
 

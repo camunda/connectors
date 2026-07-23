@@ -60,9 +60,9 @@ Deep architecture lives in the reference docs, linked instead of copied:
 
 Two flavors share one orchestration core (`BaseAgentRequestHandler`):
 
-- **AI Agent Task** (`AiAgentFunction`): a service-task connector whose tool-calling loop is modeled
+- **AI Agent Task** (`AgentTaskV1Function`): a service-task connector whose tool-calling loop is modeled
   explicitly in BPMN.
-- **AI Agent Sub-process** (`AiAgentJobWorker`): a job worker on an ad-hoc sub-process (AHSP) whose
+- **AI Agent Sub-process** (`AgentSubProcessV1Function`): a job worker on an ad-hoc sub-process (AHSP) whose
   loop is implicit (engine-driven) and supports events. This is the recommended flavor.
 
 The loop (sub-process flavor): each job initializes the agent, loads memory, adds input (user prompt or
@@ -158,7 +158,7 @@ existing Spring Boot tests and the e2e suite. For repo-wide build/commit/PR/CI/s
 see the repo-root [`AGENTS.md`](../../AGENTS.md). Do not duplicate them here.
 
 E2E tests live in `connectors-e2e-test/connectors-e2e-test-agentic-ai/` (Camunda Process Test scenarios plus WireMock
-LLM stubs). Extend `BaseAiAgentJobWorkerTest` (sub-process flavor) or `BaseAiAgentConnectorTest` (task
+LLM stubs). Extend `BaseAgentSubProcessTest` (sub-process flavor) or `BaseAgentTaskTest` (task
 flavor).
 
 ```bash
@@ -227,8 +227,8 @@ The JSON element templates are **generated**, not hand-edited. They are produced
 fields), so the source of truth is the Java, not the JSON. The template version comes from the
 annotation's `version` attribute on the connector function; bumping it there bumps the generated
 template. The AI Agent Sub-process template is in turn derived from the AI Agent Task
-template via `connector-agentic-ai/bin/transform-ai-agent-job-worker-template.groovy` (gmavenplus-plugin, `process-classes`
-phase).
+template via `connector-agentic-ai/bin/transform-ai-agent-template.groovy` (gmavenplus-plugin, `process-classes`
+phase); the same script also derives the v2 AI Agent Sub-process template from the v2 AI Agent Task template.
 
 To regenerate, run `mvn clean compile -f connectors/agentic-ai/pom.xml` and commit the JSON diff; never edit
 the generated JSON by hand. For the generation mechanism and annotation reference, see the
@@ -253,8 +253,8 @@ Do not list `hybrid/` templates in the README. They are intentionally omitted.
 
 | File                                        | Purpose                                    |
 |---------------------------------------------|--------------------------------------------|
-| `AiAgentFunction.java`                      | Connector (Task) entry point               |
-| `AiAgentJobWorker.java`                     | Job worker (Sub-process) entry point       |
+| `AgentTaskV1Function.java`                  | Connector (Task) entry point               |
+| `AgentSubProcessV1Function.java`            | Job worker (Sub-process) entry point       |
 | `BaseAgentRequestHandler.java`              | Core orchestrator (shared by both flavors) |
 | `AgenticAiConnectorsAutoConfiguration.java` | Spring Boot wiring                         |
 

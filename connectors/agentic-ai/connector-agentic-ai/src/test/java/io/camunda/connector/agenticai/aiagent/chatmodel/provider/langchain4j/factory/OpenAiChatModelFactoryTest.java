@@ -31,10 +31,10 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.fac
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration.OpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.http.HttpClient;

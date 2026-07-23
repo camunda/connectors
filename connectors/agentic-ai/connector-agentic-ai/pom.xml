@@ -444,7 +444,7 @@
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
-              <connectorClass>io.camunda.connector.agenticai.aiagent.AiAgentFunction</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.aiagent.AgentTaskV1Function</connectorClass>
               <files>
                 <file>
                   <templateId>io.camunda.connectors.agenticai.aiagent.v1</templateId>
@@ -547,7 +547,7 @@
             </goals>
             <configuration>
               <scripts>
-                <script>file:///${project.basedir}/bin/transform-ai-agent-job-worker-template.groovy</script>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-template.groovy</script>
               </scripts>
               <properties>
                 <property>
@@ -557,6 +557,14 @@
                 <property>
                   <name>outputFile</name>
                   <value>${project.basedir}/element-templates/agenticai-aiagent-job-worker.json</value>
+                </property>
+                <property>
+                  <name>templateId</name>
+                  <value>io.camunda.connectors.agenticai.aiagent.jobworker.v1</value>
+                </property>
+                <property>
+                  <name>connectorType</name>
+                  <value>io.camunda.agenticai:aiagent-job-worker:1</value>
                 </property>
               </properties>
             </configuration>
@@ -569,7 +577,7 @@
             </goals>
             <configuration>
               <scripts>
-                <script>file:///${project.basedir}/bin/transform-ai-agent-job-worker-template.groovy</script>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-template.groovy</script>
               </scripts>
               <properties>
                 <property>
@@ -583,6 +591,14 @@
                   <value>
                     ${project.basedir}/element-templates/hybrid/agenticai-aiagent-job-worker-hybrid.json
                   </value>
+                </property>
+                <property>
+                  <name>templateId</name>
+                  <value>io.camunda.connectors.agenticai.aiagent.jobworker.v1</value>
+                </property>
+                <property>
+                  <name>connectorType</name>
+                  <value>io.camunda.agenticai:aiagent-job-worker:1</value>
                 </property>
               </properties>
             </configuration>
