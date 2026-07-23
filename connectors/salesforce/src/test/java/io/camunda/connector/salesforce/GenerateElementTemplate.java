@@ -166,20 +166,25 @@ public class GenerateElementTemplate {
             .engines(new Engines("^8.3"))
             .icon(new ElementTemplateIcon(SALESFORCE_ICON))
             .type("io.camunda:http-json:1")
-            .propertyGroups(buildOperationalGroups())
-            // Every "authentication" property -- the narrowed auth-type dropdown, the kept
-            // token/clientId/clientSecret inherited from HTTP JSON, and the two below that
-            // Salesforce fixes to a computed/constant value in place of HTTP JSON's own
-            // user-editable oauthTokenEndpoint/clientAuthentication -- is appended here, after
-            // propertyGroups(). Zeebe evaluates io:inputParameter FEEL expressions in document
-            // order, and oauthTokenEndpoint's value is composed from baseUrl (declared in the
-            // "endpoint" group above); appending the whole auth block here rather than preserving
-            // its inherited position guarantees baseUrl precedes it regardless of where HTTP JSON
-            // itself declares its auth properties. Audience/scopes have no counterpart in the
-            // previous hand-authored template and so are simply not carried over.
+            // Property array order is significant -- Zeebe evaluates io:inputParameter FEEL
+            // expressions in document order, and the Modeler properties panel displays each
+            // group's section in the order its properties first appear in that same array
+            // (independent of the "groups" list's own order). The three calls below are
+            // deliberately split/ordered to land baseUrl before the whole authentication block
+            // (oauthTokenEndpoint's value is composed from it), and the authentication section
+            // right after "Instance" in the panel:
+            .propertyGroups(List.of(endpointGroup()))
             .properties(
                 buildAuthenticationProperties(
                     prunedAuthTypeDropdown(originalAuthTypeDropdown), keptAuthProperties))
+            .propertyGroups(
+                List.of(
+                    PropertyGroup.builder().id("authentication").label("Authentication").build(),
+                    operationGroup(),
+                    timeoutGroup(),
+                    connectorGroup(),
+                    outputGroup(),
+                    errorsGroup()))
             .steps(buildSteps())
             .presets(buildPresets())
             .build();
@@ -248,256 +253,264 @@ public class GenerateElementTemplate {
     return properties;
   }
 
+  private static PropertyGroup endpointGroup() {
+    return PropertyGroup.builder()
+        .id("endpoint")
+        .label("Instance")
+        .properties(
+            StringProperty.builder()
+                .id("baseUrl")
+                .label("Salesforce base URL")
+                .group("endpoint")
+                .feel(FeelMode.optional)
+                .binding(new ZeebeInput("baseUrl"))
+                .constraints(
+                    PropertyConstraints.builder()
+                        .notEmpty(true)
+                        .pattern(
+                            new PropertyConstraints.Pattern(
+                                "^(=|(https?://|\\{\\{secrets\\..+\\}\\}).*$)",
+                                "Must be a http(s) URL."))
+                        .build())
+                .build(),
+            StringProperty.builder()
+                .id("apiVersion")
+                .label("Salesforce API version")
+                .group("endpoint")
+                .feel(FeelMode.optional)
+                .binding(new ZeebeInput("apiVersion"))
+                .value("v58.0")
+                .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                .build())
+        .build();
+  }
+
   /**
-   * All property groups in display order. "authentication" carries no properties of its own here --
-   * the actual authentication properties are inherited/hand-built directly into the flat properties
-   * list (see {@link #generate}) and reference this group only via their own {@code group} field,
-   * matching how {@link PropertyGroup#properties()} is {@code @JsonIgnore}d anyway.
+   * Operation-type selection and sObject/SOQL fields merged into a single group -- these used to be
+   * two separate groups ("operation" and "input") that both happened to share the label
+   * "Operation", rendering as two confusingly-identical sections in the Modeler properties panel
+   * instead of one.
    */
-  private static List<PropertyGroup> buildOperationalGroups() {
-    return List.of(
-        PropertyGroup.builder()
-            .id("operation")
-            .label("Operation")
-            .properties(
-                DropdownProperty.builder()
-                    .choices(
-                        List.of(
-                            new DropdownChoice("sObject records", "sObject"),
-                            new DropdownChoice("SOQL Query", "soqlQuery")))
-                    .id("salesforceOperationType")
-                    .label("Salesforce operation type")
-                    .tooltip(
-                        "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query.")
-                    .group("operation")
-                    .binding(new ZeebeInput("salesforceInteractionType"))
-                    .build(),
-                DropdownProperty.builder()
-                    .choices(
-                        List.of(
-                            new DropdownChoice("Get record", "get"),
-                            new DropdownChoice("Create record", "post"),
-                            new DropdownChoice("Update record", "patch"),
-                            new DropdownChoice("Delete record", "delete")))
-                    .id("interactionType")
-                    .label("Interaction type")
-                    .group("operation")
-                    .binding(new ZeebeInput("method"))
-                    .condition(new Equals("salesforceOperationType", "sObject"))
-                    .build(),
-                HiddenProperty.builder()
-                    .id("method")
-                    .label("Method")
-                    .group("operation")
-                    .value("get")
-                    .binding(new ZeebeInput("method"))
-                    .condition(new Equals("salesforceOperationType", "soqlQuery"))
-                    .build())
-            .build(),
-        PropertyGroup.builder().id("authentication").label("Authentication").build(),
-        PropertyGroup.builder()
-            .id("endpoint")
-            .label("Instance")
-            .properties(
-                StringProperty.builder()
-                    .id("baseUrl")
-                    .label("Salesforce base URL")
-                    .group("endpoint")
-                    .feel(FeelMode.optional)
-                    .binding(new ZeebeInput("baseUrl"))
-                    .constraints(
-                        PropertyConstraints.builder()
-                            .notEmpty(true)
-                            .pattern(
-                                new PropertyConstraints.Pattern(
-                                    "^(=|(https?://|\\{\\{secrets\\..+\\}\\}).*$)",
-                                    "Must be a http(s) URL."))
-                            .build())
-                    .build(),
-                StringProperty.builder()
-                    .id("apiVersion")
-                    .label("Salesforce API version")
-                    .group("endpoint")
-                    .feel(FeelMode.optional)
-                    .binding(new ZeebeInput("apiVersion"))
-                    .value("v58.0")
-                    .constraints(PropertyConstraints.builder().notEmpty(true).build())
-                    .build())
-            .build(),
-        PropertyGroup.builder()
-            .id("input")
-            .label("Operation")
-            .properties(
-                StringProperty.builder()
-                    .id("objectType")
-                    .label("Salesforce object")
-                    .placeholder("Account")
-                    .group("input")
-                    .feel(FeelMode.optional)
-                    .binding(new ZeebeInput("objectType"))
-                    .constraints(PropertyConstraints.builder().notEmpty(true).build())
-                    .condition(new Equals("salesforceOperationType", "sObject"))
-                    .build(),
-                StringProperty.builder()
-                    .id("objectId")
-                    .label("Salesforce object ID")
-                    .group("input")
-                    .feel(FeelMode.optional)
-                    .binding(new ZeebeInput("objectId"))
-                    .constraints(PropertyConstraints.builder().notEmpty(true).build())
-                    .condition(
-                        new AllMatch(
-                            new OneOf("interactionType", List.of("patch", "get", "delete")),
-                            new Equals("salesforceOperationType", "sObject")))
-                    .build(),
-                StringProperty.builder()
-                    .id("relationshipFieldName")
-                    .label("Relationship field name")
-                    .tooltip("Name of the child relation")
-                    .group("input")
-                    .feel(FeelMode.optional)
-                    .binding(new ZeebeInput("relationshipFieldName"))
-                    .optional(true)
-                    .condition(
-                        new AllMatch(
-                            new Equals("interactionType", "get"),
-                            new Equals("salesforceOperationType", "sObject")))
-                    .build(),
-                TextProperty.builder()
-                    .id("soqlQuery")
-                    .label("SOQL query")
-                    .tooltip(
-                        "Salesforce Object Query Language statement used to retrieve records. See the <a href=\"https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm\" target=\"_blank\">SOQL reference</a>.")
-                    .group("input")
-                    .feel(FeelMode.optional)
-                    .binding(new ZeebeInput("soqlQuery"))
-                    .constraints(PropertyConstraints.builder().notEmpty(true).build())
-                    .condition(new Equals("salesforceOperationType", "soqlQuery"))
-                    .build(),
-                HiddenProperty.builder()
-                    .id("queryParametersHiddenSoql")
-                    .label("Query parameters")
-                    .description("Map of query parameters to add to the request URL")
-                    .group("input")
-                    .binding(new ZeebeInput("queryParameters"))
-                    .value("={\n  q: soqlQuery\n}")
-                    .condition(new Equals("salesforceOperationType", "soqlQuery"))
-                    .build(),
-                StringProperty.builder()
-                    .id("queryParameters")
-                    .label("Query parameters")
-                    .tooltip("Map of query parameters to add to the request URL")
-                    .group("input")
-                    .feel(FeelMode.required)
-                    .binding(new ZeebeInput("queryParameters"))
-                    .condition(
-                        new AllMatch(
-                            new Equals("interactionType", "get"),
-                            new Equals("salesforceOperationType", "sObject")))
-                    .optional(true)
-                    .build(),
-                HiddenProperty.builder()
-                    .id("urlSObject")
-                    .label("URL")
-                    .group("input")
-                    .binding(new ZeebeInput("url"))
-                    .value(
-                        "=baseUrl + \"/services/data/\" + apiVersion + \"/sobjects/\" + objectType + string(if objectId != null then \"/\" + objectId else \"\") + string(if relationshipFieldName != null then \"/\" + relationshipFieldName else \"\")")
-                    .condition(new Equals("salesforceOperationType", "sObject"))
-                    .build(),
-                HiddenProperty.builder()
-                    .id("urlSoql")
-                    .label("URL")
-                    .group("input")
-                    .binding(new ZeebeInput("url"))
-                    .value("=baseUrl + \"/services/data/\" + apiVersion + \"/query\"")
-                    .condition(new Equals("salesforceOperationType", "soqlQuery"))
-                    .build(),
-                StringProperty.builder()
-                    .id("body")
-                    .label("Record fields")
-                    .tooltip("Field values for the Salesforce object, provided as a FEEL context.")
-                    .group("input")
-                    .feel(FeelMode.required)
-                    .binding(new ZeebeInput("body"))
-                    .condition(new OneOf("interactionType", List.of("patch", "post")))
-                    .constraints(PropertyConstraints.builder().notEmpty(true).build())
-                    .build())
-            .build(),
-        PropertyGroup.builder()
-            .id("timeout")
-            .label("Connect timeout")
-            .properties(
-                StringProperty.builder()
-                    .id("connectionTimeoutInSeconds")
-                    .label("Connection timeout")
-                    .tooltip(
-                        "Timeout in seconds to establish a connection, or 0 for an infinite timeout.")
-                    .group("timeout")
-                    .value("20")
-                    .binding(new ZeebeInput("connectionTimeoutInSeconds"))
-                    .optional(true)
-                    .feel(FeelMode.optional)
-                    .constraints(
-                        PropertyConstraints.builder()
-                            .notEmpty(false)
-                            .pattern(
-                                new PropertyConstraints.Pattern(
-                                    "^(=|([0-9]+|\\{\\{secrets\\..+\\}\\})$)",
-                                    "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"))
-                            .build())
-                    .build())
-            .build(),
-        PropertyGroup.builder()
-            .id("connector")
-            .label("Connector")
-            .properties(
-                CommonProperties.version(6L)
-                    .binding(new ZeebeTaskHeader("elementTemplateVersion"))
-                    .build(),
-                CommonProperties.id("io.camunda.connectors.Salesforce.v1")
-                    .binding(new ZeebeTaskHeader("elementTemplateId"))
-                    .build())
-            .build(),
-        PropertyGroup.builder()
-            .id("output")
-            .label("Response mapping")
-            .properties(
-                StringProperty.builder()
-                    .id("resultVariable")
-                    .label("Result variable")
-                    .tooltip(
-                        "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>")
-                    .group("output")
-                    .feel(FeelMode.disabled)
-                    .binding(new ZeebeTaskHeader("resultVariable"))
-                    .condition(new OneOf("interactionType", List.of("get", "post")))
-                    .build(),
-                TextProperty.builder()
-                    .id("resultExpression")
-                    .label("Result expression")
-                    .tooltip(
-                        "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>")
-                    .group("output")
-                    .feel(FeelMode.required)
-                    .binding(new ZeebeTaskHeader("resultExpression"))
-                    .condition(new OneOf("interactionType", List.of("get", "post")))
-                    .build())
-            .build(),
-        PropertyGroup.builder()
-            .id("errors")
-            .label("Error handling")
-            .properties(
-                TextProperty.builder()
-                    .id("errorExpression")
-                    .label("Error expression")
-                    .tooltip(
-                        "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>")
-                    .group("errors")
-                    .feel(FeelMode.required)
-                    .binding(new ZeebeTaskHeader("errorExpression"))
-                    .build())
-            .build());
+  private static PropertyGroup operationGroup() {
+    return PropertyGroup.builder()
+        .id("operation")
+        .label("Operation")
+        .properties(
+            DropdownProperty.builder()
+                .choices(
+                    List.of(
+                        new DropdownChoice("sObject records", "sObject"),
+                        new DropdownChoice("SOQL Query", "soqlQuery")))
+                .id("salesforceOperationType")
+                .label("Salesforce operation type")
+                .tooltip(
+                    "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query.")
+                .group("operation")
+                .binding(new ZeebeInput("salesforceInteractionType"))
+                .build(),
+            DropdownProperty.builder()
+                .choices(
+                    List.of(
+                        new DropdownChoice("Get record", "get"),
+                        new DropdownChoice("Create record", "post"),
+                        new DropdownChoice("Update record", "patch"),
+                        new DropdownChoice("Delete record", "delete")))
+                .id("interactionType")
+                .label("Interaction type")
+                .group("operation")
+                .binding(new ZeebeInput("method"))
+                .condition(new Equals("salesforceOperationType", "sObject"))
+                .build(),
+            HiddenProperty.builder()
+                .id("method")
+                .label("Method")
+                .group("operation")
+                .value("get")
+                .binding(new ZeebeInput("method"))
+                .condition(new Equals("salesforceOperationType", "soqlQuery"))
+                .build(),
+            StringProperty.builder()
+                .id("objectType")
+                .label("Salesforce object")
+                .placeholder("Account")
+                .group("operation")
+                .feel(FeelMode.optional)
+                .binding(new ZeebeInput("objectType"))
+                .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                .condition(new Equals("salesforceOperationType", "sObject"))
+                .build(),
+            StringProperty.builder()
+                .id("objectId")
+                .label("Salesforce object ID")
+                .group("operation")
+                .feel(FeelMode.optional)
+                .binding(new ZeebeInput("objectId"))
+                .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                .condition(
+                    new AllMatch(
+                        new OneOf("interactionType", List.of("patch", "get", "delete")),
+                        new Equals("salesforceOperationType", "sObject")))
+                .build(),
+            StringProperty.builder()
+                .id("relationshipFieldName")
+                .label("Relationship field name")
+                .tooltip("Name of the child relation")
+                .group("operation")
+                .feel(FeelMode.optional)
+                .binding(new ZeebeInput("relationshipFieldName"))
+                .optional(true)
+                .condition(
+                    new AllMatch(
+                        new Equals("interactionType", "get"),
+                        new Equals("salesforceOperationType", "sObject")))
+                .build(),
+            TextProperty.builder()
+                .id("soqlQuery")
+                .label("SOQL query")
+                .tooltip(
+                    "Salesforce Object Query Language statement used to retrieve records. See the <a href=\"https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm\" target=\"_blank\">SOQL reference</a>.")
+                .group("operation")
+                .feel(FeelMode.optional)
+                .binding(new ZeebeInput("soqlQuery"))
+                .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                .condition(new Equals("salesforceOperationType", "soqlQuery"))
+                .build(),
+            HiddenProperty.builder()
+                .id("queryParametersHiddenSoql")
+                .label("Query parameters")
+                .description("Map of query parameters to add to the request URL")
+                .group("operation")
+                .binding(new ZeebeInput("queryParameters"))
+                .value("={\n  q: soqlQuery\n}")
+                .condition(new Equals("salesforceOperationType", "soqlQuery"))
+                .build(),
+            StringProperty.builder()
+                .id("queryParameters")
+                .label("Query parameters")
+                .tooltip("Map of query parameters to add to the request URL")
+                .group("operation")
+                .feel(FeelMode.required)
+                .binding(new ZeebeInput("queryParameters"))
+                .condition(
+                    new AllMatch(
+                        new Equals("interactionType", "get"),
+                        new Equals("salesforceOperationType", "sObject")))
+                .optional(true)
+                .build(),
+            HiddenProperty.builder()
+                .id("urlSObject")
+                .label("URL")
+                .group("operation")
+                .binding(new ZeebeInput("url"))
+                .value(
+                    "=baseUrl + \"/services/data/\" + apiVersion + \"/sobjects/\" + objectType + string(if objectId != null then \"/\" + objectId else \"\") + string(if relationshipFieldName != null then \"/\" + relationshipFieldName else \"\")")
+                .condition(new Equals("salesforceOperationType", "sObject"))
+                .build(),
+            HiddenProperty.builder()
+                .id("urlSoql")
+                .label("URL")
+                .group("operation")
+                .binding(new ZeebeInput("url"))
+                .value("=baseUrl + \"/services/data/\" + apiVersion + \"/query\"")
+                .condition(new Equals("salesforceOperationType", "soqlQuery"))
+                .build(),
+            StringProperty.builder()
+                .id("body")
+                .label("Record fields")
+                .tooltip("Field values for the Salesforce object, provided as a FEEL context.")
+                .group("operation")
+                .feel(FeelMode.required)
+                .binding(new ZeebeInput("body"))
+                .condition(new OneOf("interactionType", List.of("patch", "post")))
+                .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                .build())
+        .build();
+  }
+
+  private static PropertyGroup timeoutGroup() {
+    return PropertyGroup.builder()
+        .id("timeout")
+        .label("Connect timeout")
+        .properties(
+            StringProperty.builder()
+                .id("connectionTimeoutInSeconds")
+                .label("Connection timeout")
+                .tooltip(
+                    "Timeout in seconds to establish a connection, or 0 for an infinite timeout.")
+                .group("timeout")
+                .value("20")
+                .binding(new ZeebeInput("connectionTimeoutInSeconds"))
+                .optional(true)
+                .feel(FeelMode.optional)
+                .constraints(
+                    PropertyConstraints.builder()
+                        .notEmpty(false)
+                        .pattern(
+                            new PropertyConstraints.Pattern(
+                                "^(=|([0-9]+|\\{\\{secrets\\..+\\}\\})$)",
+                                "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"))
+                        .build())
+                .build())
+        .build();
+  }
+
+  private static PropertyGroup connectorGroup() {
+    return PropertyGroup.builder()
+        .id("connector")
+        .label("Connector")
+        .properties(
+            CommonProperties.version(6L)
+                .binding(new ZeebeTaskHeader("elementTemplateVersion"))
+                .build(),
+            CommonProperties.id("io.camunda.connectors.Salesforce.v1")
+                .binding(new ZeebeTaskHeader("elementTemplateId"))
+                .build())
+        .build();
+  }
+
+  private static PropertyGroup outputGroup() {
+    return PropertyGroup.builder()
+        .id("output")
+        .label("Response mapping")
+        .properties(
+            StringProperty.builder()
+                .id("resultVariable")
+                .label("Result variable")
+                .tooltip(
+                    "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>")
+                .group("output")
+                .feel(FeelMode.disabled)
+                .binding(new ZeebeTaskHeader("resultVariable"))
+                .condition(new OneOf("interactionType", List.of("get", "post")))
+                .build(),
+            TextProperty.builder()
+                .id("resultExpression")
+                .label("Result expression")
+                .tooltip(
+                    "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>")
+                .group("output")
+                .feel(FeelMode.required)
+                .binding(new ZeebeTaskHeader("resultExpression"))
+                .condition(new OneOf("interactionType", List.of("get", "post")))
+                .build())
+        .build();
+  }
+
+  private static PropertyGroup errorsGroup() {
+    return PropertyGroup.builder()
+        .id("errors")
+        .label("Error handling")
+        .properties(
+            TextProperty.builder()
+                .id("errorExpression")
+                .label("Error expression")
+                .tooltip(
+                    "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>")
+                .group("errors")
+                .feel(FeelMode.required)
+                .binding(new ZeebeTaskHeader("errorExpression"))
+                .build())
+        .build();
   }
 
   private static List<io.camunda.connector.generator.dsl.Step> buildSteps() {

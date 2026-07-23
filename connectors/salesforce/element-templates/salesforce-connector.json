@@ -35,19 +35,15 @@
   },
   "groups" : [
     {
-      "id" : "operation",
-      "label" : "Operation"
+      "id" : "endpoint",
+      "label" : "Instance"
     },
     {
       "id" : "authentication",
       "label" : "Authentication"
     },
     {
-      "id" : "endpoint",
-      "label" : "Instance"
-    },
-    {
-      "id" : "input",
+      "id" : "operation",
       "label" : "Operation"
     },
     {
@@ -73,76 +69,6 @@
       "binding" : {
         "property" : "type",
         "type" : "zeebe:taskDefinition"
-      },
-      "type" : "Hidden"
-    },
-    {
-      "id" : "salesforceOperationType",
-      "label" : "Salesforce operation type",
-      "group" : "operation",
-      "binding" : {
-        "name" : "salesforceInteractionType",
-        "type" : "zeebe:input"
-      },
-      "tooltip" : "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query.",
-      "type" : "Dropdown",
-      "choices" : [
-        {
-          "name" : "sObject records",
-          "value" : "sObject"
-        },
-        {
-          "name" : "SOQL Query",
-          "value" : "soqlQuery"
-        }
-      ]
-    },
-    {
-      "id" : "interactionType",
-      "label" : "Interaction type",
-      "group" : "operation",
-      "binding" : {
-        "name" : "method",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "sObject",
-        "type" : "simple"
-      },
-      "type" : "Dropdown",
-      "choices" : [
-        {
-          "name" : "Get record",
-          "value" : "get"
-        },
-        {
-          "name" : "Create record",
-          "value" : "post"
-        },
-        {
-          "name" : "Update record",
-          "value" : "patch"
-        },
-        {
-          "name" : "Delete record",
-          "value" : "delete"
-        }
-      ]
-    },
-    {
-      "id" : "method",
-      "label" : "Method",
-      "value" : "get",
-      "group" : "operation",
-      "binding" : {
-        "name" : "method",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "soqlQuery",
-        "type" : "simple"
       },
       "type" : "Hidden"
     },
@@ -178,300 +104,6 @@
         "type" : "zeebe:input"
       },
       "type" : "String"
-    },
-    {
-      "id" : "objectType",
-      "label" : "Salesforce object",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "feel" : "optional",
-      "group" : "input",
-      "binding" : {
-        "name" : "objectType",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "sObject",
-        "type" : "simple"
-      },
-      "placeholder" : "Account",
-      "type" : "String"
-    },
-    {
-      "id" : "objectId",
-      "label" : "Salesforce object ID",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "feel" : "optional",
-      "group" : "input",
-      "binding" : {
-        "name" : "objectId",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "allMatch" : [
-          {
-            "property" : "interactionType",
-            "oneOf" : [
-              "patch",
-              "get",
-              "delete"
-            ],
-            "type" : "simple"
-          },
-          {
-            "property" : "salesforceOperationType",
-            "equals" : "sObject",
-            "type" : "simple"
-          }
-        ]
-      },
-      "type" : "String"
-    },
-    {
-      "id" : "relationshipFieldName",
-      "label" : "Relationship field name",
-      "optional" : true,
-      "feel" : "optional",
-      "group" : "input",
-      "binding" : {
-        "name" : "relationshipFieldName",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "allMatch" : [
-          {
-            "property" : "interactionType",
-            "equals" : "get",
-            "type" : "simple"
-          },
-          {
-            "property" : "salesforceOperationType",
-            "equals" : "sObject",
-            "type" : "simple"
-          }
-        ]
-      },
-      "tooltip" : "Name of the child relation",
-      "type" : "String"
-    },
-    {
-      "id" : "soqlQuery",
-      "label" : "SOQL query",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "feel" : "optional",
-      "group" : "input",
-      "binding" : {
-        "name" : "soqlQuery",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "soqlQuery",
-        "type" : "simple"
-      },
-      "tooltip" : "Salesforce Object Query Language statement used to retrieve records. See the <a href=\"https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm\" target=\"_blank\">SOQL reference</a>.",
-      "type" : "Text"
-    },
-    {
-      "id" : "queryParametersHiddenSoql",
-      "label" : "Query parameters",
-      "description" : "Map of query parameters to add to the request URL",
-      "value" : "={\n  q: soqlQuery\n}",
-      "group" : "input",
-      "binding" : {
-        "name" : "queryParameters",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "soqlQuery",
-        "type" : "simple"
-      },
-      "type" : "Hidden"
-    },
-    {
-      "id" : "queryParameters",
-      "label" : "Query parameters",
-      "optional" : true,
-      "feel" : "required",
-      "group" : "input",
-      "binding" : {
-        "name" : "queryParameters",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "allMatch" : [
-          {
-            "property" : "interactionType",
-            "equals" : "get",
-            "type" : "simple"
-          },
-          {
-            "property" : "salesforceOperationType",
-            "equals" : "sObject",
-            "type" : "simple"
-          }
-        ]
-      },
-      "tooltip" : "Map of query parameters to add to the request URL",
-      "type" : "String"
-    },
-    {
-      "id" : "urlSObject",
-      "label" : "URL",
-      "value" : "=baseUrl + \"/services/data/\" + apiVersion + \"/sobjects/\" + objectType + string(if objectId != null then \"/\" + objectId else \"\") + string(if relationshipFieldName != null then \"/\" + relationshipFieldName else \"\")",
-      "group" : "input",
-      "binding" : {
-        "name" : "url",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "sObject",
-        "type" : "simple"
-      },
-      "type" : "Hidden"
-    },
-    {
-      "id" : "urlSoql",
-      "label" : "URL",
-      "value" : "=baseUrl + \"/services/data/\" + apiVersion + \"/query\"",
-      "group" : "input",
-      "binding" : {
-        "name" : "url",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "soqlQuery",
-        "type" : "simple"
-      },
-      "type" : "Hidden"
-    },
-    {
-      "id" : "body",
-      "label" : "Record fields",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "feel" : "required",
-      "group" : "input",
-      "binding" : {
-        "name" : "body",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "interactionType",
-        "oneOf" : [
-          "patch",
-          "post"
-        ],
-        "type" : "simple"
-      },
-      "tooltip" : "Field values for the Salesforce object, provided as a FEEL context.",
-      "type" : "String"
-    },
-    {
-      "id" : "connectionTimeoutInSeconds",
-      "label" : "Connection timeout",
-      "optional" : true,
-      "value" : "20",
-      "constraints" : {
-        "notEmpty" : false,
-        "pattern" : {
-          "value" : "^(=|([0-9]+|\\{\\{secrets\\..+\\}\\})$)",
-          "message" : "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
-        }
-      },
-      "feel" : "optional",
-      "group" : "timeout",
-      "binding" : {
-        "name" : "connectionTimeoutInSeconds",
-        "type" : "zeebe:input"
-      },
-      "tooltip" : "Timeout in seconds to establish a connection, or 0 for an infinite timeout.",
-      "type" : "String"
-    },
-    {
-      "id" : "version",
-      "label" : "Version",
-      "description" : "Version of the element template",
-      "value" : "6",
-      "group" : "connector",
-      "binding" : {
-        "key" : "elementTemplateVersion",
-        "type" : "zeebe:taskHeader"
-      },
-      "type" : "Hidden"
-    },
-    {
-      "id" : "id",
-      "label" : "ID",
-      "description" : "ID of the element template",
-      "value" : "io.camunda.connectors.Salesforce.v1",
-      "group" : "connector",
-      "binding" : {
-        "key" : "elementTemplateId",
-        "type" : "zeebe:taskHeader"
-      },
-      "type" : "Hidden"
-    },
-    {
-      "id" : "resultVariable",
-      "label" : "Result variable",
-      "group" : "output",
-      "binding" : {
-        "key" : "resultVariable",
-        "type" : "zeebe:taskHeader"
-      },
-      "condition" : {
-        "property" : "interactionType",
-        "oneOf" : [
-          "get",
-          "post"
-        ],
-        "type" : "simple"
-      },
-      "tooltip" : "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
-      "type" : "String"
-    },
-    {
-      "id" : "resultExpression",
-      "label" : "Result expression",
-      "feel" : "required",
-      "group" : "output",
-      "binding" : {
-        "key" : "resultExpression",
-        "type" : "zeebe:taskHeader"
-      },
-      "condition" : {
-        "property" : "interactionType",
-        "oneOf" : [
-          "get",
-          "post"
-        ],
-        "type" : "simple"
-      },
-      "tooltip" : "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
-      "type" : "Text"
-    },
-    {
-      "id" : "errorExpression",
-      "label" : "Error expression",
-      "feel" : "required",
-      "group" : "errors",
-      "binding" : {
-        "key" : "errorExpression",
-        "type" : "zeebe:taskHeader"
-      },
-      "tooltip" : "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
-      "type" : "Text"
     },
     {
       "id" : "authentication.type",
@@ -586,6 +218,370 @@
         "type" : "simple"
       },
       "type" : "Hidden"
+    },
+    {
+      "id" : "salesforceOperationType",
+      "label" : "Salesforce operation type",
+      "group" : "operation",
+      "binding" : {
+        "name" : "salesforceInteractionType",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query.",
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "sObject records",
+          "value" : "sObject"
+        },
+        {
+          "name" : "SOQL Query",
+          "value" : "soqlQuery"
+        }
+      ]
+    },
+    {
+      "id" : "interactionType",
+      "label" : "Interaction type",
+      "group" : "operation",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "salesforceOperationType",
+        "equals" : "sObject",
+        "type" : "simple"
+      },
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "Get record",
+          "value" : "get"
+        },
+        {
+          "name" : "Create record",
+          "value" : "post"
+        },
+        {
+          "name" : "Update record",
+          "value" : "patch"
+        },
+        {
+          "name" : "Delete record",
+          "value" : "delete"
+        }
+      ]
+    },
+    {
+      "id" : "method",
+      "label" : "Method",
+      "value" : "get",
+      "group" : "operation",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "salesforceOperationType",
+        "equals" : "soqlQuery",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "objectType",
+      "label" : "Salesforce object",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "operation",
+      "binding" : {
+        "name" : "objectType",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "salesforceOperationType",
+        "equals" : "sObject",
+        "type" : "simple"
+      },
+      "placeholder" : "Account",
+      "type" : "String"
+    },
+    {
+      "id" : "objectId",
+      "label" : "Salesforce object ID",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "operation",
+      "binding" : {
+        "name" : "objectId",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "allMatch" : [
+          {
+            "property" : "interactionType",
+            "oneOf" : [
+              "patch",
+              "get",
+              "delete"
+            ],
+            "type" : "simple"
+          },
+          {
+            "property" : "salesforceOperationType",
+            "equals" : "sObject",
+            "type" : "simple"
+          }
+        ]
+      },
+      "type" : "String"
+    },
+    {
+      "id" : "relationshipFieldName",
+      "label" : "Relationship field name",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "operation",
+      "binding" : {
+        "name" : "relationshipFieldName",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "allMatch" : [
+          {
+            "property" : "interactionType",
+            "equals" : "get",
+            "type" : "simple"
+          },
+          {
+            "property" : "salesforceOperationType",
+            "equals" : "sObject",
+            "type" : "simple"
+          }
+        ]
+      },
+      "tooltip" : "Name of the child relation",
+      "type" : "String"
+    },
+    {
+      "id" : "soqlQuery",
+      "label" : "SOQL query",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "operation",
+      "binding" : {
+        "name" : "soqlQuery",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "salesforceOperationType",
+        "equals" : "soqlQuery",
+        "type" : "simple"
+      },
+      "tooltip" : "Salesforce Object Query Language statement used to retrieve records. See the <a href=\"https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm\" target=\"_blank\">SOQL reference</a>.",
+      "type" : "Text"
+    },
+    {
+      "id" : "queryParametersHiddenSoql",
+      "label" : "Query parameters",
+      "description" : "Map of query parameters to add to the request URL",
+      "value" : "={\n  q: soqlQuery\n}",
+      "group" : "operation",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "salesforceOperationType",
+        "equals" : "soqlQuery",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "queryParameters",
+      "label" : "Query parameters",
+      "optional" : true,
+      "feel" : "required",
+      "group" : "operation",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "allMatch" : [
+          {
+            "property" : "interactionType",
+            "equals" : "get",
+            "type" : "simple"
+          },
+          {
+            "property" : "salesforceOperationType",
+            "equals" : "sObject",
+            "type" : "simple"
+          }
+        ]
+      },
+      "tooltip" : "Map of query parameters to add to the request URL",
+      "type" : "String"
+    },
+    {
+      "id" : "urlSObject",
+      "label" : "URL",
+      "value" : "=baseUrl + \"/services/data/\" + apiVersion + \"/sobjects/\" + objectType + string(if objectId != null then \"/\" + objectId else \"\") + string(if relationshipFieldName != null then \"/\" + relationshipFieldName else \"\")",
+      "group" : "operation",
+      "binding" : {
+        "name" : "url",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "salesforceOperationType",
+        "equals" : "sObject",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "urlSoql",
+      "label" : "URL",
+      "value" : "=baseUrl + \"/services/data/\" + apiVersion + \"/query\"",
+      "group" : "operation",
+      "binding" : {
+        "name" : "url",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "salesforceOperationType",
+        "equals" : "soqlQuery",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "body",
+      "label" : "Record fields",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "required",
+      "group" : "operation",
+      "binding" : {
+        "name" : "body",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "interactionType",
+        "oneOf" : [
+          "patch",
+          "post"
+        ],
+        "type" : "simple"
+      },
+      "tooltip" : "Field values for the Salesforce object, provided as a FEEL context.",
+      "type" : "String"
+    },
+    {
+      "id" : "connectionTimeoutInSeconds",
+      "label" : "Connection timeout",
+      "optional" : true,
+      "value" : "20",
+      "constraints" : {
+        "notEmpty" : false,
+        "pattern" : {
+          "value" : "^(=|([0-9]+|\\{\\{secrets\\..+\\}\\})$)",
+          "message" : "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
+        }
+      },
+      "feel" : "optional",
+      "group" : "timeout",
+      "binding" : {
+        "name" : "connectionTimeoutInSeconds",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Timeout in seconds to establish a connection, or 0 for an infinite timeout.",
+      "type" : "String"
+    },
+    {
+      "id" : "version",
+      "label" : "Version",
+      "description" : "Version of the element template",
+      "value" : "6",
+      "group" : "connector",
+      "binding" : {
+        "key" : "elementTemplateVersion",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "id",
+      "label" : "ID",
+      "description" : "ID of the element template",
+      "value" : "io.camunda.connectors.Salesforce.v1",
+      "group" : "connector",
+      "binding" : {
+        "key" : "elementTemplateId",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "resultVariable",
+      "label" : "Result variable",
+      "group" : "output",
+      "binding" : {
+        "key" : "resultVariable",
+        "type" : "zeebe:taskHeader"
+      },
+      "condition" : {
+        "property" : "interactionType",
+        "oneOf" : [
+          "get",
+          "post"
+        ],
+        "type" : "simple"
+      },
+      "tooltip" : "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
+      "type" : "String"
+    },
+    {
+      "id" : "resultExpression",
+      "label" : "Result expression",
+      "feel" : "required",
+      "group" : "output",
+      "binding" : {
+        "key" : "resultExpression",
+        "type" : "zeebe:taskHeader"
+      },
+      "condition" : {
+        "property" : "interactionType",
+        "oneOf" : [
+          "get",
+          "post"
+        ],
+        "type" : "simple"
+      },
+      "tooltip" : "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
+      "type" : "Text"
+    },
+    {
+      "id" : "errorExpression",
+      "label" : "Error expression",
+      "feel" : "required",
+      "group" : "errors",
+      "binding" : {
+        "key" : "errorExpression",
+        "type" : "zeebe:taskHeader"
+      },
+      "tooltip" : "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
+      "type" : "Text"
     }
   ],
   "steps" : [
@@ -660,29 +656,29 @@
     {
       "id" : "sObject_get",
       "properties" : {
-        "interactionType" : "get",
-        "salesforceOperationType" : "sObject"
+        "salesforceOperationType" : "sObject",
+        "interactionType" : "get"
       }
     },
     {
       "id" : "sObject_post",
       "properties" : {
-        "interactionType" : "post",
-        "salesforceOperationType" : "sObject"
+        "salesforceOperationType" : "sObject",
+        "interactionType" : "post"
       }
     },
     {
       "id" : "sObject_patch",
       "properties" : {
-        "interactionType" : "patch",
-        "salesforceOperationType" : "sObject"
+        "salesforceOperationType" : "sObject",
+        "interactionType" : "patch"
       }
     },
     {
       "id" : "sObject_delete",
       "properties" : {
-        "interactionType" : "delete",
-        "salesforceOperationType" : "sObject"
+        "salesforceOperationType" : "sObject",
+        "interactionType" : "delete"
       }
     },
     {
