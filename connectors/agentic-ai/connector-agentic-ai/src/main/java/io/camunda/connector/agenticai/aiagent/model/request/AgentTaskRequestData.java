@@ -1,0 +1,44 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.model.request;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.Nullable;
+
+public record AgentTaskRequestData(
+    @FEEL
+        @TemplateProperty(
+            label = "Agent context",
+            group = "memory",
+            id = "agentContext",
+            description =
+                "Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
+            tooltip =
+                "The agent context variable containing all relevant data for the agent to support the feedback loop between "
+                    + "user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> "
+                    + "variable which is returned from the agent response. "
+                    + "<a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
+                    + "for details.",
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+            type = TemplateProperty.PropertyType.Text,
+            feel = FeelMode.required,
+            defaultValue = "=agent.context")
+        @Valid
+        @JsonDeserialize(using = VersionedAgentContextDeserializer.class)
+        AgentContext context,
+    @Valid @NotNull PromptConfiguration.SystemPromptConfiguration systemPrompt,
+    @Valid @NotNull PromptConfiguration.UserPromptConfiguration userPrompt,
+    @Valid @Nullable ToolsConfiguration tools,
+    @Valid @Nullable MemoryConfiguration memory,
+    @Valid @Nullable LimitsConfiguration limits,
+    @Valid @Nullable AgentTaskResponseConfiguration response) {}
