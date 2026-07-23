@@ -40,7 +40,7 @@ import java.util.function.Function;
  * <p>Azure's SDK ({@code azure-core}'s {@code KeyCredentialPolicy}) unconditionally rejects
  * non-HTTPS endpoints when using API-key authentication (hardcoded, no builder-level bypass) — so
  * unlike the other three fixtures, this one points at WireMock's HTTPS port, whose self-signed
- * certificate ({@code BaseAiAgentTest.httpsKeystoreFile()}) is also configured as the JVM's trust
+ * certificate ({@code BaseAgentTest.httpsKeystoreFile()}) is also configured as the JVM's trust
  * store for this test run (see {@code ProviderWireFormatSmokeTests}).
  *
  * <p>Separately, {@code langchain4j-azure-openai}'s message mapper only handles {@code

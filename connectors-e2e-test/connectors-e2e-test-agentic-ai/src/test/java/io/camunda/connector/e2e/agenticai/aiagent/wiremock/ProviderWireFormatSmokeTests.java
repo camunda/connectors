@@ -16,17 +16,17 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_JSON;
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_JSON_ASSERTIONS;
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_JSON;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_JSON_ASSERTIONS;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentTest;
-import io.camunda.connector.e2e.agenticai.aiagent.jobworker.BaseAiAgentJobWorkerTest;
+import io.camunda.connector.e2e.agenticai.aiagent.BaseAgentTest;
+import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.AzureOpenAiCompletionsWireFormatFixture;
@@ -34,7 +34,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
-import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
+import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.File;
 import java.io.IOException;
@@ -68,7 +68,7 @@ import uk.org.webcompere.systemstubs.properties.SystemProperties;
 @ParameterizedClass(name = "{0}")
 @MethodSource("fixtures")
 @ExtendWith(SystemStubsExtension.class)
-public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
+public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
 
   @Parameter ProviderWireFormatFixture fixture;
 
@@ -92,15 +92,15 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
   private static final SystemProperties TRUST_WIREMOCK_HTTPS_CERTIFICATE =
       new SystemProperties(
           "javax.net.ssl.trustStore",
-          BaseAiAgentTest.httpsKeystoreFile().toString(),
+          BaseAgentTest.httpsKeystoreFile().toString(),
           "javax.net.ssl.trustStorePassword",
-          BaseAiAgentTest.HTTPS_KEYSTORE_PASSWORD,
+          BaseAgentTest.HTTPS_KEYSTORE_PASSWORD,
           "javax.net.ssl.trustStoreType",
           "PKCS12");
 
   /**
    * Overridden directly (rather than the {@code withOpenAiCompatibleProvider} hook {@link
-   * BaseAiAgentJobWorkerTest#createProcessInstance} composes) so this row's provider fixture, not
+   * BaseAgentSubProcessTest#createProcessInstance} composes) so this row's provider fixture, not
    * the openaiCompatible default, configures the element template — without touching the shared
    * base test classes other providers' scenarios also run through.
    */
@@ -138,7 +138,7 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
-            JobWorkerAgentResponseAssert.assertThat(agentResponse)
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasResponseText(HAIKU_TEXT));
   }
@@ -173,7 +173,7 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
-            JobWorkerAgentResponseAssert.assertThat(agentResponse)
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasResponseText(finalMessage));
   }
@@ -204,7 +204,7 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
-            JobWorkerAgentResponseAssert.assertThat(agentResponse)
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasResponseText(responseText));
   }
@@ -242,7 +242,7 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
-            JobWorkerAgentResponseAssert.assertThat(agentResponse)
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
   }
