@@ -42,7 +42,9 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   @Override
   public SearchResponse<ProcessDefinition> queryProcessDefinitions(String paginationIndex) {
     final var query =
-        camundaClient.newProcessDefinitionSearchRequest().filter(f -> f.isLatestVersion(true));
+        camundaClient
+            .newProcessDefinitionSearchRequest()
+            .filter(f -> f.isLatestVersion(true).isDeleted(false));
     if (paginationIndex != null) {
       query.page(p -> p.limit(limit).after(paginationIndex));
     } else {
