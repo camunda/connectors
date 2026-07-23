@@ -99,5 +99,11 @@ public class AnthropicOkHttpClientFactory implements AnthropicClientFactory {
         builder.putQueryParam(queryParameter.getKey(), queryParameter.getValue());
       }
     }
+
+    // compatible.requestParameters() (additional request body parameters) is intentionally not
+    // applied here: AnthropicOkHttpClient.Builder has no client-level hook for static/default body
+    // parameters (verified via javap -- only headers/queryParams are exposed), so it can only be
+    // applied per-request when building MessageCreateParams. That is the request converter's job
+    // (a later task), not this client-construction-only factory.
   }
 }
