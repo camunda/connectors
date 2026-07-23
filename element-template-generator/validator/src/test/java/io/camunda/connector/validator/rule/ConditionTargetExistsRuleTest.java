@@ -152,6 +152,53 @@ class ConditionTargetExistsRuleTest {
             "/properties/1/condition/property", "/properties/2/condition/property");
   }
 
+  /**
+   * A configuration template's {@code properties[]} is its own scope: a condition inside it must be
+   * checked against its own properties, not the host's — even when the host has no property of that
+   * id at all (e.g. it sits behind a nesting prefix like {@code baseRequest.authType}).
+   */
+  @Test
+  void configurationTemplateCondition_referencesOwnProperty_noFindings() throws Exception {
+    JsonNode template =
+        read(
+            """
+        {
+          "properties": [ { "id": "baseRequest.authType" } ],
+          "configurationTemplates": [
+            {
+              "properties": [
+                { "id": "authType" },
+                { "id": "token", "condition": { "property": "authType", "equals": "pat" } }
+              ]
+            }
+          ]
+        }
+        """);
+    assertThat(rule.apply(FILE, template)).isEmpty();
+  }
+
+  @Test
+  void configurationTemplateCondition_referencesMissingOwnProperty_oneFinding() throws Exception {
+    JsonNode template =
+        read(
+            """
+        {
+          "properties": [ { "id": "authType" } ],
+          "configurationTemplates": [
+            {
+              "properties": [
+                { "id": "token", "condition": { "property": "authType", "equals": "pat" } }
+              ]
+            }
+          ]
+        }
+        """);
+    List<Finding> findings = rule.apply(FILE, template);
+    assertThat(findings).hasSize(1);
+    assertThat(findings.get(0).jsonPointer())
+        .isEqualTo("/configurationTemplates/0/properties/0/condition/property");
+  }
+
   private static JsonNode read(String json) throws Exception {
     return MAPPER.readTree(json);
   }

@@ -19,7 +19,8 @@ public record BasicAuthentication(
     @FEEL
         @TemplateProperty(
             group = "authentication",
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+            secret = true)
         String password)
     implements Authentication {
 

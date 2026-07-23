@@ -31,21 +31,32 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.json.ElementTemplateModule;
-import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /**
- * Validates the configuration templates emitted by the generator against the official pre-release
- * <a
+ * Validates the configuration templates emitted by the generator against the official <a
  * href="https://github.com/camunda/element-templates-json-schema">{@code
- * @camunda/zeebe-configuration-templates-json-schema}</a> (draft-07). The schema resource is a
- * verbatim copy of {@code resources/schema.json} from
- * {@code @camunda/zeebe-configuration-templates-json-schema@0.2.0-alpha.0} (bpmn-io/internal-docs
- * #1331), vendored at {@code src/test/resources/configuration-template-schema.json} so the test
- * stays hermetic.
+ * @camunda/zeebe-configuration-templates-json-schema}</a> (draft-07), fetched from the npm registry
+ * (unpkg) rather than vendored in the repo. Pinned to a released version so behavior is reproducible
+ * across CI runs and local machines; bump {@link #SCHEMA_VERSION} deliberately.
  */
 public class ConfigurationTemplateSchemaTest {
+
+  /**
+   * Pinned released schema version; bump deliberately in lockstep with the connectors-team upgrade.
+   */
+  private static final String SCHEMA_VERSION = "0.2.0";
+
+  private static final String SCHEMA_URL =
+      "https://unpkg.com/@camunda/zeebe-configuration-templates-json-schema@"
+          + SCHEMA_VERSION
+          + "/resources/schema.json";
 
   private static final ObjectMapper MAPPER =
       new ObjectMapper().registerModule(new ElementTemplateModule());
@@ -53,14 +64,33 @@ public class ConfigurationTemplateSchemaTest {
   private final ClassBasedTemplateGenerator generator = new ClassBasedTemplateGenerator();
 
   private static JsonSchema loadSchema() {
-    try (InputStream is =
-        ConfigurationTemplateSchemaTest.class
-            .getClassLoader()
-            .getResourceAsStream("configuration-template-schema.json")) {
-      var schemaNode = MAPPER.readTree(is);
+    try {
+      HttpClient client =
+          HttpClient.newBuilder()
+              .followRedirects(HttpClient.Redirect.NORMAL)
+              .connectTimeout(Duration.ofSeconds(10))
+              .build();
+      HttpRequest request =
+          HttpRequest.newBuilder(URI.create(SCHEMA_URL))
+              .timeout(Duration.ofSeconds(20))
+              .GET()
+              .build();
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+      if (response.statusCode() / 100 != 2) {
+        throw new IllegalStateException(
+            "Failed to fetch configuration-template schema from "
+                + SCHEMA_URL
+                + ": HTTP "
+                + response.statusCode());
+      }
+      var schemaNode = MAPPER.readTree(response.body());
       return JsonSchemaFactory.getInstance(VersionFlag.V7).getSchema(schemaNode);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException("Interrupted while fetching configuration-template schema", e);
     } catch (Exception e) {
-      throw new RuntimeException("Failed to load configuration-template schema", e);
+      throw new RuntimeException(
+          "Failed to load configuration-template schema from " + SCHEMA_URL, e);
     }
   }
 

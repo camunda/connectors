@@ -11,6 +11,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.aws.s3.core.S3Executor;
 import io.camunda.connector.aws.s3.model.request.S3Request;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -18,7 +19,14 @@ import java.util.function.Function;
 
 @OutboundConnector(
     name = "AWS S3",
-    inputVariables = {"authentication", "configuration", "actionDiscriminator", "action"},
+    inputVariables = {
+      "authentication",
+      "configuration",
+      "actionDiscriminator",
+      "action",
+      "documentReturnFormat",
+      "awsCredential"
+    },
     type = "io.camunda:aws-s3:1")
 @ElementTemplate(
     engineVersion = "^8.10",
@@ -37,7 +45,8 @@ import java.util.function.Function;
       "file storage"
     },
     inputDataClass = S3Request.class,
-    version = 4,
+    configurations = {AwsCredentialConfiguration.class},
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Action"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
@@ -55,6 +64,8 @@ public class S3ConnectorFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) {
     Function<DocumentCreationRequest, Document> createDocument = context::create;
     S3Request s3Request = context.bindVariables(S3Request.class);
-    return S3Executor.create(s3Request, createDocument).execute(s3Request.getAction());
+    boolean useDocumentReturnFlow = context.readDocumentReturnFormat().isPresent();
+    return S3Executor.create(s3Request, createDocument)
+        .execute(s3Request.getAction(), useDocumentReturnFlow);
   }
 }

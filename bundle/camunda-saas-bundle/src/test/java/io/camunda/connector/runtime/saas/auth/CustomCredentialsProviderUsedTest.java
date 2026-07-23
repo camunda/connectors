@@ -18,7 +18,8 @@ package io.camunda.connector.runtime.saas.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.client.CredentialsProvider;
+import io.camunda.client.spring.configuration.CredentialsProviderConfiguration;
+import io.camunda.connector.runtime.saas.CamundaClientSaaSConfiguration;
 import io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication;
 import io.camunda.connector.runtime.saas.SaaSSecretConfiguration;
 import io.camunda.connector.test.utils.oidc.MockOidcServer;
@@ -67,10 +68,18 @@ public class CustomCredentialsProviderUsedTest {
   @Test
   public void credentialsNotProvidedInProperties_customCredentialsProviderUsed() {
     // When client-id and client-secret are NOT provided in properties,
-    // our custom credentialsProvider bean should be created
-    assertThat(applicationContext.getBean(CredentialsProvider.class)).isNotNull();
-    var beansWithName = applicationContext.getBeansOfType(CredentialsProvider.class);
-    assertThat(beansWithName).containsKey("customConnectorsCredentialsProvider");
-    assertThat(beansWithName).doesNotContainKey("camundaClientCredentialsProvider");
+    // the SaaS CredentialsProviderConfiguration (which uses the internal GCP secret manager)
+    // should be active. In the new multi-client architecture, credentials are managed by
+    // CredentialsProviderConfiguration - no standalone CredentialsProvider beans are registered.
+    CredentialsProviderConfiguration config =
+        applicationContext.getBean(CredentialsProviderConfiguration.class);
+    // Our custom SaaS configuration (anonymous subclass) should be registered, not the default
+    assertThat(config.getClass()).isNotEqualTo(CredentialsProviderConfiguration.class);
+    // No standalone credentials provider bean registered by the Camunda starter or legacy approach
+    assertThat(applicationContext.containsBean("customConnectorsCredentialsProvider")).isFalse();
+    assertThat(applicationContext.containsBean("camundaClientCredentialsProvider")).isFalse();
+    // The bean should come from our SaaS configuration class
+    assertThat(config.getClass().getEnclosingClass())
+        .isEqualTo(CamundaClientSaaSConfiguration.class);
   }
 }

@@ -12,6 +12,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
 public class SqsInboundProperties extends AwsBaseRequest {
+
   @Valid @NotNull private SqsInboundQueueProperties queue;
 
   public SqsInboundQueueProperties getQueue() {

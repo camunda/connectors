@@ -97,7 +97,8 @@ public class HttpServiceTest {
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/upload");
 
     // when
-    HttpCommonResult result = httpService.executeConnectorRequest(request, documentFactory);
+    HttpCommonResult result =
+        (HttpCommonResult) httpService.executeConnectorRequest(request, documentFactory);
 
     // then
     Assertions.assertThat(result).isNotNull();
@@ -155,7 +156,8 @@ public class HttpServiceTest {
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/upload");
 
     // when
-    HttpCommonResult result = httpService.executeConnectorRequest(request, documentFactory);
+    HttpCommonResult result =
+        (HttpCommonResult) httpService.executeConnectorRequest(request, documentFactory);
 
     // then
     Assertions.assertThat(result).isNotNull();
@@ -187,7 +189,8 @@ public class HttpServiceTest {
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/download");
 
     // when
-    HttpCommonResult result = httpService.executeConnectorRequest(request, documentFactory);
+    HttpCommonResult result =
+        (HttpCommonResult) httpService.executeConnectorRequest(request, documentFactory);
 
     // then
     Assertions.assertThat(result).isNotNull();
@@ -404,7 +407,8 @@ public class HttpServiceTest {
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
 
     // when
-    HttpCommonResult result = httpService.executeConnectorRequest(request, documentFactory);
+    HttpCommonResult result =
+        (HttpCommonResult) httpService.executeConnectorRequest(request, documentFactory);
 
     // then
     Assertions.assertThat(result).isNotNull();

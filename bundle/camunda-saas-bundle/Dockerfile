@@ -1,4 +1,4 @@
-FROM reg.mini.dev/1212/openjre-base:v26.0.1-dev
+FROM reg.mini.dev/1212/openjre-base:v26.0.2-dev
 
 VOLUME /tmp
 

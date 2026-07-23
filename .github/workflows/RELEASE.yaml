@@ -18,6 +18,11 @@ on:
         required: false
         type: boolean
         default: false
+      skip-e2e-tests:
+        description: 'Skip E2E tests'
+        required: false
+        type: boolean
+        default: false
       latest:
         description: 'Mark this release as latest (push latest docker tags & mark GitHub release latest)'
         required: false
@@ -195,6 +200,7 @@ jobs:
   e2e-tests:
     needs: setup
     name: Run E2E tests
+    if: ${{ !inputs.skip-e2e-tests }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -286,6 +292,10 @@ jobs:
   version-bump-docs-links:
     needs: [setup, e2e-tests]
     name: Version bump documentation links, if this is the first minor release
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -348,7 +358,11 @@ jobs:
     needs: [setup, e2e-tests]
     name: Create a maven release
     runs-on: ubuntu-latest
-    if: ${{ !inputs.skip-maven-release }}
+    if: |
+      always() &&
+      !inputs.skip-maven-release &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     permissions:
       contents: read
     steps:
@@ -461,8 +475,30 @@ jobs:
   docker-release:
     needs: [setup, e2e-tests]
     runs-on: ubuntu-latest
-    name: Perform the docker release
-    if: ${{ !inputs.skip-docker-release }}
+    name: Docker release - ${{ matrix.name }}
+    if: |
+      always() &&
+      !inputs.skip-docker-release &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
+    strategy:
+      matrix:
+        include:
+          - name: connector-runtime
+            context: connector-runtime/connector-runtime-application/
+            image: camunda/connectors
+            readme: ''
+            short_description: ''
+          - name: bundle-default
+            context: bundle/default-bundle/
+            image: camunda/connectors-bundle
+            readme: bundle/README.md
+            short_description: 'Camunda out-of-the-box Connectors Bundle'
+          - name: bundle-saas
+            context: bundle/camunda-saas-bundle/
+            image: camunda/connectors-bundle-saas
+            readme: bundle/README.md
+            short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
     permissions:
       contents: read
     steps:
@@ -494,7 +530,7 @@ jobs:
         with:
           platforms: 'arm64,arm'
 
-      - name: Set up Docker Build
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
       - name: Login to Docker Hub
@@ -510,106 +546,54 @@ jobs:
           username: minimus
           password: ${{ steps.secrets.outputs.REGISTRY_MINIMUS_PSW }}
 
-      # Build & push bundle docker images (with version tag)
-
-      - name: Build and Push Docker Image tag ${{ inputs.version }} - connector-runtime
+      - name: Build and Push Docker Image tag ${{ inputs.version }} - ${{ matrix.name }}
         uses: docker/build-push-action@v7
         with:
-          context: connector-runtime/connector-runtime-application/
+          context: ${{ matrix.context }}
           push: true
-          tags: camunda/connectors:${{ inputs.version }}
+          tags: ${{ matrix.image }}:${{ inputs.version }}
           platforms: linux/amd64,linux/arm64
           provenance: false
-
-      - name: Build and Push Docker Image tag ${{ inputs.version }} - bundle-default
-        uses: docker/build-push-action@v7
-        with:
-          context: bundle/default-bundle/
-          push: true
-          tags: camunda/connectors-bundle:${{ inputs.version }}
-          platforms: linux/amd64,linux/arm64
-          provenance: false
-
-      - name: Build and Push Docker Image tag ${{ inputs.version }} - bundle-saas
-        uses: docker/build-push-action@v7
-        with:
-          context: bundle/camunda-saas-bundle/
-          push: true
-          tags: camunda/connectors-bundle-saas:${{ inputs.version }}
-          platforms: linux/amd64,linux/arm64
-          provenance: false
-
-      # Build & push bundle docker images (with 'latest' tag)
 
       - name: Log latest tag push decision
         run: |
           echo "Tag type: ${{ needs.setup.outputs.tagType }}"
           echo "Latest input: ${{ inputs.latest }}"
           if [[ "${{ inputs.latest }}" == "true" && "${{ needs.setup.outputs.tagType }}" == "NORMAL" ]]; then
-            echo "Will push 'latest' tags for all images"
+            echo "Will push 'latest' tag for ${{ matrix.name }}"
           else
-            echo "Will NOT push 'latest' tags (either latest not requested or not a NORMAL release)"
+            echo "Will NOT push 'latest' tag (either latest not requested or not a NORMAL release)"
           fi
 
-      - name: Build and Push Docker Image tag latest - connector-runtime
+      - name: Build and Push Docker Image tag latest - ${{ matrix.name }}
         if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
         uses: docker/build-push-action@v7
         with:
-          context: connector-runtime/connector-runtime-application/
+          context: ${{ matrix.context }}
           push: true
-          tags: camunda/connectors:latest
+          tags: ${{ matrix.image }}:latest
           platforms: linux/amd64,linux/arm64
           provenance: false
 
-      - name: Build and Push Docker Image tag latest - bundle-default
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
-        uses: docker/build-push-action@v7
-        with:
-          context: bundle/default-bundle/
-          push: true
-          tags: camunda/connectors-bundle:latest
-          platforms: linux/amd64,linux/arm64
-          provenance: false
-
-      - name: Build and Push Docker Image tag latest - bundle-saas
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
-        uses: docker/build-push-action@v7
-        with:
-          context: bundle/camunda-saas-bundle/
-          push: true
-          tags: camunda/connectors-bundle-saas:latest
-          platforms: linux/amd64,linux/arm64
-          provenance: false
-
-      # Update README in Dockerhub
-
-      - name: Push README to Dockerhub - bundle-default
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
+      - name: Push README to Dockerhub - ${{ matrix.name }}
+        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' && matrix.readme != '' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
           DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
         with:
-          destination_container_repo: camunda/connectors-bundle
+          destination_container_repo: ${{ matrix.image }}
           provider: dockerhub
-          readme_file: bundle/README.md
-          short_description: 'Camunda out-of-the-box Connectors Bundle'
-
-      - name: Push README to Dockerhub - bundle-saas
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
-        uses: christian-korneck/update-container-description-action@v1
-        env:
-          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
-          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
-        with:
-          destination_container_repo: camunda/connectors-bundle-saas
-          provider: dockerhub
-          readme_file: bundle/README.md
-          short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
+          readme_file: ${{ matrix.readme }}
+          short_description: ${{ matrix.short_description }}
 
   bundle-and-build-changelog:
     needs: [setup, e2e-tests]
     name: Bundle and generate changelogs
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -651,7 +635,12 @@ jobs:
 
   helm-deploy:
     needs: [ setup, e2e-tests, docker-release ]
-    if: ${{ !inputs.skip-docker-release }}
+    if: |
+      always() &&
+      !inputs.skip-docker-release &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped') &&
+      needs.docker-release.result == 'success'
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
@@ -677,8 +666,9 @@ jobs:
       contents: read
 
     if: |
+      always() &&
       needs.setup.result == 'success' &&
-      needs.e2e-tests.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped') &&
       (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
       (needs.docker-release.result == 'success' || needs.docker-release.result == 'skipped') &&
       needs.bundle-and-build-changelog.result == 'success' &&
@@ -738,9 +728,10 @@ jobs:
 
     # Automatically notify PRs for non-RC releases (case-insensitive check)
     if: |
+      always() &&
       !contains(inputs.version, 'rc') &&
       needs.setup.result == 'success' &&
-      needs.e2e-tests.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped') &&
       needs.maven-release.result == 'success' &&
       needs.docker-release.result == 'success' &&
       needs.bundle-and-build-changelog.result == 'success'

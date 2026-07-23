@@ -42,14 +42,16 @@ public sealed interface AwsAuthentication
               group = "authentication",
               label = "Access key",
               tooltip =
-                  "IAM access key of a user with the necessary permissions for this connector")
+                  "IAM access key of a user with the necessary permissions for this connector",
+              secret = true)
           @NotBlank
           String accessKey,
       @TemplateProperty(
               group = "authentication",
               label = "Secret key",
               tooltip =
-                  "IAM secret key of a user with the necessary permissions for this connector")
+                  "IAM secret key of a user with the necessary permissions for this connector",
+              secret = true)
           @NotBlank
           String secretKey)
       implements AwsAuthentication {

@@ -38,18 +38,37 @@ import java.util.Set;
  * <p>For properties whose {@code choices} differ across {@code condition} branches (e.g. {@code
  * eventOperationType} per {@code operationGroup}), the rule unions all choices for that id — a
  * lenient default that avoids false positives at the cost of missing some bugs.
+ *
+ * <p>An embedded configuration template ({@code configurationTemplates[*]}) is a self-contained
+ * document: its {@code properties[]} is its own scope, disjoint from the host template's, so its
+ * conditions are checked against its own choices rather than the host's.
  */
 public class ConditionValueInChoicesRule implements Rule {
 
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
-    Map<String, Set<String>> choicesById = collectChoiceUnion(template);
-    if (choicesById.isEmpty()) {
-      return List.of();
-    }
     List<Finding> findings = new ArrayList<>();
-    walk(template, "", file, choicesById, findings);
+    checkScope(template, "", file, findings);
+
+    JsonNode configurationTemplates = template.path(ElementTemplate.CONFIGURATION_TEMPLATES);
+    if (configurationTemplates.isArray()) {
+      for (int i = 0; i < configurationTemplates.size(); i++) {
+        JsonNode configurationTemplate = configurationTemplates.get(i);
+        checkScope(
+            configurationTemplate,
+            "/" + ElementTemplate.CONFIGURATION_TEMPLATES + "/" + i,
+            file,
+            findings);
+      }
+    }
     return findings;
+  }
+
+  private void checkScope(JsonNode scope, String pointer, Path file, List<Finding> findings) {
+    Map<String, Set<String>> choicesById = collectChoiceUnion(scope);
+    if (!choicesById.isEmpty()) {
+      walk(scope, pointer, file, choicesById, findings);
+    }
   }
 
   private Map<String, Set<String>> collectChoiceUnion(JsonNode template) {
@@ -83,6 +102,9 @@ public class ConditionValueInChoicesRule implements Rule {
       List<Finding> findings) {
     if (node.isObject()) {
       for (Map.Entry<String, JsonNode> entry : node.properties()) {
+        if (ElementTemplate.CONFIGURATION_TEMPLATES.equals(entry.getKey())) {
+          continue; // validated in its own scope by apply(), not the host's
+        }
         String childPointer = pointer + "/" + JsonPointers.escape(entry.getKey());
         if (ElementTemplate.CONDITION.equals(entry.getKey()) && entry.getValue().isObject()) {
           checkCondition(entry.getValue(), childPointer, file, choicesById, findings);

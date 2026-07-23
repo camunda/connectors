@@ -9,6 +9,7 @@ package io.camunda.connector.textract;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.textract.caller.AsyncTextractCaller;
 import io.camunda.connector.textract.caller.PollingTextractCaller;
@@ -18,7 +19,14 @@ import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
 
 @OutboundConnector(
     name = "AWS Textract",
-    inputVariables = {"authentication", "configuration", "document", "input", "advanced"},
+    inputVariables = {
+      "authentication",
+      "configuration",
+      "document",
+      "input",
+      "advanced",
+      "awsCredential"
+    },
     type = "io.camunda:aws-textract:1")
 @ElementTemplate(
     engineVersion = "^8.6",
@@ -39,7 +47,8 @@ import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
       "real-time"
     },
     inputDataClass = TextractRequest.class,
-    version = 4,
+    configurations = {AwsCredentialConfiguration.class},
+    version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

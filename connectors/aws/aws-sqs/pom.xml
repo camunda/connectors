@@ -107,6 +107,7 @@
                 <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
                 <ACKNOWLEDGEMENT_STRATEGY_SELECTION>true</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
               </features>
+              <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>

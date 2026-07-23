@@ -27,7 +27,7 @@ public class ConnectionHelper {
       LOG.debug("Executing JDBC request: {}", request);
       LOG.debug("Loading JDBC driver: {}", driverClassName);
       Class.forName(driverClassName);
-      JdbcConnection connection = request.connection();
+      JdbcConnection connection = resolveConnection(request);
       Connection conn =
           DriverManager.getConnection(
               ensureMySQLCompatibleUrl(connection.getConnectionString(database), database),
@@ -39,6 +39,24 @@ public class ConnectionHelper {
     } catch (SQLException e) {
       throw new ConnectorException("Cannot create the Database connection: " + e.getMessage());
     }
+  }
+
+  /**
+   * Resolves the effective JDBC connection, applying the configuration/inline precedence for the
+   * credentials transition (per-connector implementation of the consume-configuration capability):
+   * a bound connection credential ({@code configuration}) takes precedence over the inline
+   * connection fields; the inline connection is the fallback. Per-field inline override is not
+   * modeled for JDBC because the connection is consumed as a whole object.
+   */
+  static JdbcConnection resolveConnection(JdbcRequest request) {
+    if (request.configuration() != null) {
+      return request.configuration().toDetailedConnection();
+    }
+    if (request.connection() != null) {
+      return request.connection();
+    }
+    throw new ConnectorException(
+        "No JDBC connection provided: fill in the connection fields or select a connection credential");
   }
 
   /**

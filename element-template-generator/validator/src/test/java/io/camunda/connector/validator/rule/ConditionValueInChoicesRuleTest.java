@@ -137,6 +137,58 @@ class ConditionValueInChoicesRuleTest {
     assertThat(rule.apply(FILE, template)).extracting(Finding::ruleId).doesNotContain(rule.id());
   }
 
+  /**
+   * A configuration template's {@code properties[]} is its own scope for choice validation too,
+   * independent of the host's — even when a property of the same id exists on the host with a
+   * different set of choices.
+   */
+  @Test
+  void configurationTemplateCondition_checkedAgainstOwnChoices_notHosts() throws Exception {
+    JsonNode template =
+        read(
+            """
+        {
+          "properties": [
+            { "id": "authType", "choices": [{"value":"pat"},{"value":"oauth"}] }
+          ],
+          "configurationTemplates": [
+            {
+              "properties": [
+                { "id": "authType", "choices": [{"value":"basic"},{"value":"bearer"}] },
+                { "id": "x", "condition": { "property": "authType", "equals": "basic" } }
+              ]
+            }
+          ]
+        }
+        """);
+    assertThat(rule.apply(FILE, template)).isEmpty();
+  }
+
+  @Test
+  void configurationTemplateCondition_hostChoiceDoesNotLeakIn_oneFinding() throws Exception {
+    JsonNode template =
+        read(
+            """
+        {
+          "properties": [
+            { "id": "authType", "choices": [{"value":"pat"},{"value":"oauth"}] }
+          ],
+          "configurationTemplates": [
+            {
+              "properties": [
+                { "id": "authType", "choices": [{"value":"basic"},{"value":"bearer"}] },
+                { "id": "x", "condition": { "property": "authType", "equals": "pat" } }
+              ]
+            }
+          ]
+        }
+        """);
+    List<Finding> findings = rule.apply(FILE, template);
+    assertThat(findings).hasSize(1);
+    assertThat(findings.get(0).jsonPointer())
+        .isEqualTo("/configurationTemplates/0/properties/1/condition/equals");
+  }
+
   private static JsonNode read(String json) throws Exception {
     return MAPPER.readTree(json);
   }

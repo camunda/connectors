@@ -4,7 +4,6 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-
 package io.camunda.connector.http.base;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -95,7 +94,8 @@ public class HttpServiceDocumentTest {
       request.setStoreResponse(true);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/download");
       HttpCommonResult result =
-          customApacheHttpClient.executeConnectorRequest(request, documentFactory);
+          (HttpCommonResult)
+              customApacheHttpClient.executeConnectorRequest(request, documentFactory);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.headers().get(HttpHeaders.CONTENT_TYPE))
@@ -138,7 +138,8 @@ public class HttpServiceDocumentTest {
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       request.setBody(bodyMap);
       HttpCommonResult result =
-          customApacheHttpClient.executeConnectorRequest(request, documentFactory);
+          (HttpCommonResult)
+              customApacheHttpClient.executeConnectorRequest(request, documentFactory);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
 
@@ -193,7 +194,8 @@ public class HttpServiceDocumentTest {
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       request.setBody(bodyMap);
       HttpCommonResult result =
-          customApacheHttpClient.executeConnectorRequest(request, documentFactory);
+          (HttpCommonResult)
+              customApacheHttpClient.executeConnectorRequest(request, documentFactory);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
 

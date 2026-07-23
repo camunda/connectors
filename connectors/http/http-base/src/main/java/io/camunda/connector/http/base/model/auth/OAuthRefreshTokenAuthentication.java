@@ -40,7 +40,8 @@ public record OAuthRefreshTokenAuthentication(
             group = "authentication",
             tooltip = "Your application's client secret from the OAuth client",
             label = "Client secret",
-            optional = true)
+            optional = true,
+            secret = true)
         String clientSecret,
     @FEEL
         @NotEmpty
@@ -48,7 +49,8 @@ public record OAuthRefreshTokenAuthentication(
             id = "oauthRefreshToken.refreshToken",
             group = "authentication",
             tooltip = "The refresh token used to obtain a new access token",
-            label = "Refresh token")
+            label = "Refresh token",
+            secret = true)
         String refreshToken,
     @TemplateProperty(
             id = "oauthRefreshToken.scopes",

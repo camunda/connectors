@@ -13,6 +13,8 @@ import static org.mockito.Mockito.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentReturn;
+import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.aws.s3.model.request.DeleteObject;
 import io.camunda.connector.aws.s3.model.request.DownloadObject;
 import io.camunda.connector.aws.s3.model.request.S3Action;
@@ -42,7 +44,7 @@ class S3ExecutorTest {
     S3Executor executor = new S3Executor(s3Client, function);
     S3Action s3Action = new DeleteObject("test", "key");
 
-    Object object = executor.execute(s3Action);
+    Object object = executor.execute(s3Action, false);
 
     verify(s3Client, times(1)).deleteObject(any(DeleteObjectRequest.class));
     assertInstanceOf(DeleteResponse.class, object);
@@ -59,7 +61,7 @@ class S3ExecutorTest {
     when(document.metadata().getSize()).thenReturn(42L);
     when(document.metadata().getContentType()).thenReturn("application/octet-stream");
 
-    Object object = executor.execute(s3Action);
+    Object object = executor.execute(s3Action, false);
 
     verify(s3Client, times(1)).putObject(any(PutObjectRequest.class), any(RequestBody.class));
     assertInstanceOf(UploadResponse.class, object);
@@ -78,7 +80,7 @@ class S3ExecutorTest {
     when(s3Client.getObject(any(GetObjectRequest.class))).thenReturn(responseInputStream);
     when(responseInputStream.response()).thenReturn(getObjectResponse);
     when(getObjectResponse.contentType()).thenReturn("application/octet-stream");
-    Object object = executor.execute(s3Action);
+    Object object = executor.execute(s3Action, false);
 
     verify(s3Client, times(1)).getObject(any(GetObjectRequest.class));
     assertInstanceOf(DownloadResponse.class, object);
@@ -100,7 +102,7 @@ class S3ExecutorTest {
     when(responseInputStream.readAllBytes()).thenReturn("Hello World".getBytes());
     when(getObjectResponse.contentLength()).thenReturn(234L);
     when(getObjectResponse.contentType()).thenReturn("text/plain");
-    Object object = executor.execute(s3Action);
+    Object object = executor.execute(s3Action, false);
 
     verify(s3Client, times(1)).getObject(any(GetObjectRequest.class));
     assertInstanceOf(DownloadResponse.class, object);
@@ -125,7 +127,7 @@ class S3ExecutorTest {
     when(responseInputStream.readAllBytes()).thenReturn("{ \"Hello\" : \"World\" }".getBytes());
     when(getObjectResponse.contentLength()).thenReturn(234L);
     when(getObjectResponse.contentType()).thenReturn("application/json");
-    Object object = executor.execute(s3Action);
+    Object object = executor.execute(s3Action, false);
 
     verify(s3Client, times(1)).getObject(any(GetObjectRequest.class));
     assertInstanceOf(DownloadResponse.class, object);
@@ -136,6 +138,55 @@ class S3ExecutorTest {
         ((JsonNode) ((Element.JsonContent) downloadResponse.element()).content())
             .get("Hello")
             .asText());
+  }
+
+  @Test
+  void newPathReturnsDocumentReturnWithWrapLambdaProducingDownloadResponse() {
+    // When useDocumentReturnFlow is true, executor returns a DocumentReturn whose wrap lambda
+    // assembles the existing DownloadResponse shape per the choice the runtime will provide.
+    S3Client s3Client = mock(S3Client.class);
+    Function<DocumentCreationRequest, Document> function = doc -> mock(Document.class);
+    S3Executor executor = new S3Executor(s3Client, function);
+    ResponseInputStream<GetObjectResponse> responseInputStream = mock(ResponseInputStream.class);
+    GetObjectResponse getObjectResponse = mock(GetObjectResponse.class);
+    when(s3Client.getObject(any(GetObjectRequest.class))).thenReturn(responseInputStream);
+    when(responseInputStream.response()).thenReturn(getObjectResponse);
+    when(getObjectResponse.contentType()).thenReturn("application/json");
+
+    S3Action action = new DownloadObject("bucket-x", "key-y", false);
+
+    Object result = executor.execute(action, true);
+    assertInstanceOf(DocumentReturn.class, result);
+    DocumentReturn<?> ret = (DocumentReturn<?>) result;
+    assertEquals("application/json", ret.payload().contentType());
+    assertEquals("key-y", ret.payload().fileName());
+
+    // Wrap lambda must produce a DownloadResponse with bucket/key preserved and JsonContent.
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    DownloadResponse wrapped =
+        (DownloadResponse)
+            ((DocumentReturn) ret).wrap().apply("{\"x\":1}", DocumentReturnChoice.JSON);
+    assertEquals("bucket-x", wrapped.bucket());
+    assertEquals("key-y", wrapped.key());
+    assertInstanceOf(Element.JsonContent.class, wrapped.element());
+  }
+
+  @Test
+  void legacyAsFileTrueIsPreservedWhenNewFormatIsNull() {
+    // Old templates still hit the legacy DocumentContent path bit-for-bit.
+    S3Client s3Client = mock(S3Client.class);
+    Function<DocumentCreationRequest, Document> function = doc -> mock(Document.class);
+    S3Executor executor = new S3Executor(s3Client, function);
+    ResponseInputStream<GetObjectResponse> responseInputStream = mock(ResponseInputStream.class);
+    GetObjectResponse getObjectResponse = mock(GetObjectResponse.class);
+    when(s3Client.getObject(any(GetObjectRequest.class))).thenReturn(responseInputStream);
+    when(responseInputStream.response()).thenReturn(getObjectResponse);
+    when(getObjectResponse.contentType()).thenReturn("text/plain");
+
+    S3Action action = new DownloadObject("bucket-x", "key-y", true);
+    Object result = executor.execute(action, false);
+    assertInstanceOf(DownloadResponse.class, result);
+    assertInstanceOf(Element.DocumentContent.class, ((DownloadResponse) result).element());
   }
 
   @Test
@@ -153,7 +204,7 @@ class S3ExecutorTest {
     when(responseInputStream.readAllBytes()).thenReturn("Hello".getBytes());
     when(getObjectResponse.contentLength()).thenReturn(234L);
     when(getObjectResponse.contentType()).thenReturn("application/octet-stream");
-    Object object = executor.execute(s3Action);
+    Object object = executor.execute(s3Action, false);
 
     verify(s3Client, times(1)).getObject(any(GetObjectRequest.class));
     assertInstanceOf(DownloadResponse.class, object);

@@ -68,6 +68,7 @@
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
         </configuration>
       </plugin>
     </plugins>

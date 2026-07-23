@@ -10,17 +10,18 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.CredentialsProviderSupport;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @OutboundConnector(
     name = "AWS DynamoDB",
-    inputVariables = {"authentication", "configuration", "input"},
+    inputVariables = {"authentication", "configuration", "input", "awsCredential"},
     type = "io.camunda:aws-dynamodb:1")
 @ElementTemplate(
     engineVersion = "^8.6",
     id = "io.camunda.connectors.AWSDynamoDB.v1",
     name = "AWS DynamoDB Outbound Connector",
-    version = 9,
+    version = 10,
     description = "Manage tables and items with AWS DynamoDB.",
     keywords = {
       "create table",
@@ -44,6 +45,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.PropertyGroup(id = "input", label = "Input")
     },
     inputDataClass = AwsDynamoDbRequest.class,
+    configurations = {AwsCredentialConfiguration.class},
     icon = "icon.svg")
 public class AwsDynamoDbServiceConnectorFunction implements OutboundConnectorFunction {
 
@@ -56,6 +58,7 @@ public class AwsDynamoDbServiceConnectorFunction implements OutboundConnectorFun
         .invoke(
             AwsDynamoDbClientSupplier.getDynamoDdClient(
                 CredentialsProviderSupport.credentialsProvider(dynamoDbRequest),
-                dynamoDbRequest.getConfiguration().region()));
+                dynamoDbRequest.getConfiguration().region(),
+                dynamoDbRequest.getConfiguration().endpoint()));
   }
 }

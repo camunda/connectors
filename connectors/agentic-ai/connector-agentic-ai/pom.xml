@@ -23,7 +23,7 @@
     <version.gmavenplus-plugin>5.1.0</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
     <version.errorprone>2.50.0</version.errorprone>
-    <version.nullaway>0.13.7</version.nullaway>
+    <version.nullaway>0.13.8</version.nullaway>
   </properties>
 
   <licenses>

@@ -57,6 +57,11 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sdk-core</artifactId>
     </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>http-client-spi</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
 
   </dependencies>
 

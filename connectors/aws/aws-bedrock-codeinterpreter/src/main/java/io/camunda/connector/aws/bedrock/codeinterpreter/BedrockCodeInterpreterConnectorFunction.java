@@ -12,6 +12,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterpreterRequest;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreAsyncClient;
@@ -19,7 +20,7 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
 
 @OutboundConnector(
     name = "AWS Bedrock Code Interpreter",
-    inputVariables = {"authentication", "configuration", "input"},
+    inputVariables = {"authentication", "configuration", "input", "awsCredential"},
     type = "io.camunda:aws-bedrock-codeinterpreter:1")
 @ElementTemplate(
     engineVersion = "^8.10",
@@ -27,7 +28,8 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
     name = "Run Code with AWS Bedrock Code Interpreter",
     description = "Execute Python code in a secure AWS Bedrock AgentCore Code Interpreter sandbox",
     inputDataClass = CodeInterpreterRequest.class,
-    version = 1,
+    configurations = {AwsCredentialConfiguration.class},
+    version = 2,
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "configuration", label = "Configuration"),

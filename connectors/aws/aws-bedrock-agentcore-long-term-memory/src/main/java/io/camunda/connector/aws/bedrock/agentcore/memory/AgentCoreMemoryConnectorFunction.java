@@ -12,13 +12,21 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.bedrock.agentcore.memory.model.request.AgentCoreMemoryRequest;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
 
 @OutboundConnector(
     name = "AWS Bedrock AgentCore Long-Term Memory",
-    inputVariables = {"authentication", "configuration", "memoryId", "namespace", "operation"},
+    inputVariables = {
+      "authentication",
+      "configuration",
+      "memoryId",
+      "namespace",
+      "operation",
+      "awsCredential"
+    },
     type = "io.camunda:aws-bedrock-agentcore-lt-memory:1")
 @ElementTemplate(
     engineVersion = "^8.10",
@@ -27,7 +35,8 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
     description =
         "Retrieve persistent knowledge — facts, preferences, and summaries — from AWS Bedrock AgentCore Long-Term Memory",
     inputDataClass = AgentCoreMemoryRequest.class,
-    version = 2,
+    configurations = {AwsCredentialConfiguration.class},
+    version = 3,
     propertyGroups = {
       @PropertyGroup(id = "operation", label = "Operation"),
       @PropertyGroup(id = "authentication", label = "Authentication"),

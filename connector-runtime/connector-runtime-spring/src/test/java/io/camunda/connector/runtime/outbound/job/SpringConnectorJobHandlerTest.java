@@ -32,6 +32,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.command.FailJobCommandStep1;
@@ -41,6 +42,8 @@ import io.camunda.client.jobhandling.CommandOutcome;
 import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReturn;
+import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -65,6 +68,8 @@ import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -73,6 +78,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
@@ -144,6 +150,95 @@ class SpringConnectorJobHandlerTest {
         TestObjectMapperSupplier.INSTANCE,
         call,
         job -> SecretFilter.allowAll());
+  }
+
+  @Nested
+  class DocumentReturnTests {
+
+    @Test
+    void convertsDocumentReturnAtRuntimeBoundary() throws Exception {
+      // given a connector that returns a DocumentReturn and a job selecting the TEXT format
+      var jobHandler =
+          newConnectorJobHandler(
+              ctx ->
+                  DocumentReturn.of(
+                      "hello".getBytes(StandardCharsets.UTF_8),
+                      "text/plain",
+                      "greeting.txt",
+                      (converted, choice) -> converted));
+
+      // when
+      var result =
+          JobBuilder.create()
+              .withVariablesAsMap(Map.of("documentReturnFormat", Map.of("choice", "TEXT")))
+              .withResultVariableHeader("result")
+              .executeAndCaptureResult(jobHandler);
+
+      // then the runtime converted the payload to text before result-variable mapping
+      assertThat(result.getVariables()).isEqualTo(Map.of("result", "hello"));
+    }
+
+    @Test
+    void safetyNetClosesPayloadWhenFormatIsMissing() throws Exception {
+      // given a connector returning a DocumentReturn but a job with no documentReturnFormat
+      var closed = new AtomicBoolean(false);
+      var jobHandler =
+          newConnectorJobHandler(
+              ctx ->
+                  new DocumentReturn<>(
+                      RawPayload.of(trackingStream(closed), "text/plain", "f.txt"),
+                      (converted, choice) -> converted));
+
+      // when
+      var result =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of())
+              .withVariablesAsMap(Map.of())
+              .executeAndCaptureResult(jobHandler, false);
+
+      // then the safety net closed the payload and the job failed with an actionable message
+      assertThat(closed).isTrue();
+      assertThat(result.getErrorMessage()).contains("documentReturnFormat.choice");
+    }
+
+    @Test
+    void safetyNetClosesPayloadWhenFormatIsInvalid() throws Exception {
+      // given a connector returning a DocumentReturn but a job with an invalid choice
+      var closed = new AtomicBoolean(false);
+      var jobHandler =
+          newConnectorJobHandler(
+              ctx ->
+                  new DocumentReturn<>(
+                      RawPayload.of(trackingStream(closed), "text/plain", "f.txt"),
+                      (converted, choice) -> converted));
+
+      // when
+      var result =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of())
+              .withVariablesAsMap(Map.of("documentReturnFormat", Map.of("choice", "BOGUS")))
+              .executeAndCaptureResult(jobHandler, false);
+
+      // then the safety net closed the payload even though processing never started conversion
+      assertThat(closed).isTrue();
+      assertThat(result.getErrorMessage()).contains("DOCUMENT, TEXT, JSON");
+    }
+
+    private static InputStream trackingStream(AtomicBoolean closed) {
+      return new InputStream() {
+        @Override
+        public int read() {
+          return -1;
+        }
+
+        @Override
+        public void close() {
+          closed.set(true);
+        }
+      };
+    }
   }
 
   @Nested
@@ -1472,6 +1567,36 @@ class SpringConnectorJobHandlerTest {
       assertThat(result.getErrorCode()).isNull();
       assertThat(result.getErrorMessage()).isNull();
       assertThat(result.getVariables()).isEmpty();
+    }
+
+    @Test
+    void shouldAbandonJob_WhenThreadInterruptedDuringErrorExpressionEvaluation() throws Exception {
+      // given: the job-handling thread was interrupted (e.g. runtime shutdown via
+      // JobWorkerExecutors.close()) right before error expression evaluation gets a chance to
+      // observe it - mirroring a downstream connector call that returned after being interrupted
+      var errorExpression = "if error != null then bpmnError(error.code, error.message) else null";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("1013", "exception message");
+              });
+      var jobClient = mock(JobClient.class);
+
+      // when
+      Thread.currentThread().interrupt();
+      try {
+        JobBuilder.create()
+            .withErrorExpressionHeader(errorExpression)
+            .useJobClient(jobClient)
+            .execute(jobHandler);
+      } finally {
+        // clear any leftover interrupt status so it doesn't leak into other tests
+        Thread.interrupted();
+      }
+
+      // then: no incident is raised - the job is abandoned so Zeebe's activation timeout
+      // reassigns it, instead of failing with a misleading "Reason: null" error
+      verifyNoInteractions(jobClient);
     }
   }
 

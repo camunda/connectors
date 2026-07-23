@@ -14,20 +14,22 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.bedrock.agentcore.runtime.model.request.AgentCoreRuntimeRequest;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
 
 @OutboundConnector(
     name = "AWS Bedrock AgentCore Runtime",
-    inputVariables = {"authentication", "configuration", "input"},
+    inputVariables = {"authentication", "configuration", "input", "awsCredential"},
     type = "io.camunda:aws-bedrock-agentcore-runtime:1")
 @ElementTemplate(
     engineVersion = "^8.10",
     id = "io.camunda.connectors.aws.bedrock.agentcore.runtime.v1",
     name = "Invoke Agent in AWS Bedrock AgentCore Runtime",
-    version = 1,
+    version = 2,
     inputDataClass = AgentCoreRuntimeRequest.class,
+    configurations = {AwsCredentialConfiguration.class},
     description = "Invoke an external agent running in AWS Bedrock AgentCore Runtime",
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock-agentcore-runtime/",
