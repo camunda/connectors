@@ -547,7 +547,7 @@
             </goals>
             <configuration>
               <scripts>
-                <script>file:///${project.basedir}/bin/transform-ai-agent-template.groovy</script>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-sub-process-template.groovy</script>
               </scripts>
               <properties>
                 <property>
@@ -577,7 +577,7 @@
             </goals>
             <configuration>
               <scripts>
-                <script>file:///${project.basedir}/bin/transform-ai-agent-template.groovy</script>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-sub-process-template.groovy</script>
               </scripts>
               <properties>
                 <property>
