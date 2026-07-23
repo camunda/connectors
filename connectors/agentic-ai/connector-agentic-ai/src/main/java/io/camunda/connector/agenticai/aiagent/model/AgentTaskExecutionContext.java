@@ -39,14 +39,14 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
   public AgentTaskExecutionContext(
       JobContext jobContext,
       AgentTaskRequestData data,
-      ChatModelConfiguration provider,
+      ChatModelConfiguration chatModel,
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
     this.jobContext = jobContext;
     this.data = data;
     this.toolElementsResolver = toolElementsResolver;
     this.configuration =
         new AgentConfiguration(
-            provider,
+            chatModel,
             data.systemPrompt(),
             data.userPrompt(),
             data.memory(),

@@ -41,7 +41,7 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
       AgentContext initialAgentContext,
       List<ToolCallResult> initialToolCallResults,
       List<AdHocToolElement> toolElements,
-      ChatModelConfiguration provider) {
+      ChatModelConfiguration chatModel) {
     this.jobContext = jobContext;
     this.data = data;
     this.initialAgentContext = initialAgentContext;
@@ -49,7 +49,7 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
     this.toolElements = toolElements;
     this.configuration =
         new AgentConfiguration(
-            provider,
+            chatModel,
             data.systemPrompt(),
             data.userPrompt(),
             data.memory(),
