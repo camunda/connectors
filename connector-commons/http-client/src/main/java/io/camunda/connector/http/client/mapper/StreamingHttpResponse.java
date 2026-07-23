@@ -20,6 +20,10 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
-/** An HTTP response where the body is represented as a stream. */
+/**
+ * An HTTP response where the body is represented as a stream. When produced by {@link
+ * io.camunda.connector.http.client.client.HttpClient#executeStreaming}, the caller MUST close the
+ * body to release the underlying response, connection, and client.
+ */
 public record StreamingHttpResponse(
     int status, String reason, Map<String, List<String>> headers, InputStream body) {}

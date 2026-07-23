@@ -7,6 +7,8 @@
 package io.camunda.connector.http.graphql.model;
 
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.api.document.DocumentReturnChoice;
+import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.hostvalidator.VerifiedHost;
@@ -29,6 +31,13 @@ import java.util.Map;
  */
 public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authentication) {
 
+  @DocumentReturnFormat(
+      group = "endpoint",
+      defaultFormat = DocumentReturnChoice.JSON,
+      tooltip =
+          "How the response body should be returned. Document reference uploads the body to the"
+              + " document store; as text decodes it as a String; as JSON parses it into a"
+              + " structure you can access via dot notation.")
   public record GraphQL(
       @TemplateProperty(
               id = "query",
@@ -74,13 +83,7 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
               optional = true,
               tooltip = "Map of HTTP headers to add to the request")
           Map<String, String> headers,
-      @TemplateProperty(
-              group = "endpoint",
-              type = TemplateProperty.PropertyType.Boolean,
-              defaultValueType = TemplateProperty.DefaultValueType.Boolean,
-              defaultValue = "false",
-              tooltip = "Store the response as a document in the document store")
-          boolean storeResponse,
+      @TemplateProperty(ignore = true) @Deprecated boolean storeResponse,
       @TemplateProperty(
               group = "timeout",
               defaultValue = "20",

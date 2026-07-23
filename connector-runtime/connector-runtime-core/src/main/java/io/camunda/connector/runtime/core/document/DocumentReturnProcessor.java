@@ -27,6 +27,7 @@ import io.camunda.connector.api.document.DocumentReturnFormat;
 import io.camunda.connector.api.document.InlineSizeGuard;
 import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -136,8 +137,8 @@ public class DocumentReturnProcessor {
     try {
       return Charset.forName(encoding);
     } catch (IllegalArgumentException e) {
-      throw new ConnectorException(
-          null,
+      // An unknown charset never resolves on retry, so fail fast as an input error.
+      throw new ConnectorInputException(
           "Unsupported charset '"
               + encoding
               + "' configured on documentReturnFormat.encoding. Use a valid IANA charset name (e.g."

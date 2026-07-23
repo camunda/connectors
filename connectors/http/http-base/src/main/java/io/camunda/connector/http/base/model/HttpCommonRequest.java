@@ -7,6 +7,8 @@
 package io.camunda.connector.http.base.model;
 
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.api.document.DocumentReturnChoice;
+import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
@@ -21,6 +23,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+@DocumentReturnFormat(
+    group = "endpoint",
+    defaultFormat = DocumentReturnChoice.JSON,
+    tooltip =
+        "How the response body should be returned. Document reference uploads the body to the"
+            + " document store; as text decodes it as a String; as JSON parses it into a structure"
+            + " you can access via dot notation.")
 public class HttpCommonRequest {
 
   @TemplateProperty(ignore = true)
@@ -96,12 +105,8 @@ public class HttpCommonRequest {
       tooltip = "Map of query parameters to add to the request URL")
   private Map<String, String> queryParameters;
 
-  @TemplateProperty(
-      group = "endpoint",
-      type = PropertyType.Boolean,
-      defaultValueType = TemplateProperty.DefaultValueType.Boolean,
-      defaultValue = "false",
-      tooltip = "Store the response as a document in the document store")
+  @TemplateProperty(ignore = true)
+  @Deprecated
   private boolean storeResponse;
 
   @TemplateProperty(

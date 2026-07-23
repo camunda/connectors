@@ -27,6 +27,7 @@ import io.camunda.connector.api.document.DocumentReturnFormat;
 import io.camunda.connector.api.document.InlineSizeGuard;
 import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -219,7 +220,7 @@ class DocumentReturnProcessorTest {
             () ->
                 processor.process(
                     ret, format(DocumentReturnChoice.TEXT, "definitely-not-a-charset")))
-        .isInstanceOf(ConnectorException.class)
+        .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("Unsupported charset");
   }
 
