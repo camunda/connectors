@@ -81,6 +81,28 @@ public class CustomResponseHandlerTest {
   }
 
   @Test
+  public void shouldHandleNoContentResponse_withHeadersPreserved() {
+    // given
+    CustomResponseHandler<JsonNode> handler =
+        new CustomResponseHandler<>(
+            ResponseMappers.asJsonNode(HttpClientObjectMapperSupplier::getCopy), false);
+
+    ClassicHttpResponse response = new BasicClassicHttpResponse(204);
+    Header[] headers = new Header[] {new BasicHeader("X-Custom-Header", "custom-value")};
+    response.setHeaders(headers);
+    // no entity set: response.getEntity() is null, as it would be for a real 204 response
+
+    // when
+    HttpResponse<JsonNode> result = handler.handleResponse(response);
+
+    // then
+    assertThat(result).isNotNull();
+    assertThat(result.status()).isEqualTo(204);
+    assertThat(result.entity()).isNull();
+    assertThat(result.headers()).containsEntry("X-Custom-Header", List.of("custom-value"));
+  }
+
+  @Test
   public void shouldHandleErrorResponse() {
     // given
     CustomResponseHandler<Void> handler = new CustomResponseHandler<>((response) -> null, false);
