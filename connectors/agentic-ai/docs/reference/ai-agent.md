@@ -932,9 +932,11 @@ own configuration through the SPI rather than being confined to the module's bui
 The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockProviderConfiguration`,
 etc.) is the concrete implementation contributed by this module. Today the v1 request supplies
 configurations through this sealed union only; request-side binding for a custom/native
-`ChatModelConfiguration` is delivered incrementally by the v2 request types
-(`ProviderConfiguration`), which so far offers `CustomProviderConfiguration`, a genuinely runnable
-path for user-supplied factories (see [§25.1](#251-add-an-llm-provider)).
+`ChatModelConfiguration` is delivered incrementally by the v2 request types (`ProviderConfiguration`
+in `model/request/v2`). It currently permits `CustomProviderConfiguration` (a genuinely runnable path
+for user-supplied factories, see [§25.1](#251-add-an-llm-provider)) and `AnthropicChatModelConfiguration`
+— a fully native (non-LangChain4J) Anthropic Messages provider, the first built-in v2 member and the
+reference implementation for a native provider (see [§25.1](#251-add-an-llm-provider)).
 `ChatModelRegistryImpl` asks every registered `ChatModelFactory` whether it `supports` the
 configuration and routes to the single match; a configuration matched by zero factories throws
 `IllegalArgumentException`, and one matched by more than one throws `IllegalStateException` — fail
@@ -1251,6 +1253,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `ChatMessageConverterImpl` → Message conversion chain
 - `ToolSpecificationConverterImpl` → Tool definition conversion
 - `AnthropicChatModelFactory`, `BedrockChatModelFactory`, `OpenAiChatModelFactory`, `OpenAiCompatibleChatModelFactory`, `AzureOpenAiChatModelFactory`, `GoogleVertexAiChatModelFactory` → Provider-specific `ChatModel` creation (`LangChain4JChatModelFactory` subclasses)
+- `AnthropicChatModelApiFactory` → Native (non-LangChain4J) Anthropic `ChatModel` creation for `AnthropicChatModelConfiguration` (v2, `aiagent/chatmodel/provider/anthropic/**`); `AnthropicChatModelApi.execute()` drives the Anthropic Java SDK's stable Messages client directly
 
 ### Configuration
 - `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
@@ -1824,7 +1827,11 @@ base class). Reference implementation: `AnthropicChatModelFactory` with
 `AnthropicProviderConfiguration`. The LangChain4j provider package
 (`aiagent/chatmodel/provider/langchain4j/**`) is the only place that may touch `dev.langchain4j`
 (invariant I1); a fully native provider implements `ChatModel`/`ChatModelFactory` directly with its own
-`ChatModelConfiguration` and stays out of that package.
+`ChatModelConfiguration` and stays out of that package. Reference implementation for a fully native
+provider: `AnthropicChatModelApiFactory` (`aiagent/chatmodel/provider/anthropic/**`) with
+`AnthropicChatModelConfiguration` (`model/request/v2`) — drives the Anthropic Java SDK's stable
+Messages client directly (no LangChain4J), covering the request/response converter chain, transport,
+reasoning/effort/prompt-caching, and Spring registration end to end.
 
 The v2 request's `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/
 Hybrid only) is the connector-facing entry point for this SPI: it carries a user-chosen `providerType`
