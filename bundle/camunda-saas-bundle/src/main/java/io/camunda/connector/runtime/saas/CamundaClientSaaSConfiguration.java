@@ -87,12 +87,17 @@ public class CamundaClientSaaSConfiguration {
    * BeanUtils} so any auth setting the starter adds in the future is carried through to the
    * delegated {@code super} call automatically.
    *
-   * <p>The credentials cache path is intentionally NOT defaulted to a shared global value here:
-   * every client falling back to the internal secret manager resolves the same client id, and
-   * {@link io.camunda.client.impl.oauth.OAuthCredentialsCache} keys cached tokens by client id
-   * only. Leaving it unset (unless the client explicitly configured its own path) makes the builder
-   * use a private in-memory cache instead of a file shared across clients, preventing a client with
-   * one audience/token-url from reusing another client's cached token.
+   * <p>The credentials cache path is always cleared, even if one is present on the resolved
+   * properties. {@code MultiCamundaClientPropertiesResolver} binds the global {@code
+   * camunda.client.*} properties onto every named client's {@link CamundaClientProperties} before
+   * overlaying {@code camunda.clients.<name>.*} on top of that same instance, so a globally
+   * configured {@code credentials-cache-path} is indistinguishable, by the time it reaches this
+   * method, from one a client set for itself. Every client falling back to the internal secret
+   * manager resolves the same client id, and {@link
+   * io.camunda.client.impl.oauth.OAuthCredentialsCache} keys cached tokens by client id only, so
+   * honoring either would let two clients with different audiences/token-urls share one cache file
+   * and reuse each other's cached token. Clearing it unconditionally makes the builder use a
+   * private in-memory cache instead.
    */
   private CamundaClientProperties withInternalSecretManagerCredentials(
       CamundaClientProperties properties) {
@@ -111,6 +116,7 @@ public class CamundaClientSaaSConfiguration {
     if (auth.getAudience() == null) {
       auth.setAudience(camundaClientAudience);
     }
+    auth.setCredentialsCachePath(null);
     return resolvedProperties;
   }
 }

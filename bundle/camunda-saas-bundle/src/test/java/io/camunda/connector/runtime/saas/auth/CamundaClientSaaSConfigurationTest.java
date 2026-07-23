@@ -165,4 +165,35 @@ class CamundaClientSaaSConfigurationTest {
     var cache = ReflectionTestUtils.getField(result, "credentialsCache");
     assertThat(ReflectionTestUtils.getField(cache, "cacheFile")).isNull();
   }
+
+  @Test
+  void whenCredentialsMissingAndCachePathInheritedFromGlobalOverlay_stillUsesInMemoryCache() {
+    when(mockSecretProvider.getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_CLIENT_ID, null))
+        .thenReturn("gcp-client-id");
+    when(mockSecretProvider.getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_SECRET, null))
+        .thenReturn("gcp-client-secret");
+
+    var config = createConfig();
+    var properties = new CamundaClientProperties();
+    // MultiCamundaClientPropertiesResolver binds camunda.client.* onto every named client's
+    // properties before overlaying camunda.clients.<name>.*, so a globally configured
+    // credentials-cache-path is indistinguishable, from here, from a genuinely per-client one.
+    // Both clients below simulate that inherited value; they must NOT end up sharing a cache file.
+    properties.getAuth().setCredentialsCachePath("/tmp/connectors");
+    var otherClientProperties = new CamundaClientProperties();
+    otherClientProperties.getAuth().setCredentialsCachePath("/tmp/connectors");
+    otherClientProperties.getAuth().setAudience("other-audience");
+
+    var result =
+        config.credentialsProviderConfiguration().camundaClientCredentialsProvider(properties);
+    var otherResult =
+        config
+            .credentialsProviderConfiguration()
+            .camundaClientCredentialsProvider(otherClientProperties);
+
+    var cache = ReflectionTestUtils.getField(result, "credentialsCache");
+    var otherCache = ReflectionTestUtils.getField(otherResult, "credentialsCache");
+    assertThat(ReflectionTestUtils.getField(cache, "cacheFile")).isNull();
+    assertThat(ReflectionTestUtils.getField(otherCache, "cacheFile")).isNull();
+  }
 }
