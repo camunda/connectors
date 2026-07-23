@@ -42,9 +42,11 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceToolMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.CamundaAgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
@@ -82,7 +84,7 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.enabled", matchIfMissing = true)
 @EnableConfigurationProperties(AgenticAiConnectorsConfigurationProperties.class)
 @Import({
-  AgenticAiLangchain4JFrameworkConfiguration.class,
+  AgenticAiLangChain4JFrameworkConfiguration.class,
   McpDiscoveryConfiguration.class,
   McpClientConfiguration.class,
   McpRemoteClientConfiguration.class,
@@ -288,6 +290,12 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public ChatModelRegistry aiAgentChatModelRegistry(List<ChatModelFactory> factories) {
+    return new ChatModelRegistryImpl(factories);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
@@ -295,7 +303,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentConversationTurnInputComposer,
-      AiFrameworkAdapter<?> aiFrameworkAdapter,
+      ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
@@ -303,7 +311,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         agentInitializer,
         conversationStoreRegistry,
         agentConversationTurnInputComposer,
-        aiFrameworkAdapter,
+        chatModelRegistry,
         systemPromptComposer,
         responseHandler,
         agentInstanceClient);
@@ -329,7 +337,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentConversationTurnInputComposer,
-      AiFrameworkAdapter<?> aiFrameworkAdapter,
+      ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
@@ -337,7 +345,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         agentInitializer,
         conversationStoreRegistry,
         agentConversationTurnInputComposer,
-        aiFrameworkAdapter,
+        chatModelRegistry,
         systemPromptComposer,
         responseHandler,
         agentInstanceClient);

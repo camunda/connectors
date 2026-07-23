@@ -27,7 +27,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
   public static final String ANTHROPIC_ID = "anthropic";
 
   @Override
-  public String providerType() {
+  public String provider() {
     return ANTHROPIC_ID;
   }
 

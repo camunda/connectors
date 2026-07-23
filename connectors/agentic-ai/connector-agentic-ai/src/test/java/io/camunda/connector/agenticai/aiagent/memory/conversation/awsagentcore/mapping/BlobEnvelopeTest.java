@@ -16,7 +16,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.test.document.TestDocumentFactory;
@@ -53,7 +53,7 @@ class BlobEnvelopeTest {
 
     // then
     assertThat(envelope.blobType()).isEqualTo("camunda.toolCalls");
-    assertThat(envelope.version()).isEqualTo(1);
+    assertThat(envelope.version()).isEqualTo(BlobEnvelope.CURRENT_VERSION);
     assertThat(envelope.is(BlobEnvelopeType.TOOL_CALLS)).isTrue();
   }
 
@@ -85,28 +85,32 @@ class BlobEnvelopeTest {
   @Test
   void shouldCreateToolCallResultsEnvelope() throws Exception {
     // given
-    List<ToolCallResult> results =
+    List<ToolCallResultContent> results =
         List.of(
-            ToolCallResult.builder().id("call-1").name("search").content("Found 3 items").build());
+            ToolCallResultContent.builder()
+                .id("call-1")
+                .name("search")
+                .content(List.of(TextContent.textContent("Found 3 items")))
+                .build());
 
     // when
     BlobEnvelope envelope = BlobEnvelope.forToolCallResults(results, objectMapper);
 
     // then
     assertThat(envelope.blobType()).isEqualTo("camunda.toolCallResults");
-    assertThat(envelope.version()).isEqualTo(1);
+    assertThat(envelope.version()).isEqualTo(BlobEnvelope.CURRENT_VERSION);
     assertThat(envelope.is(BlobEnvelopeType.TOOL_CALL_RESULTS)).isTrue();
   }
 
   @Test
   void shouldRoundTripToolCallResults() throws Exception {
     // given
-    List<ToolCallResult> original =
+    List<ToolCallResultContent> original =
         List.of(
-            ToolCallResult.builder()
+            ToolCallResultContent.builder()
                 .id("call-1")
                 .name("search")
-                .content("Found 3 items")
+                .content(List.of(TextContent.textContent("Found 3 items")))
                 .properties(Map.of("interrupted", true, "custom", "value"))
                 .build());
 
@@ -114,16 +118,37 @@ class BlobEnvelopeTest {
     BlobEnvelope envelope = BlobEnvelope.forToolCallResults(original, objectMapper);
     Document document = envelope.toDocument(objectMapper);
     BlobEnvelope parsed = BlobEnvelope.fromDocument(document, objectMapper);
-    List<ToolCallResult> result =
-        parsed.parseData(new TypeReference<List<ToolCallResult>>() {}, objectMapper);
+    List<ToolCallResultContent> result =
+        parsed.parseData(new TypeReference<List<ToolCallResultContent>>() {}, objectMapper);
 
     // then
     assertThat(result).hasSize(1);
     assertThat(result.get(0).id()).isEqualTo("call-1");
     assertThat(result.get(0).name()).isEqualTo("search");
-    assertThat(result.get(0).content()).isEqualTo("Found 3 items");
+    assertThat(result.get(0).content()).containsExactly(TextContent.textContent("Found 3 items"));
     assertThat(result.get(0).properties())
         .isEqualTo(Map.of("interrupted", true, "custom", "value"));
+  }
+
+  @Test
+  void shouldParseCurrentVersionToolCallResultsWithoutUpcasting() throws Exception {
+    // given
+    List<ToolCallResultContent> original =
+        List.of(
+            ToolCallResultContent.builder()
+                .id("call-1")
+                .name("search")
+                .content(List.of(TextContent.textContent("hi")))
+                .build());
+    BlobEnvelope envelope = BlobEnvelope.forToolCallResults(original, objectMapper);
+    Document document = envelope.toDocument(objectMapper);
+    BlobEnvelope parsed = BlobEnvelope.fromDocument(document, objectMapper);
+
+    // when
+    List<ToolCallResultContent> result = parsed.parseToolCallResults(objectMapper);
+
+    // then
+    assertThat(result).isEqualTo(original);
   }
 
   @Test
@@ -136,7 +161,7 @@ class BlobEnvelopeTest {
 
     // then
     assertThat(envelope.blobType()).isEqualTo("camunda.messageContent");
-    assertThat(envelope.version()).isEqualTo(1);
+    assertThat(envelope.version()).isEqualTo(BlobEnvelope.CURRENT_VERSION);
     assertThat(envelope.is(BlobEnvelopeType.MESSAGE_CONTENT)).isTrue();
   }
 
@@ -208,6 +233,23 @@ class BlobEnvelopeTest {
   }
 
   @Test
+  void shouldRejectBlobVersionNewerThanCurrentVersion() {
+    // given
+    int futureVersion = BlobEnvelope.CURRENT_VERSION + 1;
+    String json =
+        "{\"blobType\": \"camunda.toolCalls\", \"version\": %d, \"toolCalls\": []}"
+            .formatted(futureVersion);
+    Document document = Document.fromString(json);
+
+    // when/then
+    assertThatThrownBy(() -> BlobEnvelope.fromDocument(document, objectMapper))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining(String.valueOf(futureVersion))
+        .hasMessageContaining("newer")
+        .hasMessageContaining("not supported");
+  }
+
+  @Test
   void shouldFailWhenBlobMissingVersionField() {
     // given
     String invalidJson = "{\"blobType\": \"camunda.toolCalls\", \"toolCalls\": []}";
@@ -256,7 +298,7 @@ class BlobEnvelopeTest {
 
     // then
     assertThat(envelope.blobType()).isEqualTo("camunda.messageMetadata");
-    assertThat(envelope.version()).isEqualTo(1);
+    assertThat(envelope.version()).isEqualTo(BlobEnvelope.CURRENT_VERSION);
     assertThat(envelope.is(BlobEnvelopeType.MESSAGE_METADATA)).isTrue();
   }
 
@@ -285,7 +327,11 @@ class BlobEnvelopeTest {
             objectMapper);
     BlobEnvelope resultsEnv =
         BlobEnvelope.forToolCallResults(
-            List.of(ToolCallResult.builder().content("test").build()), objectMapper);
+            List.of(
+                ToolCallResultContent.builder()
+                    .content(List.of(TextContent.textContent("test")))
+                    .build()),
+            objectMapper);
     BlobEnvelope contentEnv =
         BlobEnvelope.forContent(TextContent.textContent("test"), objectMapper);
     BlobEnvelope metadataEnv = BlobEnvelope.forMetadata(Map.of("key", "value"), null, objectMapper);

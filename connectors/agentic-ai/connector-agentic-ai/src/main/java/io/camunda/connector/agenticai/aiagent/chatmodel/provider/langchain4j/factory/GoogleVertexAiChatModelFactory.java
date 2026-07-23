@@ -1,0 +1,80 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
+
+import com.google.auth.oauth2.ServiceAccountCredentials;
+import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
+import io.camunda.connector.api.error.ConnectorInputException;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class GoogleVertexAiChatModelFactory
+    extends LangChain4JChatModelFactory<GoogleVertexAiProviderConfiguration> {
+
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(GoogleVertexAiChatModelFactory.class);
+
+  public GoogleVertexAiChatModelFactory(
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter) {
+    super(chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter);
+  }
+
+  @Override
+  public String providerType() {
+    return GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID;
+  }
+
+  @Override
+  public CloseableChatModel createChatModel(GoogleVertexAiProviderConfiguration vertexAi) {
+    final var connection = vertexAi.googleVertexAi();
+    final var builder =
+        VertexAiGeminiChatModel.builder()
+            .project(connection.projectId())
+            .location(connection.region())
+            .modelName(connection.model().model());
+
+    if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
+      builder.credentials(createGoogleServiceAccountCredentials(sac));
+    }
+
+    final var modelParameters = connection.model().parameters();
+    if (modelParameters != null) {
+      Optional.ofNullable(modelParameters.maxOutputTokens()).ifPresent(builder::maxOutputTokens);
+      Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
+      Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
+      Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
+    }
+
+    final var model = builder.build();
+    return new CloseableChatModelDelegate(model, model);
+  }
+
+  private ServiceAccountCredentials createGoogleServiceAccountCredentials(
+      ServiceAccountCredentialsAuthentication sac) {
+    try {
+      return ServiceAccountCredentials.fromStream(
+          new ByteArrayInputStream(sac.jsonKey().getBytes(StandardCharsets.UTF_8)));
+    } catch (IOException e) {
+      LOGGER.error("Failed to parse service account credentials", e);
+      throw new ConnectorInputException(
+          "Authentication failed for provided service account credentials", e);
+    }
+  }
+}

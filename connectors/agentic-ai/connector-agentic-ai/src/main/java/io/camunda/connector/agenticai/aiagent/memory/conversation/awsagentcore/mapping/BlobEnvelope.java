@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +40,9 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
 
   public static final int CURRENT_VERSION = 1;
 
+  private static final TypeReference<List<ToolCallResultContent>> TOOL_CALL_RESULTS_TYPE =
+      new TypeReference<>() {};
+
   private static final String FIELD_BLOB_TYPE = "blobType";
   private static final String FIELD_VERSION = "version";
   private static final String FIELD_TOOL_CALLS = "toolCalls";
@@ -65,14 +68,14 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
   }
 
   /**
-   * Create an envelope for a ToolCallResult array.
+   * Create an envelope for a ToolCallResultContent array.
    *
    * @param results the tool call results to wrap
    * @param objectMapper the ObjectMapper to use for serialization
    * @return the envelope
    */
   public static BlobEnvelope forToolCallResults(
-      List<ToolCallResult> results, ObjectMapper objectMapper) {
+      List<ToolCallResultContent> results, ObjectMapper objectMapper) {
     JsonNode data = objectMapper.valueToTree(results);
     ObjectNode envelope = objectMapper.createObjectNode();
     envelope.put(FIELD_BLOB_TYPE, BlobEnvelopeType.TOOL_CALL_RESULTS.getBlobType());
@@ -145,6 +148,12 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
     String blobType = root.get(FIELD_BLOB_TYPE).asText();
     int version = root.get(FIELD_VERSION).asInt();
 
+    if (version > CURRENT_VERSION) {
+      throw new IllegalStateException(
+          "Persisted blob version %d is newer than the highest version supported by this connector (%d). This state was written by a newer connector version; rolling back to an older connector version is not supported. Upgrade the connector runtime to the version that wrote this state."
+              .formatted(version, CURRENT_VERSION));
+    }
+
     return new BlobEnvelope(blobType, version, root);
   }
 
@@ -184,6 +193,20 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
   public <T> T parseData(Class<T> clazz, ObjectMapper objectMapper) throws IOException {
     JsonNode dataNode = extractDataNode();
     return objectMapper.treeToValue(dataNode, clazz);
+  }
+
+  /**
+   * Parse this envelope's {@code results} field as a {@code List<ToolCallResultContent>} in its
+   * current structured shape.
+   *
+   * @param objectMapper the ObjectMapper to use
+   * @return the deserialized tool call results
+   * @throws IOException if deserialization fails
+   */
+  public List<ToolCallResultContent> parseToolCallResults(ObjectMapper objectMapper)
+      throws IOException {
+    JsonNode resultsNode = extractDataNode();
+    return objectMapper.readerFor(TOOL_CALL_RESULTS_TYPE).readValue(resultsNode);
   }
 
   /**

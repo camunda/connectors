@@ -11,13 +11,18 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,12 +60,13 @@ import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 public class AwsAgentCoreConversationMapper {
 
   private static final TypeReference<List<ToolCall>> TOOL_CALLS_TYPE = new TypeReference<>() {};
-  private static final TypeReference<List<ToolCallResult>> TOOL_CALL_RESULTS_TYPE =
-      new TypeReference<>() {};
   private static final TypeReference<Map<String, Object>> METADATA_TYPE = new TypeReference<>() {};
 
   static final String PROPERTY_ROLE = "role";
   static final String PROPERTY_USER_NAME = "userName";
+  static final String PROPERTY_MODEL_ID = "camunda.modelId";
+  static final String PROPERTY_MESSAGE_ID = "camunda.messageId";
+  static final String PROPERTY_STOP_REASON = "camunda.stopReason";
 
   private final ObjectMapper objectMapper;
 
@@ -173,12 +179,14 @@ public class AwsAgentCoreConversationMapper {
   private List<PayloadType> mapToolCallResultMessage(ToolCallResultMessage message) {
     List<PayloadType> payloads = new ArrayList<>();
 
-    // create conversational TOOL with natural language summary
+    // create conversational TOOL with natural language summary — best-effort, joining every
+    // result's content elements; this only affects AgentCore's long-term memory extraction, not
+    // the lossless blob envelope created below
     String summary =
         message.results().stream()
-            .map(ToolCallResult::content)
-            .filter(Objects::nonNull)
-            .map(this::contentToString)
+            .flatMap(result -> result.content().stream())
+            .map(this::contentElementToSummaryString)
+            .filter(s -> !s.isBlank())
             .collect(Collectors.joining("\n"));
 
     if (!summary.isBlank()) {
@@ -204,7 +212,7 @@ public class AwsAgentCoreConversationMapper {
       List<PayloadType> payloads, Map<String, Object> metadata) throws IOException {
     List<Content> content = new ArrayList<>();
     List<ToolCall> toolCalls = List.of();
-    List<ToolCallResult> toolCallResults = null;
+    List<ToolCallResultContent> toolCallResults = null;
     Map<String, Object> properties = null;
 
     for (PayloadType payload : payloads) {
@@ -252,13 +260,22 @@ public class AwsAgentCoreConversationMapper {
         }
         yield Optional.of(builder.build());
       }
-      case ASSISTANT ->
-          Optional.of(
-              AssistantMessage.builder()
-                  .content(content)
-                  .toolCalls(toolCalls)
-                  .metadata(metadata)
-                  .build());
+      case ASSISTANT -> {
+        var assistantBuilder =
+            AssistantMessage.builder().content(content).toolCalls(toolCalls).metadata(metadata);
+        if (properties != null) {
+          if (properties.get(PROPERTY_MODEL_ID) instanceof String modelId) {
+            assistantBuilder.modelId(modelId);
+          }
+          if (properties.get(PROPERTY_MESSAGE_ID) instanceof String messageId) {
+            assistantBuilder.messageId(messageId);
+          }
+          if (properties.get(PROPERTY_STOP_REASON) instanceof String stopReasonValue) {
+            assistantBuilder.stopReason(StopReason.of(stopReasonValue));
+          }
+        }
+        yield Optional.of(assistantBuilder.build());
+      }
       case TOOL -> {
         if (toolCallResults == null) {
           throw new AgentCoreMapperException(
@@ -306,7 +323,7 @@ public class AwsAgentCoreConversationMapper {
     }
   }
 
-  private PayloadType createToolCallResultsBlobPayload(List<ToolCallResult> results) {
+  private PayloadType createToolCallResultsBlobPayload(List<ToolCallResultContent> results) {
     try {
       BlobEnvelope envelope = BlobEnvelope.forToolCallResults(results, objectMapper);
       Document document = envelope.toDocument(objectMapper);
@@ -344,9 +361,9 @@ public class AwsAgentCoreConversationMapper {
     return envelope.parseData(TOOL_CALLS_TYPE, objectMapper);
   }
 
-  private List<ToolCallResult> parseToolCallResultsFromEnvelope(BlobEnvelope envelope)
+  private List<ToolCallResultContent> parseToolCallResultsFromEnvelope(BlobEnvelope envelope)
       throws IOException {
-    return envelope.parseData(TOOL_CALL_RESULTS_TYPE, objectMapper);
+    return envelope.parseToolCallResults(objectMapper);
   }
 
   private static @Nullable Role resolveRoleFromProperties(
@@ -373,6 +390,23 @@ public class AwsAgentCoreConversationMapper {
   }
 
   /**
+   * Best-effort rendering of a single {@link Content} element for the TOOL conversational summary
+   * (long-term memory extraction only — the blob envelope carries the lossless structure).
+   */
+  private String contentElementToSummaryString(Content content) {
+    return switch (content) {
+      case TextContent text -> text.text();
+      case ObjectContent object -> contentToString(object.content());
+      case DocumentContent document -> contentToString(document.document());
+      // preserve the opaque provider payload as its (best-effort) JSON representation; the
+      // blob envelope carries the lossless structure regardless.
+      case ReasoningContent reasoning ->
+          reasoning.providerPayload() == null ? "" : contentToString(reasoning.providerPayload());
+      case ProviderContent providerContent -> contentToString(providerContent.payload());
+    };
+  }
+
+  /**
    * Extracts internal properties from a message that need round-tripping via the metadata blob's
    * properties section. The role is always included as the canonical source for message
    * reconstruction during deserialization.
@@ -393,6 +427,17 @@ public class AwsAgentCoreConversationMapper {
     }
     if (message instanceof UserMessage userMsg && userMsg.name() != null) {
       props.put(PROPERTY_USER_NAME, userMsg.name());
+    }
+    if (message instanceof AssistantMessage assistantMsg) {
+      if (assistantMsg.modelId() != null) {
+        props.put(PROPERTY_MODEL_ID, assistantMsg.modelId());
+      }
+      if (assistantMsg.messageId() != null) {
+        props.put(PROPERTY_MESSAGE_ID, assistantMsg.messageId());
+      }
+      if (assistantMsg.stopReason() != null) {
+        props.put(PROPERTY_STOP_REASON, assistantMsg.stopReason().value());
+      }
     }
     return props.isEmpty() ? null : Map.copyOf(props);
   }

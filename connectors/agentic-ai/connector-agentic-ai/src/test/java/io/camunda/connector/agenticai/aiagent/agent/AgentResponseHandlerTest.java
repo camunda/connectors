@@ -35,7 +35,6 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.ThrowingConsumer;
@@ -231,7 +230,7 @@ class AgentResponseHandlerTest {
 
     static Stream<AssistantMessage> emptyAssistantMessages() {
       return Stream.of(
-          new AssistantMessage(List.of(), List.of(), Map.of()),
+          AssistantMessage.builder().build(),
           assistantMessage(List.of(DocumentContent.documentContent(mock(Document.class)))));
     }
   }
