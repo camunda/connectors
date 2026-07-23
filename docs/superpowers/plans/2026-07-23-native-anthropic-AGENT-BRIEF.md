@@ -29,6 +29,15 @@ Read the source there; write your target files into **THIS** worktree at the sam
 **Never modify the pilot worktree.** This is a rebuild-by-hand port (adapt per the plan) — do NOT
 `git cherry-pick`.
 
+**Exception — config structure comes from the bak branch, not the pilot worktree.** The v2 config
+type (`AnthropicChatModelConfiguration` + `AnthropicEffort`/`ThinkingMode`/`shared/CompatibleAuthentication`)
+must follow the REFINED structure on `agentic-ai/v2-config-types-bak-with-providers`
+(`git show <branch>:<path>`): model params (`maxTokens`/`temperature`/`topP`/`topK`) in the
+**`model-options`** group, direct + compatible backends only, no skills/capabilities groups. The
+pilot worktree's `AnthropicChatModel.java` is the OLD layout (params under `capabilities`, plus
+Bedrock/skills) — do NOT use it for the config. Runtime code (converters, api, factory, transport)
+still ports from the pilot worktree.
+
 ## Your worktree / branch
 
 This worktree, branch `agentic-ai/native-anthropic-provider`, **stacked on
@@ -52,7 +61,14 @@ This worktree, branch `agentic-ai/native-anthropic-provider`, **stacked on
 - **Scope:** backends `anthropic-api` (direct) + `compatible` only. NO Bedrock/Azure/Vertex, NO
   OAuth on compatible, NO server tools, NO Skills, NO capability matrix. Drop all `*Capabilities*`
   and `AnthropicSkillReference` files; the `ChatModelApi` supplies **no** `capabilities()`.
-- **Keep `pause_turn` handling** (maps to `ChatModelResult.Continuation`).
+- **Prefer the STABLE Anthropic SDK Messages client; avoid beta unless necessary.** The pilot went
+  all-beta ONLY for Skills/server-tools (omitted here). In Task 0, verify whether reasoning/thinking
+  + effort + prompt caching + tool calling + multimodal are all on the stable client; if so, use
+  stable types throughout. Use beta only for a shipped feature that genuinely requires it (note
+  which); don't mix clients.
+- **`pause_turn`:** keep it (→ `Continuation`) only if you stay on beta / the stable `StopReason`
+  has `pause_turn`; on stable without it, drop the branch (cannot occur without the deferred server
+  tools).
 - **Reasoning/effort ships WITHOUT matrix-driven validation** — preserve only matrix-independent
   structural checks; invalid combos fail loud at the Anthropic API.
 - **Rename scheme:** bare `ProviderConfiguration` in the versioned package (no `V2` type prefix);

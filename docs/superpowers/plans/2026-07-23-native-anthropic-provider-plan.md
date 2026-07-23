@@ -20,7 +20,9 @@
 - **No capability subsystem.** Drop every `*Capabilities*` / `*CapabilitiesData` / `AnthropicReasoningValidator`'s matrix-coupled parts / `AnthropicModelCapabilities*` / `AnthropicProviderCapabilities` / `AnthropicReasoningCapabilities`. The `ChatModelApi` implementation supplies NO `ModelCapabilities`.
 - **No server tools, no Skills.** Drop `AnthropicSkillReference` and all request-side server-tool/Skills mapping.
 - **Reasoning/effort:** ships WITHOUT matrix-driven validation. Preserve only matrix-independent structural checks (if any). Invalid combos fail loud at the Anthropic API and surface via the existing error mapping.
-- **`pause_turn` handling is KEPT** (maps to `ChatModelResult.Continuation`); do not strip it.
+- **SDK client: prefer STABLE, avoid beta unless necessary.** The pilot used the Anthropic **beta** Messages client/types (`BetaMessage`, `BetaContentBlock`, `BetaStopReason`, `BetaUsage`, `BetaToolUseBlock`, …) **solely for Skills / server-tools** — both omitted here. Determine (Task 0 §6) whether the shipped surface (reasoning/thinking, effort, prompt caching, tool calling, multimodal) is fully supported on the **stable** Messages client. If yes, use stable types throughout and drop beta-only handling. Use beta ONLY for a shipped feature that genuinely requires it; if one does, note which and keep the whole path on beta (do not mix clients).
+- **Config structure authority = the bak branch's refined config**, NOT the pilot worktree's `AnthropicChatModel.java`. Source: `git show agentic-ai/v2-config-types-bak-with-providers:connectors/agentic-ai/connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/request/v2/AnthropicChatModelConfiguration.java` (+ `AnthropicEffort.java`, `ThinkingMode.java`, `shared/CompatibleAuthentication.java`). It already has the refined shape: model params (`maxTokens`/`temperature`/`topP`/`topK`) in the **`model-options`** group; **direct + compatible backends only (no Bedrock)**; no skills/capabilities groups; thinking in the `model` group. Take THIS structure. Adapt it to the target branch's union (bare `ProviderConfiguration` — Task 0 §4), the current rename scheme, our decided backend discriminators (**`anthropic-api`** + **`compatible`**), and provider label **"Anthropic"**. Do NOT reproduce the pilot worktree's older `capabilities`-group layout or its Bedrock/skills members.
+- **`pause_turn`:** conditional on the SDK-client choice — keep the `pause_turn` → `ChatModelResult.Continuation` mapping only if the path stays on beta types. If on the stable client and its `StopReason` has no `pause_turn`, drop that branch (it only fires with the deferred server tools, so it cannot occur here).
 - **Factory MUST be registered** in autoconfiguration (the v2-config-types PR left factories unregistered).
 - **Rename scheme:** bare `ProviderConfiguration` in the versioned package (no `V2` type prefix); `Ai` prefix → `Agent`; `V1`/`V2` suffix only on connector `Function` + `Request` classes. Match whatever the target branch already uses; verify in Task 0. Connector type-ID strings are the external contract — never change them.
 - **Build:** NEVER use `-am` (rewrites proprietary license headers reactor-wide). Regenerate templates with `mvn clean process-classes` (NOT `compile`). After model/serialization changes, cross-compile and run the separate `connectors-e2e-test-agentic-ai` module (install-to-m2 + `-pl`, no `-am`).
@@ -35,7 +37,7 @@
 
 | Port source (pilot) | Target | Action |
 |---|---|---|
-| `model/request/v2/AnthropicChatModel.java` | `model/request/v2/AnthropicChatModelConfiguration.java` | REBUILD: keep `anthropic-api`+`compatible` backends, `api` enum, reasoning/effort/thinking + caching config; DROP Bedrock backend + AWS auth + server-tools/Skills/capability-override config |
+| **bak branch** `AnthropicChatModelConfiguration.java` (refined structure — see Global Constraints) | `model/request/v2/AnthropicChatModelConfiguration.java` | REBUILD from the bak branch's refined config: model params in the **`model-options`** group, `anthropic-api`+`compatible` backends (already no Bedrock there), `api` enum, reasoning/effort/thinking + caching. Adapt union name (bare `ProviderConfiguration`), discriminators, label "Anthropic". NOT the pilot worktree's `AnthropicChatModel.java`. |
 | `model/request/v2/shared/CompatibleAuthentication.java` | same (v2/shared) | PORT as-is (already `None`+`ApiKey` only) |
 | `model/request/v2/shared/ChatModelAwsAuthentication.java` | — | DROP (Bedrock deferred) |
 | `chatmodel/provider/anthropic/AnthropicClientFactory.java` | same | PORT |
@@ -67,7 +69,9 @@
 
 - [ ] **Step 4: Record the target rename scheme + current v2 union shape.** Read the current v2 provider-config union on the branch (its bare-`ProviderConfiguration` name, package, discriminator property, existing `permits`/`@JsonSubTypes`, and the `CustomProviderConfiguration` member). Record exact names so later tasks widen the real union, not the pilot's `V2ProviderConfiguration`.
 
-- [ ] **Step 5: Commit the findings note.**
+- [ ] **Step 5: SDK client selection spike.** Determine whether the Anthropic Java SDK's **stable** Messages client + types (`MessageCreateParams`, `Message`, `ContentBlock`, `StopReason`, `Usage`) support every shipped feature: reasoning/thinking, effort, prompt caching (`cache_control`), tool calling, and multimodal input. Record, per feature, stable-vs-beta support. Decide the client for the whole path: **stable if all shipped features are supported there**; beta only if a shipped feature genuinely requires it (note which). Also record whether the stable `StopReason` enum contains `pause_turn` (governs the Task 5 pause_turn branch). The pilot's beta usage existed only for Skills/server-tools (omitted).
+
+- [ ] **Step 6: Commit the findings note.**
 
 ```bash
 git add docs/superpowers/specs/2026-07-23-native-anthropic-task0-findings.md
@@ -94,7 +98,7 @@ git commit -m "docs(agentic-ai): record native Anthropic branch reconnaissance f
 - [ ] **Step 2: Run it, verify it fails** (`AnthropicChatModelConfiguration` doesn't exist).
 Run: `mvn -q -pl connectors/agentic-ai/connector-agentic-ai test -Dtest=AnthropicChatModelConfigurationTest` — expect compile failure.
 
-- [ ] **Step 3: Rebuild the config type.** Port `AnthropicChatModel.java` structure, adapting: keep the `anthropic-api` (direct) + `compatible` backend sub-union members, the `api` enum (single value, hidden when single-valued), reasoning/effort (`ThinkingMode`, effort enum) and prompt-caching config; DROP the Bedrock backend, AWS auth, and any server-tools/Skills/capability-override fields. Implement `provider()`/`model()`. Widen the v2 union's `permits` + `@JsonSubTypes` to add it.
+- [ ] **Step 3: Rebuild the config type from the bak branch's refined `AnthropicChatModelConfiguration`** (see Global Constraints for the `git show` source). Keep its `model-options`-grouped params (`maxTokens`/`temperature`/`topP`/`topK`), the `anthropic-api` (direct) + `compatible` backend sub-union, the `api` enum (single value, hidden when single-valued), reasoning/effort (`ThinkingMode`, effort enum) and prompt-caching config. Adapt: union name (bare `ProviderConfiguration`), discriminators (`anthropic-api`/`compatible`), provider label "Anthropic". Implement `provider()`/`model()`. Widen the union's `permits` + `@JsonSubTypes`. Do NOT copy the pilot worktree's `AnthropicChatModel.java` (older `capabilities` grouping + Bedrock/skills).
 
 - [ ] **Step 4: Run the test, verify it passes.**
 
@@ -167,7 +171,7 @@ Run: `mvn -q -pl connectors/agentic-ai/connector-agentic-ai test -Dtest=Anthropi
 - Consumes: Anthropic streaming events / `BetaMessage`.
 - Produces: `ChatModelResult.Completed | Continuation`, domain `AssistantMessage` (text, tool calls, `ReasoningContent`, `ProviderContent`), `AgentMetrics` (incl. cache + reasoning token usage), stop-reason mapping.
 
-- [ ] **Step 1: Write/port failing tests** — text+tool-use mapping; `pause_turn` → `Continuation` and `mapStopReason` returns null for it; `refusal` → `CONTENT_FILTERED`; `max_tokens` truncation → the RESPONSE_TRUNCATED error; unknown stop reason → `UnknownStopReason`; cache/reasoning token metrics; stream assembler builds the expected `BetaMessage`.
+- [ ] **Step 1: Write/port failing tests** — text+tool-use mapping; `refusal` → `CONTENT_FILTERED`; `max_tokens` truncation → the RESPONSE_TRUNCATED error; unknown stop reason → `UnknownStopReason`; cache/reasoning token metrics; stream assembler builds the expected message. Include the `pause_turn` → `Continuation` case (and `mapStopReason` → null) ONLY if Task 0 §5 kept the beta client / the stable `StopReason` has `pause_turn`; otherwise omit it (cannot occur without the deferred server tools). Use the stable message type in assertions unless Task 0 §5 selected beta.
 - [ ] **Step 2: Run, verify fail.**
 - [ ] **Step 3: Port both**, keeping the pause_turn Continuation logic and the ProviderContent passthrough branch (harmless without server tools; preserves robustness).
 - [ ] **Step 4: Run, verify pass.**
