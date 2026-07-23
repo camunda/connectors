@@ -13,8 +13,8 @@ import static org.mockito.Mockito.when;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
-import com.anthropic.models.beta.messages.BetaMessageParam;
-import com.anthropic.models.beta.messages.BetaThinkingConfigAdaptive;
+import com.anthropic.models.messages.MessageParam;
+import com.anthropic.models.messages.ThinkingConfigAdaptive;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
@@ -116,7 +116,7 @@ class AnthropicMessageRequestConverterTest {
   }
 
   private static JsonNode requestBodyAsJson(
-      com.anthropic.models.beta.messages.MessageCreateParams params) {
+      com.anthropic.models.messages.MessageCreateParams params) {
     return ObjectMappers.jsonMapper().valueToTree(params._body());
   }
 
@@ -136,9 +136,9 @@ class AnthropicMessageRequestConverterTest {
 
     assertThat(params.messages()).hasSize(1);
     final var message = params.messages().get(0);
-    assertThat(message.role()).isEqualTo(BetaMessageParam.Role.USER);
-    assertThat(message.content().asBetaContentBlockParams()).hasSize(1);
-    assertThat(message.content().asBetaContentBlockParams().get(0).text().orElseThrow().text())
+    assertThat(message.role()).isEqualTo(MessageParam.Role.USER);
+    assertThat(message.content().asBlockParams()).hasSize(1);
+    assertThat(message.content().asBlockParams().get(0).text().orElseThrow().text())
         .isEqualTo("hi");
   }
 
@@ -167,7 +167,7 @@ class AnthropicMessageRequestConverterTest {
     assertThat(params.tools()).isPresent();
     assertThat(params.tools().orElseThrow()).hasSize(1);
 
-    final var tool = params.tools().orElseThrow().get(0).betaTool().orElseThrow();
+    final var tool = params.tools().orElseThrow().get(0).tool().orElseThrow();
     assertThat(tool.name()).isEqualTo("SuperfluxProduct");
     assertThat(tool.description()).contains("desc");
 
@@ -213,9 +213,9 @@ class AnthropicMessageRequestConverterTest {
     assertThat(params.messages()).hasSize(3);
 
     final var assistantMessage = params.messages().get(1);
-    assertThat(assistantMessage.role()).isEqualTo(BetaMessageParam.Role.ASSISTANT);
+    assertThat(assistantMessage.role()).isEqualTo(MessageParam.Role.ASSISTANT);
     final var toolUseBlock =
-        assistantMessage.content().asBetaContentBlockParams().stream()
+        assistantMessage.content().asBlockParams().stream()
             .filter(b -> b.toolUse().isPresent())
             .findFirst()
             .orElseThrow()
@@ -226,9 +226,9 @@ class AnthropicMessageRequestConverterTest {
     assertThat(toolUseBlock.input()._additionalProperties().get("a")).isEqualTo(JsonValue.from(5));
 
     final var toolResultMessage = params.messages().get(2);
-    assertThat(toolResultMessage.role()).isEqualTo(BetaMessageParam.Role.USER);
+    assertThat(toolResultMessage.role()).isEqualTo(MessageParam.Role.USER);
     final var toolResultBlock =
-        toolResultMessage.content().asBetaContentBlockParams().get(0).toolResult().orElseThrow();
+        toolResultMessage.content().asBlockParams().get(0).toolResult().orElseThrow();
     assertThat(toolResultBlock.toolUseId()).isEqualTo("id");
     assertThat(
             toolResultBlock.content().orElseThrow().asBlocks().get(0).text().orElseThrow().text())
@@ -297,9 +297,9 @@ class AnthropicMessageRequestConverterTest {
     assertThat(params.messages()).hasSize(2);
 
     final var assistantMessage = params.messages().get(1);
-    assertThat(assistantMessage.role()).isEqualTo(BetaMessageParam.Role.ASSISTANT);
+    assertThat(assistantMessage.role()).isEqualTo(MessageParam.Role.ASSISTANT);
 
-    final var blocks = assistantMessage.content().asBetaContentBlockParams();
+    final var blocks = assistantMessage.content().asBlockParams();
     assertThat(blocks).hasSize(4);
 
     assertThat(blocks.get(0).text().orElseThrow().text()).isEqualTo("working");
@@ -350,7 +350,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params = converter.toMessageCreateParams(ctx(model(null), null), snapshot);
 
-    final var blocks = params.messages().get(0).content().asBetaContentBlockParams();
+    final var blocks = params.messages().get(0).content().asBlockParams();
     assertThat(blocks).hasSize(2);
     assertThat(blocks.get(0).serverToolUse()).isPresent();
     assertThat(blocks.get(1).toolUse().orElseThrow().id()).isEqualTo("toolu_1");
@@ -387,7 +387,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params = converter.toMessageCreateParams(ctx(model(null), null), snapshot);
 
-    final var blocks = params.messages().get(0).content().asBetaContentBlockParams();
+    final var blocks = params.messages().get(0).content().asBlockParams();
     assertThat(blocks).hasSize(2);
     assertThat(blocks.get(0).isThinking()).isTrue();
     assertThat(blocks.get(0).asThinking().signature()).isEqualTo("sig-123");
@@ -413,7 +413,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params = converter.toMessageCreateParams(ctx(model(null), null), snapshot);
 
-    final var blocks = params.messages().get(0).content().asBetaContentBlockParams();
+    final var blocks = params.messages().get(0).content().asBlockParams();
     assertThat(blocks).hasSize(1);
     assertThat(blocks.get(0).isThinking()).isTrue();
   }
@@ -536,7 +536,7 @@ class AnthropicMessageRequestConverterTest {
 
     assertThat(params.thinking().orElseThrow().isAdaptive()).isTrue();
     assertThat(params.thinking().orElseThrow().asAdaptive().display())
-        .contains(BetaThinkingConfigAdaptive.Display.SUMMARIZED);
+        .contains(ThinkingConfigAdaptive.Display.SUMMARIZED);
 
     final var thinkingNode = requestBodyAsJson(params).path("thinking");
     assertThat(thinkingNode.path("type").asText()).isEqualTo("adaptive");
@@ -640,9 +640,9 @@ class AnthropicMessageRequestConverterTest {
 
   @Test
   void effortAndJsonResponseFormatBothLandOnTheSameOutputConfigWithoutClobbering() {
-    // Regression guard: MessageCreateParams.Builder#outputConfig(BetaOutputConfig) is a plain
+    // Regression guard: MessageCreateParams.Builder#outputConfig(OutputConfig) is a plain
     // setter that replaces the whole field, so effort and the JSON schema format must be combined
-    // into a single BetaOutputConfig before being applied, or one would silently drop the other.
+    // into a single OutputConfig before being applied, or one would silently drop the other.
     final Map<String, Object> schema =
         Map.of("type", "object", "properties", Map.of("answer", Map.of("type", "string")));
     final var response =

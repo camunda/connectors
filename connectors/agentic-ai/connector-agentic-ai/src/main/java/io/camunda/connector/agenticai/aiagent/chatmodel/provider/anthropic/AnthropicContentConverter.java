@@ -7,12 +7,12 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import com.anthropic.core.ObjectMappers;
-import com.anthropic.models.beta.messages.BetaBase64ImageSource;
-import com.anthropic.models.beta.messages.BetaContentBlockParam;
-import com.anthropic.models.beta.messages.BetaImageBlockParam;
-import com.anthropic.models.beta.messages.BetaRequestDocumentBlock;
-import com.anthropic.models.beta.messages.BetaTextBlockParam;
-import com.anthropic.models.beta.messages.BetaToolResultBlockParam;
+import com.anthropic.models.messages.Base64ImageSource;
+import com.anthropic.models.messages.ContentBlockParam;
+import com.anthropic.models.messages.DocumentBlockParam;
+import com.anthropic.models.messages.ImageBlockParam;
+import com.anthropic.models.messages.TextBlockParam;
+import com.anthropic.models.messages.ToolResultBlockParam;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
@@ -30,12 +30,8 @@ import org.apache.hc.core5.http.ContentType;
 
 /**
  * Converts the domain {@link Content} model to Anthropic SDK content blocks, both for
- * user/assistant message bodies ({@link BetaContentBlockParam}) and tool-result bodies ({@link
- * BetaToolResultBlockParam.Content.Block}).
- *
- * <p>Uses the <strong>beta</strong> messages client types (rather than the stable {@code
- * com.anthropic.models.messages} family), matching the client wired by {@link
- * AnthropicClientFactory}.
+ * user/assistant message bodies ({@link ContentBlockParam}) and tool-result bodies ({@link
+ * ToolResultBlockParam.Content.Block}).
  */
 public class AnthropicContentConverter {
 
@@ -53,19 +49,18 @@ public class AnthropicContentConverter {
     this.objectMapper = objectMapper;
   }
 
-  public List<BetaContentBlockParam> toContentBlockParams(List<Content> content) {
-    final List<BetaContentBlockParam> blocks = new ArrayList<>();
+  public List<ContentBlockParam> toContentBlockParams(List<Content> content) {
+    final List<ContentBlockParam> blocks = new ArrayList<>();
     for (final Content c : content) {
       switch (c) {
         case TextContent text ->
             blocks.add(
-                BetaContentBlockParam.ofText(
-                    BetaTextBlockParam.builder().text(text.text()).build()));
+                ContentBlockParam.ofText(TextBlockParam.builder().text(text.text()).build()));
         case DocumentContent doc -> blocks.add(documentBlock(doc));
         case ObjectContent obj ->
             blocks.add(
-                BetaContentBlockParam.ofText(
-                    BetaTextBlockParam.builder().text(writeAsJson(obj.content())).build()));
+                ContentBlockParam.ofText(
+                    TextBlockParam.builder().text(writeAsJson(obj.content())).build()));
         // Reasoning content is re-emitted unconditionally as long as a raw providerPayload is
         // present. A null payload (e.g. reasoning content produced by the LangChain4J-routed
         // path, which has no raw block to preserve) has no wire representation to replay; skip
@@ -74,7 +69,7 @@ public class AnthropicContentConverter {
           if (rc.providerPayload() != null) {
             blocks.add(
                 ObjectMappers.jsonMapper()
-                    .convertValue(rc.providerPayload(), BetaContentBlockParam.class));
+                    .convertValue(rc.providerPayload(), ContentBlockParam.class));
           }
         }
         case ProviderContent pc -> {
@@ -82,7 +77,7 @@ public class AnthropicContentConverter {
           // replay; skip it instead of emitting a null content block.
           if (pc.payload() != null) {
             blocks.add(
-                ObjectMappers.jsonMapper().convertValue(pc.payload(), BetaContentBlockParam.class));
+                ObjectMappers.jsonMapper().convertValue(pc.payload(), ContentBlockParam.class));
           }
         }
       }
@@ -90,60 +85,58 @@ public class AnthropicContentConverter {
     return blocks;
   }
 
-  public List<BetaToolResultBlockParam.Content.Block> toToolResultBlocks(List<Content> content) {
-    final List<BetaToolResultBlockParam.Content.Block> blocks = new ArrayList<>();
+  public List<ToolResultBlockParam.Content.Block> toToolResultBlocks(List<Content> content) {
+    final List<ToolResultBlockParam.Content.Block> blocks = new ArrayList<>();
     for (final Content c : content) {
       switch (c) {
         case TextContent text ->
             blocks.add(
-                BetaToolResultBlockParam.Content.Block.ofText(
-                    BetaTextBlockParam.builder().text(text.text()).build()));
+                ToolResultBlockParam.Content.Block.ofText(
+                    TextBlockParam.builder().text(text.text()).build()));
         case DocumentContent doc -> {
-          final BetaContentBlockParam block = documentBlock(doc);
-          block
-              .image()
-              .ifPresent(i -> blocks.add(BetaToolResultBlockParam.Content.Block.ofImage(i)));
+          final ContentBlockParam block = documentBlock(doc);
+          block.image().ifPresent(i -> blocks.add(ToolResultBlockParam.Content.Block.ofImage(i)));
           block
               .document()
-              .ifPresent(d -> blocks.add(BetaToolResultBlockParam.Content.Block.ofDocument(d)));
-          block.text().ifPresent(t -> blocks.add(BetaToolResultBlockParam.Content.Block.ofText(t)));
+              .ifPresent(d -> blocks.add(ToolResultBlockParam.Content.Block.ofDocument(d)));
+          block.text().ifPresent(t -> blocks.add(ToolResultBlockParam.Content.Block.ofText(t)));
         }
         case ObjectContent obj ->
             blocks.add(
-                BetaToolResultBlockParam.Content.Block.ofText(
-                    BetaTextBlockParam.builder().text(writeAsJson(obj.content())).build()));
+                ToolResultBlockParam.Content.Block.ofText(
+                    TextBlockParam.builder().text(writeAsJson(obj.content())).build()));
         default ->
             blocks.add(
-                BetaToolResultBlockParam.Content.Block.ofText(
-                    BetaTextBlockParam.builder().text(writeAsJson(c)).build()));
+                ToolResultBlockParam.Content.Block.ofText(
+                    TextBlockParam.builder().text(writeAsJson(c)).build()));
       }
     }
     return blocks;
   }
 
-  private BetaContentBlockParam documentBlock(DocumentContent doc) {
+  private ContentBlockParam documentBlock(DocumentContent doc) {
     final var contentType = contentType(doc.document());
     return switch (classify(contentType)) {
       case IMAGE ->
-          BetaContentBlockParam.ofImage(
-              BetaImageBlockParam.builder()
+          ContentBlockParam.ofImage(
+              ImageBlockParam.builder()
                   .source(
-                      BetaBase64ImageSource.builder()
+                      Base64ImageSource.builder()
                           .data(doc.document().asBase64())
-                          .mediaType(BetaBase64ImageSource.MediaType.of(contentType))
+                          .mediaType(Base64ImageSource.MediaType.of(contentType))
                           .build())
                   .build());
       case PDF ->
-          BetaContentBlockParam.ofDocument(
-              BetaRequestDocumentBlock.builder().base64Source(doc.document().asBase64()).build());
+          ContentBlockParam.ofDocument(
+              DocumentBlockParam.builder().base64Source(doc.document().asBase64()).build());
       // TEXT-family documents inline as plain text; anything else (audio/video/unrecognized) has
       // no direct Anthropic block, so fall back to a JSON reference like the LangChain4j-routed
       // path.
       case TEXT ->
-          BetaContentBlockParam.ofDocument(
-              BetaRequestDocumentBlock.builder().textSource(decodeUtf8(doc.document())).build());
+          ContentBlockParam.ofDocument(
+              DocumentBlockParam.builder().textSource(decodeUtf8(doc.document())).build());
       case UNSUPPORTED ->
-          BetaContentBlockParam.ofText(BetaTextBlockParam.builder().text(writeAsJson(doc)).build());
+          ContentBlockParam.ofText(TextBlockParam.builder().text(writeAsJson(doc)).build());
     };
   }
 

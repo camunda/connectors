@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.anthropic.models.beta.messages.BetaBase64ImageSource;
+import com.anthropic.models.messages.Base64ImageSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -63,7 +63,7 @@ class AnthropicContentConverterTest {
       final var image = blocks.get(0).image().orElseThrow();
       assertThat(image.source().base64().orElseThrow().data()).isEqualTo("QUJD");
       assertThat(image.source().base64().orElseThrow().mediaType())
-          .isEqualTo(BetaBase64ImageSource.MediaType.IMAGE_PNG);
+          .isEqualTo(Base64ImageSource.MediaType.IMAGE_PNG);
     }
 
     @Test
@@ -147,25 +147,25 @@ class AnthropicContentConverterTest {
     @Test
     void mapsProviderContentPayloadToNativeBlockRoundTrip() {
       // Any Anthropic block shape not otherwise modeled by a domain Content type round-trips
-      // byte-identically through ProviderContent; a context-management block (unrelated to tool
+      // byte-identically through ProviderContent; a container-upload block (unrelated to tool
       // calling) stands in here for the mechanism.
       final var payload =
-          Map.<String, Object>of("type", "compaction", "content", "Summary of earlier turns");
+          Map.<String, Object>of("type", "container_upload", "file_id", "file_abc123");
 
       final var blocks =
           converter.toContentBlockParams(
-              List.of(new ProviderContent("anthropic", "compaction", payload, null)));
+              List.of(new ProviderContent("anthropic", "container_upload", payload, null)));
 
       assertThat(blocks).hasSize(1);
-      assertThat(blocks.get(0).isCompaction()).isTrue();
-      assertThat(blocks.get(0).asCompaction().content()).contains("Summary of earlier turns");
+      assertThat(blocks.get(0).isContainerUpload()).isTrue();
+      assertThat(blocks.get(0).asContainerUpload().fileId()).isEqualTo("file_abc123");
     }
 
     @Test
     void skipsProviderContentWithNullPayload() {
       final var blocks =
           converter.toContentBlockParams(
-              List.of(new ProviderContent("anthropic", "compaction", null, null)));
+              List.of(new ProviderContent("anthropic", "container_upload", null, null)));
 
       assertThat(blocks).isEmpty();
     }
