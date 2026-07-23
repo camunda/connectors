@@ -25,7 +25,9 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaRe
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolverImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
+import io.camunda.connector.agenticai.aiagent.AgentSubProcessV2Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
+import io.camunda.connector.agenticai.aiagent.AgentTaskV2Function;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
@@ -73,6 +75,7 @@ import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -359,5 +362,28 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AgentSubProcessV1Function aiAgentSubProcessV1Function(
       AgentSubProcessRequestHandler agentRequestHandler) {
     return new AgentSubProcessV1Function(agentRequestHandler);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBean(AgentTaskRequestHandler.class)
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
+      matchIfMissing = true)
+  public AgentTaskV2Function aiAgentTaskV2Function(
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      AgentTaskRequestHandler agentRequestHandler) {
+    return new AgentTaskV2Function(toolElementsResolver, agentRequestHandler);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBean(AgentSubProcessRequestHandler.class)
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
+      matchIfMissing = true)
+  public AgentSubProcessV2Function aiAgentSubProcessV2Function(
+      AgentSubProcessRequestHandler agentRequestHandler) {
+    return new AgentSubProcessV2Function(agentRequestHandler);
   }
 }

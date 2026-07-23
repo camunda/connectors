@@ -457,6 +457,17 @@
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
+              <connectorClass>io.camunda.connector.agenticai.aiagent.AgentTaskV2Function</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.agenticai.ai-agent-task.v2</templateId>
+                  <templateFileName>agenticai-ai-agent-task.v2.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
+            </connector>
+            <connector>
               <connectorClass>io.camunda.connector.agenticai.mcp.client.McpClientFunction</connectorClass>
               <files>
                 <file>
@@ -599,6 +610,70 @@
                 <property>
                   <name>connectorType</name>
                   <value>io.camunda.agenticai:aiagent-job-worker:1</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-subprocess-v2-template</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-sub-process-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-ai-agent-task.v2.json</value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-ai-agent-subprocess.v2.json</value>
+                </property>
+                <property>
+                  <name>templateId</name>
+                  <value>io.camunda.connectors.agenticai.ai-agent-subprocess.v2</value>
+                </property>
+                <property>
+                  <name>connectorType</name>
+                  <value>io.camunda.agenticai:aiagent:subprocess:2</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-subprocess-v2-template-hybrid</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-sub-process-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>
+                    ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json
+                  </value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>
+                    ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json
+                  </value>
+                </property>
+                <property>
+                  <name>templateId</name>
+                  <value>io.camunda.connectors.agenticai.ai-agent-subprocess.v2</value>
+                </property>
+                <property>
+                  <name>connectorType</name>
+                  <value>io.camunda.agenticai:aiagent:subprocess:2</value>
                 </property>
               </properties>
             </configuration>
