@@ -220,7 +220,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
     public record AnthropicModelParameters(
         @Min(0)
             @TemplateProperty(
-                group = "model",
+                group = "model-options",
                 label = "Maximum tokens",
                 tooltip =
                     "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
@@ -230,7 +230,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
             @Nullable Integer maxTokens,
         @Min(0)
             @TemplateProperty(
-                group = "model",
+                group = "model-options",
                 label = "Temperature",
                 tooltip =
                     "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
@@ -240,7 +240,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
             @Nullable Double temperature,
         @Min(0)
             @TemplateProperty(
-                group = "model",
+                group = "model-options",
                 label = "top P",
                 tooltip =
                     "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
@@ -250,7 +250,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
             @Nullable Double topP,
         @Min(0)
             @TemplateProperty(
-                group = "model",
+                group = "model-options",
                 label = "top K",
                 tooltip =
                     "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
