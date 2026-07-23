@@ -933,7 +933,9 @@ own configuration through the SPI rather than being confined to the module's bui
 The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockProviderConfiguration`,
 etc.) is the concrete implementation contributed by this module. Today the v1 request supplies
 configurations through this sealed union only; request-side binding for a custom/native
-`ChatModelConfiguration` is delivered incrementally by the v2 request types.
+`ChatModelConfiguration` is delivered incrementally by the v2 request types
+(`ProviderConfiguration`), which so far offers `CustomProviderConfiguration`, a genuinely runnable
+path for user-supplied factories (see [§25.1](#251-add-an-llm-provider)).
 `ChatModelRegistryImpl` asks every registered `ChatModelFactory` whether it `supports` the
 configuration and routes to the single match; a configuration matched by zero factories throws
 `IllegalArgumentException`, and one matched by more than one throws `IllegalStateException` — fail
@@ -975,8 +977,9 @@ factories:
   `AgenticAiLangChain4JChatModelConfiguration` wires one `ChatModelFactory` bean per provider. Provider
   selection is by `ChatModelFactory.supports(...)` via the SPI registry, so the configuration loads
   unconditionally rather than behind a global framework toggle.
-- `LangChain4JChatModelFactory<T extends ProviderConfiguration>` is the abstract base: `supports`
-  matches a `ProviderConfiguration` whose `provider()` equals the factory's `providerType()`, and
+- `LangChain4JChatModelFactory<T extends ProviderConfiguration>` (the v1 `ProviderConfiguration`) is the
+  abstract base: `supports` matches a `ProviderConfiguration` whose `provider()` equals the factory's
+  `providerType()`, and
   `create` builds the underlying LangChain4J model once via the abstract `createChatModel` and wraps it
   in a `LangChain4JChatModel`. Concrete subclasses: `AnthropicChatModelFactory`,
   `BedrockChatModelFactory`, `OpenAiChatModelFactory`, `OpenAiCompatibleChatModelFactory`,
@@ -1007,10 +1010,11 @@ LangChain4JChatModel
 **Key converters:**
 
 - **`ChatMessageConverter`**: Top-level converter. `map(Message)` dispatches on sealed type (System/User/Assistant/ToolCallResult). `toAssistantMessage(ChatResponse)` converts back, attaching metadata (timestamp, finishReason, tokenUsage).
-- **`ContentConverter`**: Converts `TextContent` → text, `DocumentContent` → delegates to `DocumentToContentConverter`, `ObjectContent` → JSON string via the injected `ObjectMapper`.
+- **`ContentConverter`**: Converts `TextContent` → text, `DocumentContent` → delegates to `DocumentToContentConverter`, `ObjectContent` → JSON string. Uses a copy of `ObjectMapper` with `DocumentToContentModule` for nested document serialization.
 - **`DocumentToContentConverter`**: Dispatches on MIME type: `text/*` → `TextContent`; `application/pdf` → `PdfFileContent`; images → `ImageContent`; throws `DocumentConversionException` for unsupported types.
 - **`ToolSpecificationConverter`**: Uses `JsonSchemaConverter` to convert between `Map<String,Object>` (domain) and `JsonObjectSchema` (LangChain4J). Throws `ParseSchemaException` if schema is not an object.
 - **`JsonSchemaElementModule`**: Custom Jackson module needed because LangChain4J doesn't expose standard polymorphic annotations on `JsonSchemaElement`. Serializer/deserializer handle all concrete types (`JsonObjectSchema`, `JsonEnumSchema`, `JsonStringSchema`, `JsonArraySchema`, `JsonAnyOfSchema`, `JsonReferenceSchema`, etc.).
+- **`DocumentToContentModule`**: Jackson module registering `DocumentToContentSerializer` for Camunda `Document` objects in tool call result content — serializes to `{type, media_type, data}` structure.
 
 All converter beans are `@ConditionalOnMissingBean`, so an application can override any of them by declaring its own bean of the same type.
 
@@ -1152,8 +1156,8 @@ Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatM
 | Property                                                          | Default      | Controls                           |
 |-------------------------------------------------------------------|--------------|------------------------------------|
 | `camunda.connector.agenticai.enabled`                             | `true`       | Master switch                      |
-| `camunda.connector.agenticai.aiagent.outbound-connector.enabled`  | `true`       | AI Agent Task connector            |
-| `camunda.connector.agenticai.aiagent.job-worker.enabled`          | `true`       | AI Agent Sub-process job worker    |
+| `camunda.connector.agenticai.aiagent.outbound-connector.enabled`  | `true`       | AI Agent Task connector (v1 and v2)     |
+| `camunda.connector.agenticai.aiagent.job-worker.enabled`          | `true`       | AI Agent Sub-process job worker (v1 and v2) |
 | `camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled` | `true`     | Ad-Hoc Tools Schema connector     |
 
 ### Key Configuration Defaults
@@ -1815,13 +1819,29 @@ Implement `ChatModelFactory` (`supports(ChatModelConfiguration)` / `create(ChatM
 and register it as a Spring bean; `ChatModelRegistryImpl` auto-collects every `ChatModelFactory` bean
 and routes a request to the single one whose `supports` returns true ([§12](#12-framework-abstraction)).
 A provider going through LangChain4J extends the abstract `LangChain4JChatModelFactory<T extends
-ProviderConfiguration>` instead — it only needs to supply `providerType()` and `createChatModel(T)`,
-plus the matching `ProviderConfiguration` subtype (`supports`/`create` are already implemented by the
+ProviderConfiguration>` (the v1 `ProviderConfiguration`) instead — it only needs to supply
+`providerType()` and `createChatModel(T)`, plus the matching `ProviderConfiguration` subtype
+(`supports`/`create` are already implemented by the
 base class). Reference implementation: `AnthropicChatModelFactory` with
 `AnthropicProviderConfiguration`. The LangChain4J provider package
 (`aiagent/chatmodel/provider/langchain4j/**`) is the only place that may touch `dev.langchain4j`
 (invariant I1); a fully native provider implements `ChatModel`/`ChatModelFactory` directly with its own
 `ChatModelConfiguration` and stays out of that package.
+
+The v2 request's `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/
+Hybrid only) is the connector-facing entry point for this SPI: it carries a user-chosen `providerType`
+(dispatch discriminator), a dedicated `model` field (so agent-instance history/reporting works without
+digging it out of opaque config), and an opaque `parameters` map understood only by the user's factory.
+To use it, implement `ChatModelFactory` directly, with `providerType()`/`supports(...)` matching your
+chosen discriminator string, and register it as a Spring bean. `LangChain4JChatModelFactory` itself is
+bound to `ProviderConfiguration` and cannot be extended for `CustomProviderConfiguration`, but its
+building block, `LangChain4JChatModel`, is a public, framework-agnostic `ChatModel` wrapper: a custom
+factory that wants to reuse LangChain4J can build its own `dev.langchain4j.model.chat.ChatModel`, wrap it
+in a `CloseableChatModel`, and construct a `LangChain4JChatModel` directly. `ChatModelRegistryImpl` then
+dispatches `CustomProviderConfiguration` requests to the registered factory the
+same way it dispatches any other provider. No built-in factory ever matches `CustomProviderConfiguration`
+— it exists purely so the registry fails with the ordinary "no factory registered" error until the user
+registers one.
 
 <a id="252-add-a-systempromptcontributor"></a>
 
