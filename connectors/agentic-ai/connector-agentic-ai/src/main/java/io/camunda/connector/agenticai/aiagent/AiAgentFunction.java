@@ -97,9 +97,15 @@ public class AiAgentFunction implements AgentConnectorFunction {
   @Override
   public AiAgentTaskConnectorResponse execute(OutboundConnectorContext context) {
     var request = context.bindVariables(OutboundConnectorAgentRequest.class);
+    var provider = request.provider();
     var executionContext =
         new OutboundConnectorAgentExecutionContext(
-            context.getJobContext(), request, toolElementsResolver);
+            context.getJobContext(),
+            request.data(),
+            provider,
+            provider.model(),
+            provider.providerType(),
+            toolElementsResolver);
     return agentRequestHandler.handleRequest(executionContext);
   }
 }

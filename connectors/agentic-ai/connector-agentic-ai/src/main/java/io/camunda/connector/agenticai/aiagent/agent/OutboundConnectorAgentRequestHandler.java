@@ -8,11 +8,12 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.AiAgentTaskConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.multimodal.ToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
 import org.jspecify.annotations.Nullable;
@@ -25,18 +26,20 @@ public class OutboundConnectorAgentRequestHandler
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentInputComposer,
-      AiFrameworkAdapter<?> framework,
+      ChatModelApiRegistry chatModelApiRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ToolCallResultStrategy toolCallResultStrategy) {
     super(
         agentInitializer,
         conversationStoreRegistry,
         agentInputComposer,
-        framework,
+        chatModelApiRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        toolCallResultStrategy);
   }
 
   @Override

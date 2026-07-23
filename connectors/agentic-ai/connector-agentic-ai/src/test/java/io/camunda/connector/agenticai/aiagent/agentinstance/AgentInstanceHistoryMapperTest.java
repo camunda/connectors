@@ -9,12 +9,16 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -46,13 +50,14 @@ class AgentInstanceHistoryMapperTest {
   void toolResultUsesItsOwnCompletedAtNotTheTurnIngestionTimestamp() {
     final var toolCall = ToolCall.builder().id("call-1").name("getWeather").build();
     final var result =
-        ToolCallResult.builder()
-            .id("call-1")
-            .name("getWeather")
-            .elementId("getWeather")
-            .content("sunny")
-            .completedAt(TOOL_RESULT_COMPLETED_AT)
-            .build();
+        ToolCallResultContent.from(
+            ToolCallResult.builder()
+                .id("call-1")
+                .name("getWeather")
+                .elementId("getWeather")
+                .content("sunny")
+                .completedAt(TOOL_RESULT_COMPLETED_AT)
+                .build());
     final var message = ToolCallResultMessage.builder().results(List.of(result)).build();
 
     final var items =
@@ -74,21 +79,23 @@ class AgentInstanceHistoryMapperTest {
     final var fastToolCall = ToolCall.builder().id("fast").name("getWeather").build();
     final var slowToolCall = ToolCall.builder().id("slow").name("downloadFile").build();
     final var fastResult =
-        ToolCallResult.builder()
-            .id("fast")
-            .name("getWeather")
-            .elementId("getWeather")
-            .content("sunny")
-            .completedAt(fastCompletedAt)
-            .build();
+        ToolCallResultContent.from(
+            ToolCallResult.builder()
+                .id("fast")
+                .name("getWeather")
+                .elementId("getWeather")
+                .content("sunny")
+                .completedAt(fastCompletedAt)
+                .build());
     final var slowResult =
-        ToolCallResult.builder()
-            .id("slow")
-            .name("downloadFile")
-            .elementId("downloadFile")
-            .content("done")
-            .completedAt(slowCompletedAt)
-            .build();
+        ToolCallResultContent.from(
+            ToolCallResult.builder()
+                .id("slow")
+                .name("downloadFile")
+                .elementId("downloadFile")
+                .content("done")
+                .completedAt(slowCompletedAt)
+                .build());
     final var message =
         ToolCallResultMessage.builder().results(List.of(fastResult, slowResult)).build();
 
@@ -108,12 +115,13 @@ class AgentInstanceHistoryMapperTest {
     // every tool call result before it reaches the history mapper
     final var toolCall = ToolCall.builder().id("call-1").name("getWeather").build();
     final var result =
-        ToolCallResult.builder()
-            .id("call-1")
-            .name("getWeather")
-            .elementId("getWeather")
-            .content("sunny")
-            .build();
+        ToolCallResultContent.from(
+            ToolCallResult.builder()
+                .id("call-1")
+                .name("getWeather")
+                .elementId("getWeather")
+                .content("sunny")
+                .build());
     final var message = ToolCallResultMessage.builder().results(List.of(result)).build();
 
     assertThatThrownBy(
@@ -123,5 +131,24 @@ class AgentInstanceHistoryMapperTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("call-1")
         .hasMessageContaining("completedAt");
+  }
+
+  @Test
+  void mapsProviderContentToObjectHistoryContentCarryingThePayload() {
+    final var payload = Map.of("type", "code_execution_tool_result", "tool_use_id", "srvtoolu_1");
+    final var assistantMessage =
+        AssistantMessage.builder()
+            .content(
+                List.of(
+                    new ProviderContent("anthropic", "code_execution_tool_result", payload, null)))
+            .build();
+
+    final var content = mapper.assistantContent(assistantMessage);
+
+    assertThat(content)
+        .singleElement()
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object -> assertThat(object.getObject()).isEqualTo(payload));
   }
 }

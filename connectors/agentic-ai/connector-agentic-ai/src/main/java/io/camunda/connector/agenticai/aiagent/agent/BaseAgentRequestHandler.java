@@ -13,7 +13,9 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Re
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiRegistry;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRequest;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -29,10 +31,12 @@ import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.multimodal.ToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
@@ -53,26 +57,29 @@ public abstract class BaseAgentRequestHandler<
   private final AgentInitializer agentInitializer;
   private final ConversationStoreRegistry conversationStoreRegistry;
   private final AgentConversationTurnInputComposer agentInputComposer;
-  private final AiFrameworkAdapter<?> framework;
+  private final ChatModelApiRegistry chatModelApiRegistry;
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
+  private final ToolCallResultStrategy toolCallResultStrategy;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentInputComposer,
-      AiFrameworkAdapter<?> framework,
+      ChatModelApiRegistry chatModelApiRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ToolCallResultStrategy toolCallResultStrategy) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
-    this.framework = framework;
+    this.chatModelApiRegistry = chatModelApiRegistry;
     this.systemPromptComposer = systemPromptComposer;
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
+    this.toolCallResultStrategy = toolCallResultStrategy;
   }
 
   @Override
@@ -158,18 +165,64 @@ public abstract class BaseAgentRequestHandler<
         conversation.lastTurn(),
         OffsetDateTime.now());
 
-    LOGGER.debug("Executing chat request with AI framework");
-    final var chatResponse =
-        framework.executeMeasuringTime(
-            executionContext, conversation.window(agentConfiguration.contextWindowSize()));
-    final var updatedConversation =
-        conversation.ingest(chatResponse.assistantMessage(), chatResponse.metrics());
+    var workingConversation = conversation;
+    try (final var chatModel =
+        chatModelApiRegistry.resolve(agentConfiguration.chatModelApiConfiguration())) {
+      // Continuation loop (ADR-009): a provider may pause mid-turn (e.g. Anthropic pause_turn) and
+      // return a Continuation rather than a Completed result. Each Continuation becomes its own
+      // persisted turn and the model is re-called until a Completed ends the loop. Chat models
+      // routed through LangChain4J always return Completed, so this runs exactly once on that
+      // path.
+      boolean continued;
+      do {
+        LOGGER.debug(
+            "Sending turn (iterationKey={}) to the model",
+            workingConversation.currentTurn().iterationKey());
 
-    agentInstanceClient.createHistoryForAssistantMessage(
-        executionContext,
-        agentInstanceKey,
-        updatedConversation.currentTurn(),
-        OffsetDateTime.now());
+        final var windowedSnapshot =
+            workingConversation.window(agentConfiguration.contextWindowSize());
+        final var toolResultRoutedSnapshot =
+            toolCallResultStrategy.routeToolResults(windowedSnapshot, chatModel.capabilities());
+        final var chatResult =
+            chatModel.call(new ChatModelRequest(executionContext, toolResultRoutedSnapshot));
+        if (chatResult.assistantMessage().stopReason() == StopReason.CONTENT_FILTERED) {
+          throw new ConnectorException(
+              AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
+              "Model response was blocked by provider content filtering.");
+        }
+        workingConversation =
+            workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
+
+        agentInstanceClient.createHistoryForAssistantMessage(
+            executionContext,
+            agentInstanceKey,
+            workingConversation.currentTurn(),
+            OffsetDateTime.now());
+
+        // A Continuation means we re-call the model with the same conversation and no new input
+        // messages — the model resumes the paused turn on the existing state.
+        continued = chatResult instanceof ChatModelResult.Continuation;
+        if (continued) {
+          LOGGER.debug(
+              "Provider paused turn (iterationKey={}); resuming with another round",
+              workingConversation.currentTurn().iterationKey());
+
+          // Report this round's own metrics now: its history item and metrics are rolled into
+          // previousTurns and would otherwise never reach the instance-level counters (only the
+          // final round's delta is pushed after the loop). No status change — still mid-turn.
+          notifyMetrics(
+              executionContext,
+              workingConversation.toAgentContext(),
+              workingConversation.currentTurnMetrics(),
+              null,
+              false);
+
+          throwIfLimitsReached(workingConversation, agentConfiguration);
+          workingConversation = workingConversation.nextContinuationRound();
+        }
+      } while (continued);
+    }
+    final var updatedConversation = workingConversation;
 
     LOGGER.debug("Storing conversation messages to session");
     final var storedRef =

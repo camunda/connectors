@@ -18,10 +18,12 @@ package io.camunda.connector.e2e.agenticai.assertj;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
@@ -49,6 +51,30 @@ public class JobWorkerAgentResponseAssert
   public JobWorkerAgentResponseAssert hasMetrics(AgentMetrics expectedMetrics) {
     isNotNull();
     Assertions.assertThat(actual.context().metrics()).isEqualTo(expectedMetrics);
+    return this;
+  }
+
+  public JobWorkerAgentResponseAssert hasReasoningTokensGreaterThanZero() {
+    isNotNull();
+    Assertions.assertThat(actual.context().metrics().tokenUsage().reasoningTokenCount())
+        .as("reasoning token count")
+        .isPositive();
+    return this;
+  }
+
+  public JobWorkerAgentResponseAssert hasCacheCreationTokensGreaterThanZero() {
+    isNotNull();
+    Assertions.assertThat(actual.context().metrics().tokenUsage().cacheCreationTokenCount())
+        .as("cache creation token count")
+        .isPositive();
+    return this;
+  }
+
+  public JobWorkerAgentResponseAssert hasCacheReadTokensGreaterThanZero() {
+    isNotNull();
+    Assertions.assertThat(actual.context().metrics().tokenUsage().cacheReadTokenCount())
+        .as("cache read token count")
+        .isPositive();
     return this;
   }
 
@@ -126,6 +152,39 @@ public class JobWorkerAgentResponseAssert
     Assertions.assertThat(actual.context().metadata()).isNotNull();
     Assertions.assertThat(actual.context().metadata().lastIterationKey())
         .isEqualTo(expectedLastIterationKey);
+    return this;
+  }
+
+  /**
+   * Scans the WHOLE persisted conversation (not just {@code responseMessage()}) for a provider
+   * content block of the given type. Some providers can emit a server-tool result block in an
+   * interim assistant turn rather than the final response message (e.g. Anthropic's {@code
+   * pause_turn} continuation for web search), so asserting only on {@code responseMessage()} would
+   * be flaky for those providers. Requires the in-process conversation store (context.
+   * conversation() is an {@link InProcessConversationContext}).
+   */
+  public JobWorkerAgentResponseAssert hasProviderContentBlockOfTypeInConversation(
+      String provider, String blockType) {
+    isNotNull();
+    Assertions.assertThat(actual.context()).isNotNull();
+    Assertions.assertThat(actual.context().conversation())
+        .isInstanceOf(InProcessConversationContext.class);
+    var conversation = (InProcessConversationContext) actual.context().conversation();
+    var providerBlocks =
+        conversation.messages().stream()
+            .filter(m -> m instanceof AssistantMessage)
+            .map(m -> (AssistantMessage) m)
+            .flatMap(m -> m.content().stream())
+            .filter(c -> c instanceof ProviderContent)
+            .map(c -> (ProviderContent) c)
+            .toList();
+    Assertions.assertThat(providerBlocks)
+        .as("provider content blocks across the whole conversation")
+        .anySatisfy(
+            pc -> {
+              Assertions.assertThat(pc.provider()).isEqualTo(provider);
+              Assertions.assertThat(pc.blockType()).isEqualTo(blockType);
+            });
     return this;
   }
 }

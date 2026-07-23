@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" id="Definitions_NativeAcceptance" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.42.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0">
+  <bpmn:process id="native_provider_acceptance" name="Native Provider Acceptance" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_Start_To_Agent</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_Start_To_Agent" sourceRef="StartEvent_1" targetRef="AI_Agent" />
+    <bpmn:adHocSubProcess id="AI_Agent" name="AI Agent">
+      <bpmn:documentation>Native provider acceptance agent</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="dummy" retries="0" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Start_To_Agent</bpmn:incoming>
+      <bpmn:outgoing>Flow_Agent_To_End</bpmn:outgoing>
+      <bpmn:serviceTask id="Lookup_Classified_Fact" name="Lookup Classified Fact">
+        <bpmn:documentation>Looks up the classified internal fact sheet and returns the secret project code name and clearance level. Call this whenever the user asks for the internal/classified code name.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="native-acceptance-tool" retries="0" />
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+    </bpmn:adHocSubProcess>
+    <bpmn:sequenceFlow id="Flow_Agent_To_End" sourceRef="AI_Agent" targetRef="EndEvent_1" />
+    <bpmn:endEvent id="EndEvent_1">
+      <bpmn:incoming>Flow_Agent_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="native_provider_acceptance">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Agent_di" bpmnElement="AI_Agent" isExpanded="true">
+        <dc:Bounds x="260" y="100" width="360" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Lookup_di" bpmnElement="Lookup_Classified_Fact">
+        <dc:Bounds x="320" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="692" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Start_To_Agent_di" bpmnElement="Flow_Start_To_Agent">
+        <di:waypoint x="188" y="200" />
+        <di:waypoint x="260" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Agent_To_End_di" bpmnElement="Flow_Agent_To_End">
+        <di:waypoint x="620" y="200" />
+        <di:waypoint x="692" y="200" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

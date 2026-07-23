@@ -6,22 +6,27 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 /**
  * Static per-invocation configuration. Built once from AgentExecutionContext at the start of each
- * handler invocation; does not change mid-conversation.
+ * handler invocation; does not change mid-conversation. Carries the resolved, provider-neutral
+ * {@link ChatModelApiConfiguration} the registry dispatches on, plus {@code modelName}/{@code
+ * modelProvider} for agent-instance telemetry (the SPI marker exposes no methods, so the strings
+ * are captured explicitly by the connector entry point). Transient — never persisted.
  */
 public record AgentConfiguration(
-    ProviderConfiguration provider,
+    ChatModelApiConfiguration chatModelApiConfiguration,
+    String modelName,
+    String modelProvider,
     SystemPromptConfiguration systemPrompt,
     UserPromptConfiguration userPrompt,
     @Nullable MemoryConfiguration memory,

@@ -41,7 +41,7 @@ Deep architecture lives in the reference docs, linked instead of copied:
 | Tool completion, partial results, no-op completion                       | [§9](docs/reference/ai-agent.md#9-tool-completion)                                      |
 | Concurrency & race conditions (supersession, store-ahead-of-Zeebe)       | [§10](docs/reference/ai-agent.md#10-concurrency)                                        |
 | Event handling (sub-process only)                                        | [§11](docs/reference/ai-agent.md#11-event-handling)                                     |
-| Framework abstraction & LangChain4J converter chain                      | [§12](docs/reference/ai-agent.md#12-framework-abstraction)                              |
+| Chat model SPI & per-provider chat model factories                       | [§12](docs/reference/ai-agent.md#12-framework-abstraction)                              |
 | System prompt composition / contributors                                 | [§13](docs/reference/ai-agent.md#13-system-prompt-composition)                          |
 | Response handling (text / JSON / full message)                           | [§14](docs/reference/ai-agent.md#14-response-handling)                                  |
 | Error codes                                                              | [§15](docs/reference/ai-agent.md#15-error-codes)                                        |
@@ -119,9 +119,12 @@ Do not break these (full statement and rationale in
 [§24](docs/reference/ai-agent.md#24-architectural-invariants)). They are the rules a future ArchUnit
 suite will enforce (epic #7537):
 
-- **Framework-agnostic core.** Only `aiagent/framework/langchain4j/**` may import `dev.langchain4j.*`.
-  The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
-  framework-neutral.
+- **LangChain4J-agnostic core.** Only `aiagent/chatmodel/provider/langchain4j/**` may import
+  `dev.langchain4j.*`. The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root
+  `model/`) stays vendor-neutral. `aiagent/chatmodel/**` is the provider-neutral chat model SPI
+  (`ChatModelApi`, `ChatModelApiFactory`, `ChatModelApiRegistry`, …) and must import no vendor SDK;
+  native chat model implementations live under their own `aiagent/chatmodel/provider/<provider>/**`
+  package, each importing only its own vendor SDK.
 - **Domain types never leak framework types.** The domain `Message` / `ToolCall` / `Content` model
   (`io.camunda.connector.agenticai.model.*`) is translated to/from LangChain4J only through the
   converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
@@ -226,9 +229,11 @@ The JSON element templates are **generated**, not hand-edited. They are produced
 `@ElementTemplate`-annotated connector functions and their bound data models (`@TemplateProperty`
 fields), so the source of truth is the Java, not the JSON. The template version comes from the
 annotation's `version` attribute on the connector function; bumping it there bumps the generated
-template. The AI Agent Sub-process template is in turn derived from the AI Agent Task
-template via `connector-agentic-ai/bin/transform-ai-agent-job-worker-template.groovy` (gmavenplus-plugin, `process-classes`
-phase).
+template. The AI Agent Sub-process template is in turn derived from the AI Agent Task template, and
+the v2 (own LLM layer) Sub-process template from the v2 Task template (`AiAgentTaskV2Function`), both
+via the shared `connector-agentic-ai/bin/transform-ai-agent-template.groovy` script (gmavenplus-plugin,
+`process-classes` phase, one execution per template/hybrid combination, parameterized by
+`sourceFile`/`outputFile`/`templateId`/`connectorType`).
 
 To regenerate, run `mvn clean compile -f connectors/agentic-ai/pom.xml` and commit the JSON diff; never edit
 the generated JSON by hand. For the generation mechanism and annotation reference, see the
@@ -249,14 +254,43 @@ When a version is bumped, a template moves into `versioned/`, or a connector is 
 
 Do not list `hybrid/` templates in the README. They are intentionally omitted.
 
+## Model capability matrix
+
+`connector-agentic-ai/src/main/resources/capabilities/model-capabilities.yaml` (per-family/per-model
+LLM capability declarations consumed by `ModelCapabilitiesResolver`) is hand-maintained data, not
+generated. When refreshing it as new model releases ship:
+
+- Source context-window / max-output-tokens / reasoning figures from
+  [models.dev](https://models.dev) (`api.json` dataset); do not invent numbers.
+- A curated entry's glob (or pattern list) must never over-promise: its pinned numbers must be valid
+  for every model the glob currently matches. Where matched models genuinely differ, split into
+  narrower patterns/exact ids (preferred) or pin the conservative minimum across the matched
+  members — never the maximum.
+- Every capability field, including each input-modalities location (user-message, tool-result) and
+  output-modalities (assistant-message), is per-model overridable via an entry's `capabilities`
+  overlay; the family `defaults` block is only the baseline a model falls back to when it doesn't
+  pin its own value.
+- Each entry's `patterns` field accepts either a single glob string or a list of globs (matches when
+  any glob in the list matches; longest match wins at resolve-time).
+- Entries support an optional `backend` string (e.g. `azure-foundry`, `bedrock`) distinguishing how
+  the same model id is served when that changes its capabilities. A backend-specific entry layers on
+  top of the backend-agnostic entry matching the same model id, which in turn layers on top of the
+  family `defaults`; `backend` is orthogonal to the `id`/`patterns` discriminator. No bundled entries
+  use `backend` yet (no authoritative Bedrock/Azure Foundry data) — it's currently exercised only via
+  `ModelCapabilitiesResolverTest` fixtures.
+- See the YAML file's own header comment for the full structure, override mechanics, and resolution
+  chain.
+
 ## Key entry points
 
-| File                                        | Purpose                                    |
-|---------------------------------------------|--------------------------------------------|
-| `AiAgentFunction.java`                      | Connector (Task) entry point               |
-| `AiAgentJobWorker.java`                     | Job worker (Sub-process) entry point       |
-| `BaseAgentRequestHandler.java`              | Core orchestrator (shared by both flavors) |
-| `AgenticAiConnectorsAutoConfiguration.java` | Spring Boot wiring                         |
+| File                                        | Purpose                                            |
+|---------------------------------------------|----------------------------------------------------|
+| `AiAgentFunction.java`                      | Connector (Task) entry point                       |
+| `AiAgentJobWorker.java`                     | Job worker (Sub-process) entry point               |
+| `AiAgentTaskV2Function.java`                | v2 (own LLM layer) Task entry point                |
+| `AiAgentSubProcessV2Function.java`          | v2 (own LLM layer) Sub-process entry point         |
+| `BaseAgentRequestHandler.java`              | Core orchestrator (shared by both flavors/versions)|
+| `AgenticAiConnectorsAutoConfiguration.java` | Spring Boot wiring                                 |
 
 Full code-path reference and class diagram: `ai-agent.md` §18.
 

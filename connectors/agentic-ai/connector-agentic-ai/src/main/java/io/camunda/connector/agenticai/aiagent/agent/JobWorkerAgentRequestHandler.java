@@ -10,12 +10,13 @@ import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse.ToolCallElementActivation;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
+import io.camunda.connector.agenticai.aiagent.multimodal.ToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
 import java.util.LinkedHashMap;
@@ -35,18 +36,20 @@ public class JobWorkerAgentRequestHandler
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentInputComposer,
-      AiFrameworkAdapter<?> framework,
+      ChatModelApiRegistry chatModelApiRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ToolCallResultStrategy toolCallResultStrategy) {
     super(
         agentInitializer,
         conversationStoreRegistry,
         agentInputComposer,
-        framework,
+        chatModelApiRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        toolCallResultStrategy);
   }
 
   @Override

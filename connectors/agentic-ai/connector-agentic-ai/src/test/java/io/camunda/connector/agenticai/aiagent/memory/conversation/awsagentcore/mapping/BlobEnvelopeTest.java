@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectConten
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.test.document.TestDocumentFactory;
@@ -85,9 +86,14 @@ class BlobEnvelopeTest {
   @Test
   void shouldCreateToolCallResultsEnvelope() throws Exception {
     // given
-    List<ToolCallResult> results =
+    List<ToolCallResultContent> results =
         List.of(
-            ToolCallResult.builder().id("call-1").name("search").content("Found 3 items").build());
+            ToolCallResultContent.from(
+                ToolCallResult.builder()
+                    .id("call-1")
+                    .name("search")
+                    .content("Found 3 items")
+                    .build()));
 
     // when
     BlobEnvelope envelope = BlobEnvelope.forToolCallResults(results, objectMapper);
@@ -101,27 +107,28 @@ class BlobEnvelopeTest {
   @Test
   void shouldRoundTripToolCallResults() throws Exception {
     // given
-    List<ToolCallResult> original =
+    List<ToolCallResultContent> original =
         List.of(
-            ToolCallResult.builder()
-                .id("call-1")
-                .name("search")
-                .content("Found 3 items")
-                .properties(Map.of("interrupted", true, "custom", "value"))
-                .build());
+            ToolCallResultContent.from(
+                ToolCallResult.builder()
+                    .id("call-1")
+                    .name("search")
+                    .content("Found 3 items")
+                    .properties(Map.of("interrupted", true, "custom", "value"))
+                    .build()));
 
     // when
     BlobEnvelope envelope = BlobEnvelope.forToolCallResults(original, objectMapper);
     Document document = envelope.toDocument(objectMapper);
     BlobEnvelope parsed = BlobEnvelope.fromDocument(document, objectMapper);
-    List<ToolCallResult> result =
-        parsed.parseData(new TypeReference<List<ToolCallResult>>() {}, objectMapper);
+    List<ToolCallResultContent> result =
+        parsed.parseData(new TypeReference<List<ToolCallResultContent>>() {}, objectMapper);
 
     // then
     assertThat(result).hasSize(1);
     assertThat(result.get(0).id()).isEqualTo("call-1");
     assertThat(result.get(0).name()).isEqualTo("search");
-    assertThat(result.get(0).content()).isEqualTo("Found 3 items");
+    assertThat(result.get(0).content()).containsExactly(TextContent.textContent("Found 3 items"));
     assertThat(result.get(0).properties())
         .isEqualTo(Map.of("interrupted", true, "custom", "value"));
   }
@@ -285,7 +292,8 @@ class BlobEnvelopeTest {
             objectMapper);
     BlobEnvelope resultsEnv =
         BlobEnvelope.forToolCallResults(
-            List.of(ToolCallResult.builder().content("test").build()), objectMapper);
+            List.of(ToolCallResultContent.from(ToolCallResult.builder().content("test").build())),
+            objectMapper);
     BlobEnvelope contentEnv =
         BlobEnvelope.forContent(TextContent.textContent("test"), objectMapper);
     BlobEnvelope metadataEnv = BlobEnvelope.forMetadata(Map.of("key", "value"), null, objectMapper);

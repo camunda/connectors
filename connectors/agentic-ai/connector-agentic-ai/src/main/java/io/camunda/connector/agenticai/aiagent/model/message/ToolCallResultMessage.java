@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +17,7 @@ import java.util.Map;
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolCallResultMessage.ToolCallResultMessageJacksonProxyBuilder.class)
 public record ToolCallResultMessage(
-    List<ToolCallResult> results,
+    List<ToolCallResultContent> results,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements ToolCallResultMessageBuilder.With, Message {
 

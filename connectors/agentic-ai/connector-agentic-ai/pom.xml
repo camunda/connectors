@@ -19,6 +19,8 @@
 
   <properties>
     <version.record-builder>53</version.record-builder>
+    <version.anthropic-java>2.48.0</version.anthropic-java>
+    <version.openai-java>4.43.0</version.openai-java>
     <version.groovy>5.0.7</version.groovy>
     <version.gmavenplus-plugin>5.1.0</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
@@ -132,6 +134,53 @@
     <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-http-client-jdk</artifactId>
+    </dependency>
+
+    <!--
+      Declared directly rather than via the com.anthropic:anthropic-java aggregator: anthropic-java-core
+      (the com.anthropic.models.* classes) and anthropic-java-client-okhttp (the OkHttp-based
+      AnthropicClient builder used by AnthropicOkHttpClientFactory, plus the ProxyAuthenticator used
+      for proxy credentials) share the aggregator's version.
+    -->
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java-core</artifactId>
+      <version>${version.anthropic-java}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java-client-okhttp</artifactId>
+      <version>${version.anthropic-java}</version>
+    </dependency>
+
+    <!--
+      openai-java mirrors anthropic-java's structure (both Stainless-generated): declared directly
+      rather than via the com.openai:openai-java aggregator, for the identical reasons above.
+      It relies on the shared okhttp-jvm dependency (declared below) for its runtime OkHttp classes.
+    -->
+    <dependency>
+      <groupId>com.openai</groupId>
+      <artifactId>openai-java-core</artifactId>
+      <version>${version.openai-java}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.openai</groupId>
+      <artifactId>openai-java-client-okhttp</artifactId>
+      <version>${version.openai-java}</version>
+    </dependency>
+
+    <!--
+      OkHttp 5 split into multi-platform modules: the `okhttp` artifact's pom is now an empty shell
+      (classes ship in `okhttp-jvm`), see the comment in parent/pom.xml. Both anthropic-java-client-okhttp
+      and openai-java-client-okhttp only depend on the empty `okhttp` shell, so
+      AnthropicOkHttpClient.builder().build() / OpenAIOkHttpClient.builder().build() throw
+      NoClassDefFoundError at runtime unless we add `okhttp-jvm` explicitly (same pattern as
+      connectors/slack and connectors/microsoft/common).
+    -->
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp-jvm</artifactId>
+      <version>${version.okhttp}</version>
     </dependency>
 
     <!-- Native MCP Java SDK -->
@@ -414,6 +463,10 @@
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-core</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-json</ignoredDependency>
+                <!-- okhttp-jvm has no direct source import (it's only reflectively required by
+                     anthropic-java-client-okhttp's AnthropicOkHttpClient at runtime, see the
+                     dependency declaration above); the analyzer would otherwise flag it unused. -->
+                <ignoredDependency>com.squareup.okhttp3:okhttp-jvm</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>
@@ -451,6 +504,17 @@
                   <templateFileName>agenticai-aiagent-outbound-connector.json</templateFileName>
                   <docTemplatePath>AI_AGENT.peb</docTemplatePath>
                   <docOutputPath>AI_AGENT.md</docOutputPath>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.agenticai.aiagent.AiAgentTaskV2Function</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.agenticai.ai-agent-task.v2</templateId>
+                  <templateFileName>agenticai-ai-agent-task.v2.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
@@ -547,7 +611,7 @@
             </goals>
             <configuration>
               <scripts>
-                <script>file:///${project.basedir}/bin/transform-ai-agent-job-worker-template.groovy</script>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-template.groovy</script>
               </scripts>
               <properties>
                 <property>
@@ -557,6 +621,14 @@
                 <property>
                   <name>outputFile</name>
                   <value>${project.basedir}/element-templates/agenticai-aiagent-job-worker.json</value>
+                </property>
+                <property>
+                  <name>templateId</name>
+                  <value>io.camunda.connectors.agenticai.aiagent.jobworker.v1</value>
+                </property>
+                <property>
+                  <name>connectorType</name>
+                  <value>io.camunda.agenticai:aiagent-job-worker:1</value>
                 </property>
               </properties>
             </configuration>
@@ -569,7 +641,7 @@
             </goals>
             <configuration>
               <scripts>
-                <script>file:///${project.basedir}/bin/transform-ai-agent-job-worker-template.groovy</script>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-template.groovy</script>
               </scripts>
               <properties>
                 <property>
@@ -583,6 +655,78 @@
                   <value>
                     ${project.basedir}/element-templates/hybrid/agenticai-aiagent-job-worker-hybrid.json
                   </value>
+                </property>
+                <property>
+                  <name>templateId</name>
+                  <value>io.camunda.connectors.agenticai.aiagent.jobworker.v1</value>
+                </property>
+                <property>
+                  <name>connectorType</name>
+                  <value>io.camunda.agenticai:aiagent-job-worker:1</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-subprocess-v2-template</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-ai-agent-task.v2.json</value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-ai-agent-subprocess.v2.json</value>
+                </property>
+                <property>
+                  <name>templateId</name>
+                  <value>io.camunda.connectors.agenticai.ai-agent-subprocess.v2</value>
+                </property>
+                <property>
+                  <name>connectorType</name>
+                  <value>io.camunda.agenticai:aiagent:subprocess:2</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-subprocess-v2-template-hybrid</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>
+                    ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json
+                  </value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>
+                    ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json
+                  </value>
+                </property>
+                <property>
+                  <name>templateId</name>
+                  <value>io.camunda.connectors.agenticai.ai-agent-subprocess.v2</value>
+                </property>
+                <property>
+                  <name>connectorType</name>
+                  <value>io.camunda.agenticai:aiagent:subprocess:2</value>
                 </property>
               </properties>
             </configuration>

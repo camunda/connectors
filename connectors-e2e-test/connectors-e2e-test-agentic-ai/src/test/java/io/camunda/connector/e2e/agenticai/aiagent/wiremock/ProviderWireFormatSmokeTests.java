@@ -28,9 +28,12 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentTest;
 import io.camunda.connector.e2e.agenticai.aiagent.jobworker.BaseAiAgentJobWorkerTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.AzureOpenAiCompletionsWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiCompletionsWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.StreamingOpenAiResponsesWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
@@ -76,8 +79,11 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
     return Stream.of(
         new OpenAiCompletionsWireFormatFixture(),
         new AnthropicMessagesWireFormatFixture(),
+        new StreamingAnthropicMessagesWireFormatFixture(),
         new BedrockConverseWireFormatFixture(),
-        new AzureOpenAiCompletionsWireFormatFixture());
+        new AzureOpenAiCompletionsWireFormatFixture(),
+        new StreamingOpenAiCompletionsWireFormatFixture(),
+        new StreamingOpenAiResponsesWireFormatFixture());
   }
 
   /**
@@ -97,6 +103,25 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
           BaseAiAgentTest.HTTPS_KEYSTORE_PASSWORD,
           "javax.net.ssl.trustStoreType",
           "PKCS12");
+
+  /**
+   * Delegates to the fixture, so a fixture driving a different template (e.g. the v2 native
+   * provider template, which uses different property ids) can redirect the suite without touching
+   * {@link BaseAiAgentJobWorkerTest}. Defaults to the inherited (v1) path for every other fixture.
+   */
+  @Override
+  protected String elementTemplatePath() {
+    return fixture.elementTemplatePath(super.elementTemplatePath());
+  }
+
+  /**
+   * Delegates to the fixture, mirroring {@link #elementTemplatePath()} for the baseline
+   * (non-provider) element template properties.
+   */
+  @Override
+  protected Map<String, String> elementTemplateProperties() {
+    return fixture.elementTemplateBaselineProperties(super.elementTemplateProperties());
+  }
 
   /**
    * Overridden directly (rather than the {@code withOpenAiCompatibleProvider} hook {@link

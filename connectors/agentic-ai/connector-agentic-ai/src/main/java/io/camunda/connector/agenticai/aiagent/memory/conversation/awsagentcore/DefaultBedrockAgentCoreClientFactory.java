@@ -6,10 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore;
 
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
 import java.net.URI;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -28,10 +28,10 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClientBu
  */
 public class DefaultBedrockAgentCoreClientFactory implements BedrockAgentCoreClientFactory {
 
-  private final ChatModelHttpProxySupport proxySupport;
+  private final HttpTransportSupport httpTransportSupport;
 
-  public DefaultBedrockAgentCoreClientFactory(ChatModelHttpProxySupport proxySupport) {
-    this.proxySupport = proxySupport;
+  public DefaultBedrockAgentCoreClientFactory(HttpTransportSupport httpTransportSupport) {
+    this.httpTransportSupport = httpTransportSupport;
   }
 
   @Override
@@ -49,7 +49,7 @@ public class DefaultBedrockAgentCoreClientFactory implements BedrockAgentCoreCli
     }
 
     // apply HTTP proxy configuration (same as Bedrock LLM client)
-    builder.httpClientBuilder(proxySupport.createAwsHttpClientBuilder(endpointOverride));
+    builder.httpClientBuilder(httpTransportSupport.awsHttpClientBuilder(endpointOverride));
 
     return builder.build();
   }

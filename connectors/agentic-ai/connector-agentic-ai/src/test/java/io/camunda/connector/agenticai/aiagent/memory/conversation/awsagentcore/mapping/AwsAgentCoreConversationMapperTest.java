@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectConten
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -325,11 +326,12 @@ class AwsAgentCoreConversationMapperTest {
         ToolCallResultMessage.builder()
             .results(
                 List.of(
-                    ToolCallResult.builder()
-                        .id("call-1")
-                        .name("search")
-                        .content("Found 3 items")
-                        .build()))
+                    ToolCallResultContent.from(
+                        ToolCallResult.builder()
+                            .id("call-1")
+                            .name("search")
+                            .content("Found 3 items")
+                            .build())))
             .build();
 
     // when
@@ -351,8 +353,10 @@ class AwsAgentCoreConversationMapperTest {
         ToolCallResultMessage.builder()
             .results(
                 List.of(
-                    ToolCallResult.builder().content("Result 1").build(),
-                    ToolCallResult.builder().content("Result 2").build()))
+                    ToolCallResultContent.from(
+                        ToolCallResult.builder().content("Result 1").build()),
+                    ToolCallResultContent.from(
+                        ToolCallResult.builder().content("Result 2").build())))
             .build();
 
     // when
@@ -368,7 +372,10 @@ class AwsAgentCoreConversationMapperTest {
     Map<String, Object> contentMap = Map.of("items", List.of("a", "b"), "count", 2);
     ToolCallResultMessage message =
         ToolCallResultMessage.builder()
-            .results(List.of(ToolCallResult.builder().content(contentMap).build()))
+            .results(
+                List.of(
+                    ToolCallResultContent.from(
+                        ToolCallResult.builder().content(contentMap).build())))
             .build();
 
     // when
@@ -385,7 +392,13 @@ class AwsAgentCoreConversationMapperTest {
     ToolCallResultMessage original =
         ToolCallResultMessage.builder()
             .results(
-                List.of(ToolCallResult.builder().id("call-1").name("search").content(null).build()))
+                List.of(
+                    ToolCallResultContent.from(
+                        ToolCallResult.builder()
+                            .id("call-1")
+                            .name("search")
+                            .content(null)
+                            .build())))
             .build();
 
     // when
@@ -407,12 +420,13 @@ class AwsAgentCoreConversationMapperTest {
         ToolCallResultMessage.builder()
             .results(
                 List.of(
-                    ToolCallResult.builder()
-                        .id("call-1")
-                        .name("search")
-                        .content("Found 3 items")
-                        .properties(Map.of("interrupted", true, "custom", "value"))
-                        .build()))
+                    ToolCallResultContent.from(
+                        ToolCallResult.builder()
+                            .id("call-1")
+                            .name("search")
+                            .content("Found 3 items")
+                            .properties(Map.of("interrupted", true, "custom", "value"))
+                            .build())))
             .build();
 
     // when
@@ -425,7 +439,8 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(reconstructed.results()).hasSize(1);
     assertThat(reconstructed.results().get(0).id()).isEqualTo("call-1");
     assertThat(reconstructed.results().get(0).name()).isEqualTo("search");
-    assertThat(reconstructed.results().get(0).content()).isEqualTo("Found 3 items");
+    assertThat(reconstructed.results().get(0).content())
+        .containsExactly(TextContent.textContent("Found 3 items"));
     assertThat(reconstructed.results().get(0).properties())
         .isEqualTo(Map.of("interrupted", true, "custom", "value"));
   }
@@ -587,7 +602,9 @@ class AwsAgentCoreConversationMapperTest {
 
     ToolCallResultMessage original =
         ToolCallResultMessage.builder()
-            .results(List.of(ToolCallResult.builder().content("Result").build()))
+            .results(
+                List.of(
+                    ToolCallResultContent.from(ToolCallResult.builder().content("Result").build())))
             .metadata(metadata)
             .build();
 

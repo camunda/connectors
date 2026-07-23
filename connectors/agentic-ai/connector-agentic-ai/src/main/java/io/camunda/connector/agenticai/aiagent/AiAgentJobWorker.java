@@ -56,7 +56,17 @@ public class AiAgentJobWorker implements AgentConnectorFunction {
   public AiAgentSubProcessConnectorResponse execute(OutboundConnectorContext context)
       throws Exception {
     var request = context.bindVariables(JobWorkerAgentRequest.class);
-    var executionContext = new JobWorkerAgentExecutionContext(context.getJobContext(), request);
+    var provider = request.provider();
+    var executionContext =
+        new JobWorkerAgentExecutionContext(
+            context.getJobContext(),
+            request.data(),
+            request.agentContext(),
+            request.toolCallResults(),
+            request.toolElements(),
+            provider,
+            provider.model(),
+            provider.providerType());
     return agentRequestHandler.handleRequest(executionContext);
   }
 }

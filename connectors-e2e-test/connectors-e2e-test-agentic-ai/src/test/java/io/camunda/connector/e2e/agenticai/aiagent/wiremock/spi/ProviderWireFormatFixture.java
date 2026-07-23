@@ -46,6 +46,25 @@ public interface ProviderWireFormatFixture {
   Function<ElementTemplate, ElementTemplate> configureProvider(WireMockRuntimeInfo wireMock);
 
   /**
+   * Element template path to drive for this fixture's scenario. Defaults to the suite's baseline
+   * (v1) path; override when this fixture must drive a different template — e.g. the v2 template
+   * exercising a native provider factory, which uses different property ids.
+   */
+  default String elementTemplatePath(String defaultElementTemplatePath) {
+    return defaultElementTemplatePath;
+  }
+
+  /**
+   * Baseline (non-provider) element template properties to seed before {@link #configureProvider}
+   * runs. Override alongside {@link #elementTemplatePath} when switching to a template whose
+   * non-provider property ids differ from the suite's baseline.
+   */
+  default Map<String, String> elementTemplateBaselineProperties(
+      Map<String, String> defaultProperties) {
+    return defaultProperties;
+  }
+
+  /**
    * Wires the WireMock scenario chain returning each turn's response in order, mirroring the
    * conversation loop the connector is expected to drive.
    */

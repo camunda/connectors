@@ -1,0 +1,23 @@
+{
+  "id": "resp_reasoning_1",
+  "object": "response",
+  "created_at": 1737000000,
+  "model": "gpt-5",
+  "parallel_tool_calls": true,
+  "tool_choice": "auto",
+  "tools": [],
+  "usage": null,
+  "output": [
+    {
+      "type": "reasoning",
+      "id": "rs_reasoning_1",
+      "summary": [
+        {
+          "type": "summary_text",
+          "text": "Considering the best way to answer this question."
+        }
+      ],
+      "encrypted_content": "gAAAAABh_encrypted_reasoning_blob_abc123XYZ=="
+    }
+  ]
+}

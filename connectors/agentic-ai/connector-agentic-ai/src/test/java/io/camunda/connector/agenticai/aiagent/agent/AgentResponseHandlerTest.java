@@ -94,7 +94,9 @@ class AgentResponseHandlerTest {
    */
   private AgentConversation conversationWith(
       ResponseConfiguration responseConfig, AssistantMessage assistantMessage) {
-    var config = new AgentConfiguration(null, null, null, null, null, null, responseConfig);
+    var config =
+        new AgentConfiguration(
+            null, "model", "anthropic", null, null, null, null, null, responseConfig);
     var history = TurnReconstructor.reconstruct(List.of());
     return AgentConversation.rehydrate(
             config, BASE_AGENT_CONTEXT, history, systemMessage("system"), List.of())
@@ -231,7 +233,11 @@ class AgentResponseHandlerTest {
 
     static Stream<AssistantMessage> emptyAssistantMessages() {
       return Stream.of(
-          new AssistantMessage(List.of(), List.of(), Map.of()),
+          AssistantMessage.builder()
+              .content(List.of())
+              .toolCalls(List.of())
+              .metadata(Map.of())
+              .build(),
           assistantMessage(List.of(DocumentContent.documentContent(mock(Document.class)))));
     }
   }

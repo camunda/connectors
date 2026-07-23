@@ -21,7 +21,7 @@ class AgentConversationTest {
       AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
 
   private static final AgentConfiguration CONFIG =
-      new AgentConfiguration(null, null, null, null, null, null, null);
+      new AgentConfiguration(null, "model", "anthropic", null, null, null, null, null, null);
 
   private static AgentConversation rehydrate(
       List<Message> storedMessages, List<Message> inputMessages) {
@@ -241,6 +241,45 @@ class AgentConversationTest {
     assertThat(conv.turns()).hasSize(2);
     assertThat(conv.turns()).allSatisfy(t -> assertThat(t.metrics().modelCalls()).isZero());
     assertThat(conv.totalMetrics().modelCalls()).isEqualTo(9);
+  }
+
+  @Test
+  void nextContinuationRound_movesIngestedTurnToPreviousTurns_andOpensPendingTurn() {
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("partial"), new AgentMetrics(1, new TokenUsage(10, 5), 0));
+
+    var next = conv.nextContinuationRound();
+
+    assertThat(next.turns()).hasSize(1);
+    assertThat(next.turns().getFirst().iterationKey()).isEqualTo(1);
+    assertThat(next.turns().getFirst().assistantMessage()).isEqualTo(assistantMessage("partial"));
+
+    assertThat(next.currentTurn().iterationKey()).isEqualTo(2);
+    assertThat(next.currentTurn().assistantMessage()).isNull();
+    assertThat(next.currentTurn().inputMessages()).isEmpty();
+  }
+
+  @Test
+  void nextContinuationRound_throwsWhenCurrentTurnStillPending() {
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
+    assertThatThrownBy(() -> conv.nextContinuationRound())
+        .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void totalMetrics_accumulatesAcrossRoundsWithinOneInvocation() {
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("partial"), new AgentMetrics(1, new TokenUsage(10, 5), 0))
+            .nextContinuationRound()
+            .ingest(assistantMessage("done"), new AgentMetrics(1, new TokenUsage(20, 8), 1));
+
+    var total = conv.totalMetrics();
+    assertThat(total.modelCalls()).isEqualTo(2);
+    assertThat(total.tokenUsage().inputTokenCount()).isEqualTo(30);
+    assertThat(total.tokenUsage().outputTokenCount()).isEqualTo(13);
+    assertThat(total.toolCalls()).isEqualTo(1);
   }
 
   @Test

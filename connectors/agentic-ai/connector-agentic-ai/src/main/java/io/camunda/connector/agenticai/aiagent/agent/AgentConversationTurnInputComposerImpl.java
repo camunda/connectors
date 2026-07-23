@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
@@ -23,13 +24,13 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,8 +55,6 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       EVENT_CONTENT_EMPTY
           + " Execution waited for all in-flight tool executions to complete before proceeding.";
 
-  static final String TOOL_CALL_DOCUMENTS_PREAMBLE =
-      "Documents extracted from tool calls (<doc /> tag + content pair):";
   static final String EVENT_DOCUMENTS_PREAMBLE =
       "Documents extracted from event data (<doc /> tag + content pair):";
 
@@ -99,22 +98,23 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
       final var toolCalls = previousConversation.turns().getLast().toolCalls();
 
-      final var toolCallResultMessage =
-          createToolCallResultMessage(
+      final var orderedToolCallResults =
+          resolveOrderedToolCallResults(
               agentContext, toolCalls, agentInput.toolCallResults(), interruptMissingToolCalls);
 
       // either we have all results or we interrupted the missing tool calls
-      // if message is null, we wait on further tool call results to be added
-      if (toolCallResultMessage.isEmpty()) {
+      // if empty, we wait on further tool call results to be added
+      if (orderedToolCallResults.isEmpty()) {
         return new CompositionResult.Deferred();
       }
 
-      final var toolCallResult = toolCallResultMessage.get();
-      messages.add(toolCallResult);
-      var documentMessage = createDocumentMessageForToolResults(toolCallResult.results());
-      if (documentMessage != null) {
-        messages.add(documentMessage);
-      }
+      final var results = orderedToolCallResults.get();
+      final var toolCallResultMessage =
+          ToolCallResultMessage.builder()
+              .results(toSelfDescribingContents(results))
+              .metadata(MessageUtil.defaultMessageMetadata())
+              .build();
+      messages.add(toolCallResultMessage);
       messages.addAll(eventMessages);
     } else {
       messages.add(createUserPromptMessage(agentInput.userPrompt()));
@@ -149,10 +149,23 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return null;
     }
 
-    return UserMessage.builder().content(content).metadata(defaultMessageMetadata()).build();
+    return UserMessage.builder()
+        .content(content)
+        .metadata(MessageUtil.defaultMessageMetadata())
+        .build();
   }
 
-  private Optional<ToolCallResultMessage> createToolCallResultMessage(
+  /**
+   * Resolves the ordered, raw {@link ToolCallResult} list for the current turn's tool call result
+   * message — matching each of this turn's {@code toolCalls} to its result (or synthesizing a
+   * cancelled result when interrupting), preserving the tool call order. Returns empty when results
+   * are still incomplete and we are not interrupting, i.e. the caller should defer.
+   *
+   * <p>The raw list returned here feeds both the persisted {@link ToolCallResultMessage} (via
+   * {@link ToolCallResultContent#from(ToolCallResult)}) and the unchanged document-extraction path
+   * ({@link #createDocumentMessageForToolResults(List)}).
+   */
+  private Optional<List<ToolCallResult>> resolveOrderedToolCallResults(
       AgentContext agentContext,
       List<ToolCall> toolCalls,
       List<ToolCallResult> toolCallResults,
@@ -192,27 +205,49 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return Optional.empty();
     }
 
-    return Optional.of(
-        ToolCallResultMessage.builder()
-            .results(orderedToolCallResults)
-            .metadata(defaultMessageMetadata())
-            .build());
+    return Optional.of(orderedToolCallResults);
   }
 
-  private @Nullable UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {
-    final var toolCallDocuments = documentExtractor.extractDocuments(results);
-    if (toolCallDocuments.isEmpty()) {
-      return null;
-    }
+  /**
+   * Lifts each raw {@link ToolCallResult}'s persisted {@link Content} shape (via {@link
+   * ToolCallResultContent#from(ToolCallResult)}) plus any documents the gateway-aware {@link
+   * #documentExtractor} extracts from the live, typed tool-return content, deduped by {@link
+   * io.camunda.connector.api.document.DocumentReference} so a result whose raw content already
+   * lifted to a bare {@link DocumentContent} is not double-added. Making the tool-call-result
+   * self-describing this way is what lets {@code ToolCallResultStrategy} decide, per document, to
+   * keep it inline or strip it into a synthetic fallback message without any further gateway
+   * extraction at send-time.
+   */
+  private List<ToolCallResultContent> toSelfDescribingContents(List<ToolCallResult> results) {
+    final var documentsByToolCallId =
+        documentExtractor.extractDocuments(results).stream()
+            .collect(
+                Collectors.toMap(
+                    ToolCallResultDocumentExtractor.ToolCallDocuments::toolCallId,
+                    ToolCallResultDocumentExtractor.ToolCallDocuments::documents));
 
-    final var content = new ArrayList<Content>();
-    content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
-    content.addAll(createDocumentPairs(toolCallDocuments));
-
-    final var metadata = new HashMap<>(defaultMessageMetadata());
-    metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-
-    return UserMessage.builder().content(content).metadata(metadata).build();
+    return results.stream()
+        .map(
+            result -> {
+              final var base = ToolCallResultContent.from(result);
+              final var documents = documentsByToolCallId.getOrDefault(result.id(), List.of());
+              if (documents.isEmpty()) {
+                return base;
+              }
+              final var existingRefs =
+                  base.content().stream()
+                      .filter(DocumentContent.class::isInstance)
+                      .map(c -> ((DocumentContent) c).document().reference())
+                      .collect(Collectors.toCollection(HashSet::new));
+              final var content = new ArrayList<Content>(base.content());
+              for (var document : documents) {
+                if (existingRefs.add(document.reference())) {
+                  content.add(DocumentContent.documentContent(document));
+                }
+              }
+              return base.withContent(content);
+            })
+        .toList();
   }
 
   private Message createEventMessage(
@@ -244,7 +279,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     return UserMessage.builder()
         .content(userMessageContent)
-        .metadata(defaultMessageMetadata())
+        .metadata(MessageUtil.defaultMessageMetadata())
         .build();
   }
 
@@ -280,9 +315,5 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             .orElse(null);
 
     return behavior == EventHandlingConfiguration.EventHandlingBehavior.INTERRUPT_TOOL_CALLS;
-  }
-
-  private Map<String, Object> defaultMessageMetadata() {
-    return Map.of("timestamp", ZonedDateTime.now());
   }
 }

@@ -14,9 +14,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.ToolsConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicModel;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 import java.util.stream.Stream;
@@ -37,8 +40,6 @@ class OutboundConnectorAgentExecutionContextTest {
   @Mock(answer = RETURNS_DEEP_STUBS)
   private JobContext jobContext;
 
-  @Mock private OutboundConnectorAgentRequest agentRequest;
-
   @Mock(answer = RETURNS_DEEP_STUBS)
   private OutboundConnectorAgentRequestData agentRequestData;
 
@@ -48,9 +49,21 @@ class OutboundConnectorAgentExecutionContextTest {
 
   @BeforeEach
   void setUp() {
-    when(agentRequest.data()).thenReturn(agentRequestData);
+    final var provider =
+        new AnthropicProviderConfiguration(
+            new AnthropicConnection(
+                null,
+                new AnthropicAuthentication("sk-ant"),
+                null,
+                new AnthropicModel("claude-sonnet-4-6", null)));
     executionContext =
-        new OutboundConnectorAgentExecutionContext(jobContext, agentRequest, toolElementsResolver);
+        new OutboundConnectorAgentExecutionContext(
+            jobContext,
+            agentRequestData,
+            provider,
+            provider.model(),
+            provider.providerType(),
+            toolElementsResolver);
   }
 
   @ParameterizedTest
