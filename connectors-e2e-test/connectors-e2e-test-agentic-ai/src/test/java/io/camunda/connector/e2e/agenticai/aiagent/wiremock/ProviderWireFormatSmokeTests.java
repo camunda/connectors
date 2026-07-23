@@ -28,6 +28,7 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAgentTest;
 import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.AzureOpenAiCompletionsWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsWireFormatFixture;
@@ -76,6 +77,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
     return Stream.of(
         new OpenAiCompletionsWireFormatFixture(),
         new AnthropicMessagesWireFormatFixture(),
+        new StreamingAnthropicMessagesWireFormatFixture(),
         new BedrockConverseWireFormatFixture(),
         new AzureOpenAiCompletionsWireFormatFixture());
   }
@@ -97,6 +99,25 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
           BaseAgentTest.HTTPS_KEYSTORE_PASSWORD,
           "javax.net.ssl.trustStoreType",
           "PKCS12");
+
+  /**
+   * Delegates to the fixture, so a fixture driving a different template (e.g. the v2 native
+   * provider template, which uses different property ids) can redirect the suite without touching
+   * {@link BaseAgentSubProcessTest}. Defaults to the inherited (v1) path for every other fixture.
+   */
+  @Override
+  protected String elementTemplatePath() {
+    return fixture.elementTemplatePath(super.elementTemplatePath());
+  }
+
+  /**
+   * Delegates to the fixture, mirroring {@link #elementTemplatePath()} for the baseline
+   * (non-provider) element template properties.
+   */
+  @Override
+  protected Map<String, String> elementTemplateProperties() {
+    return fixture.elementTemplateBaselineProperties(super.elementTemplateProperties());
+  }
 
   /**
    * Overridden directly (rather than the {@code withOpenAiCompatibleProvider} hook {@link
