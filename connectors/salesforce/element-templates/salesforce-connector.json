@@ -69,88 +69,6 @@
   ],
   "properties" : [
     {
-      "id" : "authentication.type",
-      "label" : "Type",
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.type",
-        "type" : "zeebe:input"
-      },
-      "type" : "Dropdown",
-      "choices" : [
-        {
-          "name" : "Bearer token",
-          "value" : "bearer"
-        },
-        {
-          "name" : "OAuth 2.0",
-          "value" : "oauth-client-credentials-flow"
-        }
-      ]
-    },
-    {
-      "id" : "authentication.token",
-      "label" : "Bearer token",
-      "optional" : false,
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "feel" : "optional",
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.token",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "equals" : "bearer",
-        "type" : "simple"
-      },
-      "type" : "String"
-    },
-    {
-      "id" : "authentication.clientId",
-      "label" : "Client ID",
-      "optional" : false,
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "feel" : "optional",
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.clientId",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      },
-      "tooltip" : "Your application's client ID from the OAuth client",
-      "type" : "String"
-    },
-    {
-      "id" : "authentication.clientSecret",
-      "label" : "Client secret",
-      "optional" : false,
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "feel" : "optional",
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.clientSecret",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      },
-      "tooltip" : "Your application's client secret from the OAuth client",
-      "type" : "String"
-    },
-    {
       "value" : "io.camunda:http-json:1",
       "binding" : {
         "property" : "type",
@@ -554,6 +472,88 @@
       },
       "tooltip" : "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "type" : "Text"
+    },
+    {
+      "id" : "authentication.type",
+      "label" : "Type",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "zeebe:input"
+      },
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "Bearer token",
+          "value" : "bearer"
+        },
+        {
+          "name" : "OAuth 2.0",
+          "value" : "oauth-client-credentials-flow"
+        }
+      ]
+    },
+    {
+      "id" : "authentication.token",
+      "label" : "Bearer token",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.token",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "bearer",
+        "type" : "simple"
+      },
+      "type" : "String"
+    },
+    {
+      "id" : "authentication.clientId",
+      "label" : "Client ID",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.clientId",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      },
+      "tooltip" : "Your application's client ID from the OAuth client",
+      "type" : "String"
+    },
+    {
+      "id" : "authentication.clientSecret",
+      "label" : "Client secret",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.clientSecret",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      },
+      "tooltip" : "Your application's client secret from the OAuth client",
+      "type" : "String"
     },
     {
       "id" : "authentication.oauthTokenEndpoint",

@@ -40,6 +40,7 @@ import io.camunda.connector.http.rest.HttpJsonFunction;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -121,19 +122,22 @@ public class GenerateElementTemplate {
                                 + "\"authentication.type\" dropdown property -- has it been renamed"
                                 + " or removed?"));
 
+    // Captured from the original HTTP JSON template (unaffected by builder mutations below) so
+    // they can be re-appended at the very end of the properties list -- see the comment on
+    // .properties(...) below for why position, not just inheritance, matters here.
+    List<Property> keptAuthProperties =
+        httpJsonTemplate.properties().stream()
+            .filter(p -> idIn(p, KEPT_AUTH_PROPERTY_IDS))
+            .toList();
+
     ElementTemplate salesforceTemplate =
         ElementTemplateBuilder.from(httpJsonTemplate)
-            // Keep only the "authentication" properties inherited from HTTP JSON; every other
-            // property (raw url/method/headers/queryParameters) is Salesforce-specific and
-            // rebuilt from scratch below. Groups are dropped entirely and re-declared by
-            // buildOperationalGroups() so their tab order matches the previous hand-authored
-            // template exactly -- inheriting them would just append "authentication" after
-            // whatever new groups are added, out of order.
+            // Every inherited property/group is dropped outright; every Salesforce-specific
+            // property (operation type, sObject/SOQL fields, URL construction) is hand-built
+            // below, and the "authentication" properties kept from HTTP JSON are re-appended via
+            // .properties(...) below rather than preserved in place.
             .removePropertyGroups(g -> true)
-            .removeProperties(p -> !(isAuthTypeDropdown(p) || idIn(p, KEPT_AUTH_PROPERTY_IDS)))
-            // Narrow the inherited auth-type dropdown from HTTP JSON's 6 choices down to the 2
-            // Salesforce supports.
-            .replaceProperty(prunedAuthTypeDropdown(originalAuthTypeDropdown))
+            .removeProperties(p -> true)
             .id("io.camunda.connectors.Salesforce.v1")
             .name("Salesforce Outbound Connector")
             .version(6)
@@ -163,34 +167,19 @@ public class GenerateElementTemplate {
             .icon(new ElementTemplateIcon(SALESFORCE_ICON))
             .type("io.camunda:http-json:1")
             .propertyGroups(buildOperationalGroups())
-            // HTTP JSON's own oauthTokenEndpoint (user-editable) and clientAuthentication
-            // (dropdown) were dropped above -- Salesforce fixes both to a single
-            // computed/constant value instead of exposing them, to keep this refactor a pure
-            // behavioral no-op against the previous hand-authored template. Same for
-            // audience/scopes, which have no counterpart in the previous template and so are
-            // simply not carried over.
-            //
-            // Must come after propertyGroups(): oauthTokenEndpoint's value references baseUrl
-            // (declared in the "endpoint" group above), and property order in the generated
-            // template is significant -- a property can only reference one appearing earlier in
-            // the list (see ElementTemplateBuilder#replaceProperty).
+            // Every "authentication" property -- the narrowed auth-type dropdown, the kept
+            // token/clientId/clientSecret inherited from HTTP JSON, and the two below that
+            // Salesforce fixes to a computed/constant value in place of HTTP JSON's own
+            // user-editable oauthTokenEndpoint/clientAuthentication -- is appended here, after
+            // propertyGroups(). Zeebe evaluates io:inputParameter FEEL expressions in document
+            // order, and oauthTokenEndpoint's value is composed from baseUrl (declared in the
+            // "endpoint" group above); appending the whole auth block here rather than preserving
+            // its inherited position guarantees baseUrl precedes it regardless of where HTTP JSON
+            // itself declares its auth properties. Audience/scopes have no counterpart in the
+            // previous hand-authored template and so are simply not carried over.
             .properties(
-                HiddenProperty.builder()
-                    .id("authentication.oauthTokenEndpoint")
-                    .description("The OAuth token endpoint")
-                    .group("authentication")
-                    .value("=baseUrl + \"/services/oauth2/token\"")
-                    .binding(new ZeebeInput("authentication.oauthTokenEndpoint"))
-                    .condition(new Equals("authentication.type", "oauth-client-credentials-flow"))
-                    .build(),
-                HiddenProperty.builder()
-                    .id("authentication.clientAuthentication")
-                    .description("Client authentication type")
-                    .group("authentication")
-                    .value("credentialsBody")
-                    .binding(new ZeebeInput("authentication.clientAuthentication"))
-                    .condition(new Equals("authentication.type", "oauth-client-credentials-flow"))
-                    .build())
+                buildAuthenticationProperties(
+                    prunedAuthTypeDropdown(originalAuthTypeDropdown), keptAuthProperties))
             .steps(buildSteps())
             .presets(buildPresets())
             .build();
@@ -231,6 +220,32 @@ public class GenerateElementTemplate {
             .group(original.getGroup())
             .binding(original.getBinding())
             .build();
+  }
+
+  private static List<Property> buildAuthenticationProperties(
+      DropdownProperty prunedAuthTypeDropdown, List<Property> keptAuthProperties) {
+    List<Property> properties = new ArrayList<>();
+    properties.add(prunedAuthTypeDropdown);
+    properties.addAll(keptAuthProperties);
+    properties.add(
+        HiddenProperty.builder()
+            .id("authentication.oauthTokenEndpoint")
+            .description("The OAuth token endpoint")
+            .group("authentication")
+            .value("=baseUrl + \"/services/oauth2/token\"")
+            .binding(new ZeebeInput("authentication.oauthTokenEndpoint"))
+            .condition(new Equals("authentication.type", "oauth-client-credentials-flow"))
+            .build());
+    properties.add(
+        HiddenProperty.builder()
+            .id("authentication.clientAuthentication")
+            .description("Client authentication type")
+            .group("authentication")
+            .value("credentialsBody")
+            .binding(new ZeebeInput("authentication.clientAuthentication"))
+            .condition(new Equals("authentication.type", "oauth-client-credentials-flow"))
+            .build());
+    return properties;
   }
 
   /**
