@@ -26,6 +26,7 @@ import software.amazon.awssdk.services.dynamodb.model.SSEDescription;
 import software.amazon.awssdk.services.dynamodb.model.SSEStatus;
 import software.amazon.awssdk.services.dynamodb.model.SSEType;
 import software.amazon.awssdk.services.dynamodb.model.TableDescription;
+import software.amazon.awssdk.services.dynamodb.model.TableWarmThroughputDescription;
 
 /**
  * Focused coverage for the hand-written {@link TableDescriptionResult} compatibility bridge's
@@ -212,5 +213,31 @@ class TableDescriptionResultTest {
         ]
         """;
     assertThat(json.get("replicas")).isEqualTo(objectMapper.readTree(expectedJson));
+  }
+
+  @Test
+  void from_mapsTableLevelWarmThroughput_toDocumentedSerializedShape() throws Exception {
+    TableWarmThroughputDescription warmThroughput =
+        TableWarmThroughputDescription.builder()
+            .readUnitsPerSecond(500L)
+            .writeUnitsPerSecond(100L)
+            .status("ACTIVE")
+            .build();
+    TableDescription table =
+        TableDescription.builder().tableName("my_table").warmThroughput(warmThroughput).build();
+
+    TableDescriptionResult result = TableDescriptionResult.from(table);
+
+    assertThat(result.warmThroughput()).isNotNull();
+    JsonNode json = objectMapper.readTree(objectMapper.writeValueAsString(result));
+    String expectedJson =
+        """
+        {
+          "readUnitsPerSecond": 500,
+          "writeUnitsPerSecond": 100,
+          "status": "ACTIVE"
+        }
+        """;
+    assertThat(json.get("warmThroughput")).isEqualTo(objectMapper.readTree(expectedJson));
   }
 }

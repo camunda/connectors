@@ -71,7 +71,8 @@ import software.amazon.awssdk.services.dynamodb.model.TableWarmThroughputDescrip
   "tableClassSummary",
   "deletionProtectionEnabled",
   "onDemandThroughput",
-  "ssedescription"
+  "ssedescription",
+  "warmThroughput"
 })
 public record TableDescriptionResult(
     List<AttributeDefinitionResult> attributeDefinitions,
@@ -97,7 +98,8 @@ public record TableDescriptionResult(
     TableClassSummaryResult tableClassSummary,
     Boolean deletionProtectionEnabled,
     OnDemandThroughputResult onDemandThroughput,
-    SSEDescriptionResult ssedescription) {
+    SSEDescriptionResult ssedescription,
+    TableWarmThroughputResult warmThroughput) {
 
   public static TableDescriptionResult from(final TableDescription table) {
     if (table == null) {
@@ -133,7 +135,8 @@ public record TableDescriptionResult(
         TableClassSummaryResult.from(table.tableClassSummary()),
         table.deletionProtectionEnabled(),
         OnDemandThroughputResult.from(table.onDemandThroughput()),
-        SSEDescriptionResult.from(table.sseDescription()));
+        SSEDescriptionResult.from(table.sseDescription()),
+        TableWarmThroughputResult.from(table.warmThroughput()));
   }
 
   static <T, R> List<R> mapList(
