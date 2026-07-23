@@ -7,19 +7,19 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import com.anthropic.core.JsonValue;
-import com.anthropic.models.beta.messages.BetaCacheControlEphemeral;
-import com.anthropic.models.beta.messages.BetaContentBlockParam;
-import com.anthropic.models.beta.messages.BetaJsonOutputFormat;
-import com.anthropic.models.beta.messages.BetaMessageParam;
-import com.anthropic.models.beta.messages.BetaOutputConfig;
-import com.anthropic.models.beta.messages.BetaThinkingConfigAdaptive;
-import com.anthropic.models.beta.messages.BetaThinkingConfigDisabled;
-import com.anthropic.models.beta.messages.BetaThinkingConfigEnabled;
-import com.anthropic.models.beta.messages.BetaThinkingConfigParam;
-import com.anthropic.models.beta.messages.BetaTool;
-import com.anthropic.models.beta.messages.BetaToolResultBlockParam;
-import com.anthropic.models.beta.messages.BetaToolUseBlockParam;
-import com.anthropic.models.beta.messages.MessageCreateParams;
+import com.anthropic.models.messages.CacheControlEphemeral;
+import com.anthropic.models.messages.ContentBlockParam;
+import com.anthropic.models.messages.JsonOutputFormat;
+import com.anthropic.models.messages.MessageCreateParams;
+import com.anthropic.models.messages.MessageParam;
+import com.anthropic.models.messages.OutputConfig;
+import com.anthropic.models.messages.ThinkingConfigAdaptive;
+import com.anthropic.models.messages.ThinkingConfigDisabled;
+import com.anthropic.models.messages.ThinkingConfigEnabled;
+import com.anthropic.models.messages.ThinkingConfigParam;
+import com.anthropic.models.messages.Tool;
+import com.anthropic.models.messages.ToolResultBlockParam;
+import com.anthropic.models.messages.ToolUseBlockParam;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -46,13 +46,9 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Maps a windowed {@link ConversationSnapshot} plus the resolved Anthropic model configuration to
- * an Anthropic SDK (beta messages client) {@link MessageCreateParams} request, translating the
- * domain {@link Message} / {@link ToolCall} / {@link ToolCallResultContent} model into the wire
- * shape via the {@link AnthropicContentConverter} built for content blocks.
- *
- * <p>Uses the <strong>beta</strong> messages client types (rather than the stable {@code
- * com.anthropic.models.messages} family) for output_config effort support; behavior is otherwise
- * unaffected by that choice.
+ * an Anthropic SDK {@link MessageCreateParams} request, translating the domain {@link Message} /
+ * {@link ToolCall} / {@link ToolCallResultContent} model into the wire shape via the {@link
+ * AnthropicContentConverter} built for content blocks.
  */
 public class AnthropicMessageRequestConverter {
 
@@ -139,23 +135,23 @@ public class AnthropicMessageRequestConverter {
       case ENABLED -> {
         if (thinking.budgetTokens() != null) {
           builder.thinking(
-              BetaThinkingConfigParam.ofEnabled(
-                  BetaThinkingConfigEnabled.builder()
+              ThinkingConfigParam.ofEnabled(
+                  ThinkingConfigEnabled.builder()
                       .budgetTokens(thinking.budgetTokens().longValue())
                       .build()));
         }
       }
       case ADAPTIVE -> {
-        final var adaptiveBuilder = BetaThinkingConfigAdaptive.builder();
+        final var adaptiveBuilder = ThinkingConfigAdaptive.builder();
         if (thinking.display() != null) {
           adaptiveBuilder.display(
-              BetaThinkingConfigAdaptive.Display.of(thinking.display().name().toLowerCase()));
+              ThinkingConfigAdaptive.Display.of(thinking.display().name().toLowerCase()));
         }
-        builder.thinking(BetaThinkingConfigParam.ofAdaptive(adaptiveBuilder.build()));
+        builder.thinking(ThinkingConfigParam.ofAdaptive(adaptiveBuilder.build()));
       }
       case DISABLED ->
           builder.thinking(
-              BetaThinkingConfigParam.ofDisabled(BetaThinkingConfigDisabled.builder().build()));
+              ThinkingConfigParam.ofDisabled(ThinkingConfigDisabled.builder().build()));
     }
   }
 
@@ -187,7 +183,7 @@ public class AnthropicMessageRequestConverter {
   private void applyPromptCaching(
       MessageCreateParams.Builder builder, AnthropicConnection connection) {
     if (Boolean.TRUE.equals(connection.enablePromptCaching())) {
-      builder.cacheControl(BetaCacheControlEphemeral.builder().build());
+      builder.cacheControl(CacheControlEphemeral.builder().build());
     }
   }
 
@@ -219,10 +215,9 @@ public class AnthropicMessageRequestConverter {
         case SystemMessage ignored -> {} // hoisted to top-level system
         case UserMessage user ->
             builder.addMessage(
-                BetaMessageParam.builder()
-                    .role(BetaMessageParam.Role.USER)
-                    .contentOfBetaContentBlockParams(
-                        contentConverter.toContentBlockParams(user.content()))
+                MessageParam.builder()
+                    .role(MessageParam.Role.USER)
+                    .contentOfBlockParams(contentConverter.toContentBlockParams(user.content()))
                     .build());
         case AssistantMessage assistant -> builder.addMessage(assistantParam(assistant));
         case ToolCallResultMessage toolResults -> builder.addMessage(toolResultParam(toolResults));
@@ -243,45 +238,42 @@ public class AnthropicMessageRequestConverter {
   // blocks are documented as appearing in separate, non-interleaved groups -- so this grouping is
   // intentional; only restructure if a genuine interleaving case surfaces (see
   // AnthropicMessageRequestConverterTest#appendsClientToolCallsAfterProviderContentBlocksRegardlessOfOriginalInterleaving).
-  private BetaMessageParam assistantParam(AssistantMessage assistant) {
-    final List<BetaContentBlockParam> blocks =
+  private MessageParam assistantParam(AssistantMessage assistant) {
+    final List<ContentBlockParam> blocks =
         new ArrayList<>(contentConverter.toContentBlockParams(assistant.content()));
     for (final ToolCall toolCall : assistant.toolCalls()) {
       blocks.add(
-          BetaContentBlockParam.ofToolUse(
-              BetaToolUseBlockParam.builder()
+          ContentBlockParam.ofToolUse(
+              ToolUseBlockParam.builder()
                   .id(toolCall.id())
                   .name(toolCall.name())
                   .input(toInput(toolCall.arguments()))
                   .build()));
     }
-    return BetaMessageParam.builder()
-        .role(BetaMessageParam.Role.ASSISTANT)
-        .contentOfBetaContentBlockParams(blocks)
+    return MessageParam.builder()
+        .role(MessageParam.Role.ASSISTANT)
+        .contentOfBlockParams(blocks)
         .build();
   }
 
-  private BetaMessageParam toolResultParam(ToolCallResultMessage message) {
-    final List<BetaContentBlockParam> blocks = new ArrayList<>();
+  private MessageParam toolResultParam(ToolCallResultMessage message) {
+    final List<ContentBlockParam> blocks = new ArrayList<>();
     for (final ToolCallResultContent result : message.results()) {
       blocks.add(
-          BetaContentBlockParam.ofToolResult(
-              BetaToolResultBlockParam.builder()
+          ContentBlockParam.ofToolResult(
+              ToolResultBlockParam.builder()
                   .toolUseId(result.id())
                   .contentOfBlocks(contentConverter.toToolResultBlocks(result.content()))
                   .build()));
     }
-    return BetaMessageParam.builder()
-        .role(BetaMessageParam.Role.USER)
-        .contentOfBetaContentBlockParams(blocks)
-        .build();
+    return MessageParam.builder().role(MessageParam.Role.USER).contentOfBlockParams(blocks).build();
   }
 
   private void applyTools(
       MessageCreateParams.Builder builder, List<ToolDefinition> toolDefinitions) {
     for (final ToolDefinition definition : toolDefinitions) {
       final var toolBuilder =
-          BetaTool.builder()
+          Tool.builder()
               .name(definition.name())
               .inputSchema(toInputSchema(definition.inputSchema()));
       if (definition.description() != null) {
@@ -291,7 +283,7 @@ public class AnthropicMessageRequestConverter {
     }
   }
 
-  private BetaTool.InputSchema toInputSchema(Map<String, Object> schema) {
+  private Tool.InputSchema toInputSchema(Map<String, Object> schema) {
     // input_schema is a JSON-schema object; feed properties/required/$defs/etc. through
     // additionalProperties so the whole schema serialises verbatim (the SDK owns "type": "object"
     // as a dedicated, validated field defaulting to that value, so it must be excluded here to
@@ -303,14 +295,14 @@ public class AnthropicMessageRequestConverter {
             additional.put(k, JsonValue.from(v));
           }
         });
-    return BetaTool.InputSchema.builder().additionalProperties(additional).build();
+    return Tool.InputSchema.builder().additionalProperties(additional).build();
   }
 
   /**
    * Maps both the structured-output JSON schema and the {@code effort} dial onto the single {@code
-   * output_config} field. Both are built into ONE {@link BetaOutputConfig} and applied via a single
+   * output_config} field. Both are built into ONE {@link OutputConfig} and applied via a single
    * {@code builder.outputConfig} call: {@code
-   * MessageCreateParams.Builder#outputConfig(BetaOutputConfig)} is a plain setter that replaces the
+   * MessageCreateParams.Builder#outputConfig(OutputConfig)} is a plain setter that replaces the
    * whole field, so two separate calls (one for the schema, one for effort) would silently drop
    * whichever was set first whenever both are configured together.
    */
@@ -329,27 +321,27 @@ public class AnthropicMessageRequestConverter {
       // LangChain4j-routed path)
     }
 
-    final var outputConfigBuilder = BetaOutputConfig.builder();
+    final var outputConfigBuilder = OutputConfig.builder();
 
     if (jsonSchema != null) {
       final Map<String, JsonValue> schema = new LinkedHashMap<>();
       jsonSchema.forEach((k, v) -> schema.put(k, JsonValue.from(v)));
       outputConfigBuilder.format(
-          BetaJsonOutputFormat.builder()
-              .schema(BetaJsonOutputFormat.Schema.builder().additionalProperties(schema).build())
+          JsonOutputFormat.builder()
+              .schema(JsonOutputFormat.Schema.builder().additionalProperties(schema).build())
               .build());
     }
 
     if (effort != null) {
-      outputConfigBuilder.effort(BetaOutputConfig.Effort.of(effort.name().toLowerCase()));
+      outputConfigBuilder.effort(OutputConfig.Effort.of(effort.name().toLowerCase()));
     }
 
     builder.outputConfig(outputConfigBuilder.build());
   }
 
-  private BetaToolUseBlockParam.Input toInput(Map<String, Object> arguments) {
+  private ToolUseBlockParam.Input toInput(Map<String, Object> arguments) {
     final Map<String, JsonValue> converted = new LinkedHashMap<>();
     arguments.forEach((k, v) -> converted.put(k, JsonValue.from(v)));
-    return BetaToolUseBlockParam.Input.builder().putAllAdditionalProperties(converted).build();
+    return ToolUseBlockParam.Input.builder().putAllAdditionalProperties(converted).build();
   }
 }

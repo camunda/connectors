@@ -11,13 +11,13 @@ import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
 import com.anthropic.core.http.StreamResponse;
 import com.anthropic.errors.AnthropicInvalidDataException;
-import com.anthropic.helpers.BetaMessageAccumulator;
-import com.anthropic.models.beta.messages.BetaInputJsonDelta;
-import com.anthropic.models.beta.messages.BetaMessage;
-import com.anthropic.models.beta.messages.BetaRawContentBlockDeltaEvent;
-import com.anthropic.models.beta.messages.BetaRawContentBlockStartEvent;
-import com.anthropic.models.beta.messages.BetaRawContentBlockStopEvent;
-import com.anthropic.models.beta.messages.BetaRawMessageStreamEvent;
+import com.anthropic.helpers.MessageAccumulator;
+import com.anthropic.models.messages.InputJsonDelta;
+import com.anthropic.models.messages.Message;
+import com.anthropic.models.messages.RawContentBlockDeltaEvent;
+import com.anthropic.models.messages.RawContentBlockStartEvent;
+import com.anthropic.models.messages.RawContentBlockStopEvent;
+import com.anthropic.models.messages.RawMessageStreamEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,32 +32,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Drives a streamed Anthropic Messages API (beta client) response to a single, fully-assembled
- * {@link BetaMessage}, equivalent to what the non-streaming API would have returned. Extracted as
- * its own seam (rather than inlined in the Anthropic chat model implementation) so tests can inject
- * a canned {@link BetaMessage} without needing to feed a full, valid raw event sequence through the
- * vendor SDK's {@link BetaMessageAccumulator} (which throws unless driven from a {@code
- * message_start} through a {@code message_stop} event).
- *
- * <p>Uses the <strong>beta</strong> messages client types (rather than the stable {@code
- * com.anthropic.models.messages} family) since the beta client is required for upcoming Skills
- * support; this migration is otherwise behavior-identical.
+ * Drives a streamed Anthropic Messages API response to a single, fully-assembled {@link Message},
+ * equivalent to what the non-streaming API would have returned. Extracted as its own seam (rather
+ * than inlined in the Anthropic chat model implementation) so tests can inject a canned {@link
+ * Message} without needing to feed a full, valid raw event sequence through the vendor SDK's {@link
+ * MessageAccumulator} (which throws unless driven from a {@code message_start} through a {@code
+ * message_stop} event).
  */
 @FunctionalInterface
 public interface AnthropicMessageStreamAssembler {
 
-  BetaMessage assemble(StreamResponse<BetaRawMessageStreamEvent> stream);
+  Message assemble(StreamResponse<RawMessageStreamEvent> stream);
 
   /**
-   * Default implementation, backed by the vendor SDK's {@link BetaMessageAccumulator}.
+   * Default implementation, backed by the vendor SDK's {@link MessageAccumulator}.
    *
-   * <p>Works around a vendor SDK bug: {@link BetaMessageAccumulator} requires at least one {@code
+   * <p>Works around a vendor SDK bug: {@link MessageAccumulator} requires at least one {@code
    * input_json_delta} event for any tool-input-tracking content block ({@code tool_use} / {@code
-   * server_tool_use} / {@code mcp_tool_use}), throwing {@link AnthropicInvalidDataException}
-   * ("Missing input JSON for index N") otherwise. Anthropic's {@code web_search} server tool
-   * delivers its input inline in {@code content_block_start} with zero {@code input_json_delta}
-   * events, which trips this bug ({@code code_execution} streams deltas normally and is
-   * unaffected). See {@code AnthropicMessageStreamAssemblerTest} for a reproduction.
+   * server_tool_use}), throwing {@link AnthropicInvalidDataException} ("Missing input JSON for
+   * index N") otherwise. Anthropic's {@code web_search} server tool delivers its input inline in
+   * {@code content_block_start} with zero {@code input_json_delta} events, which trips this bug
+   * ({@code code_execution} streams deltas normally and is unaffected). See {@code
+   * AnthropicMessageStreamAssemblerTest} for a reproduction.
    *
    * <p>The workaround ({@link InlineToolInputShim}) retries assembly with a synthetic {@code
    * input_json_delta} injected for the affected block(s), but only after the unmodified vendor
@@ -83,12 +79,12 @@ final class InlineToolInputShim {
 
   private InlineToolInputShim() {}
 
-  static BetaMessage assemble(StreamResponse<BetaRawMessageStreamEvent> stream) {
-    final List<BetaRawMessageStreamEvent> events = stream.stream().toList();
+  static Message assemble(StreamResponse<RawMessageStreamEvent> stream) {
+    final List<RawMessageStreamEvent> events = stream.stream().toList();
     final Map<Long, String> shimTargets = scanInlineToolInputWithoutDelta(events);
 
     try {
-      final BetaMessage message = accumulate(events);
+      final Message message = accumulate(events);
       if (!shimTargets.isEmpty()) {
         warnShimObsoleteOnce();
       }
@@ -101,8 +97,8 @@ final class InlineToolInputShim {
     }
   }
 
-  private static BetaMessage accumulate(List<BetaRawMessageStreamEvent> events) {
-    final BetaMessageAccumulator accumulator = BetaMessageAccumulator.create();
+  private static Message accumulate(List<RawMessageStreamEvent> events) {
+    final MessageAccumulator accumulator = MessageAccumulator.create();
     events.forEach(accumulator::accumulate);
     return accumulator.message();
   }
@@ -117,13 +113,13 @@ final class InlineToolInputShim {
    * that block's index.
    */
   private static Map<Long, String> scanInlineToolInputWithoutDelta(
-      List<BetaRawMessageStreamEvent> events) {
+      List<RawMessageStreamEvent> events) {
     final Map<Long, String> inlineCandidates = new HashMap<>();
     final Set<Long> sawRealInputJsonDelta = new HashSet<>();
 
-    for (final BetaRawMessageStreamEvent event : events) {
+    for (final RawMessageStreamEvent event : events) {
       if (event.contentBlockStart().isPresent()) {
-        final BetaRawContentBlockStartEvent start = event.contentBlockStart().get();
+        final RawContentBlockStartEvent start = event.contentBlockStart().get();
         extractNonEmptyInlineToolInput(start.contentBlock())
             .ifPresent(json -> inlineCandidates.put(start.index(), json));
       } else if (event.contentBlockDelta().isPresent()
@@ -141,15 +137,16 @@ final class InlineToolInputShim {
     return shimTargets;
   }
 
+  // Note: the stable RawContentBlockStartEvent.ContentBlock union has no mcpToolUse() variant
+  // (MCP connector support is a beta-only feature and out of scope for this PR) -- only
+  // serverToolUse()/toolUse() need checking here.
   private static Optional<String> extractNonEmptyInlineToolInput(
-      BetaRawContentBlockStartEvent.ContentBlock contentBlock) {
+      RawContentBlockStartEvent.ContentBlock contentBlock) {
     final JsonValue input;
     if (contentBlock.serverToolUse().isPresent()) {
       input = contentBlock.serverToolUse().get()._input();
     } else if (contentBlock.toolUse().isPresent()) {
       input = contentBlock.toolUse().get()._input();
-    } else if (contentBlock.mcpToolUse().isPresent()) {
-      input = contentBlock.mcpToolUse().get()._input();
     } else {
       return Optional.empty();
     }
@@ -166,13 +163,12 @@ final class InlineToolInputShim {
     }
   }
 
-  private static List<BetaRawMessageStreamEvent> injectSyntheticInputJsonDeltas(
-      List<BetaRawMessageStreamEvent> events, Map<Long, String> shimTargets) {
-    final List<BetaRawMessageStreamEvent> result =
-        new ArrayList<>(events.size() + shimTargets.size());
-    for (final BetaRawMessageStreamEvent event : events) {
+  private static List<RawMessageStreamEvent> injectSyntheticInputJsonDeltas(
+      List<RawMessageStreamEvent> events, Map<Long, String> shimTargets) {
+    final List<RawMessageStreamEvent> result = new ArrayList<>(events.size() + shimTargets.size());
+    for (final RawMessageStreamEvent event : events) {
       if (event.contentBlockStop().isPresent()) {
-        final BetaRawContentBlockStopEvent stop = event.contentBlockStop().get();
+        final RawContentBlockStopEvent stop = event.contentBlockStop().get();
         final String partialJson = shimTargets.get(stop.index());
         if (partialJson != null) {
           result.add(syntheticInputJsonDeltaEvent(stop.index(), partialJson));
@@ -183,12 +179,12 @@ final class InlineToolInputShim {
     return result;
   }
 
-  private static BetaRawMessageStreamEvent syntheticInputJsonDeltaEvent(
+  private static RawMessageStreamEvent syntheticInputJsonDeltaEvent(
       long index, String partialJson) {
-    return BetaRawMessageStreamEvent.ofContentBlockDelta(
-        BetaRawContentBlockDeltaEvent.builder()
+    return RawMessageStreamEvent.ofContentBlockDelta(
+        RawContentBlockDeltaEvent.builder()
             .index(index)
-            .delta(BetaInputJsonDelta.builder().partialJson(partialJson).build())
+            .delta(InputJsonDelta.builder().partialJson(partialJson).build())
             .build());
   }
 
@@ -196,7 +192,7 @@ final class InlineToolInputShim {
     if (SHIM_OBSOLETE_WARNED.compareAndSet(false, true)) {
       LOG.warn(
           "Anthropic streamed a tool-input block inline with no input_json_delta events, yet "
-              + "BetaMessageAccumulator assembled it without the workaround. The inline-tool-input "
+              + "MessageAccumulator assembled it without the workaround. The inline-tool-input "
               + "shim in AnthropicMessageStreamAssembler appears obsolete (SDK/API fixed upstream) "
               + "and can be removed.");
     }

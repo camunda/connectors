@@ -10,27 +10,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
-import com.anthropic.helpers.BetaMessageAccumulator;
-import com.anthropic.models.beta.messages.BetaCacheCreation;
-import com.anthropic.models.beta.messages.BetaContainer;
-import com.anthropic.models.beta.messages.BetaContextManagementResponse;
-import com.anthropic.models.beta.messages.BetaDiagnostics;
-import com.anthropic.models.beta.messages.BetaDirectCaller;
-import com.anthropic.models.beta.messages.BetaMessage;
-import com.anthropic.models.beta.messages.BetaMessageDeltaUsage;
-import com.anthropic.models.beta.messages.BetaOutputTokensDetails;
-import com.anthropic.models.beta.messages.BetaRawContentBlockDeltaEvent;
-import com.anthropic.models.beta.messages.BetaRawContentBlockStartEvent;
-import com.anthropic.models.beta.messages.BetaRawContentBlockStopEvent;
-import com.anthropic.models.beta.messages.BetaRawMessageDeltaEvent;
-import com.anthropic.models.beta.messages.BetaRawMessageStartEvent;
-import com.anthropic.models.beta.messages.BetaRawMessageStopEvent;
-import com.anthropic.models.beta.messages.BetaRawMessageStreamEvent;
-import com.anthropic.models.beta.messages.BetaRefusalStopDetails;
-import com.anthropic.models.beta.messages.BetaServerToolUsage;
-import com.anthropic.models.beta.messages.BetaStopReason;
-import com.anthropic.models.beta.messages.BetaToolUseBlock;
-import com.anthropic.models.beta.messages.BetaUsage;
+import com.anthropic.helpers.MessageAccumulator;
+import com.anthropic.models.messages.CacheCreation;
+import com.anthropic.models.messages.Container;
+import com.anthropic.models.messages.DirectCaller;
+import com.anthropic.models.messages.Message;
+import com.anthropic.models.messages.MessageDeltaUsage;
+import com.anthropic.models.messages.OutputTokensDetails;
+import com.anthropic.models.messages.RawContentBlockDeltaEvent;
+import com.anthropic.models.messages.RawContentBlockStartEvent;
+import com.anthropic.models.messages.RawContentBlockStopEvent;
+import com.anthropic.models.messages.RawMessageDeltaEvent;
+import com.anthropic.models.messages.RawMessageStartEvent;
+import com.anthropic.models.messages.RawMessageStopEvent;
+import com.anthropic.models.messages.RawMessageStreamEvent;
+import com.anthropic.models.messages.RefusalStopDetails;
+import com.anthropic.models.messages.ServerToolUsage;
+import com.anthropic.models.messages.ToolUseBlock;
+import com.anthropic.models.messages.Usage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -52,9 +49,9 @@ class AnthropicMessageResponseConverterTest {
   private final AnthropicMessageResponseConverter converter =
       new AnthropicMessageResponseConverter(objectMapper);
 
-  private static BetaMessage message(String json) {
+  private static Message message(String json) {
     try {
-      return ObjectMappers.jsonMapper().readValue(json, BetaMessage.class);
+      return ObjectMappers.jsonMapper().readValue(json, Message.class);
     } catch (Exception e) {
       throw new RuntimeException("Failed to deserialize Message fixture", e);
     }
@@ -447,13 +444,13 @@ class AnthropicMessageResponseConverterTest {
 
   @Test
   void mapsNoArgumentToolUseFromEmptyInputJsonDeltaStream() {
-    // Drives the *real* vendor SDK BetaMessageAccumulator through the exact event sequence
+    // Drives the *real* vendor SDK MessageAccumulator through the exact event sequence
     // Anthropic streams for a no-argument tool call: a content_block_start for the tool_use
     // block, followed by an *empty* input_json_delta, followed by content_block_stop. The
     // accumulator concatenates the (empty) partial JSON and finalizes the block's input as
     // JsonMissing rather than an empty object -- this is the faithful reproduction of the
     // reported crash, as opposed to the buffered deserialization path exercised above.
-    final BetaMessage message = accumulateNoArgumentToolUseMessage();
+    final Message message = accumulateNoArgumentToolUseMessage();
 
     final var result = converter.toResult(message, EXECUTION_TIME);
 
@@ -461,83 +458,80 @@ class AnthropicMessageResponseConverterTest {
         .containsExactly(new ToolCall("toolu_1", "now", Map.of()));
   }
 
-  private static BetaMessage accumulateNoArgumentToolUseMessage() {
-    final BetaMessageAccumulator acc = BetaMessageAccumulator.create();
-    final BetaMessage shell =
-        BetaMessage.builder()
+  private static Message accumulateNoArgumentToolUseMessage() {
+    final MessageAccumulator acc = MessageAccumulator.create();
+    // Note: the stable Message/Usage builders have no contextManagement()/diagnostics() (Message)
+    // or iterations()/speed() (Usage) setters -- those are beta-only fields (context editing,
+    // cache diagnostics, and fallback/fast-mode tracking respectively), so they are simply omitted
+    // here rather than replaced.
+    final Message shell =
+        Message.builder()
             .id("msg-1")
-            .container((BetaContainer) null)
+            .container((Container) null)
             .content(List.of())
-            .contextManagement((BetaContextManagementResponse) null)
-            .diagnostics((BetaDiagnostics) null)
             .model("test-model")
-            .stopDetails((BetaRefusalStopDetails) null)
-            .stopReason((BetaStopReason) null)
+            .stopDetails((RefusalStopDetails) null)
+            .stopReason((com.anthropic.models.messages.StopReason) null)
             .stopSequence((String) null)
             .usage(
-                BetaUsage.builder()
+                Usage.builder()
                     .inputTokens(1)
                     .outputTokens(0)
-                    .cacheCreation((BetaCacheCreation) null)
+                    .cacheCreation((CacheCreation) null)
                     .cacheCreationInputTokens((Long) null)
                     .cacheReadInputTokens((Long) null)
                     .inferenceGeo((String) null)
-                    .iterations(List.of())
-                    .outputTokensDetails((BetaOutputTokensDetails) null)
-                    .serverToolUse((BetaServerToolUsage) null)
-                    .serviceTier((BetaUsage.ServiceTier) null)
-                    .speed((BetaUsage.Speed) null)
+                    .outputTokensDetails((OutputTokensDetails) null)
+                    .serverToolUse((ServerToolUsage) null)
+                    .serviceTier((Usage.ServiceTier) null)
                     .build())
             .build();
 
     acc.accumulate(
-        BetaRawMessageStreamEvent.ofMessageStart(
-            BetaRawMessageStartEvent.builder().message(shell).build()));
+        RawMessageStreamEvent.ofMessageStart(
+            RawMessageStartEvent.builder().message(shell).build()));
     acc.accumulate(
-        BetaRawMessageStreamEvent.ofContentBlockStart(
-            BetaRawContentBlockStartEvent.builder()
+        RawMessageStreamEvent.ofContentBlockStart(
+            RawContentBlockStartEvent.builder()
                 .contentBlock(
-                    BetaToolUseBlock.builder()
+                    ToolUseBlock.builder()
                         .id("toolu_1")
                         .name("now")
-                        .caller(BetaDirectCaller.builder().build())
+                        .caller(DirectCaller.builder().build())
                         .input(JsonValue.from(Map.of()))
                         .build())
                 .index(0)
                 .build()));
     acc.accumulate(
-        BetaRawMessageStreamEvent.ofContentBlockDelta(
-            BetaRawContentBlockDeltaEvent.builder()
+        RawMessageStreamEvent.ofContentBlockDelta(
+            RawContentBlockDeltaEvent.builder()
                 .inputJsonDelta("") // EMPTY delta = no-arg call
                 .index(0)
                 .build()));
     acc.accumulate(
-        BetaRawMessageStreamEvent.ofContentBlockStop(
-            BetaRawContentBlockStopEvent.builder().index(0).build()));
+        RawMessageStreamEvent.ofContentBlockStop(
+            RawContentBlockStopEvent.builder().index(0).build()));
     acc.accumulate(
-        BetaRawMessageStreamEvent.ofMessageDelta(
-            BetaRawMessageDeltaEvent.builder()
-                .contextManagement((BetaContextManagementResponse) null)
+        RawMessageStreamEvent.ofMessageDelta(
+            RawMessageDeltaEvent.builder()
                 .delta(
-                    BetaRawMessageDeltaEvent.Delta.builder()
-                        .container((BetaContainer) null)
-                        .stopReason(BetaStopReason.TOOL_USE)
-                        .stopDetails((BetaRefusalStopDetails) null)
+                    RawMessageDeltaEvent.Delta.builder()
+                        .container((Container) null)
+                        .stopReason(com.anthropic.models.messages.StopReason.TOOL_USE)
+                        .stopDetails((RefusalStopDetails) null)
                         .stopSequence((String) null)
                         .build())
                 .usage(
-                    BetaMessageDeltaUsage.builder()
+                    MessageDeltaUsage.builder()
                         .cacheCreationInputTokens((Long) null)
                         .cacheReadInputTokens((Long) null)
                         .inputTokens(1)
-                        .iterations(List.of())
                         .outputTokens(1)
-                        .outputTokensDetails((BetaOutputTokensDetails) null)
-                        .serverToolUse((BetaServerToolUsage) null)
+                        .outputTokensDetails((OutputTokensDetails) null)
+                        .serverToolUse((ServerToolUsage) null)
                         .build())
                 .build()));
-    acc.accumulate(
-        BetaRawMessageStreamEvent.ofMessageStop(BetaRawMessageStopEvent.builder().build()));
+    acc.accumulate(RawMessageStreamEvent.ofMessageStop(RawMessageStopEvent.builder().build()));
 
     return acc.message();
   }

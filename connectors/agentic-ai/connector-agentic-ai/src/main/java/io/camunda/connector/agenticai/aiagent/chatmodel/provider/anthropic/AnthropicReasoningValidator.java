@@ -17,7 +17,7 @@ import org.jspecify.annotations.Nullable;
  * before mapping it onto the SDK request. This is the one matrix-independent rule that survives
  * from the capability-matrix-coupled pilot validator (no {@code *Capabilities*} type is available
  * or referenced in this PR): {@code mode == ENABLED} requires a non-null {@code budgetTokens}
- * value, since the SDK's {@code BetaThinkingConfigEnabled} has no meaningful default budget.
+ * value, since the SDK's {@code ThinkingConfigEnabled} has no meaningful default budget.
  *
  * <p>A {@code thinking} object with a null {@code mode} (the modeler left the dropdown blank) is
  * treated as unset and never triggers this check.
