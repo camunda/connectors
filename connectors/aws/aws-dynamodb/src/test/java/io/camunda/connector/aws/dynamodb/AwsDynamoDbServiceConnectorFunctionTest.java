@@ -175,7 +175,8 @@ class AwsDynamoDbServiceConnectorFunctionTest extends BaseDynamoDbOperationTest 
           "tableClassSummary": null,
           "deletionProtectionEnabled": null,
           "onDemandThroughput": null,
-          "ssedescription": null
+          "ssedescription": null,
+          "warmThroughput": null
         }
         """;
     assertThat(actual).isEqualTo(objectMapper.readTree(expectedJson));

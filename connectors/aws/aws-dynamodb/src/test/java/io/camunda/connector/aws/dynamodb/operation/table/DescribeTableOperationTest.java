@@ -100,7 +100,8 @@ class DescribeTableOperationTest extends BaseDynamoDbOperationTest {
           "tableClassSummary": null,
           "deletionProtectionEnabled": null,
           "onDemandThroughput": null,
-          "ssedescription": null
+          "ssedescription": null,
+          "warmThroughput": null
         }
         """;
     JsonNode expected = objectMapper.readTree(expectedJson);
