@@ -53,7 +53,6 @@ class CamundaClientSaaSConfigurationTest {
     ReflectionTestUtils.setField(
         config, "camundaClientTokenUrl", "https://token.example.com/oauth/token");
     ReflectionTestUtils.setField(config, "camundaClientAudience", "test-audience");
-    ReflectionTestUtils.setField(config, "credentialsCachePath", "/tmp/test-credentials");
     return config;
   }
 
@@ -104,7 +103,6 @@ class CamundaClientSaaSConfigurationTest {
     ReflectionTestUtils.setField(
         config, "camundaClientTokenUrl", "https://global.token.example.com/oauth/token");
     ReflectionTestUtils.setField(config, "camundaClientAudience", "global-audience");
-    ReflectionTestUtils.setField(config, "credentialsCachePath", "/tmp/test-credentials");
 
     var properties = new CamundaClientProperties();
     properties
@@ -122,5 +120,49 @@ class CamundaClientSaaSConfigurationTest {
     verify(mockSecretProvider)
         .getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_CLIENT_ID, null);
     verify(mockSecretProvider).getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_SECRET, null);
+  }
+
+  @Test
+  void whenCredentialsMissing_perClientScopeResourceStillReachTheBuiltProvider() {
+    when(mockSecretProvider.getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_CLIENT_ID, null))
+        .thenReturn("gcp-client-id");
+    when(mockSecretProvider.getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_SECRET, null))
+        .thenReturn("gcp-client-secret");
+
+    var config = createConfig();
+    var properties = new CamundaClientProperties();
+    properties.getAuth().setScope("cluster-scope");
+    properties.getAuth().setResource("cluster-resource");
+    // clientId and clientSecret remain null -> uses internal secret provider
+
+    var result =
+        config.credentialsProviderConfiguration().camundaClientCredentialsProvider(properties);
+
+    assertThat(ReflectionTestUtils.getField(result, "scope")).isEqualTo("cluster-scope");
+    assertThat(ReflectionTestUtils.getField(result, "resource")).isEqualTo("cluster-resource");
+  }
+
+  @Test
+  void whenCredentialsMissingAndNoCachePathConfigured_usesInMemoryCacheNotSharedFile() {
+    when(mockSecretProvider.getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_CLIENT_ID, null))
+        .thenReturn("gcp-client-id");
+    when(mockSecretProvider.getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_SECRET, null))
+        .thenReturn("gcp-client-secret");
+
+    var config = new CamundaClientSaaSConfiguration(mockSaaSConfig);
+    ReflectionTestUtils.setField(
+        config, "camundaClientTokenUrl", "https://token.example.com/oauth/token");
+    ReflectionTestUtils.setField(config, "camundaClientAudience", "test-audience");
+    // no per-client credentials-cache-path configured, and there is no global fallback for it:
+    // every internal-secret client resolves the same client id, so a shared cache file would let
+    // one client's cached token leak into another client with a different audience/token-url.
+
+    var properties = new CamundaClientProperties();
+
+    var result =
+        config.credentialsProviderConfiguration().camundaClientCredentialsProvider(properties);
+
+    var cache = ReflectionTestUtils.getField(result, "credentialsCache");
+    assertThat(ReflectionTestUtils.getField(cache, "cacheFile")).isNull();
   }
 }

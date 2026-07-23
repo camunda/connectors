@@ -17,10 +17,13 @@
 package io.camunda.connector.runtime.saas;
 
 import io.camunda.client.CredentialsProvider;
-import io.camunda.client.impl.oauth.OAuthCredentialsProviderBuilder;
 import io.camunda.client.spring.configuration.CredentialsProviderConfiguration;
+import io.camunda.client.spring.properties.CamundaClientAuthProperties;
+import io.camunda.client.spring.properties.CamundaClientAuthProperties.AuthMethod;
 import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.camunda.connector.api.secret.SecretProvider;
+import java.net.URI;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -39,14 +42,11 @@ public class CamundaClientSaaSConfiguration {
 
   private final SecretProvider internalSecretProvider;
 
-  @Value("${camunda.client.auth.token-url}")
+  @Value("${camunda.client.auth.token-url:#{null}}")
   private String camundaClientTokenUrl;
 
-  @Value("${camunda.client.auth.audience}")
+  @Value("${camunda.client.auth.audience:#{null}}")
   private String camundaClientAudience;
-
-  @Value("${camunda.client.auth.credentials-cache-path:/tmp/connectors}")
-  private String credentialsCachePath;
 
   public CamundaClientSaaSConfiguration(@Autowired SaaSSecretConfiguration saaSConfiguration) {
     this.internalSecretProvider = saaSConfiguration.getInternalSecretProvider();
@@ -55,9 +55,11 @@ public class CamundaClientSaaSConfiguration {
   /**
    * Provides a custom {@link CredentialsProviderConfiguration} that is always registered. When
    * client-id/secret are absent from a resolved client's properties, it fetches M2M credentials
-   * from the internal secret manager (GCP or AWS). When credentials are present in the per-client
-   * properties, it delegates to the parent implementation so that each client uses its own
-   * configured credentials.
+   * from the internal secret manager (GCP or AWS) and delegates to the parent implementation on a
+   * copy of the properties, so scope/resource/issuer/TLS/timeout/retry settings resolved for that
+   * client are honored the same way they are for clients with explicit credentials. When
+   * credentials are present in the per-client properties, it delegates to the parent implementation
+   * directly so that each client uses its own configured credentials.
    *
    * <p>This bean replaces the default {@link CredentialsProviderConfiguration} from the Camunda
    * Spring Boot starter (which would register via {@code @ConditionalOnMissingBean}).
@@ -68,27 +70,47 @@ public class CamundaClientSaaSConfiguration {
       @Override
       public CredentialsProvider camundaClientCredentialsProvider(
           final CamundaClientProperties properties) {
-        if (properties.getAuth().getClientId() == null
-            && properties.getAuth().getClientSecret() == null) {
-          var auth = properties.getAuth();
-          var tokenUrl =
-              auth.getTokenUrl() != null ? auth.getTokenUrl().toString() : camundaClientTokenUrl;
-          var audience = auth.getAudience() != null ? auth.getAudience() : camundaClientAudience;
-          var cachePath =
-              auth.getCredentialsCachePath() != null
-                  ? auth.getCredentialsCachePath()
-                  : credentialsCachePath;
-          return new OAuthCredentialsProviderBuilder()
-              .applyEnvironmentOverrides(false)
-              .clientId(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID, null))
-              .clientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET, null))
-              .authorizationServerUrl(tokenUrl)
-              .audience(audience)
-              .credentialsCachePath(cachePath)
-              .build();
+        var auth = properties.getAuth();
+        if (auth.getClientId() == null && auth.getClientSecret() == null) {
+          return super.camundaClientCredentialsProvider(
+              withInternalSecretManagerCredentials(properties));
         }
         return super.camundaClientCredentialsProvider(properties);
       }
     };
+  }
+
+  /**
+   * Copies the resolved client properties and fills in the M2M credentials from the internal secret
+   * manager, without mutating the original Spring-bound properties (which would otherwise leak the
+   * fetched secret into the shared configuration bean). The copy is created reflectively via {@link
+   * BeanUtils} so any auth setting the starter adds in the future is carried through to the
+   * delegated {@code super} call automatically.
+   *
+   * <p>The credentials cache path is intentionally NOT defaulted to a shared global value here:
+   * every client falling back to the internal secret manager resolves the same client id, and
+   * {@link io.camunda.client.impl.oauth.OAuthCredentialsCache} keys cached tokens by client id
+   * only. Leaving it unset (unless the client explicitly configured its own path) makes the builder
+   * use a private in-memory cache instead of a file shared across clients, preventing a client with
+   * one audience/token-url from reusing another client's cached token.
+   */
+  private CamundaClientProperties withInternalSecretManagerCredentials(
+      CamundaClientProperties properties) {
+    var resolvedProperties = new CamundaClientProperties();
+    BeanUtils.copyProperties(properties, resolvedProperties);
+    var auth = new CamundaClientAuthProperties();
+    BeanUtils.copyProperties(properties.getAuth(), auth);
+    resolvedProperties.setAuth(auth);
+
+    auth.setMethod(AuthMethod.oidc);
+    auth.setClientId(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID, null));
+    auth.setClientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET, null));
+    if (auth.getTokenUrl() == null && camundaClientTokenUrl != null) {
+      auth.setTokenUrl(URI.create(camundaClientTokenUrl));
+    }
+    if (auth.getAudience() == null) {
+      auth.setAudience(camundaClientAudience);
+    }
+    return resolvedProperties;
   }
 }
