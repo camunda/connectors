@@ -42,5 +42,7 @@ public sealed interface ProviderConfiguration extends ChatModelConfiguration
   String model();
 
   /** The backend discriminator (e.g. {@code direct}, {@code bedrock}, {@code compatible}). */
-  @Nullable String backend();
+  default @Nullable String backend() {
+    return null;
+  }
 }

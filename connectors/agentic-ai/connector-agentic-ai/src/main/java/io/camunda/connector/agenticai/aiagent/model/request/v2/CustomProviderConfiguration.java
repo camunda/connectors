@@ -14,7 +14,6 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
-import org.jspecify.annotations.Nullable;
 
 /**
  * User-supplied chat model provider. The {@link #providerType()} discriminator is dispatched to a
@@ -58,10 +57,5 @@ public record CustomProviderConfiguration(
   @Override
   public String provider() {
     return providerType;
-  }
-
-  @Override
-  public @Nullable String backend() {
-    return null;
   }
 }
