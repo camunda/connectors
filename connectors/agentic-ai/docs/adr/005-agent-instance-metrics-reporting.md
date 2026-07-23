@@ -73,8 +73,8 @@ its containing BPMN element closes:
 `BaseAgentRequestHandler` dispatches via the abstract method
 `shouldUpdateAgentInstanceBeforeJobCompletion(AgentResponse)`:
 
-- `AgentTaskRequestHandler` returns `true` unconditionally.
-- `AgentSubProcessRequestHandler` returns `agentResponse.toolCalls().isEmpty()` - mirrors
+- `OutboundConnectorAgentRequestHandler` returns `true` unconditionally.
+- `JobWorkerAgentRequestHandler` returns `agentResponse.toolCalls().isEmpty()` - mirrors
   `completionConditionFulfilled`.
 
 **Deferred path** (`shouldUpdateAgentInstanceBeforeJobCompletion = false`): a metrics completion listener is
