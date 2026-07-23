@@ -19,7 +19,9 @@ import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.Ad
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
+import io.camunda.connector.agenticai.aiagent.AgentSubProcessV2Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
+import io.camunda.connector.agenticai.aiagent.AgentTaskV2Function;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
@@ -98,8 +100,10 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentResponseHandler.class,
           AgentTaskRequestHandler.class,
           AgentTaskV1Function.class,
+          AgentTaskV2Function.class,
           AgentSubProcessRequestHandler.class,
           AgentSubProcessV1Function.class,
+          AgentSubProcessV2Function.class,
           AgentInstanceClient.class,
           ChatModelRegistry.class);
 
@@ -151,11 +155,16 @@ class AgenticAiConnectorsAutoConfigurationTest {
               assertHasAllBeansOf(
                   context,
                   ALL_BEANS.stream()
-                      .filter(notAnyOf(AgentTaskRequestHandler.class, AgentTaskV1Function.class))
+                      .filter(
+                          notAnyOf(
+                              AgentTaskRequestHandler.class,
+                              AgentTaskV1Function.class,
+                              AgentTaskV2Function.class))
                       .toList());
               assertThat(context)
                   .doesNotHaveBean(AgentTaskRequestHandler.class)
-                  .doesNotHaveBean(AgentTaskV1Function.class);
+                  .doesNotHaveBean(AgentTaskV1Function.class)
+                  .doesNotHaveBean(AgentTaskV2Function.class);
             });
   }
 
@@ -170,11 +179,14 @@ class AgenticAiConnectorsAutoConfigurationTest {
                   ALL_BEANS.stream()
                       .filter(
                           notAnyOf(
-                              AgentSubProcessRequestHandler.class, AgentSubProcessV1Function.class))
+                              AgentSubProcessRequestHandler.class,
+                              AgentSubProcessV1Function.class,
+                              AgentSubProcessV2Function.class))
                       .toList());
               assertThat(context)
                   .doesNotHaveBean(AgentSubProcessRequestHandler.class)
-                  .doesNotHaveBean(AgentSubProcessV1Function.class);
+                  .doesNotHaveBean(AgentSubProcessV1Function.class)
+                  .doesNotHaveBean(AgentSubProcessV2Function.class);
             });
   }
 
