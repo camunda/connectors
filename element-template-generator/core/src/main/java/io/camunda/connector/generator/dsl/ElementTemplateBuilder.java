@@ -24,6 +24,7 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -288,6 +289,34 @@ public class ElementTemplateBuilder {
 
   public ElementTemplateBuilder properties(Collection<Property> properties) {
     this.properties.addAll(properties);
+    return this;
+  }
+
+  /**
+   * Reorders the properties list so properties are grouped together in the given group-id sequence,
+   * preserving each property's relative order within its own group. Properties whose group isn't
+   * listed (including ungrouped ones) keep their current relative order and sort after every listed
+   * group.
+   *
+   * <p>Call once, right before {@link #build()}, to state the template's final property order
+   * explicitly instead of relying on the order {@link #propertyGroups(PropertyGroup...)} / {@link
+   * #properties(Property...)} happened to be called in -- property order is significant: a
+   * property's {@code condition} or FEEL {@code value} may only reference one appearing earlier in
+   * the list, and the Modeler properties panel displays each group's section in the order its
+   * properties first appear here (independent of the {@code groups} list's own order).
+   */
+  public ElementTemplateBuilder reorderPropertiesByGroup(List<String> groupOrder) {
+    properties.sort(
+        Comparator.comparingInt(
+            p -> {
+              // groupOrder.indexOf(null) would throw: List.of(...)'s indexOf rejects a null
+              // query arg outright, unlike ArrayList's.
+              if (p.group == null) {
+                return Integer.MAX_VALUE;
+              }
+              int rank = groupOrder.indexOf(p.group);
+              return rank < 0 ? Integer.MAX_VALUE : rank;
+            }));
     return this;
   }
 

@@ -285,4 +285,90 @@ public class ElementTemplateBuilderTest {
     assertThat(namedPropertyIds(rebuilt)).containsExactly("propA1", "propA2", "propB1");
     assertThat(rebuilt.properties().get(1)).isSameAs(replacement);
   }
+
+  @Test
+  void reorderPropertiesByGroupMovesWholeGroupBeforeAnotherPreservingIntraGroupOrder() {
+    var base = baseWithGroupsAndProperties();
+
+    var rebuilt =
+        ElementTemplateBuilder.from(base)
+            .reorderPropertiesByGroup(List.of("groupB", "groupA"))
+            .build();
+
+    assertThat(namedPropertyIds(rebuilt)).containsExactly("propB1", "propA1", "propA2");
+  }
+
+  @Test
+  void reorderPropertiesByGroupLeavesUnlistedGroupsInRelativeOrderAtTheEnd() {
+    // Three groups declared in order A, B, C; only C is named in groupOrder. A and B must both
+    // land after C, but stay in their original A-before-B relative order -- not merely "somewhere
+    // at the end" in arbitrary order.
+    var base =
+        ElementTemplate.builderForOutbound()
+            .id("io.camunda.connector.Template.v1")
+            .type("io.camunda:template:1")
+            .name("Template: Some Function")
+            .appliesTo(Set.of(SERVICE_TASK))
+            .elementType(SERVICE_TASK)
+            .version(1)
+            .propertyGroups(
+                PropertyGroup.builder()
+                    .id("groupA")
+                    .label("Group A")
+                    .properties(
+                        StringProperty.builder()
+                            .id("propA1")
+                            .group("groupA")
+                            .binding(new PropertyBinding.ZeebeTaskHeader("propA1"))
+                            .value("a1"))
+                    .build(),
+                PropertyGroup.builder()
+                    .id("groupB")
+                    .label("Group B")
+                    .properties(
+                        StringProperty.builder()
+                            .id("propB1")
+                            .group("groupB")
+                            .binding(new PropertyBinding.ZeebeTaskHeader("propB1"))
+                            .value("b1"))
+                    .build(),
+                PropertyGroup.builder()
+                    .id("groupC")
+                    .label("Group C")
+                    .properties(
+                        StringProperty.builder()
+                            .id("propC1")
+                            .group("groupC")
+                            .binding(new PropertyBinding.ZeebeTaskHeader("propC1"))
+                            .value("c1"))
+                    .build())
+            .build();
+
+    var rebuilt =
+        ElementTemplateBuilder.from(base).reorderPropertiesByGroup(List.of("groupC")).build();
+
+    assertThat(namedPropertyIds(rebuilt)).containsExactly("propC1", "propA1", "propB1");
+  }
+
+  @Test
+  void reorderPropertiesByGroupComposesWithReplaceProperty() {
+    var base = baseWithGroupsAndProperties();
+
+    var replacement =
+        StringProperty.builder()
+            .id("propA2")
+            .group("groupA")
+            .binding(new PropertyBinding.ZeebeTaskHeader("propA2"))
+            .value("replaced")
+            .build();
+
+    var rebuilt =
+        ElementTemplateBuilder.from(base)
+            .replaceProperty(replacement)
+            .reorderPropertiesByGroup(List.of("groupB", "groupA"))
+            .build();
+
+    assertThat(namedPropertyIds(rebuilt)).containsExactly("propB1", "propA1", "propA2");
+    assertThat(rebuilt.properties().get(2)).isSameAs(replacement);
+  }
 }
