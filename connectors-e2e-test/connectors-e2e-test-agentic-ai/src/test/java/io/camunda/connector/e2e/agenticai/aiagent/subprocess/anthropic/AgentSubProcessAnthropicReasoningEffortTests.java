@@ -59,8 +59,7 @@ import org.springframework.core.io.Resource;
  *
  * <p>Capability-matrix-driven validation-failure coverage (i.e. asserting a model that doesn't
  * support a given thinking mode fails fast) is intentionally NOT ported: this worktree has no
- * capability subsystem ({@code ModelCapabilitiesResolver}/{@code AnthropicReasoningCapabilities} do
- * not exist here).
+ * capability-matrix subsystem to validate against.
  */
 class AgentSubProcessAnthropicReasoningEffortTests extends BaseAgentSubProcessTest {
 
