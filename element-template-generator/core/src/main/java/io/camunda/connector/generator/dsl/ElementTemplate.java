@@ -138,20 +138,47 @@ public record ElementTemplate(
   public record ElementTypeWrapper(
       String value, String eventDefinition, @JsonIgnore BpmnType originalType) {
 
-    public static ElementTypeWrapper from(BpmnType value) {
-      var haveEventDefinition =
-          Set.of(
-              BpmnType.INTERMEDIATE_CATCH_EVENT,
-              BpmnType.INTERMEDIATE_THROW_EVENT,
-              BpmnType.MESSAGE_START_EVENT,
-              BpmnType.MESSAGE_END_EVENT,
-              BpmnType.BOUNDARY_EVENT);
-      var messageEventDefinition = "bpmn:MessageEventDefinition";
+    /**
+     * {@link BpmnType}s whose generated {@code eventDefinition} is non-null. Note this is
+     * deliberately not {@link BpmnType#isMessage()}: {@code RECEIVE_TASK.isMessage()} is {@code
+     * true}, but a receive task has no {@code eventDefinition} of its own, so it must be excluded
+     * here too -- {@link #from(BpmnType)} and {@link #resolveType()} both consult this set so they
+     * can never disagree on which types carry one.
+     */
+    private static final Set<BpmnType> TYPES_WITH_EVENT_DEFINITION =
+        Set.of(
+            BpmnType.INTERMEDIATE_CATCH_EVENT,
+            BpmnType.INTERMEDIATE_THROW_EVENT,
+            BpmnType.MESSAGE_START_EVENT,
+            BpmnType.MESSAGE_END_EVENT,
+            BpmnType.BOUNDARY_EVENT);
 
+    private static final String MESSAGE_EVENT_DEFINITION = "bpmn:MessageEventDefinition";
+
+    public static ElementTypeWrapper from(BpmnType value) {
       return new ElementTypeWrapper(
           value.getName(),
-          haveEventDefinition.contains(value) ? messageEventDefinition : null,
+          TYPES_WITH_EVENT_DEFINITION.contains(value) ? MESSAGE_EVENT_DEFINITION : null,
           value);
+    }
+
+    /**
+     * Returns the {@link BpmnType} this wrapper was built from. Falls back to reconstructing it
+     * from {@code value} and {@code eventDefinition} when {@code originalType} is unavailable, e.g.
+     * for a wrapper deserialized from JSON, where {@code originalType} is {@code @JsonIgnore}d.
+     */
+    public BpmnType resolveType() {
+      if (originalType != null) {
+        return originalType;
+      }
+      boolean hasEventDefinition = eventDefinition != null;
+      for (var candidate : BpmnType.values()) {
+        if (candidate.getName().equals(value)
+            && TYPES_WITH_EVENT_DEFINITION.contains(candidate) == hasEventDefinition) {
+          return candidate;
+        }
+      }
+      return null;
     }
   }
 }

@@ -35,6 +35,7 @@
     <module>microsoft/teams</module>
     <module>camunda-message</module>
     <module>rabbitmq</module>
+    <module>salesforce</module>
     <module>sendgrid</module>
     <module>slack</module>
     <module>soap</module>

@@ -24,8 +24,11 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /** Builder for creating an element template. */
@@ -59,6 +62,92 @@ public class ElementTemplateBuilder {
 
   public static ElementTemplateBuilder createInbound() {
     return new ElementTemplateBuilder(Mode.INBOUND);
+  }
+
+  /**
+   * Seeds a new builder from an existing element template, copying its metadata, groups,
+   * properties, steps, and presets. Intended for deriving one connector's template from another's
+   * generated template (e.g. reusing HTTP JSON's authentication properties for a connector that
+   * executes as an HTTP JSON task under the hood) -- follow up with {@link
+   * #removeProperties(Predicate)}, {@link #removePropertyGroups(Predicate)}, and {@link
+   * #replaceProperty(Property)} to adjust what was inherited, and {@link #properties(Property...)}
+   * / {@link #propertyGroups(PropertyGroup...)} to layer on what's new.
+   */
+  public static ElementTemplateBuilder from(ElementTemplate base) {
+    Objects.requireNonNull(base, "base must not be null");
+    boolean outbound =
+        base.properties().stream().anyMatch(p -> p.binding instanceof ZeebeTaskDefinition);
+    ElementTemplateBuilder builder =
+        new ElementTemplateBuilder(outbound ? Mode.OUTBOUND : Mode.INBOUND);
+    builder.id = base.id();
+    builder.name = base.name();
+    builder.version = base.version();
+    builder.category = base.category();
+    builder.documentationRef = base.documentationRef();
+    builder.engines = base.engines();
+    builder.description = base.description();
+    builder.keywords = base.keywords();
+    builder.appliesTo = base.appliesTo();
+    builder.elementType = base.elementType() == null ? null : base.elementType().resolveType();
+    builder.icon = base.icon();
+    builder.groups.addAll(base.groups());
+    builder.properties.addAll(base.properties());
+    if (base.steps() != null) {
+      builder.steps.addAll(base.steps());
+    }
+    if (base.presets() != null) {
+      builder.presets.addAll(base.presets());
+    }
+    return builder;
+  }
+
+  /**
+   * Removes every property matching {@code predicate}. Use after {@link #from(ElementTemplate)} to
+   * prune an inherited base template before layering on new properties.
+   */
+  public ElementTemplateBuilder removeProperties(Predicate<Property> predicate) {
+    properties.removeIf(predicate);
+    return this;
+  }
+
+  /**
+   * Removes every property group matching {@code predicate}. See {@link
+   * #removeProperties(Predicate)}.
+   */
+  public ElementTemplateBuilder removePropertyGroups(Predicate<PropertyGroup> predicate) {
+    groups.removeIf(predicate);
+    return this;
+  }
+
+  /**
+   * Replaces the inherited property sharing {@code replacement}'s id (if any) with {@code
+   * replacement} at the same list position, or simply appends it if no such property exists yet.
+   * Preserving position (rather than removing and re-appending) matters because property order is
+   * significant: a property's {@code condition} may only reference a property appearing earlier in
+   * the list. Use to override a single inherited property -- e.g. narrowing a Dropdown's choices --
+   * without rebuilding the rest of an inherited base template.
+   *
+   * @throws IllegalArgumentException if {@code replacement.id} is {@code null} -- id-less
+   *     properties (e.g. a non-configurable type's hidden property) can't be matched unambiguously
+   */
+  public ElementTemplateBuilder replaceProperty(Property replacement) {
+    Objects.requireNonNull(replacement, "replacement must not be null");
+    if (replacement.id == null) {
+      throw new IllegalArgumentException("replacement.id must not be null");
+    }
+    int index = -1;
+    for (int i = 0; i < properties.size(); i++) {
+      if (Objects.equals(properties.get(i).id, replacement.id)) {
+        index = i;
+        break;
+      }
+    }
+    if (index >= 0) {
+      properties.set(index, replacement);
+    } else {
+      properties.add(replacement);
+    }
+    return this;
   }
 
   protected boolean isTypeAssigned() {
@@ -200,6 +289,34 @@ public class ElementTemplateBuilder {
 
   public ElementTemplateBuilder properties(Collection<Property> properties) {
     this.properties.addAll(properties);
+    return this;
+  }
+
+  /**
+   * Reorders the properties list so properties are grouped together in the given group-id sequence,
+   * preserving each property's relative order within its own group. Properties whose group isn't
+   * listed (including ungrouped ones) keep their current relative order and sort after every listed
+   * group.
+   *
+   * <p>Call once, right before {@link #build()}, to state the template's final property order
+   * explicitly instead of relying on the order {@link #propertyGroups(PropertyGroup...)} / {@link
+   * #properties(Property...)} happened to be called in -- property order is significant: a
+   * property's {@code condition} or FEEL {@code value} may only reference one appearing earlier in
+   * the list, and the Modeler properties panel displays each group's section in the order its
+   * properties first appear here (independent of the {@code groups} list's own order).
+   */
+  public ElementTemplateBuilder reorderPropertiesByGroup(List<String> groupOrder) {
+    properties.sort(
+        Comparator.comparingInt(
+            p -> {
+              // groupOrder.indexOf(null) would throw: List.of(...)'s indexOf rejects a null
+              // query arg outright, unlike ArrayList's.
+              if (p.group == null) {
+                return Integer.MAX_VALUE;
+              }
+              int rank = groupOrder.indexOf(p.group);
+              return rank < 0 ? Integer.MAX_VALUE : rank;
+            }));
     return this;
   }
 
