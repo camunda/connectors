@@ -111,10 +111,10 @@ Variables inside an ad-hoc sub-process have their own scope:
 ### AI Agent Task (Outbound Connector)
 
 - **BPMN element**: Service task with connector template applied
-- **Class**: `AiAgentFunction` implements `OutboundConnectorFunction`
+- **Class**: `AgentTaskV1Function` implements `OutboundConnectorFunction`
 - **Type**: `io.camunda.agenticai:aiagent:1`
-- **Execution context**: `OutboundConnectorAgentExecutionContext`
-- **Request handler**: `OutboundConnectorAgentRequestHandler`
+- **Execution context**: `AgentTaskExecutionContext`
+- **Request handler**: `AgentTaskRequestHandler`
 - **Tool resolution**: Fetches process definition XML via the Camunda API to resolve tool elements from a referenced ad-hoc sub-process (eventually consistent — can fail on first deploy)
 - **Feedback loop**: Must be **modeled explicitly** in BPMN — the process must route tool calls to a multi-instance ad-hoc sub-process and route results back to the AI Agent task
 - **Agent context**: Flows through process variables — the modeler must wire `agent.context` back as input for the next iteration
@@ -124,10 +124,10 @@ Variables inside an ad-hoc sub-process have their own scope:
 ### AI Agent Sub-process (Job Worker)
 
 - **BPMN element**: Ad-hoc sub-process with job worker element template applied
-- **Class**: `AiAgentJobWorker` with `@OutboundConnector`
+- **Class**: `AgentSubProcessV1Function` with `@OutboundConnector`
 - **Type**: `io.camunda.agenticai:aiagent-job-worker:1`
-- **Execution context**: `JobWorkerAgentExecutionContext`
-- **Request handler**: `JobWorkerAgentRequestHandler`
+- **Execution context**: `AgentSubProcessExecutionContext`
+- **Request handler**: `AgentSubProcessRequestHandler`
 - **Tool resolution**: Tools come directly from the `adHocSubProcessElements` variable (populated by Zeebe) — no API call needed
 - **Feedback loop**: **Implicit** — the job worker completes the job with element activation commands, and Zeebe automatically creates a new job when those elements complete
 - **Agent context**: Stored as `agentContext` variable within the ad-hoc sub-process scope
@@ -185,7 +185,7 @@ The loop operates as a distributed state machine between the connector runtime a
 
 1. **Process enters AHSP**: Zeebe creates the first job for the ad-hoc sub-process. Input mappings are evaluated (provider config, prompts, memory config, etc. become local variables).
 
-2. **Job activation**: The `AiAgentJobWorker` picks up the job with `fetchVariables = [adHocSubProcessElements, agentContext, toolCallResults, provider, data]`.
+2. **Job activation**: The `AgentSubProcessV1Function` picks up the job with `fetchVariables = [adHocSubProcessElements, agentContext, toolCallResults, provider, data]`.
 
 3. **Agent initialization** (`AgentInitializerImpl`):
    - First invocation: `agentContext` is null → state = `INITIALIZING`
@@ -205,7 +205,7 @@ The loop operates as a distributed state machine between the connector runtime a
    - Store the updated conversation back to the memory store (via `ConversationSession`) and reduce it back to `AgentContext`
    - Transform tool calls and create response
 
-5. **Job completion** (`AiAgentSubProcessConnectorResponse`):
+5. **Job completion** (`AgentSubProcessConnectorResponse`):
    - Sets `agentContext` variable with updated state
    - If tool calls present:
      - `completionConditionFulfilled = false`
@@ -294,13 +294,13 @@ The result of an agent turn: the updated `AgentContext` plus either the tool cal
 a final response to emit (text, JSON, or the full assistant message). Authoritative definition:
 [`AgentResponse.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentResponse.java).
 
-### AiAgentSubProcessConnectorResponse (job worker specific)
+### AgentSubProcessConnectorResponse (job worker specific)
 
 The job-worker completion directive: wraps the `AgentResponse` and tells the runtime how to complete
 the ad-hoc sub-process job (whether the completion condition is fulfilled, whether to cancel
 still-running tool instances, and which variables to set). Implements `AdHocSubProcessConnectorResponse`.
 Authoritative definition:
-[`AiAgentSubProcessConnectorResponse.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/AiAgentSubProcessConnectorResponse.java).
+[`AgentSubProcessConnectorResponse.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/AgentSubProcessConnectorResponse.java).
 
 ### ToolCallProcessVariable (tool call format for process variables)
 
@@ -528,8 +528,8 @@ try (var session = store.createSession(executionContext, agentContext)) {
 ### Completion Callbacks
 
 After Zeebe accepts or rejects the job-completion command, the runtime notifies the connector
-function via `JobCompletionListener` (from the connector SDK). Both `AiAgentFunction` and
-`AiAgentJobWorker` implement this interface (via the shared `AgentConnectorFunction` mixin) and
+function via `JobCompletionListener` (from the connector SDK). Both `AgentTaskV1Function` and
+`AgentSubProcessV1Function` implement this interface (via the shared `AgentConnectorFunction` mixin) and
 delegate to an internal `AgentJobCompletionListener` carried by the response, which in turn
 invokes the conversation store's `onJobCompleted` / `onJobCompletionFailed` hooks.
 
@@ -627,17 +627,17 @@ The `ProcessDefinitionAdHocToolElementsResolver` fetches the BPMN XML from Camun
 
 ### Job Worker Completion Flow
 
-`AiAgentJobWorker` is an `OutboundConnectorFunction` wrapped by `SpringConnectorJobHandler` at runtime. The flow:
+`AgentSubProcessV1Function` is an `OutboundConnectorFunction` wrapped by `SpringConnectorJobHandler` at runtime. The flow:
 
 ```
 SpringConnectorJobHandler.handle(jobClient, job)
   │
   ├─ Creates OutboundConnectorContext from job variables
   │
-  ├─ AiAgentJobWorker.execute(context)
-  │    ├─ Binds variables to JobWorkerAgentRequest
+  ├─ AgentSubProcessV1Function.execute(context)
+  │    ├─ Binds variables to AgentSubProcessV1Request
   │    └─ agentRequestHandler.handleRequest(executionContext)
-  │         └─ Returns AiAgentSubProcessConnectorResponse (AdHocSubProcessConnectorResponse)
+  │         └─ Returns AgentSubProcessConnectorResponse (AdHocSubProcessConnectorResponse)
   │
   ├─ SpringConnectorJobHandler examines error expression
   │    └─ Checks for error expressions (BPMN error handling)
@@ -677,7 +677,7 @@ jobClient.newCompleteCommand(job)
 
 3. **`completionConditionFulfilled`**: Directly controls whether the AHSP terminates. When `true`, the AHSP completes and output mappings propagate results to the parent process.
 
-4. **`cancelRemainingInstances`**: Used when event handling interrupts tool calls — cancels all still-running tool instances. Determined in `JobWorkerAgentRequestHandler.buildResponse()` from `conversation.currentTurn().hasInterruptedToolCallResults()`, which inspects the current turn's input messages for any `ToolCallResult` carrying the `PROPERTY_INTERRUPTED` flag.
+4. **`cancelRemainingInstances`**: Used when event handling interrupts tool calls — cancels all still-running tool instances. Determined in `AgentSubProcessRequestHandler.buildResponse()` from `conversation.currentTurn().hasInterruptedToolCallResults()`, which inspects the current turn's input messages for any `ToolCallResult` carrying the `PROPERTY_INTERRUPTED` flag.
 
 5. **Async execution**: The complete command is sent asynchronously via `CommandWrapper` with up to 3 retries. This is important because:
    - The job may have been superseded (NOT_FOUND)
@@ -688,7 +688,7 @@ jobClient.newCompleteCommand(job)
 When the agent cannot proceed (e.g., not all tool call results are present yet, or discovery is in progress):
 
 ```java
-return AiAgentSubProcessConnectorResponse.builder()
+return AgentSubProcessConnectorResponse.builder()
     .completionConditionFulfilled(false)
     .cancelRemainingInstances(false)
     .build();
@@ -892,7 +892,7 @@ and renders each via `createEventMessage`.
   - The `cancelRemainingInstances` flag is set to `true` on the completion command
   - Active tool instances are terminated by Zeebe
 - Example message sequence: `[Tool A cancelled, Tool B result, Event message]`
-- The `PROPERTY_INTERRUPTED` flag on cancelled results triggers `cancelRemainingInstances` in `JobWorkerAgentRequestHandler.buildResponse()` (via `AgentConversationTurn.hasInterruptedToolCallResults()`)
+- The `PROPERTY_INTERRUPTED` flag on cancelled results triggers `cancelRemainingInstances` in `AgentSubProcessRequestHandler.buildResponse()` (via `AgentConversationTurn.hasInterruptedToolCallResults()`)
 
 ### Event Payload
 
@@ -1075,7 +1075,7 @@ the final, `Completed` round, not on any intermediate `Continuation` round:
 ### Job Worker Response Variables
 
 On final completion (no tool calls):
-- `agent` variable = `JobWorkerAgentResponse` containing:
+- `agent` variable = `AgentSubProcessResponse` containing:
   - `responseText`, `responseJson`, `responseMessage`
   - Optionally `context` (if `includeAgentContext` is true)
 - `agentContext` variable = updated agent context
@@ -1140,7 +1140,7 @@ Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatM
 
 ### Key Differences from Standard Connectors
 
-1. **Dual activation modes**: Both an outbound connector (`AiAgentFunction`) and a job worker (`AiAgentJobWorker`) are registered. The job worker bypasses the standard connector runtime, handling variable resolution, secret injection, and exception handling directly.
+1. **Dual activation modes**: Both an outbound connector (`AgentTaskV1Function`) and a job worker (`AgentSubProcessV1Function`) are registered. The job worker bypasses the standard connector runtime, handling variable resolution, secret injection, and exception handling directly.
 2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([§12](#12-framework-abstraction)) allows the LangChain4J stack to be replaced or extended per provider. Provider selection is by `ChatModelFactory.supports(...)` via the SPI registry; the LangChain4J configuration loads unconditionally.
 3. **Pluggable system prompt contributors**: All `SystemPromptContributor` beans are auto-collected into `SystemPromptComposerImpl`.
 4. **Pluggable gateway tool handlers**: All `GatewayToolHandler` beans are auto-collected into `GatewayToolHandlerRegistryImpl`.
@@ -1207,9 +1207,9 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 ## 18. Key Code Paths Reference
 
 ### Entry Points
-- `AiAgentFunction.execute()` → Connector (Task) entry point
-- `AiAgentJobWorker.execute()` → Job worker (Sub-process) entry point
-- `AiAgentJobWorker.execute()` wraps into `AiAgentSubProcessConnectorResponse` → handled by `SpringConnectorJobHandler`
+- `AgentTaskV1Function.execute()` → Connector (Task) entry point
+- `AgentSubProcessV1Function.execute()` → Job worker (Sub-process) entry point
+- `AgentSubProcessV1Function.execute()` wraps into `AgentSubProcessConnectorResponse` → handled by `SpringConnectorJobHandler`
 
 ### Core Agent Logic
 - `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → load + reconstruct → compose → rehydrate → LLM (continuation loop) → ingest → persist → complete
@@ -1223,8 +1223,8 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `AgentResponseHandlerImpl.createResponse()` → Response formatting
 
 ### Job Completion
-- `AiAgentSubProcessConnectorResponse.elementActivations()` → AHSP element activations from tool calls
-- `JobWorkerAgentRequestHandler.buildConnectorResponse()` → Job worker response assembly (no-op vs response)
+- `AgentSubProcessConnectorResponse.elementActivations()` → AHSP element activations from tool calls
+- `AgentSubProcessRequestHandler.buildConnectorResponse()` → Job worker response assembly (no-op vs response)
 
 ### Memory
 - `ConversationStoreRegistryImpl.getConversationStore()` → Store resolution
@@ -1261,10 +1261,10 @@ classDiagram
     direction TB
 
     %% --- Entry points ---
-    class AiAgentFunction {
+    class AgentTaskV1Function {
         <<OutboundConnectorFunction>>
     }
-    class AiAgentJobWorker {
+    class AgentSubProcessV1Function {
         <<OutboundConnectorFunction>>
     }
 
@@ -1276,15 +1276,15 @@ classDiagram
     class BaseAgentRequestHandler~C, R~ {
         <<abstract>>
     }
-    class OutboundConnectorAgentRequestHandler
-    class JobWorkerAgentRequestHandler
+    class AgentTaskRequestHandler
+    class AgentSubProcessRequestHandler
 
     BaseAgentRequestHandler ..|> AgentRequestHandler
-    OutboundConnectorAgentRequestHandler --|> BaseAgentRequestHandler
-    JobWorkerAgentRequestHandler --|> BaseAgentRequestHandler
+    AgentTaskRequestHandler --|> BaseAgentRequestHandler
+    AgentSubProcessRequestHandler --|> BaseAgentRequestHandler
 
-    AiAgentFunction --> OutboundConnectorAgentRequestHandler
-    AiAgentJobWorker --> JobWorkerAgentRequestHandler
+    AgentTaskV1Function --> AgentTaskRequestHandler
+    AgentSubProcessV1Function --> AgentSubProcessRequestHandler
 
     %% --- Core orchestration dependencies ---
     class AgentInitializer {
@@ -1404,10 +1404,10 @@ classDiagram
 
 ### E2E Tests
 - `connectors-e2e-test/connectors-e2e-test-agentic-ai/` — Full integration tests
-- `BaseAiAgentJobWorkerTest` — Job worker test base
-- `BaseAiAgentConnectorTest` — Connector test base
-- `AiAgentJobWorkerFeedbackLoopTests` — Feedback loop tests
-- `AiAgentJobWorkerToolCallingTests` — Tool calling tests
+- `BaseAgentSubProcessTest` — Job worker test base
+- `BaseAgentTaskTest` — Connector test base
+- `AgentSubProcessFeedbackLoopTests` — Feedback loop tests
+- `AgentSubProcessToolCallingTests` — Tool calling tests
 
 ---
 

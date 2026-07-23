@@ -11,7 +11,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Cha
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetricsTokenUsageBuilder;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.ProviderConfiguration;
 import java.util.Optional;
 
 /**

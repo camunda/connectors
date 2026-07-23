@@ -24,18 +24,18 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGen
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolverImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
-import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
-import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
+import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
+import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
-import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultCompletedAtResolver;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
@@ -299,7 +299,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
-  public OutboundConnectorAgentRequestHandler aiAgentOutboundConnectorAgentRequestHandler(
+  public AgentTaskRequestHandler aiAgentTaskRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentConversationTurnInputComposer,
@@ -307,7 +307,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
-    return new OutboundConnectorAgentRequestHandler(
+    return new AgentTaskRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
         agentConversationTurnInputComposer,
@@ -322,10 +322,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
-  public AiAgentFunction aiAgentFunction(
+  public AgentTaskV1Function aiAgentTaskV1Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      OutboundConnectorAgentRequestHandler agentRequestHandler) {
-    return new AiAgentFunction(toolElementsResolver, agentRequestHandler);
+      AgentTaskRequestHandler agentRequestHandler) {
+    return new AgentTaskV1Function(toolElementsResolver, agentRequestHandler);
   }
 
   @Bean
@@ -333,7 +333,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
       matchIfMissing = true)
-  public JobWorkerAgentRequestHandler aiAgentJobWorkerAgentRequestHandler(
+  public AgentSubProcessRequestHandler aiAgentSubProcessRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentConversationTurnInputComposer,
@@ -341,7 +341,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
-    return new JobWorkerAgentRequestHandler(
+    return new AgentSubProcessRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
         agentConversationTurnInputComposer,
@@ -356,7 +356,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
       matchIfMissing = true)
-  public AiAgentJobWorker aiAgentJobWorker(JobWorkerAgentRequestHandler agentRequestHandler) {
-    return new AiAgentJobWorker(agentRequestHandler);
+  public AgentSubProcessV1Function aiAgentSubProcessV1Function(
+      AgentSubProcessRequestHandler agentRequestHandler) {
+    return new AgentSubProcessV1Function(agentRequestHandler);
   }
 }

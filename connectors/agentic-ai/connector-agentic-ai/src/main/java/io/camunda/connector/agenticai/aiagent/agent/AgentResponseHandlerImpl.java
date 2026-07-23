@@ -17,7 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponseBuilder;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorResponseConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
@@ -35,7 +35,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AgentResponseHandlerImpl.class);
   private static final ResponseConfiguration DEFAULT_RESPONSE_CONFIGURATION =
-      new OutboundConnectorResponseConfiguration(new TextResponseFormatConfiguration(false), false);
+      new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false);
 
   private final ObjectMapper objectMapper;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;

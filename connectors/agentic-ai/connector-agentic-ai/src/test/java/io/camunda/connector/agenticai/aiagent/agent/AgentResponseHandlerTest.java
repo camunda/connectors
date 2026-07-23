@@ -26,7 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorResponseConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
@@ -109,8 +109,7 @@ class AgentResponseHandlerTest {
         AssistantMessage assistantMessage) {
       final var response =
           createResponse(
-              new OutboundConnectorResponseConfiguration(
-                  new TextResponseFormatConfiguration(false), false),
+              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false),
               assistantMessage);
 
       assertThat(response.responseMessage()).isNull();
@@ -122,8 +121,7 @@ class AgentResponseHandlerTest {
     void returnsTextResponseIfConfigured() {
       final var response =
           createResponse(
-              new OutboundConnectorResponseConfiguration(
-                  new TextResponseFormatConfiguration(false), false),
+              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false),
               assistantMessage(HAIKU_TEXT));
 
       assertThat(response.responseMessage()).isNull();
@@ -144,8 +142,7 @@ class AgentResponseHandlerTest {
     void returnsTextResponseIfResponseFormatIsMissing() {
       final var response =
           createResponse(
-              new OutboundConnectorResponseConfiguration(null, false),
-              assistantMessage(HAIKU_TEXT));
+              new AgentTaskResponseConfiguration(null, false), assistantMessage(HAIKU_TEXT));
 
       assertThat(response.responseMessage()).isNull();
       assertThat(response.responseText()).isEqualTo(HAIKU_TEXT);
@@ -156,8 +153,7 @@ class AgentResponseHandlerTest {
     void triesToParseResponseTextAsJsonIfConfigured() {
       final var response =
           createResponse(
-              new OutboundConnectorResponseConfiguration(
-                  new TextResponseFormatConfiguration(true), false),
+              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), false),
               assistantMessage(HAIKU_JSON));
 
       assertThat(response.responseMessage()).isNull();
@@ -169,8 +165,7 @@ class AgentResponseHandlerTest {
     void returnsNullAsJsonObjectWhenParsingJsonFails() {
       final var response =
           createResponse(
-              new OutboundConnectorResponseConfiguration(
-                  new TextResponseFormatConfiguration(true), false),
+              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), false),
               assistantMessage(HAIKU_TEXT));
 
       assertThat(response.responseMessage()).isNull();
@@ -186,8 +181,7 @@ class AgentResponseHandlerTest {
       // when
       final var response =
           createResponse(
-              new OutboundConnectorResponseConfiguration(
-                  new TextResponseFormatConfiguration(true), false),
+              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), false),
               assistantMessage(markdownWrappedJson));
 
       // then
@@ -204,8 +198,7 @@ class AgentResponseHandlerTest {
       // when
       final var response =
           createResponse(
-              new OutboundConnectorResponseConfiguration(
-                  new TextResponseFormatConfiguration(true), false),
+              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), false),
               assistantMessage(markdownWrappedJson));
 
       // then
@@ -219,8 +212,7 @@ class AgentResponseHandlerTest {
       AssistantMessage assistantMessage = assistantMessage(HAIKU_TEXT);
       final var response =
           createResponse(
-              new OutboundConnectorResponseConfiguration(
-                  new TextResponseFormatConfiguration(false), true),
+              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), true),
               assistantMessage);
 
       assertThat(response.responseMessage()).isNotNull().isEqualTo(assistantMessage);
@@ -242,7 +234,7 @@ class AgentResponseHandlerTest {
     void returnsParsedJsonResponse() {
       final var response =
           createResponse(
-              new OutboundConnectorResponseConfiguration(
+              new AgentTaskResponseConfiguration(
                   new JsonResponseFormatConfiguration(null, null), false),
               assistantMessage(HAIKU_JSON));
 
@@ -256,7 +248,7 @@ class AgentResponseHandlerTest {
       assertThatThrownBy(
               () ->
                   createResponse(
-                      new OutboundConnectorResponseConfiguration(
+                      new AgentTaskResponseConfiguration(
                           new JsonResponseFormatConfiguration(null, null), false),
                       assistantMessage(HAIKU_TEXT)))
           .hasMessageStartingWith("Failed to parse response content as JSON")
@@ -275,7 +267,7 @@ class AgentResponseHandlerTest {
       // when
       final var response =
           createResponse(
-              new OutboundConnectorResponseConfiguration(
+              new AgentTaskResponseConfiguration(
                   new JsonResponseFormatConfiguration(null, null), false),
               assistantMessage(markdownWrappedJson));
 
@@ -293,7 +285,7 @@ class AgentResponseHandlerTest {
       // when
       final var response =
           createResponse(
-              new OutboundConnectorResponseConfiguration(
+              new AgentTaskResponseConfiguration(
                   new JsonResponseFormatConfiguration(null, null), false),
               assistantMessage(markdownWrappedJson));
 

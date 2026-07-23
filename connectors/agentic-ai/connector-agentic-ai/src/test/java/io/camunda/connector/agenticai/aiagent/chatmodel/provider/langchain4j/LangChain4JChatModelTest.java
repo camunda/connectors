@@ -39,7 +39,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
-import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorResponseConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
@@ -232,8 +232,7 @@ class LangChain4JChatModelTest {
     mockChatMessageConverterMapsInputMessages();
     api.execute(
         new ChatRequest(
-            createExecutionContext(new OutboundConnectorResponseConfiguration(null, false)),
-            SNAPSHOT));
+            createExecutionContext(new AgentTaskResponseConfiguration(null, false)), SNAPSHOT));
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.responseFormat()).isNull();
@@ -245,7 +244,7 @@ class LangChain4JChatModelTest {
     api.execute(
         new ChatRequest(
             createExecutionContext(
-                new OutboundConnectorResponseConfiguration(
+                new AgentTaskResponseConfiguration(
                     new JsonResponseFormatConfiguration(null, null), false)),
             SNAPSHOT));
 
@@ -266,7 +265,7 @@ class LangChain4JChatModelTest {
     api.execute(
         new ChatRequest(
             createExecutionContext(
-                new OutboundConnectorResponseConfiguration(
+                new AgentTaskResponseConfiguration(
                     new JsonResponseFormatConfiguration(schema, schemaName), false)),
             SNAPSHOT));
 
@@ -290,7 +289,7 @@ class LangChain4JChatModelTest {
     api.execute(
         new ChatRequest(
             createExecutionContext(
-                new OutboundConnectorResponseConfiguration(
+                new AgentTaskResponseConfiguration(
                     new JsonResponseFormatConfiguration(schema, schemaName), false)),
             SNAPSHOT));
 
@@ -338,8 +337,7 @@ class LangChain4JChatModelTest {
 
   private AgentExecutionContext createExecutionContext() {
     return createExecutionContext(
-        new OutboundConnectorResponseConfiguration(
-            new TextResponseFormatConfiguration(false), false));
+        new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false));
   }
 
   private AgentExecutionContext createExecutionContext(
