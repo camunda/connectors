@@ -91,9 +91,248 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "Anthropic",
+      "value" : "anthropic"
+    }, {
       "name" : "Custom Implementation (Self-Managed/Hybrid only)",
       "value" : "custom"
     } ]
+  }, {
+    "id" : "provider.anthropic.backend.type",
+    "label" : "Connection",
+    "description" : "Specify how the Anthropic Messages API is reached.",
+    "value" : "anthropic-api",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Anthropic API",
+      "value" : "anthropic-api"
+    }, {
+      "name" : "Custom / compatible endpoint",
+      "value" : "compatible"
+    } ]
+  }, {
+    "id" : "provider.anthropic.backend.apiKey",
+    "label" : "Anthropic API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "anthropic-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.endpoint",
+    "label" : "API endpoint",
+    "description" : "Base URL of the Anthropic-compatible Messages API (e.g. <code>https://api.anthropic.com</code>).",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "compatible",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The connector appends <code>/v1/messages</code>.",
+    "placeholder" : "https://api.anthropic.com",
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.headers",
+    "label" : "Headers",
+    "description" : "Map of HTTP headers to add to the request.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "compatible",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.queryParameters",
+    "label" : "Query parameters",
+    "description" : "Map of query parameters to add to the request URL.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "compatible",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.requestParameters",
+    "label" : "Request parameters",
+    "description" : "Map of additional request (body) parameters to include.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.requestParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "compatible",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.compatibleAuthentication.type",
+    "label" : "Authentication",
+    "description" : "Authentication for the compatible API.",
+    "value" : "none",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.compatibleAuthentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "compatible",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
+      "name" : "API key",
+      "value" : "apiKey"
+    } ]
+  }, {
+    "id" : "provider.anthropic.backend.compatibleAuthentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.compatibleAuthentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.compatibleAuthentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "compatible",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.api",
+    "label" : "API",
+    "optional" : false,
+    "value" : "messages",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.api",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.anthropic.timeouts.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.timeouts.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "String"
   }, {
     "id" : "provider.providerType",
     "label" : "Provider type",
@@ -132,6 +371,225 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "provider.anthropic.model.model",
+    "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "placeholder" : "claude-sonnet-4-6",
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.model.parameters.maxTokens",
+    "label" : "Maximum tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.maxTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.anthropic.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.anthropic.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.anthropic.model.parameters.topK",
+    "label" : "top K",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.topK",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.anthropic.model.parameters.effort",
+    "label" : "Effort",
+    "description" : "Leave unset to use the model default.",
+    "optional" : true,
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.effort",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. It affects all output — text, tool calls and extended thinking. <code>low</code> is the most efficient (fewest tokens, fastest, some capability reduction); <code>medium</code> balances speed, cost and quality; <code>high</code> is full capability; <code>xhigh</code> targets long-running coding and agentic work; <code>max</code> gives maximum capability with no token constraints. Not supported on all models. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/effort\" target=\"_blank\">effort documentation</a>.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "low",
+      "value" : "low"
+    }, {
+      "name" : "medium",
+      "value" : "medium"
+    }, {
+      "name" : "high",
+      "value" : "high"
+    }, {
+      "name" : "xhigh",
+      "value" : "xhigh"
+    }, {
+      "name" : "max",
+      "value" : "max"
+    } ]
+  }, {
+    "id" : "provider.anthropic.model.parameters.thinking.mode",
+    "label" : "Thinking mode",
+    "optional" : true,
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.thinking.mode",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Extended thinking mechanism. Leave blank to use the model default. 'enabled' = manual token budget (older models); 'adaptive' = model-managed (newer models); 'disabled' = off. Support varies by model.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "enabled",
+      "value" : "enabled"
+    }, {
+      "name" : "adaptive",
+      "value" : "adaptive"
+    }, {
+      "name" : "disabled",
+      "value" : "disabled"
+    } ]
+  }, {
+    "id" : "provider.anthropic.model.parameters.thinking.budgetTokens",
+    "label" : "Thinking budget tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.thinking.budgetTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.model.parameters.thinking.mode",
+        "equals" : "enabled",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Max tokens the model may spend on extended thinking. Required and used only when thinking mode is 'enabled' (min 1024).",
+    "type" : "Number"
+  }, {
+    "id" : "provider.anthropic.model.parameters.thinking.display",
+    "label" : "Thinking display",
+    "optional" : true,
+    "value" : "summarized",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.thinking.display",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.model.parameters.thinking.mode",
+        "equals" : "adaptive",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Controls how the model's extended thinking is returned: <code>summarized</code> includes a plain-text summary of the thinking in the response; <code>omitted</code> leaves it out.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "summarized",
+      "value" : "summarized"
+    }, {
+      "name" : "omitted",
+      "value" : "omitted"
+    } ]
+  }, {
+    "id" : "provider.anthropic.enablePromptCaching",
+    "label" : "Enable prompt caching",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.enablePromptCaching",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Enables Anthropic automatic prompt caching by adding a top-level <code>cache_control: {\"type\": \"ephemeral\"}</code> to each request. The API automatically caches the longest stable prefix (system prompt, tool definitions and earlier conversation messages) and reuses it across requests made within the cache lifetime (5 minutes). Cache hits require a byte-identical prefix; the system prompt and tools stay stable across turns, but note that once the message window starts evicting the oldest messages the message-history portion of the prefix shifts each turn. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">automatic caching documentation</a>.",
+    "type" : "Boolean"
   }, {
     "id" : "provider.model",
     "label" : "Model",
