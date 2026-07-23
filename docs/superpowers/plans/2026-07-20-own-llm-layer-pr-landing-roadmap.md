@@ -29,6 +29,54 @@ open/reviewed in parallel).
 
 ---
 
+## Live landing status (2026-07-23) — supersedes the abstract PR1–PR5 labels where they differ
+
+Actual in-flight GitHub stack:
+
+```
+#8023 (SPI, roadmap PR1) ──▶ rename/prep PR ──▶ #8043 (v2-config-types, roadmap "PR3")
+```
+
+- **#8023** — roadmap PR1 (generic SPI + message-model reshape). Open; all checks green except the manual
+  `QA-approval` gate.
+- **rename/prep PR** *(in progress — being split OUT of #8043)* — stacked directly on #8023. Contains the
+  agentic-ai **class-naming normalization** (below) + **prep-for-v2** (V1-suffix additions where warranted,
+  shared request-data extraction). No net-new v2 behavior. This absorbs and expands the "v1 rename" the roadmap
+  had folded into PR3.
+- **#8043** — v2-config-types (roadmap "PR3"), being **re-stacked on top of the rename/prep PR**, then carrying
+  ONLY net-new v2 code. Shipped **custom-only + matrix-free** (Anthropic/OpenAI config types + capability matrix
+  deferred to later PRs), so it is NOT gated on the roadmap's PR2 capabilities work. See the custom-only split
+  record in memory.
+
+### Class-naming normalization (rename/prep PR) — rules, from the v2-config-types agent
+
+Repo-wide rename across `connector-agentic-ai` (~49 files: classes, Spring bean method names, javadoc, ADRs,
+`AGENTS.md`, `docs/reference/ai-agent.md`) + `connectors-e2e-test-agentic-ai` (36 files; test packages
+`jobworker`→`subprocess`, `outboundconnector`→`task`). Three rules:
+
+1. `JobWorker` / `OutboundConnector` naming → `AgentSubProcess` / `AgentTask` (matches the connector-flavor
+   names used in element templates/docs).
+2. Drop the redundant `V1` suffix **everywhere EXCEPT** the top-level `Function` and `Request` classes, where the
+   version is part of the public contract — keep: `AgentTaskV1Function`, `AgentSubProcessV1Request`; drop on:
+   execution contexts, request handlers, responses, provider configuration.
+3. Drop the `Ai` prefix → settle on `Agent` (e.g. `AiAgentJobWorker` → `AgentSubProcessV1Function`).
+
+**Provider configuration is disambiguated by PACKAGE, not suffix** (confirmed from bak-branch commit `217c65977d`):
+`v1/V1ProviderConfiguration` → `v1/ProviderConfiguration` AND `v2/V2ProviderConfiguration` → `v2/ProviderConfiguration`
+— both are bare `ProviderConfiguration`, distinguished only by their `…model.request.v1` vs `…model.request.v2`
+package. So `V1`/`V2` survives ONLY on connector `Function` classes and `Request` objects. The pass also extracts
+shared request data (`AgentSubProcessRequestData` / `AgentTaskRequestData`).
+
+- `JobWorkerAgentResponse` was a previously-missed class found + renamed during the audit.
+- **Connector type ID strings are the external contract and are deliberately UNTOUCHED** (e.g.
+  `io.camunda.connectors.agenticai.aiagent.jobworker.v1`) — this is internal naming only.
+- Verified: **1529 unit tests green** in `connector-agentic-ai`; the e2e module test-compiles clean.
+
+> **Post-rename, class-name references elsewhere in this doc and the other planning docs are STALE** (they use
+> `AiAgent*` / `JobWorker*` / `OutboundConnector*`). Trust the three rules above, not the old leaf names.
+
+---
+
 ## PR1 — Generic SPI + message-model reshape (v1 / Langchain4J only, behavior-identical)
 
 **Replaces** the earlier PR #7847.
