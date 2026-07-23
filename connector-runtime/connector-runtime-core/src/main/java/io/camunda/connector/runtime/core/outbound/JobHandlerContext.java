@@ -77,6 +77,17 @@ public class JobHandlerContext extends AbstractConnectorContext
     return mappedObject;
   }
 
+  /**
+   * Exposes the {@link ObjectMapper} this context was built with (i.e. the correct per-physical-
+   * tenant mapper selected by {@code OutboundConnectorManager}), so that {@link
+   * io.camunda.connector.runtime.core.outbound.operation.OperationInvoker} can deserialize
+   * {@code @Variable}/{@code @Header} parameters with it instead of a mapper captured once at
+   * connector registration time.
+   */
+  public ObjectMapper getObjectMapper() {
+    return objectMapper;
+  }
+
   private String getJsonReplacedWithSecrets() {
     if (jsonWithSecrets == null) {
       jsonWithSecrets =

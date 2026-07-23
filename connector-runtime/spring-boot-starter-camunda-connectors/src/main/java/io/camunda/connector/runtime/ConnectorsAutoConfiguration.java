@@ -249,6 +249,10 @@ public class ConnectorsAutoConfiguration {
   @OutboundConnectorObjectMapper
   @ConditionalOnMissingBean(name = "outboundConnectorObjectMapper")
   public ObjectMapper outboundConnectorObjectMapper(DocumentFactory documentFactory) {
+    return buildOutboundConnectorObjectMapper(documentFactory);
+  }
+
+  private static ObjectMapper buildOutboundConnectorObjectMapper(DocumentFactory documentFactory) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
     var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
 

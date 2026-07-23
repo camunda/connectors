@@ -61,6 +61,15 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private final Cache cache;
 
   /**
+   * Source/binary-compatibility overload for existing callers compiled against the original
+   * single-tenant {@code (CamundaClient, Cache)} constructor: defaults {@code physicalTenantId} to
+   * {@code "default"}, matching this class's original (pre-#6961) single-tenant behavior.
+   */
+  public ProcessDefinitionSecretKeyCache(CamundaClient camundaClient, Cache cache) {
+    this("default", camundaClient, cache);
+  }
+
+  /**
    * @param physicalTenantId identifies the physical tenant this instance's {@code camundaClient}
    *     belongs to. Mixed into the (shared, bounded) cache key so that two physical tenants whose
    *     {@code processDefinitionKey} values happen to collide don't return each other's secret keys

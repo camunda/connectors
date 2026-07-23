@@ -142,6 +142,14 @@ public class AnnotatedOperationTests {
   }
 
   JobHandlerContext createMockContext(String json, String operation, Map<String, String> headers) {
+    return this.createMockContext(json, operation, headers, objectMapper);
+  }
+
+  JobHandlerContext createMockContext(
+      String json,
+      String operation,
+      Map<String, String> headers,
+      ObjectMapper contextObjectMapper) {
     var activatedJob = mock(ActivatedJob.class);
     var operationHeader = Map.of("operation", operation);
     Map<String, String> customHeaders;
@@ -158,7 +166,7 @@ public class AnnotatedOperationTests {
         new NoOpSecretProvider(),
         validationProvider,
         null,
-        objectMapper,
+        contextObjectMapper,
         SecretFilter.allowAll());
   }
 
@@ -177,5 +185,55 @@ public class AnnotatedOperationTests {
     var result = invoker.execute(createMockContext(json, "myOperation7"));
 
     assertEquals(6, result);
+  }
+
+  /**
+   * #6961: {@link io.camunda.connector.runtime.core.outbound.operation.OperationInvoker} must use
+   * the {@link ObjectMapper} carried by the runtime {@link JobHandlerContext} (the correct
+   * per-physical-tenant mapper) rather than the mapper captured once when the operation-based
+   * connector was registered — otherwise a connector registered against one tenant's mapper would
+   * silently use that tenant's {@code DocumentFactory}/settings for every other tenant's jobs.
+   * These tests use deliberately mismatched mappers — a strict, bare {@link ObjectMapper} at
+   * registration time that would fail on this operation's input, and the fully-configured {@link
+   * TestObjectMapperSupplier#INSTANCE} on the context — so they only pass if the context's mapper
+   * is actually the one used.
+   */
+  @Test
+  public void shouldUseContextObjectMapper_notRegistrationTimeMapper_forVariableResolution() {
+    var strictRegistrationMapper = new ObjectMapper();
+    var mismatchedInvoker =
+        new OutboundConnectorOperationFunction(
+            ConnectorOperations.from(connector, strictRegistrationMapper, validationProvider));
+
+    // myOperation's unnamed `nestedObjectWithoutName` @Variable parameter deserializes the whole
+    // JSON root document, which has additional unrelated properties (myStringParam, myObjectParam)
+    // that strictRegistrationMapper would reject (FAIL_ON_UNKNOWN_PROPERTIES enabled by default),
+    // but TestObjectMapperSupplier.INSTANCE (used here as the context's mapper) tolerates.
+    var result =
+        mismatchedInvoker.execute(
+            createMockContext(json, "myOperation", null, TestObjectMapperSupplier.INSTANCE));
+
+    assertEquals("Hello, World!", result);
+  }
+
+  @Test
+  public void shouldUseContextObjectMapper_notRegistrationTimeMapper_forHeaderResolution() {
+    // a bare ObjectMapper has no FEEL support, so it cannot convert the "=x+2" header string into
+    // the Function<Map<String, Integer>, Integer> parameter type that myOperation5 expects.
+    var registrationMapperWithoutFeelSupport = new ObjectMapper();
+    var mismatchedInvoker =
+        new OutboundConnectorOperationFunction(
+            ConnectorOperations.from(
+                connector, registrationMapperWithoutFeelSupport, validationProvider));
+
+    var result =
+        mismatchedInvoker.execute(
+            createMockContext(
+                "{\"x\": 10}",
+                "myOperation5",
+                Map.of("myFeelFunction", "=x+2"),
+                TestObjectMapperSupplier.INSTANCE));
+
+    assertEquals(12L, result);
   }
 }

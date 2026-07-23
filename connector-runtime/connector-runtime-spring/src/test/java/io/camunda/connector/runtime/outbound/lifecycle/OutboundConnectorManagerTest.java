@@ -62,6 +62,9 @@ class OutboundConnectorManagerTest {
       OutboundConnectorFactory connectorFactory,
       Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId,
       Map<String, SecretFilterFactory> secretFilterFactoriesByPhysicalTenantId) {
+    var objectMappersByPhysicalTenantId =
+        documentFactoriesByPhysicalTenantId.keySet().stream()
+            .collect(java.util.stream.Collectors.toMap(id -> id, id -> mock(ObjectMapper.class)));
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
@@ -69,7 +72,7 @@ class OutboundConnectorManagerTest {
         mock(SecretProviderAggregator.class),
         mock(ValidationProvider.class),
         documentFactoriesByPhysicalTenantId,
-        mock(ObjectMapper.class),
+        objectMappersByPhysicalTenantId,
         mock(MetricsRecorder.class),
         secretFilterFactoriesByPhysicalTenantId,
         null);
