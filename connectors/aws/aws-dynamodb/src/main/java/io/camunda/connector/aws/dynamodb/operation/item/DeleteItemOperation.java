@@ -6,16 +6,17 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.item;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.dynamodb.model.DeleteItem;
+import io.camunda.connector.aws.dynamodb.model.DeleteItemResult;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import io.camunda.connector.aws.dynamodb.util.AttributeValueConverter;
+import java.util.Map;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.DeleteItemResponse;
 
 public class DeleteItemOperation implements AwsDynamoDbOperation {
 
@@ -28,16 +29,16 @@ public class DeleteItemOperation implements AwsDynamoDbOperation {
   }
 
   @Override
-  public Object invoke(final DynamoDB dynamoDb) {
-    return dynamoDb.getTable(deleteItemModel.tableName()).deleteItem(createKeyAttributes());
-  }
-
-  private KeyAttribute[] createKeyAttributes() {
-    List<KeyAttribute> keyAttributeList = new ArrayList<>();
-    objectMapper
-        .convertValue(
-            deleteItemModel.primaryKeyComponents(), new TypeReference<HashMap<String, Object>>() {})
-        .forEach((key, value) -> keyAttributeList.add(new KeyAttribute(key, value)));
-    return keyAttributeList.toArray(KeyAttribute[]::new);
+  public DeleteItemResult invoke(final DynamoDbClient client) {
+    Map<String, Object> key =
+        objectMapper.convertValue(
+            deleteItemModel.primaryKeyComponents(), new TypeReference<Map<String, Object>>() {});
+    DeleteItemResponse response =
+        client.deleteItem(
+            DeleteItemRequest.builder()
+                .tableName(deleteItemModel.tableName())
+                .key(AttributeValueConverter.toAttributeValueMap(key))
+                .build());
+    return DeleteItemResult.from(response);
   }
 }

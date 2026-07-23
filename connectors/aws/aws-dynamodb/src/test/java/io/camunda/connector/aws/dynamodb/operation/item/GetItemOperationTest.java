@@ -8,13 +8,8 @@ package io.camunda.connector.aws.dynamodb.operation.item;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
-import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -22,84 +17,97 @@ import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.GetItem;
-import java.util.ArrayList;
+import io.camunda.connector.aws.dynamodb.util.AttributeValueConverter;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
 
 class GetItemOperationTest extends BaseDynamoDbOperationTest {
 
   private GetItemOperation getItemOperation;
-  @Captor private ArgumentCaptor<PrimaryKey> keyAttributesCaptor;
 
-  @BeforeEach
-  public void setup() {
-    GetItem getItem =
-        new GetItem(TestDynamoDBData.ActualValue.TABLE_NAME, Map.of("id", "1", "type", "user"));
-    getItemOperation = new GetItemOperation(getItem);
-  }
-
-  @SuppressWarnings("unchecked")
   @Test
   void invoke_shouldReturnItemAttributes_whenItemExists() {
     // Given
-    Item mockItem = Item.fromMap(Map.of("id", "1", "type", "user", "name", "Alice"));
-    when(table.getItem(keyAttributesCaptor.capture())).thenReturn(mockItem);
+    GetItem getItem =
+        new GetItem(TestDynamoDBData.ActualValue.TABLE_NAME, Map.of("id", "1", "type", "user"));
+    getItemOperation = new GetItemOperation(getItem);
+
+    Map<String, AttributeValue> itemAttributes = new LinkedHashMap<>();
+    itemAttributes.put("id", AttributeValue.fromS("1"));
+    itemAttributes.put("type", AttributeValue.fromS("user"));
+    itemAttributes.put("name", AttributeValue.fromS("Alice"));
+    GetItemResponse response = GetItemResponse.builder().item(itemAttributes).build();
+    ArgumentCaptor<GetItemRequest> requestCaptor = ArgumentCaptor.forClass(GetItemRequest.class);
+    when(dynamoDbClient.getItem(requestCaptor.capture())).thenReturn(response);
 
     // When
-    Iterable<Map.Entry<String, Object>> result =
-        (Iterable<Map.Entry<String, Object>>) getItemOperation.invoke(dynamoDB);
+    Object result = getItemOperation.invoke(dynamoDbClient);
 
     // Then
-    verify(dynamoDB, times(1)).getTable(TestDynamoDBData.ActualValue.TABLE_NAME);
-    verify(table, times(1)).getItem(any(PrimaryKey.class));
-    ArrayList<KeyAttribute> keyAttributes =
-        new ArrayList<>(keyAttributesCaptor.getValue().getComponents());
-    assertThat(keyAttributes)
-        .asList()
-        .contains(new KeyAttribute("id", "1"), new KeyAttribute("type", "user"));
-    assertThat(result).containsExactlyElementsOf(mockItem.attributes());
+    assertThat(requestCaptor.getValue().key())
+        .isEqualTo(Map.of("id", AttributeValue.fromS("1"), "type", AttributeValue.fromS("user")));
+    assertThat(result).isEqualTo(AttributeValueConverter.toSingleKeyEntries(itemAttributes));
   }
 
-  @SuppressWarnings("unchecked")
+  /**
+   * Numeric-key preservation: a numeric primary-key component must be sent as an {@code N}
+   * AttributeValue (via {@code AttributeValue.fromN}), not coerced to a string. This guards the
+   * plain-value -> AttributeValue conversion path the SDK v2 migration reprogrammed by hand ({@link
+   * AttributeValueConverter}); every other operation-level key test uses a string key, so this is
+   * the only one exercising the numeric branch that motivated the conversion path.
+   */
+  @Test
+  void invoke_sendsNumericPrimaryKeyComponentAsNumberAttribute() {
+    GetItem getItem = new GetItem(TestDynamoDBData.ActualValue.TABLE_NAME, Map.of("id", 123));
+    getItemOperation = new GetItemOperation(getItem);
+    ArgumentCaptor<GetItemRequest> requestCaptor = ArgumentCaptor.forClass(GetItemRequest.class);
+    when(dynamoDbClient.getItem(requestCaptor.capture()))
+        .thenReturn(GetItemResponse.builder().build());
+
+    getItemOperation.invoke(dynamoDbClient);
+
+    assertThat(requestCaptor.getValue().key()).containsEntry("id", AttributeValue.fromN("123"));
+  }
+
   @Test
   void invoke_shouldReturnNull_whenItemDoesNotExist() {
     // Given
-    when(table.getItem(any(KeyAttribute.class), any(KeyAttribute.class))).thenReturn(null);
+    GetItem getItem = new GetItem(TestDynamoDBData.ActualValue.TABLE_NAME, Map.of("id", "1"));
+    getItemOperation = new GetItemOperation(getItem);
+    when(dynamoDbClient.getItem(any(GetItemRequest.class)))
+        .thenReturn(GetItemResponse.builder().build());
 
     // When
-    Map<String, Object> result = (Map<String, Object>) getItemOperation.invoke(dynamoDB);
+    Object result = getItemOperation.invoke(dynamoDbClient);
 
     // Then
-    verify(dynamoDB, times(1)).getTable(TestDynamoDBData.ActualValue.TABLE_NAME);
-    verify(table, times(1)).getItem(any(PrimaryKey.class));
     assertThat(result).isNull();
   }
 
   /**
    * Golden-JSON shape test: pins the exact JSON the v1 getItem operation writes to process
    * variables today, so the AWS SDK v2 migration must reproduce it unchanged (migration contract
-   * for #7973). Pins the "array of single-key objects" quirk: {@code Item#attributes()} returns an
-   * {@code Iterable<Map.Entry<String,Object>>}, and Jackson's built-in Map.Entry serializer writes
-   * each entry as its own single-key JSON object -- NOT a single merged JSON object.
+   * for #7973). Pins the "array of single-key objects" quirk.
    */
   @Test
   void getItem_serializesToDocumentedV1JsonShape_whenItemExists() throws Exception {
     // Given a realistic item with multiple attributes, in a defined order
-    Map<String, Object> itemAttributes = new LinkedHashMap<>();
-    itemAttributes.put("id", "1");
-    itemAttributes.put("name", "Alice");
-    itemAttributes.put("age", 30);
-    Item mockItem = Item.fromMap(itemAttributes);
+    Map<String, AttributeValue> itemAttributes = new LinkedHashMap<>();
+    itemAttributes.put("id", AttributeValue.fromS("1"));
+    itemAttributes.put("name", AttributeValue.fromS("Alice"));
+    itemAttributes.put("age", AttributeValue.fromN("30"));
     GetItem getItem = new GetItem(TestDynamoDBData.ActualValue.TABLE_NAME, Map.of("id", "1"));
     GetItemOperation operation = new GetItemOperation(getItem);
-    when(table.getItem(any(PrimaryKey.class))).thenReturn(mockItem);
+    when(dynamoDbClient.getItem(any(GetItemRequest.class)))
+        .thenReturn(GetItemResponse.builder().item(itemAttributes).build());
 
     // When
-    Object result = operation.invoke(dynamoDB);
+    Object result = operation.invoke(dynamoDbClient);
 
     // Then: an array of single-key objects, one per attribute, in the item's own field order --
     // not a single merged {"id":"1","name":"Alice","age":30} object.
@@ -114,25 +122,27 @@ class GetItemOperationTest extends BaseDynamoDbOperationTest {
         """;
     JsonNode expected = objectMapper.readTree(expectedJson);
     assertThat(actual).isEqualTo(expected);
-    // This shape derives from a List and Jackson's built-in Map.Entry serializer (not bean
-    // reflection), so -- unlike the outcome envelopes in AddItemOperationTest et al. -- the
-    // serialized order is fully deterministic and safe to pin verbatim.
+    // This shape derives from a List and Jackson's built-in Map.Entry-like serialization (not
+    // bean reflection), so the serialized order is fully deterministic and safe to pin verbatim.
     assertThat(objectMapper.writeValueAsString(result))
         .isEqualTo(objectMapper.writeValueAsString(expected));
   }
 
   /**
    * Golden-JSON shape test companion: when the item does not exist, the operation returns {@code
-   * null} (via {@code Optional.ofNullable(...).map(Item::attributes).orElse(null)}), which the
-   * production mapper serializes as the JSON literal {@code null} -- not an empty array.
+   * null} -- which the production mapper serializes as the JSON literal {@code null} -- not an
+   * empty array. AWS SDK v2's {@code GetItemResponse#item()} returns an empty map (never {@code
+   * null}) when there is no match, so {@code GetItemOperation} must check {@code hasItem()}
+   * explicitly to reproduce this.
    */
   @Test
   void getItem_serializesToDocumentedV1JsonShape_whenItemDoesNotExist() throws Exception {
     GetItem getItem = new GetItem(TestDynamoDBData.ActualValue.TABLE_NAME, Map.of("id", "1"));
     GetItemOperation operation = new GetItemOperation(getItem);
-    when(table.getItem(any(PrimaryKey.class))).thenReturn(null);
+    when(dynamoDbClient.getItem(any(GetItemRequest.class)))
+        .thenReturn(GetItemResponse.builder().build());
 
-    Object result = operation.invoke(dynamoDB);
+    Object result = operation.invoke(dynamoDbClient);
 
     assertThat(result).isNull();
     assertThat(objectMapper.writeValueAsString(result)).isEqualTo("null");
