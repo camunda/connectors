@@ -123,10 +123,18 @@ public class ConfigurationValidationService {
       ConfigurationValidator<Object> validator =
           (ConfigurationValidator<Object>) registered.validator();
       // A validator's returned result (including its message) is passed through unchanged: that
-      // text
-      // is author-authored and deliberate. A *thrown* exception is not — it may wrap SDK/framework
-      // messages carrying credential material — so its message is logged, never surfaced.
-      return validator.validate(configuration);
+      // text is author-authored and deliberate. A *thrown* exception is not — it may wrap
+      // SDK/framework messages carrying credential material — so its message is logged, never
+      // surfaced.
+      ConfigurationValidationResult result = validator.validate(configuration);
+      if (result == null) {
+        // The SDK contract does not enforce a non-null result; a validator returning null would
+        // otherwise NPE in response mapping and surface as HTTP 500. Normalize it to the same
+        // value-free failure used for a thrown validator error.
+        LOG.warn("Validator for configuration '{}' returned null", request.credentialId());
+        return ConfigurationValidationResult.failure(DEFAULT_FAILURE_CODE, VALIDATOR_ERROR_MESSAGE);
+      }
+      return result;
     } catch (Exception e) {
       // Log only the exception type, never the throwable: a validator exception can wrap
       // SDK/framework messages carrying credential material.

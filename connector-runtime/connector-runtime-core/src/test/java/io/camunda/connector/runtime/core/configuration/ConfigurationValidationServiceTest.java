@@ -66,6 +66,17 @@ class ConfigurationValidationServiceTest {
     }
   }
 
+  @Configuration(id = "null", name = "Null")
+  record NullConfig(String value) {}
+
+  /** The SDK contract does not forbid a null result; the service must not NPE on it. */
+  static class NullReturningValidator implements ConfigurationValidator<NullConfig> {
+    @Override
+    public ConfigurationValidationResult validate(NullConfig configuration) {
+      return null;
+    }
+  }
+
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   private FeelExpressionEvaluator feelReturning(String json) {
@@ -95,7 +106,11 @@ class ConfigurationValidationServiceTest {
   private ConfigurationValidationService serviceWith(String resolvedJson) {
     var registry =
         new ConfigurationValidationRegistry(
-            List.of(new OkValidator(), new ThrowingValidator(), new ConstrainedValidator()));
+            List.of(
+                new OkValidator(),
+                new ThrowingValidator(),
+                new ConstrainedValidator(),
+                new NullReturningValidator()));
     SecretProvider noSecrets =
         new SecretProvider() {
           @Override
@@ -130,6 +145,17 @@ class ConfigurationValidationServiceTest {
     assertThat(result.code()).isEqualTo("UNAUTHORIZED");
     // The thrown exception's free-text message must never reach the client.
     assertThat(result.message()).doesNotContain("invalid key");
+  }
+
+  @Test
+  void mapsNullValidatorResultToFailureInsteadOfNpe() {
+    var service = serviceWith("{\"value\":\"x\"}");
+
+    var result = service.validate(new ConfigurationValidationRequest("null", "=ref", "tenant"));
+
+    assertThat(result).isNotNull();
+    assertThat(result.status()).isEqualTo(Status.FAILURE);
+    assertThat(result.code()).isEqualTo("ERROR");
   }
 
   @Test
