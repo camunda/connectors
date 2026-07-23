@@ -71,12 +71,12 @@ limitations under the License.</license.inlineheader>
 
     <!-- Camunda internal libraries -->
     <version.camunda>8.8.29</version.camunda>
-    <version.feel-engine>1.21.0</version.feel-engine>
+    <version.feel-engine>1.22.0</version.feel-engine>
 
     <!-- Third party dependencies -->
 
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
-    <version.grpc>1.82.2</version.grpc>
+    <version.grpc>1.83.0</version.grpc>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.23.0</version.mockito>
@@ -92,21 +92,21 @@ limitations under the License.</license.inlineheader>
     <version.spring-boot>3.5.16-spring-boot-3.5.17</version.spring-boot>
     <tomcat.version>10.1.56</tomcat.version>
     <version.spring-cloud-gcp-starter-logging>7.4.10</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.38</version.logback>
+    <version.logback>1.6.0</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.48.1</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.49.2</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.48.1</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.49.2</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.48.1</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.49.2</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
     <version.google-api-client>2.9.0</version.google-api-client>
 
-    <version.google-http-client>2.1.1</version.google-http-client>
+    <version.google-http-client>2.2.0</version.google-http-client>
 
     <version.google-api-services-drive>v3-rev20260712-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
@@ -128,7 +128,7 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>4.3.1</version.kafka-clients>
 
-    <version.microsoft-graph>6.66.1</version.microsoft-graph>
+    <version.microsoft-graph>6.67.0</version.microsoft-graph>
     <version.azure-identity>1.18.4</version.azure-identity>
     <version.azure-cosmos>4.81.0</version.azure-cosmos>
 
@@ -156,7 +156,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.6.0</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
     
-    <version.langchain4j>1.17.2</version.langchain4j>
+    <version.langchain4j>1.18.0</version.langchain4j>
     <!-- CVE-2026-9563: parsson transitive override — remove once langchain4j-opensearch ships parsson >= 1.1.8
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-9563 -->
     <version.parsson>1.1.9</version.parsson>
@@ -165,13 +165,13 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.6.3</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
-    <plugin.version.license>5.0.0</plugin.version.license>
+    <plugin.version.license>5.1.1</plugin.version.license>
     <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.2</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>3.8.0</plugin.version.spotless-maven-plugin>
-    <plugin.version.maven-jar-plugin>3.5.0</plugin.version.maven-jar-plugin>
+    <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
   </properties>
 
   <dependencyManagement>
