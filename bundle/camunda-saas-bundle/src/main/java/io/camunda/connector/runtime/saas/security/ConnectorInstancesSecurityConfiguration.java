@@ -81,12 +81,18 @@ public class ConnectorInstancesSecurityConfiguration {
   @Order(2)
   public SecurityFilterChain connectorInstancesFilterChain(HttpSecurity http) throws Exception {
     http.cors(Customizer.withDefaults())
-        .csrf(csrf -> csrf.ignoringRequestMatchers("/inbound-instances/**", "/outbound/**"))
+        .csrf(
+            csrf ->
+                csrf.ignoringRequestMatchers(
+                    "/inbound-instances/**", "/outbound/**", "/configurations/**"))
         .securityMatchers(
             requestMatcherConfigurer ->
-                requestMatcherConfigurer.requestMatchers("/inbound-instances/**", "/outbound/**"))
+                requestMatcherConfigurer.requestMatchers(
+                    "/inbound-instances/**", "/outbound/**", "/configurations/**"))
         .authorizeHttpRequests(
-            auth -> auth.requestMatchers("/inbound-instances/**", "/outbound/**").authenticated())
+            auth ->
+                auth.requestMatchers("/inbound-instances/**", "/outbound/**", "/configurations/**")
+                    .authenticated())
         .oauth2ResourceServer(
             oauth2 -> oauth2.jwt(jwt -> jwt.decoder(connectorInstancesJwtDecoder())));
     return http.build();

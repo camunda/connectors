@@ -64,6 +64,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -74,6 +75,9 @@ import org.springframework.scheduling.annotation.Scheduled;
   InboundConnectorsAutoConfiguration.class,
   CamundaAutoConfiguration.class
 })
+// Configuration (credential) validation is direction-agnostic, so it is wired here in the neutral
+// runtime auto-configuration rather than the outbound-specific one.
+@Import(io.camunda.connector.runtime.configuration.ConfigurationValidationConfiguration.class)
 @EnableConfigurationProperties(ConnectorProperties.class)
 public class ConnectorsAutoConfiguration {
 

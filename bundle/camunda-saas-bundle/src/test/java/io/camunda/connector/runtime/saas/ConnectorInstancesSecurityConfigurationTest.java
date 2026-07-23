@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.saas;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.camunda.client.CamundaClient;
@@ -29,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -98,5 +100,21 @@ public class ConnectorInstancesSecurityConfigurationTest {
   @Test
   public void outboundEndpoint_withAuth_returns200() throws Exception {
     mvc.perform(get("/outbound").with(jwt())).andExpect(status().isOk());
+  }
+
+  @Test
+  public void configurationsEndpoint_noAuth_returns401() throws Exception {
+    mvc.perform(post("/configurations/validate")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  public void configurationsEndpoint_withAuth_isNotUnauthorized() throws Exception {
+    mvc.perform(
+            post("/configurations/validate")
+                .with(jwt())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"credentialId\":\"unknown\",\"credentialRef\":\"=x\",\"tenantId\":\"t\"}"))
+        .andExpect(status().isOk());
   }
 }
