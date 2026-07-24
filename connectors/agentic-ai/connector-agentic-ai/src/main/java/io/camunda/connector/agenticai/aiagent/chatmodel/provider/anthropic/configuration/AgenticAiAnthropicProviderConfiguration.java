@@ -17,14 +17,16 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Registers the {@link AnthropicChatModelApiFactory} as a {@code ChatModelFactory} bean so it is
  * picked up by {@code aiAgentChatModelRegistry(List<ChatModelFactory>)} and resolved for the
- * configurations it supports.
+ * configurations it supports. A dedicated, imported configuration per native provider, mirroring
+ * {@code AgenticAiLangChain4JChatModelConfiguration}'s pattern for the LangChain4J-routed
+ * providers.
  */
 @Configuration
 public class AgenticAiAnthropicProviderConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AnthropicChatModelApiFactory anthropicChatModelApiFactory(
+  public AnthropicChatModelApiFactory aiAgentAnthropicChatModelApiFactory(
       HttpTransportSupport httpTransportSupport,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new AnthropicChatModelApiFactory(httpTransportSupport, objectMapper);

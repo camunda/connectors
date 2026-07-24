@@ -253,7 +253,7 @@ class RealProviderApiSmokeIT {
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING,
-                        Map.of("provider.anthropic.enablePromptCaching", "true"),
+                        Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
                     Capability.REASONING,
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "enabled",
@@ -269,7 +269,7 @@ class RealProviderApiSmokeIT {
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING,
-                        Map.of("provider.anthropic.enablePromptCaching", "true"),
+                        Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
                     Capability.REASONING,
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",

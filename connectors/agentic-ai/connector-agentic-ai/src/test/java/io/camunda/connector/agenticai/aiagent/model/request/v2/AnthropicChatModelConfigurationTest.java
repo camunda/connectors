@@ -49,10 +49,10 @@ class AnthropicChatModelConfigurationTest {
               "parameters": {
                 "maxTokens": 1024,
                 "effort": "high",
-                "thinking": { "mode": "enabled", "budgetTokens": 2048 }
+                "thinking": { "mode": "enabled", "budgetTokens": 2048 },
+                "promptCaching": { "enabled": true }
               }
-            },
-            "enablePromptCaching": true
+            }
           }
         }
         """;
@@ -68,10 +68,9 @@ class AnthropicChatModelConfigurationTest {
     assertThat(anthropic.anthropic().backend()).isInstanceOf(AnthropicApiBackend.class);
     assertThat(((AnthropicApiBackend) anthropic.anthropic().backend()).apiKey())
         .isEqualTo("sk-ant-123");
-    assertThat(anthropic.anthropic().enablePromptCaching()).isTrue();
-
     final AnthropicModelParameters parameters = anthropic.anthropic().model().parameters();
     assertThat(parameters).isNotNull();
+    assertThat(parameters.promptCaching().enabled()).isTrue();
     assertThat(parameters.maxTokens()).isEqualTo(1024);
     assertThat(parameters.effort()).isEqualTo(AnthropicEffort.HIGH);
     assertThat(parameters.thinking())
@@ -131,7 +130,6 @@ class AnthropicChatModelConfigurationTest {
                 new AnthropicApiBackend("  "),
                 null,
                 new AnthropicModel("claude-sonnet-4-6", null),
-                null,
                 null));
 
     final var violations = validator.validate(config);
@@ -142,14 +140,14 @@ class AnthropicChatModelConfigurationTest {
   @Test
   void thinkingBudgetTokensRejectsValuesBelowMinimum() {
     final var thinking = new AnthropicThinking(ThinkingMode.ENABLED, 512, null);
-    final var parameters = new AnthropicModelParameters(null, null, null, null, null, thinking);
+    final var parameters =
+        new AnthropicModelParameters(null, thinking, null, null, null, null, null);
     final var config =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
                 new AnthropicApiBackend("sk-ant-123"),
                 null,
                 new AnthropicModel("claude-sonnet-4-6", parameters),
-                null,
                 null));
 
     final Set<ConstraintViolation<AnthropicChatModelConfiguration>> violations =
@@ -166,7 +164,6 @@ class AnthropicChatModelConfigurationTest {
                 new AnthropicApiBackend("sk-ant-123"),
                 null,
                 new AnthropicModel("claude-sonnet-4-6", null),
-                null,
                 null));
 
     assertThat(validator.validate(config)).isEmpty();
@@ -181,7 +178,6 @@ class AnthropicChatModelConfigurationTest {
                     "", null, null, null, new CompatibleApiKeyAuthentication("  ")),
                 null,
                 new AnthropicModel("claude-sonnet-4-6", null),
-                null,
                 null));
 
     final var violations = validator.validate(config);

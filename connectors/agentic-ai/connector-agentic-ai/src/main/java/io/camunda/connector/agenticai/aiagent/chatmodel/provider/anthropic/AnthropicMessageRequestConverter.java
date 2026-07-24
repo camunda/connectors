@@ -76,7 +76,7 @@ public class AnthropicMessageRequestConverter {
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
     applyOutputConfig(builder, ctx.configuration().response(), params);
-    applyPromptCaching(builder, connection);
+    applyPromptCaching(builder, params);
     applyCompatibleBackendExtensions(builder, connection);
 
     return builder.build();
@@ -181,8 +181,9 @@ public class AnthropicMessageRequestConverter {
    * portion of the prefix once it starts evicting the oldest messages.
    */
   private void applyPromptCaching(
-      MessageCreateParams.Builder builder, AnthropicConnection connection) {
-    if (Boolean.TRUE.equals(connection.enablePromptCaching())) {
+      MessageCreateParams.Builder builder, @Nullable AnthropicModelParameters params) {
+    final var promptCaching = params == null ? null : params.promptCaching();
+    if (promptCaching != null && Boolean.TRUE.equals(promptCaching.enabled())) {
       builder.cacheControl(CacheControlEphemeral.builder().build());
     }
   }

@@ -131,7 +131,7 @@
     } ]
   }, {
     "id" : "provider.anthropic.backend.type",
-    "label" : "Connection",
+    "label" : "Backend",
     "description" : "Specify how the Anthropic Messages API is reached.",
     "value" : "anthropic-api",
     "group" : "provider",
@@ -180,7 +180,7 @@
   }, {
     "id" : "provider.anthropic.backend.endpoint",
     "label" : "API endpoint",
-    "description" : "Base URL of the Anthropic-compatible Messages API (e.g. <code>https://api.anthropic.com</code>).",
+    "description" : "Base URL of the Anthropic-compatible API (e.g. <code>https://api.anthropic.com</code>); <code>/v1/messages</code> will be appended.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -202,7 +202,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The connector appends <code>/v1/messages</code>.",
     "placeholder" : "https://api.anthropic.com",
     "type" : "String"
   }, {
@@ -254,7 +253,7 @@
   }, {
     "id" : "provider.anthropic.backend.requestParameters",
     "label" : "Request parameters",
-    "description" : "Map of additional request (body) parameters to include.",
+    "description" : "Map of additional parameters to include in the request body.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
@@ -537,14 +536,14 @@
       "value" : "omitted"
     } ]
   }, {
-    "id" : "provider.anthropic.enablePromptCaching",
+    "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
     "label" : "Enable prompt caching",
     "optional" : true,
     "value" : false,
     "feel" : "static",
     "group" : "model",
     "binding" : {
-      "name" : "provider.anthropic.enablePromptCaching",
+      "name" : "provider.anthropic.model.parameters.promptCaching.enabled",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -552,7 +551,7 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
-    "tooltip" : "Enables Anthropic automatic prompt caching by adding a top-level <code>cache_control: {\"type\": \"ephemeral\"}</code> to each request. The API automatically caches the longest stable prefix (system prompt, tool definitions and earlier conversation messages) and reuses it across requests made within the cache lifetime (5 minutes). Cache hits require a byte-identical prefix; the system prompt and tools stay stable across turns, but note that once the message window starts evicting the oldest messages the message-history portion of the prefix shifts each turn. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">automatic caching documentation</a>.",
+    "tooltip" : "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
     "type" : "Boolean"
   }, {
     "id" : "provider.model",

@@ -307,7 +307,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
                   new AnthropicConnection(
                       new AnthropicApiBackend("sk-ant-test"),
                       new AnthropicModel("claude-sonnet-4-6", null),
-                      null,
                       null));
 
           // resolving must not throw the registry's "no chat model registered" error -- the

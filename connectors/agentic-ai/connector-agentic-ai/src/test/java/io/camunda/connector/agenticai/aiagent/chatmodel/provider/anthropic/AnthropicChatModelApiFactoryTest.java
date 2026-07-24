@@ -86,7 +86,7 @@ class AnthropicChatModelApiFactoryTest {
   private static AnthropicChatModelConfiguration apiConfig(String modelId) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
-            new AnthropicApiBackend("sk-ant-test"), new AnthropicModel(modelId, null), null, null));
+            new AnthropicApiBackend("sk-ant-test"), new AnthropicModel(modelId, null), null));
   }
 
   private static AnthropicChatModelConfiguration compatibleConfig(String modelId) {
@@ -99,7 +99,6 @@ class AnthropicChatModelApiFactoryTest {
                 null,
                 new CompatibleNoAuthentication()),
             new AnthropicModel(modelId, null),
-            null,
             null));
   }
 }
