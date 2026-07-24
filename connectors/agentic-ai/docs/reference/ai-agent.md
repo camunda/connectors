@@ -933,10 +933,8 @@ The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockPr
 etc.) is the concrete implementation contributed by this module. Today the v1 request supplies
 configurations through this sealed union only; request-side binding for a custom/native
 `ChatModelConfiguration` is delivered incrementally by the v2 request types (`ProviderConfiguration`
-in `model/request/v2`). It currently permits `CustomProviderConfiguration` (a genuinely runnable path
-for user-supplied factories, see [§25.1](#251-add-an-llm-provider)) and `AnthropicChatModelConfiguration`
-— a fully native (non-LangChain4J) Anthropic Messages provider, the first built-in v2 member and the
-reference implementation for a native provider (see [§25.1](#251-add-an-llm-provider)).
+in `model/request/v2`), which is the extension point for both built-in native providers and
+user-supplied factories via `CustomProviderConfiguration` (see [§25.1](#251-add-an-llm-provider)).
 `ChatModelRegistryImpl` asks every registered `ChatModelFactory` whether it `supports` the
 configuration and routes to the single match; a configuration matched by zero factories throws
 `IllegalArgumentException`, and one matched by more than one throws `IllegalStateException` — fail

@@ -16,11 +16,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Provider-neutral proxy resolution for OkHttp-based vendor SDKs (anthropic-java, openai-java),
- * which accept a {@link Proxy} rather than a pre-built HTTP client. Built directly on top of the
- * shared {@link ProxyConfiguration} building block (the same one {@code AgenticAiHttpProxySupport}
- * exposes) so it stays framework-neutral -- no {@code dev.langchain4j.*} dependency, and no
- * AWS/Azure/JDK-client concerns that only the LangChain4j-backed providers need (see {@code
- * ChatModelHttpProxySupport} in the {@code langchain4j} package for those).
+ * which accept a {@link Proxy} rather than a pre-built HTTP client. Built on top of the shared
+ * {@link ProxyConfiguration} building block so it can be reused unchanged by every OkHttp-based
+ * provider.
  */
 public class HttpTransportSupport {
   private static final Logger LOG = LoggerFactory.getLogger(HttpTransportSupport.class);
