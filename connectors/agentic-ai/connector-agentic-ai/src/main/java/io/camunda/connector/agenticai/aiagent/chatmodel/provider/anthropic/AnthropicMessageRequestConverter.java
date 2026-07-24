@@ -77,7 +77,7 @@ public class AnthropicMessageRequestConverter {
     applyTools(builder, snapshot.toolDefinitions());
     applyOutputConfig(builder, ctx.configuration().response(), params);
     applyPromptCaching(builder, connection);
-    applyCompatibleRequestParameters(builder, connection);
+    applyCompatibleBackendExtensions(builder, connection);
 
     return builder.build();
   }
@@ -188,16 +188,27 @@ public class AnthropicMessageRequestConverter {
   }
 
   /**
-   * Merges the {@code compatible} backend's raw request (body) parameters onto the built request
-   * (e.g. vendor-specific extensions unsupported by the SDK's typed builder). {@code headers}/
-   * {@code queryParameters} on the same backend are applied at the client level (see {@code
-   * AnthropicChatModelApiFactory}), but body parameters can only be merged here, at request-
-   * building time.
+   * Merges the {@code compatible} backend's headers, query parameters, and raw request (body)
+   * parameters onto the built request. All three are applied here, per request, rather than split
+   * across client construction and request building: the {@link
+   * com.anthropic.client.AnthropicClient} is short-lived (built fresh per job worker execution, not
+   * reused across calls), so there's no amortization benefit to setting headers/queryParams at the
+   * client level, and {@link MessageCreateParams.Builder} already exposes all three uniformly
+   * ({@code putAdditionalHeader}/{@code putAdditionalQueryParam}/{@code
+   * putAdditionalBodyProperty}).
    */
-  private void applyCompatibleRequestParameters(
+  private void applyCompatibleBackendExtensions(
       MessageCreateParams.Builder builder, AnthropicConnection connection) {
-    if (connection.backend() instanceof AnthropicCompatibleBackend compatible
-        && compatible.requestParameters() != null) {
+    if (!(connection.backend() instanceof AnthropicCompatibleBackend compatible)) {
+      return;
+    }
+    if (compatible.headers() != null) {
+      compatible.headers().forEach(builder::putAdditionalHeader);
+    }
+    if (compatible.queryParameters() != null) {
+      compatible.queryParameters().forEach(builder::putAdditionalQueryParam);
+    }
+    if (compatible.requestParameters() != null) {
       compatible
           .requestParameters()
           .forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));

@@ -91,8 +91,8 @@ class AnthropicChatModelApiFactoryClientTest {
     var backend =
         new AnthropicCompatibleBackend(
             wireMock.getHttpBaseUrl(),
-            Map.of("X-Custom-Header", "custom-value"),
-            Map.of("api-version", "2026-01-01"),
+            null,
+            null,
             null,
             new CompatibleApiKeyAuthentication("compatible-secret-key"));
 
@@ -101,9 +101,7 @@ class AnthropicChatModelApiFactoryClientTest {
 
     verify(
         postRequestedFor(urlPathEqualTo("/v1/messages"))
-            .withHeader("x-api-key", equalTo("compatible-secret-key"))
-            .withHeader("X-Custom-Header", equalTo("custom-value"))
-            .withQueryParam("api-version", equalTo("2026-01-01")));
+            .withHeader("x-api-key", equalTo("compatible-secret-key")));
   }
 
   @Test

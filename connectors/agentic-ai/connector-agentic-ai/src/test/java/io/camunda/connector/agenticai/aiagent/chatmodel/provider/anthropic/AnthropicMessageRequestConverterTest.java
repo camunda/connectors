@@ -85,12 +85,23 @@ class AnthropicMessageRequestConverterTest {
   /** Builds a model on the {@code compatible} backend with the given additional body params. */
   private static AnthropicChatModelConfiguration compatibleModel(
       @Nullable Map<String, Object> requestParameters) {
+    return compatibleModel(null, null, requestParameters);
+  }
+
+  /**
+   * Builds a model on the {@code compatible} backend with the given headers, query parameters, and
+   * additional body params.
+   */
+  private static AnthropicChatModelConfiguration compatibleModel(
+      @Nullable Map<String, String> headers,
+      @Nullable Map<String, String> queryParameters,
+      @Nullable Map<String, Object> requestParameters) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicCompatibleBackend(
                 "https://example.com",
-                null,
-                null,
+                headers,
+                queryParameters,
                 requestParameters,
                 new CompatibleNoAuthentication()),
             new AnthropicModel("claude-sonnet-4-6", null),
@@ -733,7 +744,28 @@ class AnthropicMessageRequestConverterTest {
     }
   }
 
-  // --- Compatible backend: additional request (body) parameters --------------------------------
+  // --- Compatible backend: headers, query parameters, and request (body) parameters ------------
+
+  @Test
+  void compatibleBackendHeadersAreMergedAsAdditionalHeaders() {
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(compatibleModel(Map.of("X-Custom-Header", "custom-value"), null, null), null),
+            new ConversationSnapshot(List.of(), List.of()));
+
+    assertThat(params._additionalHeaders().values("X-Custom-Header"))
+        .containsExactly("custom-value");
+  }
+
+  @Test
+  void compatibleBackendQueryParametersAreMergedAsAdditionalQueryParameters() {
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(compatibleModel(null, Map.of("api-version", "2026-01-01"), null), null),
+            new ConversationSnapshot(List.of(), List.of()));
+
+    assertThat(params._additionalQueryParams().values("api-version")).containsExactly("2026-01-01");
+  }
 
   @Test
   void compatibleBackendRequestParametersAreMergedAsAdditionalBodyProperties() {
