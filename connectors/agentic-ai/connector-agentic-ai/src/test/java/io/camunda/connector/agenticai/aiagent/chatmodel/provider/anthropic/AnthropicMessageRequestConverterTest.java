@@ -77,7 +77,7 @@ class AnthropicMessageRequestConverterTest {
     final var promptCaching =
         enablePromptCaching == null ? null : new AnthropicPromptCaching(enablePromptCaching);
     final var parameters =
-        new AnthropicModelParameters(null, null, null, null, null, null, promptCaching);
+        new AnthropicModelParameters(null, null, promptCaching, null, null, null, null);
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicApiBackend("sk-ant-test"),
@@ -441,7 +441,7 @@ class AnthropicMessageRequestConverterTest {
     // topP, topK. endpoint/apiKey/timeout are transport-layer (AnthropicChatModelApiFactory's
     // concern); this asserts the remaining 5 model-parameter fields this converter is responsible
     // for.
-    final var parameters = new AnthropicModelParameters(null, null, 2048, 0.5, 0.9, 40, null);
+    final var parameters = new AnthropicModelParameters(null, null, null, 2048, 0.5, 0.9, 40);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(ctx(model(parameters), null), snapshot);
@@ -457,7 +457,7 @@ class AnthropicMessageRequestConverterTest {
   @SuppressWarnings(
       "deprecation") // temperature()/topP()/topK() deprecated in anthropic-java 2.48.0
   void usesConfiguredMaxTokensAndModelParams() {
-    final var parameters = new AnthropicModelParameters(null, null, 2048, 0.5, 0.9, 40, null);
+    final var parameters = new AnthropicModelParameters(null, null, null, 2048, 0.5, 0.9, 40);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
     final var response =
         new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), null);
