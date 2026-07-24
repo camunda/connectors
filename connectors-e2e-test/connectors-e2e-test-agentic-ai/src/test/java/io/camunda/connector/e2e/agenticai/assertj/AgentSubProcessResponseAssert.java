@@ -54,28 +54,18 @@ public class AgentSubProcessResponseAssert
     return this;
   }
 
-  public AgentSubProcessResponseAssert hasReasoningTokensGreaterThanZero() {
+  public AgentSubProcessResponseAssert metricsSatisfy(ThrowingConsumer<AgentMetrics> assertions) {
     isNotNull();
-    Assertions.assertThat(actual.context().metrics().tokenUsage().reasoningTokenCount())
-        .as("reasoning token count")
-        .isPositive();
+    Assertions.assertThat(actual.context().metrics()).satisfies(assertions);
     return this;
   }
 
-  public AgentSubProcessResponseAssert hasCacheCreationTokensGreaterThanZero() {
-    isNotNull();
-    Assertions.assertThat(actual.context().metrics().tokenUsage().cacheCreationTokenCount())
-        .as("cache creation token count")
-        .isPositive();
-    return this;
-  }
-
-  public AgentSubProcessResponseAssert hasCacheReadTokensGreaterThanZero() {
-    isNotNull();
-    Assertions.assertThat(actual.context().metrics().tokenUsage().cacheReadTokenCount())
-        .as("cache read token count")
-        .isPositive();
-    return this;
+  public AgentSubProcessResponseAssert hasReasoningTokens() {
+    return metricsSatisfy(
+        metrics ->
+            Assertions.assertThat(metrics.tokenUsage().reasoningTokenCount())
+                .as("reasoning token count")
+                .isPositive());
   }
 
   public AgentSubProcessResponseAssert hasNoResponseMessage() {
@@ -112,7 +102,7 @@ public class AgentSubProcessResponseAssert
     return this;
   }
 
-  public AgentSubProcessResponseAssert hasResponseTestSatisfying(
+  public AgentSubProcessResponseAssert hasResponseTextSatisfying(
       ThrowingConsumer<String> assertions) {
     isNotNull();
     Assertions.assertThat(actual.responseText()).isNotNull().satisfies(assertions);

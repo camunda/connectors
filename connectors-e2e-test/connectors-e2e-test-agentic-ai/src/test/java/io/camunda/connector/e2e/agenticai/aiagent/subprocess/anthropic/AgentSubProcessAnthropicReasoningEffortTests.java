@@ -16,111 +16,34 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess.anthropic;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PROPERTIES;
-import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesChatModelStubs.MESSAGES_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs.RedactedThinkingTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs.ThinkingTurnStub;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.Resource;
 
 /**
  * Native-Anthropic-only e2e coverage for the Anthropic reasoning ({@code thinking}) and {@code
- * effort} configuration surface (own-LLM-layer / v2): proves that the element-template properties,
- * their request-side mapping, and the response-side round-trip all work end to end through the REAL
- * Anthropic SDK types - the vendor SDK's {@code MessageAccumulator} on the response side, and its
- * {@code MessageCreateParams} builder on the request side - not just at the unit level.
+ * effort} configuration surface: proves that the element-template properties, their request-side
+ * mapping, and the response-side round-trip all work end to end through the REAL Anthropic SDK
+ * types - the vendor SDK's {@code MessageAccumulator} on the response side, and its {@code
+ * MessageCreateParams} builder on the request side - not just at the unit level.
  *
- * <p>Uses the v2/own-LLM-layer element template, {@code provider.anthropic.*} properties, and
- * {@link StreamingAnthropicMessagesSseChatModelStubs} for the streamed SSE response.
- *
- * <p>Capability-matrix-driven validation-failure coverage (i.e. asserting a model that doesn't
- * support a given thinking mode fails fast) is intentionally NOT ported: this worktree has no
- * capability-matrix subsystem to validate against.
+ * <p>Uses the v2 element template, {@code provider.anthropic.*} properties, and {@link
+ * StreamingAnthropicMessagesSseChatModelStubs} for the streamed SSE response.
  */
-class AgentSubProcessAnthropicReasoningEffortTests extends BaseAgentSubProcessTest {
-
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+class AgentSubProcessAnthropicReasoningEffortTests extends BaseAnthropicNativeSubProcessTest {
 
   private static final String REASONING_CAPABLE_MODEL = "claude-sonnet-4-6";
-
-  @Override
-  protected String elementTemplatePath() {
-    return AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH;
-  }
-
-  @Override
-  protected Map<String, String> elementTemplateProperties() {
-    return AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PROPERTIES;
-  }
-
-  /**
-   * Overridden directly (rather than the {@code withOpenAiCompatibleProvider} hook {@link
-   * BaseAgentSubProcessTest#createProcessInstance} composes) so this test's native-Anthropic
-   * provider configuration - not the openaiCompatible default - configures the element template.
-   * Each {@code @Test} method supplies its own {@code elementTemplateModifier} (model id,
-   * thinking/effort properties) which is applied AFTER the shared native-Anthropic backend wiring
-   * below.
-   */
-  @Override
-  protected ZeebeTest createProcessInstance(
-      Resource process,
-      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      Map<String, Object> variables)
-      throws IOException {
-    final Function<ElementTemplate, ElementTemplate> composed =
-        ((Function<ElementTemplate, ElementTemplate>) this::configureAnthropicBackend)
-            .andThen(elementTemplateModifier);
-    final var updatedElementTemplate =
-        elementTemplateWithModifications(elementTemplatePath(), composed);
-    final var updatedElementTemplateFile =
-        updatedElementTemplate.writeTo(new File(tempDir, "template.json"));
-    final var updatedModel = modelWithModifications(process.getFile(), updatedElementTemplateFile);
-    return createProcessInstance(customizeModel(updatedModel), variables);
-  }
-
-  /**
-   * Points the connector at this test's WireMock server via the native (v2) Anthropic compatible
-   * backend (the only Anthropic backend with a configurable endpoint), same wiring as {@link
-   * StreamingAnthropicMessagesWireFormatFixture}. Deliberately does NOT set {@code
-   * provider.anthropic.model.model} - every test sets its own model id (via its {@code
-   * elementTemplateModifier}).
-   */
-  private ElementTemplate configureAnthropicBackend(ElementTemplate template) {
-    return template
-        .property("provider.type", "anthropic")
-        .property("provider.anthropic.backend.type", "compatible")
-        .property("provider.anthropic.backend.endpoint", wireMock.getHttpBaseUrl())
-        .property("provider.anthropic.backend.compatibleAuthentication.type", "apiKey")
-        .property("provider.anthropic.backend.compatibleAuthentication.apiKey", "dummy");
-  }
-
-  private Function<ElementTemplate, ElementTemplate> model(String modelId) {
-    return template -> template.property("provider.anthropic.model.model", modelId);
-  }
 
   // ---------------------------------------------------------------------------
   // Thinking configuration on the wire
@@ -373,33 +296,5 @@ class AgentSubProcessAnthropicReasoningEffortTests extends BaseAgentSubProcessTe
     assertThat(redactedThinkingBlock.path("data").asText())
         .as("round-tripped redacted thinking data")
         .isEqualTo(expectedData);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Shared plumbing
-  // ---------------------------------------------------------------------------
-
-  private static LoggedRequest soleRecordedRequest() {
-    final var requests = recordedLoggedRequests();
-    assertThat(requests).as("recorded model-call requests").hasSize(1);
-    return requests.get(0);
-  }
-
-  private static List<LoggedRequest> recordedLoggedRequests() {
-    final List<LoggedRequest> requests =
-        new ArrayList<>(findAll(postRequestedFor(urlPathEqualTo(MESSAGES_PATH))));
-    requests.sort(Comparator.comparing(LoggedRequest::getLoggedDate));
-    return requests;
-  }
-
-  private static JsonNode parseBody(LoggedRequest loggedRequest) {
-    try {
-      return OBJECT_MAPPER.readTree(loggedRequest.getBodyAsString());
-    } catch (Exception e) {
-      throw new IllegalStateException(
-          "Failed to parse recorded Anthropic messages request body: "
-              + loggedRequest.getBodyAsString(),
-          e);
-    }
   }
 }
