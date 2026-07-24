@@ -175,10 +175,11 @@ public class AnthropicMessageResponseConverter {
 
   /**
    * Normalizes the raw Anthropic stop reason to the provider-neutral domain {@code StopReason}.
-   * {@code pause_turn} maps to {@code null} since it is surfaced as a {@link
-   * ChatResult.Continuation} rather than a stop reason (the turn isn't actually finished). Uses
-   * {@link StopReason#value()} rather than {@code known()} so a genuinely unrecognised future value
-   * degrades to an {@code UnknownStopReason} carrying the raw string instead of throwing.
+   * {@code pause_turn} still gets a domain stop reason here (it falls through to {@code
+   * UnknownStopReason} below) even though the same response is also surfaced as a {@link
+   * ChatResult.Continuation}. Uses {@link StopReason#value()} rather than {@code known()} so a
+   * genuinely unrecognised future value degrades to an {@code UnknownStopReason} carrying the raw
+   * string instead of throwing.
    */
   private io.camunda.connector.agenticai.aiagent.model.message.@Nullable StopReason mapStopReason(
       @Nullable StopReason stopReason) {
@@ -193,7 +194,6 @@ public class AnthropicMessageResponseConverter {
       case TOOL_USE -> io.camunda.connector.agenticai.aiagent.model.message.StopReason.TOOL_USE;
       case REFUSAL ->
           io.camunda.connector.agenticai.aiagent.model.message.StopReason.CONTENT_FILTERED;
-      case PAUSE_TURN -> null; // surfaced as Continuation, not a stop reason
       default ->
           new io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason(
               stopReason.asString());
