@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -20,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.error.ConnectorException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -171,6 +173,16 @@ class AnthropicContentConverterTest {
     }
 
     @Test
+    void throwsForUnsupportedDocumentContentType() {
+      final var doc = mockDocument("application/zip", "UEsDBA==");
+
+      assertThatThrownBy(
+              () -> converter.toContentBlockParams(List.of(new DocumentContent(doc, null))))
+          .isInstanceOf(ConnectorException.class)
+          .hasMessageContaining("application/zip");
+    }
+
+    @Test
     void mapsMultipleContentItemsInOrder() {
       final var doc = mockDocument("image/png", "QUJD");
       final List<Content> content =
@@ -228,6 +240,16 @@ class AnthropicContentConverterTest {
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isText()).isTrue();
       assertThat(blocks.get(0).text().orElseThrow().text()).isEqualTo("{\"a\":1}");
+    }
+
+    @Test
+    void throwsForUnsupportedDocumentContentType() {
+      final var doc = mockDocument("application/zip", "UEsDBA==");
+
+      assertThatThrownBy(
+              () -> converter.toToolResultBlocks(List.of(new DocumentContent(doc, null))))
+          .isInstanceOf(ConnectorException.class)
+          .hasMessageContaining("application/zip");
     }
 
     @Test
