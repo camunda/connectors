@@ -27,7 +27,7 @@ import org.jspecify.annotations.Nullable;
  * applying the configured timeout and the shared, provider-neutral {@link HttpTransportSupport}
  * proxy resolution.
  */
-public class AnthropicOkHttpClientFactory implements AnthropicClientFactory {
+public class AnthropicOkHttpClientFactory {
 
   /**
    * Placeholder API key sent for {@code compatible} backends configured with no authentication. The
@@ -51,7 +51,7 @@ public class AnthropicOkHttpClientFactory implements AnthropicClientFactory {
     this.proxy = transport.okHttpProxy(scheme != null ? scheme : ProxyConfiguration.SCHEME_HTTPS);
   }
 
-  @Override
+  /** Builds a fresh {@link AnthropicClient}; the caller owns its lifecycle. */
   public AnthropicClient create() {
     final var builder = AnthropicOkHttpClient.builder();
 

@@ -29,7 +29,8 @@ import org.slf4j.LoggerFactory;
  * Anthropic {@link ChatModel}: drives the vendor SDK's streaming Messages endpoint for every call
  * (Anthropic has no meaningful non-streaming distinction for this connector's purposes; streaming
  * is used uniformly to accumulate the same {@link Message} shape the non-streaming API would
- * return), then delegates to the Task 3/4/5 converters to translate to/from the domain model.
+ * return), then delegates to {@link AnthropicMessageRequestConverter} and {@link
+ * AnthropicMessageResponseConverter} to translate to/from the domain model.
  *
  * <p>The {@link AnthropicClient} is built once by the factory and owned for the lifetime of this
  * instance (one agent request, across all continuation rounds); {@link #close()} closes it once.

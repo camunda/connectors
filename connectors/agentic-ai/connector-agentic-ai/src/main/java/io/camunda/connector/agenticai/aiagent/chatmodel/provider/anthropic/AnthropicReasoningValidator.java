@@ -14,10 +14,9 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Fail-fast structural validation of a request's Anthropic {@code thinking} configuration, applied
- * before mapping it onto the SDK request. This is the one matrix-independent rule that survives
- * from the capability-matrix-coupled pilot validator (no {@code *Capabilities*} type is available
- * or referenced in this PR): {@code mode == ENABLED} requires a non-null {@code budgetTokens}
- * value, since the SDK's {@code ThinkingConfigEnabled} has no meaningful default budget.
+ * before mapping it onto the SDK request: {@code mode == ENABLED} requires a non-null {@code
+ * budgetTokens} value, since the SDK's {@code ThinkingConfigEnabled} has no meaningful default
+ * budget.
  *
  * <p>A {@code thinking} object with a null {@code mode} (the modeler left the dropdown blank) is
  * treated as unset and never triggers this check.
