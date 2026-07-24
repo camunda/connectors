@@ -57,8 +57,7 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Note: the domain {@code io.camunda.connector.agenticai.aiagent.model.message.StopReason} is
  * referenced by its fully qualified name throughout this class (rather than importing it under its
- * simple name) purely to avoid a name clash with the Anthropic SDK's own {@link StopReason}; Java
- * has no import-aliasing syntax to express this more concisely.
+ * simple name) purely to avoid a name clash with the Anthropic SDK's own {@link StopReason}.
  */
 public class AnthropicMessageResponseConverter {
 

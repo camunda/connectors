@@ -26,10 +26,10 @@ import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 /**
- * Native-Anthropic-only e2e coverage for the {@code provider.anthropic.enablePromptCaching}
- * element-template property: proves that enabling prompt caching actually adds the top-level {@code
- * cache_control: {"type": "ephemeral"}} field to the recorded wire request, and that leaving it
- * unset/off leaves the field off the wire.
+ * Native-Anthropic-only e2e coverage for the {@code
+ * provider.anthropic.model.parameters.promptCaching.enabled} element-template property: proves that
+ * enabling prompt caching actually adds the top-level {@code cache_control: {"type": "ephemeral"}}
+ * field to the recorded wire request, and that leaving it unset/off leaves the field off the wire.
  *
  * <p>Uses the v2 element template, {@code provider.anthropic.*} properties, and {@link
  * StreamingAnthropicMessagesSseChatModelStubs} for the streamed SSE response - mirrors {@link
@@ -52,7 +52,8 @@ class AgentSubProcessAnthropicPromptCachingTests extends BaseAnthropicNativeSubP
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
-        template -> template.property("provider.anthropic.enablePromptCaching", "true");
+        template ->
+            template.property("provider.anthropic.model.parameters.promptCaching.enabled", "true");
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));

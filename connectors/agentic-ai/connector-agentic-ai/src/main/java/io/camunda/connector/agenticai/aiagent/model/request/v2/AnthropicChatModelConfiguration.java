@@ -66,35 +66,15 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
               defaultValueType = TemplateProperty.DefaultValueType.String)
           AnthropicApi api,
       @Valid @NotNull AnthropicModel model,
-      @Valid @Nullable TimeoutConfiguration timeouts,
-      @TemplateProperty(
-              group = "model",
-              label = "Enable prompt caching",
-              tooltip =
-                  "Enables Anthropic automatic prompt caching by adding a top-level "
-                      + "<code>cache_control: {\"type\": \"ephemeral\"}</code> to each request. The API "
-                      + "automatically caches the longest stable prefix (system prompt, tool definitions "
-                      + "and earlier conversation messages) and reuses it across requests made within the "
-                      + "cache lifetime (5 minutes). Cache hits require a byte-identical prefix; the "
-                      + "system prompt and tools stay stable across turns, but note that once the message "
-                      + "window starts evicting the oldest messages the message-history portion of the "
-                      + "prefix shifts each turn. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">automatic caching documentation</a>.",
-              type = TemplateProperty.PropertyType.Boolean,
-              defaultValue = "false",
-              defaultValueType = TemplateProperty.DefaultValueType.Boolean,
-              optional = true)
-          @Nullable Boolean enablePromptCaching) {
+      @Valid @Nullable TimeoutConfiguration timeouts) {
 
     /**
      * Convenience constructor for callers that do not need to set the (currently single-valued)
      * {@code api} field explicitly; it defaults to {@link AnthropicApi#MESSAGES}.
      */
     public AnthropicConnection(
-        AnthropicBackend backend,
-        AnthropicModel model,
-        @Nullable TimeoutConfiguration timeouts,
-        @Nullable Boolean enablePromptCaching) {
-      this(backend, AnthropicApi.MESSAGES, model, timeouts, enablePromptCaching);
+        AnthropicBackend backend, AnthropicModel model, @Nullable TimeoutConfiguration timeouts) {
+      this(backend, AnthropicApi.MESSAGES, model, timeouts);
     }
 
     public AnthropicConnection {
@@ -121,7 +101,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
         name = "compatible")
   })
   @TemplateDiscriminatorProperty(
-      label = "Connection",
+      label = "Backend",
       group = "provider",
       name = "type",
       defaultValue = "anthropic-api",
@@ -162,8 +142,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 group = "provider",
                 label = "API endpoint",
                 description =
-                    "Base URL of the Anthropic-compatible Messages API (e.g. <code>https://api.anthropic.com</code>).",
-                tooltip = "The connector appends <code>/v1/messages</code>.",
+                    "Base URL of the Anthropic-compatible API (e.g. <code>https://api.anthropic.com</code>); "
+                        + "<code>/v1/messages</code> will be appended.",
                 type = TemplateProperty.PropertyType.String,
                 feel = FeelMode.optional,
                 placeholder = "https://api.anthropic.com",
@@ -187,7 +167,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
         @TemplateProperty(
                 group = "provider",
                 label = "Request parameters",
-                description = "Map of additional request (body) parameters to include.",
+                description = "Map of additional parameters to include in the request body.",
                 feel = FeelMode.required,
                 optional = true)
             @Nullable Map<String, Object> requestParameters,
@@ -218,6 +198,23 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       @Valid @Nullable AnthropicModelParameters parameters) {
 
     public record AnthropicModelParameters(
+        @TemplateProperty(
+                group = "model",
+                label = "Effort",
+                description = "Leave unset to use the model default.",
+                tooltip =
+                    "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. It affects all output — text, tool calls and extended thinking. <code>low</code> is the most efficient (fewest tokens, fastest, some capability reduction); <code>medium</code> balances speed, cost and quality; <code>high</code> is full capability; <code>xhigh</code> targets long-running coding and agentic work; <code>max</code> gives maximum capability with no token constraints. Not supported on all models. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/effort\" target=\"_blank\">effort documentation</a>.",
+                type = TemplateProperty.PropertyType.Dropdown,
+                choices = {
+                  @DropdownPropertyChoice(value = "low", label = "low"),
+                  @DropdownPropertyChoice(value = "medium", label = "medium"),
+                  @DropdownPropertyChoice(value = "high", label = "high"),
+                  @DropdownPropertyChoice(value = "xhigh", label = "xhigh"),
+                  @DropdownPropertyChoice(value = "max", label = "max")
+                },
+                optional = true)
+            @Nullable AnthropicEffort effort,
+        @Valid @Nullable AnthropicThinking thinking,
         @Min(0)
             @TemplateProperty(
                 group = "model-options",
@@ -258,23 +255,24 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 feel = FeelMode.required,
                 optional = true)
             @Nullable Integer topK,
+        @Valid @Nullable AnthropicPromptCaching promptCaching) {}
+
+    /**
+     * Anthropic automatic prompt caching. A record rather than a bare boolean so it stays
+     * extensible: a cache-type (e.g. explicit breakpoints instead of automatic) or a configurable
+     * TTL could be added as further fields without changing this property's wire shape.
+     */
+    public record AnthropicPromptCaching(
         @TemplateProperty(
                 group = "model",
-                label = "Effort",
-                description = "Leave unset to use the model default.",
+                label = "Enable prompt caching",
                 tooltip =
-                    "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. It affects all output — text, tool calls and extended thinking. <code>low</code> is the most efficient (fewest tokens, fastest, some capability reduction); <code>medium</code> balances speed, cost and quality; <code>high</code> is full capability; <code>xhigh</code> targets long-running coding and agentic work; <code>max</code> gives maximum capability with no token constraints. Not supported on all models. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/effort\" target=\"_blank\">effort documentation</a>.",
-                type = TemplateProperty.PropertyType.Dropdown,
-                choices = {
-                  @DropdownPropertyChoice(value = "low", label = "low"),
-                  @DropdownPropertyChoice(value = "medium", label = "medium"),
-                  @DropdownPropertyChoice(value = "high", label = "high"),
-                  @DropdownPropertyChoice(value = "xhigh", label = "xhigh"),
-                  @DropdownPropertyChoice(value = "max", label = "max")
-                },
+                    "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
+                type = TemplateProperty.PropertyType.Boolean,
+                defaultValue = "false",
+                defaultValueType = TemplateProperty.DefaultValueType.Boolean,
                 optional = true)
-            @Nullable AnthropicEffort effort,
-        @Valid @Nullable AnthropicThinking thinking) {}
+            @Nullable Boolean enabled) {}
 
     /** Anthropic extended-thinking configuration for a single model. */
     public record AnthropicThinking(

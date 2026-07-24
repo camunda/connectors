@@ -40,6 +40,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicPromptCaching;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicThinking;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.ThinkingDisplay;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleNoAuthentication;
@@ -67,19 +68,21 @@ class AnthropicMessageRequestConverterTest {
         new AnthropicConnection(
             new AnthropicApiBackend("sk-ant-test"),
             new AnthropicModel("claude-sonnet-4-6", parameters),
-            null,
             null));
   }
 
   /** Builds a model with only the prompt-caching toggle set. */
   private static AnthropicChatModelConfiguration promptCachingModel(
       @Nullable Boolean enablePromptCaching) {
+    final var promptCaching =
+        enablePromptCaching == null ? null : new AnthropicPromptCaching(enablePromptCaching);
+    final var parameters =
+        new AnthropicModelParameters(null, null, null, null, null, null, promptCaching);
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicApiBackend("sk-ant-test"),
-            new AnthropicModel("claude-sonnet-4-6", null),
-            null,
-            enablePromptCaching));
+            new AnthropicModel("claude-sonnet-4-6", parameters),
+            null));
   }
 
   /** Builds a model on the {@code compatible} backend with the given additional body params. */
@@ -105,7 +108,6 @@ class AnthropicMessageRequestConverterTest {
                 requestParameters,
                 new CompatibleNoAuthentication()),
             new AnthropicModel("claude-sonnet-4-6", null),
-            null,
             null));
   }
 
@@ -439,7 +441,7 @@ class AnthropicMessageRequestConverterTest {
     // topP, topK. endpoint/apiKey/timeout are transport-layer (AnthropicChatModelApiFactory's
     // concern); this asserts the remaining 5 model-parameter fields this converter is responsible
     // for.
-    final var parameters = new AnthropicModelParameters(2048, 0.5, 0.9, 40, null, null);
+    final var parameters = new AnthropicModelParameters(null, null, 2048, 0.5, 0.9, 40, null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(ctx(model(parameters), null), snapshot);
@@ -455,7 +457,7 @@ class AnthropicMessageRequestConverterTest {
   @SuppressWarnings(
       "deprecation") // temperature()/topP()/topK() deprecated in anthropic-java 2.48.0
   void usesConfiguredMaxTokensAndModelParams() {
-    final var parameters = new AnthropicModelParameters(2048, 0.5, 0.9, 40, null, null);
+    final var parameters = new AnthropicModelParameters(null, null, 2048, 0.5, 0.9, 40, null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
     final var response =
         new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), null);
@@ -513,11 +515,11 @@ class AnthropicMessageRequestConverterTest {
   // --- Reasoning: thinking / effort mapping ---------------------------------------------------
 
   private static AnthropicModelParameters thinkingParams(@Nullable AnthropicThinking thinking) {
-    return new AnthropicModelParameters(null, null, null, null, null, thinking);
+    return new AnthropicModelParameters(null, thinking, null, null, null, null, null);
   }
 
   private static AnthropicModelParameters effortParams(@Nullable AnthropicEffort effort) {
-    return new AnthropicModelParameters(null, null, null, null, effort, null);
+    return new AnthropicModelParameters(effort, null, null, null, null, null, null);
   }
 
   @Test
