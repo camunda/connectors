@@ -35,6 +35,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationP
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
+import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.instances.service.LocalInstanceForwardingRouter;
 import java.util.Collections;
 import java.util.List;
@@ -126,7 +127,9 @@ public class InboundEndpointTest {
 
     InboundConnectorRestController statusController =
         new InboundConnectorRestController(
-            executableRegistry, new LocalInstanceForwardingRouter(), true);
+            executableRegistry,
+            new LocalInstanceForwardingRouter(),
+            new WebhookConnectorRegistry(true));
 
     var response = statusController.getActiveInboundConnectors(null, null, null);
     assertEquals(1, response.size());

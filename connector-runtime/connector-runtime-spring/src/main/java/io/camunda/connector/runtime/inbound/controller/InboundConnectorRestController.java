@@ -20,6 +20,7 @@ import static io.camunda.connector.runtime.core.http.InstanceForwardingHttpClien
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.runtime.inbound.executable.*;
+import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
 import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,18 +45,28 @@ public class InboundConnectorRestController {
   public InboundConnectorRestController(
       InboundExecutableRegistry executableRegistry,
       InstanceForwardingRouter instanceForwardingRouter) {
-    this(executableRegistry, instanceForwardingRouter, false);
+    this(executableRegistry, instanceForwardingRouter, null);
   }
 
+  /**
+   * Derives the mapper's path-scoping flag from the actual {@link WebhookConnectorRegistry} bean
+   * (absent when webhooks are disabled) rather than re-resolving the {@code
+   * append-physical-tenant-and-tenant-to-path} property independently: the registry may have
+   * inferred the flag from the configured client count when the property is left unset (see {@code
+   * WebhookConnectorConfiguration}), and resolving it here a second time with its own default would
+   * disagree with the registry whenever that inference kicks in.
+   */
   @Autowired
   public InboundConnectorRestController(
       InboundExecutableRegistry executableRegistry,
       InstanceForwardingRouter instanceForwardingRouter,
-      @Value("${camunda.connector.webhook.append-physical-tenant-and-tenant-to-path:false}")
-          boolean appendPhysicalTenantAndTenantToPath) {
+      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     this.executableRegistry = executableRegistry;
     this.instanceForwardingRouter = instanceForwardingRouter;
-    this.connectorDataMapper = new ConnectorDataMapper(appendPhysicalTenantAndTenantToPath);
+    this.connectorDataMapper =
+        new ConnectorDataMapper(
+            webhookConnectorRegistry != null
+                && webhookConnectorRegistry.appendsPhysicalTenantAndTenantToPath());
   }
 
   @GetMapping("/inbound")

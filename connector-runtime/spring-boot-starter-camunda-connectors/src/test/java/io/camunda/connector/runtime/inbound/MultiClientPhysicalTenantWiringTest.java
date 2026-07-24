@@ -22,7 +22,6 @@ import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
-import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -57,8 +56,6 @@ class MultiClientPhysicalTenantWiringTest {
 
   @Autowired private Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId;
 
-  @Autowired private Map<String, InboundCorrelationHandler> correlationHandlersByPhysicalTenantId;
-
   @Autowired private Map<String, ProcessInstanceClient> processInstanceClientsByPhysicalTenantId;
 
   @Autowired private InboundConnectorContextFactory inboundConnectorContextFactory;
@@ -72,10 +69,22 @@ class MultiClientPhysicalTenantWiringTest {
   @Test
   void everyPerPhysicalTenantMapHasOneEntryPerConfiguredPhysicalTenant() {
     assertThat(searchQueryClientsByPhysicalTenantId).containsOnlyKeys("tenanta", "tenantb");
-    assertThat(correlationHandlersByPhysicalTenantId).containsOnlyKeys("tenanta", "tenantb");
     assertThat(processInstanceClientsByPhysicalTenantId).containsOnlyKeys("tenanta", "tenantb");
   }
 
+  /**
+   * Correlation handlers are deliberately not exposed as their own {@code Map<String,
+   * InboundCorrelationHandler>} bean (unlike the other per-physical-tenant maps above): {@link
+   * InboundCorrelationConfiguration} also declares a {@code @Lazy} scalar {@link
+   * InboundCorrelationHandler} bean for backward compatibility, and any {@code @Autowired
+   * Map<String, InboundCorrelationHandler>} injection point in the same context risks Spring's
+   * generic collection-autowiring resolving to that scalar bean instead of the real per-tenant map
+   * (see {@link PhysicalTenantIds}). Their construction is instead covered directly by {@code
+   * InboundCorrelationConfigurationTest}, and indirectly here: {@code
+   * springInboundConnectorContextFactory} calls {@code buildCorrelationHandlersByPhysicalTenantId}
+   * internally to build the routing factory below, so a failure to produce one handler per physical
+   * tenant would surface as a startup failure of this very test.
+   */
   @Test
   void routingContextFactoryIsWiredAsASingleBean() {
     assertThat(inboundConnectorContextFactory)

@@ -65,16 +65,6 @@ public class InboundCorrelationConfiguration {
                         connectorsInboundMetrics)));
   }
 
-  @Bean
-  public Map<String, InboundCorrelationHandler> correlationHandlersByPhysicalTenantId(
-      final CamundaClientRegistry registry,
-      @Autowired(required = false) final CamundaClient legacyCamundaClient,
-      @ConnectorsObjectMapper final ObjectMapper objectMapper,
-      final ConnectorsInboundMetrics connectorsInboundMetrics) {
-    return buildCorrelationHandlersByPhysicalTenantId(
-        registry, legacyCamundaClient, objectMapper, messageTtl, connectorsInboundMetrics);
-  }
-
   /**
    * Backward-compatible scalar bean for existing single-physical-tenant call sites that
    * {@code @Autowired} {@link InboundCorrelationHandler} directly rather than the
