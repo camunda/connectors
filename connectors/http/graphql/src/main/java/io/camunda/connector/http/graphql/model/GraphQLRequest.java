@@ -11,9 +11,11 @@ import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.hostvalidator.VerifiedHost;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.auth.Authentication;
+import io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -28,8 +30,36 @@ import java.util.Map;
  *
  * @param graphql
  * @param authentication
+ * @param authenticationConfiguration reusable REST authentication credential; when bound, takes
+ *     precedence over {@code authentication} (see {@link #authentication()})
  */
-public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authentication) {
+public record GraphQLRequest(
+    @Valid GraphQL graphql,
+    @Valid Authentication authentication,
+    @TemplateProperty(
+            id = "authenticationConfiguration",
+            label = "Authentication credential",
+            group = "authentication",
+            type = PropertyType.Configuration,
+            optional = true,
+            binding = @TemplateProperty.PropertyBinding(name = "authenticationConfiguration"),
+            description =
+                "Choose a reusable REST authentication credential. When set, it is bound as a"
+                    + " whole to the connector's 'authenticationConfiguration' input.")
+        @Valid
+        RestAuthenticationConfiguration authenticationConfiguration) {
+
+  /**
+   * Per-connector consumption of the bound authentication credential: when a credential
+   * (configuration) is bound, its authentication takes precedence; the inline authentication is the
+   * fallback. Per-field inline override is not modeled because authentication is a whole object.
+   */
+  public Authentication authentication() {
+    if (authenticationConfiguration != null) {
+      return authenticationConfiguration.authentication();
+    }
+    return authentication;
+  }
 
   @DocumentReturnFormat(
       group = "endpoint",

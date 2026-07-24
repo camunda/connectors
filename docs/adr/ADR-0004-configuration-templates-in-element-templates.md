@@ -1,7 +1,7 @@
 # ADR-0004: Configuration Templates in Element Templates
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 The Credentials initiative ([PDP-3396](https://github.com/camunda/product-hub/issues/3396)) introduces reusable, org-managed **credential instances** that replace auth fields inlined into element templates today. The full design lives in [camunda/connections-design](https://github.com/camunda/connections-design).
