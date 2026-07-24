@@ -17,123 +17,138 @@
 package io.camunda.connector.e2e;
 
 import static io.camunda.connector.e2e.BpmnFile.replace;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
-import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
 import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
-import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import java.time.Duration;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
+import io.camunda.zeebe.model.bpmn.instance.Process;
+import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
-import org.awaitility.Awaitility;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 /**
- * Verifies, through the real Spring wiring (BPMN parsing via {@code ProcessDefinitionInspector},
- * state import via {@link ProcessStateManager}, registration via {@link WebhookConnectorRegistry}),
- * that two physical tenants deploying the exact same raw webhook path register as two distinct,
- * independently addressable connectors rather than colliding into one — the core guarantee added by
- * {@code camunda.connector.webhook.append-physical-tenant-and-tenant-to-path}.
+ * A real end-to-end test (live Testcontainers-backed broker via {@link CamundaSpringProcessTest},
+ * an actual deployed process instance, real HTTP dispatch through {@link MockMvc}) proving that
+ * once {@code camunda.connector.webhook.append-physical-tenant-and-tenant-to-path} is enabled: the
+ * legacy 2-segment route ({@code /inbound/<path>}) no longer resolves, while the physical-tenant/
+ * tenant-scoped 4-segment route correlates the webhook into the running process instance exactly as
+ * the unscoped route used to.
  *
- * <p>Deliberately Docker-free: no {@code @CamundaSpringProcessTest}/{@code ZeebeTest}, since
- * nothing here needs a live broker. The assertions stop at registration/routing rather than
- * triggering the webhook end-to-end, since {@code correlate()} would attempt a real gRPC call
- * against the fake {@code camunda.clients.*} addresses configured below.
+ * <p>Only a single physical tenant is exercised here (this test only has one real broker available)
+ * — cross-physical-tenant collision avoidance is covered separately, at the routing level, by
+ * {@code InboundWebhookRestControllerTest#physicalTenantScopedRoute_...}.
  */
 @SpringBootTest(
     classes = TestConnectorRuntimeApplication.class,
-    webEnvironment = SpringBootTest.WebEnvironment.MOCK,
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
-      "camunda.clients.engine-a.mode=self-managed",
-      "camunda.clients.engine-a.grpc-address=http://engine-a.internal:26500",
-      "camunda.clients.engine-a.physical-tenant-id=tenanta",
-      "camunda.clients.engine-a.primary=true",
-      "camunda.clients.engine-b.mode=self-managed",
-      "camunda.clients.engine-b.grpc-address=http://engine-b.internal:26500",
-      "camunda.clients.engine-b.physical-tenant-id=tenantb",
-      "camunda.connector.polling.enabled=false",
       "camunda.connector.webhook.enabled=true",
+      "camunda.connector.polling.enabled=false",
       "camunda.connector.webhook.append-physical-tenant-and-tenant-to-path=true"
-    })
+    },
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@CamundaSpringProcessTest
 @AutoConfigureMockMvc
 class WebhookPhysicalTenantScopingE2ETest {
 
-  private static final String BPMN_PROCESS_ID = "Process_1tpx1wl";
-  private static final String RAW_PATH = "testId";
-  private static final String TENANT_ID = "<default>";
-
-  @MockitoBean SearchQueryClient searchQueryClient;
-
-  @Autowired ProcessStateManager stateStore;
-
-  @Autowired WebhookConnectorRegistry webhookConnectorRegistry;
+  @Autowired CamundaClient camundaClient;
 
   @Autowired MockMvc mockMvc;
 
+  @Autowired ProcessStateManager stateStore;
+
+  @MockitoBean SearchQueryClient searchQueryClient;
+
+  @LocalServerPort int serverPort;
+
   @Test
-  void sameRawPath_onTwoPhysicalTenants_registersAsDistinctConnectors_noCollision()
+  void webhookCorrelatesOnlyViaPhysicalTenantScopedRoute_oncePathScopingIsEnabled()
       throws Exception {
     var model =
         replace(
-            "webhook_document.bpmn", BpmnFile.Replace.replace("<ACTIVATION_CONDITION>", "=true"));
-    when(searchQueryClient.getProcessModel(anyLong())).thenReturn(model);
+            "webhook_document.bpmn",
+            BpmnFile.Replace.replace(
+                "<ACTIVATION_CONDITION>", "=request.headers.theheader = &#34;THEVALUE&#34;"));
 
-    var processDefinitionA = mock(ProcessDefinition.class);
-    when(processDefinitionA.getVersion()).thenReturn(1);
-    when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDefinitionA);
+    when(searchQueryClient.getProcessModel(1L)).thenReturn(model);
+    var processDef = mock(ProcessDefinition.class);
+    when(processDef.getProcessDefinitionKey()).thenReturn(1L);
+    when(processDef.getTenantId())
+        .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
+    when(processDef.getProcessDefinitionId())
+        .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+    when(processDef.getVersion()).thenReturn(1);
+    when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDef);
 
-    var processDefinitionB = mock(ProcessDefinition.class);
-    when(processDefinitionB.getVersion()).thenReturn(1);
-    when(searchQueryClient.getProcessDefinition(2L)).thenReturn(processDefinitionB);
-
-    // deploy the same raw webhook path ("testId") on two different physical tenants
+    // deploy the webhook, scoped to the physical tenant every legacy single-client deployment
+    // resolves to
     stateStore.update(
         new ImportResult(
-            Map.of(new ProcessDefinitionRef("tenanta", BPMN_PROCESS_ID, TENANT_ID), Set.of(1L)),
-            ImportType.LATEST_VERSIONS,
-            "tenanta"));
-    stateStore.update(
-        new ImportResult(
-            Map.of(new ProcessDefinitionRef("tenantb", BPMN_PROCESS_ID, TENANT_ID), Set.of(2L)),
-            ImportType.LATEST_VERSIONS,
-            "tenantb"));
+            Map.of(
+                new ProcessDefinitionRef(
+                    ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+                    processDef.getProcessDefinitionId(),
+                    processDef.getTenantId()),
+                Collections.singleton(processDef.getProcessDefinitionKey())),
+            ImportResult.ImportType.LATEST_VERSIONS,
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID));
 
-    // registration is processed asynchronously off an internal event queue, so poll rather than
-    // assert immediately
-    Awaitility.await()
-        .atMost(Duration.ofSeconds(10))
-        .untilAsserted(
-            () -> {
-              assertThat(webhookConnectorRegistry.getActiveWebhook("tenanta", TENANT_ID, RAW_PATH))
-                  .isPresent();
-              assertThat(webhookConnectorRegistry.getActiveWebhook("tenantb", TENANT_ID, RAW_PATH))
-                  .isPresent();
-            });
+    // the legacy, unscoped route is never registered once path scoping is enabled — this needs no
+    // running instance, so check it before deploying one
+    mockMvc
+        .perform(post("http://localhost:" + serverPort + "/inbound/testId"))
+        .andExpect(status().isNotFound());
 
-    var connectorA = webhookConnectorRegistry.getActiveWebhook("tenanta", TENANT_ID, RAW_PATH);
-    var connectorB = webhookConnectorRegistry.getActiveWebhook("tenantb", TENANT_ID, RAW_PATH);
+    var scopedUrl =
+        "http://localhost:"
+            + serverPort
+            + "/inbound/"
+            + ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID
+            + "/"
+            + processDef.getTenantId()
+            + "/testId";
 
-    // both physical tenants registered under the same raw path without one overwriting the other
-    assertThat(connectorA.get().id()).isNotEqualTo(connectorB.get().id());
+    var bpmnTest = ZeebeTest.with(camundaClient).deploy(model).createInstance();
+    CompletableFuture<ResultActions> future = new CompletableFuture<>();
 
-    // the legacy, unscoped 2-segment route was never populated once path scoping is enabled
-    assertThat(webhookConnectorRegistry.getActiveWebhook(RAW_PATH)).isEmpty();
-    mockMvc.perform(post("/inbound/" + RAW_PATH)).andExpect(status().isNotFound());
+    try (var executor = Executors.newSingleThreadScheduledExecutor()) {
+      executor.schedule(
+          () -> {
+            try {
+              future.complete(mockMvc.perform(post(scopedUrl).header("THEHEADER", "THEVALUE")));
+            } catch (Exception e) {
+              future.completeExceptionally(e);
+            }
+          },
+          2,
+          TimeUnit.SECONDS);
+
+      var result = bpmnTest.waitForProcessCompletion();
+      assertThat(result.getProcessInstanceEvent()).isCompleted();
+
+      var resultActions = future.get(10, TimeUnit.SECONDS);
+      resultActions.andExpect(status().isOk());
+    }
   }
 }
