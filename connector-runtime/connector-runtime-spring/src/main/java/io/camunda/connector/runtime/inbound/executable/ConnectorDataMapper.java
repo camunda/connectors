@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
-import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
 import io.camunda.connector.runtime.inbound.webhook.WebhookContextKeys;
@@ -37,13 +36,19 @@ public class ConnectorDataMapper {
     this.appendPhysicalTenantAndTenantToPath = appendPhysicalTenantAndTenantToPath;
   }
 
+  /**
+   * Rewrites {@code inbound.context} to the physical-tenant/tenant-scoped path when path scoping is
+   * enabled. Whether this connector is a webhook is decided by the presence of {@code
+   * inbound.context} itself — a property exclusive to the webhook element template — rather than
+   * {@code response.executableClass()}: that field is only populated once a connector has
+   * successfully activated (see {@code InboundExecutableQueryService}), so a webhook that failed to
+   * activate would otherwise keep showing its legacy, unscoped path even though the registry would
+   * only ever accept the scoped one once it does activate.
+   */
   private Map<String, String> allPropertiesMapper(ActiveExecutableResponse response) {
     var firstElement = response.elements().getFirst();
     var properties = firstElement.connectorLevelProperties();
-    var executableClass = response.executableClass();
-    if (appendPhysicalTenantAndTenantToPath
-        && executableClass != null
-        && WebhookConnectorExecutable.class.isAssignableFrom(executableClass)) {
+    if (appendPhysicalTenantAndTenantToPath) {
       var rawContext = properties.get(INBOUND_CONTEXT_PROPERTY);
       if (rawContext != null) {
         properties = new HashMap<>(properties);

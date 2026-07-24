@@ -138,6 +138,54 @@ public class InboundEndpointTest {
   }
 
   @Test
+  public void
+      testDataReturnedForWebhookConnectorExecutableSubclass_pathScopingEnabled_executableClassNull() {
+    // simulates a webhook connector that failed to activate: InboundExecutableQueryService always
+    // reports a null executableClass for FailedToActivate/NotRegistered/InvalidDefinition entries,
+    // since there is no instantiated executable to read the class from
+    var executableRegistry = mock(InboundExecutableRegistry.class);
+
+    when(executableRegistry.query(any()))
+        .thenReturn(
+            List.of(
+                new ActiveExecutableResponse(
+                    RANDOM_ID,
+                    null, // executable class is null, as for a failed activation
+                    List.of(
+                        new InboundConnectorElement(
+                            Map.of("inbound.context", "myPath", "inbound.type", "webhook"),
+                            new StandaloneMessageCorrelationPoint(
+                                "myPath", "=expression", "=myPath", null),
+                            new ProcessElementWithRuntimeData(
+                                "",
+                                null,
+                                null,
+                                1,
+                                1,
+                                "",
+                                null,
+                                null,
+                                "myTenant",
+                                "myPhysicalTenant",
+                                new ElementTemplateDetails("Test", "1", "icon"),
+                                Map.of()))),
+                    Health.down(),
+                    Collections.emptyList(),
+                    System.currentTimeMillis())));
+
+    InboundConnectorRestController statusController =
+        new InboundConnectorRestController(
+            executableRegistry,
+            new LocalInstanceForwardingRouter(),
+            new WebhookConnectorRegistry(true));
+
+    var response = statusController.getActiveInboundConnectors(null, null, null);
+    assertEquals(1, response.size());
+    assertEquals(
+        "myPhysicalTenant/myTenant/myPath", response.getFirst().data().get("inbound.context"));
+  }
+
+  @Test
   public void executableClassNullHandledCorrectly() {
     var executableRegistry = mock(InboundExecutableRegistry.class);
     when(executableRegistry.query(any()))

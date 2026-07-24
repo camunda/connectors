@@ -51,13 +51,18 @@ public final class PhysicalTenantIds {
    * CamundaClientRegistry#find(String)} does not guard against this case itself: it still resolves
    * the underlying bean and throws if it is missing, so the fallback must catch that failure
    * directly rather than rely on an empty {@code Optional}.
+   *
+   * <p>Only applied when a single client is configured: with two or more clients, silently
+   * substituting {@code legacyCamundaClient} for a lookup failure risks misrouting one physical
+   * tenant's imports/correlations onto another's client (whichever one happens to be the legacy/
+   * {@code @Primary} bean) without any error. In that case the lookup failure is rethrown instead.
    */
   static CamundaClient resolveClient(
       CamundaClientRegistry registry, String name, CamundaClient legacyCamundaClient) {
     try {
       return registry.get(name);
     } catch (RuntimeException e) {
-      if (legacyCamundaClient == null) {
+      if (legacyCamundaClient == null || registry.clientNames().size() > 1) {
         throw new IllegalStateException("No CamundaClient configured for client '" + name + "'", e);
       }
       return legacyCamundaClient;
@@ -126,22 +131,25 @@ public final class PhysicalTenantIds {
   /**
    * Builds one {@link SearchQueryClient} per configured physical tenant. When a {@code
    * SearchQueryClient} bean is manually supplied (e.g. a test's {@code @MockitoBean}, used to
-   * control process-definition search results), that bean is used in place of constructing a real
-   * client — mirroring the {@code legacyCamundaClient} fallback above, since overriding this bean
-   * only makes sense for a single, legacy-style client configuration.
+   * control process-definition search results) and only a single client is configured, that bean is
+   * used in place of constructing a real client — mirroring the {@code legacyCamundaClient}
+   * fallback above, since overriding this bean only makes sense for a single, legacy-style client
+   * configuration; applying it to every physical tenant in a genuine multi-client setup would have
+   * every tenant's search silently query through the same override instead of its own client.
    */
   public static Map<String, SearchQueryClient> buildSearchQueryClientsByPhysicalTenantId(
       CamundaClientRegistry registry,
       CamundaClient legacyCamundaClient,
       SearchQueryClient legacySearchQueryClient,
       int limit) {
+    boolean useOverride = legacySearchQueryClient != null && registry.clientNames().size() <= 1;
     return registry.clientNames().stream()
         .collect(
             toMapByPhysicalTenantId(
                 registry,
                 legacyCamundaClient,
                 name ->
-                    legacySearchQueryClient != null
+                    useOverride
                         ? legacySearchQueryClient
                         : new SearchQueryClientImpl(
                             resolveClient(registry, name, legacyCamundaClient), limit)));
