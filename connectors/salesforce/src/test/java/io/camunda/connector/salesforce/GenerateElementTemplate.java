@@ -128,6 +128,10 @@ public class GenerateElementTemplate {
             // rebuilt from scratch below. Groups are dropped entirely and re-declared below.
             .removePropertyGroups(g -> true)
             .removeProperties(p -> !(isAuthTypeDropdown(p) || idIn(p, KEPT_AUTH_PROPERTY_IDS)))
+            // HTTP JSON's inherited configuration templates (e.g. its REST Authentication
+            // config, covering apiKey/basic/OAuth-refresh-token flows) don't apply here --
+            // Salesforce only supports the two auth mechanisms narrowed to below.
+            .removeConfigurationTemplates(ct -> true)
             // Narrow the inherited auth-type dropdown from HTTP JSON's 6 choices down to the 2
             // Salesforce supports.
             .replaceProperty(prunedAuthTypeDropdown(originalAuthTypeDropdown))

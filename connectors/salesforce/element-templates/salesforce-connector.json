@@ -135,7 +135,8 @@
         "equals" : "bearer",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     },
     {
       "id" : "authentication.clientId",
@@ -177,7 +178,8 @@
         "type" : "simple"
       },
       "tooltip" : "Your application's client secret from the OAuth client",
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     },
     {
       "id" : "authentication.oauthTokenEndpoint",

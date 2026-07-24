@@ -123,6 +123,18 @@ public class ElementTemplateBuilder {
   }
 
   /**
+   * Removes every configuration template matching {@code predicate}. See {@link
+   * #removeProperties(Predicate)} -- use after {@link #from(ElementTemplate)} to prune inherited
+   * configuration templates that don't apply to the derived connector (e.g. one covering auth
+   * mechanisms the derived connector doesn't support).
+   */
+  public ElementTemplateBuilder removeConfigurationTemplates(
+      Predicate<ConfigurationTemplate> predicate) {
+    configurationTemplates.removeIf(predicate);
+    return this;
+  }
+
+  /**
    * Replaces the inherited property sharing {@code replacement}'s id (if any) with {@code
    * replacement} at the same list position, or simply appends it if no such property exists yet.
    * Preserving position (rather than removing and re-appending) matters because property order is
