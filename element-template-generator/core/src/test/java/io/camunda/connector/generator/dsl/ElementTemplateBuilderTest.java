@@ -62,6 +62,19 @@ public class ElementTemplateBuilderTest {
                 .build())
         .steps(List.of(new LeafStep("Step", "Step description", List.of("keyword"), "presetId")))
         .presets(List.of(new Preset("presetId", Map.of("propA1", "a1"))))
+        .configurationTemplates(
+            List.of(
+                new ConfigurationTemplate(
+                    "configA",
+                    "CREDENTIAL",
+                    1,
+                    "Configuration A",
+                    List.of(
+                        StringProperty.builder()
+                            .id("configProp1")
+                            .binding(
+                                new PropertyBinding.ConfigurationTemplateProperty("configProp1"))
+                            .build()))))
         .build();
   }
 
@@ -107,7 +120,8 @@ public class ElementTemplateBuilderTest {
         template.properties(),
         template.icon(),
         template.steps(),
-        template.presets());
+        template.presets(),
+        template.configurationTemplates());
   }
 
   @Test

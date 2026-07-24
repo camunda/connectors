@@ -98,6 +98,9 @@ public class ElementTemplateBuilder {
     if (base.presets() != null) {
       builder.presets.addAll(base.presets());
     }
+    if (base.configurationTemplates() != null) {
+      builder.configurationTemplates.addAll(base.configurationTemplates());
+    }
     return builder;
   }
 
