@@ -34,11 +34,14 @@ import org.jspecify.annotations.Nullable;
 public class AnthropicChatModelApiFactory implements ChatModelFactory {
 
   private final HttpTransportSupport transport;
-  private final ObjectMapper objectMapper;
+  private final AnthropicMessageRequestConverter requestConverter;
+  private final AnthropicMessageResponseConverter responseConverter;
 
   public AnthropicChatModelApiFactory(HttpTransportSupport transport, ObjectMapper objectMapper) {
     this.transport = transport;
-    this.objectMapper = objectMapper;
+    this.requestConverter =
+        new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper));
+    this.responseConverter = new AnthropicMessageResponseConverter(objectMapper);
   }
 
   @Override
@@ -55,9 +58,6 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
     final var timeout = connection.timeouts() != null ? connection.timeouts().timeout() : null;
 
     final var client = buildClient(connection.backend(), timeout, transport);
-    final var contentConverter = new AnthropicContentConverter(objectMapper);
-    final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
-    final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
     return new AnthropicChatModelApi(client, requestConverter, responseConverter);
   }
 
@@ -65,10 +65,9 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
    * Builds an {@link AnthropicClient} backed by the vendor SDK's OkHttp transport for both the
    * {@code anthropic-api} (direct API key) and {@code compatible} (Anthropic-compatible API)
    * backends, applying the configured timeout and the shared, provider-neutral {@link
-   * HttpTransportSupport} proxy resolution. Package-private (not private) so it can be tested at
-   * the wire level in isolation from the rest of {@link #create}.
+   * HttpTransportSupport} proxy resolution.
    */
-  static AnthropicClient buildClient(
+  private static AnthropicClient buildClient(
       AnthropicBackend backend, @Nullable Duration timeout, HttpTransportSupport transport) {
     final var builder = AnthropicOkHttpClient.builder();
 
@@ -102,17 +101,9 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
       AnthropicOkHttpClient.Builder builder, AnthropicCompatibleBackend compatible) {
     builder.baseUrl(compatible.endpoint());
 
-    // No apiKey() call at all when no authentication is configured: the SDK client builder does
-    // NOT require one (verified empirically -- build() and an actual request both succeed with no
-    // x-api-key header sent), so there's no need for a placeholder value.
     if (compatible.compatibleAuthentication()
         instanceof CompatibleApiKeyAuthentication apiKeyAuth) {
       builder.apiKey(apiKeyAuth.apiKey());
     }
-
-    // headers/queryParameters/requestParameters are all applied per request in
-    // AnthropicMessageRequestConverter instead of here: this client is short-lived (built fresh
-    // per job worker execution, never reused across calls), so there's no benefit to setting them
-    // at construction time, and MessageCreateParams.Builder already exposes all three uniformly.
   }
 }
