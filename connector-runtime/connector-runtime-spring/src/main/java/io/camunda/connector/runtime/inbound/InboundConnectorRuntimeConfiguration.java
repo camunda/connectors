@@ -165,8 +165,9 @@ public class InboundConnectorRuntimeConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public InboundInstancesService inboundInstancesService(
-      InboundExecutableRegistry inboundExecutableRegistry) {
-    return new InboundInstancesService(inboundExecutableRegistry);
+      InboundExecutableRegistry inboundExecutableRegistry,
+      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
+    return new InboundInstancesService(inboundExecutableRegistry, webhookConnectorRegistry);
   }
 
   @Bean

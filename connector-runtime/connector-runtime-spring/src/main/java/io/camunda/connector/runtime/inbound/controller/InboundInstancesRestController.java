@@ -99,12 +99,19 @@ public class InboundInstancesRestController {
   public ActiveInboundConnectorResponse getConnectorInstanceExecutable(
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
-      @PathVariable(name = "executableId") String executableId) {
+      @PathVariable(name = "executableId") String executableId,
+      @RequestParam(
+              name = "appendPhysicalTenantAndTenantToPath",
+              required = false,
+              defaultValue = "false")
+          boolean appendPhysicalTenantAndTenantToPath) {
     return Optional.ofNullable(
             instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
                 request,
                 forwardedFor,
-                () -> inboundInstancesService.findExecutable(executableId),
+                () ->
+                    inboundInstancesService.findExecutable(
+                        executableId, appendPhysicalTenantAndTenantToPath),
                 new TypeReference<>() {}))
         .orElseThrow(
             () -> new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId));
