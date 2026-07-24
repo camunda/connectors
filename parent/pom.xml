@@ -98,10 +98,10 @@ limitations under the License.</license.inlineheader>
     <tomcat.version>11.0.23</tomcat.version>
     <version.netty>4.2.16.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.1.0</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.38</version.logback>
+    <version.logback>1.6.0</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.49.1</version.aws-sdk2>
+    <version.aws-sdk2>2.49.2</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
