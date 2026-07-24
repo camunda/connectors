@@ -33,6 +33,30 @@ public final class WebhookContextKeys {
     Objects.requireNonNull(
         physicalTenantId, "physicalTenantId must not be null when path scoping is enabled");
     Objects.requireNonNull(tenantId, "tenantId must not be null when path scoping is enabled");
+    requireSingleSegment("physicalTenantId", physicalTenantId);
+    requireSingleSegment("tenantId", tenantId);
     return physicalTenantId + "/" + tenantId + "/" + path;
+  }
+
+  /**
+   * {@code physicalTenantId} is not guaranteed to be URL-safe on its own: when {@code
+   * physical-tenant-id} is not explicitly configured, it falls back to the free-form Camunda client
+   * name (see {@code PhysicalTenantIds#resolvePhysicalTenantId}), which has no format restriction.
+   * Since both {@code physicalTenantId} and {@code tenantId} are matched as exactly one path
+   * segment each by the {@code /inbound/{physicalTenantId}/{tenantId}/{context}} route, a value
+   * containing "/" would silently register under a key the route can never actually be dialed with
+   * — failing fast here surfaces the misconfiguration immediately instead of producing a
+   * permanently unreachable webhook.
+   */
+  private static void requireSingleSegment(String componentName, String value) {
+    if (value.contains("/")) {
+      throw new IllegalArgumentException(
+          componentName
+              + " '"
+              + value
+              + "' must not contain '/': it is matched as a single path segment in the "
+              + "physical-tenant/tenant-scoped webhook route. Check your physical-tenant-id "
+              + "configuration (or, if unset, the Camunda client name it falls back to).");
+    }
   }
 }
