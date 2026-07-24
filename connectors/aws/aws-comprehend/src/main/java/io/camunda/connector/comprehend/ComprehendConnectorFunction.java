@@ -76,9 +76,12 @@ public class ComprehendConnectorFunction implements OutboundConnectorFunction {
     var request = context.bindVariables(ComprehendRequest.class);
     ComprehendRequestData requestData = request.getInput();
     if (requestData instanceof ComprehendSyncRequestData syncRequestData) {
-      return syncComprehendCaller.call(clientSupplier.getSyncClient(request), syncRequestData);
+      try (var client = clientSupplier.getSyncClient(request)) {
+        return syncComprehendCaller.call(client, syncRequestData);
+      }
     }
-    return asyncComprehendCaller.call(
-        clientSupplier.getAsyncClient(request), (ComprehendAsyncRequestData) requestData);
+    try (var client = clientSupplier.getAsyncClient(request)) {
+      return asyncComprehendCaller.call(client, (ComprehendAsyncRequestData) requestData);
+    }
   }
 }
