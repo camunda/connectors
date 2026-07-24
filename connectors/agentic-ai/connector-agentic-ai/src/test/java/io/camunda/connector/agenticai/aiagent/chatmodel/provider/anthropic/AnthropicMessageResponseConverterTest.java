@@ -116,8 +116,10 @@ class AnthropicMessageResponseConverterTest {
     final var result = converter.toResult(message, EXECUTION_TIME);
 
     assertThat(result).isInstanceOf(ChatResult.Continuation.class);
-    // pause_turn is a continuation signal, not a finished-turn stop reason.
-    assertThat(result.assistantMessage().stopReason()).isNull();
+    // pause_turn still surfaces as a stop reason on the assistant message (there's no dedicated
+    // domain value for it), even though the result itself is a Continuation, not a Completed.
+    assertThat(result.assistantMessage().stopReason())
+        .isEqualTo(new UnknownStopReason("pause_turn"));
     assertThat(result.assistantMessage().metadata()).containsEntry("stopReason", "pause_turn");
   }
 
