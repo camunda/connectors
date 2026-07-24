@@ -24,6 +24,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AGENT
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.CamundaClient;
@@ -41,10 +42,12 @@ import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -58,14 +61,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ResourceLoader;
 
 /**
- * Cross-provider real-API acceptance safety net for the native own-LLM-layer path. Local-only: runs
+ * Cross-provider real-API acceptance safety net for the native (v2) provider path. Local-only: runs
  * only when RUN_NATIVE_LLM_E2E=true and the row's API key is present. Asserts on observable output
  * (nonce facts, JSON schema, token metrics) so scenarios port across providers.
- *
- * <p>Anthropic-only for now: OpenAI rows are deferred to a follow-up PR (this PR ships the native
- * Anthropic Messages provider only). Anthropic server tools (code execution / web search) are also
- * deferred; their scenarios are ported for structural parity but disabled — see the
- * {@code @Disabled} reasons below.
  */
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
@@ -73,13 +71,7 @@ import org.springframework.core.io.ResourceLoader;
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=false",
       "camunda.connector.polling.enabled=false",
-      "camunda.connector.agenticai.tools.process-definition.cache.enabled=false",
-      // Optional LLM judge (Anthropic direct Haiku, reuses ANTHROPIC_API_KEY). Deterministic
-      // assertions remain the hard gate; the judge is a secondary backstop.
-      "camunda.process-test.judge.chat-model.provider=anthropic",
-      "camunda.process-test.judge.chat-model.model=claude-haiku-4-5-20251001",
-      "camunda.process-test.judge.chat-model.api-key=${ANTHROPIC_API_KEY:NOT_SET}",
-      "camunda.process-test.judge.threshold=0.6"
+      "camunda.connector.agenticai.tools.process-definition.cache.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -108,8 +100,37 @@ class RealProviderApiSmokeIT {
       "You are a precise assistant. When the user asks for a classified or internal code name, "
           + "you MUST call the Lookup Classified Fact tool and quote its result verbatim.";
 
-  private final com.fasterxml.jackson.databind.ObjectMapper objectMapper =
-      ConnectorsObjectMapperSupplier.getCopy();
+  private static final String RESPONSE_SCHEMA =
+      "{\"type\":\"object\","
+          + "\"properties\":{\"codeName\":{\"type\":\"string\"},\"clearanceLevel\":{\"type\":\"string\"}},"
+          + "\"required\":[\"codeName\",\"clearanceLevel\"],"
+          + "\"additionalProperties\":false}";
+
+  // Long, stable system prompt whose token count clears Anthropic's minimum cacheable-prefix size
+  // (1024 tokens for Sonnet-class models) on its own. The cacheable prefix is the turn-to-turn
+  // identical head of the request (system + tools); Anthropic only reports
+  // cache_creation_input_tokens/cache_read_input_tokens once that prefix reaches the minimum. Each
+  // repeated segment below is ~65 tokens, so 24 repeats (~1.5k tokens) clears the threshold with
+  // margin.
+  private static final String LONG_SYSTEM_PROMPT =
+      ("You are an assistant operating under a detailed classified-information handling protocol. "
+              + "Always be precise, never fabricate facts, and when the user asks for an internal "
+              + "or classified code name you must call the Lookup Classified Fact tool and quote "
+              + "its result verbatim without paraphrasing. Follow every rule in this protocol "
+              + "carefully and consistently across the whole conversation. ")
+          .repeat(24);
+
+  private static final String DOC_DIR = "document-tool-call-results/";
+  private static final String DOC_PROJECT_LAUNCH = DOC_DIR + "project-launch.pdf";
+  private static final String DOC_HEADCOUNT_REPORT = DOC_DIR + "headcount-report.pdf";
+  private static final String DOC_AUTHOR_INFO = DOC_DIR + "author-info.pdf";
+  private static final String DOCUMENT_BPMN_RESOURCE = "classpath:document-tool-call-results.bpmn";
+  private static final String DOCUMENT_PROCESS_ID = "CPT_Document_Tool_Call_Results";
+  private static final String DOCUMENT_SYSTEM_PROMPT =
+      "You are a document analyst. Use the available tools to retrieve and analyze documents. "
+          + "Always quote specific facts, numbers, dates, and names found in the documents.";
+
+  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   @Autowired CamundaClient camundaClient;
   @Autowired CamundaProcessTestContext processTestContext;
@@ -132,11 +153,9 @@ class RealProviderApiSmokeIT {
    * this model. The map is empty when the capability needs no provider-specific enablement
    * (structured output is enabled by the shared {@code data.response.format.*} props the scenario
    * sets; multimodal just needs the document BPMN). Reasoning and prompt caching are enabled
-   * differently per model/provider, so their enablement lives HERE rather than being hard-coded in
-   * the scenario — which is what lets a future OpenAI row join the same scenarios with its own
-   * property ids (e.g. an OpenAI reasoning-effort id, or no caching key at all since OpenAI caches
-   * automatically). A capability absent from the map means the row does not support it, so its
-   * scenario is skipped for this row.
+   * differently per model, so their enablement lives HERE rather than being hard-coded in the
+   * scenario. A capability absent from the map means the row does not support it, so its scenario
+   * is skipped for this row.
    */
   record Provider(
       String label,
@@ -148,11 +167,9 @@ class RealProviderApiSmokeIT {
       // reasoningTokenCount > 0. For "adaptive"/effort-only modes the model may answer without
       // billable thinking, so only completion + a correct answer is asserted.
       boolean forcesReasoningTokens,
-      // Whether this provider family reports a distinct cache-creation (write) token count.
-      // Anthropic reports `cache_creation_input_tokens` for the turn that writes the cache.
-      // OpenAI's prompt caching is automatic and reports only cache-READ tokens
-      // (`cached_tokens`), with no creation/write metric at all — so the cache-creation
-      // assertion in the prompt-caching scenario is gated on this flag.
+      // Whether this row reports a distinct cache-creation (write) token count in addition to
+      // cache-read (Anthropic reports `cache_creation_input_tokens` for the turn that writes the
+      // cache) — the cache-creation assertion in the prompt-caching scenario is gated on this flag.
       boolean reportsCacheCreationTokens,
       // Manual on/off switch (independent of the env-var gate) so a single row can be muted while
       // iterating locally; mirrors DocumentToolCallResultsIT.ProviderConfig#disabled().
@@ -242,9 +259,8 @@ class RealProviderApiSmokeIT {
                             "provider.anthropic.model.parameters.thinking.mode", "enabled",
                             "provider.anthropic.model.parameters.thinking.budgetTokens", "2048")),
                 true),
-            // claude-sonnet-5 does NOT accept "enabled"; its matrix allows "adaptive" (the model
-            // decides whether to think), so reasoning tokens are not guaranteed. Server tools
-            // (code execution / web search) are deferred to a follow-up PR, so this row does not
+            // claude-sonnet-5 does NOT accept "enabled"; it allows "adaptive" (the model decides
+            // whether to think), so reasoning tokens are not guaranteed. This row does not
             // populate Capability.WEB_SEARCH / Capability.CODE_INTERPRETER.
             anthropicDirect(
                 "claude-sonnet-5",
@@ -295,6 +311,9 @@ class RealProviderApiSmokeIT {
 
   /**
    * Builds the applied BPMN for the given provider, with baseline props + per-scenario overrides.
+   * The system prompt is referenced via FEEL ({@code =systemPrompt}) rather than baked into the
+   * template as a string literal; {@link #startAgent} supplies the {@code systemPrompt} process
+   * variable.
    */
   BpmnModelInstance buildModel(
       Provider provider,
@@ -306,13 +325,8 @@ class RealProviderApiSmokeIT {
 
     template
         .property("agentContext", "=agent.context")
-        .property("data.systemPrompt.prompt", "=\"" + systemPrompt.replace("\"", "\\\"") + "\"")
-        .property(
-            "data.userPrompt.prompt",
-            "=if (is defined(followUpUserPrompt)) then followUpUserPrompt else userPrompt")
-        // Empty by default so tool-result scenarios don't leak documents via the user message;
-        // the user-message scenario overrides this in its customizer.
-        .property("data.userPrompt.documents", "=[]")
+        .property("data.systemPrompt.prompt", "=systemPrompt")
+        .property("data.userPrompt.prompt", "=userPrompt")
         .property("data.memory.storage.type", "in-process")
         .property("data.memory.contextWindowSize", "=50")
         .property("data.response.includeAssistantMessage", "=true")
@@ -331,14 +345,20 @@ class RealProviderApiSmokeIT {
     }
   }
 
+  /** Deploys {@code model} and starts an instance, supplying {@code systemPrompt} as a variable. */
   ProcessInstanceEvent startAgent(
-      BpmnModelInstance model, String processId, Map<String, Object> variables) {
+      BpmnModelInstance model,
+      String processId,
+      String systemPrompt,
+      Map<String, Object> variables) {
     ZeebeTest.with(camundaClient).awaitCompleteTopology().deploy(model);
+    final var allVariables = new HashMap<>(variables);
+    allVariables.put("systemPrompt", systemPrompt);
     return camundaClient
         .newCreateInstanceCommand()
         .bpmnProcessId(processId)
         .latestVersion()
-        .variables(variables)
+        .variables(allVariables)
         .send()
         .join();
   }
@@ -374,7 +394,7 @@ class RealProviderApiSmokeIT {
             Map.class,
             map -> {
               final var responseText = String.valueOf(map.get("responseText"));
-              final var textAssert = org.assertj.core.api.Assertions.assertThat(responseText);
+              final var textAssert = Assertions.assertThat(responseText);
               for (final String expected : expectedSubstrings) {
                 textAssert.contains(expected);
               }
@@ -396,6 +416,7 @@ class RealProviderApiSmokeIT {
         startAgent(
             model,
             PROCESS_ID,
+            DEFAULT_SYSTEM_PROMPT,
             Map.of("userPrompt", "What is the internal project code name? Use your lookup tool."));
 
     assertAgentResponse(
@@ -403,21 +424,13 @@ class RealProviderApiSmokeIT {
         response ->
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
-                .hasResponseTestSatisfying(
-                    text ->
-                        org.assertj.core.api.Assertions.assertThat(text)
-                            .contains(NONCE_CODE_NAME)));
+                .hasResponseTextSatisfying(
+                    text -> Assertions.assertThat(text).contains(NONCE_CODE_NAME)));
   }
 
   static Stream<Provider> providersWithStructuredOutput() {
     return providers().filter(p -> p.supports(Capability.STRUCTURED_OUTPUT));
   }
-
-  private static final String RESPONSE_SCHEMA =
-      "{\"type\":\"object\","
-          + "\"properties\":{\"codeName\":{\"type\":\"string\"},\"clearanceLevel\":{\"type\":\"string\"}},"
-          + "\"required\":[\"codeName\",\"clearanceLevel\"],"
-          + "\"additionalProperties\":false}";
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithStructuredOutput")
@@ -438,6 +451,7 @@ class RealProviderApiSmokeIT {
         startAgent(
             model,
             PROCESS_ID,
+            DEFAULT_SYSTEM_PROMPT,
             Map.of(
                 "userPrompt",
                 "Look up the internal project code name and clearance level and return them."));
@@ -451,13 +465,10 @@ class RealProviderApiSmokeIT {
                     json -> {
                       @SuppressWarnings("unchecked")
                       var map = (Map<String, Object>) json;
-                      org.assertj.core.api.Assertions.assertThat(map)
-                          .containsKeys("codeName", "clearanceLevel");
-                      org.assertj.core.api.Assertions.assertThat(
-                              String.valueOf(map.get("codeName")))
+                      Assertions.assertThat(map).containsKeys("codeName", "clearanceLevel");
+                      Assertions.assertThat(String.valueOf(map.get("codeName")))
                           .contains(NONCE_CODE_NAME);
-                      org.assertj.core.api.Assertions.assertThat(
-                              String.valueOf(map.get("clearanceLevel")))
+                      Assertions.assertThat(String.valueOf(map.get("clearanceLevel")))
                           .contains(NONCE_CLEARANCE);
                     }));
   }
@@ -477,13 +488,14 @@ class RealProviderApiSmokeIT {
             "You are a careful reasoner. Think step by step before answering.",
             // Reasoning enablement is model-specific (sonnet-4-6 uses "enabled"+budget, sonnet-5
             // uses "adaptive"+effort) and comes from the provider row, so this scenario stays
-            // provider-agnostic and a future OpenAI row can supply its own reasoning props.
+            // provider-agnostic.
             template -> provider.propertiesFor(Capability.REASONING).forEach(template::property));
 
     var instance =
         startAgent(
             model,
             PROCESS_ID,
+            "You are a careful reasoner. Think step by step before answering.",
             Map.of(
                 "userPrompt",
                 "If it takes 5 machines 5 minutes to make 5 widgets, how many minutes do 100 "
@@ -497,28 +509,12 @@ class RealProviderApiSmokeIT {
           // modes the model may answer without billable thinking, so completion + a correct answer
           // is the universal bar (it also proves the reasoning config was accepted by the API).
           if (provider.forcesReasoningTokens()) {
-            responseAssert.hasReasoningTokensGreaterThanZero();
+            responseAssert.hasReasoningTokens();
           }
-          responseAssert.hasResponseTestSatisfying(
-              text -> org.assertj.core.api.Assertions.assertThat(text).contains("5"));
+          responseAssert.hasResponseTextSatisfying(
+              text -> Assertions.assertThat(text).contains("5"));
         });
   }
-
-  // Long, stable system prompt whose token count must clear OpenAI's automatic-caching minimum
-  // (1024 tokens) on its own. The cacheable prefix is the turn-to-turn identical head of the
-  // request (system + first user message); OpenAI reports cached_tokens only once that prefix
-  // reaches 1024. Each repeated segment below is ~65 tokens, so 24 repeats (~1.5k tokens) clears
-  // the threshold with margin. This matters most for the Completions family: unlike Responses
-  // (which replays encrypted reasoning items on turn 2, inflating the prefix), Completions sends
-  // only system+user, so the system prompt itself has to be large enough — otherwise cached_tokens
-  // stays 0 and the cache-read assertion can never pass.
-  private static final String LONG_SYSTEM_PROMPT =
-      ("You are an assistant operating under a detailed classified-information handling protocol. "
-              + "Always be precise, never fabricate facts, and when the user asks for an internal "
-              + "or classified code name you must call the Lookup Classified Fact tool and quote "
-              + "its result verbatim without paraphrasing. Follow every rule in this protocol "
-              + "carefully and consistently across the whole conversation. ")
-          .repeat(24);
 
   static Stream<Provider> providersWithPromptCaching() {
     return providers().filter(p -> p.supports(Capability.PROMPT_CACHING));
@@ -538,8 +534,7 @@ class RealProviderApiSmokeIT {
             BPMN_RESOURCE,
             DEFAULT_SYSTEM_PROMPT,
             template -> {
-              // Caching enablement is provider-specific (Anthropic toggles a flag; OpenAI caches
-              // automatically) and comes from the provider row.
+              // Caching enablement is provider-specific and comes from the provider row.
               provider.propertiesFor(Capability.PROMPT_CACHING).forEach(template::property);
               template.property("data.systemPrompt.prompt", "=longSystemPrompt");
             });
@@ -548,6 +543,7 @@ class RealProviderApiSmokeIT {
         startAgent(
             model,
             PROCESS_ID,
+            DEFAULT_SYSTEM_PROMPT,
             Map.of(
                 "userPrompt",
                 "What is the internal project code name? Use your lookup tool.",
@@ -561,28 +557,24 @@ class RealProviderApiSmokeIT {
         response -> {
           var agentAssert = AgentSubProcessResponseAssert.assertThat(response).isReady();
           // Cache-creation (write) tokens are only reported by providers that expose a distinct
-          // write metric (Anthropic); OpenAI's automatic caching reports read-only, so this
-          // assertion would never pass for it.
+          // write metric; this assertion is gated on that flag.
           if (provider.reportsCacheCreationTokens()) {
-            agentAssert.hasCacheCreationTokensGreaterThanZero();
+            agentAssert.metricsSatisfy(
+                metrics ->
+                    Assertions.assertThat(metrics.tokenUsage().cacheCreationTokenCount())
+                        .as("cache creation token count")
+                        .isPositive());
           }
           agentAssert
-              .hasCacheReadTokensGreaterThanZero()
-              .hasResponseTestSatisfying(
-                  text ->
-                      org.assertj.core.api.Assertions.assertThat(text).contains(NONCE_CODE_NAME));
+              .metricsSatisfy(
+                  metrics ->
+                      Assertions.assertThat(metrics.tokenUsage().cacheReadTokenCount())
+                          .as("cache read token count")
+                          .isPositive())
+              .hasResponseTextSatisfying(
+                  text -> Assertions.assertThat(text).contains(NONCE_CODE_NAME));
         });
   }
-
-  private static final String DOC_DIR = "document-tool-call-results/";
-  private static final String DOC_PROJECT_LAUNCH = DOC_DIR + "project-launch.pdf";
-  private static final String DOC_HEADCOUNT_REPORT = DOC_DIR + "headcount-report.pdf";
-  private static final String DOC_AUTHOR_INFO = DOC_DIR + "author-info.pdf";
-  private static final String DOCUMENT_BPMN_RESOURCE = "classpath:document-tool-call-results.bpmn";
-  private static final String DOCUMENT_PROCESS_ID = "CPT_Document_Tool_Call_Results";
-  private static final String DOCUMENT_SYSTEM_PROMPT =
-      "You are a document analyst. Use the available tools to retrieve and analyze documents. "
-          + "Always quote specific facts, numbers, dates, and names found in the documents.";
 
   static Stream<Provider> providersWithMultimodalUserMessage() {
     return providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE));
@@ -597,6 +589,11 @@ class RealProviderApiSmokeIT {
   void documentInUserMessageIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
     stubPdfDownloads();
 
+    final var systemPrompt =
+        "You are a document analyst. A document is attached directly to the user's message. "
+            + "Answer using only that attached document and do not call any tools. Always "
+            + "quote specific facts, numbers, dates, and names found in the document.";
+
     // Reuses the document BPMN (which downloads downloadUrls into `downloadedFiles` before the
     // agent) but routes the single downloaded PDF into the user message instead of a tool result,
     // so this exercises the user-message multimodal path rather than the tool-result path.
@@ -605,15 +602,14 @@ class RealProviderApiSmokeIT {
             provider,
             AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
             DOCUMENT_BPMN_RESOURCE,
-            "You are a document analyst. A document is attached directly to the user's message. "
-                + "Answer using only that attached document and do not call any tools. Always "
-                + "quote specific facts, numbers, dates, and names found in the document.",
+            systemPrompt,
             template -> template.property("data.userPrompt.documents", "=downloadedFiles"));
 
     var instance =
         startAgent(
             model,
             DOCUMENT_PROCESS_ID,
+            systemPrompt,
             Map.of(
                 "userPrompt",
                 "What is the internal project code name mentioned in the attached document? "
@@ -650,6 +646,7 @@ class RealProviderApiSmokeIT {
         startAgent(
             model,
             DOCUMENT_PROCESS_ID,
+            DOCUMENT_SYSTEM_PROMPT,
             Map.of(
                 "userPrompt",
                 "Use the Fetch_Report tool to get the full report and describe the content of "
@@ -670,9 +667,8 @@ class RealProviderApiSmokeIT {
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithCodeInterpreter")
   @Disabled(
-      "Anthropic server tools (code execution) are deferred to a follow-up PR — no Anthropic"
-          + " provider row currently populates Capability.CODE_INTERPRETER, so this scenario has no"
-          + " rows to run, but is kept for structural parity with the pilot.")
+      "No provider row currently populates Capability.CODE_INTERPRETER, so this parameterized"
+          + " scenario has no rows to run.")
   void codeInterpreterComputesDeterministicResult(Provider provider) {
     var model =
         buildModel(
@@ -687,6 +683,7 @@ class RealProviderApiSmokeIT {
         startAgent(
             model,
             PROCESS_ID,
+            "You may run code to compute exact answers.",
             Map.of(
                 "userPrompt",
                 "Compute 987654321 * 123456789 exactly using code. Reply with just the number."));
@@ -699,10 +696,8 @@ class RealProviderApiSmokeIT {
         response ->
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
-                .hasResponseTestSatisfying(
-                    text ->
-                        org.assertj.core.api.Assertions.assertThat(text)
-                            .contains("121932631112635269"))
+                .hasResponseTextSatisfying(
+                    text -> Assertions.assertThat(text).contains("121932631112635269"))
                 .hasProviderContentBlockOfTypeInConversation(
                     providerContentTag(provider),
                     expectedServerToolBlockType(provider, Capability.CODE_INTERPRETER)));
@@ -715,22 +710,23 @@ class RealProviderApiSmokeIT {
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithWebSearch")
   @Disabled(
-      "Anthropic server tools (web search) are deferred to a follow-up PR — no Anthropic provider"
-          + " row currently populates Capability.WEB_SEARCH, so this scenario has no rows to run,"
-          + " but is kept for structural parity with the pilot.")
+      "No provider row currently populates Capability.WEB_SEARCH, so this parameterized scenario"
+          + " has no rows to run.")
   void webSearchCompletesAndRoundTrips(Provider provider) {
+    final var systemPrompt = "Use web search when you need current information.";
     var model =
         buildModel(
             provider,
             AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
-            "Use web search when you need current information.",
+            systemPrompt,
             template -> provider.propertiesFor(Capability.WEB_SEARCH).forEach(template::property));
 
     var instance =
         startAgent(
             model,
             PROCESS_ID,
+            systemPrompt,
             Map.of(
                 "userPrompt",
                 "Search the web for the current stable version of the Camunda 8 documentation "
