@@ -143,4 +143,30 @@ public abstract class PropertyBuilder {
   }
 
   public abstract Property build();
+
+  /**
+   * Copies every base {@link Property} field (id, label, description, ..., secret) into {@code
+   * builder}, for use by each subtype's {@link Property#toBuilder()} override. Reads {@code
+   * source}'s raw {@code feel} field directly rather than through {@link Property#getFeel()}, which
+   * masks {@link FeelMode#disabled} to {@code null}.
+   */
+  static <B extends PropertyBuilder> B copyBaseFieldsFrom(B builder, Property source) {
+    builder.id = source.id;
+    builder.label = source.label;
+    builder.description = source.description;
+    builder.optional = source.optional;
+    builder.value = source.value;
+    builder.generatedValue = source.generatedValue;
+    builder.constraints = source.constraints;
+    builder.feel = source.feel;
+    builder.group = source.group;
+    builder.binding = source.binding;
+    builder.condition = source.condition;
+    builder.tooltip = source.tooltip;
+    builder.placeholder = source.placeholder;
+    builder.exampleValue = source.exampleValue;
+    builder.language = source.language;
+    builder.secret = source.secret;
+    return builder;
+  }
 }

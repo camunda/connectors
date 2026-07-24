@@ -63,6 +63,11 @@ public final class TextProperty extends Property {
     return new TextPropertyBuilder();
   }
 
+  @Override
+  public TextPropertyBuilder toBuilder() {
+    return PropertyBuilder.copyBaseFieldsFrom(builder(), this);
+  }
+
   public static class TextPropertyBuilder extends PropertyBuilder {
 
     private TextPropertyBuilder() {}

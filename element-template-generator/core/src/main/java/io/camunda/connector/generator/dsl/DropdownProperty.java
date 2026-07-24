@@ -72,6 +72,11 @@ public final class DropdownProperty extends Property {
     return new DropdownPropertyBuilder();
   }
 
+  @Override
+  public DropdownPropertyBuilder toBuilder() {
+    return PropertyBuilder.copyBaseFieldsFrom(builder(), this).choices(choices);
+  }
+
   public static class DropdownPropertyBuilder extends PropertyBuilder {
 
     private List<DropdownChoice> choices;

@@ -59,6 +59,11 @@ public final class HiddenProperty extends Property {
     return new HiddenPropertyBuilder();
   }
 
+  @Override
+  public HiddenPropertyBuilder toBuilder() {
+    return PropertyBuilder.copyBaseFieldsFrom(builder(), this);
+  }
+
   public static class HiddenPropertyBuilder extends PropertyBuilder {
 
     private HiddenPropertyBuilder() {}

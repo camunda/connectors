@@ -74,6 +74,12 @@ public final class ConfigurationProperty extends Property {
     return new ConfigurationPropertyBuilder();
   }
 
+  @Override
+  public ConfigurationPropertyBuilder toBuilder() {
+    return PropertyBuilder.copyBaseFieldsFrom(builder(), this)
+        .configurationTemplate(configurationTemplate);
+  }
+
   public static class ConfigurationPropertyBuilder extends PropertyBuilder {
 
     private String configurationTemplate;
