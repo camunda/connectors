@@ -242,14 +242,14 @@ public class GenerateElementTemplate {
         original.getChoices().stream()
             .filter(choice -> KEPT_AUTH_TYPES.contains(choice.value()))
             .toList();
-    return (DropdownProperty)
-        DropdownProperty.builder()
-            .choices(prunedChoices)
-            .id(original.getId())
-            .label(original.getLabel())
-            .group(original.getGroup())
-            .binding(original.getBinding())
-            .build();
+    var builder = original.toBuilder();
+    builder.choices(prunedChoices);
+    // HTTP JSON's dropdown defaults to "noAuth" and describes it as the way to opt out of
+    // authentication -- neither applies once pruned down to bearer/OAuth only, matching the
+    // previous hand-authored template, which had no description or default value here.
+    builder.description(null);
+    builder.value(null);
+    return builder.build();
   }
 
   private static PropertyGroup endpointGroup() {
