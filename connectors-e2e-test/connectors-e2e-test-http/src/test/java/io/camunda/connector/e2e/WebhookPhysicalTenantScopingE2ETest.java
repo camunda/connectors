@@ -31,6 +31,7 @@ import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.Collections;
@@ -70,6 +71,7 @@ import org.springframework.test.web.servlet.ResultActions;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
 @AutoConfigureMockMvc
+@SlowTest
 class WebhookPhysicalTenantScopingE2ETest {
 
   @Autowired CamundaClient camundaClient;
