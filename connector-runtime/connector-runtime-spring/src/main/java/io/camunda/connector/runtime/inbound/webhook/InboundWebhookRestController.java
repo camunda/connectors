@@ -149,7 +149,41 @@ public class InboundWebhookRestController {
       @RequestHeader Map<String, String> headers,
       HttpServletRequest httpServletRequest)
       throws IOException {
-    LOG.trace("Received inbound hook on {}", context);
+    return dispatch(
+        webhookConnectorRegistry.getActiveWebhook(context), context, headers, httpServletRequest);
+  }
+
+  /**
+   * Physical-tenant/tenant-scoped route, used when {@code
+   * camunda.connector.webhook.append-physical-tenant-and-tenant-to-path} is enabled. Spring's path
+   * matcher matches {@code {var}} to exactly one segment and webhook paths are validated to never
+   * contain "/", so this 4-segment route and the legacy 2-segment {@link #inbound} route are
+   * structurally disjoint — both can coexist unconditionally regardless of the flag.
+   */
+  @RequestMapping(
+      method = {GET, HEAD, POST, PUT, DELETE},
+      path = "/inbound/{physicalTenantId}/{tenantId}/{context}")
+  public ResponseEntity<?> inboundPhysicalTenantScoped(
+      @PathVariable(value = "physicalTenantId") String physicalTenantId,
+      @PathVariable(value = "tenantId") String tenantId,
+      @PathVariable(value = "context") String context,
+      @RequestHeader Map<String, String> headers,
+      HttpServletRequest httpServletRequest)
+      throws IOException {
+    return dispatch(
+        webhookConnectorRegistry.getActiveWebhook(physicalTenantId, tenantId, context),
+        context,
+        headers,
+        httpServletRequest);
+  }
+
+  private ResponseEntity<?> dispatch(
+      Optional<RegisteredExecutable.Activated> connectorOpt,
+      String context,
+      Map<String, String> headers,
+      HttpServletRequest httpServletRequest)
+      throws IOException {
+    LOG.trace("Received inbound hook on {}", sanitizeForLog(context));
     // Body must be read before any call that triggers form-parameter parsing (e.g.
     // getParameterMap).
     // For application/x-www-form-urlencoded requests, Tomcat consumes the input stream when
@@ -157,8 +191,7 @@ public class InboundWebhookRestController {
     byte[] bodyAsByteArray = httpServletRequest.getInputStream().readAllBytes();
     Map<String, String> params = extractQueryParams(httpServletRequest.getQueryString());
 
-    return webhookConnectorRegistry
-        .getActiveWebhook(context)
+    return connectorOpt
         .map(
             connector -> {
               // In Tomcat 11.0.12 (2025-10-07), the Coyote HTTP stack was updated to
@@ -481,6 +514,14 @@ public class InboundWebhookRestController {
     }
 
     return sb.toString();
+  }
+
+  /**
+   * Strips CR/LF from a user-controlled value before it is written to the log, so a crafted path
+   * segment cannot forge additional log lines/entries (log injection, CWE-117).
+   */
+  private static String sanitizeForLog(String value) {
+    return value == null ? null : value.replaceAll("[\r\n]", "_");
   }
 
   private static Map<String, String> extractQueryParams(String queryString) {

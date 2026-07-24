@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -175,6 +176,49 @@ class InboundWebhookRestControllerTest {
         .isEqualTo(formBody.getBytes(StandardCharsets.UTF_8));
   }
 
+  @Test
+  void physicalTenantScopedRoute_routesToCorrectConnector_legacyRouteThenNotFound()
+      throws Exception {
+    var executable = mock(WebhookConnectorExecutable.class);
+    var webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(executable.triggerWebhook(any(WebhookProcessingPayload.class))).thenReturn(webhookResult);
+
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    when(correlationHandler.correlate(anyList(), any()))
+        .thenThrow(new ConnectorInputException("invalid input"));
+
+    var details = webhookDefinition("processA", 1, "myPath", "tenant", "physical-tenant");
+    var context =
+        new InboundConnectorContextImpl(
+            new NullSecretProvider(),
+            new DefaultValidationProvider(),
+            details,
+            correlationHandler,
+            e -> {},
+            ConnectorsObjectMapperSupplier.getCopy(),
+            new ActivityLogRegistry(),
+            mock(CamundaClient.class));
+
+    var registry = new WebhookConnectorRegistry(true);
+    registry.register(
+        new RegisteredExecutable.Activated(
+            executable, context, ExecutableId.fromDeduplicationId(details.deduplicationId())));
+
+    MockMvc mockMvc =
+        MockMvcBuilders.standaloneSetup(new InboundWebhookRestController(registry)).build();
+
+    // physical-tenant/tenant-scoped route resolves to the registered connector: request reaches
+    // correlation (which the stub above rejects with 422), proving routing succeeded rather
+    // than falling through to the "connector not found" 404 branch.
+    mockMvc
+        .perform(post("/inbound/physical-tenant/tenant/myPath"))
+        .andExpect(status().isUnprocessableEntity());
+
+    // legacy 2-segment route 404s: the flag registers only under the composite key
+    mockMvc.perform(post("/inbound/myPath")).andExpect(status().isNotFound());
+  }
+
   private static io.camunda.connector.api.inbound.Activity latestActivity(
       ActivityLogRegistry registry, ExecutableId executableId) {
     return registry.getLogs(executableId).stream().reduce((first, second) -> second).orElseThrow();
@@ -209,6 +253,21 @@ class InboundWebhookRestControllerTest {
 
   private static InboundConnectorDetails.ValidInboundConnectorDetails webhookDefinition(
       String bpmnProcessId, int version, String path) {
+    return webhookDefinition(bpmnProcessId, version, path, "<default>");
+  }
+
+  private static InboundConnectorDetails.ValidInboundConnectorDetails webhookDefinition(
+      String bpmnProcessId, int version, String path, String tenantId) {
+    return webhookDefinition(
+        bpmnProcessId,
+        version,
+        path,
+        tenantId,
+        ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID);
+  }
+
+  private static InboundConnectorDetails.ValidInboundConnectorDetails webhookDefinition(
+      String bpmnProcessId, int version, String path, String tenantId, String physicalTenantId) {
     return (InboundConnectorDetails.ValidInboundConnectorDetails)
         InboundConnectorDetails.of(
             bpmnProcessId + version + path,
@@ -219,10 +278,18 @@ class InboundWebhookRestControllerTest {
                         bpmnProcessId, version, (bpmnProcessId + version).hashCode()),
                     new ProcessElementWithRuntimeData(
                         bpmnProcessId,
+                        null,
+                        null,
                         version,
                         (bpmnProcessId + version).hashCode(),
                         "testElement",
-                        "<default>"))));
+                        null,
+                        null,
+                        tenantId,
+                        physicalTenantId,
+                        new io.camunda.connector.api.inbound.ElementTemplateDetails(
+                            "Test", "1", "icon"),
+                        Map.of()))));
   }
 
   private static class NullSecretProvider implements SecretProvider {

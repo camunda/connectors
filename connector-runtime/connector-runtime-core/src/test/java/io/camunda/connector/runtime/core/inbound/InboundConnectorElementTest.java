@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.ElementTemplateDetails;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.error.InvalidInboundConnectorDefinitionException;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
@@ -223,8 +224,9 @@ public class InboundConnectorElementTest {
     // when
     var result = testObj.deduplicationId(List.of());
 
-    // then
-    assertThat(result).isEqualTo("<default>-myProcess-id");
+    // then: netstring-encoded tenantIdAndBpmnProcessId() ("default"/"<default>"/"myProcess"),
+    // followed by the literal deduplicationId property suffix
+    assertThat(result).isEqualTo("7:default9:<default>9:myProcess-id");
   }
 
   @Test
@@ -255,8 +257,53 @@ public class InboundConnectorElementTest {
     // when
     var result = testObj.deduplicationId(List.of());
 
-    // then
-    assertThat(result).isEqualTo("tenant-42-myElement");
+    // then: netstring-encoded ("default"/"tenant"/42/"myElement") — see encodeComponents javadoc
+    assertThat(result).isEqualTo("7:default6:tenant2:429:myElement");
+  }
+
+  @Test
+  void deduplicationId_legacyMode_doesNotCollideAcrossAmbiguousComponentBoundaries() {
+    // physical tenant "a" + logical tenant "b-c" must NOT produce the same deduplicationId as
+    // physical tenant "a-b" + logical tenant "c" (same remaining fields) — a naive "-"-joined
+    // concatenation would collide here since physicalTenantId can fall back to a free-form client
+    // name that itself may contain "-"
+    var elementA =
+        new InboundConnectorElement(
+            Map.of("inbound.type", "test"),
+            new StandaloneMessageCorrelationPoint("", "", null, null),
+            new ProcessElementWithRuntimeData(
+                "myProcess",
+                null,
+                null,
+                0,
+                42L,
+                "myElement",
+                null,
+                null,
+                "b-c",
+                "a",
+                new ElementTemplateDetails("Test", "1", "icon"),
+                Map.of()));
+    var elementB =
+        new InboundConnectorElement(
+            Map.of("inbound.type", "test"),
+            new StandaloneMessageCorrelationPoint("", "", null, null),
+            new ProcessElementWithRuntimeData(
+                "myProcess",
+                null,
+                null,
+                0,
+                42L,
+                "myElement",
+                null,
+                null,
+                "c",
+                "a-b",
+                new ElementTemplateDetails("Test", "1", "icon"),
+                Map.of()));
+
+    assertThat(elementA.deduplicationId(List.of()))
+        .isNotEqualTo(elementB.deduplicationId(List.of()));
   }
 
   @Test

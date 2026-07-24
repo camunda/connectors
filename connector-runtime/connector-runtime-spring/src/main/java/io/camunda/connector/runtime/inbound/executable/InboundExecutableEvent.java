@@ -35,6 +35,7 @@ public sealed interface InboundExecutableEvent {
    *   <li>Properly merge/split connector elements when versions change
    * </ul>
    *
+   * @param physicalTenantId the physical tenant this process is deployed on
    * @param bpmnProcessId the BPMN process ID
    * @param tenantId the tenant ID
    * @param elementsByProcessDefinitionKey map of process definition key (version) to the list of
@@ -42,6 +43,7 @@ public sealed interface InboundExecutableEvent {
    *     be deactivated.
    */
   record ProcessStateChanged(
+      String physicalTenantId,
       String bpmnProcessId,
       String tenantId,
       Map<Long, List<InboundConnectorElement>> elementsByProcessDefinitionKey)

@@ -142,6 +142,7 @@ class InboundConnectorContextImplTest {
             null,
             null,
             "<default>",
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
             new ElementTemplateDetails("t", "1", "icon"),
             Map.of("stringMap", "={\"from\":\"activated-element\"}"));
     var correlationHandler = mock(InboundCorrelationHandler.class);

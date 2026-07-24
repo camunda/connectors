@@ -48,7 +48,7 @@ class DefaultProcessInstanceContextTest {
     when(intermediateContext.getProperties()).thenReturn(Map.of("str", "= anything"));
     when(intermediateContext.getDefinition())
         .thenReturn(
-            new InboundConnectorDefinition("type", "tenant-A", "dedup", java.util.List.of()));
+            new InboundConnectorDefinition("type", "tenant-A", "dedup", java.util.List.of(), null));
 
     var elementInstance = mock(ElementInstance.class);
     when(elementInstance.getElementInstanceKey()).thenReturn(987654321L);
@@ -83,7 +83,7 @@ class DefaultProcessInstanceContextTest {
     when(intermediateContext.getProperties()).thenReturn(Map.of("str", "= failing"));
     when(intermediateContext.getDefinition())
         .thenReturn(
-            new InboundConnectorDefinition("type", "tenant-A", "dedup", java.util.List.of()));
+            new InboundConnectorDefinition("type", "tenant-A", "dedup", java.util.List.of(), null));
 
     var elementInstance = mock(ElementInstance.class);
     when(elementInstance.getElementInstanceKey()).thenReturn(987654321L);

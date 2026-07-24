@@ -31,6 +31,7 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.FileInputStream;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.Cache;
@@ -69,7 +70,11 @@ class ProcessDefinitionInspectorCacheMetricsTest {
 
   @Test
   void recordsMissThenHitForRepeatedLookupsOfSameKey() {
-    var inspector = new ProcessDefinitionInspector(searchQueryClient, caffeineCache(), metrics);
+    var inspector =
+        new ProcessDefinitionInspector(
+            Map.of(ProcessDefinitionRef.DEFAULT_PHYSICAL_TENANT_ID, searchQueryClient),
+            caffeineCache(),
+            metrics);
 
     inspector.findInboundConnectors(PROCESS_REF, PROCESS_DEFINITION_KEY);
     inspector.findInboundConnectors(PROCESS_REF, PROCESS_DEFINITION_KEY);
@@ -82,10 +87,70 @@ class ProcessDefinitionInspectorCacheMetricsTest {
   }
 
   @Test
+  void doesNotConflateResultsAcrossPhysicalTenantsWithCollidingProcessDefinitionKey()
+      throws Exception {
+    // given - two physical tenants (independent Zeebe clusters), each happening to assign the
+    // SAME raw processDefinitionKey to their own, different, deployed process.
+    var clientA = mock(SearchQueryClient.class);
+    var clientB = mock(SearchQueryClient.class);
+
+    stubModel(clientA, "single-webhook-collaboration.bpmn");
+    stubModel(clientB, "single-webhook-boundary.bpmn");
+
+    var inspector =
+        new ProcessDefinitionInspector(
+            Map.of("physical-tenant-a", clientA, "physical-tenant-b", clientB),
+            caffeineCache(),
+            metrics);
+
+    var refA = new ProcessDefinitionRef("physical-tenant-a", "process", "tenant1");
+    var refB = new ProcessDefinitionRef("physical-tenant-b", "BoundaryEventTest", "tenant1");
+
+    // when - both physical tenants are queried with the same colliding processDefinitionKey
+    var elementsA = inspector.findInboundConnectors(refA, PROCESS_DEFINITION_KEY);
+    var elementsB = inspector.findInboundConnectors(refB, PROCESS_DEFINITION_KEY);
+
+    // then - each physical tenant's own model was parsed, not conflated with the other's
+    assertThat(elementsA).extracting(e -> e.element().elementId()).containsExactly("start_event");
+    assertThat(elementsB)
+        .extracting(e -> e.element().elementId())
+        .containsExactly("boundary_event");
+    verify(clientA, times(1)).getProcessModel(PROCESS_DEFINITION_KEY);
+    verify(clientB, times(1)).getProcessModel(PROCESS_DEFINITION_KEY);
+
+    // and - repeated lookups are served from cache without conflating the two tenants
+    var elementsA2 = inspector.findInboundConnectors(refA, PROCESS_DEFINITION_KEY);
+    var elementsB2 = inspector.findInboundConnectors(refB, PROCESS_DEFINITION_KEY);
+    assertThat(elementsA2).extracting(e -> e.element().elementId()).containsExactly("start_event");
+    assertThat(elementsB2)
+        .extracting(e -> e.element().elementId())
+        .containsExactly("boundary_event");
+    // still only 1 call each — the second lookup was a cache hit, not a re-fetch
+    verify(clientA, times(1)).getProcessModel(PROCESS_DEFINITION_KEY);
+    verify(clientB, times(1)).getProcessModel(PROCESS_DEFINITION_KEY);
+  }
+
+  private void stubModel(SearchQueryClient client, String bpmnResource) throws Exception {
+    BpmnModelInstance model;
+    try (FileInputStream inputStream =
+        new FileInputStream(ResourceUtils.getFile("classpath:bpmn/" + bpmnResource))) {
+      model = Bpmn.readModelFromStream(inputStream);
+    }
+    when(client.getProcessModel(PROCESS_DEFINITION_KEY)).thenReturn(model);
+    var processDefinition = mock(ProcessDefinition.class);
+    when(processDefinition.getVersion()).thenReturn(1);
+    when(client.getProcessDefinition(PROCESS_DEFINITION_KEY)).thenReturn(processDefinition);
+  }
+
+  @Test
   void countsEveryLookupAsMissWhenCachingIsDisabled() {
     Cache noOpCache =
         new NoOpCacheManager().getCache(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME);
-    var inspector = new ProcessDefinitionInspector(searchQueryClient, noOpCache, metrics);
+    var inspector =
+        new ProcessDefinitionInspector(
+            Map.of(ProcessDefinitionRef.DEFAULT_PHYSICAL_TENANT_ID, searchQueryClient),
+            noOpCache,
+            metrics);
 
     inspector.findInboundConnectors(PROCESS_REF, PROCESS_DEFINITION_KEY);
     inspector.findInboundConnectors(PROCESS_REF, PROCESS_DEFINITION_KEY);

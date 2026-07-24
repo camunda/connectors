@@ -29,6 +29,8 @@ public class InboundConnectorDefinitionBuilder {
 
   private String deduplicationId = "test-deduplication-id";
 
+  private String physicalTenantId = "default";
+
   private List<ProcessElementWithRuntimeData> elements =
       List.of(
           new ProcessElementWithRuntimeData("test-process", 1, 1L, "test-element", "<default>"));
@@ -52,6 +54,11 @@ public class InboundConnectorDefinitionBuilder {
     return this;
   }
 
+  public InboundConnectorDefinitionBuilder physicalTenantId(String physicalTenantId) {
+    this.physicalTenantId = physicalTenantId;
+    return this;
+  }
+
   public InboundConnectorDefinitionBuilder elements(List<ProcessElementWithRuntimeData> elements) {
     this.elements = elements;
     return this;
@@ -63,6 +70,7 @@ public class InboundConnectorDefinitionBuilder {
   }
 
   public InboundConnectorDefinition build() {
-    return new InboundConnectorDefinition(type, tenantId, deduplicationId, elements);
+    return new InboundConnectorDefinition(
+        type, tenantId, deduplicationId, elements, physicalTenantId);
   }
 }

@@ -87,7 +87,11 @@ public class InboundExecutableRegistryTest {
 
     // when
     registry.handleEvent(
-        new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1, element2))));
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element1, element2))));
 
     // then
     var result = registry.query(f -> f.elementId(elementId));
@@ -117,7 +121,11 @@ public class InboundExecutableRegistryTest {
 
     // when
     registry.handleEvent(
-        new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1, element2))));
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element1, element2))));
 
     // then
     verify(executable).activate(any());
@@ -139,10 +147,91 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
 
     // when
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element))));
 
     // then
     verify(executable).activate(context);
+  }
+
+  @Test
+  public void
+      crossPhysicalTenantIsolation_sameTenantAndProcessAndElement_activatesAsIndependentExecutables()
+          throws Exception {
+    // given - identical tenantId + bpmnProcessId + elementId + config, deployed on two different
+    // physical tenants (e.g. the same process independently deployed to two Zeebe clusters)
+    var elementId = "elementId";
+    var elementOnTenantA =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElementWithRuntimeData(
+                "id",
+                null,
+                null,
+                0,
+                0,
+                elementId,
+                null,
+                null,
+                "tenant",
+                "physical-tenant-a",
+                new ElementTemplateDetails("Test", "1", "icon"),
+                Map.of()));
+    var elementOnTenantB =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElementWithRuntimeData(
+                "id",
+                null,
+                null,
+                0,
+                0,
+                elementId,
+                null,
+                null,
+                "tenant",
+                "physical-tenant-b",
+                new ElementTemplateDetails("Test", "1", "icon"),
+                Map.of()));
+
+    var executableA = mock(InboundConnectorExecutable.class);
+    var executableB = mock(InboundConnectorExecutable.class);
+    when(factory.getInstance(any())).thenReturn(executableA, executableB);
+
+    var contextA = mock(InboundConnectorContextImpl.class);
+    when(contextA.connectorElements()).thenReturn(List.of(elementOnTenantA));
+    var contextB = mock(InboundConnectorContextImpl.class);
+    when(contextB.connectorElements()).thenReturn(List.of(elementOnTenantB));
+    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(contextA, contextB);
+
+    // when - each physical tenant independently reports its own state change
+    registry.handleEvent(
+        new ProcessStateChanged(
+            "physical-tenant-a", "id", "tenant", Map.of(0L, List.of(elementOnTenantA))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            "physical-tenant-b", "id", "tenant", Map.of(0L, List.of(elementOnTenantB))));
+
+    // then - both are activated as separate executables, not deduplicated into one
+    var results = registry.query(f -> f.elementId(elementId));
+    assertThat(results).hasSize(2);
+    assertThat(results).extracting(ActiveExecutableResponse::executableId).doesNotHaveDuplicates();
+    verify(executableA).activate(any());
+    verify(executableB).activate(any());
+
+    // and - deactivating tenant A's process must not affect tenant B's executable
+    registry.handleEvent(new ProcessStateChanged("physical-tenant-a", "id", "tenant", Map.of()));
+    var resultsAfterTenantADeactivation = registry.query(f -> f.elementId(elementId));
+    assertThat(resultsAfterTenantADeactivation).hasSize(1);
+    assertThat(resultsAfterTenantADeactivation.getFirst().elements())
+        .extracting(e -> e.element().physicalTenantId())
+        .containsExactly("physical-tenant-b");
   }
 
   @Test
@@ -164,7 +253,12 @@ public class InboundExecutableRegistryTest {
     doThrow(new RuntimeException("failed")).when(executable).activate(any());
 
     // when
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element))));
 
     // then
     var result = registry.query(f -> f.elementId(elementId));
@@ -194,7 +288,7 @@ public class InboundExecutableRegistryTest {
     var mockContext = mock(InboundConnectorContextImpl.class);
     when(mockContext.connectorElements()).thenReturn(List.of(element1, element2));
     when(mockContext.getDefinition())
-        .thenReturn(new InboundConnectorDefinition("type", "tenant", "id", null));
+        .thenReturn(new InboundConnectorDefinition("type", "tenant", "id", null, null));
     when(mockContext.getHealth()).thenReturn(Health.up());
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(mockContext);
 
@@ -202,7 +296,11 @@ public class InboundExecutableRegistryTest {
 
     // when
     registry.handleEvent(
-        new ProcessStateChanged(processId, "tenant", Map.of(0L, List.of(element1, element2))));
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            processId,
+            "tenant",
+            Map.of(0L, List.of(element1, element2))));
 
     // then
     verify(executable1).activate(mockContext);
@@ -240,13 +338,17 @@ public class InboundExecutableRegistryTest {
     var mockContext = mock(InboundConnectorContextImpl.class);
     when(mockContext.connectorElements()).thenReturn(List.of(element1, element2));
     when(mockContext.getDefinition())
-        .thenReturn(new InboundConnectorDefinition("type", "tenant", "id", null));
+        .thenReturn(new InboundConnectorDefinition("type", "tenant", "id", null, null));
     when(mockContext.getHealth()).thenReturn(Health.up());
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(mockContext);
 
     // when
     registry.handleEvent(
-        new ProcessStateChanged(processId, "tenant", Map.of(0L, List.of(element1, element2))));
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            processId,
+            "tenant",
+            Map.of(0L, List.of(element1, element2))));
 
     // then
     verify(executable1).activate(mockContext);
@@ -274,7 +376,12 @@ public class InboundExecutableRegistryTest {
         .thenThrow(new NoSuchElementException("Connector unknown-type not registered"));
 
     // when
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element))));
 
     // then
     var result = registry.query(f -> f.elementId(elementId));
@@ -305,7 +412,12 @@ public class InboundExecutableRegistryTest {
     when(context.getDefinition()).thenReturn(definitions);
     when(definitions.type()).thenReturn("type1");
     // when
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element1))));
     registry.handleEvent(
         new InboundExecutableEvent.Cancelled(
             RANDOM_ID,
@@ -357,7 +469,12 @@ public class InboundExecutableRegistryTest {
         .when(executable)
         .activate(any());
 
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element1))));
 
     // then
     verify(executable, timeout(5000).times(1)).activate(any());
@@ -393,7 +510,12 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
     // when
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element1))));
 
     context.cancel(
         ConnectorRetryException.builder()
@@ -439,7 +561,12 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
     // when
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element1))));
 
     context.cancel(
         ConnectorRetryException.builder()
@@ -476,7 +603,12 @@ public class InboundExecutableRegistryTest {
     when(definitions.type()).thenReturn("type1");
     doNothing().doThrow(new Exception()).when(executable).activate(any());
 
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element1))));
 
     registry.handleEvent(
         new InboundExecutableEvent.Cancelled(
@@ -516,7 +648,12 @@ public class InboundExecutableRegistryTest {
     when(definitions.type()).thenReturn("type1");
     doNothing().doThrow(new Exception()).doNothing().when(executable).activate(any());
 
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element1))));
 
     registry.handleEvent(
         new InboundExecutableEvent.Cancelled(
@@ -551,14 +688,19 @@ public class InboundExecutableRegistryTest {
     var context = mock(InboundConnectorManagementContext.class);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
     when(context.getDefinition())
-        .thenReturn(new InboundConnectorDefinition("type1", "tenant", "id", null));
+        .thenReturn(new InboundConnectorDefinition("type1", "tenant", "id", null, null));
     when(context.connectorElements()).thenReturn(List.of(element));
     when(factory.getInstance(any())).thenReturn(executable);
 
     // First activate() throws → FailedToActivate; second call succeeds
     doThrow(new RuntimeException("Missing secret")).doNothing().when(executable).activate(any());
 
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element))));
 
     var beforeReset = registry.query(f -> f.executableId(RANDOM_ID)).getFirst();
     assertThat(beforeReset.health().getStatus()).isEqualTo(Status.DOWN);
@@ -592,7 +734,12 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
 
     // when
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element))));
 
     // then
     var result =
@@ -626,7 +773,12 @@ public class InboundExecutableRegistryTest {
     doThrow(new RuntimeException("activation failed")).when(executable).activate(any());
 
     // when
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element))));
 
     // then
     var result = registry.query(f -> f.elementId(elementId));
@@ -645,16 +797,23 @@ public class InboundExecutableRegistryTest {
     var executable = mock(InboundConnectorExecutable.class);
     var context = mock(InboundConnectorManagementContext.class);
     when(context.getDefinition())
-        .thenReturn(new InboundConnectorDefinition("type1", "tenant", "id", null));
+        .thenReturn(new InboundConnectorDefinition("type1", "tenant", "id", null, null));
     when(context.connectorElements()).thenReturn(List.of(element));
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
     when(factory.getInstance(any())).thenReturn(executable);
 
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element))));
     var executableId = registry.query(f -> f.elementId(elementId)).getFirst().executableId();
 
     // when - send empty process state to trigger permanent deactivation
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of()));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID, "id", "tenant", Map.of()));
 
     // then - logs are removed to prevent memory leak
     assertThat(activityLogRegistry.getLogs(executableId)).isEmpty();
@@ -679,16 +838,22 @@ public class InboundExecutableRegistryTest {
     var executable = mock(InboundConnectorExecutable.class);
     var context = mock(InboundConnectorManagementContext.class);
     when(context.getDefinition())
-        .thenReturn(new InboundConnectorDefinition("type1", "tenant", "id", null));
+        .thenReturn(new InboundConnectorDefinition("type1", "tenant", "id", null, null));
     when(context.connectorElements()).thenReturn(List.of(element));
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
     when(factory.getInstance(any())).thenReturn(executable);
 
     localRegistry.handleEvent(
-        new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element))));
 
     // when
-    localRegistry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of()));
+    localRegistry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID, "id", "tenant", Map.of()));
 
     // then - the deactivation lifecycle entry was logged before being removed
     verify(spyRegistry)
@@ -711,12 +876,17 @@ public class InboundExecutableRegistryTest {
     var executable = mock(InboundConnectorExecutable.class);
     var context = mock(InboundConnectorManagementContext.class);
     when(context.getDefinition())
-        .thenReturn(new InboundConnectorDefinition("type1", "tenant", "id", null));
+        .thenReturn(new InboundConnectorDefinition("type1", "tenant", "id", null, null));
     when(context.connectorElements()).thenReturn(List.of(element));
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
     when(factory.getInstance(any())).thenReturn(executable);
 
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element))));
     var executableId = registry.query(f -> f.elementId(elementId)).getFirst().executableId();
     assertThat(activityLogRegistry.getLogs(executableId)).hasSize(1); // initial activation log
 
@@ -743,10 +913,11 @@ public class InboundExecutableRegistryTest {
             new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
     var executable = mock(InboundConnectorExecutable.class);
 
-    // The deduplication ID in legacy mode is: tenantId + "-" + processDefinitionKey + "-" +
-    // elementId
+    // The deduplication ID in legacy mode is a netstring-style length-prefixed encoding of
+    // physicalTenantId, tenantId, processDefinitionKey and elementId (see
+    // InboundConnectorElement#encodeComponents)
     var connectorDetails = mock(ValidInboundConnectorDetails.class);
-    when(connectorDetails.deduplicationId()).thenReturn("tenant-0-elementId");
+    when(connectorDetails.deduplicationId()).thenReturn("7:default6:tenant1:09:elementId");
     when(connectorDetails.rawPropertiesWithoutKeywords()).thenReturn(Map.of());
     when(connectorDetails.connectorElements()).thenReturn(List.of(element));
 
@@ -776,7 +947,12 @@ public class InboundExecutableRegistryTest {
         .activate(any());
 
     // when
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+    registry.handleEvent(
+        new ProcessStateChanged(
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            "id",
+            "tenant",
+            Map.of(0L, List.of(element))));
 
     // then
     var result = registry.query(f -> f.elementId(elementId));

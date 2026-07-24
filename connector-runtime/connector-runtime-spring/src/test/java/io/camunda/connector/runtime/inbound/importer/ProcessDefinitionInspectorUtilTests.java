@@ -31,6 +31,7 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.FileInputStream;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
@@ -135,7 +136,7 @@ public class ProcessDefinitionInspectorUtilTests {
           new ConcurrentMapCacheManager(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME);
       var inspector =
           new ProcessDefinitionInspector(
-              searchQueryClientMock,
+              Map.of(ProcessDefinitionRef.DEFAULT_PHYSICAL_TENANT_ID, searchQueryClientMock),
               cacheManager.getCache(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME),
               new ConnectorsInboundMetrics(new SimpleMeterRegistry()));
       var modelFile = ResourceUtils.getFile("classpath:bpmn/" + fileName);

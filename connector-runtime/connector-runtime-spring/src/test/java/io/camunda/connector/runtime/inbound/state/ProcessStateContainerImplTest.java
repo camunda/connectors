@@ -83,7 +83,11 @@ class ProcessStateContainerImplTest {
     @Test
     void shouldReturnEmptyResultOnEmptyImport() {
       // given
-      var importResult = new ImportResult(Map.of(), ImportType.LATEST_VERSIONS);
+      var importResult =
+          new ImportResult(
+              Map.of(),
+              ImportType.LATEST_VERSIONS,
+              ProcessDefinitionRef.DEFAULT_PHYSICAL_TENANT_ID);
 
       // when
       var result = container.compareAndUpdate(importResult);
@@ -399,6 +403,108 @@ class ProcessStateContainerImplTest {
       // then - only tenant1 should be affected
       assertThat(result.affectedProcesses()).hasSize(1);
       assertThat(result.affectedProcesses().get(processTenant1)).containsExactlyInAnyOrder(2L);
+    }
+  }
+
+  /**
+   * Each physical tenant is imported via its own independent {@code compareAndUpdate} call (one
+   * {@link io.camunda.connector.runtime.inbound.importer.Importers} call per physical tenant, each
+   * polling on its own schedule) — unlike {@link MultiTenancyScenarios}, where both logical
+   * tenants' data arrives bundled in a single call. This distinction matters: a batch that only
+   * mentions one physical tenant's processes must not be misread as "every other physical tenant's
+   * processes are now missing".
+   */
+  @Nested
+  class MultiPhysicalTenantScenarios {
+
+    @Test
+    void shouldTrackSameTenantAndProcessIndependentlyAcrossPhysicalTenants() {
+      // given - the same tenantId + bpmnProcessId, deployed on two different physical tenants
+      var processOnTenantA = new ProcessDefinitionRef("physical-tenant-a", "process1", "tenant1");
+      var processOnTenantB = new ProcessDefinitionRef("physical-tenant-b", "process1", "tenant1");
+
+      // when - tenant A reports v1, tenant B reports v2, via independent polls
+      var resultA =
+          container.compareAndUpdate(
+              new ImportResult(
+                  Map.of(processOnTenantA, Set.of(1L)),
+                  ImportType.LATEST_VERSIONS,
+                  "physical-tenant-a"));
+      var resultB =
+          container.compareAndUpdate(
+              new ImportResult(
+                  Map.of(processOnTenantB, Set.of(2L)),
+                  ImportType.LATEST_VERSIONS,
+                  "physical-tenant-b"));
+
+      // then - each physical tenant's state is tracked independently
+      assertThat(resultA.affectedProcesses().get(processOnTenantA)).containsExactlyInAnyOrder(1L);
+      assertThat(resultB.affectedProcesses().get(processOnTenantB)).containsExactlyInAnyOrder(2L);
+    }
+
+    @Test
+    void independentPollOfOnePhysicalTenantShouldNotDeactivateAnother() {
+      // given - two physical tenants, each already tracking their own process
+      var processOnTenantA = new ProcessDefinitionRef("physical-tenant-a", "process1", "tenant1");
+      var processOnTenantB = new ProcessDefinitionRef("physical-tenant-b", "process1", "tenant1");
+
+      container.compareAndUpdate(
+          new ImportResult(
+              Map.of(processOnTenantA, Set.of(1L)),
+              ImportType.LATEST_VERSIONS,
+              "physical-tenant-a"));
+
+      // when - tenant B's independent poll runs, reporting only its own process (never mentions A)
+      container.compareAndUpdate(
+          new ImportResult(
+              Map.of(processOnTenantB, Set.of(1L)),
+              ImportType.LATEST_VERSIONS,
+              "physical-tenant-b"));
+
+      // then - tenant A's second, unchanged poll reports no spurious change: tenant B's poll must
+      // not have deactivated (and this poll re-activated) tenant A's process in between
+      var resultA2 =
+          container.compareAndUpdate(
+              new ImportResult(
+                  Map.of(processOnTenantA, Set.of(1L)),
+                  ImportType.LATEST_VERSIONS,
+                  "physical-tenant-a"));
+      assertThat(resultA2.isEmpty()).isTrue();
+    }
+
+    @Test
+    void emptyPollForOnePhysicalTenantShouldOnlyDeactivateThatTenantsProcesses() {
+      // given - two physical tenants, each tracking their own process
+      var processOnTenantA = new ProcessDefinitionRef("physical-tenant-a", "process1", "tenant1");
+      var processOnTenantB = new ProcessDefinitionRef("physical-tenant-b", "process1", "tenant1");
+
+      container.compareAndUpdate(
+          new ImportResult(
+              Map.of(processOnTenantA, Set.of(1L)),
+              ImportType.LATEST_VERSIONS,
+              "physical-tenant-a"));
+      container.compareAndUpdate(
+          new ImportResult(
+              Map.of(processOnTenantB, Set.of(1L)),
+              ImportType.LATEST_VERSIONS,
+              "physical-tenant-b"));
+
+      // when - tenant A's next poll finds nothing at all (e.g. process undeployed)
+      var resultEmptyA =
+          container.compareAndUpdate(
+              new ImportResult(Map.of(), ImportType.LATEST_VERSIONS, "physical-tenant-a"));
+
+      // then - only tenant A's process is deactivated, tenant B's is untouched
+      assertThat(resultEmptyA.affectedProcesses()).containsOnlyKeys(processOnTenantA);
+      assertThat(resultEmptyA.affectedProcesses().get(processOnTenantA)).isEmpty();
+
+      var resultB2 =
+          container.compareAndUpdate(
+              new ImportResult(
+                  Map.of(processOnTenantB, Set.of(1L)),
+                  ImportType.LATEST_VERSIONS,
+                  "physical-tenant-b"));
+      assertThat(resultB2.isEmpty()).isTrue();
     }
   }
 

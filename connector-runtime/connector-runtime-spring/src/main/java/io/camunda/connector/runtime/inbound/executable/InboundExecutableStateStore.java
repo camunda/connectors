@@ -42,6 +42,10 @@ public interface InboundExecutableStateStore {
   /** Get all executables. */
   Collection<RegisteredExecutable> getAllExecutables();
 
-  /** Get all executable IDs for a specific process (by bpmnProcessId and tenantId). */
-  Set<ExecutableId> getExecutableIdsForProcess(String bpmnProcessId, String tenantId);
+  /**
+   * Get all executable IDs for a specific process (by physicalTenantId, bpmnProcessId and
+   * tenantId).
+   */
+  Set<ExecutableId> getExecutableIdsForProcess(
+      String physicalTenantId, String bpmnProcessId, String tenantId);
 }
