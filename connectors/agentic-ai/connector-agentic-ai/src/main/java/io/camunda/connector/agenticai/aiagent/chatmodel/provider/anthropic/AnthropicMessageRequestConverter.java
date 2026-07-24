@@ -191,7 +191,7 @@ public class AnthropicMessageRequestConverter {
    * Merges the {@code compatible} backend's raw request (body) parameters onto the built request
    * (e.g. vendor-specific extensions unsupported by the SDK's typed builder). {@code headers}/
    * {@code queryParameters} on the same backend are applied at the client level (see {@code
-   * AnthropicOkHttpClientFactory}), but body parameters can only be merged here, at request-
+   * AnthropicChatModelApiFactory}), but body parameters can only be merged here, at request-
    * building time.
    */
   private void applyCompatibleRequestParameters(
