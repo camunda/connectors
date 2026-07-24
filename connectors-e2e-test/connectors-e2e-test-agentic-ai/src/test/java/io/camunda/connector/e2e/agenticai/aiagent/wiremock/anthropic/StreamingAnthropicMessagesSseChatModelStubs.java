@@ -61,16 +61,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Stubs the Anthropic Messages endpoint's <strong>streaming</strong> response ({@code POST
- * /v1/messages}, always requested with {@code Accept: text/event-stream} and {@code "stream": true}
- * by the native provider) with real Server-Sent-Events framing.
+ * /v1/messages}, requested with {@code Accept: text/event-stream} and {@code "stream": true}) with
+ * real Server-Sent-Events framing.
  *
- * <p>{@code AnthropicChatModelApi} (the native, own-LLM-layer Anthropic provider) always drives
- * {@code client.messages().createStreaming(params)} and feeds the raw event stream to the vendor
- * SDK's {@code MessageAccumulator}, which requires a {@code message_start} &rarr; ... &rarr; {@code
- * message_stop} event sequence and throws ({@code IllegalStateException: 'message_stop' event not
- * yet received.}) if handed anything else - in particular the single buffered JSON body that {@link
- * AnthropicMessagesChatModelStubs} (shared with the langchain4j-bridge v1 fixture, whose client
- * issues a plain non-streaming POST) returns.
+ * <p>Any client driving the vendor SDK's {@code client.messages().createStreaming(params)} feeds
+ * the raw event stream to the SDK's {@code MessageAccumulator}, which requires a {@code
+ * message_start} &rarr; ... &rarr; {@code message_stop} event sequence and throws ({@code
+ * IllegalStateException: 'message_stop' event not yet received.}) if handed anything else - in
+ * particular the single buffered JSON body that {@link AnthropicMessagesChatModelStubs} (used by
+ * fixtures whose client issues a plain non-streaming POST) returns.
  *
  * <p>Each event is built using the vendor SDK's own {@code RawMessageStreamEvent} member types
  * (rather than hand-rolled JSON) and serialized with the SDK's own {@link
@@ -92,9 +91,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  *       else {@code end_turn}) plus the final {@code usage.output_tokens}.
  *   <li>{@code message_stop}.
  * </ol>
- *
- * <p>Skills/code-execution ({@code server_tool_use}/{@code code_execution_tool_result}) turns are
- * explicitly out of scope for this suite and are not stubbed here.
  */
 public final class StreamingAnthropicMessagesSseChatModelStubs {
 
@@ -258,7 +254,9 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
    * Frames a {@code redacted_thinking} block the way real Anthropic streams it: fully formed
    * already at {@code content_block_start} (opaque {@code data} populated) with no deltas at all -
    * unlike {@link #writeThinkingBlock}'s {@code thinking_delta}/{@code signature_delta}
-   * accumulation - since {@code tracksToolInput()} does not cover this block type.
+   * accumulation. There is no delta variant for a redacted-thinking block (the SDK defines {@code
+   * TextDelta}, {@code InputJsonDelta}, {@code ThinkingDelta}, {@code SignatureDelta} and {@code
+   * CitationsDelta}, but none for {@code redacted_thinking}), so it is always sent whole.
    */
   private static void writeRedactedThinkingBlock(StringBuilder body, int index, String data) {
     writeEvent(

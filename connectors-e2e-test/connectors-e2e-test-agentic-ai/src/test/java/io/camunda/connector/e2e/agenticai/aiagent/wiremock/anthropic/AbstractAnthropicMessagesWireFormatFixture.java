@@ -27,11 +27,12 @@ import java.util.Map;
 import org.assertj.core.api.Assertions;
 
 /**
- * Shared wire-format plumbing for Anthropic's Messages API, common to both the langchain4j-bridge
- * ({@link AnthropicMessagesWireFormatFixture}) and native ({@link
- * StreamingAnthropicMessagesWireFormatFixture}) provider implementations — they send/receive the
- * exact same wire format and only differ in how the connector is pointed at the WireMock server
- * (see {@code apiName()}/{@code configureProvider(...)} on each subclass).
+ * Shared wire-format plumbing for Anthropic's Messages API, common to both the non-streaming
+ * ({@link AnthropicMessagesV1WireFormatFixture}) and streaming ({@link
+ * AnthropicMessagesV2WireFormatFixture}) fixtures — they send/receive the exact same wire format
+ * and only differ in how the connector is pointed at the WireMock server and how the response is
+ * stubbed (see {@code apiName()}/{@code configureProvider(...)}/{@code stubConversation(...)} on
+ * each subclass).
  *
  * <p>Notable wire-level differences from OpenAI's Chat Completions format:
  *

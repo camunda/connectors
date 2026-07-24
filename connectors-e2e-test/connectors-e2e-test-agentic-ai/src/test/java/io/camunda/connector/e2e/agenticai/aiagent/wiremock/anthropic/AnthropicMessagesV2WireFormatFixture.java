@@ -26,19 +26,20 @@ import java.util.function.Function;
 
 /**
  * Plugs Anthropic's Messages API wire format into the provider-agnostic {@link
- * ProviderWireFormatFixture} SPI, driving the connector through its native (own-LLM-layer,
- * non-langchain4j) Anthropic provider (v2) — see {@code AnthropicChatModelApi}. The *request* wire
- * format is identical to the langchain4j-bridge provider; see {@link
- * AbstractAnthropicMessagesWireFormatFixture} for the shared plumbing ({@code recordedRequests()},
- * {@code assertResponseFormatConfigured(...)}).
+ * ProviderWireFormatFixture} SPI, driving the connector through the v2 (native, non-LangChain4J)
+ * Anthropic provider — see {@code AnthropicChatModelApi}. The *request* wire format is identical to
+ * the v1 fixture; see {@link AbstractAnthropicMessagesWireFormatFixture} for the shared plumbing
+ * ({@code recordedRequests()}, {@code assertResponseFormatConfigured(...)}).
  *
- * <p>The *response* wire format differs and is therefore NOT shared: {@code AnthropicChatModelApi}
- * always calls the vendor SDK's streaming endpoint ({@code
- * client.messages().createStreaming(params)}), which expects a real {@code text/event-stream} SSE
- * body, whereas the langchain4j-bridge client (v1) issues a plain non-streaming POST and expects a
- * single buffered JSON body. {@link #stubConversation(TurnStub...)} is overridden here to stub the
- * former via {@link StreamingAnthropicMessagesSseChatModelStubs} instead of inheriting {@link
- * AbstractAnthropicMessagesWireFormatFixture}'s buffered-JSON default.
+ * <p>The *response* wire format differs and is therefore NOT shared: the native provider always
+ * calls the vendor SDK's streaming endpoint ({@code client.messages().createStreaming(params)}),
+ * which expects a real {@code text/event-stream} SSE body, whereas the v1 fixture's client issues a
+ * plain non-streaming POST and expects a single buffered JSON body. {@link
+ * #stubConversation(TurnStub...)} is overridden here to stub the former via {@link
+ * StreamingAnthropicMessagesSseChatModelStubs} instead of inheriting {@link
+ * AbstractAnthropicMessagesWireFormatFixture}'s buffered-JSON default. Nothing ties the streaming
+ * stub style to the v2 template specifically — a future fixture could drive the v1 template through
+ * the same SSE stubs if a streaming client were added for it.
  *
  * <p>Drives the v2 element template ({@link
  * AgentTestFixtures#AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH}), whose provider/backend property
@@ -48,15 +49,15 @@ import java.util.function.Function;
  *
  * <p>The configured endpoint is the bare WireMock host root (no trailing {@code /v1/}), unlike the
  * v1 fixture: the native Anthropic SDK ({@code com.anthropic:anthropic-java}) always appends both
- * {@code v1} and {@code messages} path segments onto the configured base URL itself, whereas the
- * langchain4j Anthropic client expects the endpoint to already include {@code /v1}.
+ * {@code v1} and {@code messages} path segments onto the configured base URL itself, whereas the v1
+ * fixture's client expects the endpoint to already include {@code /v1}.
  */
-public final class StreamingAnthropicMessagesWireFormatFixture
+public final class AnthropicMessagesV2WireFormatFixture
     extends AbstractAnthropicMessagesWireFormatFixture {
 
   @Override
   public String apiName() {
-    return "StreamingAnthropicMessages";
+    return "AnthropicMessagesV2";
   }
 
   @Override
