@@ -142,8 +142,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 group = "provider",
                 label = "API endpoint",
                 description =
-                    "Base URL of the Anthropic-compatible API (e.g. <code>https://api.anthropic.com</code>); "
-                        + "<code>/v1/messages</code> will be appended.",
+                    "Base URL of the Anthropic-compatible API; <code>/v1/messages</code> will be appended.",
                 type = TemplateProperty.PropertyType.String,
                 feel = FeelMode.optional,
                 placeholder = "https://api.anthropic.com",
@@ -203,7 +202,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 label = "Effort",
                 description = "Leave unset to use the model default.",
                 tooltip =
-                    "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. It affects all output — text, tool calls and extended thinking. <code>low</code> is the most efficient (fewest tokens, fastest, some capability reduction); <code>medium</code> balances speed, cost and quality; <code>high</code> is full capability; <code>xhigh</code> targets long-running coding and agentic work; <code>max</code> gives maximum capability with no token constraints. Not supported on all models. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/effort\" target=\"_blank\">effort documentation</a>.",
+                    "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models."
+                        + "<br><br>See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/effort\" target=\"_blank\">effort documentation</a>.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
                   @DropdownPropertyChoice(value = "low", label = "low"),
@@ -215,6 +215,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 optional = true)
             @Nullable AnthropicEffort effort,
         @Valid @Nullable AnthropicThinking thinking,
+        @Valid @Nullable AnthropicPromptCaching promptCaching,
         @Min(0)
             @TemplateProperty(
                 group = "model-options",
@@ -254,8 +255,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            @Nullable Integer topK,
-        @Valid @Nullable AnthropicPromptCaching promptCaching) {}
+            @Nullable Integer topK) {}
 
     /**
      * Anthropic automatic prompt caching. A record rather than a bare boolean so it stays
@@ -280,9 +280,11 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 group = "model",
                 label = "Thinking mode",
                 tooltip =
-                    "Extended thinking mechanism. Leave blank to use the model default. "
-                        + "'enabled' = manual token budget (older models); 'adaptive' = model-managed "
-                        + "(newer models); 'disabled' = off. Support varies by model.",
+                    "Extended thinking mechanism. Leave blank to use the model default."
+                        + "<br><br><code>enabled</code> uses a manual token budget (older models). "
+                        + "<code>adaptive</code> is managed by the model (newer models). "
+                        + "<code>disabled</code> turns it off."
+                        + "<br><br>Support varies by model.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
                   @DropdownPropertyChoice(value = "enabled", label = "enabled"),
@@ -296,8 +298,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 group = "model",
                 label = "Thinking budget tokens",
                 tooltip =
-                    "Max tokens the model may spend on extended thinking. Required and used only when "
-                        + "thinking mode is 'enabled' (min 1024).",
+                    "Maximum number of tokens the model may spend on extended thinking (minimum 1024).",
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true,
@@ -310,7 +311,9 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 group = "model",
                 label = "Thinking display",
                 tooltip =
-                    "Controls how the model's extended thinking is returned: <code>summarized</code> includes a plain-text summary of the thinking in the response; <code>omitted</code> leaves it out.",
+                    "Controls how the model's extended thinking is returned. <code>summarized</code> includes a "
+                        + "plain-text summary of the thinking in the response. <code>omitted</code> leaves it out."
+                        + "<br><br>Leave unset to use <code>summarized</code>.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
                   @DropdownPropertyChoice(value = "summarized", label = "summarized"),
