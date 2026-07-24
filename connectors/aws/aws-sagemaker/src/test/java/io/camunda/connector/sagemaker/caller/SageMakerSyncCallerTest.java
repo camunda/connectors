@@ -13,11 +13,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.http.SdkHttpMetadata;
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntime;
-import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointRequest;
-import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,26 +21,30 @@ import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.sagemaker.model.SageMakerRequest;
 import io.camunda.connector.sagemaker.model.SageMakerSyncResponse;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
+import software.amazon.awssdk.services.sagemakerruntime.model.InvokeEndpointRequest;
+import software.amazon.awssdk.services.sagemakerruntime.model.InvokeEndpointResponse;
 
 class SageMakerSyncCallerTest {
 
   @Test
   void sageMakerSyncCaller_HappyCase() throws JsonProcessingException {
-    var runtime = mock(AmazonSageMakerRuntime.class);
-    var mockedAwsCall = new InvokeEndpointResult();
-    mockedAwsCall.setBody(
-        ByteBuffer.wrap(
-            ObjectMapperSupplier.getMapperInstance()
-                .writeValueAsBytes("{\"generated_text\": \"the answer is 42\"}")));
-    mockedAwsCall.setContentType("application/json");
-    mockedAwsCall.setCustomAttributes("my-custom-attribute");
-    mockedAwsCall.setInvokedProductionVariant("variant01");
+    var runtime = mock(SageMakerRuntimeClient.class);
+    var mockedAwsCall =
+        InvokeEndpointResponse.builder()
+            .body(
+                SdkBytes.fromByteArray(
+                    ObjectMapperSupplier.getMapperInstance()
+                        .writeValueAsBytes("{\"generated_text\": \"the answer is 42\"}")))
+            .contentType("application/json")
+            .customAttributes("my-custom-attribute")
+            .invokedProductionVariant("variant01")
+            .build();
     when(runtime.invokeEndpoint(any(InvokeEndpointRequest.class))).thenReturn(mockedAwsCall);
     var captor = ArgumentCaptor.forClass(InvokeEndpointRequest.class);
     var request =
@@ -56,29 +55,28 @@ class SageMakerSyncCallerTest {
     verify(runtime).invokeEndpoint(captor.capture());
 
     var mappedRequest = captor.getValue();
-    assertThat(mappedRequest.getEndpointName()).isEqualTo(request.getInput().endpointName());
-    assertThat(mappedRequest.getBody())
+    assertThat(mappedRequest.endpointName()).isEqualTo(request.getInput().endpointName());
+    assertThat(mappedRequest.body())
         .isEqualTo(
-            ByteBuffer.wrap(
+            SdkBytes.fromByteArray(
                 ObjectMapperSupplier.getMapperInstance()
                     .writeValueAsBytes(request.getInput().body())));
-    assertThat(mappedRequest.getContentType()).isEqualTo(request.getInput().contentType());
-    assertThat(mappedRequest.getAccept()).isEqualTo(request.getInput().accept());
-    assertThat(mappedRequest.getCustomAttributes())
-        .isEqualTo(request.getInput().customAttributes());
-    assertThat(mappedRequest.getTargetModel()).isEqualTo(request.getInput().targetModel());
-    assertThat(mappedRequest.getTargetVariant()).isEqualTo(request.getInput().targetVariant());
-    assertThat(mappedRequest.getTargetContainerHostname())
+    assertThat(mappedRequest.contentType()).isEqualTo(request.getInput().contentType());
+    assertThat(mappedRequest.accept()).isEqualTo(request.getInput().accept());
+    assertThat(mappedRequest.customAttributes()).isEqualTo(request.getInput().customAttributes());
+    assertThat(mappedRequest.targetModel()).isEqualTo(request.getInput().targetModel());
+    assertThat(mappedRequest.targetVariant()).isEqualTo(request.getInput().targetVariant());
+    assertThat(mappedRequest.targetContainerHostname())
         .isEqualTo(request.getInput().targetContainerHostname());
-    assertThat(mappedRequest.getInferenceId()).isEqualTo(request.getInput().inferenceId());
-    assertThat(mappedRequest.getEnableExplanations()).isNull();
-    assertThat(mappedRequest.getInferenceComponentName())
+    assertThat(mappedRequest.inferenceId()).isEqualTo(request.getInput().inferenceId());
+    assertThat(mappedRequest.enableExplanations()).isNull();
+    assertThat(mappedRequest.inferenceComponentName())
         .isEqualTo(request.getInput().inferenceComponentName());
   }
 
   @Test
   void sageMaker_ExceptionCase() throws JsonProcessingException {
-    var runtime = mock(AmazonSageMakerRuntime.class);
+    var runtime = mock(SageMakerRuntimeClient.class);
     var request =
         ObjectMapperSupplier.getMapperInstance()
             .readValue(REAL_TIME_EXECUTION_JSON, SageMakerRequest.class);
@@ -92,35 +90,27 @@ class SageMakerSyncCallerTest {
    * Golden-JSON shape test: the connector result, serialized with the real connectors {@link
    * ObjectMapper}, must reproduce the JSON shape the sync (real-time) invocation path documented
    * and returned before the AWS SDK v2 migration. This is the template for verifying result
-   * serialization across the v2 migration effort for aws-sagemaker: build a realistic AWS SDK v1
-   * {@link InvokeEndpointResult} (as a live InvokeEndpoint call would populate it), map it through
-   * the real caller, serialize with the production mapper, and diff the full JSON tree against the
-   * frozen expectation.
+   * serialization across the v2 migration effort for aws-sagemaker: build a realistic AWS SDK v2
+   * {@link InvokeEndpointResponse} (as a live InvokeEndpoint call would populate it), map it
+   * through the real caller, serialize with the production mapper, and diff the full JSON tree
+   * against the frozen expectation.
    */
   @Test
   public void invokeEndpointResult_jsonBody_serializesToDocumentedV1JsonShape()
       throws JsonProcessingException {
-    // Given a fully populated InvokeEndpointResult with a JSON inference payload, as returned by a
-    // live InvokeEndpoint call against an "application/json" endpoint.
-    var runtime = mock(AmazonSageMakerRuntime.class);
-    var mockedAwsCall = new InvokeEndpointResult();
+    // Given a fully populated InvokeEndpointResponse with a JSON inference payload, as returned by
+    // a live InvokeEndpoint call against an "application/json" endpoint.
+    var runtime = mock(SageMakerRuntimeClient.class);
     String jsonBody =
         """
         {"predictions":[{"label":"POSITIVE","score":0.9821},{"label":"NEGATIVE","score":0.0179}],"modelId":"text-classification-v3"}""";
-    mockedAwsCall.setBody(ByteBuffer.wrap(jsonBody.getBytes(StandardCharsets.UTF_8)));
-    mockedAwsCall.setContentType("application/json");
-    mockedAwsCall.setCustomAttributes("tenant-id=42;request-source=order-service");
-    mockedAwsCall.setInvokedProductionVariant("AllTraffic");
-    // A live call also populates request/HTTP metadata inherited from AmazonWebServiceResult; set
-    // both here for realism even though the assertion below shows neither reaches the connector
-    // result.
-    mockedAwsCall.setSdkResponseMetadata(
-        new ResponseMetadata(
-            Map.of(ResponseMetadata.AWS_REQUEST_ID, "929bf054-193b-48e6-ab80-3aeeb613b415")));
-    var sdkHttpMetadata = mock(SdkHttpMetadata.class);
-    when(sdkHttpMetadata.getHttpStatusCode()).thenReturn(200);
-    when(sdkHttpMetadata.getHttpHeaders()).thenReturn(Map.of("Content-Type", "application/json"));
-    mockedAwsCall.setSdkHttpMetadata(sdkHttpMetadata);
+    var mockedAwsCall =
+        InvokeEndpointResponse.builder()
+            .body(SdkBytes.fromByteArray(jsonBody.getBytes(StandardCharsets.UTF_8)))
+            .contentType("application/json")
+            .customAttributes("tenant-id=42;request-source=order-service")
+            .invokedProductionVariant("AllTraffic")
+            .build();
     when(runtime.invokeEndpoint(any(InvokeEndpointRequest.class))).thenReturn(mockedAwsCall);
     var request =
         ObjectMapperSupplier.getMapperInstance()
@@ -138,7 +128,7 @@ class SageMakerSyncCallerTest {
     // intentional v1 behavior being pinned for the migration. Also note sdkResponseMetadata /
     // sdkHttpMetadata are ABSENT: SageMakerSyncResponse only maps
     // body/contentType/customAttributes/invokedProductionVariant, so any AWS request/HTTP
-    // metadata the SDK result carries (populated above) is silently dropped today.
+    // metadata the SDK result carries is silently dropped today.
     String expectedJson =
         """
         {
@@ -172,12 +162,14 @@ class SageMakerSyncCallerTest {
   public void invokeEndpointResult_nonJsonBody_serializesAsPlainStringNotParsed()
       throws JsonProcessingException {
     // Given a live InvokeEndpoint call against a non-JSON ("text/plain") endpoint.
-    var runtime = mock(AmazonSageMakerRuntime.class);
-    var mockedAwsCall = new InvokeEndpointResult();
+    var runtime = mock(SageMakerRuntimeClient.class);
     String textBody = "prediction: positive (0.98)";
-    mockedAwsCall.setBody(ByteBuffer.wrap(textBody.getBytes(StandardCharsets.UTF_8)));
-    mockedAwsCall.setContentType("text/plain");
-    mockedAwsCall.setInvokedProductionVariant("AllTraffic");
+    var mockedAwsCall =
+        InvokeEndpointResponse.builder()
+            .body(SdkBytes.fromByteArray(textBody.getBytes(StandardCharsets.UTF_8)))
+            .contentType("text/plain")
+            .invokedProductionVariant("AllTraffic")
+            .build();
     // customAttributes intentionally left unset -- the production mapper must serialize it as
     // an explicit null below: the mapper's default inclusion policy serializes null record
     // components rather than omitting them (no NON_NULL/NON_ABSENT inclusion is configured).
@@ -217,10 +209,12 @@ class SageMakerSyncCallerTest {
   @Test
   public void invokeEndpointResult_emptyBodyWithJsonContentType_throwsConnectorException()
       throws JsonProcessingException {
-    var runtime = mock(AmazonSageMakerRuntime.class);
-    var mockedAwsCall = new InvokeEndpointResult();
-    mockedAwsCall.setBody(ByteBuffer.wrap(new byte[0]));
-    mockedAwsCall.setContentType("application/json");
+    var runtime = mock(SageMakerRuntimeClient.class);
+    var mockedAwsCall =
+        InvokeEndpointResponse.builder()
+            .body(SdkBytes.fromByteArray(new byte[0]))
+            .contentType("application/json")
+            .build();
     when(runtime.invokeEndpoint(any(InvokeEndpointRequest.class))).thenReturn(mockedAwsCall);
     var request =
         ObjectMapperSupplier.getMapperInstance()
