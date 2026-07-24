@@ -40,7 +40,6 @@ import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
 import io.camunda.connector.runtime.inbound.search.ProcessInstanceClientConfiguration;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
-import io.camunda.connector.runtime.inbound.search.SearchQueryClientImpl;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.state.ProcessStateContainer;
 import io.camunda.connector.runtime.inbound.state.ProcessStateContainerImpl;
@@ -53,9 +52,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -67,11 +63,11 @@ import org.springframework.cache.support.NoOpCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.core.env.Environment;
 
 @Configuration
 @Import({
+  InboundCorrelationConfiguration.class,
   ProcessDefinitionImportConfiguration.class,
   ProcessInstanceClientConfiguration.class,
   InboundConnectorRestController.class,
@@ -91,65 +87,6 @@ public class InboundConnectorRuntimeConfiguration {
     return new InboundConnectorBeanDefinitionProcessor(environment);
   }
 
-  /**
-   * Plain (non-{@code @Bean}) helper so this can be called from every {@code @Bean} method that
-   * needs the per-physical-tenant correlation-handler map, without any of them declaring a {@code
-   * Map<String, InboundCorrelationHandler>}-typed parameter: Spring's dependency resolution
-   * special-cases any {@code Map<String, X>}-typed {@code @Bean} parameter by collecting *all*
-   * beans of type {@code X} by name — including the {@code @Lazy} scalar {@code
-   * inboundCorrelationHandler} bean kept below for backward compatibility — instead of using the
-   * bean whose own declared type is the map. That silently produces a map keyed by the scalar
-   * bean's name (and forces it to instantiate, which throws once more than one physical tenant is
-   * configured) rather than the real per-physical-tenant map.
-   */
-  private Map<String, InboundCorrelationHandler> buildCorrelationHandlersByPhysicalTenantId(
-      CamundaClientRegistry registry,
-      CamundaClient legacyCamundaClient,
-      ObjectMapper objectMapper,
-      ConnectorsInboundMetrics connectorsInboundMetrics) {
-    return registry.clientNames().stream()
-        .collect(
-            toMapByPhysicalTenantId(
-                registry,
-                legacyCamundaClient,
-                name ->
-                    new MeteredInboundCorrelationHandler(
-                        resolveClient(registry, name, legacyCamundaClient),
-                        objectMapper,
-                        messageTtl,
-                        connectorsInboundMetrics)));
-  }
-
-  @Bean
-  public Map<String, InboundCorrelationHandler> correlationHandlersByPhysicalTenantId(
-      final CamundaClientRegistry registry,
-      @Autowired(required = false) final CamundaClient legacyCamundaClient,
-      @ConnectorsObjectMapper final ObjectMapper objectMapper,
-      final ConnectorsInboundMetrics connectorsInboundMetrics) {
-    return buildCorrelationHandlersByPhysicalTenantId(
-        registry, legacyCamundaClient, objectMapper, connectorsInboundMetrics);
-  }
-
-  /**
-   * Backward-compatible scalar bean for existing single-physical-tenant call sites that
-   * {@code @Autowired} {@link InboundCorrelationHandler} directly rather than the
-   * per-physical-tenant map. {@code @Lazy} so it is only resolved (and only then required to be
-   * unambiguous) if something actually injects it — a genuine multi-physical-tenant context that
-   * never does so is unaffected.
-   */
-  @Bean
-  @Lazy
-  public InboundCorrelationHandler inboundCorrelationHandler(
-      CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
-      @ConnectorsObjectMapper ObjectMapper objectMapper,
-      ConnectorsInboundMetrics connectorsInboundMetrics) {
-    return onlyValue(
-        buildCorrelationHandlersByPhysicalTenantId(
-            registry, legacyCamundaClient, objectMapper, connectorsInboundMetrics),
-        InboundCorrelationHandler.class);
-  }
-
   @Bean
   public InboundConnectorContextFactory springInboundConnectorContextFactory(
       @ConnectorsObjectMapper ObjectMapper mapper,
@@ -161,17 +98,18 @@ public class InboundConnectorRuntimeConfiguration {
       CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient) {
     Map<String, InboundCorrelationHandler> correlationHandlersByPhysicalTenantId =
-        buildCorrelationHandlersByPhysicalTenantId(
-            registry, legacyCamundaClient, mapper, connectorsInboundMetrics);
+        InboundCorrelationConfiguration.buildCorrelationHandlersByPhysicalTenantId(
+            registry, legacyCamundaClient, mapper, messageTtl, connectorsInboundMetrics);
     Map<String, InboundConnectorContextFactory> delegatesByPhysicalTenantId =
         registry.clientNames().stream()
             .collect(
-                toMapByPhysicalTenantId(
+                PhysicalTenantIds.toMapByPhysicalTenantId(
                     registry,
                     legacyCamundaClient,
                     name -> {
                       var physicalTenantId =
-                          resolvePhysicalTenantId(registry, name, legacyCamundaClient);
+                          PhysicalTenantIds.resolvePhysicalTenantId(
+                              registry, name, legacyCamundaClient);
                       return new DefaultInboundConnectorContextFactory(
                           mapper,
                           correlationHandlersByPhysicalTenantId.get(physicalTenantId),
@@ -179,91 +117,9 @@ public class InboundConnectorRuntimeConfiguration {
                           validationProvider,
                           processInstanceClientsByPhysicalTenantId.get(physicalTenantId),
                           documentFactory,
-                          resolveClient(registry, name, legacyCamundaClient));
+                          PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient));
                     }));
     return new PhysicalTenantIdRoutingInboundConnectorContextFactory(delegatesByPhysicalTenantId);
-  }
-
-  /**
-   * Resolves the {@link CamundaClient} for the given client name. Prefers the {@link
-   * CamundaClientRegistry} entry, but falls back to a directly-supplied single {@code
-   * CamundaClient} bean when the registry claims the name exists (e.g. the "default" entry always
-   * synthesized for legacy single-client configs) but no matching bean was actually registered —
-   * for example when a {@code CamundaClient} bean is supplied manually/overridden (as in test
-   * fixtures) instead of via {@code camunda.clients.*}. Note {@link
-   * CamundaClientRegistry#find(String)} does not guard against this case itself: it still resolves
-   * the underlying bean and throws if it is missing, so the fallback must catch that failure
-   * directly rather than rely on an empty {@code Optional}.
-   */
-  private static CamundaClient resolveClient(
-      CamundaClientRegistry registry, String name, CamundaClient legacyCamundaClient) {
-    try {
-      return registry.get(name);
-    } catch (RuntimeException e) {
-      if (legacyCamundaClient == null) {
-        throw new IllegalStateException("No CamundaClient configured for client '" + name + "'", e);
-      }
-      return legacyCamundaClient;
-    }
-  }
-
-  /**
-   * Resolves the physical tenant ID for a configured {@code CamundaClientRegistry} client name: the
-   * explicitly configured {@code physical-tenant-id} if present, otherwise the client name itself
-   * (which is always present, unlike the optional physical-tenant-id configuration). Falls back to
-   * the client name if the configuration cannot be read at all — some test doubles (e.g. the {@code
-   * camunda-process-test-spring} client proxy) defer real initialization until the test container
-   * is ready and throw if queried during Spring context startup.
-   */
-  private static String resolvePhysicalTenantId(
-      CamundaClientRegistry registry, String name, CamundaClient legacyCamundaClient) {
-    try {
-      var physicalTenantId =
-          resolveClient(registry, name, legacyCamundaClient)
-              .getConfiguration()
-              .getPhysicalTenantId();
-      return physicalTenantId != null ? physicalTenantId : name;
-    } catch (RuntimeException e) {
-      return name;
-    }
-  }
-
-  /**
-   * Builds a {@code Collectors.toMap} collector keyed by the resolved physical tenant ID for each
-   * client name, failing clearly if two clients resolve to the same physical tenant ID (a
-   * misconfiguration) rather than silently dropping one.
-   */
-  private static <T> Collector<String, ?, Map<String, T>> toMapByPhysicalTenantId(
-      CamundaClientRegistry registry,
-      CamundaClient legacyCamundaClient,
-      Function<String, T> valueFn) {
-    return Collectors.toMap(
-        name -> resolvePhysicalTenantId(registry, name, legacyCamundaClient),
-        valueFn,
-        (a, b) -> {
-          throw new IllegalStateException(
-              "Multiple CamundaClients resolve to the same physical tenant ID; "
-                  + "each configured client must have a unique physical-tenant-id");
-        });
-  }
-
-  /**
-   * Resolves the single value of a per-physical-tenant map for backward-compatible scalar beans,
-   * failing clearly when more than one physical tenant is configured instead of silently picking an
-   * arbitrary one.
-   */
-  private static <T> T onlyValue(Map<String, T> byPhysicalTenantId, Class<T> beanType) {
-    if (byPhysicalTenantId.size() != 1) {
-      throw new IllegalStateException(
-          "No single "
-              + beanType.getSimpleName()
-              + " bean available: "
-              + byPhysicalTenantId.size()
-              + " physical tenants are configured; inject Map<String, "
-              + beanType.getSimpleName()
-              + "> instead.");
-    }
-    return byPhysicalTenantId.values().iterator().next();
   }
 
   @Bean
@@ -313,46 +169,13 @@ public class InboundConnectorRuntimeConfiguration {
     return new InboundInstancesService(inboundExecutableRegistry);
   }
 
-  /**
-   * Plain (non-{@code @Bean}), {@code public static} so it can also be called directly from other
-   * {@code @Configuration} classes ({@link ProcessDefinitionImportConfiguration}, {@link
-   * ProcessInstanceClientConfiguration}) that need this same per-physical-tenant map, without any
-   * of them declaring a {@code Map<String, SearchQueryClient>}-typed {@code @Bean} parameter — see
-   * {@link #buildCorrelationHandlersByPhysicalTenantId} for why that matters: several E2E test
-   * suites add a scalar {@code @MockitoBean SearchQueryClient}, and a {@code Map<String,
-   * SearchQueryClient>}-typed parameter would silently collect just that scalar bean (keyed by its
-   * bean name) instead of using this method's real per-physical-tenant map.
-   *
-   * <p>Builds one {@link SearchQueryClient} per configured physical tenant. When a {@code
-   * SearchQueryClient} bean is manually supplied (e.g. that {@code @MockitoBean}, used to control
-   * process-definition search results), that bean is used in place of constructing a real client —
-   * mirroring the {@code legacyCamundaClient} fallback above, since overriding this bean only makes
-   * sense for a single, legacy-style client configuration.
-   */
-  public static Map<String, SearchQueryClient> buildSearchQueryClientsByPhysicalTenantId(
-      CamundaClientRegistry registry,
-      CamundaClient legacyCamundaClient,
-      SearchQueryClient legacySearchQueryClient,
-      int limit) {
-    return registry.clientNames().stream()
-        .collect(
-            toMapByPhysicalTenantId(
-                registry,
-                legacyCamundaClient,
-                name ->
-                    legacySearchQueryClient != null
-                        ? legacySearchQueryClient
-                        : new SearchQueryClientImpl(
-                            resolveClient(registry, name, legacyCamundaClient), limit)));
-  }
-
   @Bean
   Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId(
       CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
       @Autowired(required = false) SearchQueryClient legacySearchQueryClient,
       @Value("${camunda.connector.process-definition-search.page-size:200}") int limit) {
-    return buildSearchQueryClientsByPhysicalTenantId(
+    return PhysicalTenantIds.buildSearchQueryClientsByPhysicalTenantId(
         registry, legacyCamundaClient, legacySearchQueryClient, limit);
   }
 
@@ -385,7 +208,7 @@ public class InboundConnectorRuntimeConfiguration {
             cacheManager.getCache(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME),
             "processDefinitions cache must be configured");
     return new ProcessDefinitionInspector(
-        buildSearchQueryClientsByPhysicalTenantId(
+        PhysicalTenantIds.buildSearchQueryClientsByPhysicalTenantId(
             registry, legacyCamundaClient, legacySearchQueryClient, limit),
         cache,
         connectorsInboundMetrics);

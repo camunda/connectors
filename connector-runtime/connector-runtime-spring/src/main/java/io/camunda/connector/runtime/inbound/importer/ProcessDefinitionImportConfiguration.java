@@ -18,11 +18,9 @@ package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
-import io.camunda.connector.runtime.inbound.InboundConnectorRuntimeConfiguration;
+import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
-import java.util.Map;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -32,10 +30,15 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ProcessDefinitionImportConfiguration {
 
+  @Bean
+  public Importers importers() {
+    return new Importers();
+  }
+
   /**
    * Takes the raw inputs (registry/legacy client/legacy search-query-client override/page size)
-   * rather than a {@code Map<String, SearchQueryClient>} parameter — see {@link
-   * InboundConnectorRuntimeConfiguration#buildSearchQueryClientsByPhysicalTenantId} for why a
+   * rather than a {@code Map<String, SearchQueryClient>} parameter, and builds the map locally
+   * instead of exposing it as its own {@code @Bean} — see {@link PhysicalTenantIds} for why a
    * {@code Map<String, X>}-typed {@code @Bean} parameter is unsafe whenever a scalar bean of type
    * {@code X} can also exist in the context (several E2E test suites add a scalar
    * {@code @MockitoBean SearchQueryClient}).
@@ -45,29 +48,22 @@ public class ProcessDefinitionImportConfiguration {
       value = "camunda.connector.polling.enabled",
       havingValue = "true",
       matchIfMissing = true)
-  public Map<String, Importers> importersByPhysicalTenantId(
+  public ImportSchedulers messageSubscriptionSearch(
       CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
       @Autowired(required = false) SearchQueryClient legacySearchQueryClient,
-      @Value("${camunda.connector.process-definition-search.page-size:200}") int limit) {
-    var searchQueryClientsByPhysicalTenantId =
-        InboundConnectorRuntimeConfiguration.buildSearchQueryClientsByPhysicalTenantId(
-            registry, legacyCamundaClient, legacySearchQueryClient, limit);
-    return searchQueryClientsByPhysicalTenantId.entrySet().stream()
-        .collect(Collectors.toMap(Map.Entry::getKey, e -> new Importers(e.getKey(), e.getValue())));
-  }
-
-  @Bean
-  @ConditionalOnProperty(
-      value = "camunda.connector.polling.enabled",
-      havingValue = "true",
-      matchIfMissing = true)
-  public ImportSchedulers messageSubscriptionSearch(
-      Map<String, Importers> importersByPhysicalTenantId,
+      @Value("${camunda.connector.process-definition-search.page-size:200}") int limit,
+      Importers importers,
       ProcessStateManager processStateManager,
       @Value("${camunda.connector.polling.active-versions-enabled:true}")
           boolean activeVersionsPollingEnabled) {
+    var searchQueryClientsByPhysicalTenantId =
+        PhysicalTenantIds.buildSearchQueryClientsByPhysicalTenantId(
+            registry, legacyCamundaClient, legacySearchQueryClient, limit);
     return new ImportSchedulers(
-        processStateManager, importersByPhysicalTenantId, activeVersionsPollingEnabled);
+        processStateManager,
+        searchQueryClientsByPhysicalTenantId,
+        importers,
+        activeVersionsPollingEnabled);
   }
 }

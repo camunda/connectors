@@ -16,8 +16,10 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,10 +29,22 @@ import org.springframework.context.annotation.Import;
 @Import(InboundWebhookRestController.class)
 public class WebhookConnectorConfiguration {
 
+  /**
+   * When the property is unset, infers the flag from the configured client count: multiple {@code
+   * camunda.clients.*} entries mean webhook paths are ambiguous across engines unless scoped, so
+   * scoping is enabled automatically. A single client (the common case today) keeps the legacy
+   * unscoped path. An explicit property value always wins over this inference.
+   */
   @Bean
   public WebhookConnectorRegistry webhookConnectorRegistry(
-      @Value("${camunda.connector.webhook.append-physical-tenant-and-tenant-to-path:false}")
-          boolean appendPhysicalTenantAndTenantToPath) {
-    return new WebhookConnectorRegistry(appendPhysicalTenantAndTenantToPath);
+      @Value("${camunda.connector.webhook.append-physical-tenant-and-tenant-to-path:#{null}}")
+          Boolean explicitAppendPhysicalTenantAndTenantToPath,
+      ObjectProvider<CamundaClientRegistry> clientRegistryProvider) {
+    if (explicitAppendPhysicalTenantAndTenantToPath != null) {
+      return new WebhookConnectorRegistry(explicitAppendPhysicalTenantAndTenantToPath);
+    }
+    var clientRegistry = clientRegistryProvider.getIfAvailable();
+    boolean multipleClients = clientRegistry != null && clientRegistry.clientNames().size() > 1;
+    return new WebhookConnectorRegistry(multipleClients);
   }
 }

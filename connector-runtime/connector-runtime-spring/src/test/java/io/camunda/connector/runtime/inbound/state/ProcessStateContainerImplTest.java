@@ -408,8 +408,8 @@ class ProcessStateContainerImplTest {
 
   /**
    * Each physical tenant is imported via its own independent {@code compareAndUpdate} call (one
-   * {@link io.camunda.connector.runtime.inbound.importer.Importers} instance per physical tenant,
-   * each polling on its own schedule) — unlike {@link MultiTenancyScenarios}, where both logical
+   * {@link io.camunda.connector.runtime.inbound.importer.Importers} call per physical tenant, each
+   * polling on its own schedule) — unlike {@link MultiTenancyScenarios}, where both logical
    * tenants' data arrives bundled in a single call. This distinction matters: a batch that only
    * mentions one physical tenant's processes must not be misread as "every other physical tenant's
    * processes are now missing".

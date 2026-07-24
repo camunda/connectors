@@ -19,7 +19,7 @@ package io.camunda.connector.runtime.inbound.search;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
-import io.camunda.connector.runtime.inbound.InboundConnectorRuntimeConfiguration;
+import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,10 +32,9 @@ public class ProcessInstanceClientConfiguration {
 
   /**
    * Takes the raw inputs rather than a {@code Map<String, SearchQueryClient>} parameter — see
-   * {@link InboundConnectorRuntimeConfiguration#buildSearchQueryClientsByPhysicalTenantId} for why
-   * a {@code Map<String, X>}-typed {@code @Bean} parameter is unsafe whenever a scalar bean of type
-   * {@code X} can also exist in the context (several E2E test suites add a scalar
-   * {@code @MockitoBean SearchQueryClient}).
+   * {@link PhysicalTenantIds} for why a {@code Map<String, X>}-typed {@code @Bean} parameter is
+   * unsafe whenever a scalar bean of type {@code X} can also exist in the context (several E2E test
+   * suites add a scalar {@code @MockitoBean SearchQueryClient}).
    */
   @Bean
   public Map<String, ProcessInstanceClient> processInstanceClientsByPhysicalTenantId(
@@ -44,7 +43,7 @@ public class ProcessInstanceClientConfiguration {
       @Autowired(required = false) SearchQueryClient legacySearchQueryClient,
       @Value("${camunda.connector.process-definition-search.page-size:200}") int limit) {
     var searchQueryClientsByPhysicalTenantId =
-        InboundConnectorRuntimeConfiguration.buildSearchQueryClientsByPhysicalTenantId(
+        PhysicalTenantIds.buildSearchQueryClientsByPhysicalTenantId(
             registry, legacyCamundaClient, legacySearchQueryClient, limit);
     return searchQueryClientsByPhysicalTenantId.entrySet().stream()
         .collect(

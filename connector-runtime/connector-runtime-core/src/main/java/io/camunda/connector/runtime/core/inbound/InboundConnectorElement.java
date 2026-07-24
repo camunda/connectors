@@ -91,13 +91,11 @@ public record InboundConnectorElement(
     if (deduplicationMode == null) {
       // legacy deployment, return a deterministic unique id
       LOG.debug("Missing deduplicationMode property, using legacy deduplicationId computation");
-      return physicalTenantId()
-          + "-"
-          + element.tenantId()
-          + "-"
-          + element.processDefinitionKey()
-          + "-"
-          + element.elementId();
+      return encodeComponents(
+          physicalTenantId(),
+          element.tenantId(),
+          element.processDefinitionKey(),
+          element.elementId());
     } else if (DeduplicationMode.AUTO.name().equals(deduplicationMode)) {
       // auto mode, compute deduplicationId from properties
       LOG.debug("Using deduplicationMode=AUTO, computing deduplicationId from properties");
@@ -130,7 +128,28 @@ public record InboundConnectorElement(
   }
 
   private String tenantIdAndBpmnProcessId() {
-    return physicalTenantId() + "-" + tenantId() + "-" + element.bpmnProcessId();
+    return encodeComponents(physicalTenantId(), tenantId(), element.bpmnProcessId());
+  }
+
+  /**
+   * Joins components into a single deterministic string using a length-prefix per component
+   * (netstring-style: {@code <length>:<value>} repeated), so the result is an unambiguous encoding
+   * of the tuple regardless of what characters any individual component contains. A naive {@code
+   * "-"}-joined concatenation is not unique across components: since {@code physicalTenantId()} can
+   * fall back to a free-form client name, physical tenant {@code "a"} + logical tenant {@code
+   * "b-c"} would produce the exact same joined string as physical tenant {@code "a-b"} + logical
+   * tenant {@code "c"} (given equal remaining fields) — letting one engine's executable
+   * overwrite/deduplicate another's. This string is only ever hashed into an {@link ExecutableId},
+   * never parsed back, so no particular human-readable format is required — only determinism and
+   * uniqueness per distinct input tuple.
+   */
+  private static String encodeComponents(Object... components) {
+    var sb = new StringBuilder();
+    for (Object component : components) {
+      String value = String.valueOf(component);
+      sb.append(value.length()).append(':').append(value);
+    }
+    return sb.toString();
   }
 
   public Map<String, String> connectorLevelProperties() {

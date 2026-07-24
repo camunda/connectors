@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.api.inbound.ElementTemplateDetails;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -89,6 +90,48 @@ public class InboundEndpointTest {
     var response = statusController.getActiveInboundConnectors(null, null, null);
     assertEquals(1, response.size());
     assertEquals("myPath", response.getFirst().data().get("inbound.context"));
+  }
+
+  @Test
+  public void testDataReturnedForWebhookConnectorExecutableSubclass_pathScopingEnabled() {
+    var executableRegistry = mock(InboundExecutableRegistry.class);
+
+    when(executableRegistry.query(any()))
+        .thenReturn(
+            List.of(
+                new ActiveExecutableResponse(
+                    RANDOM_ID,
+                    TestWebhookExecutable.class,
+                    List.of(
+                        new InboundConnectorElement(
+                            Map.of("inbound.context", "myPath", "inbound.type", "webhook"),
+                            new StandaloneMessageCorrelationPoint(
+                                "myPath", "=expression", "=myPath", null),
+                            new ProcessElementWithRuntimeData(
+                                "",
+                                null,
+                                null,
+                                1,
+                                1,
+                                "",
+                                null,
+                                null,
+                                "myTenant",
+                                "myPhysicalTenant",
+                                new ElementTemplateDetails("Test", "1", "icon"),
+                                Map.of()))),
+                    Health.up(),
+                    Collections.emptyList(),
+                    System.currentTimeMillis())));
+
+    InboundConnectorRestController statusController =
+        new InboundConnectorRestController(
+            executableRegistry, new LocalInstanceForwardingRouter(), true);
+
+    var response = statusController.getActiveInboundConnectors(null, null, null);
+    assertEquals(1, response.size());
+    assertEquals(
+        "myPhysicalTenant/myTenant/myPath", response.getFirst().data().get("inbound.context"));
   }
 
   @Test

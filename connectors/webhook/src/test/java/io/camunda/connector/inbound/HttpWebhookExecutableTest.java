@@ -158,7 +158,7 @@ class HttpWebhookExecutableTest {
   private static InboundConnectorContext contextWithElements(ProcessElement... elements) {
     var definition =
         new InboundConnectorDefinition(
-            "io.camunda:webhook:1", "<default>", "dedup-id", List.of(elements), "<default>");
+            "io.camunda:webhook:1", "<default>", "dedup-id", List.of(elements), "default");
     return InboundConnectorContextBuilder.create()
         .properties(
             Map.of(

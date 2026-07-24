@@ -22,19 +22,16 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
-import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
-import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /**
- * Exercises the physical-tenant-id resolution/fallback logic in {@link
- * InboundConnectorRuntimeConfiguration} via the {@code searchQueryClientsByPhysicalTenantId} bean
+ * Exercises the physical-tenant-id resolution/fallback logic in {@link PhysicalTenantIds} via
+ * {@link InboundConnectorRuntimeConfiguration}'s {@code searchQueryClientsByPhysicalTenantId} bean
  * method (a plain, non-Spring-context call), which routes through {@code resolveClient}, {@code
  * resolvePhysicalTenantId} and {@code toMapByPhysicalTenantId}.
  */
@@ -121,37 +118,6 @@ class PhysicalTenantIdResolutionTest {
             registry, null, overrideSearchQueryClient, 200);
 
     assertThat(result).containsOnly(Map.entry("tenant", overrideSearchQueryClient));
-  }
-
-  @Test
-  void inboundCorrelationHandler_returnsTheSingleEntryForASinglePhysicalTenant() {
-    var registry = mock(CamundaClientRegistry.class);
-    var client = clientWithPhysicalTenantId("tenant");
-    when(registry.clientNames()).thenReturn(Set.of("engine-a"));
-    when(registry.get("engine-a")).thenReturn(client);
-
-    var result =
-        configuration.inboundCorrelationHandler(
-            registry, null, mock(ObjectMapper.class), mock(ConnectorsInboundMetrics.class));
-
-    assertThat(result).isInstanceOf(InboundCorrelationHandler.class);
-  }
-
-  @Test
-  void inboundCorrelationHandler_throwsClearErrorForMultiplePhysicalTenants() {
-    var registry = mock(CamundaClientRegistry.class);
-    var clientA = clientWithPhysicalTenantId("tenant-a");
-    var clientB = clientWithPhysicalTenantId("tenant-b");
-    when(registry.clientNames()).thenReturn(Set.of("engine-a", "engine-b"));
-    when(registry.get("engine-a")).thenReturn(clientA);
-    when(registry.get("engine-b")).thenReturn(clientB);
-
-    assertThatThrownBy(
-            () ->
-                configuration.inboundCorrelationHandler(
-                    registry, null, mock(ObjectMapper.class), mock(ConnectorsInboundMetrics.class)))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("InboundCorrelationHandler");
   }
 
   @Test

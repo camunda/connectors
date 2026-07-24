@@ -16,14 +16,44 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
+import io.camunda.connector.runtime.inbound.webhook.WebhookContextKeys;
+import java.util.HashMap;
 import java.util.Map;
 
 public class ConnectorDataMapper {
 
-  private static Map<String, String> allPropertiesMapper(ActiveExecutableResponse response) {
-    return response.elements().getFirst().connectorLevelProperties();
+  private static final String INBOUND_CONTEXT_PROPERTY = "inbound.context";
+
+  private final boolean appendPhysicalTenantAndTenantToPath;
+
+  public ConnectorDataMapper() {
+    this(false);
+  }
+
+  public ConnectorDataMapper(boolean appendPhysicalTenantAndTenantToPath) {
+    this.appendPhysicalTenantAndTenantToPath = appendPhysicalTenantAndTenantToPath;
+  }
+
+  private Map<String, String> allPropertiesMapper(ActiveExecutableResponse response) {
+    var firstElement = response.elements().getFirst();
+    var properties = firstElement.connectorLevelProperties();
+    var executableClass = response.executableClass();
+    if (appendPhysicalTenantAndTenantToPath
+        && executableClass != null
+        && WebhookConnectorExecutable.class.isAssignableFrom(executableClass)) {
+      var rawContext = properties.get(INBOUND_CONTEXT_PROPERTY);
+      if (rawContext != null) {
+        properties = new HashMap<>(properties);
+        properties.put(
+            INBOUND_CONTEXT_PROPERTY,
+            WebhookContextKeys.compose(
+                firstElement.physicalTenantId(), firstElement.tenantId(), rawContext));
+      }
+    }
+    return properties;
   }
 
   public ActiveInboundConnectorResponse createActiveInboundConnectorResponse(

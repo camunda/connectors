@@ -20,13 +20,16 @@ import java.util.Objects;
 
 /**
  * Composes the {@link WebhookConnectorRegistry} lookup key used when physical-tenant/tenant path
- * scoping is enabled, so registration and lookup can never compute it differently.
+ * scoping is enabled, so registration and lookup can never compute it differently. {@code public}
+ * so the same composition can be reused wherever the effective webhook path/URL needs to be derived
+ * outside this package (e.g. {@code ConnectorDataMapper}, which exposes it via the REST API
+ * consumed by web-modeler to build the webhook URL shown to users).
  */
-final class WebhookContextKeys {
+public final class WebhookContextKeys {
 
   private WebhookContextKeys() {}
 
-  static String compose(String physicalTenantId, String tenantId, String path) {
+  public static String compose(String physicalTenantId, String tenantId, String path) {
     Objects.requireNonNull(
         physicalTenantId, "physicalTenantId must not be null when path scoping is enabled");
     Objects.requireNonNull(tenantId, "tenantId must not be null when path scoping is enabled");

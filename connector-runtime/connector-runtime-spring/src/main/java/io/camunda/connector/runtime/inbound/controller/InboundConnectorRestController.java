@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,7 +35,7 @@ import org.springframework.web.bind.annotation.*;
 public class InboundConnectorRestController {
 
   private final InboundExecutableRegistry executableRegistry;
-  private final ConnectorDataMapper connectorDataMapper = new ConnectorDataMapper();
+  private final ConnectorDataMapper connectorDataMapper;
   private final InstanceForwardingRouter instanceForwardingRouter;
 
   @Value("${camunda.connector.hostname:${HOSTNAME:localhost}}")
@@ -43,8 +44,18 @@ public class InboundConnectorRestController {
   public InboundConnectorRestController(
       InboundExecutableRegistry executableRegistry,
       InstanceForwardingRouter instanceForwardingRouter) {
+    this(executableRegistry, instanceForwardingRouter, false);
+  }
+
+  @Autowired
+  public InboundConnectorRestController(
+      InboundExecutableRegistry executableRegistry,
+      InstanceForwardingRouter instanceForwardingRouter,
+      @Value("${camunda.connector.webhook.append-physical-tenant-and-tenant-to-path:false}")
+          boolean appendPhysicalTenantAndTenantToPath) {
     this.executableRegistry = executableRegistry;
     this.instanceForwardingRouter = instanceForwardingRouter;
+    this.connectorDataMapper = new ConnectorDataMapper(appendPhysicalTenantAndTenantToPath);
   }
 
   @GetMapping("/inbound")

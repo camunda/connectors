@@ -55,6 +55,10 @@ public class WebhookConnectorRegistry {
     return executablesByContext;
   }
 
+  public boolean appendsPhysicalTenantAndTenantToPath() {
+    return appendPhysicalTenantAndTenantToPath;
+  }
+
   public boolean register(RegisteredExecutable.Activated connector) {
     var rawContext = getRawContext(connector);
 

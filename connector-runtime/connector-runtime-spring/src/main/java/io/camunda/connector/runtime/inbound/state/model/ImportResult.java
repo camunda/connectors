@@ -21,7 +21,7 @@ import java.util.Set;
 
 /**
  * @param physicalTenantId the physical tenant this batch was imported from. A single import batch
- *     only ever reports processes for one physical tenant (each {@code Importers} instance queries
+ *     only ever reports processes for one physical tenant (each call into {@code Importers} queries
  *     exactly one {@code SearchQueryClient}), so this scopes {@link
  *     io.camunda.connector.runtime.inbound.state.ProcessStateContainer#compareAndUpdate} to that
  *     physical tenant's own tracked processes — otherwise one physical tenant's import batch would

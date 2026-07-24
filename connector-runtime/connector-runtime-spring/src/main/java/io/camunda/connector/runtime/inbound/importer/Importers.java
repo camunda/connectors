@@ -31,15 +31,8 @@ public class Importers {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Importers.class);
 
-  private final String physicalTenantId;
-  private final SearchQueryClient searchQueryClient;
-
-  public Importers(String physicalTenantId, SearchQueryClient searchQueryClient) {
-    this.physicalTenantId = physicalTenantId;
-    this.searchQueryClient = searchQueryClient;
-  }
-
-  public ImportResult importLatestVersions() {
+  public ImportResult importLatestVersions(
+      String physicalTenantId, SearchQueryClient searchQueryClient) {
     LOGGER.debug("Starting import of LATEST versions for physicalTenantId '{}'", physicalTenantId);
 
     Map<ProcessDefinitionRef, Set<Long>> result =
@@ -70,7 +63,8 @@ public class Importers {
     return new ImportResult(result, ImportType.LATEST_VERSIONS, physicalTenantId);
   }
 
-  public ImportResult importActiveVersions() {
+  public ImportResult importActiveVersions(
+      String physicalTenantId, SearchQueryClient searchQueryClient) {
     LOGGER.debug("Starting import of ACTIVE versions for physicalTenantId '{}'", physicalTenantId);
 
     Map<ProcessDefinitionRef, Set<Long>> result =

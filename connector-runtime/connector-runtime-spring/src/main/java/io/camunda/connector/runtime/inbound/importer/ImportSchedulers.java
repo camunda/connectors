@@ -16,15 +16,17 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
+import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
 import jakarta.annotation.PreDestroy;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,7 +37,8 @@ public class ImportSchedulers {
   private static final Logger LOG = LoggerFactory.getLogger(ImportSchedulers.class);
 
   private final ProcessStateManager stateStore;
-  private final Map<String, Importers> importersByPhysicalTenantId;
+  private final Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId;
+  private final Importers importers;
   private final ExecutorService executor;
 
   private volatile boolean ready = true;
@@ -44,11 +47,13 @@ public class ImportSchedulers {
 
   public ImportSchedulers(
       ProcessStateManager stateStore,
-      Map<String, Importers> importersByPhysicalTenantId,
+      Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId,
+      Importers importers,
       boolean activeVersionsPollingEnabled) {
     this.activeVersionsPollingEnabled = activeVersionsPollingEnabled;
     this.stateStore = stateStore;
-    this.importersByPhysicalTenantId = importersByPhysicalTenantId;
+    this.searchQueryClientsByPhysicalTenantId = searchQueryClientsByPhysicalTenantId;
+    this.importers = importers;
     this.executor = Executors.newVirtualThreadPerTaskExecutor();
   }
 
@@ -56,7 +61,7 @@ public class ImportSchedulers {
       fixedDelayString = "${camunda.connector.polling.interval:5000}",
       initialDelayString = "${camunda.connector.polling.initial-delay:0}")
   public void scheduleLatestVersionImport() {
-    ready = pollAllPhysicalTenants("LATEST", Importers::importLatestVersions);
+    ready = pollAllPhysicalTenants(ImportType.LATEST_VERSIONS, importers::importLatestVersions);
   }
 
   @Scheduled(
@@ -67,7 +72,9 @@ public class ImportSchedulers {
       LOG.debug("Skipping active versions polling.");
       return;
     }
-    ready = pollAllPhysicalTenants("ACTIVE", Importers::importActiveVersions);
+    ready =
+        pollAllPhysicalTenants(
+            ImportType.HAVE_ACTIVE_SUBSCRIPTIONS, importers::importActiveVersions);
   }
 
   /**
@@ -76,29 +83,29 @@ public class ImportSchedulers {
    * completing within the same scheduled tick.
    */
   private boolean pollAllPhysicalTenants(
-      String importTypeLabel, Function<Importers, ImportResult> importFn) {
+      ImportType importType, BiFunction<String, SearchQueryClient, ImportResult> importFn) {
     List<CompletableFuture<Boolean>> futures =
-        importersByPhysicalTenantId.entrySet().stream()
+        searchQueryClientsByPhysicalTenantId.entrySet().stream()
             .map(
                 entry ->
                     CompletableFuture.supplyAsync(
-                        () -> pollOnePhysicalTenant(importTypeLabel, importFn, entry), executor))
+                        () -> pollOnePhysicalTenant(importType, importFn, entry), executor))
             .toList();
     return futures.stream().map(CompletableFuture::join).reduce(true, Boolean::logicalAnd);
   }
 
   private boolean pollOnePhysicalTenant(
-      String importTypeLabel,
-      Function<Importers, ImportResult> importFn,
-      Map.Entry<String, Importers> entry) {
+      ImportType importType,
+      BiFunction<String, SearchQueryClient, ImportResult> importFn,
+      Map.Entry<String, SearchQueryClient> entry) {
     try {
-      var result = importFn.apply(entry.getValue());
+      var result = importFn.apply(entry.getKey(), entry.getValue());
       stateStore.update(result);
       return true;
     } catch (Exception e) {
       LOG.error(
           "Failed to import {} process versions for physical tenant '{}'",
-          importTypeLabel,
+          importType,
           entry.getKey(),
           e);
       return false;

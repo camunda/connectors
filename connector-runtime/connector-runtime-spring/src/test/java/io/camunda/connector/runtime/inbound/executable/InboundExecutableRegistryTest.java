@@ -913,10 +913,11 @@ public class InboundExecutableRegistryTest {
             new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
     var executable = mock(InboundConnectorExecutable.class);
 
-    // The deduplication ID in legacy mode is: physicalTenantId + "-" + tenantId + "-" +
-    // processDefinitionKey + "-" + elementId
+    // The deduplication ID in legacy mode is a netstring-style length-prefixed encoding of
+    // physicalTenantId, tenantId, processDefinitionKey and elementId (see
+    // InboundConnectorElement#encodeComponents)
     var connectorDetails = mock(ValidInboundConnectorDetails.class);
-    when(connectorDetails.deduplicationId()).thenReturn("default-tenant-0-elementId");
+    when(connectorDetails.deduplicationId()).thenReturn("7:default6:tenant1:09:elementId");
     when(connectorDetails.rawPropertiesWithoutKeywords()).thenReturn(Map.of());
     when(connectorDetails.connectorElements()).thenReturn(List.of(element));
 
