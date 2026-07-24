@@ -62,9 +62,8 @@ public class AnthropicContentConverter {
                 ContentBlockParam.ofText(
                     TextBlockParam.builder().text(writeAsJson(obj.content())).build()));
         // Reasoning content is re-emitted unconditionally as long as a raw providerPayload is
-        // present. A null payload (e.g. reasoning content produced by the LangChain4J-routed
-        // path, which has no raw block to preserve) has no wire representation to replay; skip
-        // it so history replay stays valid.
+        // present. A null payload has no wire representation to replay; skip it so history
+        // replay stays valid.
         case ReasoningContent rc -> {
           if (rc.providerPayload() != null) {
             blocks.add(
@@ -129,9 +128,9 @@ public class AnthropicContentConverter {
       case PDF ->
           ContentBlockParam.ofDocument(
               DocumentBlockParam.builder().base64Source(doc.document().asBase64()).build());
-      // TEXT-family documents inline as plain text; anything else (audio/video/unrecognized) has
-      // no direct Anthropic block, so fall back to a JSON reference like the LangChain4j-routed
-      // path.
+      // TEXT-family documents inline as plain text. The Anthropic Messages API otherwise only
+      // accepts images and PDFs as document/image blocks; there is no native block for other
+      // formats (e.g. zip, docx, pptx), so those fall back to a JSON reference.
       case TEXT ->
           ContentBlockParam.ofDocument(
               DocumentBlockParam.builder().textSource(decodeUtf8(doc.document())).build());

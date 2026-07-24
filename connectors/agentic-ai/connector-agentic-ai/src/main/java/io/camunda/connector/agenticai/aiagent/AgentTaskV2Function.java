@@ -39,6 +39,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),
       @PropertyGroup(id = "model", label = "Model", openByDefault = false),
+      @PropertyGroup(id = "model-options", label = "Model options", openByDefault = false),
       @PropertyGroup(
           id = "systemPrompt",
           label = "System prompt",
