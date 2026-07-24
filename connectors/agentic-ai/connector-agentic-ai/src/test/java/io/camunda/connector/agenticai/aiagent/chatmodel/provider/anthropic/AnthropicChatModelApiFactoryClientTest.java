@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
@@ -18,12 +18,20 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.anthropic.client.AnthropicClient;
-import com.anthropic.models.messages.MessageCreateParams;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCompatibleBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleNoAuthentication;
 import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
@@ -36,68 +44,79 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Exercises {@link AnthropicChatModelApiFactory#buildClient} at the wire level: the built {@link
- * AnthropicClient} issues a real (WireMock-backed) request, and assertions verify what actually
- * went over the wire rather than reflecting into SDK internals.
+ * Exercises {@link AnthropicChatModelApiFactory}'s {@code compatible}-backend and proxy wiring
+ * through its public surface ({@link AnthropicChatModelApiFactory#create} + {@link
+ * ChatModel#execute}) rather than reaching into the private client-building internals: the built
+ * {@link ChatModel} issues a real (WireMock-backed) request, and assertions verify what actually
+ * went over the wire.
+ *
+ * <p>The direct {@code anthropic-api} backend always targets the production Anthropic base URL and
+ * has no way to redirect it from the outside, so its api-key wiring isn't covered at the wire level
+ * here; {@link AnthropicChatModelApiFactoryTest#createBuildsWorkingApiForApiBackend} covers that it
+ * builds a working {@link ChatModel} at all.
  */
 @WireMockTest
 class AnthropicChatModelApiFactoryClientTest {
 
-  private static final String SAMPLE_MESSAGE_RESPONSE =
+  private static final String MODEL_ID = "claude-sonnet-4-6";
+
+  // Minimal Anthropic Messages streaming (SSE) response: message_start -> one text block -> a
+  // message_delta/stop_reason -> message_stop. AnthropicChatModelApi always drives
+  // createStreaming(), so a plain buffered JSON body (as a non-streaming stub would return) isn't
+  // accepted by the vendor SDK's MessageAccumulator.
+  private static final String SSE_RESPONSE_BODY =
       """
-      {
-        "id": "msg_test",
-        "model": "claude-sonnet-4-6",
-        "role": "assistant",
-        "type": "message",
-        "content": [{"type": "text", "text": "hi"}],
-        "stop_reason": "end_turn",
-        "usage": {"input_tokens": 1, "output_tokens": 1}
-      }
+      event: message_start
+      data: {"type":"message_start","message":{"id":"msg_test","type":"message","role":"assistant","model":"claude-sonnet-4-6","content":[],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":0}}}
+
+      event: content_block_start
+      data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
+
+      event: content_block_delta
+      data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"hi"}}
+
+      event: content_block_stop
+      data: {"type":"content_block_stop","index":0}
+
+      event: message_delta
+      data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":1}}
+
+      event: message_stop
+      data: {"type":"message_stop"}
+
       """;
 
+  private final ObjectMapper objectMapper = new ObjectMapper();
   private final HttpTransportSupport transport = mock(HttpTransportSupport.class);
 
   @BeforeEach
   void setUp() {
     when(transport.okHttpProxy(anyString())).thenReturn(Optional.empty());
-    stubFor(post(urlPathEqualTo("/v1/messages")).willReturn(okJson(SAMPLE_MESSAGE_RESPONSE)));
-  }
-
-  @Test
-  void directBackendSendsConfiguredApiKey(WireMockRuntimeInfo wireMock) {
-    var backend = new AnthropicApiBackend("direct-secret-key");
-    AnthropicClient client = AnthropicChatModelApiFactory.buildClient(backend, null, transport);
-
-    // the direct backend always targets the production Anthropic base URL; redirect this one
-    // instance to the WireMock server while keeping its resolved api key credential intact.
-    AnthropicClient redirected =
-        client.withOptions(options -> options.baseUrl(wireMock.getHttpBaseUrl()));
-    redirected.messages().create(minimalMessageParams());
-
-    verify(
-        postRequestedFor(urlPathEqualTo("/v1/messages"))
-            .withHeader("x-api-key", equalTo("direct-secret-key")));
+    stubFor(
+        post(urlPathEqualTo("/v1/messages"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "text/event-stream")
+                    .withBody(SSE_RESPONSE_BODY)));
   }
 
   @Test
   void compatibleBackendUsesEndpointAndApiKeyAuthentication(WireMockRuntimeInfo wireMock) {
-    var backend =
+    executeAgainst(
         new AnthropicCompatibleBackend(
             wireMock.getHttpBaseUrl(),
             null,
             null,
             null,
-            new CompatibleApiKeyAuthentication("compatible-secret-key"));
-
-    var client = AnthropicChatModelApiFactory.buildClient(backend, null, transport);
-    client.messages().create(minimalMessageParams());
+            new CompatibleApiKeyAuthentication("compatible-secret-key")));
 
     verify(
         postRequestedFor(urlPathEqualTo("/v1/messages"))
@@ -106,12 +125,9 @@ class AnthropicChatModelApiFactoryClientTest {
 
   @Test
   void compatibleBackendWithNoAuthenticationSendsNoApiKeyHeader(WireMockRuntimeInfo wireMock) {
-    var backend =
+    executeAgainst(
         new AnthropicCompatibleBackend(
-            wireMock.getHttpBaseUrl(), null, null, null, new CompatibleNoAuthentication());
-
-    var client = AnthropicChatModelApiFactory.buildClient(backend, null, transport);
-    client.messages().create(minimalMessageParams());
+            wireMock.getHttpBaseUrl(), null, null, null, new CompatibleNoAuthentication()));
 
     verify(postRequestedFor(urlPathEqualTo("/v1/messages")).withoutHeader("x-api-key"));
   }
@@ -119,21 +135,19 @@ class AnthropicChatModelApiFactoryClientTest {
   @Test
   void appliesConfiguredProxyToBuiltClient() throws Exception {
     try (var fakeProxy = new FakeProxyServer(null, null)) {
-      var realTransport = new HttpTransportSupport(fakeProxy.toProxyConfiguration());
+      final var realTransport = new HttpTransportSupport(fakeProxy.toProxyConfiguration());
 
       // the target host is a non-routable address (RFC 5737 TEST-NET-1): reaching it directly
       // would hang/fail, so a successful response here proves the request actually went through
       // the configured proxy rather than straight to the (unreachable) target.
-      var backend =
+      executeAgainst(
+          realTransport,
           new AnthropicCompatibleBackend(
               "http://192.0.2.1:1",
               null,
               null,
               null,
-              new CompatibleApiKeyAuthentication("direct-secret-key"));
-
-      var client = AnthropicChatModelApiFactory.buildClient(backend, null, realTransport);
-      client.messages().create(minimalMessageParams());
+              new CompatibleApiKeyAuthentication("direct-secret-key")));
 
       assertThat(fakeProxy.lastRequestLine()).contains("192.0.2.1");
     }
@@ -142,18 +156,16 @@ class AnthropicChatModelApiFactoryClientTest {
   @Test
   void appliesProxyCredentialsViaProxyAuthenticator() throws Exception {
     try (var fakeProxy = new FakeProxyServer("proxyuser", "proxypass")) {
-      var realTransport = new HttpTransportSupport(fakeProxy.toProxyConfiguration());
+      final var realTransport = new HttpTransportSupport(fakeProxy.toProxyConfiguration());
 
-      var backend =
+      executeAgainst(
+          realTransport,
           new AnthropicCompatibleBackend(
               "http://192.0.2.1:1",
               null,
               null,
               null,
-              new CompatibleApiKeyAuthentication("direct-secret-key"));
-
-      var client = AnthropicChatModelApiFactory.buildClient(backend, null, realTransport);
-      client.messages().create(minimalMessageParams());
+              new CompatibleApiKeyAuthentication("direct-secret-key")));
 
       assertThat(fakeProxy.lastProxyAuthorizationHeader())
           .isEqualTo(
@@ -163,12 +175,39 @@ class AnthropicChatModelApiFactoryClientTest {
     }
   }
 
-  private static MessageCreateParams minimalMessageParams() {
-    return MessageCreateParams.builder()
-        .model("claude-sonnet-4-6")
-        .maxTokens(16)
-        .addUserMessage("hi")
-        .build();
+  private void executeAgainst(AnthropicCompatibleBackend backend) {
+    executeAgainst(transport, backend);
+  }
+
+  private void executeAgainst(HttpTransportSupport transport, AnthropicCompatibleBackend backend) {
+    final var factory = new AnthropicChatModelApiFactory(transport, objectMapper);
+    final var configuration =
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(backend, new AnthropicModel(MODEL_ID, null), null));
+
+    try (ChatModel chatModel = factory.create(configuration)) {
+      chatModel.execute(new ChatRequest(executionContext(configuration), snapshot()));
+    }
+  }
+
+  private static AgentExecutionContext executionContext(AnthropicChatModelConfiguration model) {
+    final var agentConfiguration =
+        new AgentConfiguration(
+            model,
+            new SystemPromptConfiguration("system prompt"),
+            new UserPromptConfiguration("user prompt", null),
+            null,
+            null,
+            null,
+            null);
+
+    final var executionContext = mock(AgentExecutionContext.class);
+    when(executionContext.configuration()).thenReturn(agentConfiguration);
+    return executionContext;
+  }
+
+  private static ConversationSnapshot snapshot() {
+    return new ConversationSnapshot(List.of(), List.of());
   }
 
   /**
@@ -262,8 +301,8 @@ class AnthropicChatModelApiFactoryClientTest {
             socket,
             200,
             "OK",
-            Map.of("Content-Type", "application/json"),
-            SAMPLE_MESSAGE_RESPONSE.getBytes(StandardCharsets.UTF_8));
+            Map.of("Content-Type", "text/event-stream"),
+            SSE_RESPONSE_BODY.getBytes(StandardCharsets.UTF_8));
       } else {
         writeResponse(
             socket,
