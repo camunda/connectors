@@ -27,8 +27,8 @@ import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAgentTest;
 import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesWireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV1WireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV2WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.AzureOpenAiCompletionsWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsWireFormatFixture;
@@ -76,8 +76,8 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
   static Stream<ProviderWireFormatFixture> fixtures() {
     return Stream.of(
         new OpenAiCompletionsWireFormatFixture(),
-        new AnthropicMessagesWireFormatFixture(),
-        new StreamingAnthropicMessagesWireFormatFixture(),
+        new AnthropicMessagesV1WireFormatFixture(),
+        new AnthropicMessagesV2WireFormatFixture(),
         new BedrockConverseWireFormatFixture(),
         new AzureOpenAiCompletionsWireFormatFixture());
   }

@@ -23,17 +23,16 @@ import java.util.function.Function;
 
 /**
  * Plugs Anthropic's Messages API wire format into the provider-agnostic {@link
- * ProviderWireFormatFixture} SPI, driving the connector through its langchain4j-bridge Anthropic
- * provider (v1). See {@link AbstractAnthropicMessagesWireFormatFixture} for the wire-format
- * plumbing shared with the native provider fixture ({@link
- * StreamingAnthropicMessagesWireFormatFixture}).
+ * ProviderWireFormatFixture} SPI, driving the connector through the v1 element template (a plain,
+ * non-streaming POST). See {@link AbstractAnthropicMessagesWireFormatFixture} for the wire-format
+ * plumbing shared with the v2 fixture ({@link AnthropicMessagesV2WireFormatFixture}).
  */
-public final class AnthropicMessagesWireFormatFixture
+public final class AnthropicMessagesV1WireFormatFixture
     extends AbstractAnthropicMessagesWireFormatFixture {
 
   @Override
   public String apiName() {
-    return "AnthropicMessages";
+    return "AnthropicMessagesV1";
   }
 
   @Override
