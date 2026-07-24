@@ -42,12 +42,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Exercises {@link AnthropicOkHttpClientFactory} at the wire level: the built {@link
+ * Exercises {@link AnthropicChatModelApiFactory#buildClient} at the wire level: the built {@link
  * AnthropicClient} issues a real (WireMock-backed) request, and assertions verify what actually
  * went over the wire rather than reflecting into SDK internals.
  */
 @WireMockTest
-class AnthropicOkHttpClientFactoryTest {
+class AnthropicChatModelApiFactoryClientTest {
 
   private static final String SAMPLE_MESSAGE_RESPONSE =
       """
@@ -62,9 +62,6 @@ class AnthropicOkHttpClientFactoryTest {
       }
       """;
 
-  /** Mirrors {@code AnthropicOkHttpClientFactory}'s no-auth sentinel api key. */
-  private static final String NO_AUTH_SENTINEL_API_KEY = "not-required";
-
   private final HttpTransportSupport transport = mock(HttpTransportSupport.class);
 
   @BeforeEach
@@ -76,7 +73,7 @@ class AnthropicOkHttpClientFactoryTest {
   @Test
   void directBackendSendsConfiguredApiKey(WireMockRuntimeInfo wireMock) {
     var backend = new AnthropicApiBackend("direct-secret-key");
-    AnthropicClient client = new AnthropicOkHttpClientFactory(backend, null, transport).create();
+    AnthropicClient client = AnthropicChatModelApiFactory.buildClient(backend, null, transport);
 
     // the direct backend always targets the production Anthropic base URL; redirect this one
     // instance to the WireMock server while keeping its resolved api key credential intact.
@@ -99,7 +96,7 @@ class AnthropicOkHttpClientFactoryTest {
             null,
             new CompatibleApiKeyAuthentication("compatible-secret-key"));
 
-    var client = new AnthropicOkHttpClientFactory(backend, null, transport).create();
+    var client = AnthropicChatModelApiFactory.buildClient(backend, null, transport);
     client.messages().create(minimalMessageParams());
 
     verify(
@@ -110,17 +107,15 @@ class AnthropicOkHttpClientFactoryTest {
   }
 
   @Test
-  void compatibleBackendWithNoAuthenticationUsesSentinelApiKey(WireMockRuntimeInfo wireMock) {
+  void compatibleBackendWithNoAuthenticationSendsNoApiKeyHeader(WireMockRuntimeInfo wireMock) {
     var backend =
         new AnthropicCompatibleBackend(
             wireMock.getHttpBaseUrl(), null, null, null, new CompatibleNoAuthentication());
 
-    var client = new AnthropicOkHttpClientFactory(backend, null, transport).create();
+    var client = AnthropicChatModelApiFactory.buildClient(backend, null, transport);
     client.messages().create(minimalMessageParams());
 
-    verify(
-        postRequestedFor(urlPathEqualTo("/v1/messages"))
-            .withHeader("x-api-key", equalTo(NO_AUTH_SENTINEL_API_KEY)));
+    verify(postRequestedFor(urlPathEqualTo("/v1/messages")).withoutHeader("x-api-key"));
   }
 
   @Test
@@ -139,7 +134,7 @@ class AnthropicOkHttpClientFactoryTest {
               null,
               new CompatibleApiKeyAuthentication("direct-secret-key"));
 
-      var client = new AnthropicOkHttpClientFactory(backend, null, realTransport).create();
+      var client = AnthropicChatModelApiFactory.buildClient(backend, null, realTransport);
       client.messages().create(minimalMessageParams());
 
       assertThat(fakeProxy.lastRequestLine()).contains("192.0.2.1");
@@ -159,7 +154,7 @@ class AnthropicOkHttpClientFactoryTest {
               null,
               new CompatibleApiKeyAuthentication("direct-secret-key"));
 
-      var client = new AnthropicOkHttpClientFactory(backend, null, realTransport).create();
+      var client = AnthropicChatModelApiFactory.buildClient(backend, null, realTransport);
       client.messages().create(minimalMessageParams());
 
       assertThat(fakeProxy.lastProxyAuthorizationHeader())
@@ -179,7 +174,7 @@ class AnthropicOkHttpClientFactoryTest {
   }
 
   /**
-   * Minimal hand-rolled HTTP forward proxy used to exercise {@link AnthropicOkHttpClientFactory}'s
+   * Minimal hand-rolled HTTP forward proxy used to exercise {@link AnthropicChatModelApiFactory}'s
    * real proxy-application branch end-to-end (rather than mocking {@link HttpTransportSupport},
    * which leaves that branch untested). When credentials are configured, challenges the first
    * request with {@code 407 Proxy Authentication Required} so the vendor SDK's {@code

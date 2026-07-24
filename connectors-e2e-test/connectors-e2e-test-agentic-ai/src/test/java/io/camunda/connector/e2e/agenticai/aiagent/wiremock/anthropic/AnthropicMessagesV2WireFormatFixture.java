@@ -26,10 +26,10 @@ import java.util.function.Function;
 
 /**
  * Plugs Anthropic's Messages API wire format into the provider-agnostic {@link
- * ProviderWireFormatFixture} SPI, driving the connector through the v2 (native, non-LangChain4J)
- * Anthropic provider — see {@code AnthropicChatModelApi}. The *request* wire format is identical to
- * the v1 fixture; see {@link AbstractAnthropicMessagesWireFormatFixture} for the shared plumbing
- * ({@code recordedRequests()}, {@code assertResponseFormatConfigured(...)}).
+ * ProviderWireFormatFixture} SPI, driving the connector through the native v2 Anthropic provider —
+ * see {@code AnthropicChatModelApi}. The *request* wire format is identical to the v1 fixture; see
+ * {@link AbstractAnthropicMessagesWireFormatFixture} for the shared plumbing ({@code
+ * recordedRequests()}, {@code assertResponseFormatConfigured(...)}).
  *
  * <p>The *response* wire format differs and is therefore NOT shared: the native provider always
  * calls the vendor SDK's streaming endpoint ({@code client.messages().createStreaming(params)}),

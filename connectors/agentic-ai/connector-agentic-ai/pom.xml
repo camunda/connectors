@@ -138,7 +138,7 @@
     <!--
       Declared directly rather than via the com.anthropic:anthropic-java aggregator:
       anthropic-java-core (the com.anthropic.models.* classes) and anthropic-java-client-okhttp
-      (the OkHttp-based AnthropicClient builder used by AnthropicOkHttpClientFactory, plus the
+      (the OkHttp-based AnthropicClient builder used by AnthropicChatModelApiFactory, plus the
       ProxyAuthenticator used for proxy credentials) share the aggregator's version.
     -->
     <dependency>
