@@ -22,7 +22,6 @@ import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
-import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -111,23 +110,9 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
       builder.apiKey(apiKeyAuth.apiKey());
     }
 
-    if (compatible.headers() != null) {
-      for (Map.Entry<String, String> header : compatible.headers().entrySet()) {
-        builder.putHeader(header.getKey(), header.getValue());
-      }
-    }
-    if (compatible.queryParameters() != null) {
-      for (Map.Entry<String, String> queryParameter : compatible.queryParameters().entrySet()) {
-        builder.putQueryParam(queryParameter.getKey(), queryParameter.getValue());
-      }
-    }
-
-    // compatible.requestParameters() (additional request BODY parameters) is intentionally not
-    // applied here: headers/queryParams are constant across every request this client makes, so
-    // they belong at client construction; requestParameters are extra top-level JSON fields inside
-    // each individual MessageCreateParams body, a per-request concern the client builder has no
-    // hook for (verified via javap -- AnthropicOkHttpClient.Builder exposes only headers/queryParam
-    // methods, nothing for default/static body fields). That is the request converter's job
-    // (AnthropicMessageRequestConverter), not this factory.
+    // headers/queryParameters/requestParameters are all applied per request in
+    // AnthropicMessageRequestConverter instead of here: this client is short-lived (built fresh
+    // per job worker execution, never reused across calls), so there's no benefit to setting them
+    // at construction time, and MessageCreateParams.Builder already exposes all three uniformly.
   }
 }
