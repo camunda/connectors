@@ -17,7 +17,10 @@ connectors for Camunda Platform 8.
     - `spring-boot-starter-camunda-connectors/`: Spring Boot starter (recommended)
 - **`connectors/`**: 30+ out-of-the-box connectors (AWS, HTTP, Kafka, etc.)
 - **`element-template-generator/`**: Automated generation of Camunda Modeler templates
-- **`bundle/`**: Docker images bundling runtime + connectors
+- **`apps/`**: All applications we deliver and build Docker images from
+    - `connector-runtime-application/`: Standalone runtime application without connectors
+    - `bundle/default-bundle/`: Self-Managed image bundling runtime + connectors
+    - `bundle/camunda-saas-bundle/`: SaaS image bundling runtime + connectors
 - **`connector-commons/`**: Shared utilities
     - `connector-object-mapper/`: Jackson ObjectMapper configuration
     - `connector-test-utils/`: Testing utilities including `@SlowTest`, `DockerImages`
@@ -306,7 +309,7 @@ mvn clean install -DskipTests -DskipChecks -Dquickly -Dmaven.build.cache.enabled
 ./connectors/create-element-templates-symlinks.sh
 
 # Build Docker bundle
-cd bundle && docker build -t camunda/connectors-bundle:latest .
+cd apps/bundle/default-bundle && docker build -t camunda/connectors-bundle:latest .
 
 # Run specific test class
 mvn test -pl connectors/http/rest -Dtest=HttpJsonFunctionTest
