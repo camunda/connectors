@@ -6,27 +6,26 @@
  */
 package io.camunda.connector.sagemaker.suppliers;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntime;
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntimeAsync;
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntimeAsyncClientBuilder;
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntimeClientBuilder;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeAsyncClient;
+import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 
 public class SageMakeClientSupplier {
 
-  public AmazonSageMakerRuntime getSyncClient(
-      final AWSCredentialsProvider credentialsProvider, final String region) {
-    return AmazonSageMakerRuntimeClientBuilder.standard()
-        .withCredentials(credentialsProvider)
-        .withRegion(region)
+  public SageMakerRuntimeClient getSyncClient(
+      final AwsCredentialsProvider credentialsProvider, final String region) {
+    return SageMakerRuntimeClient.builder()
+        .credentialsProvider(credentialsProvider)
+        .region(Region.of(region))
         .build();
   }
 
-  public AmazonSageMakerRuntimeAsync getAsyncClient(
-      final AWSCredentialsProvider credentialsProvider, final String region) {
-    return AmazonSageMakerRuntimeAsyncClientBuilder.standard()
-        .withCredentials(credentialsProvider)
-        .withRegion(region)
+  public SageMakerRuntimeAsyncClient getAsyncClient(
+      final AwsCredentialsProvider credentialsProvider, final String region) {
+    return SageMakerRuntimeAsyncClient.builder()
+        .credentialsProvider(credentialsProvider)
+        .region(Region.of(region))
         .build();
   }
 }
