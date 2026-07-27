@@ -26,7 +26,7 @@ For A2A integration details, see [`a2a.md`](a2a.md).
 9. [What Happens When Tools Complete](#9-tool-completion)
 10. [Concurrency Challenges & Race Conditions](#10-concurrency)
 11. [Event Handling](#11-event-handling)
-12. [Chat Model Provider SPI & LangChain4J Converter Chain](#12-framework-abstraction)
+12. [Chat Model Provider SPI & LangChain4j Converter Chain](#12-framework-abstraction)
 13. [System Prompt Composition](#13-system-prompt-composition)
 14. [Response Handling](#14-response-handling)
 15. [Error Codes](#15-error-codes)
@@ -326,7 +326,7 @@ The sealed `Content` model gained two additive members alongside the existing `T
 - **`ProviderContent`** — a provider-native content block preserved verbatim (`provider`, `blockType`,
   `payload`).
 
-Neither is produced or consumed by the LangChain4J path yet; they exist so the structured shape is
+Neither is produced or consumed by the LangChain4j path yet; they exist so the structured shape is
 ready for chat model implementations that need them.
 
 **Backward compatibility (Camunda 8.9):** before `ToolCallResultContent` existed, a persisted tool
@@ -906,7 +906,7 @@ Events create their payload in `toolCallResult`:
 
 <a id="12-framework-abstraction"></a>
 
-## 12. Chat Model Provider SPI & LangChain4J Converter Chain
+## 12. Chat Model Provider SPI & LangChain4j Converter Chain
 
 ### The `ChatModel` provider SPI (ADR 009)
 
@@ -945,7 +945,7 @@ loud rather than resolving implicitly.
 iteration calls `chatModel.execute(request)`, enforces the content-filter guard (below), ingests the
 assistant message into the turn, and — only if the result was a `Continuation` — checks the
 model-call limit and starts the next continuation round on a fresh turn before looping. A `Completed`
-result ends the loop. LangChain4J always returns `Completed`, so the loop runs exactly once for it —
+result ends the loop. LangChain4j always returns `Completed`, so the loop runs exactly once for it —
 behavior-identical to the pre-SPI single call.
 
 Agent-instance metrics are reported **once per job**, not per continuation round: the single
@@ -967,9 +967,9 @@ Enforcing the guard once in the orchestrator means every current and future prov
 than each reimplementing it. Continuation states (e.g. `pause_turn`) are represented via
 `ChatResult.Continuation`, not via `StopReason`.
 
-### LangChain4J Implementation
+### LangChain4j Implementation
 
-LangChain4J is the first (and currently only) implementation behind the SPI, reshaped into per-provider
+LangChain4j is the first (and currently only) implementation behind the SPI, reshaped into per-provider
 factories:
 - `AgenticAiLangChain4JFrameworkConfiguration` wires the converter beans;
   `AgenticAiLangChain4JChatModelConfiguration` wires one `ChatModelFactory` bean per provider. Provider
@@ -977,31 +977,31 @@ factories:
   unconditionally rather than behind a global framework toggle.
 - `LangChain4JChatModelFactory<T extends ProviderConfiguration>` is the abstract base: `supports`
   matches a `ProviderConfiguration` whose `provider()` equals the factory's `providerType()`, and
-  `create` builds the underlying LangChain4J model once via the abstract `createChatModel` and wraps it
+  `create` builds the underlying LangChain4j model once via the abstract `createChatModel` and wraps it
   in a `LangChain4JChatModel`. Concrete subclasses: `AnthropicChatModelFactory`,
   `BedrockChatModelFactory`, `OpenAiChatModelFactory`, `OpenAiCompatibleChatModelFactory`,
   `AzureOpenAiChatModelFactory`, `GoogleVertexAiChatModelFactory` (the OpenAI-family factories share a
   common `LangChain4JOpenAiBaseChatModelFactory`).
 - `LangChain4JChatModel` is the `ChatModel` implementation: converts the domain conversation and tool
-  definitions to LangChain4J types, drives one `chat()` call while timing it (`System.nanoTime()`, fed
-  into `AgentMetrics.executionTime`), and converts the response back. LangChain4J has no
+  definitions to LangChain4j types, drives one `chat()` call while timing it (`System.nanoTime()`, fed
+  into `AgentMetrics.executionTime`), and converts the response back. LangChain4j has no
   pause/continuation semantics, so it always returns `ChatResult.Completed`.
-- **Does NOT use LangChain4J's built-in tool execution** — tool calls are returned as data, execution happens via BPMN.
+- **Does NOT use LangChain4j's built-in tool execution** — tool calls are returned as data, execution happens via BPMN.
 
 ### Converter Chain Architecture
 
-The module maintains its own domain model (framework-agnostic `Message`, `ToolCall`, `Content` types) separate from LangChain4J types. The converter chain translates between them:
+The module maintains its own domain model (framework-agnostic `Message`, `ToolCall`, `Content` types) separate from LangChain4j types. The converter chain translates between them:
 
 ```
 LangChain4JChatModel
-  ├── ChatMessageConverter         # Message ↔ LangChain4J ChatMessage
-  │     ├── ContentConverter       # Content → LangChain4J Content (for user messages)
-  │     │     └── DocumentToContentConverter  # Camunda Document → LangChain4J Content
+  ├── ChatMessageConverter         # Message ↔ LangChain4j ChatMessage
+  │     ├── ContentConverter       # Content → LangChain4j Content (for user messages)
+  │     │     └── DocumentToContentConverter  # Camunda Document → LangChain4j Content
   │     └── ToolCallConverter      # ToolCall ↔ ToolExecutionRequest, ToolCallResult → ToolExecutionResultMessage
-  ├── ToolSpecificationConverter   # ToolDefinition ↔ LangChain4J ToolSpecification
-  │     └── JsonSchemaConverter    # Map<String,Object> ↔ LangChain4J JsonSchemaElement
+  ├── ToolSpecificationConverter   # ToolDefinition ↔ LangChain4j ToolSpecification
+  │     └── JsonSchemaConverter    # Map<String,Object> ↔ LangChain4j JsonSchemaElement
   │           └── JsonSchemaElementModule  # Jackson module for JsonSchemaElement round-trip
-  └── LangChain4J*ChatModelFactory # creates the LangChain4J ChatModel per provider config
+  └── LangChain4j*ChatModelFactory # creates the LangChain4j ChatModel per provider config
 ```
 
 **Key converters:**
@@ -1009,8 +1009,8 @@ LangChain4JChatModel
 - **`ChatMessageConverter`**: Top-level converter. `map(Message)` dispatches on sealed type (System/User/Assistant/ToolCallResult). `toAssistantMessage(ChatResponse)` converts back, attaching metadata (timestamp, finishReason, tokenUsage).
 - **`ContentConverter`**: Converts `TextContent` → text, `DocumentContent` → delegates to `DocumentToContentConverter`, `ObjectContent` → JSON string via the injected `ObjectMapper`.
 - **`DocumentToContentConverter`**: Dispatches on MIME type: `text/*` → `TextContent`; `application/pdf` → `PdfFileContent`; images → `ImageContent`; throws `DocumentConversionException` for unsupported types.
-- **`ToolSpecificationConverter`**: Uses `JsonSchemaConverter` to convert between `Map<String,Object>` (domain) and `JsonObjectSchema` (LangChain4J). Throws `ParseSchemaException` if schema is not an object.
-- **`JsonSchemaElementModule`**: Custom Jackson module needed because LangChain4J doesn't expose standard polymorphic annotations on `JsonSchemaElement`. Serializer/deserializer handle all concrete types (`JsonObjectSchema`, `JsonEnumSchema`, `JsonStringSchema`, `JsonArraySchema`, `JsonAnyOfSchema`, `JsonReferenceSchema`, etc.).
+- **`ToolSpecificationConverter`**: Uses `JsonSchemaConverter` to convert between `Map<String,Object>` (domain) and `JsonObjectSchema` (LangChain4j). Throws `ParseSchemaException` if schema is not an object.
+- **`JsonSchemaElementModule`**: Custom Jackson module needed because LangChain4j doesn't expose standard polymorphic annotations on `JsonSchemaElement`. Serializer/deserializer handle all concrete types (`JsonObjectSchema`, `JsonEnumSchema`, `JsonStringSchema`, `JsonArraySchema`, `JsonAnyOfSchema`, `JsonReferenceSchema`, etc.).
 
 All converter beans are `@ConditionalOnMissingBean`, so an application can override any of them by declaring its own bean of the same type.
 
@@ -1132,16 +1132,16 @@ For A2A error codes, see [a2a.md §15](a2a.md#15-error-codes).
 Master configuration class. Activated by `@ConditionalOnBooleanProperty("camunda.connector.agenticai.enabled", matchIfMissing=true)` — on by default.
 
 Imports:
-- `AgenticAiLangChain4JFrameworkConfiguration` — LangChain4J converter chain and per-provider `ChatModelFactory` beans
+- `AgenticAiLangChain4JFrameworkConfiguration` — LangChain4j converter chain and per-provider `ChatModelFactory` beans
 - `McpDiscoveryConfiguration`, `McpClientConfiguration`, `McpRemoteClientConfiguration` — MCP (see [mcp.md §14](mcp.md#14-spring-configuration))
 - `A2aClientOutboundConnectorConfiguration`, `A2aClientAgenticToolConfiguration`, `A2aClientPollingConfiguration`, `A2aClientWebhookConfiguration` — A2A (see [a2a.md §14](a2a.md#14-spring-configuration))
 
-Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatModelFactory` bean) directly, outside of the imported LangChain4J configuration.
+Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatModelFactory` bean) directly, outside of the imported LangChain4j configuration.
 
 ### Key Differences from Standard Connectors
 
 1. **Dual activation modes**: Both an outbound connector (`AiAgentFunction`) and a job worker (`AiAgentJobWorker`) are registered. The job worker bypasses the standard connector runtime, handling variable resolution, secret injection, and exception handling directly.
-2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([§12](#12-framework-abstraction)) allows the LangChain4J stack to be replaced or extended per provider. Provider selection is by `ChatModelFactory.supports(...)` via the SPI registry; the LangChain4J configuration loads unconditionally.
+2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([§12](#12-framework-abstraction)) allows the LangChain4j stack to be replaced or extended per provider. Provider selection is by `ChatModelFactory.supports(...)` via the SPI registry; the LangChain4j configuration loads unconditionally.
 3. **Pluggable system prompt contributors**: All `SystemPromptContributor` beans are auto-collected into `SystemPromptComposerImpl`.
 4. **Pluggable gateway tool handlers**: All `GatewayToolHandler` beans are auto-collected into `GatewayToolHandlerRegistryImpl`.
 5. **Caffeine caching of BPMN resolution**: Process definition fetch (API + XML parse + FEEL extraction) is cached with configurable TTL and max size.
@@ -1243,9 +1243,9 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `SystemPromptComposerImpl.compose()` → Aggregates base prompt + contributions
 - `A2aSystemPromptContributor` → A2A protocol instructions (order 100)
 
-### Chat Model SPI & LangChain4J
+### Chat Model SPI & LangChain4j
 - `ChatModelRegistryImpl.resolve()` → Provider resolution by `ChatModelFactory.supports()`, fail-loud on zero/multiple matches
-- `LangChain4JChatModel.execute()` → Main LLM call path (LangChain4J implementation)
+- `LangChain4JChatModel.execute()` → Main LLM call path (LangChain4j implementation)
 - `ChatMessageConverterImpl` → Message conversion chain
 - `ToolSpecificationConverterImpl` → Tool definition conversion
 - `AnthropicChatModelFactory`, `BedrockChatModelFactory`, `OpenAiChatModelFactory`, `OpenAiCompatibleChatModelFactory`, `AzureOpenAiChatModelFactory`, `GoogleVertexAiChatModelFactory` → Provider-specific `ChatModel` creation (`LangChain4JChatModelFactory` subclasses)
@@ -1725,7 +1725,7 @@ Content blocks map by type: `TextContent` → text, `ObjectContent` → object (
 `DocumentContent` → a document reference block (Camunda documents only; external document references
 currently fall back to an object/text block — see follow-ups), and the additive `ReasoningContent` /
 `ProviderContent` blocks ([§5](#5-data-model)) → an object block wrapping the record / the raw
-provider payload respectively (`AgentInstanceHistoryMapper`; neither is produced by the LangChain4J
+provider payload respectively (`AgentInstanceHistoryMapper`; neither is produced by the LangChain4j
 path yet). The item carries the current turn's
 `iterationKey` and the active `jobKey`; the engine discards superseded/non-completed items by
 observing job completion (`jobLease` enforcement is a planned follow-up, camunda/camunda#55033).
@@ -1746,13 +1746,13 @@ them so violations fail the build. Until then, enforcement is by review, so resp
 
 ### I1. The agent core is framework-agnostic
 
-Only the LangChain4J adapter package may depend on LangChain4J.
+Only the LangChain4j adapter package may depend on LangChain4j.
 
 - **Rule**: nothing outside `io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.**` may
   import `dev.langchain4j.*`. The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the
   root `model/`, `adhoctoolsschema/`, `tool/`) stays framework-neutral.
 - **Why**: the LLM provider is an SPI (`ChatModel` / `ChatModelFactory`, see
-  [§12](#12-framework-abstraction)). Keeping LangChain4J behind the SPI means it can be replaced or
+  [§12](#12-framework-abstraction)). Keeping LangChain4j behind the SPI means it can be replaced or
   extended per provider without touching orchestration, memory, or the data model.
 - **Verify**: `grep -rl "import dev.langchain4j" --include="*.java"
   connector-agentic-ai/src/main/java/io/camunda/connector/agenticai | grep -v /chatmodel/provider/langchain4j/` returns nothing.
@@ -1762,7 +1762,7 @@ Only the LangChain4J adapter package may depend on LangChain4J.
 The module owns a framework-agnostic domain model in `io.camunda.connector.agenticai.model.*` (the
 `Message`, `Content`, `ToolCall`, and `ToolDefinition` sealed types).
 
-- **Rule**: these types must not expose LangChain4J types in their API. Conversion to/from
+- **Rule**: these types must not expose LangChain4j types in their API. Conversion to/from
   `dev.langchain4j` types happens **only** in the converter chain (see [§12](#12-framework-abstraction)
   for the converters).
 - **Why**: a leak here re-couples the whole codebase to the framework and defeats I1.
@@ -1814,11 +1814,11 @@ reference implementation and its wiring for the current exact procedure, and res
 Implement `ChatModelFactory` (`supports(ChatModelConfiguration)` / `create(ChatModelConfiguration)`)
 and register it as a Spring bean; `ChatModelRegistryImpl` auto-collects every `ChatModelFactory` bean
 and routes a request to the single one whose `supports` returns true ([§12](#12-framework-abstraction)).
-A provider going through LangChain4J extends the abstract `LangChain4JChatModelFactory<T extends
+A provider going through LangChain4j extends the abstract `LangChain4JChatModelFactory<T extends
 ProviderConfiguration>` instead — it only needs to supply `providerType()` and `createChatModel(T)`,
 plus the matching `ProviderConfiguration` subtype (`supports`/`create` are already implemented by the
 base class). Reference implementation: `AnthropicChatModelFactory` with
-`AnthropicProviderConfiguration`. The LangChain4J provider package
+`AnthropicProviderConfiguration`. The LangChain4j provider package
 (`aiagent/chatmodel/provider/langchain4j/**`) is the only place that may touch `dev.langchain4j`
 (invariant I1); a fully native provider implements `ChatModel`/`ChatModelFactory` directly with its own
 `ChatModelConfiguration` and stays out of that package.

@@ -11,7 +11,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import org.jspecify.annotations.Nullable;
 
 public interface ContentConverter {
-  /** Converts a {@link Content} to a LangChain4J {@link dev.langchain4j.data.message.Content}. */
+  /** Converts a {@link Content} to a LangChain4j {@link dev.langchain4j.data.message.Content}. */
   dev.langchain4j.data.message.Content convertToContent(Content content)
       throws JsonProcessingException;
 

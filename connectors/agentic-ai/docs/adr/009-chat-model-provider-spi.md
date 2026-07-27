@@ -9,11 +9,11 @@
 
 ## Context and Problem Statement
 
-The agentic module invokes LLMs through a single `AiFrameworkAdapter` bound to LangChain4J. That was
+The agentic module invokes LLMs through a single `AiFrameworkAdapter` bound to LangChain4j. That was
 sufficient for a text-and-tool-call loop, but it has become the limiting factor for where we want to take the
 module:
 
-* Every provider is coupled to LangChain4J's feature set and release cadence. Provider-specific capabilities
+* Every provider is coupled to LangChain4j's feature set and release cadence. Provider-specific capabilities
   (native server-side tool use, structured reasoning, provider-native content) cannot be surfaced without
   either waiting for upstream support or working around the abstraction.
 * The invocation contract is a single request/response. There is no notion of a provider *continuing* a turn
@@ -24,7 +24,7 @@ module:
 * Only input/output token counts are captured, even though providers increasingly report prompt-cache and
   reasoning token usage.
 
-Should we continue extending the LangChain4J-bound adapter, or own the invocation layer behind a module SPI so
+Should we continue extending the LangChain4j-bound adapter, or own the invocation layer behind a module SPI so
 we can add native providers, richer content, and turn continuation on our own terms?
 
 ## Decision Drivers
@@ -36,20 +36,20 @@ we can add native providers, richer content, and turn continuation on our own te
   can route documents, images, and reasoning natively instead of stringifying them.
 * **Vendor-neutral control**: cross-cutting guards (such as content filtering) should be enforced once, in the
   orchestrator, off a normalized signal rather than per provider.
-* **Behavior identity**: introduce the abstraction without changing current LangChain4J behavior.
+* **Behavior identity**: introduce the abstraction without changing current LangChain4j behavior.
 * **Richer metrics**: capture prompt-cache and reasoning token usage where a provider reports it.
 
 ## Considered Options
 
-1. Keep `AiFrameworkAdapter` and extend the LangChain4J integration as needs arise.
-2. Introduce a `ChatModel` provider SPI owned by the module, with LangChain4J as the first implementation
+1. Keep `AiFrameworkAdapter` and extend the LangChain4j integration as needs arise.
+2. Introduce a `ChatModel` provider SPI owned by the module, with LangChain4j as the first implementation
    behind it.
 
 ## Decision Outcome
 
 Chosen option: **Option 2 — a `ChatModel` provider SPI**, because it decouples the module from any single
 framework, models turn continuation and structured content as first-class concepts, and lets cross-cutting
-concerns live in the orchestrator, while keeping today's LangChain4J behavior identical.
+concerns live in the orchestrator, while keeping today's LangChain4j behavior identical.
 
 The SPI and its surrounding contract:
 
@@ -64,7 +64,7 @@ The SPI and its surrounding contract:
   not yet wired up: both v1 requests bind the sealed `ProviderConfiguration`, and that wiring for
   custom/native configurations is delivered incrementally by the v2 request types.
 * **Turn-based continuation**: `ChatResult` is a sealed `Completed | Continuation`. The request handler
-  loops while the result is a `Continuation`, persisting each round as a separate turn. LangChain4J always
+  loops while the result is a `Continuation`, persisting each round as a separate turn. LangChain4j always
   returns `Completed`, so the loop runs exactly once for it — behavior-identical to the previous single call.
 * **Normalized stop reasons**: a sealed `StopReason` maps provider finish reasons to a neutral vocabulary. The
   content-filter guard is enforced generically in the handler off the `CONTENT_FILTERED` stop reason (before
@@ -95,7 +95,7 @@ The SPI and its surrounding contract:
   blocks sharing the same type discriminators, which could be mis-read as domain content. The write path
   always persists the current shape, so a conversation is migrated forward on its next write.
 
-LangChain4J is reshaped into per-provider factories behind this SPI, with each factory's model-building logic
+LangChain4j is reshaped into per-provider factories behind this SPI, with each factory's model-building logic
 unchanged.
 
 ### Non-goals
@@ -103,7 +103,7 @@ unchanged.
 Deliberately out of scope here and addressed by separate ADRs / changes:
 
 * A model **capability matrix** describing what each backend supports.
-* **Native (non-LangChain4J) provider** implementations.
+* **Native (non-LangChain4j) provider** implementations.
 * **Capability-aware tool-call-result routing** / inline document lifting. This change only establishes the
   structured persisted shape; it does not yet consume it, and preserves ADR 004 behavior.
 
@@ -125,8 +125,8 @@ Deliberately out of scope here and addressed by separate ADRs / changes:
 ### Option 1: Continue extending `AiFrameworkAdapter`
 
 * Good, because there is no migration effort and the abstraction is already in place.
-* Good, because LangChain4J covers the current text-and-tool-call use case.
-* Bad, because provider capabilities remain gated behind LangChain4J's feature set and release cadence.
+* Good, because LangChain4j covers the current text-and-tool-call use case.
+* Bad, because provider capabilities remain gated behind LangChain4j's feature set and release cadence.
 * Bad, because the single request/response contract cannot express turn continuation.
 * Bad, because tool-call results stay untyped, blocking structured downstream handling.
 
@@ -135,6 +135,6 @@ Deliberately out of scope here and addressed by separate ADRs / changes:
 * Good, because providers become pluggable and independent of any single framework.
 * Good, because continuation, normalized stop reasons, and structured content are first-class.
 * Good, because cross-cutting guards live once in the orchestrator.
-* Good, because it is introduced with behavior identity for the existing LangChain4J providers.
+* Good, because it is introduced with behavior identity for the existing LangChain4j providers.
 * Bad, because it adds an SPI layer and a per-request model lifecycle, and changes a persisted format (mitigated
   by backward-compatible reads).

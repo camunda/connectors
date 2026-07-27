@@ -17,7 +17,7 @@ import java.util.Optional;
 /**
  * Shared base for the OpenAI-family factories ({@link OpenAiChatModelFactory}, {@link
  * OpenAiCompatibleChatModelFactory}), both of which return {@link OpenAiTokenUsage} from their
- * LangChain4J client and therefore need to layer the same cached-input and reasoning-output token
+ * LangChain4j client and therefore need to layer the same cached-input and reasoning-output token
  * detail onto the base token usage builder.
  *
  * @param <T> the {@link ProviderConfiguration} subtype this factory handles

@@ -32,11 +32,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@link ChatModel} routing a chat request through a LangChain4J {@code
+ * {@link ChatModel} routing a chat request through a LangChain4j {@code
  * dev.langchain4j.model.chat.ChatModel}: converts the domain conversation and tool definitions to
- * LangChain4J types, drives one {@code chat()} call, times it, and converts the response back.
+ * LangChain4j types, drives one {@code chat()} call, times it, and converts the response back.
  *
- * <p>The LangChain4J framework does not support pause/continuation semantics, so {@link
+ * <p>The LangChain4j framework does not support pause/continuation semantics, so {@link
  * #execute(io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest)} always returns a {@link
  * ChatResult.Completed} — the continuation loop in {@code BaseAgentRequestHandler} therefore runs
  * exactly once on this path, matching the single-shot call.

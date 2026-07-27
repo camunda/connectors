@@ -21,9 +21,9 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderCon
 import org.jspecify.annotations.Nullable;
 
 /**
- * Adapts one LangChain4J provider to the chat model SPI. {@link #supports} matches a {@link
+ * Adapts one LangChain4j provider to the chat model SPI. {@link #supports} matches a {@link
  * ProviderConfiguration} whose {@link ProviderConfiguration#provider()} equals {@link
- * #providerType()}, and {@link #create} builds the underlying LangChain4J chat model once via
+ * #providerType()}, and {@link #create} builds the underlying LangChain4j chat model once via
  * {@link #createChatModel} and wraps it in a {@link LangChain4JChatModel}. Each built-in provider
  * is a concrete subclass supplying its own discriminator and model construction logic, registered
  * as its own bean so an individual provider's implementation can be swapped without touching the
@@ -56,7 +56,7 @@ public abstract class LangChain4JChatModelFactory<T extends ProviderConfiguratio
   /**
    * Maps the base input/output counts on every {@link TokenUsage}. Subclasses override this to
    * layer on cache and reasoning token detail exposed by the provider-specific {@link TokenUsage}
-   * subclass their LangChain4J client returns.
+   * subclass their LangChain4j client returns.
    */
   protected AgentMetrics.TokenUsage mapTokenUsage(@Nullable TokenUsage usage) {
     if (usage == null) {
