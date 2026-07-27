@@ -24,13 +24,15 @@ public record EmailMessage(
     String body,
     String bodyContentType,
     OffsetDateTime receivedDateTime,
-    List<Document> attachments) {
+    List<Document> attachments,
+    List<EmailAttachmentMetadata> attachmentMetadata) {
   public EmailMessage(Message message) {
-    this(message, List.of());
+    this(message, List.of(), List.of());
   }
 
-  public EmailMessage(Message message, List<Document> documents) {
-    this(toEmailMessage(message, documents));
+  public EmailMessage(
+      Message message, List<Document> documents, List<EmailAttachmentMetadata> attachmentMetadata) {
+    this(toEmailMessage(message, documents, attachmentMetadata));
   }
 
   private EmailMessage(EmailMessage message) {
@@ -45,9 +47,14 @@ public record EmailMessage(
         message.body,
         message.bodyContentType,
         message.receivedDateTime,
-        message.attachments);
+        message.attachments,
+        message.attachmentMetadata);
   }
 
+  /**
+   * Copies the given message, replacing the (downloaded) attachment documents while preserving the
+   * lightweight attachment metadata that was resolved at poll time.
+   */
   public EmailMessage(EmailMessage message, List<Document> documents) {
     this(
         message.id,
@@ -60,7 +67,8 @@ public record EmailMessage(
         message.body,
         message.bodyContentType,
         message.receivedDateTime,
-        documents);
+        documents,
+        message.attachmentMetadata);
   }
 
   public static String[] getSelect() {
@@ -73,7 +81,8 @@ public record EmailMessage(
       "bccRecipients",
       "subject",
       "body",
-      "receivedDateTime"
+      "receivedDateTime",
+      "hasAttachments"
     };
   }
 }
