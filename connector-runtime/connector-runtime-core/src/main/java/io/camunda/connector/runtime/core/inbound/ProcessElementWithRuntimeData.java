@@ -32,9 +32,13 @@ public record ProcessElementWithRuntimeData(
     @Nullable String elementName,
     @Nullable String elementType,
     String tenantId,
+    String physicalTenantId,
     ElementTemplateDetails elementTemplateDetails,
     Map<String, String> properties)
     implements ProcessElement {
+
+  /** Physical tenant ID used for single-cluster deployments and by test fixtures. */
+  public static final String DEFAULT_PHYSICAL_TENANT_ID = "default";
 
   public ProcessElementWithRuntimeData(
       String bpmnProcessId,
@@ -52,7 +56,42 @@ public record ProcessElementWithRuntimeData(
         null,
         null,
         tenantId,
+        DEFAULT_PHYSICAL_TENANT_ID,
         new ElementTemplateDetails("Test", "1", "icon"),
         Map.of());
+  }
+
+  /**
+   * Restores the pre-{@code physicalTenantId} 11-argument canonical constructor for binary
+   * compatibility: code compiled against the previous record shape (without {@code
+   * physicalTenantId}) would otherwise fail with {@code NoSuchMethodError} against this jar.
+   * Defaults the physical tenant to {@link #DEFAULT_PHYSICAL_TENANT_ID}, matching every
+   * single-cluster deployment that predates multi-engine support.
+   */
+  public ProcessElementWithRuntimeData(
+      String bpmnProcessId,
+      @Nullable String processName,
+      @Nullable String messageName,
+      int version,
+      long processDefinitionKey,
+      String elementId,
+      @Nullable String elementName,
+      @Nullable String elementType,
+      String tenantId,
+      ElementTemplateDetails elementTemplateDetails,
+      Map<String, String> properties) {
+    this(
+        bpmnProcessId,
+        processName,
+        messageName,
+        version,
+        processDefinitionKey,
+        elementId,
+        elementName,
+        elementType,
+        tenantId,
+        DEFAULT_PHYSICAL_TENANT_ID,
+        elementTemplateDetails,
+        properties);
   }
 }

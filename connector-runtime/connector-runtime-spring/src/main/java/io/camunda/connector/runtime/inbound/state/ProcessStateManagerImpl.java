@@ -89,21 +89,26 @@ public class ProcessStateManagerImpl implements ProcessStateManager {
 
       var event =
           new InboundExecutableEvent.ProcessStateChanged(
-              processRef.bpmnProcessId(), processRef.tenantId(), elementsByVersion);
+              processRef.physicalTenantId(),
+              processRef.bpmnProcessId(),
+              processRef.tenantId(),
+              elementsByVersion);
 
       LOG.debug(
-          "Publishing ProcessStateChanged for process '{}' (tenant '{}'): {} active version(s)",
+          "Publishing ProcessStateChanged for process '{}' (tenant '{}', physical tenant '{}'): {} active version(s)",
           processRef.bpmnProcessId(),
           processRef.tenantId(),
+          processRef.physicalTenantId(),
           activeVersionKeys.size());
 
       executableRegistry.publishEvent(event);
 
     } catch (Exception e) {
       LOG.error(
-          "Failed to publish state change event for process '{}' (tenant '{}')",
+          "Failed to publish state change event for process '{}' (tenant '{}', physical tenant '{}')",
           processRef.bpmnProcessId(),
           processRef.tenantId(),
+          processRef.physicalTenantId(),
           e);
     }
   }

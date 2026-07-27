@@ -6,17 +6,21 @@
  */
 package io.camunda.connector.comprehend.caller;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.comprehend.AmazonComprehendClient;
 import io.camunda.connector.comprehend.model.ComprehendRequestData;
 
-public interface ComprehendCaller<
-    T extends AmazonWebServiceResult<ResponseMetadata>, R extends ComprehendRequestData> {
+/**
+ * @param <C> the AWS SDK v2 client type this caller invokes -- {@code SyncComprehendCaller} and
+ *     {@code AsyncComprehendCaller} use unrelated client interfaces (unlike AWS SDK v1, where the
+ *     async client was a subtype of the sync one), so the client type is parameterized here rather
+ *     than fixed to a single supertype.
+ * @param <R> the connector request data this caller consumes
+ * @param <T> the connector-owned result this caller returns
+ */
+public interface ComprehendCaller<C, R extends ComprehendRequestData, T> {
 
   String READ_ACTION_WITHOUT_FEATURES_EX =
       "If you chose TEXTRACT_ANALYZE_DOCUMENT as the read action, "
           + "you must specify one feature types";
 
-  T call(AmazonComprehendClient client, R requestData);
+  T call(C client, R requestData);
 }

@@ -19,8 +19,41 @@ package io.camunda.connector.runtime.inbound.state.model;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * @param physicalTenantId the physical tenant this batch was imported from. A single import batch
+ *     only ever reports processes for one physical tenant (each call into {@code Importers} queries
+ *     exactly one {@code SearchQueryClient}), so this scopes {@link
+ *     io.camunda.connector.runtime.inbound.state.ProcessStateContainer#compareAndUpdate} to that
+ *     physical tenant's own tracked processes — otherwise one physical tenant's import batch would
+ *     be misread as "these processes from every other physical tenant are now missing" and would
+ *     spuriously deactivate them.
+ */
 public record ImportResult(
-    Map<ProcessDefinitionRef, Set<Long>> processDefinitionKeysByProcessId, ImportType importType) {
+    Map<ProcessDefinitionRef, Set<Long>> processDefinitionKeysByProcessId,
+    ImportType importType,
+    String physicalTenantId) {
+
+  /**
+   * Convenience constructor for a non-empty import batch: {@code physicalTenantId} is inferred from
+   * the batch's own keys. Must not be used for an empty batch (there is no key to infer it from) —
+   * use the 3-arg constructor with an explicit {@code physicalTenantId} instead.
+   */
+  public ImportResult(
+      Map<ProcessDefinitionRef, Set<Long>> processDefinitionKeysByProcessId,
+      ImportType importType) {
+    this(
+        processDefinitionKeysByProcessId,
+        importType,
+        processDefinitionKeysByProcessId.keySet().stream()
+            .findFirst()
+            .map(ProcessDefinitionRef::physicalTenantId)
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "Cannot infer physicalTenantId from an empty import batch; use the"
+                            + " constructor that takes an explicit physicalTenantId")));
+  }
+
   public enum ImportType {
     /**
      * The import includes only the latest versions of the process definitions. This means that for

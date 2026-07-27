@@ -23,6 +23,7 @@ import static org.mockito.Mockito.spy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.api.inbound.ElementTemplateDetails;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
@@ -50,7 +51,21 @@ public abstract class WebhookTestsBase {
 
   public static RegisteredExecutable.Activated buildConnector(
       String bpmnProcessId, int version, String path) {
-    var connectorData = webhookDefinition(bpmnProcessId, version, path);
+    return buildConnector(
+        bpmnProcessId,
+        version,
+        path,
+        "<default>",
+        ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID);
+  }
+
+  /**
+   * Builds a connector deployed on the given logical {@code tenantId} and physical tenant ({@code
+   * physicalTenantId}), for exercising physical-tenant/tenant-scoped webhook path resolution.
+   */
+  public static RegisteredExecutable.Activated buildConnector(
+      String bpmnProcessId, int version, String path, String tenantId, String physicalTenantId) {
+    var connectorData = webhookDefinition(bpmnProcessId, version, path, tenantId, physicalTenantId);
     WebhookConnectorExecutable executable = Mockito.spy(WebhookConnectorExecutable.class);
     try {
       Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
@@ -89,25 +104,46 @@ public abstract class WebhookTestsBase {
   }
 
   private static InboundConnectorDetails.ValidInboundConnectorDetails webhookDefinition(
-      String bpmnProcessId, int version, String path) {
+      String bpmnProcessId, int version, String path, String tenantId, String physicalTenantId) {
     var details =
         InboundConnectorDetails.of(
             bpmnProcessId + version + path,
             List.of(
                 webhookElement(
-                    (bpmnProcessId + version).hashCode(), bpmnProcessId, version, path)));
+                    (bpmnProcessId + version).hashCode(),
+                    bpmnProcessId,
+                    version,
+                    path,
+                    tenantId,
+                    physicalTenantId)));
     assertThat(details).isInstanceOf(InboundConnectorDetails.ValidInboundConnectorDetails.class);
     return (InboundConnectorDetails.ValidInboundConnectorDetails) details;
   }
 
   private static InboundConnectorElement webhookElement(
-      long processDefinitionKey, String bpmnProcessId, int version, String path) {
+      long processDefinitionKey,
+      String bpmnProcessId,
+      int version,
+      String path,
+      String tenantId,
+      String physicalTenantId) {
 
     return new InboundConnectorElement(
         Map.of("inbound.type", "io.camunda:webhook:1", "inbound.context", path),
         new StartEventCorrelationPoint(bpmnProcessId, version, processDefinitionKey),
         new ProcessElementWithRuntimeData(
-            bpmnProcessId, version, processDefinitionKey, "testElement", "<default>"));
+            bpmnProcessId,
+            null,
+            null,
+            version,
+            processDefinitionKey,
+            "testElement",
+            null,
+            null,
+            tenantId,
+            physicalTenantId,
+            new ElementTemplateDetails("Test", "1", "icon"),
+            Map.of()));
   }
 
   private static class NullSecretProvider implements SecretProvider {
