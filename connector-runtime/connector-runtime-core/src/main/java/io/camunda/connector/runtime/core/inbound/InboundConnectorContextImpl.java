@@ -348,7 +348,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
               new SecretContext(
                   connectorDetails.tenantId(),
                   connectorDetails.processDefinitionId(),
-                  getPhysicalTenantId()));
+                  physicalTenantId()));
       var propertiesJson = objectMapper.valueToTree(withSecrets);
       var result =
           FeelContextAwareObjectReader.of(objectMapper)
@@ -509,7 +509,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public Document create(DocumentCreationRequest request) {
-    return documentFactory.create(request);
+    return documentFactory.create(request.withPhysicalTenantIdIfAbsent(physicalTenantId()));
   }
 
   @Override

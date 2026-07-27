@@ -34,6 +34,60 @@ public record DocumentCreationRequest(
     Map<String, Object> customProperties,
     String physicalTenantId) {
 
+  /**
+   * Restores the pre-{@code physicalTenantId} 9-argument canonical constructor for binary
+   * compatibility: code compiled against the previous record shape (without {@code
+   * physicalTenantId}) would otherwise fail with {@code NoSuchMethodError} against this jar.
+   * Defaults the physical tenant to {@code null}, matching every deployment that predates
+   * multi-engine document routing.
+   */
+  public DocumentCreationRequest(
+      InputStream content,
+      String documentId,
+      String storeId,
+      String contentType,
+      String fileName,
+      Duration timeToLive,
+      String processDefinitionId,
+      Long processInstanceKey,
+      Map<String, Object> customProperties) {
+    this(
+        content,
+        documentId,
+        storeId,
+        contentType,
+        fileName,
+        timeToLive,
+        processDefinitionId,
+        processInstanceKey,
+        customProperties,
+        null);
+  }
+
+  /**
+   * Returns a copy of this request with {@code physicalTenantId} set to the given value, unless
+   * this request already has one — an explicit, connector-supplied value is never overridden. Used
+   * by the runtime (not connector code) to stamp the request with its own physical tenant before
+   * forwarding it to a {@link DocumentFactory}, so {@code CamundaDocumentStoreImpl} can validate it
+   * against the store's own physical tenant.
+   */
+  public DocumentCreationRequest withPhysicalTenantIdIfAbsent(String physicalTenantId) {
+    if (this.physicalTenantId != null) {
+      return this;
+    }
+    return new DocumentCreationRequest(
+        content,
+        documentId,
+        storeId,
+        contentType,
+        fileName,
+        timeToLive,
+        processDefinitionId,
+        processInstanceKey,
+        customProperties,
+        physicalTenantId);
+  }
+
   public static BuilderFinalStep from(InputStream content) {
     return new BuilderFinalStep(content);
   }

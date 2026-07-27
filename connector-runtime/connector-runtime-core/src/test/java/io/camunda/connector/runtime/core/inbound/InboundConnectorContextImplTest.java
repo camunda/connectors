@@ -27,6 +27,8 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.EvaluateExpressionCommandStep1.EvaluateExpressionCommandStep2;
 import io.camunda.client.api.response.EvaluateExpressionResponse;
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.inbound.ActivityLogTag;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult;
@@ -45,6 +47,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationH
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -195,6 +198,50 @@ class InboundConnectorContextImplTest {
     assertThat(result).isInstanceOf(CorrelationResult.Success.class);
     var bound = ((CorrelationResult.Success) result).bindProperties(TestPropertiesClass.class);
     assertThat(bound.getStringMap()).containsEntry("from", "activated-element");
+  }
+
+  @Test
+  void create_stampsTheElementsPhysicalTenantIdWhenRequestHasNone() {
+    var element =
+        new InboundConnectorElement(
+            Map.of("inbound.type", "io.camunda:connector:1"),
+            new StandaloneMessageCorrelationPoint("", "", null, null),
+            new ProcessElementWithRuntimeData(
+                "bool",
+                null,
+                null,
+                0,
+                0,
+                "id",
+                null,
+                null,
+                "<default>",
+                "tenant-a",
+                new ElementTemplateDetails("t", "1", "icon"),
+                Map.of()));
+    var definition =
+        (ValidInboundConnectorDetails)
+            InboundConnectorDetails.of(element.deduplicationId(List.of()), List.of(element));
+    var documentFactory = mock(DocumentFactory.class);
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            documentFactory,
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+    var request =
+        DocumentCreationRequest.from(new ByteArrayInputStream("hello".getBytes())).build();
+
+    context.create(request);
+
+    var captor = ArgumentCaptor.forClass(DocumentCreationRequest.class);
+    verify(documentFactory).create(captor.capture());
+    assertThat(captor.getValue().physicalTenantId()).isEqualTo("tenant-a");
   }
 
   @Test

@@ -24,8 +24,10 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -179,5 +181,27 @@ class PhysicalTenantIdResolutionTest {
 
     assertThat(result).containsOnlyKeys("tenant-a", "tenant-b");
     assertThat(result.get("tenant-a")).isNotSameAs(result.get("tenant-b"));
+  }
+
+  @Test
+  void buildDocumentFactoriesByPhysicalTenantId_wiresEachFactoryToItsOwnResolvedPhysicalTenantId() {
+    // each factory's underlying CamundaDocumentStoreImpl must know ITS OWN physical tenant ID
+    // (not just be backed by the right client), so it can reject a request explicitly addressed
+    // to a different physical tenant (see CamundaDocumentStoreImplTest)
+    var registry = mock(CamundaClientRegistry.class);
+    var clientA = clientWithPhysicalTenantId("tenant-a");
+    when(registry.clientNames()).thenReturn(Set.of("engine-a"));
+    when(registry.get("engine-a")).thenReturn(clientA);
+
+    var result = PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(registry, null, null);
+
+    var request =
+        DocumentCreationRequest.from(new ByteArrayInputStream("hello".getBytes()))
+            .physicalTenantId("tenant-b")
+            .build();
+    assertThatThrownBy(() -> result.get("tenant-a").create(request))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("tenant-a")
+        .hasMessageContaining("tenant-b");
   }
 }

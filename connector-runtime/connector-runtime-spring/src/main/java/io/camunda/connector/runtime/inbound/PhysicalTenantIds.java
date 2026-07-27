@@ -182,6 +182,7 @@ public final class PhysicalTenantIds {
                         ? legacyDocumentFactory
                         : new DocumentFactoryImpl(
                             new CamundaDocumentStoreImpl(
-                                resolveClient(registry, name, legacyCamundaClient)))));
+                                resolveClient(registry, name, legacyCamundaClient),
+                                resolvePhysicalTenantId(registry, name, legacyCamundaClient)))));
   }
 }

@@ -24,6 +24,8 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.api.document.DocumentReturnFormat;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -33,6 +35,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClass;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClassString;
+import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +51,7 @@ class JobHandlerContextTest {
   @Mock private ActivatedJob activatedJob;
   @Mock private SecretProvider secretProvider;
   @Mock private ValidationProvider validationProvider;
+  @Mock private DocumentFactory documentFactory;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private JobHandlerContext jobHandlerContext;
@@ -158,6 +162,49 @@ class JobHandlerContextTest {
     var secretContext = ArgumentCaptor.forClass(SecretContext.class);
     verify(secretProvider).getSecret(eq("FOO"), secretContext.capture());
     assertThat(secretContext.getValue().physicalTenantId()).isNull();
+  }
+
+  @Test
+  void create_stampsTheJobsPhysicalTenantIdWhenRequestHasNone() {
+    when(activatedJob.getPhysicalTenantId()).thenReturn("tenant-a");
+    var contextWithDocumentFactory =
+        new JobHandlerContext(
+            activatedJob,
+            secretProvider,
+            validationProvider,
+            documentFactory,
+            objectMapper,
+            SecretFilter.allowAll());
+    var request =
+        DocumentCreationRequest.from(new ByteArrayInputStream("hello".getBytes())).build();
+
+    contextWithDocumentFactory.create(request);
+
+    var captor = ArgumentCaptor.forClass(DocumentCreationRequest.class);
+    verify(documentFactory).create(captor.capture());
+    assertThat(captor.getValue().physicalTenantId()).isEqualTo("tenant-a");
+  }
+
+  @Test
+  void create_neverOverridesAnExplicitlySetPhysicalTenantId() {
+    var contextWithDocumentFactory =
+        new JobHandlerContext(
+            activatedJob,
+            secretProvider,
+            validationProvider,
+            documentFactory,
+            objectMapper,
+            SecretFilter.allowAll());
+    var request =
+        DocumentCreationRequest.from(new ByteArrayInputStream("hello".getBytes()))
+            .physicalTenantId("explicit-tenant")
+            .build();
+
+    contextWithDocumentFactory.create(request);
+
+    var captor = ArgumentCaptor.forClass(DocumentCreationRequest.class);
+    verify(documentFactory).create(captor.capture());
+    assertThat(captor.getValue().physicalTenantId()).isEqualTo("explicit-tenant");
   }
 
   @Test
