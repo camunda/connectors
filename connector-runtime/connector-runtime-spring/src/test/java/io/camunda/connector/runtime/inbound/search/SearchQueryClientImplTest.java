@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.CamundaFuture;
+import io.camunda.client.api.search.enums.ProcessDefinitionState;
 import io.camunda.client.api.search.filter.ProcessDefinitionFilter;
 import io.camunda.client.api.search.request.ProcessDefinitionSearchRequest;
 import io.camunda.client.api.search.response.ProcessDefinition;
@@ -61,9 +62,9 @@ class SearchQueryClientImplTest {
     // when
     new SearchQueryClientImpl(camundaClient, 200).queryProcessDefinitions(null);
 
-    // then only the latest, non-deleted process definitions are discovered so that inbound
+    // then only the latest, active process definitions are discovered so that inbound
     // subscriptions are not kept alive for deleted-but-retained definitions (see #7717)
     verify(filter).isLatestVersion(true);
-    verify(filter).isDeleted(false);
+    verify(filter).state(ProcessDefinitionState.ACTIVE);
   }
 }

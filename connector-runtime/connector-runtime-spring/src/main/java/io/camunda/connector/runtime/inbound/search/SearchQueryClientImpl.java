@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.inbound.search;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.enums.ElementInstanceState;
 import io.camunda.client.api.search.enums.MessageSubscriptionState;
+import io.camunda.client.api.search.enums.ProcessDefinitionState;
 import io.camunda.client.api.search.response.*;
 import io.camunda.client.api.statistics.response.ProcessDefinitionMessageSubscriptionStatistics;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -44,7 +45,7 @@ public class SearchQueryClientImpl implements SearchQueryClient {
     final var query =
         camundaClient
             .newProcessDefinitionSearchRequest()
-            .filter(f -> f.isLatestVersion(true).isDeleted(false));
+            .filter(f -> f.isLatestVersion(true).state(ProcessDefinitionState.ACTIVE));
     if (paginationIndex != null) {
       query.page(p -> p.limit(limit).after(paginationIndex));
     } else {
