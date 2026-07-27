@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Re
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
@@ -29,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -161,51 +163,12 @@ public abstract class BaseAgentRequestHandler<
         conversation.lastTurn(),
         OffsetDateTime.now());
 
-    var workingConversation = conversation;
+    final AgentConversation updatedConversation;
     try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
-      // loop until the model returns a Completed result; each Continuation is its own turn
-      boolean continued;
-      do {
-        LOGGER.debug(
-            "Sending turn (iterationKey={}) to the model",
-            workingConversation.currentTurn().iterationKey());
-
-        final var windowedSnapshot =
-            workingConversation.window(agentConfiguration.contextWindowSize());
-        final var chatResult =
-            chatModel.execute(new ChatRequest(executionContext, windowedSnapshot));
-
-        // Content-filter guard — provider-agnostic, before ingest, so a filtered response fails
-        // the job.
-        if (chatResult.assistantMessage().stopReason() == StopReason.CONTENT_FILTERED) {
-          throw new ConnectorException(
-              AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
-              "Model response was blocked by provider content filtering.");
-        }
-
-        workingConversation =
-            workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
-
-        agentInstanceClient.createHistoryForAssistantMessage(
-            executionContext,
-            agentInstanceKey,
-            workingConversation.currentTurn(),
-            OffsetDateTime.now());
-
-        // A Continuation means we re-call the model with the same conversation and no new input
-        // messages — the model resumes the turn on the existing state.
-        continued = chatResult instanceof ChatResult.Continuation;
-        if (continued) {
-          LOGGER.debug(
-              "Provider requested continuation (iterationKey={}); resuming with another round",
-              workingConversation.currentTurn().iterationKey());
-
-          throwIfLimitsReached(workingConversation, agentConfiguration);
-          workingConversation = workingConversation.nextContinuationRound();
-        }
-      } while (continued);
+      updatedConversation =
+          driveContinuationLoop(
+              executionContext, agentConfiguration, conversation, chatModel, agentInstanceKey);
     }
-    final var updatedConversation = workingConversation;
 
     LOGGER.debug("Storing conversation messages to session");
     final var storedRef =
@@ -233,6 +196,59 @@ public abstract class BaseAgentRequestHandler<
         AgentJobCompletionListener.compose(
             messageStorageCompletionListener,
             createMetricsCompletionListener(executionContext, storedConversation, agentResponse)));
+  }
+
+  /**
+   * Drives the given chat model until it returns a {@code Completed} result, ingesting each round
+   * (including intermediate {@code Continuation} rounds) as its own turn.
+   */
+  private AgentConversation driveContinuationLoop(
+      C executionContext,
+      AgentConfiguration agentConfiguration,
+      AgentConversation conversation,
+      ChatModel chatModel,
+      @Nullable AgentInstanceKey agentInstanceKey) {
+    var workingConversation = conversation;
+    boolean continued;
+    do {
+      LOGGER.debug(
+          "Sending turn (iterationKey={}) to the model",
+          workingConversation.currentTurn().iterationKey());
+
+      final var windowedSnapshot =
+          workingConversation.window(agentConfiguration.contextWindowSize());
+      final var chatResult = chatModel.execute(new ChatRequest(executionContext, windowedSnapshot));
+
+      throwIfContentFiltered(chatResult.assistantMessage());
+
+      workingConversation =
+          workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
+
+      agentInstanceClient.createHistoryForAssistantMessage(
+          executionContext,
+          agentInstanceKey,
+          workingConversation.currentTurn(),
+          OffsetDateTime.now());
+
+      continued = chatResult instanceof ChatResult.Continuation;
+      if (continued) {
+        LOGGER.debug(
+            "Provider requested continuation (iterationKey={}); resuming with another round",
+            workingConversation.currentTurn().iterationKey());
+
+        throwIfLimitsReached(workingConversation, agentConfiguration);
+        workingConversation = workingConversation.nextContinuationRound();
+      }
+    } while (continued);
+    return workingConversation;
+  }
+
+  private void throwIfContentFiltered(AssistantMessage assistantMessage) {
+    if (assistantMessage.stopReason() == StopReason.CONTENT_FILTERED) {
+      throw new ConnectorException(
+          AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
+          "Model response was blocked by provider content filtering.");
+    }
   }
 
   private void throwIfLimitsReached(
