@@ -9,6 +9,6 @@
     "test": "node --test index.test.mjs"
   },
   "dependencies": {
-    "minimatch": "10.2.5"
+    "minimatch": "10.2.6"
   }
 }
