@@ -15,11 +15,11 @@ import io.camunda.connector.runtime.test.outbound.TestValidationProvider;
 import org.junit.jupiter.api.Test;
 
 /**
- * Guards the {@code @Valid} cascade on the bound credential: validation must descend through
- * {@code authenticationConfiguration -> RestAuthenticationConfiguration.authentication ->
- * BearerAuthentication} so a credential carrying a blank token (which {@code @NotEmpty} forbids)
- * is rejected the same way inline authentication would be. Runs through the real runtime
- * validation path ({@code bindProperties}).
+ * Guards the {@code @Valid} cascade on the bound credential: validation must descend through {@code
+ * authenticationConfiguration -> RestAuthenticationConfiguration.authentication ->
+ * BearerAuthentication} so a credential carrying a blank token (which {@code @NotEmpty} forbids) is
+ * rejected the same way inline authentication would be. Runs through the real runtime validation
+ * path ({@code bindProperties}).
  */
 class PollingRuntimePropertiesCredentialValidationTest {
 
@@ -35,7 +35,8 @@ class PollingRuntimePropertiesCredentialValidationTest {
           }
         }
         """;
-    var context = InboundConnectorContextBuilder.create()
+    var context =
+        InboundConnectorContextBuilder.create()
             .properties(properties)
             .validation(new TestValidationProvider())
             .build();
@@ -56,7 +57,8 @@ class PollingRuntimePropertiesCredentialValidationTest {
           }
         }
         """;
-    var context = InboundConnectorContextBuilder.create()
+    var context =
+        InboundConnectorContextBuilder.create()
             .properties(properties)
             .validation(new TestValidationProvider())
             .build();
