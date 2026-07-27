@@ -480,7 +480,7 @@
   }, {
     "id" : "provider.anthropic.model.parameters.thinking.budgetTokens",
     "label" : "Thinking budget tokens",
-    "optional" : true,
+    "optional" : false,
     "feel" : "required",
     "group" : "model",
     "binding" : {

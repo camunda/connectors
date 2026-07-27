@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -22,6 +23,9 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -216,7 +220,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
             @Nullable AnthropicEffort effort,
         @Valid @Nullable AnthropicThinking thinking,
         @Valid @Nullable AnthropicPromptCaching promptCaching,
-        @Min(0)
+        @Min(1)
             @TemplateProperty(
                 group = "model-options",
                 label = "Maximum tokens",
@@ -226,7 +230,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 feel = FeelMode.required,
                 optional = true)
             @Nullable Integer maxTokens,
-        @Min(0)
+        @DecimalMin("0.0")
+            @DecimalMax("1.0")
             @TemplateProperty(
                 group = "model-options",
                 label = "Temperature",
@@ -236,7 +241,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 feel = FeelMode.required,
                 optional = true)
             @Nullable Double temperature,
-        @Min(0)
+        @DecimalMin("0.0")
+            @DecimalMax("1.0")
             @TemplateProperty(
                 group = "model-options",
                 label = "top P",
@@ -246,7 +252,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 feel = FeelMode.required,
                 optional = true)
             @Nullable Double topP,
-        @Min(0)
+        @Min(1)
             @TemplateProperty(
                 group = "model-options",
                 label = "top K",
@@ -255,7 +261,21 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            @Nullable Integer topK) {}
+            @Nullable Integer topK) {
+
+      @JsonIgnore
+      @AssertTrue(
+          message = "thinking.budgetTokens must be less than maxTokens when thinking is enabled")
+      public boolean isThinkingBudgetWithinMaxTokens() {
+        if (thinking == null
+            || thinking.mode() != ThinkingMode.ENABLED
+            || thinking.budgetTokens() == null
+            || maxTokens == null) {
+          return true;
+        }
+        return thinking.budgetTokens() < maxTokens;
+      }
+    }
 
     /**
      * Anthropic automatic prompt caching. A record rather than a bare boolean so it stays
@@ -301,7 +321,6 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                     "Maximum number of tokens the model may spend on extended thinking (minimum 1024).",
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
-                optional = true,
                 condition =
                     @TemplateProperty.PropertyCondition(
                         property = "provider.anthropic.model.parameters.thinking.mode",
