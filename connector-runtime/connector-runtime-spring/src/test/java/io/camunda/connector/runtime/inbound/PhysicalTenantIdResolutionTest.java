@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import java.util.Map;
 import java.util.Set;
@@ -147,5 +148,36 @@ class PhysicalTenantIdResolutionTest {
             () -> configuration.searchQueryClientsByPhysicalTenantId(registry, null, null, 200))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("same physical tenant ID");
+  }
+
+  @Test
+  void buildDocumentFactoriesByPhysicalTenantId_usesManuallySuppliedOverrideForASingleClient() {
+    // simulates the @Primary DocumentFactory test-spy pattern used by WebhookActivatedDocumentTests
+    var registry = mock(CamundaClientRegistry.class);
+    var client = clientWithPhysicalTenantId("tenant");
+    when(registry.clientNames()).thenReturn(Set.of("default"));
+    when(registry.get("default")).thenReturn(client);
+    var overrideDocumentFactory = mock(DocumentFactory.class);
+
+    var result =
+        PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
+            registry, null, overrideDocumentFactory);
+
+    assertThat(result).containsOnly(Map.entry("tenant", overrideDocumentFactory));
+  }
+
+  @Test
+  void buildDocumentFactoriesByPhysicalTenantId_buildsOneRealFactoryPerPhysicalTenant() {
+    var registry = mock(CamundaClientRegistry.class);
+    var clientA = clientWithPhysicalTenantId("tenant-a");
+    var clientB = clientWithPhysicalTenantId("tenant-b");
+    when(registry.clientNames()).thenReturn(Set.of("engine-a", "engine-b"));
+    when(registry.get("engine-a")).thenReturn(clientA);
+    when(registry.get("engine-b")).thenReturn(clientB);
+
+    var result = PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(registry, null, null);
+
+    assertThat(result).containsOnlyKeys("tenant-a", "tenant-b");
+    assertThat(result.get("tenant-a")).isNotSameAs(result.get("tenant-b"));
   }
 }
