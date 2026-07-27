@@ -32,7 +32,8 @@ public final class GraphApiMapper {
         .toList();
   }
 
-  public static EmailMessage toEmailMessage(Message message, List<Document> documents) {
+  public static EmailMessage toEmailMessage(
+      Message message, List<Document> documents, List<EmailAttachmentMetadata> attachmentMetadata) {
     var sender = toEmailAddress(message.getSender());
     var recipients = toEmailAddressList(message.getToRecipients());
     var cc = toEmailAddressList(message.getCcRecipients());
@@ -58,6 +59,7 @@ public final class GraphApiMapper {
         body,
         bodyContentType,
         receivedTime,
-        documents);
+        documents,
+        attachmentMetadata);
   }
 }
