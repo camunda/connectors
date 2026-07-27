@@ -67,8 +67,16 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
       }
     }
 
-    // Now, handle processDefinitionIds present in state but missing from import
-    Set<ProcessDefinitionRef> missingInImport = new HashSet<>(processStates.keySet());
+    // Now, handle processDefinitionIds present in state but missing from import. An import batch
+    // only ever reports processes for a single physical tenant, so this must only consider that
+    // same physical tenant's tracked processes — otherwise every physical tenant's independent
+    // poll would misread every OTHER physical tenant's processes as "missing" and spuriously
+    // deactivate them.
+    String physicalTenantId = importResult.physicalTenantId();
+    Set<ProcessDefinitionRef> missingInImport =
+        processStates.keySet().stream()
+            .filter(ref -> ref.physicalTenantId().equals(physicalTenantId))
+            .collect(Collectors.toCollection(HashSet::new));
     missingInImport.removeAll(importedProcessIds);
 
     for (var processDefinitionId : missingInImport) {

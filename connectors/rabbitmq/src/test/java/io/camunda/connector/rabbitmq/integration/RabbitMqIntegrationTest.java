@@ -123,7 +123,7 @@ public class RabbitMqIntegrationTest extends BaseTest {
 
     TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
-            .definition(new InboundConnectorDefinition(null, null, null, List.of()))
+            .definition(new InboundConnectorDefinition(null, null, null, List.of(), null))
             .properties(properties)
             .build();
 
@@ -191,7 +191,7 @@ public class RabbitMqIntegrationTest extends BaseTest {
 
     TestInboundConnectorContext contextInbound =
         InboundConnectorContextBuilder.create()
-            .definition(new InboundConnectorDefinition(null, null, null, List.of()))
+            .definition(new InboundConnectorDefinition(null, null, null, List.of(), null))
             .properties(properties)
             .build();
 

@@ -23,6 +23,7 @@ import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.ConnectorDataMapper;
 import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
+import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -32,10 +33,20 @@ import java.util.stream.Collectors;
 public class InboundInstancesService {
   private final InboundExecutableRegistry executableRegistry;
 
-  private final ConnectorDataMapper connectorDataMapper = new ConnectorDataMapper();
+  private final ConnectorDataMapper connectorDataMapper;
 
   public InboundInstancesService(InboundExecutableRegistry executableRegistry) {
+    this(executableRegistry, null);
+  }
+
+  public InboundInstancesService(
+      InboundExecutableRegistry executableRegistry,
+      WebhookConnectorRegistry webhookConnectorRegistry) {
     this.executableRegistry = executableRegistry;
+    this.connectorDataMapper =
+        new ConnectorDataMapper(
+            webhookConnectorRegistry != null
+                && webhookConnectorRegistry.appendsPhysicalTenantAndTenantToPath());
   }
 
   public List<InstanceAwareModel.InstanceAwareHealth> findInstanceAwareHealth(
@@ -67,7 +78,21 @@ public class InboundInstancesService {
   }
 
   public ActiveInboundConnectorResponse findExecutable(String executableId) {
-    var executables = getActiveInboundConnectors(f -> f.executableId(executableId));
+    return findExecutable(executableId, false);
+  }
+
+  /**
+   * @param appendPhysicalTenantAndTenantToPath whether the caller wants {@code inbound.context}
+   *     rewritten to the physical-tenant/tenant-scoped path (still gated by whether path scoping is
+   *     enabled server-side, see {@link ConnectorDataMapper}) — exposed so {@code
+   *     InboundInstancesRestController}'s single-executable endpoint can opt in via a request query
+   *     parameter, since not every consumer of that endpoint has adapted to the scoped path yet.
+   */
+  public ActiveInboundConnectorResponse findExecutable(
+      String executableId, boolean appendPhysicalTenantAndTenantToPath) {
+    var executables =
+        getActiveInboundConnectors(
+            f -> f.executableId(executableId), appendPhysicalTenantAndTenantToPath);
     if (executables.isEmpty()) {
       throw new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId);
     }
@@ -111,7 +136,7 @@ public class InboundInstancesService {
    * @return a list of {@link ConnectorInstances} grouped by connector type
    */
   private List<ConnectorInstances> getConnectorsInstances(Consumer<ActiveExecutableQuery> filter) {
-    var activeInboundConnectors = getActiveInboundConnectors(filter);
+    var activeInboundConnectors = getActiveInboundConnectors(filter, false);
     return activeInboundConnectors.stream()
         .collect(Collectors.groupingBy(ActiveInboundConnectorResponse::type, Collectors.toList()))
         .entrySet()
@@ -124,9 +149,12 @@ public class InboundInstancesService {
   }
 
   private List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
-      Consumer<ActiveExecutableQuery> filter) {
+      Consumer<ActiveExecutableQuery> filter, boolean appendPhysicalTenantAndTenantToPath) {
     return executableRegistry.query(filter).stream()
-        .map(connectorDataMapper::createActiveInboundConnectorResponse)
+        .map(
+            r ->
+                connectorDataMapper.createActiveInboundConnectorResponse(
+                    r, appendPhysicalTenantAndTenantToPath))
         .collect(Collectors.toList());
   }
 }

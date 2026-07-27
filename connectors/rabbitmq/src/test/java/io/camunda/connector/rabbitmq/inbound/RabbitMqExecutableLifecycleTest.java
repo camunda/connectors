@@ -78,7 +78,7 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
         getContextBuilderWithSecrets()
             .validation(new DefaultValidationProvider())
             .properties(properties)
-            .definition(new InboundConnectorDefinition(null, null, null, List.of()))
+            .definition(new InboundConnectorDefinition(null, null, null, List.of(), null))
             .build();
     RabbitMqExecutable executable = new RabbitMqExecutable(connectionFactorySupplier);
 
@@ -104,7 +104,7 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
         getContextBuilderWithSecrets()
             .validation(new DefaultValidationProvider())
             .properties(properties)
-            .definition(new InboundConnectorDefinition(null, null, null, List.of()))
+            .definition(new InboundConnectorDefinition(null, null, null, List.of(), null))
             .build();
     RabbitMqExecutable executable = new RabbitMqExecutable(connectionFactorySupplier);
 
@@ -130,7 +130,7 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
         getContextBuilderWithSecrets()
             .validation(new DefaultValidationProvider())
             .properties(properties)
-            .definition(new InboundConnectorDefinition(null, null, null, List.of()))
+            .definition(new InboundConnectorDefinition(null, null, null, List.of(), null))
             .build();
     RabbitMqExecutable executable = new RabbitMqExecutable(connectionFactorySupplier);
 

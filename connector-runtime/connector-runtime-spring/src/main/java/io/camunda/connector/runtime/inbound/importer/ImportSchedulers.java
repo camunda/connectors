@@ -16,7 +16,17 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
+import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
+import jakarta.annotation.PreDestroy;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,31 +37,31 @@ public class ImportSchedulers {
   private static final Logger LOG = LoggerFactory.getLogger(ImportSchedulers.class);
 
   private final ProcessStateManager stateStore;
+  private final Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId;
   private final Importers importers;
+  private final ExecutorService executor;
 
-  private boolean ready = true;
+  private volatile boolean ready = true;
 
   private final boolean activeVersionsPollingEnabled;
 
   public ImportSchedulers(
-      ProcessStateManager stateStore, Importers importers, boolean activeVersionsPollingEnabled) {
+      ProcessStateManager stateStore,
+      Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId,
+      Importers importers,
+      boolean activeVersionsPollingEnabled) {
     this.activeVersionsPollingEnabled = activeVersionsPollingEnabled;
     this.stateStore = stateStore;
+    this.searchQueryClientsByPhysicalTenantId = searchQueryClientsByPhysicalTenantId;
     this.importers = importers;
+    this.executor = Executors.newVirtualThreadPerTaskExecutor();
   }
 
   @Scheduled(
       fixedDelayString = "${camunda.connector.polling.interval:5000}",
       initialDelayString = "${camunda.connector.polling.initial-delay:0}")
   public void scheduleLatestVersionImport() {
-    try {
-      var result = importers.importLatestVersions();
-      stateStore.update(result);
-      ready = true;
-    } catch (Exception e) {
-      LOG.error("Failed to import LATEST process versions", e);
-      ready = false;
-    }
+    ready = pollAllPhysicalTenants(ImportType.LATEST_VERSIONS, importers::importLatestVersions);
   }
 
   @Scheduled(
@@ -62,17 +72,52 @@ public class ImportSchedulers {
       LOG.debug("Skipping active versions polling.");
       return;
     }
+    ready =
+        pollAllPhysicalTenants(
+            ImportType.HAVE_ACTIVE_SUBSCRIPTIONS, importers::importActiveVersions);
+  }
+
+  /**
+   * Polls every configured physical tenant concurrently, so that one tenant stalling (e.g. a
+   * connection attempt that hangs until timeout) does not delay the others from starting and
+   * completing within the same scheduled tick.
+   */
+  private boolean pollAllPhysicalTenants(
+      ImportType importType, BiFunction<String, SearchQueryClient, ImportResult> importFn) {
+    List<CompletableFuture<Boolean>> futures =
+        searchQueryClientsByPhysicalTenantId.entrySet().stream()
+            .map(
+                entry ->
+                    CompletableFuture.supplyAsync(
+                        () -> pollOnePhysicalTenant(importType, importFn, entry), executor))
+            .toList();
+    return futures.stream().map(CompletableFuture::join).reduce(true, Boolean::logicalAnd);
+  }
+
+  private boolean pollOnePhysicalTenant(
+      ImportType importType,
+      BiFunction<String, SearchQueryClient, ImportResult> importFn,
+      Map.Entry<String, SearchQueryClient> entry) {
     try {
-      var result = importers.importActiveVersions();
+      var result = importFn.apply(entry.getKey(), entry.getValue());
       stateStore.update(result);
-      ready = true;
+      return true;
     } catch (Exception e) {
-      LOG.error("Failed to import ACTIVE process versions", e);
-      ready = false;
+      LOG.error(
+          "Failed to import {} process versions for physical tenant '{}'",
+          importType,
+          entry.getKey(),
+          e);
+      return false;
     }
   }
 
   public boolean isReady() {
     return ready;
+  }
+
+  @PreDestroy
+  public void shutdown() {
+    executor.shutdown();
   }
 }
