@@ -8,12 +8,12 @@ package io.camunda.connector.comprehend.supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.amazonaws.services.comprehend.AmazonComprehendAsyncClient;
-import com.amazonaws.services.comprehend.AmazonComprehendClient;
 import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.comprehend.model.ComprehendRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.comprehend.ComprehendAsyncClient;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
 
 class ComprehendClientSupplierTest {
 
@@ -31,17 +31,17 @@ class ComprehendClientSupplierTest {
 
   @Test
   void getSyncClient() {
-    var amazonComprehendClient = clientSupplier.getSyncClient(request);
+    var comprehendClient = clientSupplier.getSyncClient(request);
 
-    assertThat(amazonComprehendClient).isNotNull();
-    assertThat(amazonComprehendClient).isInstanceOf(AmazonComprehendClient.class);
+    assertThat(comprehendClient).isNotNull();
+    assertThat(comprehendClient).isInstanceOf(ComprehendClient.class);
   }
 
   @Test
   void getAsyncClient() {
-    var amazonComprehendAsyncClient = clientSupplier.getAsyncClient(request);
+    var comprehendAsyncClient = clientSupplier.getAsyncClient(request);
 
-    assertThat(amazonComprehendAsyncClient).isNotNull();
-    assertThat(amazonComprehendAsyncClient).isInstanceOf(AmazonComprehendAsyncClient.class);
+    assertThat(comprehendAsyncClient).isNotNull();
+    assertThat(comprehendAsyncClient).isInstanceOf(ComprehendAsyncClient.class);
   }
 }
