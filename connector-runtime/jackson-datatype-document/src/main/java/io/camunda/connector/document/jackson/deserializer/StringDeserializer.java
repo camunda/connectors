@@ -25,6 +25,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import java.io.IOException;
+import java.util.Map;
 
 public class StringDeserializer extends AbstractDeserializer<String> {
 
@@ -41,6 +42,19 @@ public class StringDeserializer extends AbstractDeserializer<String> {
     super(settings);
     this.documentDeserializer =
         new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor, settings);
+    this.intrinsicFunctionDeserializer =
+        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor, settings);
+  }
+
+  /** Physical-tenant-aware variant — see {@link DocumentDeserializer}'s equivalent constructor. */
+  public StringDeserializer(
+      Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId,
+      IntrinsicFunctionExecutor intrinsicFunctionExecutor,
+      DocumentModuleSettings settings) {
+    super(settings);
+    this.documentDeserializer =
+        new DocumentDeserializer(
+            documentFactoriesByPhysicalTenantId, intrinsicFunctionExecutor, settings);
     this.intrinsicFunctionDeserializer =
         new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor, settings);
   }

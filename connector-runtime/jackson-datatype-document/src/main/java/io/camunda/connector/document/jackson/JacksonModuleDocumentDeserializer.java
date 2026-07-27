@@ -26,10 +26,12 @@ import io.camunda.connector.document.jackson.deserializer.InputStreamDeserialize
 import io.camunda.connector.document.jackson.deserializer.ObjectDeserializer;
 import io.camunda.connector.document.jackson.deserializer.StringDeserializer;
 import java.io.InputStream;
+import java.util.Map;
 
 public class JacksonModuleDocumentDeserializer extends SimpleModule {
 
   private final DocumentFactory documentFactory;
+  private final Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId;
   private final IntrinsicFunctionExecutor intrinsicFunctionExecutor;
   private final DocumentModuleSettings settings;
 
@@ -38,6 +40,7 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
       IntrinsicFunctionExecutor intrinsicFunctionExecutor,
       DocumentModuleSettings settings) {
     this.documentFactory = documentFactory;
+    this.documentFactoriesByPhysicalTenantId = null;
     this.intrinsicFunctionExecutor = intrinsicFunctionExecutor;
     this.settings = settings;
   }
@@ -45,6 +48,17 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
   public JacksonModuleDocumentDeserializer(
       DocumentFactory documentFactory, IntrinsicFunctionExecutor intrinsicFunctionExecutor) {
     this(documentFactory, intrinsicFunctionExecutor, DocumentModuleSettings.create());
+  }
+
+  /** Physical-tenant-aware variant — see {@link DocumentDeserializer}'s equivalent constructor. */
+  public JacksonModuleDocumentDeserializer(
+      Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId,
+      IntrinsicFunctionExecutor intrinsicFunctionExecutor,
+      DocumentModuleSettings settings) {
+    this.documentFactory = null;
+    this.documentFactoriesByPhysicalTenantId = documentFactoriesByPhysicalTenantId;
+    this.intrinsicFunctionExecutor = intrinsicFunctionExecutor;
+    this.settings = settings;
   }
 
   @Override
@@ -60,24 +74,51 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
 
   @Override
   public void setupModule(SetupContext context) {
-    addDeserializer(
-        Document.class,
-        new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
-    addDeserializer(
-        byte[].class,
-        new ByteArrayDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
-    addDeserializer(
-        InputStream.class,
-        new InputStreamDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
-    if (settings.isObjectEnabled()) {
+    if (documentFactory != null) {
       addDeserializer(
-          Object.class,
-          new ObjectDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
-    }
-    if (settings.isStringEnabled()) {
+          Document.class,
+          new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
       addDeserializer(
-          String.class,
-          new StringDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
+          byte[].class,
+          new ByteArrayDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
+      addDeserializer(
+          InputStream.class,
+          new InputStreamDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
+      if (settings.isObjectEnabled()) {
+        addDeserializer(
+            Object.class,
+            new ObjectDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
+      }
+      if (settings.isStringEnabled()) {
+        addDeserializer(
+            String.class,
+            new StringDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
+      }
+    } else {
+      addDeserializer(
+          Document.class,
+          new DocumentDeserializer(
+              documentFactoriesByPhysicalTenantId, intrinsicFunctionExecutor, settings));
+      addDeserializer(
+          byte[].class,
+          new ByteArrayDeserializer(
+              documentFactoriesByPhysicalTenantId, intrinsicFunctionExecutor, settings));
+      addDeserializer(
+          InputStream.class,
+          new InputStreamDeserializer(
+              documentFactoriesByPhysicalTenantId, intrinsicFunctionExecutor, settings));
+      if (settings.isObjectEnabled()) {
+        addDeserializer(
+            Object.class,
+            new ObjectDeserializer(
+                documentFactoriesByPhysicalTenantId, intrinsicFunctionExecutor, settings));
+      }
+      if (settings.isStringEnabled()) {
+        addDeserializer(
+            String.class,
+            new StringDeserializer(
+                documentFactoriesByPhysicalTenantId, intrinsicFunctionExecutor, settings));
+      }
     }
     super.setupModule(context);
   }
