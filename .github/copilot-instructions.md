@@ -563,6 +563,12 @@ Key workflow files in `.github/workflows/`:
 - **Docker images**: Use `DockerImages.get()` utility for Testcontainers, add images to `docker-images.properties`
 - **Integration tests**: Mark with `@SlowTest` to exclude from regular unit test runs
 - **FEEL expressions**: Use `@FEEL` annotation for properties that need runtime evaluation
+- **Investigating `camunda-client-java` / `camunda-spring-boot-starter` behavior**: don't decompile
+  the jars (`javap`, unzip + bytecode reading, etc.). If the `camunda/camunda` monorepo is checked
+  out locally (often as a sibling of this repo, e.g. `../camunda`), read the actual source instead
+  — e.g. `clients/java/src/main/java/io/camunda/client/...` or
+  `clients/camunda-spring-boot-starter/src/main/java/io/camunda/client/spring/...`. Only fall back
+  to decompiling if that checkout isn't available.
 
 ## Reference Implementations
 
