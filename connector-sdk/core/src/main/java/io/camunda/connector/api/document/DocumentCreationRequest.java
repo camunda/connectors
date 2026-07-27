@@ -31,7 +31,8 @@ public record DocumentCreationRequest(
     Duration timeToLive,
     String processDefinitionId,
     Long processInstanceKey,
-    Map<String, Object> customProperties) {
+    Map<String, Object> customProperties,
+    String physicalTenantId) {
 
   public static BuilderFinalStep from(InputStream content) {
     return new BuilderFinalStep(content);
@@ -52,6 +53,7 @@ public record DocumentCreationRequest(
     private String processDefinitionId;
     private Long processInstanceKey;
     private Map<String, Object> customProperties;
+    private String physicalTenantId;
 
     public BuilderFinalStep(InputStream content) {
       this.content = content;
@@ -97,6 +99,18 @@ public record DocumentCreationRequest(
       return this;
     }
 
+    /**
+     * The physical tenant (Zeebe cluster/"engine") this document is being created for. Optional —
+     * when set, {@code CamundaDocumentStoreImpl} uses it as a sanity check against the store's own
+     * physical tenant, catching wiring bugs (e.g. a stale {@code DocumentFactory} reference reused
+     * across physical tenants) rather than silently creating the document against the wrong
+     * cluster.
+     */
+    public BuilderFinalStep physicalTenantId(String physicalTenantId) {
+      this.physicalTenantId = physicalTenantId;
+      return this;
+    }
+
     public DocumentCreationRequest build() {
       return new DocumentCreationRequest(
           content,
@@ -107,7 +121,8 @@ public record DocumentCreationRequest(
           timeToLive,
           processDefinitionId,
           processInstanceKey,
-          customProperties);
+          customProperties,
+          physicalTenantId);
     }
   }
 }

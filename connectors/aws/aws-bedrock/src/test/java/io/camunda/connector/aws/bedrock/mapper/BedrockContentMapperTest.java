@@ -101,6 +101,7 @@ class BedrockContentMapperTest {
                 Duration.ofHours(1),
                 null,
                 null,
+                null,
                 null));
 
     var docContent = new BedrockContent(document);
