@@ -16,6 +16,8 @@ import io.camunda.connector.textract.caller.PollingTextractCaller;
 import io.camunda.connector.textract.caller.SyncTextractCaller;
 import io.camunda.connector.textract.model.TextractRequest;
 import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
+import software.amazon.awssdk.services.textract.TextractAsyncClient;
+import software.amazon.awssdk.services.textract.TextractClient;
 
 @OutboundConnector(
     name = "AWS Textract",
@@ -91,15 +93,21 @@ public class TextractConnectorFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) throws Exception {
     TextractRequest request = context.bindVariables(TextractRequest.class);
     return switch (request.getInput().executionType()) {
-      case SYNC ->
-          syncTextractCaller.call(
-              request.getInput(), clientSupplier.getSyncTextractClient(request));
-      case POLLING ->
-          pollingTextractCaller.call(
-              request.getInput(), clientSupplier.getAsyncTextractClient(request));
-      case ASYNC ->
-          asyncTextractCaller.call(
-              request.getInput(), clientSupplier.getAsyncTextractClient(request));
+      case SYNC -> {
+        try (TextractClient client = clientSupplier.getSyncTextractClient(request)) {
+          yield syncTextractCaller.call(request.getInput(), client);
+        }
+      }
+      case POLLING -> {
+        try (TextractAsyncClient client = clientSupplier.getAsyncTextractClient(request)) {
+          yield pollingTextractCaller.call(request.getInput(), client);
+        }
+      }
+      case ASYNC -> {
+        try (TextractAsyncClient client = clientSupplier.getAsyncTextractClient(request)) {
+          yield asyncTextractCaller.call(request.getInput(), client);
+        }
+      }
     };
   }
 }
