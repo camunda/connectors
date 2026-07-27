@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.textract.caller;
 
-import com.amazonaws.services.textract.AmazonTextract;
-import com.amazonaws.services.textract.model.*;
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.textract.model.TextractRequestData;
+import io.camunda.connector.textract.model.result.GetDocumentAnalysisResult;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,62 +19,104 @@ import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.textract.TextractAsyncClient;
+import software.amazon.awssdk.services.textract.model.Block;
+import software.amazon.awssdk.services.textract.model.GetDocumentAnalysisRequest;
+import software.amazon.awssdk.services.textract.model.GetDocumentAnalysisResponse;
+import software.amazon.awssdk.services.textract.model.JobStatus;
+import software.amazon.awssdk.services.textract.model.StartDocumentAnalysisRequest;
+import software.amazon.awssdk.services.textract.model.StartDocumentAnalysisResponse;
 
-public class PollingTextractCaller implements TextractCaller<GetDocumentAnalysisResult> {
+public class PollingTextractCaller
+    implements TextractCaller<GetDocumentAnalysisResult, TextractAsyncClient> {
 
   public static final int MAX_RESULT = 1000;
 
+  private static final int DEFAULT_MAX_ATTEMPTS = 10;
+  private static final Duration DEFAULT_POLL_DELAY = Duration.ofMinutes(1);
+
   private static final Logger LOGGER = LoggerFactory.getLogger(PollingTextractCaller.class);
+
+  private final int maxAttempts;
+  private final Duration pollDelay;
+
+  public PollingTextractCaller() {
+    this(DEFAULT_MAX_ATTEMPTS, DEFAULT_POLL_DELAY);
+  }
+
+  /**
+   * Visible for tests: lets the "polling window exhausted while still IN_PROGRESS" path (see {@link
+   * #call}) be exercised without waiting out the real {@code maxAttempts * pollDelay} window (~9
+   * minutes with the production defaults).
+   */
+  PollingTextractCaller(int maxAttempts, Duration pollDelay) {
+    this.maxAttempts = maxAttempts;
+    this.pollDelay = pollDelay;
+  }
 
   @Override
   public GetDocumentAnalysisResult call(
-      TextractRequestData requestData, AmazonTextract textractClient) throws Exception {
+      TextractRequestData requestData, TextractAsyncClient textractClient) throws Exception {
 
     final StartDocumentAnalysisRequest startDocReq =
-        new StartDocumentAnalysisRequest()
-            .withFeatureTypes(this.prepareFeatureTypes(requestData))
-            .withQueriesConfig(prepareQueryConfig(requestData))
-            .withDocumentLocation(this.prepareDocumentLocation(requestData));
+        StartDocumentAnalysisRequest.builder()
+            .featureTypesWithStrings(this.prepareFeatureTypes(requestData))
+            .queriesConfig(prepareQueryConfig(requestData))
+            .documentLocation(this.prepareDocumentLocation(requestData))
+            .build();
 
-    final StartDocumentAnalysisResult result = textractClient.startDocumentAnalysis(startDocReq);
-    final String jobId = result.getJobId();
+    final StartDocumentAnalysisResponse result =
+        textractClient.startDocumentAnalysis(startDocReq).join();
+    final String jobId = result.jobId();
 
     LOGGER.debug("Started document analysis with jobId: {}", jobId);
 
-    GetDocumentAnalysisResult firstResult = pollUntilComplete(jobId, textractClient);
+    GetDocumentAnalysisResponse firstResult = pollUntilComplete(jobId, textractClient);
 
-    List<Block> allBlocks = new ArrayList<>(firstResult.getBlocks());
-    GetDocumentAnalysisResult lastResult = firstResult;
-    String nextToken = firstResult.getNextToken();
+    List<Block> allBlocks = new ArrayList<>(firstResult.blocks());
+    GetDocumentAnalysisResponse lastResult = firstResult;
+    String nextToken = firstResult.nextToken();
 
     while (StringUtils.isNotEmpty(nextToken)) {
       GetDocumentAnalysisRequest nextRequest =
-          new GetDocumentAnalysisRequest()
-              .withJobId(jobId)
-              .withMaxResults(MAX_RESULT)
-              .withNextToken(nextToken);
+          GetDocumentAnalysisRequest.builder()
+              .jobId(jobId)
+              .maxResults(MAX_RESULT)
+              .nextToken(nextToken)
+              .build();
 
-      GetDocumentAnalysisResult nextResult = textractClient.getDocumentAnalysis(nextRequest);
-      nextToken = nextResult.getNextToken();
-      allBlocks.addAll(nextResult.getBlocks());
+      GetDocumentAnalysisResponse nextResult =
+          textractClient.getDocumentAnalysis(nextRequest).join();
+      nextToken = nextResult.nextToken();
+      allBlocks.addAll(nextResult.blocks());
       lastResult = nextResult;
     }
 
-    lastResult.setBlocks(allBlocks);
-    return lastResult;
+    // v2 responses are immutable (no setters); rebuild the last-page response with the merged
+    // block list instead of v1's `lastResult.setBlocks(allBlocks)`. This intentionally preserves
+    // the pre-existing (and golden-test-pinned) quirk that the merged result's
+    // sdkResponseMetadata/sdkHttpMetadata/nextToken reflect only the LAST page polled, not the
+    // first.
+    GetDocumentAnalysisResponse mergedResult = lastResult.toBuilder().blocks(allBlocks).build();
+    return GetDocumentAnalysisResult.from(mergedResult);
   }
 
-  private GetDocumentAnalysisResult pollUntilComplete(String jobId, AmazonTextract textractClient)
-      throws InterruptedException {
+  private GetDocumentAnalysisResponse pollUntilComplete(
+      String jobId, TextractAsyncClient textractClient) {
 
-    final int MAX_RETRIES = 10;
-
-    RetryPolicy<GetDocumentAnalysisResult> retryPolicy =
-        RetryPolicy.<GetDocumentAnalysisResult>builder()
+    RetryPolicy<GetDocumentAnalysisResponse> retryPolicy =
+        RetryPolicy.<GetDocumentAnalysisResponse>builder()
             .handle(Exception.class)
+            // Defect fix: a FAILED job status is signalled below as a ConnectorInputException.
+            // Without excluding it here, `.handle(Exception.class)` would also catch and retry
+            // it up to maxAttempts times, wasting the full polling window (~9 minutes with the
+            // production defaults) retrying a job that will never succeed. Genuine
+            // transient/technical errors (e.g. wrapped in CompletionException by `.join()`) are
+            // still retried as before.
+            .abortOn(ConnectorInputException.class)
             .handleResultIf(Objects::isNull)
-            .withDelay(Duration.ofMinutes(1))
-            .withMaxAttempts(MAX_RETRIES)
+            .withDelay(pollDelay)
+            .withMaxAttempts(maxAttempts)
             .onRetry(
                 ev ->
                     LOGGER.debug(
@@ -87,22 +129,49 @@ public class PollingTextractCaller implements TextractCaller<GetDocumentAnalysis
                         ev.getAttemptCount()))
             .build();
 
-    return Failsafe.with(retryPolicy)
-        .get(
-            () -> {
-              LOGGER.debug("Textract polling job {} started", jobId);
-              GetDocumentAnalysisResult response =
-                  textractClient.getDocumentAnalysis(
-                      new GetDocumentAnalysisRequest().withJobId(jobId).withMaxResults(MAX_RESULT));
+    GetDocumentAnalysisResponse response =
+        Failsafe.with(retryPolicy)
+            .get(
+                () -> {
+                  LOGGER.debug("Textract polling job {} started", jobId);
+                  GetDocumentAnalysisResponse polled =
+                      textractClient
+                          .getDocumentAnalysis(
+                              GetDocumentAnalysisRequest.builder()
+                                  .jobId(jobId)
+                                  .maxResults(MAX_RESULT)
+                                  .build())
+                          .join();
 
-              String status = response.getJobStatus();
+                  JobStatus status = polled.jobStatus();
 
-              if (JobStatus.SUCCEEDED.toString().equals(status)) {
-                return response;
-              } else if (JobStatus.FAILED.toString().equals(status)) {
-                throw new ConnectorInputException("Textract polling job: " + response);
-              }
-              return null;
-            });
+                  if (status == JobStatus.SUCCEEDED || status == JobStatus.PARTIAL_SUCCESS) {
+                    // PARTIAL_SUCCESS is a terminal status too: the job finished but some pages
+                    // could not be analyzed. It still carries usable blocks (plus warnings), so it
+                    // must be treated as complete - otherwise the connector would poll a job that
+                    // will never reach SUCCEEDED until the polling window times out, discarding
+                    // the partial result.
+                    return polled;
+                  } else if (status == JobStatus.FAILED) {
+                    throw new ConnectorInputException("Textract polling job: " + polled);
+                  }
+                  return null;
+                });
+
+    // Defect fix: when every attempt is exhausted while the job is still IN_PROGRESS,
+    // `handleResultIf(Objects::isNull)` matched a RESULT (not an exception) on every attempt, so
+    // Failsafe.get() returns null instead of throwing. The caller then dereferenced that null
+    // (`firstResult.getBlocks()`), producing an NPE. Fail with a clear, typed exception instead.
+    if (response == null) {
+      throw new ConnectorException(
+          "Textract job "
+              + jobId
+              + " did not complete within the polling window ("
+              + maxAttempts
+              + " attempts, "
+              + pollDelay
+              + " delay each)");
+    }
+    return response;
   }
 }
