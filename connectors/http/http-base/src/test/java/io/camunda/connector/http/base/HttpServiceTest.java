@@ -382,6 +382,48 @@ public class HttpServiceTest {
   }
 
   @Test
+  public void shouldReturnHeaders_whenNoContentResponse(WireMockRuntimeInfo wmRuntimeInfo) {
+    WireMock.stubFor(
+        WireMock.post("/path")
+            .willReturn(WireMock.noContent().withHeader("X-Custom-Header", "custom-value")));
+
+    // given
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setMethod(HttpMethod.POST);
+    request.setBody(Map.of("name", "John"));
+    request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+
+    // when
+    HttpCommonResult result = httpService.executeConnectorRequest(request);
+
+    // then
+    Assertions.assertThat(result).isNotNull();
+    Assertions.assertThat(result.status()).isEqualTo(204);
+    Assertions.assertThat(result.headers()).containsEntry("X-Custom-Header", "custom-value");
+    Assertions.assertThat(result.body()).isNull();
+  }
+
+  @Test
+  public void shouldNotFail_whenNoContentResponseWithStoreResponseEnabled(
+      WireMockRuntimeInfo wmRuntimeInfo) {
+    WireMock.stubFor(WireMock.post("/path").willReturn(WireMock.noContent()));
+
+    // given
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setMethod(HttpMethod.POST);
+    request.setStoreResponse(true);
+    request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+
+    // when
+    HttpCommonResult result =
+        (HttpCommonResult) httpService.executeConnectorRequest(request, documentFactory);
+
+    // then
+    Assertions.assertThat(result).isNotNull();
+    Assertions.assertThat(result.status()).isEqualTo(204);
+  }
+
+  @Test
   public void shouldReturn200WithBody_whenPostRequestWithNullContentType(
       WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
 
