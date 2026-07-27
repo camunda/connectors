@@ -40,6 +40,13 @@ public class AnthropicContentConverter {
 
   private static final List<ContentType> PDF_CONTENT_TYPES = List.of(ContentType.APPLICATION_PDF);
 
+  private static final List<ContentType> IMAGE_CONTENT_TYPES =
+      List.of(
+          ContentType.IMAGE_JPEG,
+          ContentType.IMAGE_PNG,
+          ContentType.IMAGE_GIF,
+          ContentType.IMAGE_WEBP);
+
   private static final List<ContentType> ADDITIONAL_TEXT_FILE_CONTENT_TYPES =
       List.of(
           ContentType.APPLICATION_JSON,
@@ -179,13 +186,14 @@ public class AnthropicContentConverter {
       return DocumentBlockKind.UNSUPPORTED;
     }
 
-    final var mime = parsed.getMimeType();
-    if (mime.startsWith("image/")) {
+    if (isCompatibleWithAnyOf(parsed, IMAGE_CONTENT_TYPES)) {
       return DocumentBlockKind.IMAGE;
     }
     if (isCompatibleWithAnyOf(parsed, PDF_CONTENT_TYPES)) {
       return DocumentBlockKind.PDF;
     }
+
+    final var mime = parsed.getMimeType();
     if (mime.startsWith("text/")
         || isCompatibleWithAnyOf(parsed, ADDITIONAL_TEXT_FILE_CONTENT_TYPES)
         || mime.equals("application/x-yaml")
