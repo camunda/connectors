@@ -102,6 +102,9 @@ public final class ResponseMappers {
 
   private static JsonNode asJson(StreamingHttpResponse response, ObjectMapper objectMapper) {
     var stringBody = asString(response);
+    if (stringBody == null) {
+      return null;
+    }
     if (!JsonHelper.isJsonStringValid(stringBody)) {
       throw new ConnectorException(
           "Response body is not valid JSON: "
