@@ -38,16 +38,16 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Content mapping is on the response side: {@code text} blocks become {@link TextContent},
  * {@code tool_use} blocks become {@link ToolCall}s, and {@code thinking} / {@code
- * redacted_thinking} blocks become {@link ReasoningContent} whose {@code providerPayload} carries
- * the <strong>full raw block</strong> (a {@code Map<String, Object>} produced via the SDK's own
- * mapper — {@code type}/{@code thinking}/{@code signature} for a thinking block, {@code
- * type}/{@code data} for a redacted one), not just the bare signature/redacted string. This raw
- * payload IS re-emitted back to Anthropic on the request side (see {@link
- * AnthropicContentConverter}), so reasoning now round-trips losslessly. Every other block type
- * (server-tool and code-execution blocks such as {@code server_tool_use}, {@code
- * code_execution_tool_result}, {@code web_search_tool_result}, {@code container_upload}, etc.) is
- * captured losslessly as {@link ProviderContent}, kept inline in original order, and never added to
- * {@code toolCalls} since these are server-side blocks the caller is never expected to act on.
+ * redacted_thinking} blocks become {@link ReasoningContent} whose {@code payload} carries the
+ * <strong>full raw block</strong> (a {@code Map<String, Object>} produced via the SDK's own mapper
+ * — {@code type}/{@code thinking}/{@code signature} for a thinking block, {@code type}/{@code data}
+ * for a redacted one), not just the bare signature/redacted string. This raw payload IS re-emitted
+ * back to Anthropic on the request side (see {@link AnthropicContentConverter}), so reasoning now
+ * round-trips losslessly. Every other block type (server-tool and code-execution blocks such as
+ * {@code server_tool_use}, {@code code_execution_tool_result}, {@code web_search_tool_result},
+ * {@code container_upload}, etc.) is captured losslessly as {@link ProviderContent}, kept inline in
+ * original order, and never added to {@code toolCalls} since these are server-side blocks the
+ * caller is never expected to act on.
  *
  * <p>The {@code pause_turn} stop reason surfaces as a {@link ChatResult.Continuation} (Anthropic
  * paused a long-running turn and expects to be called again without new input); every other stop
@@ -93,18 +93,18 @@ public class AnthropicMessageResponseConverter {
         final var toolUse = block.toolUse().orElseThrow();
         toolCalls.add(new ToolCall(toolUse.id(), toolUse.name(), toolUseArguments(toolUse)));
       } else if (block.isThinking()) {
-        // The raw block (type/thinking/signature) is preserved verbatim as providerPayload so it
+        // The raw block (type/thinking/signature) is preserved verbatim as payload so it
         // can be replayed byte-identical on the request side (see AnthropicContentConverter);
         // uses the SDK's own mapper for the same reason as the ProviderContent branch below.
         final Map<String, Object> raw =
             ObjectMappers.jsonMapper()
                 .convertValue(block, new TypeReference<Map<String, Object>>() {});
-        content.add(new ReasoningContent(raw, null));
+        content.add(new ReasoningContent("anthropic", raw, null));
       } else if (block.isRedactedThinking()) {
         final Map<String, Object> raw =
             ObjectMappers.jsonMapper()
                 .convertValue(block, new TypeReference<Map<String, Object>>() {});
-        content.add(new ReasoningContent(raw, null));
+        content.add(new ReasoningContent("anthropic", raw, null));
       } else {
         // Server-tool / provider-specific blocks (server_tool_use, code_execution_tool_result,
         // web_search_tool_result, container_upload, etc.) have no provider-neutral
@@ -122,7 +122,7 @@ public class AnthropicMessageResponseConverter {
               raw.get("type"),
               raw);
         }
-        content.add(new ProviderContent("anthropic", String.valueOf(raw.get("type")), raw, null));
+        content.add(new ProviderContent("anthropic", raw, null));
       }
     }
 
