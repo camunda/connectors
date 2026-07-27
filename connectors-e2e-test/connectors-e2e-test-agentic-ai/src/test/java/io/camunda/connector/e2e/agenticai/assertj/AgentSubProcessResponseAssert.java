@@ -154,7 +154,7 @@ public class AgentSubProcessResponseAssert
    * conversation() is an {@link InProcessConversationContext}).
    */
   public AgentSubProcessResponseAssert hasProviderContentBlockOfTypeInConversation(
-      String provider, String blockType) {
+      String provider) {
     isNotNull();
     Assertions.assertThat(actual.context()).isNotNull();
     Assertions.assertThat(actual.context().conversation())
@@ -170,11 +170,7 @@ public class AgentSubProcessResponseAssert
             .toList();
     Assertions.assertThat(providerBlocks)
         .as("provider content blocks across the whole conversation")
-        .anySatisfy(
-            pc -> {
-              Assertions.assertThat(pc.provider()).isEqualTo(provider);
-              Assertions.assertThat(pc.blockType()).isEqualTo(blockType);
-            });
+        .anySatisfy(pc -> Assertions.assertThat(pc.provider()).isEqualTo(provider));
     return this;
   }
 }

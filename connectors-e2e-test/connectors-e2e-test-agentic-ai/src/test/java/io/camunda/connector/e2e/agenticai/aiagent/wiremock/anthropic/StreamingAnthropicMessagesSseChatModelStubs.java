@@ -118,10 +118,10 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
    * derives the stop reason from whether tool calls are present.
    *
    * <p>Exists so e2e coverage can prove the reasoning round-trip end to end through the REAL {@code
-   * MessageAccumulator}: the resulting {@code ReasoningContent}'s raw {@code providerPayload}
-   * (captured by {@code AnthropicMessageResponseConverter}) must be replayed byte-identical - same
-   * {@code thinking}/{@code signature} values, positioned before the tool-call block, exactly as
-   * the domain content ordering preserves it - on the follow-up model call once the tool result is
+   * MessageAccumulator}: the resulting {@code ReasoningContent}'s raw {@code payload} (captured by
+   * {@code AnthropicMessageResponseConverter}) must be replayed byte-identical - same {@code
+   * thinking}/{@code signature} values, positioned before the tool-call block, exactly as the
+   * domain content ordering preserves it - on the follow-up model call once the tool result is
    * available (see {@code AnthropicContentConverter}/{@code AnthropicMessageRequestConverter
    * #assistantParam}).
    */
@@ -205,11 +205,11 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
    * call), mirroring {@link ThinkingTurnStub}.
    *
    * <p>Exists so e2e coverage can prove the redacted-thinking round-trip end to end through the
-   * REAL {@code MessageAccumulator}: the resulting {@code ReasoningContent}'s raw {@code
-   * providerPayload} (captured by {@code AnthropicMessageResponseConverter}'s {@code
-   * block.isRedactedThinking()} branch) must be replayed byte-identical - same {@code data} value,
-   * positioned before the tool-call block - on the follow-up model call once the tool result is
-   * available (see {@code AnthropicContentConverter}).
+   * REAL {@code MessageAccumulator}: the resulting {@code ReasoningContent}'s raw {@code payload}
+   * (captured by {@code AnthropicMessageResponseConverter}'s {@code block.isRedactedThinking()}
+   * branch) must be replayed byte-identical - same {@code data} value, positioned before the
+   * tool-call block - on the follow-up model call once the tool result is available (see {@code
+   * AnthropicContentConverter}).
    */
   public record RedactedThinkingTurnStub(
       String data, List<ToolCallStub> toolCalls, int inputTokens, int outputTokens) {}

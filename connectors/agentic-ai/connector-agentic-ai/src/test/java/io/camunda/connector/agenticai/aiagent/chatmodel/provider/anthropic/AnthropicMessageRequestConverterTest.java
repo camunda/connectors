@@ -257,7 +257,6 @@ class AnthropicMessageRequestConverterTest {
     final var serverToolUse =
         new ProviderContent(
             "anthropic",
-            "server_tool_use",
             Map.of(
                 "id",
                 "srvtoolu_01",
@@ -271,7 +270,6 @@ class AnthropicMessageRequestConverterTest {
     final var codeExecutionToolResult =
         new ProviderContent(
             "anthropic",
-            "code_execution_tool_result",
             Map.of(
                 "tool_use_id",
                 "srvtoolu_01",
@@ -338,7 +336,6 @@ class AnthropicMessageRequestConverterTest {
     final var serverToolUse =
         new ProviderContent(
             "anthropic",
-            "server_tool_use",
             Map.of(
                 "id", "srvtoolu_01",
                 "name", "code_execution",
@@ -377,6 +374,7 @@ class AnthropicMessageRequestConverterTest {
     // Anthropic requires thinking to lead an assistant turn that also contains tool use.
     final var reasoning =
         new ReasoningContent(
+            "anthropic",
             Map.of(
                 "type", "thinking",
                 "thinking", "Let me think it through",
@@ -414,6 +412,7 @@ class AnthropicMessageRequestConverterTest {
     // content array.
     final var reasoning =
         new ReasoningContent(
+            "anthropic",
             Map.of(
                 "type", "thinking",
                 "thinking", "Let me think it through",

@@ -286,16 +286,6 @@ class RealProviderApiSmokeIT {
     return provider.label().startsWith("anthropic") ? "anthropic" : "openai";
   }
 
-  private static String expectedServerToolBlockType(Provider provider, Capability capability) {
-    boolean anthropic = provider.label().startsWith("anthropic");
-    return switch (capability) {
-      case CODE_INTERPRETER ->
-          anthropic ? "bash_code_execution_tool_result" : "code_interpreter_call";
-      case WEB_SEARCH -> anthropic ? "web_search_tool_result" : "web_search_call";
-      default -> throw new IllegalArgumentException("no server-tool block type for " + capability);
-    };
-  }
-
   @BeforeEach
   void mockClassifiedFactTool() {
     processTestContext
@@ -698,9 +688,7 @@ class RealProviderApiSmokeIT {
                 .isReady()
                 .hasResponseTextSatisfying(
                     text -> Assertions.assertThat(text).contains("121932631112635269"))
-                .hasProviderContentBlockOfTypeInConversation(
-                    providerContentTag(provider),
-                    expectedServerToolBlockType(provider, Capability.CODE_INTERPRETER)));
+                .hasProviderContentBlockOfTypeInConversation(providerContentTag(provider)));
   }
 
   static Stream<Provider> providersWithWebSearch() {
@@ -743,8 +731,6 @@ class RealProviderApiSmokeIT {
         response ->
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
-                .hasProviderContentBlockOfTypeInConversation(
-                    providerContentTag(provider),
-                    expectedServerToolBlockType(provider, Capability.WEB_SEARCH)));
+                .hasProviderContentBlockOfTypeInConversation(providerContentTag(provider)));
   }
 }

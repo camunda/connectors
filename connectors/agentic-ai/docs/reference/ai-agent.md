@@ -322,9 +322,11 @@ for future provider-specific chat models that emit structured content directly.
 
 The sealed `Content` model gained two additive members alongside the existing `TextContent` /
 `DocumentContent` / `ObjectContent`:
-- **`ReasoningContent`** — an opaque provider reasoning payload (`providerPayload`), carried verbatim.
-- **`ProviderContent`** — a provider-native content block preserved verbatim (`provider`, `blockType`,
-  `payload`).
+- **`ReasoningContent`** — an opaque provider reasoning payload (`provider`, `payload`, `metadata`),
+  carried verbatim.
+- **`ProviderContent`** — a provider-native content block preserved verbatim (`provider`, `payload`,
+  `metadata`); each payload self-describes its own block shape (e.g. via an internal `type` field), so
+  there is no separate discriminator field.
 
 Neither is produced or consumed by the LangChain4j path yet; they exist so the structured shape is
 ready for chat model implementations that need them.

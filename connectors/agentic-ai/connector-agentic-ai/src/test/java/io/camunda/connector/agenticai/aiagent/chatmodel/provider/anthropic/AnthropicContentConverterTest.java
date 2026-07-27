@@ -107,11 +107,12 @@ class AnthropicContentConverterTest {
     }
 
     @Test
-    void skipsReasoningContentWithNullProviderPayload() {
-      // e.g. reasoning content produced by the LangChain4J-routed path, which never populates
-      // providerPayload; there is no raw block to replay, so it is skipped rather than dropped
+    void skipsReasoningContentWithNullPayload() {
+      // e.g. reasoning content produced by the LangChain4J-routed path, which never populates a
+      // payload; there is no raw block to replay, so it is skipped rather than dropped
       // silently as a null content block.
-      final var blocks = converter.toContentBlockParams(List.of(new ReasoningContent(null, null)));
+      final var blocks =
+          converter.toContentBlockParams(List.of(new ReasoningContent("anthropic", null, null)));
 
       assertThat(blocks).isEmpty();
     }
@@ -125,7 +126,7 @@ class AnthropicContentConverterTest {
               "signature", "sig-123");
 
       final var blocks =
-          converter.toContentBlockParams(List.of(new ReasoningContent(payload, null)));
+          converter.toContentBlockParams(List.of(new ReasoningContent("anthropic", payload, null)));
 
       assertThat(blocks).hasSize(1);
       final var thinking = blocks.get(0).thinking().orElseThrow();
@@ -139,7 +140,7 @@ class AnthropicContentConverterTest {
           Map.<String, Object>of("type", "redacted_thinking", "data", "encrypted-blob");
 
       final var blocks =
-          converter.toContentBlockParams(List.of(new ReasoningContent(payload, null)));
+          converter.toContentBlockParams(List.of(new ReasoningContent("anthropic", payload, null)));
 
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isRedactedThinking()).isTrue();
@@ -155,8 +156,7 @@ class AnthropicContentConverterTest {
           Map.<String, Object>of("type", "container_upload", "file_id", "file_abc123");
 
       final var blocks =
-          converter.toContentBlockParams(
-              List.of(new ProviderContent("anthropic", "container_upload", payload, null)));
+          converter.toContentBlockParams(List.of(new ProviderContent("anthropic", payload, null)));
 
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isContainerUpload()).isTrue();
@@ -166,8 +166,7 @@ class AnthropicContentConverterTest {
     @Test
     void skipsProviderContentWithNullPayload() {
       final var blocks =
-          converter.toContentBlockParams(
-              List.of(new ProviderContent("anthropic", "container_upload", null, null)));
+          converter.toContentBlockParams(List.of(new ProviderContent("anthropic", null, null)));
 
       assertThat(blocks).isEmpty();
     }
@@ -256,7 +255,8 @@ class AnthropicContentConverterTest {
     void mapsReasoningContentToJsonTextBlockFallback() {
       final var blocks =
           converter.toToolResultBlocks(
-              List.of(new ReasoningContent(Map.of("thinking", "some reasoning"), null)));
+              List.of(
+                  new ReasoningContent("anthropic", Map.of("thinking", "some reasoning"), null)));
 
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isText()).isTrue();
