@@ -21,8 +21,19 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
  */
 public class AwsDynamoDbServiceConnectorFunctionDeprecated implements OutboundConnectorFunction {
 
+  private final AwsDynamoDbServiceConnectorFunction delegate;
+
+  public AwsDynamoDbServiceConnectorFunctionDeprecated() {
+    this(new AwsDynamoDbServiceConnectorFunction());
+  }
+
+  public AwsDynamoDbServiceConnectorFunctionDeprecated(
+      final AwsDynamoDbServiceConnectorFunction delegate) {
+    this.delegate = delegate;
+  }
+
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
-    return new AwsDynamoDbServiceConnectorFunction().execute(context);
+    return delegate.execute(context);
   }
 }
