@@ -7,32 +7,45 @@
 package io.camunda.connector.aws.dynamodb.operation.table;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.dynamodbv2.model.BillingMode;
-import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
-import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.CreateTable;
+import io.camunda.connector.aws.dynamodb.model.TableDescriptionResult;
+import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.Mock;
+import software.amazon.awssdk.core.internal.waiters.ResponseOrException;
+import software.amazon.awssdk.core.waiters.WaiterOverrideConfiguration;
+import software.amazon.awssdk.core.waiters.WaiterResponse;
+import software.amazon.awssdk.services.dynamodb.model.BillingMode;
+import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.CreateTableResponse;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableResponse;
+import software.amazon.awssdk.services.dynamodb.model.TableDescription;
+import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbWaiter;
 
 class CreateTableOperationTest extends BaseDynamoDbOperationTest {
 
   private CreateTable createTable;
 
+  @Mock private DynamoDbWaiter waiter;
   @Captor private ArgumentCaptor<CreateTableRequest> requestArgumentCaptor;
 
   @BeforeEach
-  public void init() throws InterruptedException {
+  public void init() {
     createTable =
         new CreateTable(
             TestDynamoDBData.ActualValue.TABLE_NAME,
@@ -46,14 +59,26 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
             TestDynamoDBData.ActualValue.WRITE_CAPACITY,
             BillingMode.PROVISIONED.name(),
             true);
-    when(dynamoDB.createTable(requestArgumentCaptor.capture())).thenReturn(table);
-    when(table.waitForActive())
-        .thenReturn(new TableDescription().withTableName(TestDynamoDBData.ActualValue.TABLE_NAME));
+    when(dynamoDbClient.createTable(requestArgumentCaptor.capture()))
+        .thenReturn(CreateTableResponse.builder().build());
+    when(dynamoDbClient.waiter()).thenReturn(waiter);
+    stubWaiterSuccess(
+        TableDescription.builder().tableName(TestDynamoDBData.ActualValue.TABLE_NAME).build());
+  }
+
+  @SuppressWarnings("unchecked")
+  private void stubWaiterSuccess(final TableDescription tableDescription) {
+    DescribeTableResponse describeResponse =
+        DescribeTableResponse.builder().table(tableDescription).build();
+    WaiterResponse<DescribeTableResponse> waiterResponse = mock(WaiterResponse.class);
+    when(waiterResponse.matched()).thenReturn(ResponseOrException.response(describeResponse));
+    when(waiter.waitUntilTableExists(
+            any(DescribeTableRequest.class), any(WaiterOverrideConfiguration.class)))
+        .thenReturn(waiterResponse);
   }
 
   @Test
-  public void invoke_shouldCreateTableWithPartitionKeyAndAllOptionalKeys()
-      throws InterruptedException {
+  public void invoke_shouldCreateTableWithPartitionKeyAndAllOptionalKeys() {
     // Given
     createTable =
         new CreateTable(
@@ -70,57 +95,86 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
             true);
     CreateTableOperation operation = new CreateTableOperation(createTable);
     // When
-    Object invoke = operation.invoke(dynamoDB);
+    Object invoke = operation.invoke(dynamoDbClient);
     // Then
-    verify(table, times(1)).waitForActive();
+    verify(waiter, times(1))
+        .waitUntilTableExists(
+            any(DescribeTableRequest.class), any(WaiterOverrideConfiguration.class));
 
     assertThat(invoke).isNotNull();
 
     CreateTableRequest value = requestArgumentCaptor.getValue();
 
-    assertThat(value.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
-    assertThat(value.getKeySchema().get(0).getAttributeName())
+    assertThat(value.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    assertThat(value.keySchema().get(0).attributeName())
         .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY);
-    assertThat(value.getKeySchema().get(0).getKeyType())
+    assertThat(value.keySchema().get(0).keyTypeAsString())
         .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY_ROLE_HASH);
-    assertThat(value.getDeletionProtectionEnabled()).isTrue();
-    assertThat(value.getBillingMode()).isEqualTo(BillingMode.PROVISIONED.name());
+    assertThat(value.deletionProtectionEnabled()).isTrue();
+    assertThat(value.billingModeAsString()).isEqualTo(BillingMode.PROVISIONED.name());
+  }
+
+  /**
+   * Regression guard for the waiter backoff: the v2 DynamoDbWaiter's TableExists default poll delay
+   * is a fixed 20s backoff, and its override merge reads only the caller's {@code
+   * backoffStrategyV2}, so {@code maxAttempts} alone would leave 20s spacing (only ~7 checks). The
+   * operation must set an explicit 5s fixed backoff to reproduce v1's 25 x 5s behavior, with {@code
+   * maxAttempts} as the sole binding constraint (no wall-clock cap).
+   */
+  @Test
+  public void invoke_appliesFixedFiveSecondWaiterBackoff() {
+    CreateTableOperation operation = new CreateTableOperation(createTable);
+
+    operation.invoke(dynamoDbClient);
+
+    ArgumentCaptor<WaiterOverrideConfiguration> configCaptor =
+        ArgumentCaptor.forClass(WaiterOverrideConfiguration.class);
+    verify(waiter).waitUntilTableExists(any(DescribeTableRequest.class), configCaptor.capture());
+    WaiterOverrideConfiguration config = configCaptor.getValue();
+
+    assertThat(config.maxAttempts()).contains(25);
+    assertThat(config.waitTimeout()).isEmpty();
+    assertThat(config.backoffStrategyV2()).isPresent();
+    assertThat(config.backoffStrategyV2().get().computeDelay(1)).isEqualTo(Duration.ofSeconds(5));
+    assertThat(config.backoffStrategyV2().get().computeDelay(10)).isEqualTo(Duration.ofSeconds(5));
   }
 
   @Test
-  public void invoke_shouldCreateTableWithOutOptionalProperties() throws InterruptedException {
+  public void invoke_shouldCreateTableWithOutOptionalProperties() {
     // Given
     CreateTableOperation operation = new CreateTableOperation(createTable);
     // When
-    Object invoke = operation.invoke(dynamoDB);
+    Object invoke = operation.invoke(dynamoDbClient);
     // Then
-    verify(table, times(1)).waitForActive();
+    verify(waiter, times(1))
+        .waitUntilTableExists(
+            any(DescribeTableRequest.class), any(WaiterOverrideConfiguration.class));
 
     assertThat(invoke).isNotNull();
 
     CreateTableRequest value = requestArgumentCaptor.getValue();
 
-    assertThat(value.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
-    assertThat(value.getKeySchema().get(0).getAttributeName())
+    assertThat(value.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    assertThat(value.keySchema().get(0).attributeName())
         .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY);
-    assertThat(value.getKeySchema().get(0).getKeyType())
+    assertThat(value.keySchema().get(0).keyTypeAsString())
         .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY_ROLE_HASH);
-    assertThat(value.getKeySchema().get(1).getAttributeName())
+    assertThat(value.keySchema().get(1).attributeName())
         .isEqualTo(TestDynamoDBData.ActualValue.SORT_KEY);
-    assertThat(value.getKeySchema().get(1).getKeyType())
+    assertThat(value.keySchema().get(1).keyTypeAsString())
         .isEqualTo(TestDynamoDBData.ActualValue.SORT_KEY_ROLE_RANGE);
-    assertThat(value.getDeletionProtectionEnabled()).isTrue();
-    assertThat(value.getBillingMode()).isEqualTo(BillingMode.PROVISIONED.name());
-    assertThat(value.getProvisionedThroughput().getReadCapacityUnits())
+    assertThat(value.deletionProtectionEnabled()).isTrue();
+    assertThat(value.billingModeAsString()).isEqualTo(BillingMode.PROVISIONED.name());
+    assertThat(value.provisionedThroughput().readCapacityUnits())
         .isEqualTo(TestDynamoDBData.ActualValue.READ_CAPACITY);
-    assertThat(value.getProvisionedThroughput().getWriteCapacityUnits())
+    assertThat(value.provisionedThroughput().writeCapacityUnits())
         .isEqualTo(TestDynamoDBData.ActualValue.WRITE_CAPACITY);
   }
 
   /**
    * Golden-JSON shape test: pins the exact JSON the v1 createTable operation writes to process
    * variables today, so the AWS SDK v2 migration must reproduce it unchanged (migration contract
-   * for #7973). {@link TableDescription} is a large, mostly-null v1 SDK POJO -- pins that shape,
+   * for #7973). {@link TableDescription} is a large, mostly-null v2 SDK type -- pins that shape,
    * including the ISO-8601 creationDateTime string (WRITE_DATES_AS_TIMESTAMPS is disabled).
    */
   @Test
@@ -128,12 +182,11 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
     // Given a live CreateTable call that waits for the table to become active
     TableDescription realDescription =
         buildRealisticTableDescription(TestDynamoDBData.ActualValue.TABLE_NAME);
-    when(dynamoDB.createTable(requestArgumentCaptor.capture())).thenReturn(table);
-    when(table.waitForActive()).thenReturn(realDescription);
+    stubWaiterSuccess(realDescription);
     CreateTableOperation operation = new CreateTableOperation(createTable);
 
     // When
-    Object result = operation.invoke(dynamoDB);
+    Object result = operation.invoke(dynamoDbClient);
 
     // Then
     JsonNode actual = objectMapper.readTree(objectMapper.writeValueAsString(result));
@@ -178,16 +231,13 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
           "tableClassSummary": null,
           "deletionProtectionEnabled": null,
           "onDemandThroughput": null,
-          "ssedescription": null
+          "ssedescription": null,
+          "warmThroughput": null
         }
         """;
     JsonNode expected = objectMapper.readTree(expectedJson);
     assertThat(actual).isEqualTo(expected);
-    // Deliberately no exact writeValueAsString() pin: TableDescription is a plain, unannotated
-    // AWS SDK v1 JavaBean with ~25 properties and no @JsonPropertyOrder; see
-    // AddItemOperationTest for why we don't rely on Jackson's reflection-based property order for
-    // such types. Tree equality above pins the shape (keys, nesting, values, and the many
-    // explicit nulls) reliably instead.
+    assertThat(result).isInstanceOf(TableDescriptionResult.class);
   }
 
   @Test
