@@ -19,8 +19,7 @@ class ProviderContentTest {
   @Test
   void roundTripsAsConcreteType() throws Exception {
     final var payload = Map.of("id", "srvtoolu_01", "input", Map.of("query", "search term"));
-    final var providerContent =
-        new ProviderContent("anthropic", "server_tool_use", payload, Map.of("foo", "bar"));
+    final var providerContent = new ProviderContent("anthropic", payload, Map.of("foo", "bar"));
 
     final var serialized = objectMapper.writeValueAsString(providerContent);
     final var deserialized = objectMapper.readValue(serialized, ProviderContent.class);
@@ -31,8 +30,7 @@ class ProviderContentTest {
   @Test
   void roundTripsThroughContentInterfaceTypeWithTypeDiscriminator() throws Exception {
     final Content providerContent =
-        ProviderContent.providerContent(
-            "anthropic", "server_tool_use", Map.of("id", "srvtoolu_01"));
+        ProviderContent.providerContent("anthropic", Map.of("id", "srvtoolu_01"));
 
     final var serialized = objectMapper.writeValueAsString(providerContent);
 

@@ -401,7 +401,7 @@ public class AwsAgentCoreConversationMapper {
       // preserve the opaque provider payload as its (best-effort) JSON representation; the
       // blob envelope carries the lossless structure regardless.
       case ReasoningContent reasoning ->
-          reasoning.providerPayload() == null ? "" : contentToString(reasoning.providerPayload());
+          reasoning.payload() == null ? "" : contentToString(reasoning.payload());
       case ProviderContent providerContent -> contentToString(providerContent.payload());
     };
   }

@@ -18,22 +18,23 @@ class ReasoningContentTest {
 
   @Test
   void roundTripsOpaqueProviderPayload() throws Exception {
-    final var providerPayload =
+    final var payload =
         Map.of(
             "signature", "abc123", "nested", Map.of("thinking", "some internal reasoning trace"));
-    final var reasoningContent = new ReasoningContent(providerPayload, Map.of("foo", "bar"));
+    final var reasoningContent = new ReasoningContent("anthropic", payload, Map.of("foo", "bar"));
 
     final var serialized = objectMapper.writeValueAsString(reasoningContent);
     final var deserialized = objectMapper.readValue(serialized, ReasoningContent.class);
 
-    assertThat(deserialized.providerPayload()).isEqualTo(providerPayload);
+    assertThat(deserialized.payload()).isEqualTo(payload);
     assertThat(deserialized.metadata()).isEqualTo(Map.of("foo", "bar"));
   }
 
   @Test
   void omitsMetadataWhenNullOrEmpty() throws Exception {
-    final var nullMetadata = new ReasoningContent(Map.of("signature", "abc123"), null);
-    final var emptyMetadata = new ReasoningContent(Map.of("signature", "abc123"), Map.of());
+    final var nullMetadata = new ReasoningContent("anthropic", Map.of("signature", "abc123"), null);
+    final var emptyMetadata =
+        new ReasoningContent("anthropic", Map.of("signature", "abc123"), Map.of());
 
     final var serializedNullMetadata = objectMapper.writeValueAsString(nullMetadata);
     final var serializedEmptyMetadata = objectMapper.writeValueAsString(emptyMetadata);

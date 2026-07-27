@@ -133,7 +133,7 @@ class AgentInstanceHistoryMapperTest {
   @Test
   void reasoningContentMapsToAnObjectHistoryBlockOfTheReasoningContentItself() {
     final var reasoningContent =
-        new ReasoningContent(Map.of("signature", "abc123"), Map.of("foo", "bar"));
+        new ReasoningContent("anthropic", Map.of("signature", "abc123"), Map.of("foo", "bar"));
     final var assistantMessage =
         AssistantMessage.builder().content(List.of(reasoningContent)).build();
 
@@ -147,10 +147,9 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void providerContentMapsToAnObjectHistoryBlockOfItsPayload() {
+  void providerContentMapsToAnObjectHistoryBlockOfTheProviderContentItself() {
     final var payload = Map.of("id", "srvtoolu_01", "input", Map.of("query", "search term"));
-    final var providerContent =
-        ProviderContent.providerContent("anthropic", "server_tool_use", payload);
+    final var providerContent = ProviderContent.providerContent("anthropic", payload);
     final var assistantMessage =
         AssistantMessage.builder().content(List.of(providerContent)).build();
 
@@ -160,6 +159,6 @@ class AgentInstanceHistoryMapperTest {
         .singleElement()
         .isInstanceOfSatisfying(
             AgentInstanceHistoryContent.ObjectContent.class,
-            object -> assertThat(object.getObject()).isEqualTo(payload));
+            object -> assertThat(object.getObject()).isEqualTo(providerContent));
   }
 }

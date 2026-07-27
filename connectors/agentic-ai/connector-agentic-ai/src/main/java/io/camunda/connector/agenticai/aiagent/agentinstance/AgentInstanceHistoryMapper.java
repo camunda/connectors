@@ -201,7 +201,7 @@ public class AgentInstanceHistoryMapper {
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case DocumentContent documentContent -> documentHistoryContent(documentContent);
       case ReasoningContent reasoningContent -> objectHistoryContent(reasoningContent);
-      case ProviderContent providerContent -> objectHistoryContent(providerContent.payload());
+      case ProviderContent providerContent -> objectHistoryContent(providerContent);
     };
   }
 

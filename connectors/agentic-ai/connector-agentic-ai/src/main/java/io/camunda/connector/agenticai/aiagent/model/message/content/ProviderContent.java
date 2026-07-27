@@ -14,11 +14,10 @@ import org.jspecify.annotations.Nullable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ProviderContent(
     String provider,
-    String blockType,
     Object payload,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
     implements Content {
-  public static ProviderContent providerContent(String provider, String blockType, Object payload) {
-    return new ProviderContent(provider, blockType, payload, null);
+  public static ProviderContent providerContent(String provider, Object payload) {
+    return new ProviderContent(provider, payload, null);
   }
 }
