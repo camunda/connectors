@@ -52,7 +52,8 @@ class GraphQLFunctionDocumentReturnTest {
             20,
             20);
     OutboundConnectorContext context = mock(OutboundConnectorContext.class);
-    when(context.bindVariables(GraphQLRequest.class)).thenReturn(new GraphQLRequest(graphql, null));
+    when(context.bindVariables(GraphQLRequest.class))
+        .thenReturn(new GraphQLRequest(graphql, null, null));
     when(context.readDocumentReturnFormat())
         .thenReturn(Optional.of(new DocumentReturnFormat(choice, null)));
     return context;

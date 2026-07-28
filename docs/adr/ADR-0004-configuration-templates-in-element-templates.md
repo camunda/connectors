@@ -1,7 +1,7 @@
 # ADR-0004: Configuration Templates in Element Templates
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 The Credentials initiative ([PDP-3396](https://github.com/camunda/product-hub/issues/3396)) introduces reusable, org-managed **credential instances** that replace auth fields inlined into element templates today. The full design lives in [camunda/connections-design](https://github.com/camunda/connections-design).
@@ -38,7 +38,7 @@ The **current** model is whole-object binding:
 - The **connector reads the `configuration` object as a whole** and interprets its structure itself (including which authentication subtype it carries). The configuration's shape is decoupled from the connector's internal field layout.
 - There is **no deconstruction** in the element template — no hidden derefs, no per-connector fan-out.
 
-Resolving "use the configuration or the inline value" (precedence: explicit inline override → configuration → inline fallback) is **out of scope for the ETG** — it happens on the connector-consumption side. Where that logic lives is an open design question (see [Open questions](#open-questions)).
+Resolving "use the configuration or the inline value" (precedence: configuration → inline fallback) is **out of scope for the ETG** — it happens on the connector-consumption side, via a per-connector accessor override (see [Open questions](#open-questions) (b)).
 
 ## Decision
 Extend the element-template generator with configuration support that reuses the existing annotation/DSL/generator machinery. New API surface:
@@ -109,7 +109,7 @@ Resulting template fragment (chooser + embedded template):
 
 **Scope / non-goals** (per connections-design `GAPS.md`):
 - Chooser-only; the inline **fallback** path (gated by the not-yet-implemented `isEmpty` condition) is deferred.
-- The **connector-side consumption** of the `configuration` object (reading it as a whole, and the inline-override → configuration → inline-fallback precedence) is **not** part of the ETG and not implemented here — see [Open questions](#open-questions).
+- The **connector-side consumption** of the `configuration` object (reading it as a whole, and the configuration → inline-fallback precedence) is **not** part of the ETG and not implemented here — see [Open questions](#open-questions) (b) for the resolved per-connector-merge approach.
 - **`configuresCredential`** conditions and the cached **`modelerConfigurationTemplateVersion`** attribute are **dropped** (connections-design GAP-007); per-type `Configuration` property + `isEmpty: false` distinguishes which configuration is chosen.
 - Runtime secret resolution (`SecretUtil`, PDP-3040) is deferred and provisional (GAP-005/006) — does not affect template generation.
 
@@ -136,5 +136,5 @@ This choice does not block the ETG work: the element template emits the identica
 
 ### Negative
 - New generator surface beyond the annotations: a `property` `PropertyBinding` type, a `secret` attribute on `@TemplateProperty`, a `kind` field, and a configuration-template extraction mode (property bindings, no `feel`) distinct from the host-element extraction.
-- The whole-object model shifts effort **onto the connector-consumption side** (reading the `configuration` object + precedence) — work the ETG does not do and whose home is still open (see [Open questions](#open-questions)).
+- The whole-object model shifts effort **onto the connector-consumption side** (reading the `configuration` object + precedence) — work the ETG does not do; see [Open questions](#open-questions) (b) for where that merge lives (resolved: per-connector).
 - A connector that binds a `configuration` object and has its inline fields become chooser-driven produces a **chooser-only** template until the deferred inline-fallback mechanism (and the not-yet-implemented `isEmpty` condition) lands.

@@ -12,6 +12,7 @@ import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.http.base.HttpService;
+import io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration;
 import io.camunda.connector.http.polling.model.PollingRequest;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
 import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
@@ -21,8 +22,9 @@ import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
     id = "io.camunda:http-polling:1",
     name = "Polling Connector",
     icon = "icon.svg",
-    version = 6,
+    version = 7,
     inputDataClass = PollingRequest.class,
+    configurations = {RestAuthenticationConfiguration.class},
     description = "Polls endpoint at regular intervals",
     keywords = {
       "poll",

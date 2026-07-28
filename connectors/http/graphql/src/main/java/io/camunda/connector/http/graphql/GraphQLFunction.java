@@ -16,6 +16,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
+import io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.utils.GraphQLRequestMapper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
@@ -27,7 +28,12 @@ import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "GraphQL",
-    inputVariables = {"graphql", "authentication", "documentReturnFormat"},
+    inputVariables = {
+      "graphql",
+      "authentication",
+      "documentReturnFormat",
+      "authenticationConfiguration"
+    },
     type = "io.camunda:connector-graphql:1")
 @ElementTemplate(
     engineVersion = "^8.10",
@@ -47,7 +53,8 @@ import org.slf4j.LoggerFactory;
       "API call"
     },
     inputDataClass = GraphQLRequest.class,
-    version = 11,
+    configurations = {RestAuthenticationConfiguration.class},
+    version = 12,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),
