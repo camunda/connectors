@@ -753,30 +753,29 @@ t4                                      Job #2 picked up
                                         → Proceeds normally
 ```
 
-**The critical mechanism: `createToolCallResultMessage`**
+**The critical mechanism: `resolveOrderedToolCallResults`**
 
 In `AgentConversationTurnInputComposerImpl.compose`, when the last reconstructed turn ended with an
 `AssistantMessage` that has tool calls (`history.turns().getLast().hasToolCalls()`):
 
 ```java
-final var toolCallResultMessage =
-    createToolCallResultMessage(
-        agentContext,
-        toolCalls,
-        invocationInput.toolCallResults(),
-        interruptMissingToolCalls);
+final var orderedToolCallResults =
+    resolveOrderedToolCallResults(
+        agentContext, toolCalls, agentInput.toolCallResults(), interruptMissingToolCalls);
 
+// either we have all results or we interrupted the missing tool calls
 // if empty, we wait on further tool call results to be added
-if (toolCallResultMessage.isEmpty()) {
-    return new AgentInput.None();
+if (orderedToolCallResults.isEmpty()) {
+    return new CompositionResult.Deferred();
 }
 ```
 
 The method checks each tool call from the last assistant message against the available results
-(`Optional<ToolCallResultMessage>`):
-- If all present: creates a `ToolCallResultMessage` with results ordered to match the original tool call order
+(`Optional<List<ToolCallResult>>`):
+- If all present: returns the results ordered to match the original tool call order; `compose` then
+  builds the `ToolCallResultMessage` from them
 - If missing and NOT interrupting: returns `Optional.empty()` → `compose` returns `CompositionResult.Deferred` → handler completes as a no-op
-- If missing and interrupting (due to event): creates cancelled results for missing tools
+- If missing and interrupting (due to event): creates cancelled results for missing tools, returned alongside the present ones
 
 ### No-Op Detection in BaseAgentRequestHandler
 
@@ -1217,7 +1216,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `AgentInitializerImpl.initializeAgent()` → State machine / initialization
 - `TurnReconstructor.reconstruct()` → Rebuilds turns + system message from the stored flat message list
 - `AgentConversationTurnInputComposerImpl.compose()` → Turn input assembly (tool results, events, user prompt) → `AgentInput`
-- `AgentConversationTurnInputComposerImpl.createToolCallResultMessage()` → Tool result matching & missing detection
+- `AgentConversationTurnInputComposerImpl.resolveOrderedToolCallResults()` → Tool result matching & missing detection
 - `AgentConversation.rehydrate()` / `ingest()` / `window()` / `nextContinuationRound()` / `toAgentContext()` → Immutable turn aggregate lifecycle
 - `BaseAgentRequestHandler.throwIfLimitsReached()` → Model-call limit check (reads `totalMetrics().modelCalls()`)
 - `AgentResponseHandlerImpl.createResponse()` → Response formatting
