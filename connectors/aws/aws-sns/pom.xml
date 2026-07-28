@@ -54,10 +54,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
-      <artifactId>auth</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
       <artifactId>sdk-core</artifactId>
     </dependency>
     <!-- v1 SDK kept for SnsMessageManager used in inbound webhook (no v2 equivalent).
@@ -71,6 +67,22 @@ except in compliance with the proprietary license.</license.inlineheader>
 
   <build>
     <plugins>
+      <!-- Migrating client construction to AwsClientSupport (issue #7083) removed this
+           module's only main-code bytecode reference to sdk-core (the old direct
+           .endpointOverride(...) call in SnsClientSupplier, now inside aws-base). sdk-core
+           stays a declared compile dependency because javac still needs it to resolve the
+           SdkRequest/SdkResponse/SdkPojo/SdkClient supertypes of PublishRequest/
+           PublishResponse/SnsClient, and because SnsConnectorFunctionTest deliberately
+           asserts the broad SdkException (covering both SnsException, service-side, and
+           SdkClientException, no-network) rather than a narrower sns-artifact type. -->
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+          <ignoredNonTestScopedDependencies combine.children="append">
+            <dependency>software.amazon.awssdk:sdk-core</dependency>
+          </ignoredNonTestScopedDependencies>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>

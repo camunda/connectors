@@ -7,29 +7,31 @@
 package io.camunda.connector.sns.suppliers;
 
 import com.amazonaws.services.sns.message.SnsMessageManager;
-import java.net.URI;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import io.camunda.connector.aws.AwsClientSupport;
+import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsClient;
 
 public class SnsClientSupplier {
 
-  public SnsClient getSnsClient(
-      final AwsCredentialsProvider credentialsProvider, final String region) {
-    return SnsClient.builder()
-        .credentialsProvider(credentialsProvider)
+  /**
+   * Builds the production client through the shared {@link AwsClientSupport#configureClient}, so
+   * credentials and endpoint-override handling are configured exactly as every other AWS SDK v2
+   * connector (issue #7083). The region is applied explicitly from the already-resolved {@code
+   * region} argument (rather than left to {@code AwsClientSupport}'s config-only lookup) because
+   * the caller ({@link io.camunda.connector.sns.outbound.SnsConnectorFunction}) must first fall
+   * back to the deprecated per-topic region and enforce that a region is present; overriding after
+   * {@code configureClient} keeps that resolution authoritative regardless of what {@code
+   * request.getConfiguration()} contains.
+   *
+   * <p>Note: unlike the previous hand-rolled builder, {@code AwsClientSupport} ignores a null/blank
+   * endpoint instead of feeding it to {@code endpointOverride(URI.create(...))}. A blank (non-null)
+   * endpoint previously reached the v1-style builder as {@code URI.create("")}; that edge case is
+   * now a no-op instead of a construction-time error.
+   */
+  public SnsClient getSnsClient(final SnsConnectorRequest request, final String region) {
+    return AwsClientSupport.configureClient(SnsClient.builder(), request)
         .region(Region.of(region))
-        .build();
-  }
-
-  public SnsClient getSnsClient(
-      final AwsCredentialsProvider credentialsProvider,
-      final String region,
-      final String endpoint) {
-    return SnsClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(region))
-        .endpointOverride(URI.create(endpoint))
         .build();
   }
 
