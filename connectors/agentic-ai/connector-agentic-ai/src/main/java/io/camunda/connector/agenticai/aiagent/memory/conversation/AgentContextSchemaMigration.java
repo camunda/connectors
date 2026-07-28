@@ -67,24 +67,39 @@ public final class AgentContextSchemaMigration {
       rejectIfNewerThanSupported(schemaVersion);
 
       if (schemaVersion < AgentContext.CURRENT_SCHEMA_VERSION) {
-        JsonNode conversation = agentContextObject.get(FIELD_CONVERSATION);
-        if (conversation != null
-            && conversation.isObject()
-            && conversation.hasNonNull(FIELD_MESSAGES)) {
-          upcastMessages(conversation.get(FIELD_MESSAGES), mapper);
+        while (schemaVersion < AgentContext.CURRENT_SCHEMA_VERSION) {
+          schemaVersion = migrate(schemaVersion, agentContextObject, mapper);
         }
 
-        // stamp the tree to current regardless of whether the source version was missing
-        // (schemaVersion defaults on the bound record via its @Initializer) or an explicit lower
-        // number: without this, a context read with an explicit lower version binds and is later
-        // re-persisted still tagged with that lower version, so the next read would re-upcast
-        // already-structured content into a single ObjectContent. Stamping here makes migration
-        // idempotent-safe regardless of whether the source version was missing or explicit.
+        // stamps even a missing source version (schemaVersion defaults via @Initializer on the
+        // bound record); keeps re-persisted state idempotent-safe on the next read.
         agentContextObject.put(FIELD_SCHEMA_VERSION, AgentContext.CURRENT_SCHEMA_VERSION);
       }
     }
 
     return mapper.treeToValue(agentContextTree, AgentContext.class);
+  }
+
+  /** Dispatches to the migration step for {@code fromVersion}, returning the resulting version. */
+  private static int migrate(int fromVersion, ObjectNode agentContextObject, ObjectMapper mapper) {
+    return switch (fromVersion) {
+      case AgentContext.UNVERSIONED_SCHEMA_VERSION ->
+          migrateUnversionedToV1(agentContextObject, mapper);
+      default ->
+          throw new IllegalStateException(
+              "No migration registered from schema version %d".formatted(fromVersion));
+    };
+  }
+
+  /** Lifts legacy flat tool-call-result content into the current structured shape. */
+  private static int migrateUnversionedToV1(ObjectNode agentContextObject, ObjectMapper mapper) {
+    JsonNode conversation = agentContextObject.get(FIELD_CONVERSATION);
+    if (conversation != null
+        && conversation.isObject()
+        && conversation.hasNonNull(FIELD_MESSAGES)) {
+      upcastMessages(conversation.get(FIELD_MESSAGES), mapper);
+    }
+    return 1;
   }
 
   /**
@@ -162,9 +177,7 @@ public final class AgentContextSchemaMigration {
   }
 
   /**
-   * Lifts a single legacy {@code content} node into the current {@code List<Content>} shape,
-   * mirroring exactly the semantics of the pre-existing (now removed) {@code
-   * ToolCallResultContent.ContentJsonDeserializer#flatLegacyContent}:
+   * Lifts a single legacy {@code content} node into the current {@code List<Content>} shape:
    *
    * <ul>
    *   <li>{@code null}/missing -&gt; {@code []}
@@ -193,11 +206,7 @@ public final class AgentContextSchemaMigration {
         return List.of(DocumentContent.documentContent(document));
       }
 
-      // any other object, or an array of untyped values (or of overlapping-but-legacy typed
-      // values, e.g. a gateway tool's List<McpContent>), or a number/boolean — deserialize to its
-      // natural Java type and wrap it as a single opaque content block rather than inspecting it
-      // further (routes through the connectors document module's Object deserializer, resolving
-      // any nested document references/intrinsic functions)
+      // anything else (object, array, number, boolean) - wrap as a single opaque content block
       Object value = mapper.treeToValue(node, Object.class);
       return List.of(ObjectContent.objectContent(value));
     } catch (JsonProcessingException e) {
