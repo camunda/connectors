@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration.CUSTOM_ID;
 
-import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -24,8 +23,7 @@ import org.jspecify.annotations.Nullable;
  */
 @TemplateSubType(id = CUSTOM_ID, label = "Custom Implementation (Self-Managed/Hybrid only)")
 public record CustomProviderConfiguration(
-    @FEEL
-        @TemplateProperty(
+    @TemplateProperty(
             group = "provider",
             label = "Provider type",
             description = "Identifier for the custom chat model provider.",
@@ -35,8 +33,7 @@ public record CustomProviderConfiguration(
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotBlank
         String providerType,
-    @FEEL
-        @TemplateProperty(
+    @TemplateProperty(
             group = "model",
             label = "Model",
             description = "Identifier of the model to use.",
@@ -45,8 +42,7 @@ public record CustomProviderConfiguration(
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotBlank
         String model,
-    @FEEL
-        @TemplateProperty(
+    @TemplateProperty(
             group = "provider",
             label = "Provider parameters",
             description = "Parameters for the custom chat model provider implementation.",
