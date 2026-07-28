@@ -118,6 +118,43 @@ jobs:
       - name: Install element templates CLI
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
+      # Credentials and ~/.m2/settings.xml must be in place before the first Maven
+      # invocation below, otherwise Maven resolves the POM anonymously and 401s on
+      # any artifact that is not publicly available on Maven Central.
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          # Mirror uses id=nexus-mirror (distinct from deploy id=camunda-nexus) so each gets the right credentials:
+          # - nexus-mirror: CI Nexus creds for the pull-through cache at repository.nexus.camunda.cloud
+          # - camunda-nexus: Nexus creds for resolving artifacts
+          servers: |
+            [{
+              "id": "nexus-mirror",
+              "username": "${{ steps.vault-secrets.outputs.CI_NEXUS_USR }}",
+              "password": "${{ steps.vault-secrets.outputs.CI_NEXUS_PSW }}"
+             },
+             {
+               "id": "camunda-nexus",
+               "username": "${{ steps.vault-secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.vault-secrets.outputs.CI_NEXUS_PSW }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
         # Maven build & version bump
       - name: Set Connectors release version
         run: ./mvnw -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
@@ -141,18 +178,6 @@ jobs:
       - name: Generate sbom reports
         run: |
           ./mvnw cyclonedx:makeAggregateBom -pl bundle/default-bundle
-
-      - name: Import Secrets
-        id: vault-secrets
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          secrets: |
-            secret/data/products/connectors/ci/common GITHUB_APP_ID;
-            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
 
       - name: Generate a GitHub App token
         id: app-token
