@@ -62,7 +62,6 @@ class AnthropicChatModelConfigurationTest {
     assertThat(parsed).isInstanceOf(AnthropicChatModelConfiguration.class);
     assertThat(parsed.provider()).isEqualTo("anthropic");
     assertThat(parsed.model()).isEqualTo("claude-sonnet-4-6");
-    assertThat(parsed.backend()).isEqualTo("anthropic-api");
 
     final AnthropicChatModelConfiguration anthropic = (AnthropicChatModelConfiguration) parsed;
     assertThat(anthropic.anthropic().backend()).isInstanceOf(AnthropicApiBackend.class);
@@ -101,7 +100,6 @@ class AnthropicChatModelConfigurationTest {
     final AnthropicChatModelConfiguration parsed =
         (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
-    assertThat(parsed.backend()).isEqualTo("compatible");
     assertThat(parsed.anthropic().backend()).isInstanceOf(AnthropicCompatibleBackend.class);
 
     final AnthropicCompatibleBackend compatible =
