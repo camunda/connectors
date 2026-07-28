@@ -12,7 +12,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
-import org.jspecify.annotations.Nullable;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({@JsonSubTypes.Type(value = CustomProviderConfiguration.class, name = CUSTOM_ID)})
@@ -30,9 +29,4 @@ public sealed interface ProviderConfiguration extends ChatModelConfiguration
 
   @Override
   String model();
-
-  /** The backend discriminator (e.g. {@code direct}, {@code bedrock}, {@code compatible}). */
-  default @Nullable String backend() {
-    return null;
-  }
 }
