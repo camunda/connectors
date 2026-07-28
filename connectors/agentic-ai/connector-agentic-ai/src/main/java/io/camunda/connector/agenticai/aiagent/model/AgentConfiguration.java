@@ -6,13 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
@@ -21,7 +21,7 @@ import org.jspecify.annotations.Nullable;
  * handler invocation; does not change mid-conversation.
  */
 public record AgentConfiguration(
-    ProviderConfiguration provider,
+    ChatModelConfiguration chatModel,
     SystemPromptConfiguration systemPrompt,
     UserPromptConfiguration userPrompt,
     @Nullable MemoryConfiguration memory,

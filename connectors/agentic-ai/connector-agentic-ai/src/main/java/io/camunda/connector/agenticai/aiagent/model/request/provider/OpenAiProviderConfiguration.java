@@ -26,7 +26,7 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
   public static final String OPENAI_ID = "openai";
 
   @Override
-  public String providerType() {
+  public String provider() {
     return OPENAI_ID;
   }
 

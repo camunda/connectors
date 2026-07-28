@@ -34,7 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -506,7 +506,7 @@ class AwsAgentCoreConversationStoreTest {
     final var agentContext = AgentContext.empty();
 
     final String toolCallResultsBlobJson =
-        "{\"blobType\":\"camunda.toolCallResults\",\"version\":1,\"results\":[{\"id\":\"call_1\",\"name\":\"myTool\",\"content\":\"tool output\"}]}";
+        "{\"blobType\":\"camunda.toolCallResults\",\"version\":1,\"results\":[{\"id\":\"call_1\",\"name\":\"myTool\",\"content\":[{\"type\":\"text\",\"text\":\"tool output\"}]}]}";
 
     final var toolConversational =
         Conversational.builder()
@@ -538,8 +538,9 @@ class AwsAgentCoreConversationStoreTest {
 
       final var msg = (ToolCallResultMessage) loadResult.messages().get(0);
       assertThat(msg.results()).hasSize(1);
-      assertThat(msg.results().get(0)).isInstanceOf(ToolCallResult.class);
-      assertThat(msg.results().get(0).content()).isEqualTo("tool output");
+      assertThat(msg.results().get(0)).isInstanceOf(ToolCallResultContent.class);
+      assertThat(msg.results().get(0).content())
+          .containsExactly(TextContent.textContent("tool output"));
     }
   }
 

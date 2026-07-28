@@ -29,9 +29,10 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Di
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
-import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -55,7 +56,6 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -81,13 +81,14 @@ class OutboundConnectorAgentRequestHandlerTest {
   @Mock private AgentInitializer agentInitializer;
   @Mock private ConversationStoreRegistry conversationStoreRegistry;
   @Mock private AgentConversationTurnInputComposer agentInputComposer;
-  @Mock private AiFrameworkAdapter<?> framework;
+  @Mock private ChatModelRegistry chatModelRegistry;
+  @Mock private ChatModel chatModel;
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
   @Mock private OutboundConnectorAgentExecutionContext agentExecutionContext;
 
-  @Captor private ArgumentCaptor<ConversationSnapshot> snapshotCaptor;
+  @Captor private ArgumentCaptor<ChatRequest> chatModelRequestCaptor;
 
   @InjectMocks private OutboundConnectorAgentRequestHandler requestHandler;
 
@@ -115,7 +116,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     assertThat(response.agentResponse().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(toolDiscoveryToolCalls.getFirst()));
 
-    verifyNoInteractions(agentInputComposer, framework, responseHandler);
+    verifyNoInteractions(agentInputComposer, chatModelRegistry, chatModel, responseHandler);
   }
 
   @Test
@@ -177,7 +178,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
     assertThat(response.agentResponse()).isNull();
 
-    verifyNoInteractions(agentInputComposer, framework, responseHandler);
+    verifyNoInteractions(agentInputComposer, chatModelRegistry, chatModel, responseHandler);
   }
 
   @Test
@@ -192,7 +193,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     final var assistantMessageText =
         "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
     final var assistantMessage = assistantMessage(assistantMessageText);
-    mockFrameworkExecution(assistantMessage);
+    mockChatModelExecution(assistantMessage);
 
     final var expectedStoredMessages = List.of(SYSTEM_MESSAGE, USER_MESSAGE, assistantMessage);
 
@@ -201,7 +202,8 @@ class OutboundConnectorAgentRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     // snapshot is captured before the assistant message is ingested
-    assertThat(snapshotCaptor.getValue().messages()).containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
+    assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
+        .containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
 
     var agentResponse = response.agentResponse();
     assertThat(agentResponse).isNotNull();
@@ -229,7 +231,7 @@ class OutboundConnectorAgentRequestHandlerTest {
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
     final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
-    mockFrameworkExecution(assistantMessage);
+    mockChatModelExecution(assistantMessage);
 
     final var expectedStoredMessages = List.of(SYSTEM_MESSAGE, USER_MESSAGE, assistantMessage);
 
@@ -237,7 +239,8 @@ class OutboundConnectorAgentRequestHandlerTest {
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    assertThat(snapshotCaptor.getValue().messages()).containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
+    assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
+        .containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
 
     var agentResponse = response.agentResponse();
     assertThat(agentResponse).isNotNull();
@@ -277,7 +280,7 @@ class OutboundConnectorAgentRequestHandlerTest {
                       "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
             });
 
-    verifyNoInteractions(framework, agentInstanceClient);
+    verifyNoInteractions(chatModelRegistry, chatModel, agentInstanceClient);
   }
 
   @Test
@@ -308,7 +311,7 @@ class OutboundConnectorAgentRequestHandlerTest {
                     .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
 
     // limit is checked before the LLM call — no chat request is issued
-    verifyNoInteractions(framework);
+    verifyNoInteractions(chatModelRegistry, chatModel);
   }
 
   @Test
@@ -320,7 +323,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     final var assistantMessage = assistantMessage("No tool calls here.");
-    mockFrameworkExecution(assistantMessage);
+    mockChatModelExecution(assistantMessage);
     mockResponseHandler();
 
     // when
@@ -362,7 +365,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
-    mockFrameworkExecution(assistantMessage);
+    mockChatModelExecution(assistantMessage);
     mockResponseHandler();
 
     // when
@@ -405,7 +408,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     final var assistantMessage = assistantMessage("Done.");
-    mockFrameworkExecution(assistantMessage);
+    mockChatModelExecution(assistantMessage);
     mockResponseHandler();
 
     // when
@@ -476,27 +479,15 @@ class OutboundConnectorAgentRequestHandlerTest {
         .createHistoryForAssistantMessage(eq(agentExecutionContext), any(), any(), any());
   }
 
-  private void mockFrameworkExecution(AssistantMessage assistantMessage) {
+  private void mockChatModelExecution(AssistantMessage assistantMessage) {
     final var metrics =
         new AgentMetrics(
             1,
             new TokenUsage(10, 20),
             assistantMessage.toolCalls() == null ? 0 : assistantMessage.toolCalls().size(),
             EXECUTION_TIME);
-    doReturn(
-            new TestFrameworkChatResponse(
-                assistantMessage, metrics, Map.of("message", assistantMessage)))
-        .when(framework)
-        .executeMeasuringTime(eq(agentExecutionContext), snapshotCaptor.capture());
-  }
-
-  private record TestFrameworkChatResponse(
-      AssistantMessage assistantMessage, AgentMetrics metrics, Map<String, Object> rawChatResponse)
-      implements AiFrameworkChatResponse<Map<String, Object>> {
-    @Override
-    public TestFrameworkChatResponse withExecutionTimeMetrics(Duration executionTime) {
-      return new TestFrameworkChatResponse(
-          assistantMessage, metrics.withExecutionTime(executionTime), rawChatResponse);
-    }
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(chatModelRequestCaptor.capture()))
+        .thenReturn(new ChatResult.Completed(assistantMessage, metrics));
   }
 }
