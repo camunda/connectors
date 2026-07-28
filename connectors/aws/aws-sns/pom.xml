@@ -61,11 +61,25 @@ except in compliance with the proprietary license.</license.inlineheader>
       <artifactId>sdk-core</artifactId>
     </dependency>
     <!-- v1 SDK kept for SnsMessageManager used in inbound webhook (no v2 equivalent).
-         See: https://github.com/aws/aws-sdk-java-v2/issues/1302 -->
+         See: https://github.com/aws/aws-sdk-java-v2/issues/1302
+         Excluding aws-java-sdk-sqs and jmespath-java: neither is required by SnsMessageManager's
+         signature-verification code path (verified by running the full module test suite,
+         including SnsWebhookSignatureVerificationTest which exercises that path for real, with
+         both exclusions in place). -->
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-sns</artifactId>
       <version>${version.aws-java-sdk}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.amazonaws</groupId>
+          <artifactId>aws-java-sdk-sqs</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.amazonaws</groupId>
+          <artifactId>jmespath-java</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 
