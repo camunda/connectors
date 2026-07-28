@@ -60,11 +60,19 @@ except in compliance with the proprietary license.</license.inlineheader>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sdk-core</artifactId>
     </dependency>
-    <!-- v1 SDK kept for the inbound webhook: SnsMessageManager (signature verification, no v2
-         equivalent) and SnsSubscriptionConfirmation#confirmSubscription (SubscribeURL callback;
-         cannot move to v2 SnsClient#confirmSubscription because this flow is credential-less,
-         since SnsWebhookConnectorProperties carries no AWS credentials).
-         See: https://github.com/aws/aws-sdk-java-v2/issues/1302
+    <!-- v1 SDK kept for the inbound webhook. Required: SnsMessageManager, used to cryptographically
+         verify SNS webhook signatures - v2 has no equivalent, see
+         https://github.com/aws/aws-sdk-java-v2/issues/1302
+         Not yet migrated: SnsSubscriptionConfirmation#confirmSubscription, which performs the
+         SubscribeURL callback as a plain unsigned HTTP GET on the URL in the message body. This is
+         a coupling, not a technical blocker: the object comes free from the
+         SnsMessageManager.parseMessage call the webhook already makes. A v2 equivalent is possible
+         - read the envelope's top-level TopicArn and Token and call SnsClient#confirmSubscription
+         with AnonymousCredentialsProvider, since ConfirmSubscription needs an AWS signature only
+         when AuthenticateOnUnsubscribe is true and SnsWebhookConnectorProperties carries no
+         credentials to sign with - but it would not drop this dependency while SnsMessageManager
+         is still needed, and it would target the ARN's regional endpoint rather than the exact
+         SubscribeURL host AWS sent.
          Excluding aws-java-sdk-sqs and jmespath-java: verified statically against the
          aws-java-sdk-sns-${version.aws-java-sdk}.jar bytecode that the only class referencing
          com/amazonaws/services/sqs is com.amazonaws.services.sns.util.Topics (an SNS to SQS
