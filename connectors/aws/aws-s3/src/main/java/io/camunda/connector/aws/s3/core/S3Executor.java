@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReturn;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
+import io.camunda.connector.aws.AwsClientSupport;
 import io.camunda.connector.aws.s3.model.request.*;
 import io.camunda.connector.aws.s3.model.response.DeleteResponse;
 import io.camunda.connector.aws.s3.model.response.DownloadResponse;
@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -43,14 +42,23 @@ public class S3Executor {
     this.createDocument = createDocument;
   }
 
+  /**
+   * Builds the production client through the shared {@link AwsClientSupport#createClient}, so
+   * credentials, region, and endpoint are configured exactly as every other AWS SDK v2 connector
+   * (issue #7083).
+   *
+   * <p>Note: unlike the previous inline builder, {@code AwsClientSupport} also applies {@code
+   * configuration.endpoint} if present. That property is already exposed (hidden) on the element
+   * template but was silently ignored by the previous hand-rolled builder; it is now honored, so
+   * any process definition that already sets it (e.g. via hybrid template or raw XML) will start
+   * talking to that endpoint instead of the default AWS one. There is no {@code forcePathStyle}
+   * configuration on this connector (old or new), so a custom endpoint uses virtual-host-style
+   * addressing, which will not work against LocalStack/MinIO out of the box.
+   */
   public static S3Executor create(
       S3Request s3Request, Function<DocumentCreationRequest, Document> createDocument) {
     return new S3Executor(
-        S3Client.builder()
-            .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(s3Request))
-            .region(Region.of(s3Request.getConfiguration().region()))
-            .build(),
-        createDocument);
+        AwsClientSupport.createClient(S3Client.builder(), s3Request), createDocument);
   }
 
   public Object execute(S3Action s3Action, boolean useDocumentReturnFlow) {
