@@ -12,14 +12,11 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.AwsUtils;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.ObjectMapperSupplier;
-import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import java.util.Optional;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
@@ -78,7 +75,7 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
     var region =
         AwsUtils.extractRegionOrDefault(
             request.getConfiguration(), request.getAwsFunction().getRegion());
-    LambdaClient lambdaClient = createAwsLambdaClient(request, region);
+    LambdaClient lambdaClient = awsLambdaSupplier.awsLambdaService(request, region);
     try {
       final InvokeRequest invokeRequest =
           InvokeRequest.builder()
@@ -95,15 +92,5 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
         lambdaClient.close();
       }
     }
-  }
-
-  private LambdaClient createAwsLambdaClient(AwsLambdaRequest request, String region) {
-    Optional<String> endpoint =
-        Optional.ofNullable(request.getConfiguration()).map(AwsBaseConfiguration::endpoint);
-
-    var credentialsProvider = CredentialsProviderSupportV2.credentialsProvider(request);
-    return endpoint
-        .map(ep -> awsLambdaSupplier.awsLambdaService(credentialsProvider, region, ep))
-        .orElseGet(() -> awsLambdaSupplier.awsLambdaService(credentialsProvider, region));
   }
 }
