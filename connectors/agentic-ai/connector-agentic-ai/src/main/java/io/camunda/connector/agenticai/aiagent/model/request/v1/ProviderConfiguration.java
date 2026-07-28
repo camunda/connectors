@@ -43,7 +43,6 @@ public sealed interface ProviderConfiguration extends ChatModelConfiguration
         OpenAiProviderConfiguration,
         OpenAiCompatibleProviderConfiguration {
 
-  /** Type of the provider implementation used to resolve the backing chat model. */
   @Override
   String provider();
 

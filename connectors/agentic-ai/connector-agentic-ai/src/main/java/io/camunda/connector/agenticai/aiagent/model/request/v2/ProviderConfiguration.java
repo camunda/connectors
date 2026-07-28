@@ -14,14 +14,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import org.jspecify.annotations.Nullable;
 
-/**
- * Wire-format-first chat-model configuration surfaced by the v2 connectors. Each provider member
- * nests its fields under a single provider-named component (mirroring the v1 {@code
- * ProviderConfiguration}), so generated element-template property ids are namespaced ({@code
- * provider.anthropic.*} / {@code provider.openai.*}) and the interface accessors below compute from
- * the nested data without colliding with a record component. Polymorphism is by the {@code type}
- * discriminator; the concrete member owns its backend-conditional authentication.
- */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({@JsonSubTypes.Type(value = CustomProviderConfiguration.class, name = CUSTOM_ID)})
 @TemplateDiscriminatorProperty(
@@ -33,11 +25,9 @@ import org.jspecify.annotations.Nullable;
 public sealed interface ProviderConfiguration extends ChatModelConfiguration
     permits CustomProviderConfiguration {
 
-  /** Discriminator string identifying the provider (e.g. {@code anthropic}, {@code openai}). */
   @Override
   String provider();
 
-  /** The model id / deployment the request targets. */
   @Override
   String model();
 

@@ -1830,8 +1830,8 @@ The v2 request's `CustomProviderConfiguration` (`model/request/v2`, discriminato
 Hybrid only) is the connector-facing entry point for this SPI: it carries a user-chosen `providerType`
 (dispatch discriminator), a dedicated `model` field (so agent-instance history/reporting works without
 digging it out of opaque config), and an opaque `parameters` map understood only by the user's factory.
-To use it, implement `ChatModelFactory` directly, with `providerType()`/`supports(...)` matching your
-chosen discriminator string, and register it as a Spring bean. `LangChain4JChatModelFactory` itself is
+To use it, implement `ChatModelFactory` directly, matching your chosen discriminator string inside
+`supports(...)`, and register it as a Spring bean. `LangChain4JChatModelFactory` itself is
 bound to `ProviderConfiguration` and cannot be extended for `CustomProviderConfiguration`, but its
 building block, `LangChain4JChatModel`, is a public, framework-agnostic `ChatModel` wrapper: a custom
 factory that wants to reuse LangChain4J can build its own `dev.langchain4j.model.chat.ChatModel`, wrap it
