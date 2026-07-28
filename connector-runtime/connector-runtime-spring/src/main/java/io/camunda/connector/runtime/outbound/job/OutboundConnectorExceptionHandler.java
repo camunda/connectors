@@ -77,7 +77,9 @@ public class OutboundConnectorExceptionHandler {
               .toList();
       secrets =
           this.secretProvider.fetchAll(
-              allowedKeys, new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
+              allowedKeys,
+              new SecretContext(
+                  job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId()));
     } catch (Exception ex) {
       LOGGER.error(
           "Initial error for job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",
@@ -178,7 +180,9 @@ public class OutboundConnectorExceptionHandler {
             .toList();
     List<String> secrets =
         this.secretProvider.fetchAll(
-            allowedKeys, new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
+            allowedKeys,
+            new SecretContext(
+                job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId()));
     Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.error(
         "Exception while processing job: {} for tenant: {}, message: {}",
