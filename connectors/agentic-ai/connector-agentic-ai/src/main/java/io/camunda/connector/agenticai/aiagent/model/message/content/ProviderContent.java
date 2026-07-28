@@ -17,6 +17,13 @@ public record ProviderContent(
     Object payload,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
     implements Content {
+
+  public ProviderContent {
+    if (payload == null) {
+      throw new IllegalArgumentException("Payload cannot be null");
+    }
+  }
+
   public static ProviderContent providerContent(String provider, Object payload) {
     return new ProviderContent(provider, payload, null);
   }

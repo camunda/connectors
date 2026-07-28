@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model.message.content;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
@@ -15,6 +16,13 @@ import org.junit.jupiter.api.Test;
 class ProviderContentTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
+
+  @Test
+  void rejectsNullPayload() {
+    assertThatThrownBy(() -> new ProviderContent("anthropic", null, null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Payload cannot be null");
+  }
 
   @Test
   void roundTripsAsConcreteType() throws Exception {

@@ -14,11 +14,17 @@ import org.jspecify.annotations.Nullable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ReasoningContent(
     String provider,
-    @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable Object payload,
+    Object payload,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
     implements Content {
 
-  public static ReasoningContent reasoningContent(String provider, @Nullable Object payload) {
+  public ReasoningContent {
+    if (payload == null) {
+      throw new IllegalArgumentException("Payload cannot be null");
+    }
+  }
+
+  public static ReasoningContent reasoningContent(String provider, Object payload) {
     return new ReasoningContent(provider, payload, Map.of());
   }
 }
