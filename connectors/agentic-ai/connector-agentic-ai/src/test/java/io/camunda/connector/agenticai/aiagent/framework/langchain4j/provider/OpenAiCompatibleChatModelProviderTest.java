@@ -300,6 +300,7 @@ class OpenAiCompatibleChatModelProviderTest {
           .isSameAs(chatModelResultCaptor.getResult());
 
       verify(proxySupport).createJdkHttpClientBuilder();
+      verify(chatModelBuilder).maxRetries(0);
       builderAssertions.accept(chatModelBuilder);
     }
   }

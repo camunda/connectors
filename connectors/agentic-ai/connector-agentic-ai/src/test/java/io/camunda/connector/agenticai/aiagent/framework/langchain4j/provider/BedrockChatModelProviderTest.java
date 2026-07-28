@@ -337,6 +337,7 @@ class BedrockChatModelProviderTest {
           .isSameAs(clientResultCaptor.getResult());
 
       verify(proxySupport).createAwsHttpClientBuilder(expectedEndpointOverride);
+      verify(builders.chatModelBuilder).maxRetries(0);
       builderAssertions.accept(builders);
     }
   }

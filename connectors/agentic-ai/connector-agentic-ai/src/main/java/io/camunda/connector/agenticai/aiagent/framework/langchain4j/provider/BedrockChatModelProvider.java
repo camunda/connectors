@@ -54,7 +54,8 @@ public class BedrockChatModelProvider implements ChatModelProvider<BedrockProvid
         BedrockChatModel.builder()
             .client(bedrockRuntimeClient)
             .modelId(connection.model().model())
-            .timeout(apiTimeout);
+            .timeout(apiTimeout)
+            .maxRetries(0);
 
     applyBedrockModelParametersIfPresent(connection, builder);
 

@@ -38,7 +38,8 @@ public class GoogleVertexAiChatModelProvider
         VertexAiGeminiChatModel.builder()
             .project(connection.projectId())
             .location(connection.region())
-            .modelName(connection.model().model());
+            .modelName(connection.model().model())
+            .maxRetries(0);
 
     if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
       builder.credentials(createGoogleServiceAccountCredentials(sac));

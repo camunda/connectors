@@ -182,6 +182,7 @@ class AzureOpenAiChatModelProviderTest {
       verify(proxySupport).createAzureProxyOptions(AZURE_OPENAI_ENDPOINT);
       verify(chatModelBuilder).endpoint(AZURE_OPENAI_ENDPOINT);
       verify(chatModelBuilder).deploymentName(AZURE_OPENAI_DEPLOYMENT_NAME);
+      verify(chatModelBuilder).maxRetries(0);
       builderAssertions.accept(chatModelBuilder);
     }
   }
