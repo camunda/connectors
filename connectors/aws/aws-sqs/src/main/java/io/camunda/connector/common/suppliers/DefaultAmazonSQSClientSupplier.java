@@ -6,29 +6,33 @@
  */
 package io.camunda.connector.common.suppliers;
 
-import java.net.URI;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import io.camunda.connector.aws.AwsClientSupport;
+import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
 
 public class DefaultAmazonSQSClientSupplier implements AmazonSQSClientSupplier {
 
-  public SqsClient sqsClient(
-      final AwsCredentialsProvider credentialsProvider, final String region) {
-    return SqsClient.builder()
-        .credentialsProvider(credentialsProvider)
+  /**
+   * Builds the production client through the shared {@link AwsClientSupport#configureClient}, so
+   * credentials and endpoint-override handling are configured exactly as every other AWS SDK v2
+   * connector (issue #7083). The region is applied explicitly from the already-resolved {@code
+   * region} argument (rather than left to {@code AwsClientSupport}'s config-only lookup) because
+   * the caller must first fall back to the deprecated per-queue region and enforce that a region is
+   * present; overriding after {@code configureClient} keeps that resolution authoritative
+   * regardless of what {@code request.getConfiguration()} contains.
+   *
+   * <p>Note: unlike the previous hand-rolled builder, {@code AwsClientSupport} ignores a null/blank
+   * endpoint instead of feeding it to {@code endpointOverride(URI.create(...))}. On the outbound
+   * path, a blank (non-null) endpoint previously reached the v1-style builder as {@code
+   * URI.create("")}; that edge case is now a no-op instead of a construction-time error. On the
+   * inbound path, endpoint override was previously unreachable altogether ({@code SqsExecutable}
+   * never called the old 3-arg overload); it is now honored like every other connector.
+   */
+  @Override
+  public SqsClient sqsClient(final AwsBaseRequest request, final String region) {
+    return AwsClientSupport.configureClient(SqsClient.builder(), request)
         .region(Region.of(region))
-        .build();
-  }
-
-  public SqsClient sqsClient(
-      final AwsCredentialsProvider credentialsProvider,
-      final String region,
-      final String endpoint) {
-    return SqsClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(region))
-        .endpointOverride(URI.create(endpoint))
         .build();
   }
 }
