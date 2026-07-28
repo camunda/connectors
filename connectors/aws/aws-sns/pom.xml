@@ -60,12 +60,18 @@ except in compliance with the proprietary license.</license.inlineheader>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sdk-core</artifactId>
     </dependency>
-    <!-- v1 SDK kept for SnsMessageManager used in inbound webhook (no v2 equivalent).
+    <!-- v1 SDK kept for the inbound webhook: SnsMessageManager (signature verification, no v2
+         equivalent) and SnsSubscriptionConfirmation#confirmSubscription (SubscribeURL callback;
+         cannot move to v2 SnsClient#confirmSubscription because this flow is credential-less,
+         since SnsWebhookConnectorProperties carries no AWS credentials).
          See: https://github.com/aws/aws-sdk-java-v2/issues/1302
-         Excluding aws-java-sdk-sqs and jmespath-java: neither is required by SnsMessageManager's
-         signature-verification code path (verified by running the full module test suite,
-         including SnsWebhookSignatureVerificationTest which exercises that path for real, with
-         both exclusions in place). -->
+         Excluding aws-java-sdk-sqs and jmespath-java: verified statically against the
+         aws-java-sdk-sns-${version.aws-java-sdk}.jar bytecode that the only class referencing
+         com/amazonaws/services/sqs is com.amazonaws.services.sns.util.Topics (an SNS to SQS
+         subscription helper this connector never calls), and that zero classes in the artifact
+         reference jmespath at all; a passing test run cannot prove this, since no test here
+         loads a class that would need either artifact. Re-verify with the same bytecode scan
+         (not just a green test suite) whenever version.aws-java-sdk is bumped. -->
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-sns</artifactId>

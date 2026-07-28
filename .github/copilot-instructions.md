@@ -564,11 +564,16 @@ Key workflow files in `.github/workflows/`:
 - **Integration tests**: Mark with `@SlowTest` to exclude from regular unit test runs
 - **FEEL expressions**: Use `@FEEL` annotation for properties that need runtime evaluation
 - **AWS SDK v1 in aws-sns**: `aws-sns`'s inbound webhook (`SnsWebhookExecutable`/`SnsClientSupplier`)
-  intentionally keeps a narrow AWS SDK v1 dependency (`aws-java-sdk-sns`) solely for
-  `SnsMessageManager`, used to cryptographically verify SNS webhook signatures — v2 has no
-  equivalent (see https://github.com/aws/aws-sdk-java-v2/issues/1302). This is the one accepted
-  exception in the AWS v1→v2 migration; any *new* v1 usage elsewhere is a regression, not
-  precedent.
+  intentionally keeps a narrow AWS SDK v1 dependency (`aws-java-sdk-sns`) for two things:
+  `SnsMessageManager`, used to cryptographically verify SNS webhook signatures (v2 has no
+  equivalent, see https://github.com/aws/aws-sdk-java-v2/issues/1302), and
+  `SnsSubscriptionConfirmation#confirmSubscription`, which performs the SubscribeURL callback
+  (cannot move to v2 `SnsClient#confirmSubscription` because that flow is credential-less —
+  `SnsWebhookConnectorProperties` carries no AWS credentials). This is the one accepted exception
+  in *runtime* code in the AWS v1→v2 migration; any *new* v1 usage elsewhere is a regression, not
+  precedent. (`aws-base` separately still carries an unused v1 `CredentialsProviderSupport` +
+  `aws-java-sdk-core` dependency with zero callers, pending removal as dead code — not sanctioned
+  precedent either, just not yet cleaned up.)
 - **Investigating `camunda-client-java` / `camunda-spring-boot-starter` behavior**: don't decompile
   the jars (`javap`, unzip + bytecode reading, etc.). If the `camunda/camunda` monorepo is checked
   out locally (often as a sibling of this repo, e.g. `../camunda`), read the actual source instead
