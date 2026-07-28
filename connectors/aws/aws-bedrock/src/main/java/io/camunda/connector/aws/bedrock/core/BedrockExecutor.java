@@ -6,11 +6,10 @@
  */
 package io.camunda.connector.aws.bedrock.core;
 
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
+import io.camunda.connector.aws.AwsClientSupport;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.bedrock.model.BedrockRequest;
 import io.camunda.connector.aws.bedrock.model.RequestData;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 public class BedrockExecutor {
@@ -23,12 +22,20 @@ public class BedrockExecutor {
     this.requestData = requestData;
   }
 
+  /**
+   * Builds the production client through the shared {@link AwsClientSupport#createClient}, so
+   * credentials, region, and endpoint are configured exactly as every other AWS SDK v2 connector
+   * (issue #7083).
+   *
+   * <p>Note: unlike the previous inline builder, {@code AwsClientSupport} also applies {@code
+   * configuration.endpoint} if present. That property is already exposed (hidden) on the element
+   * template but was silently ignored by the previous hand-rolled builder; it is now honored, so
+   * any process definition that already sets it (e.g. via hybrid template or raw XML) will start
+   * talking to that endpoint instead of the default AWS one.
+   */
   public static BedrockExecutor create(BedrockRequest bedrockRequest) {
     return new BedrockExecutor(
-        BedrockRuntimeClient.builder()
-            .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(bedrockRequest))
-            .region(Region.of(bedrockRequest.getConfiguration().region()))
-            .build(),
+        AwsClientSupport.createClient(BedrockRuntimeClient.builder(), bedrockRequest),
         bedrockRequest.getData());
   }
 
