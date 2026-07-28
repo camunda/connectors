@@ -4,24 +4,21 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.memory.conversation;
+package io.camunda.connector.agenticai.aiagent.model.versioning;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,131 +30,19 @@ class AgentContextSchemaMigrationTest {
   private final ObjectMapper objectMapper = TestObjectMapperSupplier.INSTANCE;
 
   @Nested
-  class LiftLegacyContent {
-
-    @Test
-    void nullNodeBecomesEmptyList() {
-      assertThat(AgentContextSchemaMigration.liftLegacyContent(null, objectMapper)).isEmpty();
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = "   ")
-    void blankTextualNodeBecomesEmptyList(String text) {
-      JsonNode node = text == null ? objectMapper.getNodeFactory().nullNode() : textNode(text);
-      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper)).isEmpty();
-    }
-
-    @Test
-    void nonBlankTextualNodeBecomesSingleTextContent() {
-      JsonNode node = textNode("hello");
-      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
-          .containsExactly(TextContent.textContent("hello"));
-    }
-
-    @Test
-    void documentReferenceNodeBecomesSingleDocumentContent() throws Exception {
-      // shaped like the real 8.9 golden fixtures' document objects (discriminator key +
-      // storeId/documentId/contentHash/metadata)
-      JsonNode node =
-          objectMapper.readTree(
-              """
-              {
-                "camunda.document.type": "camunda",
-                "storeId": "in-memory",
-                "documentId": "31127ad5-411e-485a-a67b-f7b4512bc075",
-                "contentHash": "37aab54a0d7d35291088a50ff9095845cdd292bc7b811008625cab10e75d2d0d",
-                "metadata": {
-                  "contentType": "application/json",
-                  "fileName": "test.json"
-                }
-              }
-              """);
-
-      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
-          .singleElement()
-          .isInstanceOf(DocumentContent.class);
-    }
-
-    @Test
-    void plainObjectNodeBecomesSingleObjectContent() throws Exception {
-      JsonNode node = objectMapper.readTree("{\"key\": \"value\", \"count\": 3}");
-
-      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
-          .singleElement()
-          .isInstanceOfSatisfying(
-              ObjectContent.class,
-              objectContent -> assertThat(objectContent.content()).isInstanceOf(Map.class));
-    }
-
-    @Test
-    void arrayOfUntypedValuesBecomesSingleObjectContentWrappingTheWholeArray() throws Exception {
-      JsonNode node =
-          objectMapper.readTree(
-              "[{\"id\": 1, \"name\": \"Alice\"}, {\"id\": 2, \"name\": \"Bob\"}]");
-
-      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
-          .singleElement()
-          .isInstanceOfSatisfying(
-              ObjectContent.class,
-              objectContent -> assertThat((List<?>) objectContent.content()).hasSize(2));
-    }
-
-    @Test
-    void arrayLookingLikeContentBlocksStaysOpaque() throws Exception {
-      // the exact Copilot-flagged collision: a legacy gateway List<McpContent> whose elements
-      // use the same type discriminators (text/object) as domain Content must NOT be split
-      JsonNode node =
-          objectMapper.readTree(
-              """
-              [
-                {"type": "text", "text": "hello"},
-                {"type": "object", "content": {"key": "value"}}
-              ]
-              """);
-
-      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
-          .singleElement()
-          .isInstanceOfSatisfying(
-              ObjectContent.class,
-              objectContent -> assertThat((List<?>) objectContent.content()).hasSize(2));
-    }
-
-    @Test
-    void numberNodeBecomesSingleObjectContent() {
-      JsonNode node = objectMapper.getNodeFactory().numberNode(42);
-
-      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
-          .containsExactly(ObjectContent.objectContent(42));
-    }
-
-    @Test
-    void booleanNodeBecomesSingleObjectContent() {
-      JsonNode node = objectMapper.getNodeFactory().booleanNode(true);
-
-      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
-          .containsExactly(ObjectContent.objectContent(true));
-    }
-
-    private JsonNode textNode(String text) {
-      return objectMapper.getNodeFactory().textNode(text);
-    }
-  }
-
-  @Nested
   class UpcastMessages {
 
     @Test
     void nonArrayNodeIsNoOp() throws Exception {
       JsonNode node = objectMapper.readTree("{\"not\": \"an array\"}");
       // no exception, no-op
-      AgentContextSchemaMigration.upcastMessages(node, objectMapper);
+      AgentContextSchemaMigration.ToolCallResultUpcaster.upcastMessages(node, objectMapper);
       assertThat(node.toString()).isEqualTo("{\"not\":\"an array\"}");
     }
 
     @Test
     void nullNodeIsNoOp() {
-      AgentContextSchemaMigration.upcastMessages(null, objectMapper);
+      AgentContextSchemaMigration.ToolCallResultUpcaster.upcastMessages(null, objectMapper);
       // no exception thrown
     }
 
@@ -173,7 +58,7 @@ class AgentContextSchemaMigrationTest {
               """);
 
       String before = messages.toString();
-      AgentContextSchemaMigration.upcastMessages(messages, objectMapper);
+      AgentContextSchemaMigration.ToolCallResultUpcaster.upcastMessages(messages, objectMapper);
 
       assertThat(messages.toString()).isEqualTo(before);
     }
@@ -193,7 +78,8 @@ class AgentContextSchemaMigrationTest {
               ]
               """);
 
-      AgentContextSchemaMigration.upcastMessages(messagesArray, objectMapper);
+      AgentContextSchemaMigration.ToolCallResultUpcaster.upcastMessages(
+          messagesArray, objectMapper);
 
       JsonNode content = messagesArray.get(0).get("results").get(0).get("content");
       assertThat(content.isArray()).isTrue();
@@ -223,51 +109,175 @@ class AgentContextSchemaMigrationTest {
               ]
               """);
 
-      AgentContextSchemaMigration.upcastMessages(messagesArray, objectMapper);
+      AgentContextSchemaMigration.ToolCallResultUpcaster.upcastMessages(
+          messagesArray, objectMapper);
 
       JsonNode content = messagesArray.get(0).get("results").get(0).get("content");
       assertThat(content.isArray()).isTrue();
       assertThat(content).hasSize(1);
       assertThat(content.get(0).get("type").asText()).isEqualTo("object");
     }
-  }
-
-  @Nested
-  class UpcastToolCallResults {
 
     @Test
-    void nonArrayNodeIsNoOp() throws Exception {
-      JsonNode node = objectMapper.readTree("{\"not\": \"an array\"}");
-      AgentContextSchemaMigration.upcastToolCallResults(node, objectMapper);
-      assertThat(node.toString()).isEqualTo("{\"not\":\"an array\"}");
-    }
-
-    @Test
-    void nullNodeIsNoOp() {
-      AgentContextSchemaMigration.upcastToolCallResults(null, objectMapper);
-    }
-
-    @Test
-    void resultsWithoutContentFieldAreUntouched() throws Exception {
-      JsonNode results = objectMapper.readTree("[{\"id\": \"call-1\", \"name\": \"search\"}]");
-      String before = results.toString();
-
-      AgentContextSchemaMigration.upcastToolCallResults(results, objectMapper);
-
-      assertThat(results.toString()).isEqualTo(before);
-    }
-
-    @Test
-    void flatContentIsLiftedInPlace() throws Exception {
-      JsonNode results =
+    void resultsFieldOfNonArrayShapeIsNoOp() throws Exception {
+      JsonNode messages =
           objectMapper.readTree(
-              "[{\"id\": \"call-1\", \"name\": \"search\", \"content\": \"Found 3 items\"}]");
+              "[{\"role\": \"tool_call_result\", \"results\": {\"not\": \"an array\"}}]");
+      String before = messages.toString();
 
-      AgentContextSchemaMigration.upcastToolCallResults(results, objectMapper);
+      AgentContextSchemaMigration.ToolCallResultUpcaster.upcastMessages(messages, objectMapper);
 
-      JsonNode content = results.get(0).get("content");
-      assertThat(content.isArray()).isTrue();
-      assertThat(content.get(0).get("type").asText()).isEqualTo("text");
+      assertThat(messages.toString()).isEqualTo(before);
+    }
+
+    @Test
+    void missingResultsFieldIsNoOp() throws Exception {
+      JsonNode messages = objectMapper.readTree("[{\"role\": \"tool_call_result\"}]");
+      String before = messages.toString();
+
+      AgentContextSchemaMigration.ToolCallResultUpcaster.upcastMessages(messages, objectMapper);
+
+      assertThat(messages.toString()).isEqualTo(before);
+    }
+
+    @Test
+    void resultWithoutContentFieldIsUntouched() throws Exception {
+      JsonNode messages =
+          objectMapper.readTree(
+              """
+              [
+                {
+                  "role": "tool_call_result",
+                  "results": [{"id": "call-1", "name": "search"}]
+                }
+              ]
+              """);
+      String before = messages.toString();
+
+      AgentContextSchemaMigration.ToolCallResultUpcaster.upcastMessages(messages, objectMapper);
+
+      assertThat(messages.toString()).isEqualTo(before);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = "   ")
+    void blankOrNullContentBecomesEmptyList(String text) throws Exception {
+      JsonNode contentNode =
+          text == null ? objectMapper.getNodeFactory().nullNode() : textNode(text);
+
+      assertThat(liftedContentOf(contentNode)).isEmpty();
+    }
+
+    @Test
+    void nonBlankTextualContentBecomesSingleTextBlock() throws Exception {
+      JsonNode lifted = liftedContentOf(textNode("hello"));
+      assertThat(lifted).hasSize(1);
+      assertThat(lifted.get(0).get("type").asText()).isEqualTo("text");
+      assertThat(lifted.get(0).get("text").asText()).isEqualTo("hello");
+    }
+
+    @Test
+    void documentReferenceContentBecomesSingleDocumentBlock() throws Exception {
+      // shaped like the real 8.9 golden fixtures' document objects (discriminator key +
+      // storeId/documentId/contentHash/metadata)
+      JsonNode contentNode =
+          objectMapper.readTree(
+              """
+              {
+                "camunda.document.type": "camunda",
+                "storeId": "in-memory",
+                "documentId": "31127ad5-411e-485a-a67b-f7b4512bc075",
+                "contentHash": "37aab54a0d7d35291088a50ff9095845cdd292bc7b811008625cab10e75d2d0d",
+                "metadata": {
+                  "contentType": "application/json",
+                  "fileName": "test.json"
+                }
+              }
+              """);
+
+      JsonNode lifted = liftedContentOf(contentNode);
+      assertThat(lifted).hasSize(1);
+      assertThat(lifted.get(0).get("type").asText()).isEqualTo("document");
+    }
+
+    @Test
+    void plainObjectContentBecomesSingleObjectBlock() throws Exception {
+      JsonNode contentNode = objectMapper.readTree("{\"key\": \"value\", \"count\": 3}");
+
+      JsonNode lifted = liftedContentOf(contentNode);
+      assertThat(lifted).hasSize(1);
+      assertThat(lifted.get(0).get("type").asText()).isEqualTo("object");
+      assertThat(lifted.get(0).get("content").get("key").asText()).isEqualTo("value");
+    }
+
+    @Test
+    void arrayOfUntypedValuesBecomesSingleObjectBlockWrappingTheWholeArray() throws Exception {
+      JsonNode contentNode =
+          objectMapper.readTree(
+              "[{\"id\": 1, \"name\": \"Alice\"}, {\"id\": 2, \"name\": \"Bob\"}]");
+
+      JsonNode lifted = liftedContentOf(contentNode);
+      assertThat(lifted).hasSize(1);
+      assertThat(lifted.get(0).get("type").asText()).isEqualTo("object");
+      assertThat(lifted.get(0).get("content")).hasSize(2);
+    }
+
+    @Test
+    void arrayLookingLikeContentBlocksStaysOpaque() throws Exception {
+      // the exact Copilot-flagged collision: a legacy gateway List<McpContent> whose elements
+      // use the same type discriminators (text/object) as domain Content must NOT be split
+      JsonNode contentNode =
+          objectMapper.readTree(
+              """
+              [
+                {"type": "text", "text": "hello"},
+                {"type": "object", "content": {"key": "value"}}
+              ]
+              """);
+
+      JsonNode lifted = liftedContentOf(contentNode);
+      assertThat(lifted).hasSize(1);
+      assertThat(lifted.get(0).get("type").asText()).isEqualTo("object");
+      assertThat(lifted.get(0).get("content")).hasSize(2);
+    }
+
+    @Test
+    void numberContentBecomesSingleObjectBlock() throws Exception {
+      JsonNode lifted = liftedContentOf(objectMapper.getNodeFactory().numberNode(42));
+      assertThat(lifted).hasSize(1);
+      assertThat(lifted.get(0).get("content").asInt()).isEqualTo(42);
+    }
+
+    @Test
+    void booleanContentBecomesSingleObjectBlock() throws Exception {
+      JsonNode lifted = liftedContentOf(objectMapper.getNodeFactory().booleanNode(true));
+      assertThat(lifted).hasSize(1);
+      assertThat(lifted.get(0).get("content").asBoolean()).isTrue();
+    }
+
+    private JsonNode textNode(String text) {
+      return objectMapper.getNodeFactory().textNode(text);
+    }
+
+    /** Lifts {@code contentNode} through the public {@code upcastMessages} entry point. */
+    private JsonNode liftedContentOf(JsonNode contentNode) throws Exception {
+      JsonNode messages =
+          objectMapper.readTree(
+              """
+              [
+                {
+                  "role": "tool_call_result",
+                  "results": [{"id": "call-1", "name": "search"}]
+                }
+              ]
+              """);
+      JsonNode result = messages.get(0).get("results").get(0);
+      ((ObjectNode) result).set("content", contentNode);
+
+      AgentContextSchemaMigration.ToolCallResultUpcaster.upcastMessages(messages, objectMapper);
+
+      return result.get("content");
     }
   }
 

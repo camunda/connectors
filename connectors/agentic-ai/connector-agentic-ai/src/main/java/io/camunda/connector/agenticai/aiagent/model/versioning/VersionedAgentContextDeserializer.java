@@ -4,13 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.request;
+package io.camunda.connector.agenticai.aiagent.model.versioning;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.AgentContextSchemaMigration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import java.io.IOException;
 import org.jspecify.annotations.Nullable;
