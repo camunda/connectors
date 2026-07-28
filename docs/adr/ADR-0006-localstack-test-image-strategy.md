@@ -1,75 +1,73 @@
 # ADR-0006: Long-Term Strategy for the AWS e2e Test Lane's LocalStack Dependency
 
 ## Status
-Proposed
-
-This ADR bundles two things with different statuses:
-
-- **Already decided and shipped in this PR:** keep the pinned `localstack/localstack:4.8` tag as-is, add an optional registry-override hook to `DockerImages` so a mirror can be adopted later with zero code changes, and record the risk below so it isn't silently rediscovered.
-- **Still open, and out of scope for this PR to resolve:** which long-term strategy (below) replaces today's direct-from-Docker-Hub pull. That choice affects the whole AWS e2e lane and needs a human/team decision, not an agent's; the status stays `Proposed` until the team picks one and a follow-up implements it.
+Accepted
 
 ## Context
 
-The AWS e2e test lane (`connectors-e2e-test/connectors-e2e-test-aws/**`) pulls `localstack/localstack:4.8` directly from Docker Hub. The reference is declared in `connectors-e2e-test-aws-base/src/test/resources/docker-images.properties` and resolved verbatim by `DockerImages.get("localstack")` (a plain `Properties` lookup with no registry-indirection layer today), then handed to Testcontainers, which pulls it straight from `docker.io`.
+The AWS e2e test lane (`connectors-e2e-test/connectors-e2e-test-aws/**`) pulls `localstack/localstack:4.8` directly from Docker Hub. The reference is declared in `connectors-e2e-test-aws-base/src/test/resources/docker-images.properties`, resolved verbatim by `DockerImages.get("localstack")`, and handed to Testcontainers' `LocalStackContainer`, which pulls it from `docker.io`.
 
-Five e2e suites currently depend on this single pinned tag being pullable on every CI run: `AwsDynamoDbTest`, `AwsEventBridgeTest`, `AwsLambdaTest`, `AwsSnsTest`, `AwsSqsTest` (plus shared setup in `BaseAwsTest`). If `localstack/localstack:4.8` becomes unavailable on Docker Hub, all five suites fail to even start a container — not a test assertion failure but a hard CI-lane outage — with no fallback.
+Five e2e suites depend on this tag being pullable on every CI run: `AwsDynamoDbTest`, `AwsEventBridgeTest`, `AwsLambdaTest`, `AwsSnsTest`, `AwsSqsTest` (plus shared setup in `BaseAwsTest`). If the tag becomes unpullable, all five fail to start a container — a CI-lane outage, not a test failure — with no fallback in place today.
 
-As of this writing (per the originating issue, camunda/connectors#7976), the risk is:
+### LocalStack's licensing change (verified against LocalStack's own site, 2026-07-28)
 
-- LocalStack's community/open-source edition has an announced end-of-life around March 2026. What happens to already-published historical tags (including `4.8`) after that date — whether they stay on Docker Hub indefinitely or are pulled/archived — is not something this ADR can verify from the repository; it is a vendor decision outside our control.
-- Current LocalStack releases reportedly require an account/auth token to pull, and the free "Hobby" tier's license is stated to be non-commercial-use only. If accurate, this repo's CI usage (a commercial company's test suite) would not cleanly fit that tier going forward, independent of the EOL timeline.
-- Net effect: the AWS e2e lane has a silent dependency on a specific EOL image tag with no mirror, no fallback, and no monitoring for "this tag just disappeared."
+- LocalStack ended support for the LocalStack for AWS Community edition on **March 23, 2026**. From that date, LocalStack ships a single image on Docker Hub that requires a user account and an auth token **to run** (the gate is at container start, via `LOCALSTACK_AUTH_TOKEN` — not at `docker pull`; the image itself stays publicly pullable).
+- A temporary bypass (`LOCALSTACK_ACKNOWLEDGE_ACCOUNT_REQUIREMENT=1`) was available but expired **April 6, 2026**.
+- Our pinned `4.8` tag predates this change and is unaffected by it: it does not require an account or token to run. Checked against Docker Hub's API today: `localstack/localstack:4.8` has `tag_status: active`, was last pushed 2025-09-16, and was last pulled 2026-07-28 — it is still published and pullable. Any *upgrade* past `4.8`, however, would pull an image that requires an account and token.
+- LocalStack's current commercial tiers are Base, Ultimate, and Enterprise; the free "Hobby" tier is for non-commercial use only. Separately, LocalStack also offers free subscriptions for verified students and for open-source projects (subject to LocalStack's approval) — see Recommendation below.
 
-These claims about LocalStack's licensing and EOL timeline come from the issue description, not from re-verification against LocalStack's current terms by the author of this ADR — they should be re-confirmed against LocalStack's official site/pricing page before this ADR is finalized or acted upon by a human.
+**Net effect today:** the lane is not currently broken — `4.8` still pulls and runs without a token — but it is a dependency on a specific historical tag with no mirror, no fallback, and no monitoring for the day it stops being served. Bumping past `4.8` is no longer a drop-in version change; it now also requires provisioning a LocalStack account/token.
 
 ### A relevant existing precedent
 
-`connectors-e2e-test-agentic-ai/src/test/resources/docker-images.properties` already pulls `registry.camunda.cloud/mcp/mcp-test-server:2.2.0` — i.e., a Camunda-controlled registry is already reachable from this repo's CI and already has *some* image published to it. That lowers the incremental cost of option (a) below: the destination registry likely doesn't need to be stood up from scratch, since Camunda already publishes to `registry.camunda.cloud`. The important distinction: `mcp-test-server` is a Camunda-*authored* image (Camunda controls the source and publishes new versions directly), whereas mirroring `localstack/localstack:4.8` means periodically re-pushing an unmodified *third-party* image and having a process to notice when the upstream needs to be re-synced. That push/refresh process does not exist in this repo today, for any image — this ADR treats it as new work regardless of which registry hosts the result. No other `docker-images.properties` file in this repo (kafka, rabbitmq, jdbc, http-client) uses a registry-prefix or mirroring convention for third-party images.
+`connectors-e2e-test-agentic-ai/src/test/resources/docker-images.properties` already pulls `registry.camunda.cloud/mcp/mcp-test-server:2.2.0`, so a Camunda-controlled registry is already reachable from this repo's CI. That image is Camunda-authored, though — mirroring `localstack/localstack:4.8` means periodically re-pushing an unmodified third-party image and having a process to notice when it needs re-syncing, which doesn't exist today for any image in this repo.
 
 ## Decision
 
-**Shipped now (this PR):**
+The pinned tag `localstack/localstack:4.8` is left unchanged — bumping it is a separate decision, out of scope here. This ADR records the risk above and the options below; adopting one of them is a follow-up.
 
-- The pinned tag `localstack/localstack:4.8` is left unchanged. Changing it is an unrelated decision (see AGENTS.md guidance against bundling unrelated changes) and is explicitly out of scope here.
-- `DockerImages.get(String)` gained an optional registry-prefix override: if the environment variable `CONNECTORS_TEST_IMAGE_REGISTRY` is set to a non-blank value, its value is prepended to every resolved image reference before it's returned; if unset, behavior is byte-for-byte identical to today. See `connector-commons/connector-test-utils/src/main/java/io/camunda/connector/test/utils/DockerImages.java`. This makes adopting any of the options below — but especially (a) — a one-environment-variable operation for whoever implements it, without this PR fabricating that a mirror exists or performing any registry push (no push access from this environment, and none was attempted).
+No code change is needed to adopt a mirror later. Testcontainers 2.0.5 (the version pinned in `parent/pom.xml`) already substitutes image names via `TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX` (or the `hub.image.name.prefix` config property), active by default through `DefaultImageNameSubstitutor`. Setting that variable in CI prefixes every Docker Hub image reference — including ones resolved through specialized Testcontainers classes like `LocalStackContainer` and `KafkaContainer`, not just plain `GenericContainer` — before the pull, and it leaves already-registry-qualified references (e.g. `quay.io/keycloak/keycloak:26.5`, `registry.camunda.cloud/...`) untouched. A trailing slash on the prefix value is required (`registry.camunda.cloud/mirror/`, not `registry.camunda.cloud/mirror`).
 
-**Not decided by this PR — for the team to choose:**
+Because the substitution is global, adopting a mirror this way means the mirror needs to hold every Docker Hub image the AWS/kafka/rabbitmq/jdbc e2e lanes pull — not only `localstack/localstack:4.8` — including Testcontainers' own Ryuk reaper image.
 
 ### Option (a): Mirror the pinned tag to an internal registry
 
-Push `localstack/localstack:4.8` (the exact version already tested against) to an internal registry — e.g. `registry.camunda.cloud`, which per the precedent above is already reachable from CI — and point `docker-images.properties` at the mirrored reference (or rely on the `CONNECTORS_TEST_IMAGE_REGISTRY` override added in this PR).
+Push `localstack/localstack:4.8` to an internal registry (e.g. `registry.camunda.cloud`, already reachable from CI per the precedent above) and set `TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX` in the e2e workflows (`E2E_BRANCH_RUN.yml`, `NIGHTLY_E2E.yml`).
 
-- **Pro:** Freezes the exact image this suite is validated against; immune to the upstream tag disappearing or LocalStack changing pull requirements for new pulls.
-- **Con:** Requires a human with registry push credentials to perform the initial mirror (not achievable from this environment). Requires an ongoing process — someone/something has to notice if `4.8` is ever bumped, or the mirror silently becomes "the version we test" forever while the rest of the ecosystem moves on. A stale mirror that nobody revisits is a slow-motion version of the same "silently depending on something nobody's watching" problem this ADR exists to fix, just one layer removed.
+- **Pro:** Freezes the exact image this suite is validated against; no longer depends on the tag remaining on Docker Hub.
+- **Con:** Requires someone with registry push credentials to create and maintain the mirror — not done as part of this ADR. Requires an ongoing refresh process, or the mirror becomes a second, unmonitored stale dependency. Does not cover `AwsLambdaTest` fully: LocalStack's Lambda execution pulls runtime images itself, from inside the container via the mounted Docker socket (see `BaseAwsTest`'s `LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT` and `AwsTestHelper.removeLambdaContainers`) — those pulls bypass Testcontainers and this substitution mechanism entirely. A Docker-daemon-level registry mirror (`registry-mirrors` in `daemon.json`, or a CI-level pull-through cache) would cover this case too, and is a variant of this option worth considering alongside the Testcontainers-level prefix.
 
 ### Option (b): Per-service OSS emulators
 
-Replace LocalStack with dedicated open-source emulators per AWS service — e.g. DynamoDB Local for DynamoDB.
+Replace LocalStack with dedicated open-source emulators per AWS service (e.g. DynamoDB Local).
 
-- **Pro:** No single vendor's licensing/EOL decision can take down the whole lane at once; each emulator is independently maintained.
-- **Con:** No single tool covers SQS, SNS, and EventBridge the way LocalStack does today — this repo's AWS e2e lane exercises DynamoDB, EventBridge, Lambda, SNS, and SQS (five suites), so this option likely means adopting three-plus different emulator projects, each with its own Testcontainers setup, its own quirks, and its own update cadence. More test-infrastructure surface area and more images to independently track for the same "is this still maintained" risk this ADR is about.
+- **Pro:** No single vendor's licensing decision can take down the whole lane at once.
+- **Con:** No single tool covers SQS, SNS, EventBridge, Lambda and DynamoDB the way LocalStack does; this likely means adopting three-plus emulator projects, each with its own setup and update cadence.
 
-### Option (c): Paid LocalStack license
+### Option (c): Paid LocalStack license (Ultimate)
 
-Purchase a commercial LocalStack license.
+- **Pro:** Stays current with upstream, keeps single-tool coverage, and — specifically at the **Ultimate** tier, not Base — additionally covers services the free tier doesn't emulate at all (e.g. Bedrock, SageMaker, Textract; confirmed against LocalStack's coverage matrix). Base does not include these.
+- **Con:** Recurring cost with an owner who has to justify and renew it.
 
-- **Pro:** Stays current with upstream by construction (no stale mirror risk), keeps the single-tool coverage across all five AWS services this lane already exercises, and additionally covers services the free tier does not emulate at all today (e.g. Bedrock, Comprehend, Textract, SageMaker per LocalStack's tier documentation) — relevant if AWS e2e coverage grows into connectors backed by those services.
-- **Con:** Recurring cost with an owner who has to justify and renew it; introduces a paid-vendor dependency for a test lane that today has none.
+### Option (d): Apply for LocalStack's free open-source license
+
+LocalStack offers a free subscription for open-source projects, subject to LocalStack's approval (application link on their licensing page). `camunda/connectors` is Apache-2.0.
+
+- **Pro:** Potentially the coverage of a paid tier at no cost.
+- **Con:** Approval is at LocalStack's discretion; eligibility for a commercial vendor's open-source repo is untested and would need to be asked. Not evaluated further here — listed as an open item for whoever picks up this ADR's follow-up.
 
 ### Recommendation (non-binding)
 
-Leaning toward (a) as the immediate, low-cost mitigation — mirroring exactly the tag already validated against costs one push plus a lightweight periodic-refresh task, and `registry.camunda.cloud` is already integrated into this repo's CI per the precedent above — with (c) worth revisiting if/when AWS e2e coverage expands to services LocalStack's free tier doesn't emulate, since at that point a paid license may pay for itself by replacing what would otherwise be several bespoke emulator integrations under option (b). This is a recommendation, not a decision: it trades off cost, ownership, and coverage in ways that are a product/team call, not something this ADR can settle unilaterally.
+Lean toward (a) as the low-cost immediate mitigation — mirroring the already-validated tag costs one push plus a periodic-refresh task, and `registry.camunda.cloud` is already integrated into CI — while separately checking eligibility for (d), which could make (c)'s coverage available at no recurring cost. Revisit (c) if e2e coverage grows into services the free tier never emulates. This is a recommendation; the actual choice is a team decision.
 
 ## Consequences
 
 ### Positive
-
-- The current risk (silent dependency on an EOL, possibly-soon-to-require-auth image tag) is now written down instead of implicit, so it can't be silently rediscovered as a CI outage.
-- `DockerImages` gained a zero-cost-when-unused escape hatch (`CONNECTORS_TEST_IMAGE_REGISTRY`). Whichever option the team picks, adopting a mirror requires no further code changes to any test module that already uses `DockerImages.get(...)` — kafka, rabbitmq, jdbc, http-client, and every AWS e2e suite pick up the override transparently.
-- The comparison of (a)/(b)/(c) is available for the team to act on without re-deriving the trade-offs from scratch.
+- The risk is now written down instead of implicit, and the current state (still working, not yet broken) is distinguished from the future risk (any version bump requires a LocalStack account/token).
+- Adopting a mirror requires no code change — just setting `TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX` in the e2e workflows once a mirror exists.
+- The comparison of (a)/(b)/(c)/(d) is available for the team to act on.
 
 ### Negative
-
-- The actual long-term-strategy decision remains open; this ADR does not reduce the underlying risk until a human picks an option and someone implements it (mirrors an image, adopts new emulators, or purchases a license — none of which this PR performs).
-- The registry-override mechanism is unconditional prefixing (see Javadoc on `DockerImages.get`): an entry that already carries an explicit registry host would be nested under the override rather than having its host replaced. This is a documented, deliberate simplification, not a defect, but it means option (a) as implemented would produce paths like `<registry>/localstack/localstack:4.8`, which the mirror-side tooling needs to expect.
-- The LocalStack EOL/licensing facts in this ADR are carried over from the GitHub issue, not independently re-verified against LocalStack's current terms — a follow-up should confirm them before the team commits to an option.
+- The long-term choice remains open; this ADR does not reduce the underlying risk until a human mirrors an image, adopts new emulators, purchases a license, or secures an OSS grant.
+- `TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX` prefixes every Docker Hub pull in the JVM it's set for, not just LocalStack — a mirror needs to be provisioned with that scope in mind.
+- Option (a) as scoped (Testcontainers-level prefix) does not cover LocalStack's own Lambda runtime-image pulls; see the Con under option (a).
