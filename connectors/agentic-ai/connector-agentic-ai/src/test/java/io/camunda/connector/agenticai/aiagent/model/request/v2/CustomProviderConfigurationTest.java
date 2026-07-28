@@ -40,7 +40,6 @@ class CustomProviderConfigurationTest {
     assertThat(parsed).isInstanceOf(CustomProviderConfiguration.class);
     assertThat(parsed.provider()).isEqualTo("acme-llm");
     assertThat(parsed.model()).isEqualTo("acme-model-v1");
-    assertThat(parsed.backend()).isNull();
 
     final CustomProviderConfiguration custom = (CustomProviderConfiguration) parsed;
     assertThat(custom.providerType()).isEqualTo("acme-llm");
@@ -53,13 +52,29 @@ class CustomProviderConfigurationTest {
   }
 
   @Test
-  void providerModelAndBackendAreDerivedFromDedicatedFields() {
+  void deserialisesWithoutParametersToAnEmptyMap() throws Exception {
+    final String json =
+        """
+        {
+          "type": "custom",
+          "providerType": "acme-llm",
+          "model": "acme-model-v1"
+        }
+        """;
+
+    final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
+
+    final CustomProviderConfiguration custom = (CustomProviderConfiguration) parsed;
+    assertThat(custom.parameters()).isNotNull().isEmpty();
+  }
+
+  @Test
+  void providerAndModelAreDerivedFromDedicatedFields() {
     final var config =
         new CustomProviderConfiguration("acme-llm", "acme-model-v1", Map.of("key", "value"));
 
     assertThat(config.provider()).isEqualTo("acme-llm");
     assertThat(config.model()).isEqualTo("acme-model-v1");
-    assertThat(config.backend()).isNull();
   }
 
   @Test
