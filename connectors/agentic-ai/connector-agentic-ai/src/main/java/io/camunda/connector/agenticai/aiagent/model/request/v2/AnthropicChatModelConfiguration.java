@@ -53,11 +53,6 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
     return anthropic.model().model();
   }
 
-  @Override
-  public String backend() {
-    return anthropic.backend().type();
-  }
-
   /** All Anthropic-specific configuration, nested under the {@code anthropic} wire key. */
   public record AnthropicConnection(
       @Valid @NotNull AnthropicBackend backend,
