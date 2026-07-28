@@ -32,7 +32,7 @@ import org.jspecify.annotations.Nullable;
  * variable (via {@link #migrateAndBindAgentContext}), the Camunda document store payload, and AWS
  * AgentCore blob envelopes (both via {@link #upcastMessages}/{@link #upcastToolCallResults}).
  */
-public final class ConversationSchemaMigration {
+public final class AgentContextSchemaMigration {
 
   private static final String FIELD_SCHEMA_VERSION = "schemaVersion";
   private static final String FIELD_CONVERSATION = "conversation";
@@ -42,7 +42,7 @@ public final class ConversationSchemaMigration {
   private static final String FIELD_ROLE = "role";
   private static final String ROLE_TOOL_CALL_RESULT = "tool_call_result";
 
-  private ConversationSchemaMigration() {}
+  private AgentContextSchemaMigration() {}
 
   /**
    * Reads an {@code agentContext} JSON tree, upcasts its in-process conversation messages if the

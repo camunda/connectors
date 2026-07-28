@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSchemaMigration;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.AgentContextSchemaMigration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationSerializer;
@@ -146,7 +146,7 @@ class ToolCallResultMessageBackwardCompatibilityTest {
         """;
 
     AgentContext agentContext =
-        ConversationSchemaMigration.migrateAndBindAgentContext(
+        AgentContextSchemaMigration.migrateAndBindAgentContext(
             objectMapper.readTree(json), objectMapper);
 
     assertThat(agentContext.conversation()).isInstanceOf(InProcessConversationContext.class);
@@ -229,10 +229,10 @@ class ToolCallResultMessageBackwardCompatibilityTest {
    * production code uses ({@code VersionedAgentContextDeserializer}): these 8.9 fixtures predate
    * {@code schemaVersion}, so a direct {@code readValue} would no longer upcast legacy tool-call
    * results by design (see {@link ToolCallResultContent}) — it must go through {@link
-   * ConversationSchemaMigration#migrateAndBindAgentContext}.
+   * AgentContextSchemaMigration#migrateAndBindAgentContext}.
    */
   private AgentContext readAgentContextFixture(String fileName) throws IOException {
-    return ConversationSchemaMigration.migrateAndBindAgentContext(
+    return AgentContextSchemaMigration.migrateAndBindAgentContext(
         readFixtureTree(fileName), objectMapper);
   }
 

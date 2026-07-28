@@ -28,7 +28,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-class ConversationSchemaMigrationTest {
+class AgentContextSchemaMigrationTest {
 
   private final ObjectMapper objectMapper = TestObjectMapperSupplier.INSTANCE;
 
@@ -37,7 +37,7 @@ class ConversationSchemaMigrationTest {
 
     @Test
     void nullNodeBecomesEmptyList() {
-      assertThat(ConversationSchemaMigration.liftLegacyContent(null, objectMapper)).isEmpty();
+      assertThat(AgentContextSchemaMigration.liftLegacyContent(null, objectMapper)).isEmpty();
     }
 
     @ParameterizedTest
@@ -45,13 +45,13 @@ class ConversationSchemaMigrationTest {
     @ValueSource(strings = "   ")
     void blankTextualNodeBecomesEmptyList(String text) {
       JsonNode node = text == null ? objectMapper.getNodeFactory().nullNode() : textNode(text);
-      assertThat(ConversationSchemaMigration.liftLegacyContent(node, objectMapper)).isEmpty();
+      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper)).isEmpty();
     }
 
     @Test
     void nonBlankTextualNodeBecomesSingleTextContent() {
       JsonNode node = textNode("hello");
-      assertThat(ConversationSchemaMigration.liftLegacyContent(node, objectMapper))
+      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
           .containsExactly(TextContent.textContent("hello"));
     }
 
@@ -74,7 +74,7 @@ class ConversationSchemaMigrationTest {
               }
               """);
 
-      assertThat(ConversationSchemaMigration.liftLegacyContent(node, objectMapper))
+      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
           .singleElement()
           .isInstanceOf(DocumentContent.class);
     }
@@ -83,7 +83,7 @@ class ConversationSchemaMigrationTest {
     void plainObjectNodeBecomesSingleObjectContent() throws Exception {
       JsonNode node = objectMapper.readTree("{\"key\": \"value\", \"count\": 3}");
 
-      assertThat(ConversationSchemaMigration.liftLegacyContent(node, objectMapper))
+      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
           .singleElement()
           .isInstanceOfSatisfying(
               ObjectContent.class,
@@ -96,7 +96,7 @@ class ConversationSchemaMigrationTest {
           objectMapper.readTree(
               "[{\"id\": 1, \"name\": \"Alice\"}, {\"id\": 2, \"name\": \"Bob\"}]");
 
-      assertThat(ConversationSchemaMigration.liftLegacyContent(node, objectMapper))
+      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
           .singleElement()
           .isInstanceOfSatisfying(
               ObjectContent.class,
@@ -116,7 +116,7 @@ class ConversationSchemaMigrationTest {
               ]
               """);
 
-      assertThat(ConversationSchemaMigration.liftLegacyContent(node, objectMapper))
+      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
           .singleElement()
           .isInstanceOfSatisfying(
               ObjectContent.class,
@@ -127,7 +127,7 @@ class ConversationSchemaMigrationTest {
     void numberNodeBecomesSingleObjectContent() {
       JsonNode node = objectMapper.getNodeFactory().numberNode(42);
 
-      assertThat(ConversationSchemaMigration.liftLegacyContent(node, objectMapper))
+      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
           .containsExactly(ObjectContent.objectContent(42));
     }
 
@@ -135,7 +135,7 @@ class ConversationSchemaMigrationTest {
     void booleanNodeBecomesSingleObjectContent() {
       JsonNode node = objectMapper.getNodeFactory().booleanNode(true);
 
-      assertThat(ConversationSchemaMigration.liftLegacyContent(node, objectMapper))
+      assertThat(AgentContextSchemaMigration.liftLegacyContent(node, objectMapper))
           .containsExactly(ObjectContent.objectContent(true));
     }
 
@@ -151,13 +151,13 @@ class ConversationSchemaMigrationTest {
     void nonArrayNodeIsNoOp() throws Exception {
       JsonNode node = objectMapper.readTree("{\"not\": \"an array\"}");
       // no exception, no-op
-      ConversationSchemaMigration.upcastMessages(node, objectMapper);
+      AgentContextSchemaMigration.upcastMessages(node, objectMapper);
       assertThat(node.toString()).isEqualTo("{\"not\":\"an array\"}");
     }
 
     @Test
     void nullNodeIsNoOp() {
-      ConversationSchemaMigration.upcastMessages(null, objectMapper);
+      AgentContextSchemaMigration.upcastMessages(null, objectMapper);
       // no exception thrown
     }
 
@@ -173,7 +173,7 @@ class ConversationSchemaMigrationTest {
               """);
 
       String before = messages.toString();
-      ConversationSchemaMigration.upcastMessages(messages, objectMapper);
+      AgentContextSchemaMigration.upcastMessages(messages, objectMapper);
 
       assertThat(messages.toString()).isEqualTo(before);
     }
@@ -193,7 +193,7 @@ class ConversationSchemaMigrationTest {
               ]
               """);
 
-      ConversationSchemaMigration.upcastMessages(messagesArray, objectMapper);
+      AgentContextSchemaMigration.upcastMessages(messagesArray, objectMapper);
 
       JsonNode content = messagesArray.get(0).get("results").get(0).get("content");
       assertThat(content.isArray()).isTrue();
@@ -223,7 +223,7 @@ class ConversationSchemaMigrationTest {
               ]
               """);
 
-      ConversationSchemaMigration.upcastMessages(messagesArray, objectMapper);
+      AgentContextSchemaMigration.upcastMessages(messagesArray, objectMapper);
 
       JsonNode content = messagesArray.get(0).get("results").get(0).get("content");
       assertThat(content.isArray()).isTrue();
@@ -238,13 +238,13 @@ class ConversationSchemaMigrationTest {
     @Test
     void nonArrayNodeIsNoOp() throws Exception {
       JsonNode node = objectMapper.readTree("{\"not\": \"an array\"}");
-      ConversationSchemaMigration.upcastToolCallResults(node, objectMapper);
+      AgentContextSchemaMigration.upcastToolCallResults(node, objectMapper);
       assertThat(node.toString()).isEqualTo("{\"not\":\"an array\"}");
     }
 
     @Test
     void nullNodeIsNoOp() {
-      ConversationSchemaMigration.upcastToolCallResults(null, objectMapper);
+      AgentContextSchemaMigration.upcastToolCallResults(null, objectMapper);
     }
 
     @Test
@@ -252,7 +252,7 @@ class ConversationSchemaMigrationTest {
       JsonNode results = objectMapper.readTree("[{\"id\": \"call-1\", \"name\": \"search\"}]");
       String before = results.toString();
 
-      ConversationSchemaMigration.upcastToolCallResults(results, objectMapper);
+      AgentContextSchemaMigration.upcastToolCallResults(results, objectMapper);
 
       assertThat(results.toString()).isEqualTo(before);
     }
@@ -263,7 +263,7 @@ class ConversationSchemaMigrationTest {
           objectMapper.readTree(
               "[{\"id\": \"call-1\", \"name\": \"search\", \"content\": \"Found 3 items\"}]");
 
-      ConversationSchemaMigration.upcastToolCallResults(results, objectMapper);
+      AgentContextSchemaMigration.upcastToolCallResults(results, objectMapper);
 
       JsonNode content = results.get(0).get("content");
       assertThat(content.isArray()).isTrue();
@@ -276,14 +276,14 @@ class ConversationSchemaMigrationTest {
 
     @Test
     void nullTreeReturnsNull() throws Exception {
-      assertThat(ConversationSchemaMigration.migrateAndBindAgentContext(null, objectMapper))
+      assertThat(AgentContextSchemaMigration.migrateAndBindAgentContext(null, objectMapper))
           .isNull();
     }
 
     @Test
     void nullNodeReturnsNull() throws Exception {
       JsonNode node = objectMapper.getNodeFactory().nullNode();
-      assertThat(ConversationSchemaMigration.migrateAndBindAgentContext(node, objectMapper))
+      assertThat(AgentContextSchemaMigration.migrateAndBindAgentContext(node, objectMapper))
           .isNull();
     }
 
@@ -315,7 +315,7 @@ class ConversationSchemaMigrationTest {
                   .formatted(AgentContext.CURRENT_SCHEMA_VERSION));
 
       AgentContext agentContext =
-          ConversationSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
 
       assertThat(agentContext).isNotNull();
       assertThat(agentContext.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
@@ -347,7 +347,7 @@ class ConversationSchemaMigrationTest {
               """);
 
       AgentContext agentContext =
-          ConversationSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
 
       assertThat(agentContext).isNotNull();
       // the in-memory object is current-shape after upcast, even though it was read from
@@ -382,7 +382,7 @@ class ConversationSchemaMigrationTest {
               """);
 
       AgentContext agentContext =
-          ConversationSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
 
       assertThat(agentContext).isNotNull();
       // an explicit lower schemaVersion (not just a missing one) is also stamped to current, so
@@ -416,14 +416,14 @@ class ConversationSchemaMigrationTest {
               """);
 
       AgentContext firstPass =
-          ConversationSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
       assertThat(firstPass).isNotNull();
 
       // simulate the write-then-read-again cycle: reserialize the migrated context back to a
       // tree (as it would be persisted), then migrate-and-bind it a second time
       JsonNode reserializedTree = objectMapper.valueToTree(firstPass);
       AgentContext secondPass =
-          ConversationSchemaMigration.migrateAndBindAgentContext(reserializedTree, objectMapper);
+          AgentContextSchemaMigration.migrateAndBindAgentContext(reserializedTree, objectMapper);
 
       assertThat(secondPass).isNotNull();
       assertThat(secondPass.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
@@ -445,7 +445,7 @@ class ConversationSchemaMigrationTest {
       JsonNode tree = objectMapper.readTree("{\"schemaVersion\": %d}".formatted(futureVersion));
 
       assertThatThrownBy(
-              () -> ConversationSchemaMigration.migrateAndBindAgentContext(tree, objectMapper))
+              () -> AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining(String.valueOf(futureVersion))
           .hasMessageContaining("newer")
@@ -486,7 +486,7 @@ class ConversationSchemaMigrationTest {
               """);
 
       AgentContext agentContext =
-          ConversationSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
 
       assertThat(agentContext).isNotNull();
       InProcessConversationContext conversation =
@@ -528,7 +528,7 @@ class ConversationSchemaMigrationTest {
               """);
 
       AgentContext agentContext =
-          ConversationSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
 
       assertThat(agentContext).isNotNull();
     }

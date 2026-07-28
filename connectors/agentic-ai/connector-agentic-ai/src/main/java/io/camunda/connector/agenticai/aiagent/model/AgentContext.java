@@ -23,7 +23,7 @@ import org.jspecify.annotations.Nullable;
 @JsonDeserialize(builder = AgentContext.AgentContextJacksonProxyBuilder.class)
 public record AgentContext(
     // a MISSING schemaVersion (pre-versioning 8.9 data) binds to the current version by design:
-    // legacy detection happens on the raw JSON tree in ConversationSchemaMigration BEFORE
+    // legacy detection happens on the raw JSON tree in AgentContextSchemaMigration BEFORE
     // binding, and migrated trees are explicitly stamped to current there too, so the bound
     // object always reports the current version -- this initializer only ever fires for state
     // that truly never carried the field (e.g. constructed fresh via the builder).
@@ -39,7 +39,7 @@ public record AgentContext(
   /**
    * The current persisted shape of {@code AgentContext} and its conversation content. Bumped
    * whenever a change to the persisted shape requires migrating previously-persisted state on read
-   * (see {@code ConversationSchemaMigration}).
+   * (see {@code AgentContextSchemaMigration}).
    */
   public static final int CURRENT_SCHEMA_VERSION = 1;
 

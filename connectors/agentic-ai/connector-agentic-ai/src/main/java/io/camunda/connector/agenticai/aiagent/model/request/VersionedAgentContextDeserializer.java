@@ -10,7 +10,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSchemaMigration;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.AgentContextSchemaMigration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import java.io.IOException;
 import org.jspecify.annotations.Nullable;
@@ -25,7 +25,7 @@ import org.jspecify.annotations.Nullable;
  * registration would not. This deserializer runs inside {@code bindVariables}' own {@code
  * readValue} call (secrets have already been substituted textually beforehand; validation runs
  * afterwards on the resulting object), so there is no separate binding pass and no recursion:
- * {@link ConversationSchemaMigration#migrateAndBindAgentContext} binds via {@code
+ * {@link AgentContextSchemaMigration#migrateAndBindAgentContext} binds via {@code
  * mapper.treeToValue(..., AgentContext.class)}, which uses {@code AgentContext}'s own builder
  * deserializer, not this field deserializer.
  */
@@ -34,7 +34,7 @@ public class VersionedAgentContextDeserializer extends JsonDeserializer<AgentCon
   @Override
   public @Nullable AgentContext deserialize(JsonParser p, DeserializationContext ctxt)
       throws IOException {
-    return ConversationSchemaMigration.migrateAndBindAgentContext(
+    return AgentContextSchemaMigration.migrateAndBindAgentContext(
         p.readValueAsTree(), (ObjectMapper) p.getCodec());
   }
 

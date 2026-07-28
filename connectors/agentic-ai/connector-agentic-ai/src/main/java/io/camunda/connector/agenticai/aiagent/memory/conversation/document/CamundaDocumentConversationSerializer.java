@@ -10,7 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSchemaMigration;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.AgentContextSchemaMigration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.api.document.Document;
@@ -46,7 +46,7 @@ public class CamundaDocumentConversationSerializer {
               .formatted(schemaVersion, AgentContext.CURRENT_SCHEMA_VERSION));
     }
     if (schemaVersion < AgentContext.CURRENT_SCHEMA_VERSION) {
-      ConversationSchemaMigration.upcastMessages(tree.get("messages"), objectMapper);
+      AgentContextSchemaMigration.upcastMessages(tree.get("messages"), objectMapper);
     }
     return objectMapper.treeToValue(tree, DocumentContent.class);
   }

@@ -140,7 +140,7 @@ class ToolCallResultContentTest {
     @Test
     void legacyFlatContentFailsToDeserializeDirectly() {
       // ToolCallResultContent's own `content` field only binds the current structured shape now
-      // (see ConversationSchemaMigrationTest for the lift-on-read coverage of legacy shapes); a
+      // (see AgentContextSchemaMigrationTest for the lift-on-read coverage of legacy shapes); a
       // legacy flat value reaching this type un-upcasted is the intended safety net firing loud
       String json = "{\"id\": \"call-1\", \"name\": \"search\", \"content\": \"x\"}";
 

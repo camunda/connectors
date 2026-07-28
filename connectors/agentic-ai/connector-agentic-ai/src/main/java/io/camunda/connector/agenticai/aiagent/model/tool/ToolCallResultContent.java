@@ -38,7 +38,7 @@ import org.jspecify.annotations.Nullable;
  * scalar/object/array and any additional (framework-internal) properties were flattened as
  * top-level fields. This type's {@code content} field only deserializes the current structured
  * shape; legacy state is migrated on read by an explicit persisted schema version at each
- * conversation root plus a shared upcaster (see {@code ConversationSchemaMigration}), not by
+ * conversation root plus a shared upcaster (see {@code AgentContextSchemaMigration}), not by
  * inspecting the shape of {@code content} — that heuristic was ambiguous with gateway tool results
  * persisted as a list of provider content blocks sharing the same type discriminators. The write
  * path always re-persists this type in its structured shape — a conversation touched again after
@@ -82,7 +82,7 @@ public record ToolCallResultContent(
   /**
    * The content-lift mapping for the forward path ({@link #from(ToolCallResult)}, operating on
    * already-deserialized Java objects). The mirror-image lift for raw JSON nodes read from legacy
-   * (Camunda 8.9) data lives in {@code ConversationSchemaMigration#liftLegacyContent}. Each branch
+   * (Camunda 8.9) data lives in {@code AgentContextSchemaMigration#liftLegacyContent}. Each branch
    * produces a singleton list (or an empty one for null/blank) — a multi-element list only ever
    * arises later once provider-specific chat model implementations emit structured content
    * directly.
