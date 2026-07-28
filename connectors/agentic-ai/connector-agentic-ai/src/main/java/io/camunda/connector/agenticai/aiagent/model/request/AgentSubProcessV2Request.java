@@ -14,31 +14,13 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.ProviderConfigura
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.versioning.VersionedAgentContextDeserializer;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.java.annotation.FeelMode;
-import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public record AgentSubProcessV2Request(
     @JsonProperty("adHocSubProcessElements") List<AdHocToolElement> toolElements,
-    @FEEL
-        @TemplateProperty(
-            label = "Agent context",
-            group = "memory",
-            id = "agentContext",
-            description =
-                "Initial agent context from previous interactions. Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
-            tooltip =
-                "The agent context variable containing all relevant data for the agent to support the feedback loop between "
-                    + "user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> "
-                    + "variable which is returned from the agent response. "
-                    + "<a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/\" target=\"_blank\">See documentation</a> "
-                    + "for details.",
-            type = TemplateProperty.PropertyType.Text,
-            feel = FeelMode.required)
-        @Valid
-        @JsonDeserialize(using = VersionedAgentContextDeserializer.class)
+    @FEEL @Valid @JsonDeserialize(using = VersionedAgentContextDeserializer.class)
         AgentContext agentContext,
     List<ToolCallResult> toolCallResults,
     @Valid @NotNull ProviderConfiguration provider,
