@@ -129,6 +129,7 @@ jobs:
           method: approle
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
           secrets: |
             secret/data/products/connectors/ci/common GITHUB_APP_ID;
             secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
