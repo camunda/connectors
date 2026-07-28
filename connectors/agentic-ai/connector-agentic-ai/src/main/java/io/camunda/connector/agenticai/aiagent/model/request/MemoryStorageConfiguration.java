@@ -196,6 +196,8 @@ public sealed interface MemoryStorageConfiguration
       @FEEL
           @TemplateProperty(
               label = "Implementation type",
+              description = "Identifier for the custom memory storage implementation.",
+              tooltip = "Must match the identifier configured for the custom implementation.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))

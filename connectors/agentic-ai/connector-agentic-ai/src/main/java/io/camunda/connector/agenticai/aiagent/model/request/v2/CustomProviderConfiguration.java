@@ -28,6 +28,8 @@ public record CustomProviderConfiguration(
         @TemplateProperty(
             group = "provider",
             label = "Provider type",
+            description = "Identifier for the custom chat model provider.",
+            tooltip = "Must match the identifier configured for the custom implementation.",
             type = TemplateProperty.PropertyType.String,
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -47,7 +49,7 @@ public record CustomProviderConfiguration(
         @TemplateProperty(
             group = "provider",
             label = "Provider parameters",
-            description = "Parameters for the custom chat model factory implementation.",
+            description = "Parameters for the custom chat model provider implementation.",
             feel = FeelMode.required,
             optional = true)
         Map<String, Object> parameters)

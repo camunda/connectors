@@ -125,6 +125,7 @@
   }, {
     "id" : "provider.providerType",
     "label" : "Provider type",
+    "description" : "Identifier for the custom chat model provider.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -140,11 +141,12 @@
       "equals" : "custom",
       "type" : "simple"
     },
+    "tooltip" : "Must match the identifier configured for the custom implementation.",
     "type" : "String"
   }, {
     "id" : "provider.parameters",
     "label" : "Provider parameters",
-    "description" : "Parameters for the custom chat model factory implementation.",
+    "description" : "Parameters for the custom chat model provider implementation.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
@@ -447,6 +449,7 @@
   }, {
     "id" : "data.memory.storage.storeType",
     "label" : "Implementation type",
+    "description" : "Identifier for the custom memory storage implementation.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -462,6 +465,7 @@
       "equals" : "custom",
       "type" : "simple"
     },
+    "tooltip" : "Must match the identifier configured for the custom implementation.",
     "type" : "String"
   }, {
     "id" : "data.memory.storage.parameters",
