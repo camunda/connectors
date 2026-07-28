@@ -140,6 +140,9 @@ limitations under the License.</license.inlineheader>
     <version.commons-codec>1.16.1</version.commons-codec>
 
     <version.kafka-clients>4.3.1</version.kafka-clients>
+    <!-- CVE-2026-59949: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.1
+         Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-59949 -->
+    <version.lz4-java>1.11.1</version.lz4-java>
 
     <version.microsoft-graph>6.67.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.3</version.microsoft-kiota-abstraction>
@@ -681,6 +684,14 @@ limitations under the License.</license.inlineheader>
         <version>${version.kafka-clients}</version>
       </dependency>
 
+      <!-- CVE-2026-59949 (https://nvd.nist.gov/vuln/detail/CVE-2026-59949): override lz4-java transitive
+           version brought in by kafka-clients. Remove once kafka-clients ships lz4-java >= 1.11.1. -->
+      <dependency>
+        <groupId>at.yawk.lz4</groupId>
+        <artifactId>lz4-java</artifactId>
+        <version>${version.lz4-java}</version>
+      </dependency>
+
       <dependency>
         <groupId>org.xerial.snappy</groupId>
         <artifactId>snappy-java</artifactId>
@@ -1000,6 +1011,18 @@ version.opensearch-client was changed! Check if the parsson CVE-2026-9563 overri
 If the new opensearch-java version ships parsson &gt;= 1.1.8, remove the version.parsson property,
 the parsson dependencyManagement entry, and this enforcer rule from parent/pom.xml.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-9563
+                </regexMessage>
+              </requireProperty>
+              <!-- CVE-2026-59949 guard: fails if kafka-clients is bumped, as a reminder to
+                   check whether the lz4-java override can be removed (see version.lz4-java). -->
+              <requireProperty>
+                <property>version.kafka-clients</property>
+                <regex>^4\.3\.1$</regex>
+                <regexMessage>
+version.kafka-clients was changed! Check if the lz4-java CVE-2026-59949 override can be removed.
+If the new kafka-clients version ships lz4-java &gt;= 1.11.1, remove the version.lz4-java property,
+the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.xml.
+See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
                 </regexMessage>
               </requireProperty>
             </rules>
