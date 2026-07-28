@@ -21,7 +21,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AGENT_RESPONSE_VARIABLE;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -397,7 +397,7 @@ class RealProviderApiSmokeIT {
     var model =
         buildModel(
             provider,
-            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
             DEFAULT_SYSTEM_PROMPT,
             template -> {});
@@ -428,7 +428,7 @@ class RealProviderApiSmokeIT {
     var model =
         buildModel(
             provider,
-            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
             DEFAULT_SYSTEM_PROMPT,
             template ->
@@ -473,7 +473,7 @@ class RealProviderApiSmokeIT {
     var model =
         buildModel(
             provider,
-            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
             "You are a careful reasoner. Think step by step before answering.",
             // Reasoning enablement is model-specific (sonnet-4-6 uses "enabled"+budget, sonnet-5
@@ -520,7 +520,7 @@ class RealProviderApiSmokeIT {
     var model =
         buildModel(
             provider,
-            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
             DEFAULT_SYSTEM_PROMPT,
             template -> {
@@ -590,7 +590,7 @@ class RealProviderApiSmokeIT {
     var model =
         buildModel(
             provider,
-            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             DOCUMENT_BPMN_RESOURCE,
             systemPrompt,
             template -> template.property("data.userPrompt.documents", "=downloadedFiles"));
@@ -627,7 +627,7 @@ class RealProviderApiSmokeIT {
     var model =
         buildModel(
             provider,
-            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             DOCUMENT_BPMN_RESOURCE,
             DOCUMENT_SYSTEM_PROMPT,
             template -> {});
@@ -663,7 +663,7 @@ class RealProviderApiSmokeIT {
     var model =
         buildModel(
             provider,
-            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
             "You may run code to compute exact answers.",
             template ->
@@ -705,7 +705,7 @@ class RealProviderApiSmokeIT {
     var model =
         buildModel(
             provider,
-            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
             systemPrompt,
             template -> provider.propertiesFor(Capability.WEB_SEARCH).forEach(template::property));

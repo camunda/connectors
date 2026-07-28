@@ -42,9 +42,9 @@ import java.util.function.Function;
  * the same SSE stubs if a streaming client were added for it.
  *
  * <p>Drives the v2 element template ({@link
- * AgentTestFixtures#AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH}), whose provider/backend property
- * ids share the v1 template's {@code provider.*} prefix but nest a differently-shaped schema
- * underneath it — see {@link #elementTemplatePath(String)} and {@link
+ * AgentTestFixtures#AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH}), whose provider/backend
+ * property ids share the v1 template's {@code provider.*} prefix but nest a differently-shaped
+ * schema underneath it — see {@link #elementTemplatePath(String)} and {@link
  * #elementTemplateBaselineProperties(Map)}.
  *
  * <p>The configured endpoint is the bare WireMock host root (no trailing {@code /v1/}), unlike the
@@ -80,12 +80,12 @@ public final class AnthropicMessagesV2WireFormatFixture
 
   @Override
   public String elementTemplatePath(String defaultElementTemplatePath) {
-    return AgentTestFixtures.AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH;
+    return AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
   }
 
   @Override
   public Map<String, String> elementTemplateBaselineProperties(
       Map<String, String> defaultProperties) {
-    return AgentTestFixtures.AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PROPERTIES;
+    return AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PROPERTIES;
   }
 }

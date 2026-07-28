@@ -14,13 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.subprocess.anthropic;
+package io.camunda.connector.e2e.agenticai.aiagent.subprocess.v2;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PROPERTIES;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesChatModelStubs.MESSAGES_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,17 +26,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
-import org.springframework.core.io.Resource;
 
 /**
  * Shared plumbing for native-Anthropic-only e2e coverage driven through the v2 element template:
@@ -46,40 +38,13 @@ import org.springframework.core.io.Resource;
  * backend (the only Anthropic backend with a configurable endpoint), and provides the recorded
  * request lookup helpers used to assert on the wire format.
  */
-abstract class BaseAnthropicNativeSubProcessTest extends BaseAgentSubProcessTest {
+abstract class BaseAnthropicNativeSubProcessTest extends BaseAgentSubProcessV2Test {
 
   static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @Override
-  protected String elementTemplatePath() {
-    return AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH;
-  }
-
-  @Override
-  protected Map<String, String> elementTemplateProperties() {
-    return AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PROPERTIES;
-  }
-
-  /**
-   * Overridden directly (rather than the {@code withOpenAiCompatibleProvider} hook {@link
-   * BaseAgentSubProcessTest#createProcessInstance} composes) so this test's native-Anthropic
-   * provider configuration - not the openaiCompatible default - configures the element template.
-   */
-  @Override
-  protected ZeebeTest createProcessInstance(
-      Resource process,
-      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      Map<String, Object> variables)
-      throws IOException {
-    final Function<ElementTemplate, ElementTemplate> composed =
-        ((Function<ElementTemplate, ElementTemplate>) this::configureAnthropicBackend)
-            .andThen(elementTemplateModifier);
-    final var updatedElementTemplate =
-        elementTemplateWithModifications(elementTemplatePath(), composed);
-    final var updatedElementTemplateFile =
-        updatedElementTemplate.writeTo(new File(tempDir, "template.json"));
-    final var updatedModel = modelWithModifications(process.getFile(), updatedElementTemplateFile);
-    return createProcessInstance(customizeModel(updatedModel), variables);
+  protected Function<ElementTemplate, ElementTemplate> providerConfigurer() {
+    return this::configureAnthropicBackend;
   }
 
   /**
