@@ -71,23 +71,12 @@ public class AnthropicContentConverter {
             blocks.add(
                 ContentBlockParam.ofText(
                     TextBlockParam.builder().text(writeAsJson(obj.content())).build()));
-        // Reasoning content is re-emitted unconditionally as long as a raw payload is
-        // present. A null payload has no wire representation to replay; skip it so history
-        // replay stays valid.
-        case ReasoningContent rc -> {
-          if (rc.payload() != null) {
+        case ReasoningContent rc ->
             blocks.add(
                 ObjectMappers.jsonMapper().convertValue(rc.payload(), ContentBlockParam.class));
-          }
-        }
-        case ProviderContent pc -> {
-          // A null payload (reachable via the public constructor) has no wire representation to
-          // replay; skip it instead of emitting a null content block.
-          if (pc.payload() != null) {
+        case ProviderContent pc ->
             blocks.add(
                 ObjectMappers.jsonMapper().convertValue(pc.payload(), ContentBlockParam.class));
-          }
-        }
       }
     }
     return blocks;

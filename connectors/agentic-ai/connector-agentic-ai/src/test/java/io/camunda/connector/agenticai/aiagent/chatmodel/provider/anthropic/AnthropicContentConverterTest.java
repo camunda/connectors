@@ -107,17 +107,6 @@ class AnthropicContentConverterTest {
     }
 
     @Test
-    void skipsReasoningContentWithNullPayload() {
-      // e.g. reasoning content produced by the LangChain4J-routed path, which never populates a
-      // payload; there is no raw block to replay, so it is skipped rather than dropped
-      // silently as a null content block.
-      final var blocks =
-          converter.toContentBlockParams(List.of(new ReasoningContent("anthropic", null, null)));
-
-      assertThat(blocks).isEmpty();
-    }
-
-    @Test
     void mapsReasoningContentThinkingPayloadToNativeBlockRoundTrip() {
       final var payload =
           Map.<String, Object>of(
@@ -161,14 +150,6 @@ class AnthropicContentConverterTest {
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isContainerUpload()).isTrue();
       assertThat(blocks.get(0).asContainerUpload().fileId()).isEqualTo("file_abc123");
-    }
-
-    @Test
-    void skipsProviderContentWithNullPayload() {
-      final var blocks =
-          converter.toContentBlockParams(List.of(new ProviderContent("anthropic", null, null)));
-
-      assertThat(blocks).isEmpty();
     }
 
     @Test
