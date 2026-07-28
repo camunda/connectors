@@ -6,26 +6,32 @@
  */
 package io.camunda.connector.sagemaker.suppliers;
 
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
+import io.camunda.connector.aws.AwsClientSupport;
+import io.camunda.connector.sagemaker.model.SageMakerRequest;
 import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeAsyncClient;
 import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 
 public class SageMakeClientSupplier {
 
-  public SageMakerRuntimeClient getSyncClient(
-      final AwsCredentialsProvider credentialsProvider, final String region) {
-    return SageMakerRuntimeClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(region))
-        .build();
+  /**
+   * Builds the production sync client through the shared {@link AwsClientSupport#createClient}, so
+   * credentials, region, and endpoint-override handling are configured exactly as every other AWS
+   * SDK v2 connector (issue #7083).
+   *
+   * <p>Note: unlike the previous hand-rolled builder, {@code AwsClientSupport} also applies {@code
+   * configuration.endpoint} if present. That property was already exposed (hidden) on the element
+   * template but was silently ignored by this supplier; it is now honored. Additionally, when
+   * {@code configuration} or {@code configuration.region} is absent, {@code AwsClientSupport}
+   * leaves the region unset (falling back to the SDK's default region provider chain) instead of
+   * the previous caller-side {@code request.getConfiguration().region()} dereference in {@code
+   * SagemakerConnectorFunction}, which threw {@code NullPointerException} when either was absent.
+   */
+  public SageMakerRuntimeClient getSyncClient(final SageMakerRequest request) {
+    return AwsClientSupport.createClient(SageMakerRuntimeClient.builder(), request);
   }
 
-  public SageMakerRuntimeAsyncClient getAsyncClient(
-      final AwsCredentialsProvider credentialsProvider, final String region) {
-    return SageMakerRuntimeAsyncClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(region))
-        .build();
+  /** Async counterpart of {@link #getSyncClient(SageMakerRequest)}; see that method's Javadoc. */
+  public SageMakerRuntimeAsyncClient getAsyncClient(final SageMakerRequest request) {
+    return AwsClientSupport.createClient(SageMakerRuntimeAsyncClient.builder(), request);
   }
 }
