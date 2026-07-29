@@ -27,7 +27,10 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 
@@ -46,15 +49,17 @@ public class TestChatModelFactoryConfiguration {
    * it was resolved with, so e2e tests can drive the full tool-calling loop through the "custom"
    * provider discriminator without any real (or WireMock-stubbed) LLM endpoint.
    */
+  @NullMarked
   public static class TestChatModelFactory implements ChatModelFactory {
 
     public static final String PROVIDER_TYPE = "e2e-custom";
     public static final String MODEL_ID = "e2e-custom-model";
 
-    private final List<ChatResult> scriptedResults = new ArrayList<>();
-    private final List<ChatRequest> recordedRequests =
+    private final Deque<ChatResult> enqueuedResults = new ConcurrentLinkedDeque<>();
+
+    private final List<ChatModelConfiguration> recordedConfigurations =
         Collections.synchronizedList(new ArrayList<>());
-    private final List<ChatModelConfiguration> configurations =
+    private final List<ChatRequest> recordedRequests =
         Collections.synchronizedList(new ArrayList<>());
 
     @Override
@@ -64,16 +69,18 @@ public class TestChatModelFactoryConfiguration {
 
     @Override
     public ChatModel create(ChatModelConfiguration configuration) {
-      configurations.add(configuration);
+      recordedConfigurations.add(configuration);
       return new ChatModel() {
         @Override
         public ChatResult execute(ChatRequest request) {
           recordedRequests.add(request);
-          if (scriptedResults.isEmpty()) {
+          var result = enqueuedResults.pollFirst();
+          if (result == null) {
             throw new IllegalStateException(
-                "No scripted chat result configured for call #" + recordedRequests.size());
+                "No enqueued chat result configured for call #" + recordedRequests.size());
           }
-          return scriptedResults.remove(0);
+
+          return result;
         }
 
         @Override
@@ -82,26 +89,21 @@ public class TestChatModelFactoryConfiguration {
     }
 
     public void enqueue(ChatResult... results) {
-      Collections.addAll(scriptedResults, results);
+      Collections.addAll(enqueuedResults, results);
     }
 
     public void reset() {
-      scriptedResults.clear();
+      enqueuedResults.clear();
+      recordedConfigurations.clear();
       recordedRequests.clear();
-      configurations.clear();
     }
 
     public List<ChatRequest> recordedRequests() {
       return List.copyOf(recordedRequests);
     }
 
-    public List<ChatModelConfiguration> configurations() {
-      return List.copyOf(configurations);
-    }
-
-    /** The {@link ChatModelConfiguration} this factory was last resolved/created with. */
-    public ChatModelConfiguration lastConfiguration() {
-      return configurations.get(configurations.size() - 1);
+    public List<ChatModelConfiguration> recordedConfigurations() {
+      return List.copyOf(recordedConfigurations);
     }
 
     public static ChatResult text(String text, int inputTokens, int outputTokens) {

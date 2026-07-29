@@ -65,7 +65,7 @@ class AgentTaskCustomProviderToolCallingTests extends BaseAgentTaskV2Test {
         .property("provider.type", "custom")
         .property("provider.providerType", TestChatModelFactory.PROVIDER_TYPE)
         .property("provider.model", TestChatModelFactory.MODEL_ID)
-        .property("provider.parameters", "={\"answer\": \"fortytwo\"}");
+        .property("provider.parameters", "={\"type\": \"task\"}");
   }
 
   @Test
@@ -87,12 +87,14 @@ class AgentTaskCustomProviderToolCallingTests extends BaseAgentTaskV2Test {
     final var zeebeTest =
         awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", initialUserPrompt)));
 
-    assertThat(chatModelFactory.lastConfiguration())
+    assertThat(chatModelFactory.recordedConfigurations())
+        .hasSize(2)
+        .last()
         .isInstanceOfSatisfying(
             CustomProviderConfiguration.class,
             customProviderConfiguration ->
                 assertThat(customProviderConfiguration.parameters())
-                    .containsEntry("answer", "fortytwo"));
+                    .containsExactly(Map.entry("type", "task")));
 
     final var recordedRequests = chatModelFactory.recordedRequests();
     assertThat(recordedRequests).hasSize(2);

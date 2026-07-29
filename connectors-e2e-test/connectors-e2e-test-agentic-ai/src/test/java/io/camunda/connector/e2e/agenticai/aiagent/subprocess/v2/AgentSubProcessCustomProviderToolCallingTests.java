@@ -58,7 +58,7 @@ class AgentSubProcessCustomProviderToolCallingTests extends BaseAgentSubProcessV
         .property("provider.type", "custom")
         .property("provider.providerType", TestChatModelFactory.PROVIDER_TYPE)
         .property("provider.model", TestChatModelFactory.MODEL_ID)
-        .property("provider.parameters", "={\"answer\": \"fortytwo\"}");
+        .property("provider.parameters", "={\"type\": \"sub-process\"}");
   }
 
   @Test
@@ -80,12 +80,14 @@ class AgentSubProcessCustomProviderToolCallingTests extends BaseAgentSubProcessV
     final var zeebeTest =
         awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", initialUserPrompt)));
 
-    assertThat(chatModelFactory.lastConfiguration())
+    assertThat(chatModelFactory.recordedConfigurations())
+        .hasSize(2)
+        .last()
         .isInstanceOfSatisfying(
             CustomProviderConfiguration.class,
             customProviderConfiguration ->
                 assertThat(customProviderConfiguration.parameters())
-                    .containsEntry("answer", "fortytwo"));
+                    .containsExactly(Map.entry("type", "sub-process")));
 
     final var recordedRequests = chatModelFactory.recordedRequests();
     assertThat(recordedRequests).hasSize(2);
