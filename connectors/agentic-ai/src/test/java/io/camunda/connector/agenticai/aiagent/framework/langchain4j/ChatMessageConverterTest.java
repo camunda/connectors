@@ -46,9 +46,13 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -195,6 +199,95 @@ class ChatMessageConverterTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(
             "AiMessage currently only supports a single TextContent block, 3 content blocks found instead.");
+  }
+
+  /**
+   * Framework message attributes carry data the provider requires us to echo back verbatim on the
+   * next request - most notably Gemini 3 thought signatures, without which a follow-up request
+   * containing function calls is rejected with a 400. They must survive the round trip through the
+   * conversation history.
+   */
+  @Test
+  void assistantMessageRoundTrip_preservesFrameworkAttributes() {
+    final var attributes = Map.<String, Object>of("thought_signature_toolCallId", "c2lnbmF0dXJl");
+    final var aiMessage = AiMessage.builder().text("AI response").attributes(attributes).build();
+    final var chatResponse =
+        new ChatResponse.Builder()
+            .aiMessage(aiMessage)
+            .metadata(ChatResponseMetadata.builder().finishReason(FinishReason.STOP).build())
+            .build();
+
+    final var assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    assertThat(assistantMessage.metadata().get("framework"))
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .containsEntry("attributes", attributes);
+
+    assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage).attributes())
+        .isEqualTo(attributes);
+  }
+
+  @Test
+  void toAssistantMessage_withoutAttributes_doesNotAddAttributesMetadata() {
+    final var chatResponse =
+        new ChatResponse.Builder()
+            .aiMessage(AiMessage.builder().text("AI response").build())
+            .metadata(ChatResponseMetadata.builder().finishReason(FinishReason.STOP).build())
+            .build();
+
+    assertThat(chatMessageConverter.toAssistantMessage(chatResponse).metadata().get("framework"))
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .doesNotContainKey("attributes");
+  }
+
+  /**
+   * Conversations persisted before framework attributes were supported must keep working - a
+   * process already in flight has no "attributes" key, and older ones may have no metadata at all.
+   * The conversation lives in a process variable, so the shapes here are neither type-safe nor
+   * beyond tampering.
+   */
+  @ParameterizedTest
+  @NullSource
+  @MethodSource("metadataWithoutUsableAttributes")
+  void fromAssistantMessage_withoutUsableFrameworkAttributes_returnsEmptyAttributes(
+      Map<String, Object> metadata) {
+    final var assistantMessage =
+        AssistantMessage.builder()
+            .content(List.of(textContent("Test message")))
+            .metadata(metadata)
+            .build();
+
+    assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage).attributes()).isEmpty();
+  }
+
+  static Stream<Map<String, Object>> metadataWithoutUsableAttributes() {
+    return Stream.of(
+        Map.of(),
+        // the shape persisted by any process started before this change
+        Map.of("timestamp", ZonedDateTime.now(), "framework", Map.of("finishReason", "STOP")),
+        // no framework key at all
+        Map.of("timestamp", ZonedDateTime.now()),
+        // framework/attributes present but not maps
+        Map.of("framework", "not-a-map"),
+        Map.of("framework", Map.of("attributes", "not-a-map")),
+        Map.of("framework", Map.of("attributes", Map.of())));
+  }
+
+  @Test
+  void fromAssistantMessage_withNonStringAttributeValues_dropsUnusableEntries() {
+    final var assistantMessage =
+        AssistantMessage.builder()
+            .content(List.of(textContent("Test message")))
+            .metadata(
+                Map.of(
+                    "framework",
+                    Map.of(
+                        "attributes",
+                        Map.of("thought_signature_a", "c2ln", "thought_signature_b", 42))))
+            .build();
+
+    assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage).attributes())
+        .containsExactly(entry("thought_signature_a", "c2ln"));
   }
 
   @Test
