@@ -17,8 +17,8 @@
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AGENT_RESPONSE_VARIABLE;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PATH;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PROPERTIES;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_V1_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_V1_ELEMENT_TEMPLATE_PROPERTIES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
@@ -70,12 +70,12 @@ public abstract class BaseAgentTaskTest extends BaseAgentTest {
 
   @Override
   protected String elementTemplatePath() {
-    return AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PATH;
+    return AI_AGENT_TASK_V1_ELEMENT_TEMPLATE_PATH;
   }
 
   @Override
   protected Map<String, String> elementTemplateProperties() {
-    return AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PROPERTIES;
+    return AI_AGENT_TASK_V1_ELEMENT_TEMPLATE_PROPERTIES;
   }
 
   // ---------------------------------------------------------------------------
@@ -91,6 +91,10 @@ public abstract class BaseAgentTaskTest extends BaseAgentTest {
         .property("provider.openaiCompatible.model.model", "test-model");
   }
 
+  protected Function<ElementTemplate, ElementTemplate> providerConfigurer() {
+    return this::withOpenAiCompatibleProvider;
+  }
+
   @Override
   protected ZeebeTest createProcessInstance(
       Resource process,
@@ -98,8 +102,7 @@ public abstract class BaseAgentTaskTest extends BaseAgentTest {
       Map<String, Object> variables)
       throws IOException {
     final Function<ElementTemplate, ElementTemplate> composed =
-        ((Function<ElementTemplate, ElementTemplate>) this::withOpenAiCompatibleProvider)
-            .andThen(elementTemplateModifier);
+        providerConfigurer().andThen(elementTemplateModifier);
     return super.createProcessInstance(process, composed, variables);
   }
 

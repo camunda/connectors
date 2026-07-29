@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +46,7 @@ public class AgentSubProcessVariableScopeTests extends BaseAgentSubProcessTest {
 
   @ParameterizedTest
   @ValueSource(
-      strings = {AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PATH, LAST_8_8_ELEMENT_TEMPLATE_PATH})
+      strings = {AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH, LAST_8_8_ELEMENT_TEMPLATE_PATH})
   void agentVariableDoesNotLeakToGlobalScope(String elementTemplatePath) throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(Turn.text(HAIKU_TEXT, 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
@@ -61,7 +61,7 @@ public class AgentSubProcessVariableScopeTests extends BaseAgentSubProcessTest {
 
   @ParameterizedTest
   @ValueSource(
-      strings = {AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PATH, LAST_8_8_ELEMENT_TEMPLATE_PATH})
+      strings = {AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH, LAST_8_8_ELEMENT_TEMPLATE_PATH})
   void agentVariableDoesNotLeakAfterToolCallingAndFeedbackLoop(String elementTemplatePath)
       throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(

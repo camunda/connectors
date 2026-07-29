@@ -20,15 +20,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.ThrowingConsumer;
 
 public interface AgentTestFixtures {
-  String AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PATH =
+  String AI_AGENT_TASK_V1_ELEMENT_TEMPLATE_PATH =
       "../../connectors/agentic-ai/connector-agentic-ai/element-templates/agenticai-aiagent-outbound-connector.json";
 
-  String AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PATH =
+  String AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PATH =
+      "../../connectors/agentic-ai/connector-agentic-ai/element-templates/agenticai-ai-agent-task.v2.json";
+
+  String AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH =
       "../../connectors/agentic-ai/connector-agentic-ai/element-templates/agenticai-aiagent-job-worker.json";
+
+  String AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH =
+      "../../connectors/agentic-ai/connector-agentic-ai/element-templates/agenticai-ai-agent-subprocess.v2.json";
 
   String AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH =
       "../../connectors/agentic-ai/connector-agentic-ai/element-templates/agenticai-adhoctoolsschema-outbound-connector.json";
@@ -36,7 +43,7 @@ public interface AgentTestFixtures {
   String AGENT_RESPONSE_VARIABLE = "agent";
   String AI_AGENT_TASK_ID = "AI_Agent";
 
-  Map<String, String> AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PROPERTIES =
+  Map<String, String> AI_AGENT_TASK_V1_ELEMENT_TEMPLATE_PROPERTIES =
       Map.ofEntries(
           Map.entry("provider.type", "openai"),
           Map.entry("provider.openai.authentication.apiKey", "DUMMY_API_KEY"),
@@ -58,7 +65,12 @@ public interface AgentTestFixtures {
           Map.entry("retryCount", "3"),
           Map.entry("retryBackoff", "PT2S"));
 
-  Map<String, String> AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PROPERTIES =
+  Map<String, String> AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PROPERTIES =
+      AI_AGENT_TASK_V1_ELEMENT_TEMPLATE_PROPERTIES.entrySet().stream()
+          .filter(e -> !e.getKey().startsWith("provider."))
+          .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
+
+  Map<String, String> AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PROPERTIES =
       Map.ofEntries(
           Map.entry("agentContext", "=agent.context"),
           Map.entry("provider.type", "openai"),
@@ -77,6 +89,11 @@ public interface AgentTestFixtures {
           Map.entry("data.memory.contextWindowSize", "=50"),
           Map.entry("data.response.includeAssistantMessage", "=true"),
           Map.entry("data.response.includeAgentContext", "=true"));
+
+  Map<String, String> AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PROPERTIES =
+      AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PROPERTIES.entrySet().stream()
+          .filter(e -> !e.getKey().startsWith("provider."))
+          .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
 
   String HAIKU_TEXT = "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
   String HAIKU_JSON =

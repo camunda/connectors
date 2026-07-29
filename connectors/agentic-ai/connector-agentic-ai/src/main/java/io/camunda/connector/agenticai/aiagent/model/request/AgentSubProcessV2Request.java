@@ -10,14 +10,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.request.v1.ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.versioning.VersionedAgentContextDeserializer;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
-public record AgentSubProcessV1Request(
+public record AgentSubProcessV2Request(
     @JsonProperty("adHocSubProcessElements") List<AdHocToolElement> toolElements,
     @Valid @JsonDeserialize(using = VersionedAgentContextDeserializer.class)
         AgentContext agentContext,
