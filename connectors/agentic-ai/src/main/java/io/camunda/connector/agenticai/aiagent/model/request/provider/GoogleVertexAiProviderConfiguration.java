@@ -10,6 +10,8 @@ import static io.camunda.connector.agenticai.aiagent.model.request.provider.Goog
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
@@ -47,7 +49,16 @@ public record GoogleVertexAiProviderConfiguration(
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String region,
+      @HttpUrl
+          @TemplateProperty(
+              group = "provider",
+              description = "Optional custom API endpoint",
+              type = TemplateProperty.PropertyType.String,
+              feel = FeelMode.optional,
+              optional = true)
+          String endpoint,
       @Valid @NotNull GoogleVertexAiAuthentication authentication,
+      @Valid TimeoutConfiguration timeouts,
       @Valid @NotNull GoogleVertexAiProviderConfiguration.GoogleVertexAiModel model) {
 
     @AssertFalse(message = "Google Vertex AI is not supported on SaaS")
@@ -130,7 +141,7 @@ public record GoogleVertexAiProviderConfiguration(
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Float temperature,
+            Double temperature,
         @Min(0)
             @TemplateProperty(
                 group = "model",
@@ -140,7 +151,7 @@ public record GoogleVertexAiProviderConfiguration(
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Float topP,
+            Double topP,
         @Min(0)
             @TemplateProperty(
                 group = "model",

@@ -9,34 +9,33 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ClientSecretCredential;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.genai.Client;
+import com.google.genai.types.HttpOptions;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.anthropic.AnthropicChatModel.AnthropicChatModelBuilder;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.google.genai.GoogleGenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
-import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
-import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel.VertexAiGeminiChatModelBuilder;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
@@ -53,6 +52,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProv
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockModel.BedrockModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
@@ -634,28 +634,32 @@ class ChatModelFactoryTest {
     private static final String MODEL = "gemini-2.5-pro";
 
     private static final GoogleVertexAiModelParameters DEFAULT_MODEL_PARAMETERS =
-        new GoogleVertexAiModelParameters(10, 1.0F, 0.8F, 100);
+        new GoogleVertexAiModelParameters(10, 1.0, 0.8, 100);
+
+    @Captor private ArgumentCaptor<HttpOptions> httpOptionsArgumentCaptor;
 
     @Test
     void createsGoogleVertexAiChatModel() {
-      final var providerConfig =
-          new GoogleVertexAiProviderConfiguration(
-              new GoogleVertexAiConnection(
-                  PROJECT_ID,
-                  REGION,
-                  new ApplicationDefaultCredentialsAuthentication(),
-                  new GoogleVertexAiModel(MODEL, DEFAULT_MODEL_PARAMETERS)));
-
       testGoogleVertexAiChatModelBuilder(
-          providerConfig,
-          (builder) -> {
-            verify(builder).location(REGION);
-            verify(builder).project(PROJECT_ID);
-            verify(builder).modelName(MODEL);
-            verify(builder).maxOutputTokens(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
-            verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
-            verify(builder).topP(DEFAULT_MODEL_PARAMETERS.topP());
-            verify(builder).topK(DEFAULT_MODEL_PARAMETERS.topK());
+          createProviderConfig(
+              null,
+              null,
+              new ApplicationDefaultCredentialsAuthentication(),
+              DEFAULT_MODEL_PARAMETERS),
+          (builders) -> {
+            verify(builders.clientBuilder).vertexAI(true);
+            verify(builders.clientBuilder).project(PROJECT_ID);
+            verify(builders.clientBuilder).location(REGION);
+            verify(builders.clientBuilder, never()).credentials(any());
+
+            verify(builders.chatModelBuilder).client(builders.client);
+            verify(builders.chatModelBuilder).modelName(MODEL);
+            verify(builders.chatModelBuilder).maxRetries(0);
+            verify(builders.chatModelBuilder)
+                .maxOutputTokens(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
+            verify(builders.chatModelBuilder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
+            verify(builders.chatModelBuilder).topP(DEFAULT_MODEL_PARAMETERS.topP());
+            verify(builders.chatModelBuilder).topK(DEFAULT_MODEL_PARAMETERS.topK());
           });
     }
 
@@ -664,81 +668,173 @@ class ChatModelFactoryTest {
     @MethodSource("nullModelParameters")
     void createsGoogleVertexAiChatModelWithNullModelParameters(
         GoogleVertexAiModelParameters modelParameters) {
-      final var providerConfig =
-          new GoogleVertexAiProviderConfiguration(
-              new GoogleVertexAiConnection(
-                  PROJECT_ID,
-                  REGION,
-                  new ApplicationDefaultCredentialsAuthentication(),
-                  new GoogleVertexAiModel(MODEL, modelParameters)));
-
       testGoogleVertexAiChatModelBuilder(
-          providerConfig,
-          (builder) -> {
-            verify(builder, never()).maxOutputTokens(anyInt());
-            verify(builder, never()).temperature(anyFloat());
-            verify(builder, never()).topP(anyFloat());
-            verify(builder, never()).topK(anyInt());
+          createProviderConfig(
+              null, null, new ApplicationDefaultCredentialsAuthentication(), modelParameters),
+          (builders) -> {
+            verify(builders.chatModelBuilder, never()).maxOutputTokens(anyInt());
+            verify(builders.chatModelBuilder, never()).temperature(anyDouble());
+            verify(builders.chatModelBuilder, never()).topP(anyDouble());
+            verify(builders.chatModelBuilder, never()).topK(anyInt());
           });
     }
 
     @Test
     void createsGoogleVertexAiChatModelWithServiceAccountCredential() {
-      final var providerConfig =
-          new GoogleVertexAiProviderConfiguration(
-              new GoogleVertexAiConnection(
-                  PROJECT_ID,
-                  REGION,
-                  new ServiceAccountCredentialsAuthentication("{}"),
-                  new GoogleVertexAiModel(MODEL, DEFAULT_MODEL_PARAMETERS)));
-
       try (final var staticMockedSac = mockStatic(ServiceAccountCredentials.class)) {
         final var mockedSac = mock(ServiceAccountCredentials.class);
-        when(mockedSac.createScoped(anyString())).thenReturn(mockedSac);
         staticMockedSac
             .when(() -> ServiceAccountCredentials.fromStream(any()))
             .thenReturn(mockedSac);
 
         testGoogleVertexAiChatModelBuilder(
-            providerConfig,
-            (builder) -> {
-              verify(builder).location(REGION);
-              verify(builder).project(PROJECT_ID);
-              verify(builder).credentials(mockedSac);
-              verify(builder).modelName(MODEL);
-              verify(builder).maxOutputTokens(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
-              verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
-              verify(builder).topP(DEFAULT_MODEL_PARAMETERS.topP());
-              verify(builder).topK(DEFAULT_MODEL_PARAMETERS.topK());
-            });
+            createProviderConfig(
+                null,
+                null,
+                new ServiceAccountCredentialsAuthentication("{}"),
+                DEFAULT_MODEL_PARAMETERS),
+            (builders) -> verify(builders.clientBuilder).credentials(mockedSac));
 
         staticMockedSac.verify(() -> ServiceAccountCredentials.fromStream(any()));
       }
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"global", "us", "us-central1", "europe-west1"})
+    void passesRegionThroughUnchanged(String region) {
+      final var providerConfig =
+          new GoogleVertexAiProviderConfiguration(
+              new GoogleVertexAiConnection(
+                  PROJECT_ID,
+                  region,
+                  null,
+                  new ApplicationDefaultCredentialsAuthentication(),
+                  null,
+                  new GoogleVertexAiModel(MODEL, null)));
+
+      testGoogleVertexAiChatModelBuilder(
+          providerConfig, (builders) -> verify(builders.clientBuilder).location(region));
+    }
+
+    @Test
+    void disablesGenAiRetries() {
+      testGoogleVertexAiChatModelBuilder(
+          createProviderConfig(null, null, new ApplicationDefaultCredentialsAuthentication(), null),
+          (builders) ->
+              assertThat(captureHttpOptions(builders).retryOptions())
+                  .isPresent()
+                  .get()
+                  .extracting(retryOptions -> retryOptions.attempts().orElseThrow())
+                  .isEqualTo(1));
+    }
+
+    @Test
+    void appliesExplicitlyConfiguredTimeout() {
+      testGoogleVertexAiChatModelBuilder(
+          createProviderConfig(
+              null, MODEL_TIMEOUT, new ApplicationDefaultCredentialsAuthentication(), null),
+          (builders) ->
+              assertThat(captureHttpOptions(builders).timeout()).isPresent().contains(30_000));
+    }
+
+    /**
+     * Unlike every other provider, an unset/invalid timeout must yield <em>no</em> timeout instead
+     * of the connector default. The Vertex path never applied a timeout, so applying the default
+     * would cap already-running processes that legitimately run longer today.
+     */
+    @ParameterizedTest
+    @NullSource
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#defaultTimeoutYieldingConfigs")
+    void doesNotApplyATimeoutWhenNoneIsConfigured(TimeoutConfiguration timeouts) {
+      testGoogleVertexAiChatModelBuilder(
+          createProviderConfig(
+              null, timeouts, new ApplicationDefaultCredentialsAuthentication(), null),
+          (builders) -> assertThat(captureHttpOptions(builders).timeout()).isEmpty());
+    }
+
+    @Test
+    void appliesCustomEndpoint() {
+      testGoogleVertexAiChatModelBuilder(
+          createProviderConfig(
+              "https://my-custom-endpoint.local",
+              null,
+              new ApplicationDefaultCredentialsAuthentication(),
+              null),
+          (builders) ->
+              assertThat(captureHttpOptions(builders).baseUrl())
+                  .isPresent()
+                  .contains("https://my-custom-endpoint.local"));
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", "  "})
+    void doesNotApplyBlankEndpoint(String endpoint) {
+      testGoogleVertexAiChatModelBuilder(
+          createProviderConfig(
+              endpoint, null, new ApplicationDefaultCredentialsAuthentication(), null),
+          (builders) -> assertThat(captureHttpOptions(builders).baseUrl()).isEmpty());
+    }
+
+    private HttpOptions captureHttpOptions(GoogleVertexAiBuilderContext builders) {
+      verify(builders.clientBuilder).httpOptions(httpOptionsArgumentCaptor.capture());
+      return httpOptionsArgumentCaptor.getValue();
+    }
+
+    private static GoogleVertexAiProviderConfiguration createProviderConfig(
+        String endpoint,
+        TimeoutConfiguration timeouts,
+        GoogleVertexAiAuthentication authentication,
+        GoogleVertexAiModelParameters modelParameters) {
+      return new GoogleVertexAiProviderConfiguration(
+          new GoogleVertexAiConnection(
+              PROJECT_ID,
+              REGION,
+              endpoint,
+              authentication,
+              timeouts,
+              new GoogleVertexAiModel(MODEL, modelParameters)));
+    }
+
     private void testGoogleVertexAiChatModelBuilder(
         GoogleVertexAiProviderConfiguration providerConfig,
-        ThrowingConsumer<VertexAiGeminiChatModelBuilder> builderAssertions) {
-      final var chatModelBuilder = spy(VertexAiGeminiChatModel.builder());
-      final var chatModelResultCaptor = new ResultCaptor<VertexAiGeminiChatModel>();
+        ThrowingConsumer<GoogleVertexAiBuilderContext> builderAssertions) {
+      // the client must not really be built - it would resolve application default credentials
+      final var client = mock(Client.class);
+      final var clientBuilder = spy(Client.builder());
+      doReturn(client).when(clientBuilder).build();
+
+      final var chatModelBuilder = spy(GoogleGenAiChatModel.builder());
+      final var chatModelResultCaptor = new ResultCaptor<GoogleGenAiChatModel>();
       doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
 
-      try (MockedStatic<VertexAiGeminiChatModel> chatModelMock =
-          mockStatic(VertexAiGeminiChatModel.class, Answers.CALLS_REAL_METHODS)) {
-        chatModelMock.when(VertexAiGeminiChatModel::builder).thenReturn(chatModelBuilder);
+      try (MockedStatic<Client> clientMock = mockStatic(Client.class, Answers.CALLS_REAL_METHODS);
+          MockedStatic<GoogleGenAiChatModel> chatModelMock =
+              mockStatic(GoogleGenAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
+        clientMock.when(Client::builder).thenReturn(clientBuilder);
+        chatModelMock.when(GoogleGenAiChatModel::builder).thenReturn(chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
         assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
         assertThat(((CloseableChatModelDelegate) chatModel).delegate())
             .isSameAs(chatModelResultCaptor.getResult());
+        // GoogleGenAiChatModel is not closeable - the client is the resource we must release
+        assertThat(((CloseableChatModelDelegate) chatModel).resource()).isSameAs(client);
 
-        builderAssertions.accept(chatModelBuilder);
+        builderAssertions.accept(
+            new GoogleVertexAiBuilderContext(clientBuilder, client, chatModelBuilder));
       }
     }
 
     static Stream<GoogleVertexAiModelParameters> nullModelParameters() {
       return Stream.of(new GoogleVertexAiModelParameters(null, null, null, null));
     }
+
+    private record GoogleVertexAiBuilderContext(
+        Client.Builder clientBuilder,
+        Client client,
+        GoogleGenAiChatModel.Builder chatModelBuilder) {}
   }
 
   @Nested

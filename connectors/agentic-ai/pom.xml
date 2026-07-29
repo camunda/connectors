@@ -129,9 +129,21 @@
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-open-ai</artifactId>
     </dependency>
+    <!--
+      Brings in com.fasterxml.jackson.module:jackson-module-kotlin at runtime scope, which is
+      REQUIRED: google-genai shades KotlinModule into com.google.genai.shaded.* but ships a
+      META-INF/services entry pointing at the unshaded class, so
+      ObjectMapper.findAndRegisterModules() (called by langchain4j-core) throws
+      ServiceConfigurationError without it. Do not exclude it.
+    -->
     <dependency>
       <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-vertex-ai-gemini</artifactId>
+      <artifactId>langchain4j-google-genai</artifactId>
+    </dependency>
+    <!-- main code imports com.google.genai.* directly (we build the Client ourselves) -->
+    <dependency>
+      <groupId>com.google.genai</groupId>
+      <artifactId>google-genai</artifactId>
     </dependency>
     <dependency>
       <groupId>dev.langchain4j</groupId>
