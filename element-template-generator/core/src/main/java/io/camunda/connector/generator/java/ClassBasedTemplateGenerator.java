@@ -316,45 +316,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
   private List<ConfigurationTemplate> buildConfigurationTemplates(
       ElementTemplate template, TemplateGenerationContext context) {
     return Arrays.stream(template.configurations())
-        .map(
-            templateClass -> {
-              var configurationAnnotation =
-                  templateClass.getAnnotation(
-                      io.camunda.connector.api.annotation.Configuration.class);
-              if (configurationAnnotation == null) {
-                throw new IllegalArgumentException(
-                    "Class "
-                        + templateClass.getName()
-                        + " referenced in @ElementTemplate.configurations() must be"
-                        + " annotated with @Configuration");
-              }
-              if (configurationAnnotation.name().isBlank()) {
-                throw new IllegalArgumentException(
-                    "@Configuration on "
-                        + templateClass.getName()
-                        + " must declare a non-blank name (generator constraint; the schema requires"
-                        + " name to be present but does not itself enforce non-blank)");
-              }
-              if (configurationAnnotation.kind().isBlank()) {
-                throw new IllegalArgumentException(
-                    "@Configuration on "
-                        + templateClass.getName()
-                        + " must declare a non-blank kind (required by the configuration-template"
-                        + " schema)");
-              }
-              var templateProperties =
-                  TemplatePropertiesUtil.extractConfigurationTemplatePropertiesFromType(
-                          templateClass, context)
-                      .stream()
-                      .map(PropertyBuilder::build)
-                      .toList();
-              return new ConfigurationTemplate(
-                  configurationAnnotation.id(),
-                  configurationAnnotation.kind(),
-                  configurationAnnotation.version(),
-                  configurationAnnotation.name(),
-                  templateProperties);
-            })
+        .map(templateClass -> ConfigurationTemplateUtil.fromAnnotatedClass(templateClass, context))
         .toList();
   }
 
