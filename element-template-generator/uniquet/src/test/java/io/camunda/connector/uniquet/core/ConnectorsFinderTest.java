@@ -73,7 +73,10 @@ class ConnectorsFinderTest {
         ConnectorsFinder.create(Path.of("src/test/resources"), null);
     Connector foo = findConnector(connectorsFinder, "foo-connector.json");
     assertTrue(
-        foo.currentElementTemplate().getPath().contains("with-symlink/real/element-templates"));
+        foo.currentElementTemplate()
+            .toPath()
+            .getParent()
+            .endsWith(Path.of("with-symlink", "real", "element-templates")));
   }
 
   private static Connector findConnector(ConnectorsFinder connectorsFinder, String fileName) {
