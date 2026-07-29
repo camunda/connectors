@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,9 @@ import org.springframework.util.CollectionUtils;
 public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ChatMessageConverterImpl.class);
+
+  private static final String FRAMEWORK_METADATA_KEY = "framework";
+  private static final String ATTRIBUTES_METADATA_KEY = "attributes";
 
   private final ContentConverter contentConverter;
   private final ToolCallConverter toolCallConverter;
@@ -121,7 +125,38 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       builder.toolExecutionRequests(toolExecutionRequests);
     }
 
+    final var attributes = frameworkAttributes(assistantMessage);
+    if (!attributes.isEmpty()) {
+      builder.attributes(attributes);
+    }
+
     return builder;
+  }
+
+  /**
+   * Framework attributes carry data the provider requires us to echo back verbatim on the next
+   * request. Gemini 3 rejects a request whose function calls are missing their {@code
+   * thoughtSignature}, which langchain4j round-trips through {@link AiMessage#attributes()} keyed
+   * by tool call ID, so they have to survive being persisted to the conversation history.
+   */
+  protected Map<String, Object> frameworkAttributes(AssistantMessage assistantMessage) {
+    if (CollectionUtils.isEmpty(assistantMessage.metadata())) {
+      return Map.of();
+    }
+
+    // messages persisted before attributes were supported have no "attributes" key - a missing key
+    // yields null, which fails the instanceof and short-circuits to an empty map
+    if (!(assistantMessage.metadata().get(FRAMEWORK_METADATA_KEY) instanceof Map<?, ?> framework)
+        || !(framework.get(ATTRIBUTES_METADATA_KEY) instanceof Map<?, ?> attributes)) {
+      return Map.of();
+    }
+
+    // the conversation is stored in a process variable, so the contents are neither type-safe nor
+    // beyond tampering. Keep only the string values langchain4j writes - anything else would fail
+    // as an unhelpful ClassCastException inside the provider's mapper.
+    return attributes.entrySet().stream()
+        .filter(entry -> entry.getKey() instanceof String && entry.getValue() instanceof String)
+        .collect(Collectors.toMap(entry -> (String) entry.getKey(), Map.Entry::getValue));
   }
 
   @Override
@@ -131,15 +166,21 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   protected AssistantMessageBuilder toAssistantMessageBuilder(ChatResponse chatResponse) {
     final var builder = AssistantMessage.builder();
+    final var aiMessage = chatResponse.aiMessage();
 
-    if (chatResponse.metadata() != null) {
+    if (chatResponse.metadata() != null || !CollectionUtils.isEmpty(aiMessage.attributes())) {
+      final var frameworkMetadata =
+          new LinkedHashMap<>(serializedChatResponseMetadata(chatResponse.metadata()));
+
+      // see frameworkAttributes(...) - these must be echoed back on the next request
+      if (!CollectionUtils.isEmpty(aiMessage.attributes())) {
+        frameworkMetadata.put(ATTRIBUTES_METADATA_KEY, aiMessage.attributes());
+      }
+
       builder.metadata(
-          Map.of(
-              "timestamp", ZonedDateTime.now(),
-              "framework", serializedChatResponseMetadata(chatResponse.metadata())));
+          Map.of("timestamp", ZonedDateTime.now(), FRAMEWORK_METADATA_KEY, frameworkMetadata));
     }
 
-    final var aiMessage = chatResponse.aiMessage();
     if (StringUtils.isNotBlank(aiMessage.text())) {
       builder.content(List.of(TextContent.textContent(aiMessage.text())));
     }
