@@ -246,7 +246,7 @@ public class MicrosoftMailClient implements MailClient {
         Boolean.TRUE.equals(msg.getHasAttachments())
             ? fetchAttachmentMetadata(msg.getId())
             : List.of();
-    var myMsg = GraphApiMapper.toEmailMessage(msg, List.of(), attachmentMetadata);
+    var myMsg = GraphApiMapper.toMessageWithMetadata(msg, attachmentMetadata);
     handler.accept(myMsg);
     return true;
   }

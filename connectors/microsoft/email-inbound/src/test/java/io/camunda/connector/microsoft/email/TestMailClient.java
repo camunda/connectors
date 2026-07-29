@@ -94,7 +94,8 @@ public class TestMailClient implements MailClient {
 
   @Override
   public List<Document> fetchAttachments(InboundConnectorContext context, EmailMessage msg) {
-    // You have to set up the message with attachments before passing them to the test client
-    return msg.attachments();
+    // Attachment content is downloaded lazily by the real client; tests that need documents stub
+    // this method on a spy.
+    return List.of();
   }
 }

@@ -6,72 +6,49 @@
  */
 package io.camunda.connector.microsoft.email.model.output;
 
-import static io.camunda.connector.microsoft.email.model.output.GraphApiMapper.toEmailMessage;
-
-import com.microsoft.graph.models.Message;
 import io.camunda.connector.api.document.Document;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-public record EmailMessage(
-    String id,
-    String conversationId,
-    EmailAddress sender,
-    List<EmailAddress> recipients,
-    List<EmailAddress> cc,
-    List<EmailAddress> bcc,
-    String subject,
-    String body,
-    String bodyContentType,
-    OffsetDateTime receivedDateTime,
-    List<Document> attachments,
-    List<EmailAttachmentMetadata> attachmentMetadata) {
-  public EmailMessage(Message message) {
-    this(message, List.of(), List.of());
-  }
+/**
+ * Common contract for an inbound email as it flows through the connector.
+ *
+ * <p>An email is represented by one of two lifecycle-specific shapes:
+ *
+ * <ul>
+ *   <li>{@link MessageWithMetadata} — produced at poll time and used for the activation condition.
+ *       It carries lightweight {@link EmailAttachmentMetadata} (name, content type, size, ...) so
+ *       conditions can filter on attachment properties such as file type, without downloading the
+ *       attachment content.
+ *   <li>{@link MessageWithAttachments} — produced after the activation condition matches and the
+ *       attachment content has been downloaded. It carries the actual {@link Document attachments};
+ *       those already expose name, content type and size, so no separate metadata list is kept.
+ * </ul>
+ */
+public sealed interface EmailMessage permits MessageWithMetadata, MessageWithAttachments {
 
-  public EmailMessage(
-      Message message, List<Document> documents, List<EmailAttachmentMetadata> attachmentMetadata) {
-    this(toEmailMessage(message, documents, attachmentMetadata));
-  }
+  String id();
 
-  private EmailMessage(EmailMessage message) {
-    this(
-        message.id,
-        message.conversationId,
-        message.sender,
-        message.recipients,
-        message.cc,
-        message.bcc,
-        message.subject,
-        message.body,
-        message.bodyContentType,
-        message.receivedDateTime,
-        message.attachments,
-        message.attachmentMetadata);
-  }
+  String conversationId();
 
-  /**
-   * Copies the given message, replacing the (downloaded) attachment documents while preserving the
-   * lightweight attachment metadata that was resolved at poll time.
-   */
-  public EmailMessage(EmailMessage message, List<Document> documents) {
-    this(
-        message.id,
-        message.conversationId,
-        message.sender,
-        message.recipients,
-        message.cc,
-        message.bcc,
-        message.subject,
-        message.body,
-        message.bodyContentType,
-        message.receivedDateTime,
-        documents,
-        message.attachmentMetadata);
-  }
+  EmailAddress sender();
 
-  public static String[] getSelect() {
+  List<EmailAddress> recipients();
+
+  List<EmailAddress> cc();
+
+  List<EmailAddress> bcc();
+
+  String subject();
+
+  String body();
+
+  String bodyContentType();
+
+  OffsetDateTime receivedDateTime();
+
+  /** OData {@code $select} fields for the message list query. */
+  static String[] getSelect() {
     return new String[] {
       "id",
       "conversationId",

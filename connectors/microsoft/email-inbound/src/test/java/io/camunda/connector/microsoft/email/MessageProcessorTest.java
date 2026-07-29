@@ -17,6 +17,8 @@ import io.camunda.connector.microsoft.email.model.config.Folder;
 import io.camunda.connector.microsoft.email.model.output.EmailAddress;
 import io.camunda.connector.microsoft.email.model.output.EmailAttachmentMetadata;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
+import io.camunda.connector.microsoft.email.model.output.MessageWithAttachments;
+import io.camunda.connector.microsoft.email.model.output.MessageWithMetadata;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -58,16 +60,11 @@ class MessageProcessorTest {
   }
 
   private EmailMessage createTestMessage() {
-    return createTestMessage(List.of(), List.of());
+    return createTestMessage(List.of());
   }
 
-  private EmailMessage createTestMessage(List<Document> attachments) {
-    return createTestMessage(attachments, List.of());
-  }
-
-  private EmailMessage createTestMessage(
-      List<Document> attachments, List<EmailAttachmentMetadata> attachmentMetadata) {
-    return new EmailMessage(
+  private EmailMessage createTestMessage(List<EmailAttachmentMetadata> attachmentMetadata) {
+    return new MessageWithMetadata(
         TEST_MESSAGE_ID,
         "conversation-123",
         new EmailAddress("Sender Name", "sender@example.com"),
@@ -78,7 +75,6 @@ class MessageProcessorTest {
         "Test Body",
         "text",
         TEST_RECEIVED_TIME,
-        attachments,
         attachmentMetadata);
   }
 
@@ -312,7 +308,7 @@ class MessageProcessorTest {
       var pdf =
           new EmailAttachmentMetadata("att-1", "invoice.pdf", "application/pdf", 1024L, false);
       var operation = new EmailProcessingOperation.MarkAsReadOperation();
-      var message = createTestMessage(List.of(), List.of(pdf));
+      var message = createTestMessage(List.of(pdf));
       setupSuccessfulCorrelation();
       var processor = new MessageProcessor(operation, spyMailClient, context);
 
@@ -322,28 +318,36 @@ class MessageProcessorTest {
       // Then - the activation check sees the metadata (so a FEEL condition can filter on file type)
       ArgumentCaptor<EmailMessage> captor = ArgumentCaptor.forClass(EmailMessage.class);
       verify(context).canActivate(captor.capture());
-      assertThat(captor.getValue().attachmentMetadata()).containsExactly(pdf);
+      assertThat(captor.getValue()).isInstanceOf(MessageWithMetadata.class);
+      assertThat(((MessageWithMetadata) captor.getValue()).attachmentMetadata())
+          .containsExactly(pdf);
     }
 
     @Test
-    void handleMessage_attachmentMetadata_isPreservedIntoCorrelationVariables() {
+    void handleMessage_correlationVariables_carryDownloadedDocuments() {
       // Given
       var pdf =
           new EmailAttachmentMetadata("att-1", "invoice.pdf", "application/pdf", 1024L, false);
       var operation = new EmailProcessingOperation.MarkAsReadOperation();
-      var message = createTestMessage(List.of(), List.of(pdf));
+      var message = createTestMessage(List.of(pdf));
       setupSuccessfulCorrelation();
+      var downloaded = mock(Document.class);
+      doReturn(List.of(downloaded)).when(spyMailClient).fetchAttachments(any(), any());
       var processor = new MessageProcessor(operation, spyMailClient, context);
 
       // When
       processor.handleMessage(message);
 
-      // Then - metadata survives the copy that adds the downloaded documents
+      // Then - correlation variables are a MessageWithAttachments carrying the downloaded
+      // documents,
+      // with the common fields preserved from the polled message
       ArgumentCaptor<CorrelationRequest> captor = ArgumentCaptor.forClass(CorrelationRequest.class);
       verify(context).correlate(captor.capture());
-      assertThat(captor.getValue().getVariables()).isInstanceOf(EmailMessage.class);
-      var variables = (EmailMessage) captor.getValue().getVariables();
-      assertThat(variables.attachmentMetadata()).containsExactly(pdf);
+      assertThat(captor.getValue().getVariables()).isInstanceOf(MessageWithAttachments.class);
+      var variables = (MessageWithAttachments) captor.getValue().getVariables();
+      assertThat(variables.attachments()).containsExactly(downloaded);
+      assertThat(variables.subject()).isEqualTo("Test Subject");
+      assertThat(variables.id()).isEqualTo(TEST_MESSAGE_ID);
     }
   }
 }

@@ -10,6 +10,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.microsoft.email.model.config.EmailProcessingOperation;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
+import io.camunda.connector.microsoft.email.model.output.GraphApiMapper;
 import io.camunda.connector.microsoft.email.util.MailClient;
 import java.util.List;
 
@@ -93,7 +94,7 @@ public class MessageProcessor {
 
     var correlationRequest =
         CorrelationRequest.builder()
-            .variables(new EmailMessage(message, attachments))
+            .variables(GraphApiMapper.toMessageWithAttachments(message, attachments))
             .messageId(message.id())
             .build();
     return switch (this.context.correlate(correlationRequest)) {
