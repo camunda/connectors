@@ -175,11 +175,15 @@ public class GenerateElementTemplate {
             .engines(new Engines("^8.3"))
             .icon(new ElementTemplateIcon(SALESFORCE_ICON))
             .type("io.camunda:http-json:1")
+            // The "operation" group must be first in groups[] -- a validator rule
+            // (preset-operation-group-consistency) requires this since presets pin properties
+            // that live in that group. This has no effect on the Modeler UI's section order,
+            // which reorderPropertiesByGroup() below controls independently.
             .propertyGroups(
                 List.of(
+                    operationGroup(),
                     endpointGroup(),
                     PropertyGroup.builder().id("authentication").label("Authentication").build(),
-                    operationGroup(),
                     timeoutGroup(),
                     connectorGroup(),
                     outputGroup(),
