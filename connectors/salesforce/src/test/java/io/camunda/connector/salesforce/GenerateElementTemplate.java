@@ -40,6 +40,7 @@ import io.camunda.connector.http.rest.HttpJsonFunction;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -62,10 +63,19 @@ import java.util.stream.Collectors;
  */
 public class GenerateElementTemplate {
 
-  private static final Set<String> KEPT_AUTH_PROPERTY_IDS =
-      Set.of("authentication.token", "authentication.clientId", "authentication.clientSecret");
   private static final Set<String> KEPT_AUTH_TYPES =
       Set.of("bearer", "oauth-client-credentials-flow");
+  private static final Set<String> KEPT_AUTH_PROPERTY_IDS =
+      Set.of("authentication.token", "authentication.clientId", "authentication.clientSecret");
+  // authentication.oauthTokenEndpoint/clientAuthentication are inherited from HTTP JSON but
+  // replaced below with Salesforce's own fixed-value Hidden properties (see buildSteps() call
+  // site), so they're intentionally excluded from KEPT_AUTH_PROPERTY_IDS rather than carried over.
+  private static final Set<String> REPLACED_AUTH_PROPERTY_IDS =
+      Set.of("authentication.oauthTokenEndpoint", "authentication.clientAuthentication");
+  // authentication.audience/scopes have no counterpart in Salesforce's connector and are
+  // intentionally not exposed at all.
+  private static final Set<String> UNSUPPORTED_AUTH_PROPERTY_IDS =
+      Set.of("authentication.audience", "authentication.scopes");
 
   public static void main(String[] args) throws Exception {
     ElementTemplate salesforceTemplate = generate();
@@ -108,6 +118,8 @@ public class GenerateElementTemplate {
   static ElementTemplate generate() {
     ElementTemplate httpJsonTemplate =
         new ClassBasedTemplateGenerator().generate(HttpJsonFunction.class).get(0);
+
+    failOnUnclassifiedKeptAuthTypeProperties(httpJsonTemplate);
 
     DropdownProperty originalAuthTypeDropdown =
         (DropdownProperty)
@@ -223,6 +235,45 @@ public class GenerateElementTemplate {
 
   private static boolean isAuthTypeDropdown(Property p) {
     return "authentication.type".equals(p.getId());
+  }
+
+  /**
+   * {@link #KEPT_AUTH_PROPERTY_IDS} is a hand-picked allowlist, so a property HTTP JSON adds to
+   * "bearer" or "oauth-client-credentials-flow" in the future would otherwise be silently dropped
+   * by {@code removeProperties} above instead of failing loudly. Guard against that by requiring
+   * every property conditioned on one of {@link #KEPT_AUTH_TYPES} to be explicitly classified as
+   * either kept, replaced, or deliberately unsupported.
+   */
+  private static void failOnUnclassifiedKeptAuthTypeProperties(ElementTemplate httpJsonTemplate) {
+    Set<String> classifiedAuthPropertyIds = new HashSet<>();
+    classifiedAuthPropertyIds.addAll(KEPT_AUTH_PROPERTY_IDS);
+    classifiedAuthPropertyIds.addAll(REPLACED_AUTH_PROPERTY_IDS);
+    classifiedAuthPropertyIds.addAll(UNSUPPORTED_AUTH_PROPERTY_IDS);
+
+    Set<String> unclassified =
+        httpJsonTemplate.properties().stream()
+            .filter(GenerateElementTemplate::isConditionedOnKeptAuthType)
+            .map(Property::getId)
+            .filter(id -> !classifiedAuthPropertyIds.contains(id))
+            .collect(Collectors.toSet());
+
+    if (!unclassified.isEmpty()) {
+      throw new IllegalStateException(
+          "HTTP JSON's generated template has properties conditioned on "
+              + KEPT_AUTH_TYPES
+              + " that Salesforce's generator doesn't know about: "
+              + unclassified
+              + " -- classify each as kept (add to KEPT_AUTH_PROPERTY_IDS and carry it over),"
+              + " replaced (add to REPLACED_AUTH_PROPERTY_IDS if Salesforce substitutes its own"
+              + " fixed value), or unsupported (add to UNSUPPORTED_AUTH_PROPERTY_IDS if it should"
+              + " stay hidden).");
+    }
+  }
+
+  private static boolean isConditionedOnKeptAuthType(Property p) {
+    return p.getCondition() instanceof Equals equals
+        && "authentication.type".equals(equals.property())
+        && KEPT_AUTH_TYPES.contains(equals.equals());
   }
 
   private static DropdownProperty prunedAuthTypeDropdown(DropdownProperty original) {
