@@ -20,9 +20,11 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ClientSecretCredential;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.genai.Client;
 import com.google.genai.types.HttpOptions;
@@ -679,10 +681,19 @@ class ChatModelFactoryTest {
           });
     }
 
+    /**
+     * Service account credentials must be scoped explicitly. google-genai only scopes the
+     * application default credentials it resolves itself and passes user-supplied credentials
+     * through verbatim, so an unscoped credential makes the token request fail with {@code
+     * invalid_scope}. The SDK we migrated away from applied this scope for us.
+     */
     @Test
     void createsGoogleVertexAiChatModelWithServiceAccountCredential() {
       try (final var staticMockedSac = mockStatic(ServiceAccountCredentials.class)) {
         final var mockedSac = mock(ServiceAccountCredentials.class);
+        final var scopedSac = mock(GoogleCredentials.class);
+        when(mockedSac.createScoped("https://www.googleapis.com/auth/cloud-platform"))
+            .thenReturn(scopedSac);
         staticMockedSac
             .when(() -> ServiceAccountCredentials.fromStream(any()))
             .thenReturn(mockedSac);
@@ -693,7 +704,7 @@ class ChatModelFactoryTest {
                 null,
                 new ServiceAccountCredentialsAuthentication("{}"),
                 DEFAULT_MODEL_PARAMETERS),
-            (builders) -> verify(builders.clientBuilder).credentials(mockedSac));
+            (builders) -> verify(builders.clientBuilder).credentials(scopedSac));
 
         staticMockedSac.verify(() -> ServiceAccountCredentials.fromStream(any()));
       }

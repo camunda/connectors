@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import com.azure.identity.ClientSecretCredentialBuilder;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.genai.Client;
 import com.google.genai.errors.GenAiIOException;
@@ -53,6 +54,9 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(ChatModelFactoryImpl.class);
 
   private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(15);
+
+  private static final String GOOGLE_CLOUD_PLATFORM_SCOPE =
+      "https://www.googleapis.com/auth/cloud-platform";
 
   private final AgenticAiConnectorsConfigurationProperties.ChatModelProperties chatModelProperties;
   private final ChatModelHttpProxySupport proxySupport;
@@ -271,11 +275,15 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     }
   }
 
-  private ServiceAccountCredentials createGoogleServiceAccountCredentials(
+  private GoogleCredentials createGoogleServiceAccountCredentials(
       ServiceAccountCredentialsAuthentication sac) {
     try {
+      // Credentials read from a key file carry no scopes. google-genai only scopes the application
+      // default credentials it resolves itself and passes these through verbatim, so without this
+      // the token request fails with invalid_scope.
       return ServiceAccountCredentials.fromStream(
-          new ByteArrayInputStream(sac.jsonKey().getBytes(StandardCharsets.UTF_8)));
+              new ByteArrayInputStream(sac.jsonKey().getBytes(StandardCharsets.UTF_8)))
+          .createScoped(GOOGLE_CLOUD_PLATFORM_SCOPE);
     } catch (IOException e) {
       LOGGER.error("Failed to parse service account credentials", e);
       throw new ConnectorInputException(
