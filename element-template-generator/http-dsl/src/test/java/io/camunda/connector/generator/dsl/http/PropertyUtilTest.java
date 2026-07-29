@@ -201,6 +201,13 @@ public class PropertyUtilTest {
   // HttpOutboundElementTemplateBuilder — group ordering
   // ---------------------------------------------------------------------------
 
+  // NB: these "builder_" tests exercise the *legacy* inline authentication path's group
+  // ordering (see authPropertyGroup / AuthGroupResult.unconditional()), so they opt into
+  // legacyInlineAuthentication(true) explicitly. Under the default credential-only path the
+  // chooser is always a single unconditional property, so it is always placed before the
+  // operation group regardless of the operations/authentication passed in — see
+  // HttpOutboundElementTemplateBuilderTest for that behavior.
+
   @Test
   void builder_unconditionalAuth_shouldPlaceAuthBeforeOperation() {
     var bearer = BearerAuth.INSTANCE;
@@ -215,6 +222,7 @@ public class PropertyUtilTest {
             .servers(new HttpServerData("https://api.example.com", "Example"))
             .operations(List.of(op1, op2))
             .authentication(globalAuth)
+            .legacyInlineAuthentication(true)
             .elementType(
                 new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null))
             .build();
@@ -240,6 +248,7 @@ public class PropertyUtilTest {
             .servers(new HttpServerData("https://api.example.com", "Example"))
             .operations(List.of(op1, op2))
             .authentication(globalAuth)
+            .legacyInlineAuthentication(true)
             .elementType(
                 new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null))
             .build();
