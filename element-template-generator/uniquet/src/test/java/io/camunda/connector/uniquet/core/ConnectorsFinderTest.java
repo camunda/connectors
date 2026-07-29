@@ -30,7 +30,7 @@ class ConnectorsFinderTest {
   void create() {
     ConnectorsFinder connectorsFinder =
         ConnectorsFinder.create(Path.of("src/test/resources"), null);
-    assertEquals(1, connectorsFinder.getAllConnectors().size());
+    assertEquals(2, connectorsFinder.getAllConnectors().size());
   }
 
   @Test
@@ -39,7 +39,7 @@ class ConnectorsFinderTest {
         ConnectorsFinder.create(
             Path.of("src/test/resources"),
             Path.of("src/test/resources/ignore-templates.json").toString());
-    assertEquals(0, connectorsFinder.getAllConnectors().size());
+    assertEquals(1, connectorsFinder.getAllConnectors().size());
   }
 
   @Test
@@ -49,7 +49,7 @@ class ConnectorsFinderTest {
     ConnectorsFinder connectorsFinder =
         ConnectorsFinder.create(Path.of("src/test/resources"), null);
     List<Connector> connectors = connectorsFinder.getAllConnectors();
-    assertEquals(1, connectors.size());
+    assertEquals(2, connectors.size());
     connectors.forEach(
         c -> {
           assertTrue(c.currentElementTemplate().getName().endsWith(".json"));
@@ -61,12 +61,25 @@ class ConnectorsFinderTest {
   void next() {
     ConnectorsFinder connectorsFinder =
         ConnectorsFinder.create(Path.of("src/test/resources"), null);
-    List<Connector> connectors = connectorsFinder.getAllConnectors();
+    Connector soap = findConnector(connectorsFinder, "soap-outbound-connector.json");
+    assertEquals(1, soap.versionedElementTemplate().size());
     assertEquals(
-        "soap-outbound-connector.json", connectors.getFirst().currentElementTemplate().getName());
-    assertEquals(1, connectors.getFirst().versionedElementTemplate().size());
-    assertEquals(
-        "soap-outbound-connector-2.json",
-        connectors.getFirst().versionedElementTemplate().getFirst().getName());
+        "soap-outbound-connector-2.json", soap.versionedElementTemplate().getFirst().getName());
+  }
+
+  @Test
+  void symlinkedElementTemplatesDirectoryIsSkipped() {
+    ConnectorsFinder connectorsFinder =
+        ConnectorsFinder.create(Path.of("src/test/resources"), null);
+    Connector foo = findConnector(connectorsFinder, "foo-connector.json");
+    assertTrue(
+        foo.currentElementTemplate().getPath().contains("with-symlink/real/element-templates"));
+  }
+
+  private static Connector findConnector(ConnectorsFinder connectorsFinder, String fileName) {
+    return connectorsFinder.getAllConnectors().stream()
+        .filter(c -> c.currentElementTemplate().getName().equals(fileName))
+        .findFirst()
+        .orElseThrow();
   }
 }
