@@ -8,13 +8,17 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.genai.Client;
+import com.google.genai.errors.GenAiIOException;
+import com.google.genai.types.HttpOptions;
+import com.google.genai.types.HttpRetryOptions;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
+import dev.langchain4j.model.google.genai.GoogleGenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
-import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AwsBedrockRuntimeAuthenticationCustomizer;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
@@ -23,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
@@ -204,15 +209,15 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
   protected CloseableChatModel createGoogleVertexAiChatModel(
       GoogleVertexAiProviderConfiguration vertexAi) {
     final var connection = vertexAi.googleVertexAi();
-    final var builder =
-        VertexAiGeminiChatModel.builder()
-            .project(connection.projectId())
-            .location(connection.region())
-            .modelName(connection.model().model());
+    final var client = createGoogleGenAiClient(connection);
 
-    if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
-      builder.credentials(createGoogleServiceAccountCredentials(sac));
-    }
+    final var builder =
+        GoogleGenAiChatModel.builder()
+            .client(client)
+            .modelName(connection.model().model())
+            // google-genai brings its own retry interceptor, which is disabled below. Disable
+            // langchain4j's retries as well so the configured timeout is an exact upper bound.
+            .maxRetries(0);
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
@@ -222,8 +227,48 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
     }
 
-    final var model = builder.build();
-    return new CloseableChatModelDelegate(model, model);
+    // GoogleGenAiChatModel is not AutoCloseable and never exposes its client, so we build the
+    // client ourselves and close that instead - otherwise every job execution leaks the OkHttp
+    // dispatcher and connection pool.
+    return new CloseableChatModelDelegate(builder.build(), client);
+  }
+
+  private Client createGoogleGenAiClient(GoogleVertexAiConnection connection) {
+    final var httpOptions =
+        HttpOptions.builder()
+            // genai's retry interceptor defaults to 5 attempts with backoff up to 60s, which
+            // would stack on top of langchain4j's maxRetries.
+            .retryOptions(HttpRetryOptions.builder().attempts(1).build());
+
+    // Applied only when explicitly configured. Deliberately NOT deriveTimeoutSetting(...), which
+    // would impose the default timeout on existing processes that run unbounded today.
+    Optional.ofNullable(connection.timeouts())
+        .map(TimeoutConfiguration::timeout)
+        .filter(Duration::isPositive)
+        .ifPresent(timeout -> httpOptions.timeout((int) timeout.toMillis()));
+
+    Optional.ofNullable(connection.endpoint())
+        .filter(StringUtils::isNotBlank)
+        .ifPresent(httpOptions::baseUrl);
+
+    final var clientBuilder =
+        Client.builder()
+            .vertexAI(true)
+            .project(connection.projectId())
+            .location(connection.region())
+            .httpOptions(httpOptions.build());
+
+    if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
+      clientBuilder.credentials(createGoogleServiceAccountCredentials(sac));
+    }
+
+    try {
+      // application default credentials are resolved eagerly here
+      return clientBuilder.build();
+    } catch (GenAiIOException | IllegalArgumentException e) {
+      LOGGER.error("Failed to create Google Vertex AI client", e);
+      throw new ConnectorInputException("Failed to create Google Vertex AI client", e);
+    }
   }
 
   private ServiceAccountCredentials createGoogleServiceAccountCredentials(

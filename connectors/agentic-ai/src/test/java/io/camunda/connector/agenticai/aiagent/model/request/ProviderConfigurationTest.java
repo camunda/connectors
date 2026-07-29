@@ -300,22 +300,53 @@ class ProviderConfigurationTest {
       assertThat(validator.validate(connection)).isEmpty();
     }
 
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#validHttpUrls")
+    @NullSource
+    void shouldAcceptValidEndpoint(String endpoint) {
+      assertThat(validator.validate(createConnection(endpoint, TIMEOUT))).isEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#invalidHttpUrls")
+    void shouldRejectInvalidEndpoint(String endpoint) {
+      assertThat(validator.validate(createConnection(endpoint, TIMEOUT)))
+          .extracting(ConstraintViolation::getMessage)
+          .contains(HTTP_URL_VALIDATION_MESSAGE);
+    }
+
+    @Test
+    void shouldAcceptNullTimeouts() {
+      assertThat(validator.validate(createConnection(null, null))).isEmpty();
+    }
+
+    private static GoogleVertexAiConnection createConnection(
+        String endpoint, TimeoutConfiguration timeouts) {
+      return new GoogleVertexAiConnection(
+          "my-project-id",
+          "us-central1",
+          endpoint,
+          new ServiceAccountCredentialsAuthentication("{}"),
+          timeouts,
+          new GoogleVertexAiModel(
+              "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null)));
+    }
+
     private static GoogleVertexAiConnection createConnectionWithApplicationDefaultCredentials() {
       return new GoogleVertexAiConnection(
           "my-project-id",
           "us-central1",
+          null,
           new ApplicationDefaultCredentialsAuthentication(),
+          null,
           new GoogleVertexAiModel(
               "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null)));
     }
 
     private static GoogleVertexAiConnection createConnectionWithServiceAccountCredentials() {
-      return new GoogleVertexAiConnection(
-          "my-project-id",
-          "us-central1",
-          new ServiceAccountCredentialsAuthentication("{}"),
-          new GoogleVertexAiModel(
-              "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null)));
+      return createConnection(null, null);
     }
   }
 
