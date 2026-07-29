@@ -32,12 +32,13 @@ public final class GraphApiMapper {
         .toList();
   }
 
+  /**
+   * Maps a Graph message and its resolved attachment metadata to an {@link EmailMessage}, the shape
+   * evaluated by the activation condition. {@code attachments} is empty at this point; the content
+   * is only downloaded once the condition has matched.
+   */
   public static EmailMessage toEmailMessage(
-      Message message, List<Document> documents, List<EmailAttachmentMetadata> attachmentMetadata) {
-    var sender = toEmailAddress(message.getSender());
-    var recipients = toEmailAddressList(message.getToRecipients());
-    var cc = toEmailAddressList(message.getCcRecipients());
-    var bcc = toEmailAddressList(message.getBccRecipients());
+      Message message, List<EmailAttachmentMetadata> attachmentMetadata) {
     String body = null;
     String bodyContentType = null;
     if (message.getBody() != null) {
@@ -51,15 +52,36 @@ public final class GraphApiMapper {
     return new EmailMessage(
         message.getId(),
         message.getConversationId(),
-        sender,
-        recipients,
-        cc,
-        bcc,
+        toEmailAddress(message.getSender()),
+        toEmailAddressList(message.getToRecipients()),
+        toEmailAddressList(message.getCcRecipients()),
+        toEmailAddressList(message.getBccRecipients()),
         message.getSubject(),
         body,
         bodyContentType,
         receivedTime,
-        documents,
-        attachmentMetadata);
+        attachmentMetadata,
+        List.of());
+  }
+
+  /**
+   * Returns a copy of {@code source} with the downloaded attachment documents attached. {@code
+   * attachmentMetadata} is carried over unchanged, so an activation condition referencing it still
+   * resolves the same way when the runtime re-evaluates it against these correlation variables.
+   */
+  public static EmailMessage withAttachments(EmailMessage source, List<Document> documents) {
+    return new EmailMessage(
+        source.id(),
+        source.conversationId(),
+        source.sender(),
+        source.recipients(),
+        source.cc(),
+        source.bcc(),
+        source.subject(),
+        source.body(),
+        source.bodyContentType(),
+        source.receivedDateTime(),
+        source.attachmentMetadata(),
+        documents);
   }
 }
