@@ -25,6 +25,7 @@ import io.camunda.connector.generator.java.annotation.BpmnType;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @JsonPropertyOrder({
@@ -156,25 +157,31 @@ public record ElementTemplate(
     private static final String MESSAGE_EVENT_DEFINITION = "bpmn:MessageEventDefinition";
 
     public static ElementTypeWrapper from(BpmnType value) {
-      return new ElementTypeWrapper(
-          value.getName(),
-          TYPES_WITH_EVENT_DEFINITION.contains(value) ? MESSAGE_EVENT_DEFINITION : null,
-          value);
+      return new ElementTypeWrapper(value.getName(), eventDefinitionFor(value), value);
+    }
+
+    private static String eventDefinitionFor(BpmnType candidate) {
+      return TYPES_WITH_EVENT_DEFINITION.contains(candidate) ? MESSAGE_EVENT_DEFINITION : null;
     }
 
     /**
      * Returns the {@link BpmnType} this wrapper was built from. Falls back to reconstructing it
      * from {@code value} and {@code eventDefinition} when {@code originalType} is unavailable, e.g.
      * for a wrapper deserialized from JSON, where {@code originalType} is {@code @JsonIgnore}d.
+     *
+     * <p>Matches each candidate's exact expected {@code eventDefinition} value (via the same {@link
+     * #eventDefinitionFor(BpmnType)} used by {@link #from(BpmnType)}), not merely whether one is
+     * present -- so a serialized wrapper carrying an event definition this generator never produces
+     * (e.g. a hand-authored {@code bpmn:TimerEventDefinition} on a start event) is left unresolved
+     * instead of being silently reinterpreted as a message event.
      */
     public BpmnType resolveType() {
       if (originalType != null) {
         return originalType;
       }
-      boolean hasEventDefinition = eventDefinition != null;
       for (var candidate : BpmnType.values()) {
         if (candidate.getName().equals(value)
-            && TYPES_WITH_EVENT_DEFINITION.contains(candidate) == hasEventDefinition) {
+            && Objects.equals(eventDefinitionFor(candidate), eventDefinition)) {
           return candidate;
         }
       }

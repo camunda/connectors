@@ -171,6 +171,18 @@ public class ElementTemplateBuilderTest {
   }
 
   @Test
+  void resolveTypeLeavesUnrecognizedEventDefinitionUnresolved() {
+    // A wrapper carrying an eventDefinition this generator never produces (e.g. a hand-authored
+    // bpmn:TimerEventDefinition on a start event) must not be silently reinterpreted as
+    // MESSAGE_START_EVENT just because *some* eventDefinition is present.
+    var base = withoutOriginalType(templateWithElementType(START_EVENT));
+    var unresolvableWrapper =
+        new ElementTypeWrapper(base.elementType().value(), "bpmn:TimerEventDefinition", null);
+
+    assertThat(unresolvableWrapper.resolveType()).isNull();
+  }
+
+  @Test
   void replacePropertyRejectsReplacementWithNullId() {
     // A non-configurable type's Hidden property has no id (see #type(String, boolean)), so two
     // of them landing in the same builder would otherwise be indistinguishable by id.
