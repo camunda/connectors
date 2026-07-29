@@ -19,6 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -29,6 +30,25 @@ import java.util.Map;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+/**
+ * Verifies that AI Agent sub-processes modeled against <em>older</em> element template versions
+ * keep working against the current connector code.
+ *
+ * <p>The BPMN fixtures under {@code src/test/resources/regression/} are recordings of real,
+ * previously deployed processes. They must be deployed <strong>exactly as recorded</strong> — do
+ * not regenerate them, do not reapply the current element template to them, and do not hand-edit
+ * their input mappings to match today's defaults. The moment a fixture is brought in line with the
+ * current template it stops representing a legacy deployment and this class no longer tests
+ * anything.
+ *
+ * <p>For that reason these tests deploy the fixture model directly instead of going through {@link
+ * io.camunda.connector.e2e.agenticai.aiagent.BaseAgentTest#createProcessInstance(
+ * org.springframework.core.io.Resource, java.util.Map)}, which would first reapply the current
+ * element template — including the {@code elementTemplateProperties()} overrides that exist for the
+ * behavioral tests. Those overrides describe how we configure an agent <em>today</em>; forcing them
+ * onto a legacy recording overwrites the very values under test. Everything the process needs at
+ * runtime therefore has to come from the fixture itself plus the process variables passed in below.
+ */
 @SlowTest
 public class AgentSubProcessElementTemplateRegressionTests extends BaseAgentSubProcessTest {
 
@@ -63,7 +83,7 @@ public class AgentSubProcessElementTemplateRegressionTests extends BaseAgentSubP
     final var zeebeTest =
         awaitProcessCompletion(
             createProcessInstance(
-                processResource,
+                new BpmnFile(processResource.getFile()).getBpmnModelInstance(),
                 Map.of(
                     "userPrompt",
                     initialUserPrompt,
