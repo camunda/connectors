@@ -18,7 +18,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCompatibleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
+import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
@@ -33,12 +33,13 @@ import org.jspecify.annotations.Nullable;
  */
 public class AnthropicChatModelApiFactory implements ChatModelFactory {
 
-  private final HttpTransportSupport transport;
+  private final AgenticAiHttpProxySupport httpProxySupport;
   private final AnthropicMessageRequestConverter requestConverter;
   private final AnthropicMessageResponseConverter responseConverter;
 
-  public AnthropicChatModelApiFactory(HttpTransportSupport transport, ObjectMapper objectMapper) {
-    this.transport = transport;
+  public AnthropicChatModelApiFactory(
+      AgenticAiHttpProxySupport httpProxySupport, ObjectMapper objectMapper) {
+    this.httpProxySupport = httpProxySupport;
     this.requestConverter =
         new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper));
     this.responseConverter = new AnthropicMessageResponseConverter(objectMapper);
@@ -57,18 +58,20 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
     final var connection = model.anthropic();
     final var timeout = connection.timeouts() != null ? connection.timeouts().timeout() : null;
 
-    final var client = buildClient(connection.backend(), timeout, transport);
+    final var client = buildClient(connection.backend(), timeout, httpProxySupport);
     return new AnthropicChatModelApi(client, requestConverter, responseConverter);
   }
 
   /**
    * Builds an {@link AnthropicClient} backed by the vendor SDK's OkHttp transport for both the
    * {@code anthropic-api} (direct API key) and {@code compatible} (Anthropic-compatible API)
-   * backends, applying the configured timeout and the shared, provider-neutral {@link
-   * HttpTransportSupport} proxy resolution.
+   * backends, applying the configured timeout and the shared {@link AgenticAiHttpProxySupport}
+   * proxy resolution.
    */
   private static AnthropicClient buildClient(
-      AnthropicBackend backend, @Nullable Duration timeout, HttpTransportSupport transport) {
+      AnthropicBackend backend,
+      @Nullable Duration timeout,
+      AgenticAiHttpProxySupport httpProxySupport) {
     final var builder = AnthropicOkHttpClient.builder();
 
     if (backend instanceof AnthropicApiBackend direct) {
@@ -85,7 +88,7 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
         backend instanceof AnthropicCompatibleBackend compatible
             ? URI.create(compatible.endpoint()).getScheme()
             : ProxyConfiguration.SCHEME_HTTPS;
-    transport
+    httpProxySupport
         .okHttpProxy(scheme != null ? scheme : ProxyConfiguration.SCHEME_HTTPS)
         .ifPresent(
             p -> {

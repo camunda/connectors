@@ -34,7 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleNoAuthentication;
-import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
+import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -94,11 +94,11 @@ class AnthropicChatModelApiFactoryClientTest {
       """;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final HttpTransportSupport transport = mock(HttpTransportSupport.class);
+  private final AgenticAiHttpProxySupport httpProxySupport = mock(AgenticAiHttpProxySupport.class);
 
   @BeforeEach
   void setUp() {
-    when(transport.okHttpProxy(anyString())).thenReturn(Optional.empty());
+    when(httpProxySupport.okHttpProxy(anyString())).thenReturn(Optional.empty());
     stubFor(
         post(urlPathEqualTo("/v1/messages"))
             .willReturn(
@@ -135,13 +135,14 @@ class AnthropicChatModelApiFactoryClientTest {
   @Test
   void appliesConfiguredProxyToBuiltClient() throws Exception {
     try (var fakeProxy = new FakeProxyServer(null, null)) {
-      final var realTransport = new HttpTransportSupport(fakeProxy.toProxyConfiguration());
+      final var realHttpProxySupport =
+          new AgenticAiHttpProxySupport(fakeProxy.toProxyConfiguration());
 
       // the target host is a non-routable address (RFC 5737 TEST-NET-1): reaching it directly
       // would hang/fail, so a successful response here proves the request actually went through
       // the configured proxy rather than straight to the (unreachable) target.
       executeAgainst(
-          realTransport,
+          realHttpProxySupport,
           new AnthropicCompatibleBackend(
               "http://192.0.2.1:1",
               null,
@@ -156,10 +157,11 @@ class AnthropicChatModelApiFactoryClientTest {
   @Test
   void appliesProxyCredentialsViaProxyAuthenticator() throws Exception {
     try (var fakeProxy = new FakeProxyServer("proxyuser", "proxypass")) {
-      final var realTransport = new HttpTransportSupport(fakeProxy.toProxyConfiguration());
+      final var realHttpProxySupport =
+          new AgenticAiHttpProxySupport(fakeProxy.toProxyConfiguration());
 
       executeAgainst(
-          realTransport,
+          realHttpProxySupport,
           new AnthropicCompatibleBackend(
               "http://192.0.2.1:1",
               null,
@@ -176,11 +178,12 @@ class AnthropicChatModelApiFactoryClientTest {
   }
 
   private void executeAgainst(AnthropicCompatibleBackend backend) {
-    executeAgainst(transport, backend);
+    executeAgainst(httpProxySupport, backend);
   }
 
-  private void executeAgainst(HttpTransportSupport transport, AnthropicCompatibleBackend backend) {
-    final var factory = new AnthropicChatModelApiFactory(transport, objectMapper);
+  private void executeAgainst(
+      AgenticAiHttpProxySupport httpProxySupport, AnthropicCompatibleBackend backend) {
+    final var factory = new AnthropicChatModelApiFactory(httpProxySupport, objectMapper);
     final var configuration =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(backend, new AnthropicModel(MODEL_ID, null), null));
@@ -212,10 +215,11 @@ class AnthropicChatModelApiFactoryClientTest {
 
   /**
    * Minimal hand-rolled HTTP forward proxy used to exercise {@link AnthropicChatModelApiFactory}'s
-   * real proxy-application branch end-to-end (rather than mocking {@link HttpTransportSupport},
-   * which leaves that branch untested). When credentials are configured, challenges the first
-   * request with {@code 407 Proxy Authentication Required} so the vendor SDK's {@code
-   * ProxyAuthenticator} actually has to respond, mirroring how a real authenticating proxy behaves.
+   * real proxy-application branch end-to-end (rather than mocking {@link
+   * AgenticAiHttpProxySupport}, which leaves that branch untested). When credentials are
+   * configured, challenges the first request with {@code 407 Proxy Authentication Required} so the
+   * vendor SDK's {@code ProxyAuthenticator} actually has to respond, mirroring how a real
+   * authenticating proxy behaves.
    */
   private static final class FakeProxyServer implements AutoCloseable {
     private final ServerSocket serverSocket;
