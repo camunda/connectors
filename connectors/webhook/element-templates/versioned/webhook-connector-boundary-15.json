@@ -1,27 +1,24 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Webhook Intermediate Event Connector",
-  "id" : "io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1-hybrid",
+  "name" : "Webhook Boundary Event Connector",
+  "id" : "io.camunda.connectors.webhook.WebhookConnectorBoundary.v1",
   "description" : "Configure webhook to receive callbacks",
   "keywords" : [ "receive webhook", "HTTP trigger", "event received", "inbound event", "webhook trigger", "HTTP callback", "listen for event" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 16,
+  "version" : 15,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent" ],
+  "appliesTo" : [ "bpmn:BoundaryEvent" ],
   "elementType" : {
-    "value" : "bpmn:IntermediateCatchEvent",
+    "value" : "bpmn:BoundaryEvent",
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "engines" : {
     "camunda" : "^8.3"
   },
   "groups" : [ {
-    "id" : "connectorType",
-    "label" : "Connector type"
-  }, {
     "id" : "endpoint",
     "label" : "Webhook configuration"
   }, {
@@ -52,14 +49,12 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
-    "id" : "connectorType",
     "value" : "io.camunda:webhook:1",
-    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "inbound.method",
     "label" : "Webhook method",
@@ -580,7 +575,6 @@
       "name" : "resultExpression",
       "type" : "zeebe:property"
     },
-    "tooltip" : "<div><p>Example response:</p><code>{ \"body\" : { \"orderId\" : \"123\", \"status\" : \"created\" }, \"headers\" : { \"Content-Type\" : \"application/json\" }, \"params\" : { } }</code><p>Example FEEL expression: <code>= request.body.orderId</code> -&gt; <code>null</code></p></div>",
     "type" : "Text"
   } ],
   "icon" : {

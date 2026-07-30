@@ -29,6 +29,7 @@ import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.model.DynamicWebhookProperties.DynamicWebhookPropertiesWrapper;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties.WebhookConnectorPropertiesWrapper;
+import io.camunda.connector.inbound.model.WebhookOutputExample;
 import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import io.camunda.connector.inbound.utils.HttpMethods;
@@ -50,7 +51,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.webhook",
     name = "Webhook Connector",
     icon = "icon.svg",
-    version = 15,
+    version = 16,
     inputDataClass = {
       WebhookConnectorPropertiesWrapper.class,
       DynamicWebhookPropertiesWrapper.class
@@ -66,6 +67,7 @@ import org.slf4j.LoggerFactory;
       "listen for event"
     },
     documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
+    outputDataClass = WebhookOutputExample.class,
     defaultResultExpression =
         "{\n"
             + "  myRequestBody: request.body\n"
