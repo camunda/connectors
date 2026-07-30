@@ -26,9 +26,14 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,15 +53,26 @@ class AnthropicChatModelApiTest {
   @Mock private AnthropicMessageStreamAssembler streamAssembler;
   @Mock private Message assembledMessage;
 
+  private final AnthropicChatModelConfiguration model =
+      new AnthropicChatModelConfiguration(
+          new AnthropicConnection(
+              new AnthropicApiBackend("sk-ant-test"),
+              new AnthropicModel("claude-sonnet-4-6", null),
+              null));
+
+  private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
+
   private final ChatRequest request =
-      new ChatRequest(
-          mock(AgentExecutionContext.class), new ConversationSnapshot(List.of(), List.of()));
+      new ChatRequest(executionContext, new ConversationSnapshot(List.of(), List.of()));
 
   private AnthropicChatModelApi api;
 
   @BeforeEach
   void setUp() {
-    api = new AnthropicChatModelApi(client, requestConverter, responseConverter, streamAssembler);
+    when(executionContext.configuration()).thenReturn(mock(AgentConfiguration.class));
+    api =
+        new AnthropicChatModelApi(
+            client, model, requestConverter, responseConverter, streamAssembler);
   }
 
   @Test
@@ -66,7 +82,7 @@ class AnthropicChatModelApiTest {
         new ChatResult.Completed(
             AssistantMessage.builder().build(), AgentMetrics.builder().build());
 
-    when(requestConverter.toMessageCreateParams(any(), any())).thenReturn(params);
+    when(requestConverter.toMessageCreateParams(any(), any(), any())).thenReturn(params);
     when(client.messages()).thenReturn(messageService);
     when(messageService.createStreaming(params)).thenReturn(streamResponse);
     when(streamAssembler.assemble(streamResponse)).thenReturn(assembledMessage);
@@ -75,7 +91,9 @@ class AnthropicChatModelApiTest {
     final var result = api.execute(request);
 
     assertThat(result).isSameAs(expected);
-    verify(requestConverter).toMessageCreateParams(request.executionContext(), request.snapshot());
+    verify(requestConverter)
+        .toMessageCreateParams(
+            model, executionContext.configuration().response(), request.snapshot());
     verify(messageService).createStreaming(params);
     verify(streamAssembler).assemble(streamResponse);
     verify(streamResponse).close();
@@ -84,7 +102,7 @@ class AnthropicChatModelApiTest {
 
   @Test
   void wrapsSdkFailureAsConnectorException() {
-    when(requestConverter.toMessageCreateParams(any(), any()))
+    when(requestConverter.toMessageCreateParams(any(), any(), any()))
         .thenReturn(mock(MessageCreateParams.class));
     when(client.messages()).thenThrow(new RuntimeException("boom"));
 

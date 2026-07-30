@@ -50,7 +50,7 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
     final var timeout = connection.timeouts() != null ? connection.timeouts().timeout() : null;
 
     final var client = buildClient(connection.backend(), timeout, httpProxySupport);
-    return new AnthropicChatModelApi(client, requestConverter, responseConverter);
+    return new AnthropicChatModelApi(client, model, requestConverter, responseConverter);
   }
 
   private static AnthropicClient buildClient(
