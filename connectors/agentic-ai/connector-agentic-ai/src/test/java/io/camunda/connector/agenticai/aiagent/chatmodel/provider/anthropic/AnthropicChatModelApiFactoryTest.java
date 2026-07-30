@@ -42,7 +42,11 @@ class AnthropicChatModelApiFactoryTest {
 
   @BeforeEach
   void setUp() {
-    factory = new AnthropicChatModelApiFactory(httpProxySupport, objectMapper);
+    factory =
+        new AnthropicChatModelApiFactory(
+            httpProxySupport,
+            new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
+            new AnthropicMessageResponseConverter(objectMapper));
   }
 
   @Test
