@@ -8,14 +8,17 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 
+import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
 import com.anthropic.models.messages.Base64ImageSource;
 import com.anthropic.models.messages.ContentBlockParam;
 import com.anthropic.models.messages.DocumentBlockParam;
 import com.anthropic.models.messages.ImageBlockParam;
 import com.anthropic.models.messages.TextBlockParam;
+import com.anthropic.models.messages.TextCitationParam;
 import com.anthropic.models.messages.ToolResultBlockParam;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -32,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.apache.hc.core5.http.ContentType;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Converts the domain {@link Content} model to Anthropic SDK content blocks, both for
@@ -65,9 +69,7 @@ public class AnthropicContentConverter {
     final List<ContentBlockParam> blocks = new ArrayList<>();
     for (final Content c : content) {
       switch (c) {
-        case TextContent text ->
-            blocks.add(
-                ContentBlockParam.ofText(TextBlockParam.builder().text(text.text()).build()));
+        case TextContent text -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(text)));
         case DocumentContent doc -> blocks.add(documentBlock(doc));
         case ObjectContent obj ->
             blocks.add(
@@ -105,6 +107,30 @@ public class AnthropicContentConverter {
       payload = merged;
     }
     return ObjectMappers.jsonMapper().convertValue(payload, ContentBlockParam.class);
+  }
+
+  private TextBlockParam toTextBlockParam(TextContent text) {
+    final var builder = TextBlockParam.builder().text(text.text());
+    applyAnthropicTextMetadata(builder, text.metadata());
+    return builder.build();
+  }
+
+  /** Replays {@link AnthropicMessageResponseConverter#residualMetadata} onto a text block. */
+  private void applyAnthropicTextMetadata(
+      TextBlockParam.Builder builder, @Nullable Map<String, Object> metadata) {
+    if (metadata == null || !(metadata.get("anthropic") instanceof Map<?, ?> anthropic)) {
+      return;
+    }
+    final Map<String, Object> residual = new LinkedHashMap<>();
+    anthropic.forEach((k, v) -> residual.put(String.valueOf(k), v));
+
+    final Object citations = residual.remove("citations");
+    if (citations != null) {
+      builder.citations(
+          ObjectMappers.jsonMapper()
+              .convertValue(citations, new TypeReference<List<TextCitationParam>>() {}));
+    }
+    residual.forEach((k, v) -> builder.putAdditionalProperty(k, JsonValue.from(v)));
   }
 
   public List<ToolResultBlockParam.Content.Block> toToolResultBlocks(List<Content> content) {

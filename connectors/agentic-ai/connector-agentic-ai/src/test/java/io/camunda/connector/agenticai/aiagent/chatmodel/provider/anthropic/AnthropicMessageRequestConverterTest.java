@@ -215,6 +215,7 @@ class AnthropicMessageRequestConverterTest {
     assertThat(toolUseBlock.id()).isEqualTo("id");
     assertThat(toolUseBlock.name()).isEqualTo("name");
     assertThat(toolUseBlock.input()._additionalProperties().get("a")).isEqualTo(JsonValue.from(5));
+    assertThat(toolUseBlock.caller()).isEmpty();
 
     final var toolResultMessage = params.messages().get(2);
     assertThat(toolResultMessage.role()).isEqualTo(MessageParam.Role.USER);
@@ -224,6 +225,111 @@ class AnthropicMessageRequestConverterTest {
     assertThat(
             toolResultBlock.content().orElseThrow().asBlocks().get(0).text().orElseThrow().text())
         .isEqualTo("result");
+  }
+
+  @Test
+  void replaysServerToolCallerCapturedInToolCallMetadata() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .toolCalls(
+                        List.of(
+                            ToolCall.builder()
+                                .id("toolu_1")
+                                .name("get_weather")
+                                .arguments(Map.of("city", "Berlin"))
+                                .metadata(
+                                    Map.of(
+                                        "anthropic",
+                                        Map.of(
+                                            "caller",
+                                            Map.of(
+                                                "type",
+                                                "code_execution_20250825",
+                                                "tool_id",
+                                                "srvtoolu_01"))))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var params = converter.toMessageCreateParams(model(null), null, snapshot);
+
+    final var toolUseBlock =
+        params.messages().get(0).content().asBlockParams().get(0).toolUse().orElseThrow();
+    final var caller = toolUseBlock.caller().orElseThrow();
+    assertThat(caller.isCodeExecution20250825()).isTrue();
+    assertThat(caller.asCodeExecution20250825().toolId()).isEqualTo("srvtoolu_01");
+  }
+
+  @Test
+  void replaysUnmappedToolUseFieldFromMetadataAsAdditionalProperty() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .toolCalls(
+                        List.of(
+                            ToolCall.builder()
+                                .id("toolu_1")
+                                .name("get_weather")
+                                .arguments(Map.of("city", "Berlin"))
+                                .metadata(
+                                    Map.of(
+                                        "anthropic",
+                                        Map.of("some_future_field", "some_future_value")))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var params = converter.toMessageCreateParams(model(null), null, snapshot);
+
+    final var toolUseBlock =
+        params.messages().get(0).content().asBlockParams().get(0).toolUse().orElseThrow();
+    assertThat(toolUseBlock._additionalProperties().get("some_future_field"))
+        .isEqualTo(JsonValue.from("some_future_value"));
+  }
+
+  @Test
+  void replaysTextCitationsCapturedInContentMetadata() {
+    final var textWithCitation =
+        new TextContent(
+            "Paris is the capital of France.",
+            Map.of(
+                "anthropic",
+                Map.of(
+                    "citations",
+                    List.of(
+                        Map.of(
+                            "type",
+                            "char_location",
+                            "cited_text",
+                            "Paris is the capital",
+                            "document_index",
+                            0,
+                            "document_title",
+                            "Geography",
+                            "start_char_index",
+                            0,
+                            "end_char_index",
+                            21)))));
+
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(AssistantMessage.builder().content(List.of(textWithCitation)).build()),
+            List.of());
+
+    final var params = converter.toMessageCreateParams(model(null), null, snapshot);
+
+    final var textBlock = params.messages().get(0).content().asBlockParams().get(0).text().get();
+    final var citations = textBlock.citations().orElseThrow();
+    assertThat(citations).hasSize(1);
+    final var charLocation = citations.get(0).charLocation().orElseThrow();
+    assertThat(charLocation.citedText()).isEqualTo("Paris is the capital");
+    assertThat(charLocation.documentIndex()).isEqualTo(0L);
+    assertThat(charLocation.documentTitle()).contains("Geography");
+    assertThat(charLocation.startCharIndex()).isEqualTo(0L);
+    assertThat(charLocation.endCharIndex()).isEqualTo(21L);
   }
 
   @Test

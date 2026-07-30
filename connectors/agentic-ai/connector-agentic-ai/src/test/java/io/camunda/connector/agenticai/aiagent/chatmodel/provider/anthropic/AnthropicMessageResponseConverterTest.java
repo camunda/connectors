@@ -98,6 +98,111 @@ class AnthropicMessageResponseConverterTest {
   }
 
   @Test
+  void capturesServerToolCallerAsMetadataForReplay() {
+    final var message =
+        message(
+            """
+            {
+              "id": "msg_1",
+              "model": "claude-sonnet-4-6",
+              "role": "assistant",
+              "type": "message",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_1",
+                  "name": "get_weather",
+                  "input": {"city": "Berlin"},
+                  "caller": {"type": "code_execution_20250825", "tool_id": "srvtoolu_01"}
+                }
+              ],
+              "stop_reason": "tool_use",
+              "usage": {"input_tokens": 10, "output_tokens": 20}
+            }
+            """);
+
+    final var toolCall = converter.toResult(message, EXECUTION_TIME).assistantMessage().toolCalls();
+    assertThat(toolCall).hasSize(1);
+    assertThat(toolCall.get(0).metadata())
+        .isEqualTo(
+            Map.of(
+                "anthropic",
+                Map.of(
+                    "caller",
+                    Map.of("type", "code_execution_20250825", "tool_id", "srvtoolu_01"))));
+  }
+
+  @Test
+  void capturesUnmappedToolUseFieldAsMetadataForReplay() {
+    final var message =
+        message(
+            """
+            {
+              "id": "msg_1",
+              "model": "claude-sonnet-4-6",
+              "role": "assistant",
+              "type": "message",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_1",
+                  "name": "get_weather",
+                  "input": {"city": "Berlin"},
+                  "some_future_field": "some_future_value"
+                }
+              ],
+              "stop_reason": "tool_use",
+              "usage": {"input_tokens": 10, "output_tokens": 20}
+            }
+            """);
+
+    final var toolCall = converter.toResult(message, EXECUTION_TIME).assistantMessage().toolCalls();
+    assertThat(toolCall.get(0).metadata())
+        .isEqualTo(Map.of("anthropic", Map.of("some_future_field", "some_future_value")));
+  }
+
+  @Test
+  void capturesTextCitationsAsMetadataForReplay() {
+    final var message =
+        message(
+            """
+            {
+              "id": "msg_1",
+              "model": "claude-sonnet-4-6",
+              "role": "assistant",
+              "type": "message",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Paris is the capital of France.",
+                  "citations": [
+                    {
+                      "type": "char_location",
+                      "cited_text": "Paris is the capital",
+                      "document_index": 0,
+                      "document_title": "Geography",
+                      "start_char_index": 0,
+                      "end_char_index": 21
+                    }
+                  ]
+                }
+              ],
+              "stop_reason": "end_turn",
+              "usage": {"input_tokens": 10, "output_tokens": 20}
+            }
+            """);
+
+    final var content = converter.toResult(message, EXECUTION_TIME).assistantMessage().content();
+    assertThat(content).hasSize(1);
+    final var textContent = (TextContent) content.get(0);
+    assertThat(textContent.text()).isEqualTo("Paris is the capital of France.");
+    assertThat(textContent.metadata()).isNotNull();
+    @SuppressWarnings("unchecked")
+    final var anthropicMetadata = (Map<String, Object>) textContent.metadata().get("anthropic");
+    assertThat(anthropicMetadata).containsOnlyKeys("citations");
+  }
+
+  @Test
   void mapsPauseTurnToContinuation() {
     final var message =
         message(
