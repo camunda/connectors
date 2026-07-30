@@ -286,14 +286,31 @@ public class SpringConnectorJobHandler implements JobHandler {
               + timeoutHeader,
           e);
     }
-    if (timeout.toMillis() <= 0) {
+    long timeoutMillis;
+    try {
       // Zeebe's UpdateJobTimeoutCommand truncates to milliseconds (Duration#toMillis), so a
       // sub-millisecond-but-technically-positive Duration (e.g. PT0.000000001S) would otherwise
-      // slip past an isZero()/isNegative() check and still be sent to the broker as 0.
+      // slip past an isZero()/isNegative() check and still be sent to the broker as 0. toMillis()
+      // itself throws ArithmeticException for a Duration too large to represent in millis.
+      timeoutMillis = timeout.toMillis();
+    } catch (ArithmeticException e) {
+      throw new InvalidJobTimeoutException(
+          "Job timeout is too large to represent, got: " + timeoutHeader, e);
+    }
+    if (timeoutMillis <= 0) {
       throw new InvalidJobTimeoutException(
           "Job timeout must be a positive duration, got: " + timeoutHeader, null);
     }
     long requestTime = System.currentTimeMillis();
+    long deadline;
+    try {
+      // A representable-but-huge duration (e.g. close to Long.MAX_VALUE millis) would otherwise
+      // silently wrap around to a garbage, already-expired deadline via plain long addition.
+      deadline = Math.addExact(requestTime, timeoutMillis);
+    } catch (ArithmeticException e) {
+      throw new InvalidJobTimeoutException(
+          "Job timeout is too large to represent as a deadline, got: " + timeoutHeader, e);
+    }
     try {
       camundaClient.newUpdateTimeoutCommand(job).timeout(timeout).execute();
     } catch (Exception e) {
@@ -304,7 +321,7 @@ public class SpringConnectorJobHandler implements JobHandler {
           e);
       return null;
     }
-    return requestTime + timeout.toMillis();
+    return deadline;
   }
 
   private ConnectorResponse getConnectorResponse(OutboundConnectorContext context)

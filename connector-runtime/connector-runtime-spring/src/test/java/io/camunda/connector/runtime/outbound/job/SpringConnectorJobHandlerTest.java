@@ -1008,6 +1008,48 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
+    void shouldFailJob_WhenHeaderDurationTooLargeToConvertToMillis_ConnectorNotInvoked()
+        throws Exception {
+      // given — Duration.parse succeeds but Duration#toMillis overflows long
+      var connectorFunction = mock(OutboundConnectorFunction.class);
+      var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
+      var jobBuilder =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT9999999999999999S"));
+
+      // when
+      var result = jobBuilder.executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getRetries()).isEqualTo(0);
+      assertThat(result.getErrorMessage()).contains("too large to represent");
+      verify(connectorFunction, times(0)).execute(any());
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
+    void shouldFailJob_WhenDeadlineAdditionOverflows_ConnectorNotInvoked() throws Exception {
+      // given — Duration#toMillis succeeds (a representable, huge value close to Long.MAX_VALUE),
+      // but adding it to the current epoch millis would overflow
+      var connectorFunction = mock(OutboundConnectorFunction.class);
+      var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
+      var jobBuilder =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT9223372036854775S"));
+
+      // when
+      var result = jobBuilder.executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getRetries()).isEqualTo(0);
+      assertThat(result.getErrorMessage()).contains("too large to represent");
+      verify(connectorFunction, times(0)).execute(any());
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
     void shouldUseUpdatedDeadline_ForFailJobCallback_WhenHeaderPresent() throws Exception {
       // given — a job with plenty of time left on its current deadline
       long staleDeadline = System.currentTimeMillis() + Duration.ofMinutes(25).toMillis();
