@@ -979,7 +979,11 @@ class SpringConnectorJobHandlerTest {
           .thenThrow(new ClientStatusException(Status.UNAVAILABLE, new RuntimeException("boom")));
       var jobHandler = newConnectorJobHandler(context -> "ok", camundaClient);
       var jobBuilder =
-          JobBuilder.create().withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
+          JobBuilder.create()
+              // a realistic, still-comfortably-future original deadline — without this, the mock's
+              // default job.getDeadline()==0 would make Math.min(...) always look already expired
+              .withDeadline(System.currentTimeMillis() + Duration.ofMinutes(5).toMillis())
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
 
       // when
       var result = jobBuilder.executeAndCaptureResult(jobHandler);
@@ -1000,6 +1004,31 @@ class SpringConnectorJobHandlerTest {
           JobBuilder.create()
               .withRetries(3)
               .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
+
+      // when
+      jobBuilder.executeAndCaptureResult(jobHandler, false);
+
+      // then
+      verify(connectorFunction, times(0)).execute(any());
+    }
+
+    @Test
+    void shouldNotInvokeConnector_WhenDeadlineAlreadyElapsedAfterUpdate() throws Exception {
+      // given — the update command takes long enough that a very short (but valid) jobTimeout has
+      // already elapsed by the time it returns; the broker may already consider this worker's
+      // lease gone, so the connector must not run
+      when(updateTimeoutStep2.execute())
+          .thenAnswer(
+              invocation -> {
+                Thread.sleep(50);
+                return null;
+              });
+      var connectorFunction = mock(OutboundConnectorFunction.class);
+      var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
+      var jobBuilder =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT0.01S"));
 
       // when
       jobBuilder.executeAndCaptureResult(jobHandler, false);

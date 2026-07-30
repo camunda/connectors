@@ -234,6 +234,16 @@ public class SpringConnectorJobHandler implements JobHandler {
       Long updatedDeadline = updateJobTimeoutIfPresent(job);
       if (updatedDeadline != null) {
         deadline = updatedDeadline;
+        if (deadline <= System.currentTimeMillis()) {
+          // A short but valid jobTimeout can already have elapsed by the time the synchronous
+          // update command returns (network latency). The broker may already consider this
+          // worker's lease gone, so the connector must not run — doing so risks duplicating side
+          // effects if the job gets reassigned. Propagate rather than continue, mirroring the
+          // definitive-rejection case above.
+          throw new IllegalStateException(
+              "Job timeout deadline already elapsed by the time the update was applied for job: "
+                  + job.getKey());
+        }
       }
 
       var connectorResponse = getConnectorResponse(context);
