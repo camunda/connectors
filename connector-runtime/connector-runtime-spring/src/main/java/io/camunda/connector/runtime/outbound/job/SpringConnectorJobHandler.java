@@ -226,9 +226,9 @@ public class SpringConnectorJobHandler implements JobHandler {
     long deadline = job.getDeadline();
     try {
       retryBackoff = getBackoffDuration(job);
-      Duration jobTimeout = updateJobTimeoutIfPresent(job);
-      if (jobTimeout != null) {
-        deadline = System.currentTimeMillis() + jobTimeout.toMillis();
+      Long updatedDeadline = updateJobTimeoutIfPresent(job);
+      if (updatedDeadline != null) {
+        deadline = updatedDeadline;
       }
 
       var connectorResponse = getConnectorResponse(context);
@@ -261,13 +261,18 @@ public class SpringConnectorJobHandler implements JobHandler {
   /**
    * Reads the {@link Keywords#JOB_TIMEOUT_KEYWORD} header and, if present, sets the job's Zeebe
    * activation deadline to {@code now + duration} via {@code UpdateJobTimeoutCommand} before the
-   * connector function runs. Returns the parsed duration on success, or {@code null} if there was
-   * no header to apply (missing/blank) or the update command itself failed (logged as a WARN,
-   * execution continues with the job's original deadline). A malformed or non-positive duration is
-   * a configuration error and is not swallowed — it propagates so the job fails immediately,
-   * mirroring {@link #getBackoffDuration}.
+   * connector function runs. Returns the resulting deadline (epoch millis) on success, or {@code
+   * null} if there was no header to apply (missing/blank) or the update command itself failed
+   * (logged as a WARN, execution continues with the job's original deadline). A malformed or
+   * non-positive duration is a configuration error and is not swallowed — it propagates so the job
+   * fails immediately, mirroring {@link #getBackoffDuration}.
+   *
+   * <p>The returned deadline is computed from a timestamp captured <em>before</em> the update
+   * command is sent, not after it returns — Zeebe applies {@code now + duration} when it processes
+   * the command on the broker, which happens before the client sees the response, so using a
+   * post-call timestamp would make the locally tracked deadline later than the broker's actual one.
    */
-  private Duration updateJobTimeoutIfPresent(ActivatedJob job) {
+  private Long updateJobTimeoutIfPresent(ActivatedJob job) {
     String timeoutHeader = job.getCustomHeaders().get(Keywords.JOB_TIMEOUT_KEYWORD);
     if (timeoutHeader == null || timeoutHeader.isBlank()) {
       return null;
@@ -288,6 +293,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       throw new InvalidJobTimeoutException(
           "Job timeout must be a positive duration, got: " + timeoutHeader, null);
     }
+    long requestTime = System.currentTimeMillis();
     try {
       camundaClient.newUpdateTimeoutCommand(job).timeout(timeout).execute();
     } catch (Exception e) {
@@ -298,7 +304,7 @@ public class SpringConnectorJobHandler implements JobHandler {
           e);
       return null;
     }
-    return timeout;
+    return requestTime + timeout.toMillis();
   }
 
   private ConnectorResponse getConnectorResponse(OutboundConnectorContext context)
