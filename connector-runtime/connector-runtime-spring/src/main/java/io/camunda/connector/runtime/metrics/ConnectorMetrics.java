@@ -43,6 +43,15 @@ public class ConnectorMetrics {
     public static final String METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED =
         "camunda.connector.inbound.process-definitions-checked";
 
+    /**
+     * Number of process state changes that could not be published to the executable registry,
+     * typically because the Orchestration Cluster was unreachable while the BPMN model was fetched.
+     * Each one is retried on a subsequent poll, so a non-zero rate that does not settle indicates
+     * connectors are failing to activate.
+     */
+    public static final String METRIC_NAME_PROCESS_STATE_CHANGE_PUBLISH_FAILURES =
+        "camunda.connector.inbound.process-state-change.publish-failures";
+
     public static final String ACTION_ACTIVATED = "activated";
     public static final String ACTION_DEACTIVATED = "deactivated";
     public static final String ACTION_ACTIVATION_FAILED = "activation-failed";

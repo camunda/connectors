@@ -97,7 +97,8 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
   }
 
   /** Returns the set of currently active process definition keys for a given process definition. */
-  private Set<Long> getActiveVersions(ProcessDefinitionRef processRef) {
+  @Override
+  public synchronized Set<Long> getActiveVersions(ProcessDefinitionRef processRef) {
     var versionsInState = processStates.get(processRef);
     if (versionsInState == null) {
       return Set.of();
