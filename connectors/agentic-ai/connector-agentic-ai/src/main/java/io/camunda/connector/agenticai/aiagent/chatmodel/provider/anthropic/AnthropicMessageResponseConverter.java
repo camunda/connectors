@@ -37,28 +37,16 @@ import org.slf4j.LoggerFactory;
  * Maps an accumulated Anthropic SDK {@link Message} response to the domain {@link
  * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatResult}.
  *
- * <p>Content mapping is on the response side: {@code text} blocks become {@link TextContent},
- * {@code tool_use} blocks become {@link ToolCall}s, and {@code thinking} / {@code
- * redacted_thinking} blocks become {@link ReasoningContent} whose {@code payload} carries the
- * <strong>full raw block</strong> (a {@code Map<String, Object>} produced via the SDK's own mapper
- * — {@code type}/{@code thinking}/{@code signature} for a thinking block, {@code type}/{@code data}
- * for a redacted one), not just the bare signature/redacted string. This raw payload IS re-emitted
- * back to Anthropic on the request side (see {@link AnthropicContentConverter}), so reasoning now
- * round-trips losslessly. Every other block type (server-tool and code-execution blocks such as
- * {@code server_tool_use}, {@code code_execution_tool_result}, {@code web_search_tool_result},
- * {@code container_upload}, etc.) is captured losslessly as {@link ProviderContent}, kept inline in
- * original order, and never added to {@code toolCalls} since these are server-side blocks the
- * caller is never expected to act on.
+ * <p>{@code text} blocks become {@link TextContent}, {@code tool_use} blocks become {@link
+ * ToolCall}s, {@code thinking} / {@code redacted_thinking} blocks become {@link ReasoningContent}
+ * carrying the full raw block as payload (re-emitted verbatim on the request side, see {@link
+ * AnthropicContentConverter}, so reasoning round-trips losslessly), and every other block type is
+ * captured losslessly as {@link ProviderContent} rather than dropped.
  *
- * <p>The {@code pause_turn} stop reason surfaces as a {@link ChatResult.Continuation} (Anthropic
- * paused a long-running turn and expects to be called again without new input); every other stop
- * reason surfaces as {@link ChatResult.Completed}. The raw vendor stop reason string is always
+ * <p>The {@code pause_turn} stop reason surfaces as a {@link ChatResult.Continuation}; every other
+ * stop reason surfaces as {@link ChatResult.Completed}. The raw vendor stop reason string is always
  * preserved in {@link AssistantMessage#metadata()}, independent of how it normalizes to the domain
  * {@code StopReason}.
- *
- * <p>Note: the domain {@code io.camunda.connector.agenticai.aiagent.model.message.StopReason} is
- * referenced by its fully qualified name throughout this class (rather than importing it under its
- * simple name) purely to avoid a name clash with the Anthropic SDK's own {@link StopReason}.
  */
 public class AnthropicMessageResponseConverter {
 
@@ -94,12 +82,8 @@ public class AnthropicMessageResponseConverter {
         final var toolUse = block.toolUse().orElseThrow();
         toolCalls.add(new ToolCall(toolUse.id(), toolUse.name(), toolUseArguments(toolUse)));
       } else if (block.isThinking()) {
-        // The raw block (type/thinking/signature) is preserved verbatim as payload so it
-        // can be replayed byte-identical on the request side (see AnthropicContentConverter);
-        // uses the SDK's own mapper for the same reason as the ProviderContent branch below.
-        // The human-readable thinking text is lifted into the dedicated `text` field and
-        // removed from the stored payload so it isn't persisted twice; AnthropicContentConverter
-        // merges it back into the payload before the block is replayed on the next request.
+        // Raw block preserved verbatim (minus the lifted-out text) so it replays byte-identical
+        // on the request side; see AnthropicContentConverter, which merges the text back in
         final Map<String, Object> raw =
             new LinkedHashMap<>(
                 ObjectMappers.jsonMapper()
@@ -115,13 +99,8 @@ public class AnthropicMessageResponseConverter {
                 .convertValue(block, new TypeReference<Map<String, Object>>() {});
         content.add(new ReasoningContent("anthropic", raw, null, null));
       } else {
-        // Server-tool / provider-specific blocks (server_tool_use, code_execution_tool_result,
-        // web_search_tool_result, container_upload, etc.) have no provider-neutral
-        // representation. Preserve them losslessly and in original order as ProviderContent
-        // rather than silently dropping them; they are never client tool calls (the caller is
-        // never expected to act on them), so they are kept out of toolCalls. Uses the SDK's own
-        // mapper (not the injected app ObjectMapper) since only it knows how to serialize the raw
-        // block's JsonValue/JsonField internals.
+        // Fallback for any Anthropic content block type not explicitly handled above: preserve
+        // it losslessly, in original order, as ProviderContent
         final Map<String, Object> raw =
             ObjectMappers.jsonMapper()
                 .convertValue(block, new TypeReference<Map<String, Object>>() {});
@@ -147,11 +126,8 @@ public class AnthropicMessageResponseConverter {
   }
 
   private Map<String, Object> toolUseArguments(ToolUseBlock toolUse) {
-    // A no-argument tool call streams an empty input_json_delta, which the vendor SDK's
-    // MessageAccumulator finalizes as JsonMissing rather than an empty object (the same
-    // JsonMissing also results from a tool_use block whose "input" field is absent). JsonMissing
-    // throws "JsonMissing cannot be serialized" for any ObjectMapper, so treat a missing or
-    // non-object input as an empty argument map.
+    // A no-argument tool call finalizes as JsonMissing (not an empty object), which throws if
+    // serialized; treat a missing or non-object input as an empty argument map
     final JsonValue input = toolUse._input();
     if (!(input instanceof JsonObject)) {
       return Map.of();
@@ -182,14 +158,6 @@ public class AnthropicMessageResponseConverter {
         .build();
   }
 
-  /**
-   * Normalizes the raw Anthropic stop reason to the provider-neutral domain {@code StopReason}.
-   * {@code pause_turn} still gets a domain stop reason here (it falls through to {@code
-   * UnknownStopReason} below) even though the same response is also surfaced as a {@link
-   * ChatResult.Continuation}. Uses {@link StopReason#value()} rather than {@code known()} so a
-   * genuinely unrecognised future value degrades to an {@code UnknownStopReason} carrying the raw
-   * string instead of throwing.
-   */
   private io.camunda.connector.agenticai.aiagent.model.message.@Nullable StopReason mapStopReason(
       @Nullable StopReason stopReason) {
     if (stopReason == null) {
