@@ -33,8 +33,8 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Anthropic Messages wire format. Backends this PR: {@code anthropic-api} (direct, API key) and
- * {@code compatible} (Anthropic-compatible endpoint, optional API key auth).
+ * Anthropic Messages wire format. Supports two backends: {@code anthropic-api} (direct, API key)
+ * and {@code compatible} (Anthropic-compatible endpoint, optional API key auth).
  */
 @TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
 public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnection anthropic)
@@ -84,8 +84,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
   }
 
   /**
-   * Anthropic wire-format API selector. Single value ({@code messages}) this PR; the property is
-   * hidden in the template until a second value is introduced.
+   * Anthropic wire-format API selector. Single value ({@code messages}); the property is hidden in
+   * the template until a second value is introduced.
    */
   public enum AnthropicApi {
     @JsonProperty("messages")
@@ -190,7 +190,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
               feel = FeelMode.optional,
               defaultValue = "",
               defaultValueType = TemplateProperty.DefaultValueType.String,
-              placeholder = "claude-sonnet-4-6",
+              placeholder = "claude-sonnet-5",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String model,
       @Valid @Nullable AnthropicModelParameters parameters) {
@@ -259,8 +259,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
             @Nullable Integer topK) {
 
       @JsonIgnore
-      @AssertTrue(
-          message = "thinking.budgetTokens must be less than maxTokens when thinking is enabled")
+      @AssertTrue(message = "thinking.budgetTokens must be less than maxTokens")
       public boolean isThinkingBudgetWithinMaxTokens() {
         if (thinking == null
             || thinking.mode() != ThinkingMode.ENABLED

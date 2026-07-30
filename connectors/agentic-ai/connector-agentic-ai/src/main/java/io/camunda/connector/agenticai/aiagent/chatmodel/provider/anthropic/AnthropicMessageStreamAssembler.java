@@ -137,9 +137,9 @@ final class InlineToolInputShim {
     return shimTargets;
   }
 
-  // Note: the stable RawContentBlockStartEvent.ContentBlock union has no mcpToolUse() variant
-  // (MCP connector support is a beta-only feature and out of scope for this PR) -- only
-  // serverToolUse()/toolUse() need checking here.
+  // note: the stable RawContentBlockStartEvent.ContentBlock union has no mcpToolUse() variant
+  // (MCP connector support is a beta-only Anthropic feature) -- only serverToolUse()/toolUse()
+  // need checking here.
   private static Optional<String> extractNonEmptyInlineToolInput(
       RawContentBlockStartEvent.ContentBlock contentBlock) {
     final JsonValue input;

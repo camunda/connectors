@@ -393,7 +393,7 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
-    "placeholder" : "claude-sonnet-4-6",
+    "placeholder" : "claude-sonnet-5",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.model.parameters.effort",
