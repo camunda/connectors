@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.core.http.ProxyAuthenticator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
@@ -24,13 +23,6 @@ import java.net.URI;
 import java.time.Duration;
 import org.jspecify.annotations.Nullable;
 
-/**
- * {@link ChatModelFactory} for the Anthropic Messages wire format's {@code anthropic-api} (direct
- * API key) and {@code compatible} (Anthropic-compatible API) backends.
- *
- * <p>The Bedrock backend is deliberately not yet supported here; such configurations still fail
- * loud via the registry until a Bedrock-backed implementation exists to serve them.
- */
 public class AnthropicChatModelApiFactory implements ChatModelFactory {
 
   private final AgenticAiHttpProxySupport httpProxySupport;
@@ -38,18 +30,17 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
   private final AnthropicMessageResponseConverter responseConverter;
 
   public AnthropicChatModelApiFactory(
-      AgenticAiHttpProxySupport httpProxySupport, ObjectMapper objectMapper) {
+      AgenticAiHttpProxySupport httpProxySupport,
+      AnthropicMessageRequestConverter requestConverter,
+      AnthropicMessageResponseConverter responseConverter) {
     this.httpProxySupport = httpProxySupport;
-    this.requestConverter =
-        new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper));
-    this.responseConverter = new AnthropicMessageResponseConverter(objectMapper);
+    this.requestConverter = requestConverter;
+    this.responseConverter = responseConverter;
   }
 
   @Override
   public boolean supports(ChatModelConfiguration configuration) {
-    return configuration instanceof AnthropicChatModelConfiguration anthropic
-        && (anthropic.anthropic().backend() instanceof AnthropicApiBackend
-            || anthropic.anthropic().backend() instanceof AnthropicCompatibleBackend);
+    return configuration instanceof AnthropicChatModelConfiguration;
   }
 
   @Override
@@ -62,22 +53,15 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
     return new AnthropicChatModelApi(client, requestConverter, responseConverter);
   }
 
-  /**
-   * Builds an {@link AnthropicClient} backed by the vendor SDK's OkHttp transport for both the
-   * {@code anthropic-api} (direct API key) and {@code compatible} (Anthropic-compatible API)
-   * backends, applying the configured timeout and the shared {@link AgenticAiHttpProxySupport}
-   * proxy resolution.
-   */
   private static AnthropicClient buildClient(
       AnthropicBackend backend,
       @Nullable Duration timeout,
       AgenticAiHttpProxySupport httpProxySupport) {
     final var builder = AnthropicOkHttpClient.builder();
 
-    if (backend instanceof AnthropicApiBackend direct) {
-      builder.apiKey(direct.apiKey());
-    } else if (backend instanceof AnthropicCompatibleBackend compatible) {
-      applyCompatibleBackend(builder, compatible);
+    switch (backend) {
+      case AnthropicApiBackend direct -> applyApiBackend(builder, direct);
+      case AnthropicCompatibleBackend compatible -> applyCompatibleBackend(builder, compatible);
     }
 
     if (timeout != null) {
@@ -98,6 +82,11 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
               }
             });
     return builder.build();
+  }
+
+  private static void applyApiBackend(
+      AnthropicOkHttpClient.Builder builder, AnthropicApiBackend direct) {
+    builder.apiKey(direct.apiKey());
   }
 
   private static void applyCompatibleBackend(

@@ -183,7 +183,11 @@ class AnthropicChatModelApiFactoryClientTest {
 
   private void executeAgainst(
       AgenticAiHttpProxySupport httpProxySupport, AnthropicCompatibleBackend backend) {
-    final var factory = new AnthropicChatModelApiFactory(httpProxySupport, objectMapper);
+    final var factory =
+        new AnthropicChatModelApiFactory(
+            httpProxySupport,
+            new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
+            new AnthropicMessageResponseConverter(objectMapper));
     final var configuration =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(backend, new AnthropicModel(MODEL_ID, null), null));
