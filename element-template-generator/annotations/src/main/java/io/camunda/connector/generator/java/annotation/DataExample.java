@@ -25,10 +25,15 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD})
 public @interface DataExample {
 
+  /** Id used when no explicit {@link #id()} is set, marking this as the canonical example. */
+  String DEFAULT_ID = "default";
+
   /**
-   * @return ID of the example which can be used when generating documentation.
+   * @return ID of the example which can be used when generating documentation. Defaults to {@link
+   *     #DEFAULT_ID}; connectors with multiple examples should override this to give each a
+   *     distinct, stable id.
    */
-  String id() default "";
+  String id() default DEFAULT_ID;
 
   /**
    * @return FEEL expression that will be evaluated against the result of the annotated method.
