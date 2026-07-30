@@ -56,6 +56,24 @@ public class ClassBasedDocsGeneratorResolvePrimaryExampleTest {
     }
   }
 
+  /**
+   * Declaration order (source/{@code getDeclaredMethods()} order, i.e. reading top-to-bottom) and
+   * method-name order deliberately disagree here: {@code zulu()} is declared first but its method
+   * name sorts last, while {@code aardvark()} is declared second but sorts first. This proves the
+   * fallback picks by method-name order, not declaration order.
+   */
+  public static class NameOrderDisagreesWithDeclarationOrder {
+    @DataExample(id = "zulu")
+    public static String zulu() {
+      return "zulu-value";
+    }
+
+    @DataExample(id = "apple")
+    public static String aardvark() {
+      return "aardvark-value";
+    }
+  }
+
   @Test
   void noExamples_returnsEmpty() {
     assertThat(ClassBasedDocsGenerator.resolvePrimaryExampleData(NoExamples.class)).isEmpty();
@@ -69,10 +87,19 @@ public class ClassBasedDocsGeneratorResolvePrimaryExampleTest {
   }
 
   @Test
-  void noDefaultIdExample_fallsBackToFirstDeclared() {
+  void noDefaultIdExample_fallsBackToFirstByMethodName() {
     var result = ClassBasedDocsGenerator.resolvePrimaryExampleData(OnlyExplicitIds.class);
     assertThat(result).isPresent();
     assertThat(result.get().id()).isEqualTo("first");
+  }
+
+  @Test
+  void noDefaultIdExample_ordersByMethodNameNotDeclarationOrder() {
+    var result =
+        ClassBasedDocsGenerator.resolvePrimaryExampleData(
+            NameOrderDisagreesWithDeclarationOrder.class);
+    assertThat(result).isPresent();
+    assertThat(result.get().id()).isEqualTo("apple");
   }
 
   @Test

@@ -329,6 +329,14 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
         .orElse(null);
   }
 
+  /**
+   * The example FEEL expression is evaluated directly against the returned example object's own
+   * fields (see {@code ClassBasedDocsGenerator#buildDataExampleModel}), so it necessarily omits any
+   * runtime variable-binding prefix (e.g. {@code response.} for outbound connectors, {@code
+   * request.} for webhook-style inbound ones) that the property's own default value may use. Both
+   * forms resolve correctly at runtime; the tooltip illustrates the response's shape, not a
+   * copy-pasteable snippet.
+   */
   private static String formatExampleTooltip(DataExampleModel example) {
     var tooltip =
         new StringBuilder("<div><p>Example response:</p><code>")
