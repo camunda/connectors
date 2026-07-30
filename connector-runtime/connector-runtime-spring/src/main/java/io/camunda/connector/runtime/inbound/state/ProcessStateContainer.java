@@ -17,7 +17,9 @@
 package io.camunda.connector.runtime.inbound.state;
 
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.connector.runtime.inbound.state.model.StateUpdateResult;
+import java.util.Set;
 
 /**
  * Container for the current process state. It is responsible for comparing the current state with
@@ -37,4 +39,18 @@ public interface ProcessStateContainer {
    *     deactivated
    */
   StateUpdateResult compareAndUpdate(ImportResult importResult);
+
+  /**
+   * Returns the process definition keys (versions) currently active for the given process, without
+   * modifying any state.
+   *
+   * <p>{@link #compareAndUpdate} only reports a given state transition once, so a caller that
+   * failed to act on one cannot obtain it again from a later import. This lets such a caller
+   * re-read the current state instead, so its retry acts on what is active now rather than on a
+   * remembered — and possibly superseded — set of versions.
+   *
+   * @param processRef the process definition to look up
+   * @return the active process definition keys, or an empty set if the process is not tracked
+   */
+  Set<Long> getActiveVersions(ProcessDefinitionRef processRef);
 }
