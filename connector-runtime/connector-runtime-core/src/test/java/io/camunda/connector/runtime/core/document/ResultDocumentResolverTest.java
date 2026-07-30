@@ -23,6 +23,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.feel.FeelConnectorFunctionProvider;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
@@ -31,6 +34,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class ResultDocumentResolverTest {
+
+  private static final String CREATE_DOCUMENT =
+      FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private TestDocumentFactory documentFactory;
@@ -49,7 +55,7 @@ class ResultDocumentResolverTest {
   @Test
   void resolvesBareStringArgument() {
     String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
-    JsonNode tree = treeOf(Map.of("connectorResultFunction", "createDocument", "value", base64));
+    JsonNode tree = treeOf(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", base64));
 
     Object resolved = resolver.resolve(tree);
 
@@ -65,7 +71,7 @@ class ResultDocumentResolverTest {
         treeOf(
             Map.of(
                 "connectorResultFunction",
-                "createDocument",
+                CREATE_DOCUMENT,
                 "value",
                 Map.of("content", base64, "name", "hello.txt", "contentType", "text/plain")));
 
@@ -81,8 +87,7 @@ class ResultDocumentResolverTest {
     String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
     JsonNode tree =
         treeOf(
-            Map.of(
-                "connectorResultFunction", "createDocument", "value", Map.of("content", base64)));
+            Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", Map.of("content", base64)));
 
     Document resolved = (Document) resolver.resolve(tree);
 
@@ -97,7 +102,7 @@ class ResultDocumentResolverTest {
         treeOf(
             Map.of(
                 "files",
-                List.of(Map.of("connectorResultFunction", "createDocument", "value", base64)),
+                List.of(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", base64)),
                 "label",
                 "unrelated"));
 
@@ -115,7 +120,7 @@ class ResultDocumentResolverTest {
   void throwsWhenContentIsMissing() {
     JsonNode tree =
         treeOf(
-            Map.of("connectorResultFunction", "createDocument", "value", Map.of("name", "x.txt")));
+            Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", Map.of("name", "x.txt")));
 
     assertThatThrownBy(() -> resolver.resolve(tree)).isInstanceOf(ConnectorInputException.class);
   }
@@ -123,7 +128,7 @@ class ResultDocumentResolverTest {
   @Test
   void throwsWhenContentIsNotValidBase64() {
     JsonNode tree =
-        treeOf(Map.of("connectorResultFunction", "createDocument", "value", "not-base64!!"));
+        treeOf(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", "not-base64!!"));
 
     assertThatThrownBy(() -> resolver.resolve(tree)).isInstanceOf(ConnectorInputException.class);
   }
@@ -134,6 +139,34 @@ class ResultDocumentResolverTest {
 
     Object resolved = resolver.resolve(tree);
 
-    assertThat(resolved).isEqualTo(Map.of("a", 1L, "b", List.of("x", "y"), "c", true));
+    assertThat(resolved).isEqualTo(Map.of("a", 1, "b", List.of("x", "y"), "c", true));
+  }
+
+  @Test
+  void preservesBigNumberPrecisionForSiblingsOfSentinel() {
+    // A tree that contains a createDocument sentinel elsewhere must still preserve full numeric
+    // precision for its OTHER (non-sentinel) values when walked: scalarValue() must not silently
+    // wrap a huge integer through longValue()/doubleValue().
+    BigInteger bigNumber = new BigInteger("123456789012345678901234567890");
+    BigDecimal bigDecimal = new BigDecimal("123456789012345678901234567890.123456789");
+    String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+    JsonNode tree =
+        treeOf(
+            Map.of(
+                "bigNumber",
+                bigNumber,
+                "bigDecimal",
+                bigDecimal,
+                "files",
+                List.of(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", base64))));
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> resolved = (Map<String, Object>) resolver.resolve(tree);
+
+    assertThat(resolved.get("bigNumber")).isEqualTo(bigNumber);
+    assertThat(resolved.get("bigDecimal")).isEqualTo(bigDecimal);
+    @SuppressWarnings("unchecked")
+    List<Object> files = (List<Object>) resolved.get("files");
+    assertThat(files.get(0)).isInstanceOf(Document.class);
   }
 }

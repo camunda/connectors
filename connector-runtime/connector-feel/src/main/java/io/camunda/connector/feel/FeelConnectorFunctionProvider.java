@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.camunda.feel.context.JavaFunction;
 import org.camunda.feel.context.JavaFunctionProvider;
 
@@ -37,7 +38,13 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
   public static final String JOB_ERROR_TYPE_VALUE = "jobError";
   public static final String IGNORE_ERROR_TYPE_VALUE = "ignoreError";
   public static final String RESULT_FUNCTION_TYPE_PROPERTY = "connectorResultFunction";
-  public static final String CREATE_DOCUMENT_TYPE_VALUE = "createDocument";
+
+  /**
+   * Includes a runtime-generated UUID so this discriminator can never be forged by response/request
+   * data arriving as connector input — the sentinel only ever exists transiently within a single
+   * JVM's FEEL evaluation, never serialized across a process boundary.
+   */
+  public static final String CREATE_DOCUMENT_TYPE_VALUE = "createDocument:" + UUID.randomUUID();
 
   private static final Map<String, List<JavaFunction>> functions =
       Map.of(

@@ -239,6 +239,26 @@ class ConnectorResultHandlerTest {
   }
 
   @Test
+  void createOutputVariablesLeavesLargeIntegerUntouchedWhenCreateDocumentIsNotUsed() {
+    // Regression test for the fast-path guard in resolveDocumentsAsJson: a result expression
+    // that never calls createDocument() must not have its output corrupted by an unconditional
+    // parse/walk/reserialize round-trip. Note: FEEL's own number handling (JavaValueMapper)
+    // already downcasts any FEEL-evaluated number exceeding Long.MAX_VALUE to a double *before*
+    // ConnectorResultHandler ever sees it, so a value that large cannot be used here to
+    // distinguish "guard skipped the walk" from "walk happened but no longer corrupts" -- that
+    // distinction is covered directly against JsonNode trees in
+    // ResultDocumentResolverTest#preservesBigNumberPrecisionForSiblingsOfSentinel. This test
+    // instead pins the largest integer FEEL can round-trip exactly (Long.MAX_VALUE) and asserts
+    // it survives without corruption.
+    String resultExpression = "={bigNumber: " + Long.MAX_VALUE + "}";
+
+    Map<String, Object> result =
+        connectorResultHandler.createOutputVariables(Map.of(), null, resultExpression);
+
+    assertThat(result.get("bigNumber")).isEqualTo(Long.MAX_VALUE);
+  }
+
+  @Test
   void examineErrorExpressionResolvesCreateDocumentInsideVariables() {
     String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
     String errorExpression =

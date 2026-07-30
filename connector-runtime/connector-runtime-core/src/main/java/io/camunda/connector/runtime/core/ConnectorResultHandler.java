@@ -27,6 +27,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
+import io.camunda.connector.feel.FeelConnectorFunctionProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
@@ -50,6 +51,12 @@ public class ConnectorResultHandler {
   private final ObjectMapper objectMapper;
   private final ResultDocumentResolver documentResolver;
 
+  /**
+   * @param objectMapper must have {@code JacksonModuleDocumentSerializer} registered so a resolved
+   *     {@link io.camunda.connector.api.document.Document} serializes correctly; otherwise (since
+   *     {@code ConnectorsObjectMapperSupplier} disables {@code FAIL_ON_EMPTY_BEANS}) it would
+   *     silently serialize as {@code {}} instead of throwing.
+   */
   public ConnectorResultHandler(ObjectMapper objectMapper, DocumentFactory documentFactory) {
     this.objectMapper = objectMapper;
     this.documentResolver = new ResultDocumentResolver(documentFactory);
@@ -156,6 +163,13 @@ public class ConnectorResultHandler {
 
   private String resolveDocumentsAsJson(
       final String json, final String expression, final String expressionNameForError) {
+    // Fast path: skip the parse/walk/reserialize round-trip entirely when the createDocument
+    // sentinel isn't present anywhere in the JSON. This is the common case (createDocument not
+    // used) and avoids both a performance cost and unconditional numeric precision loss (see
+    // ResultDocumentResolver#scalarValue) on every connector result/error expression.
+    if (!json.contains(FeelConnectorFunctionProvider.RESULT_FUNCTION_TYPE_PROPERTY)) {
+      return json;
+    }
     final JsonNode node;
     try {
       node = objectMapper.readTree(json);

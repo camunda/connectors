@@ -94,7 +94,9 @@ public class ResultDocumentResolver {
     }
     byte[] decoded;
     try {
-      decoded = Base64.getDecoder().decode(content);
+      // MIME decoder tolerates whitespace/line-wraps (76-char MIME chunks), which is common in
+      // base64 returned by third-party APIs, while still rejecting genuinely invalid input.
+      decoded = Base64.getMimeDecoder().decode(content);
     } catch (IllegalArgumentException e) {
       throw new ConnectorInputException(
           "createDocument() 'content'/'data' is not valid base64: " + e.getMessage());
@@ -122,8 +124,10 @@ public class ResultDocumentResolver {
     if (node.isTextual()) return node.textValue();
     if (node.isBoolean()) return node.booleanValue();
     if (node.isNull() || node.isMissingNode()) return null;
-    if (node.isIntegralNumber()) return node.longValue();
-    if (node.isFloatingPointNumber()) return node.doubleValue();
+    // Use numberValue() rather than longValue()/doubleValue(): those silently truncate/wrap
+    // (e.g. a 30-digit integer wraps to an incorrect Long), whereas numberValue() returns the
+    // precise Number subtype (BigInteger, BigDecimal, Long, Integer, Double, ...) Jackson parsed.
+    if (node.isNumber()) return node.numberValue();
     return node.asText();
   }
 }

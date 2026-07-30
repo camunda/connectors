@@ -20,6 +20,7 @@ import static io.camunda.connector.feel.FeelEngineWrapperUtil.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.camunda.connector.feel.function.CreateDocumentFunction;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Collections;
@@ -583,7 +584,9 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
     final var resultExpression =
         "=createDocument({content: \"aGVsbG8=\", name: \"hello.txt\", contentType: \"text/plain\"})";
     Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
-    assertThat(result).containsEntry("connectorResultFunction", "createDocument");
+    assertThat(result)
+        .containsEntry(
+            "connectorResultFunction", FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE);
     @SuppressWarnings("unchecked")
     Map<String, Object> value = (Map<String, Object>) result.get("value");
     assertThat(value)
@@ -596,7 +599,18 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
   void createDocumentFunctionWithStringArgument() {
     final var resultExpression = "=createDocument(\"aGVsbG8=\")";
     Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
-    assertThat(result).containsEntry("connectorResultFunction", "createDocument");
+    assertThat(result)
+        .containsEntry(
+            "connectorResultFunction", FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE);
     assertThat(result).containsEntry("value", "aGVsbG8=");
+  }
+
+  @Test
+  void createDocumentTypeValueIsNonceSuffixed() {
+    // Guards against the discriminator regressing to a plain, forgeable literal: it must be
+    // unpredictable per-JVM so it can never be forged by data arriving in a connector response.
+    assertThat(FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE)
+        .startsWith("createDocument:")
+        .hasSizeGreaterThan(CreateDocumentFunction.NAME.length());
   }
 }
