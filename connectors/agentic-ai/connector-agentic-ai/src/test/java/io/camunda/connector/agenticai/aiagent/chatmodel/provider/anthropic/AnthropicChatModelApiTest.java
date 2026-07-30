@@ -17,7 +17,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.anthropic.client.AnthropicClient;
+import com.anthropic.core.JsonValue;
+import com.anthropic.core.http.Headers;
 import com.anthropic.core.http.StreamResponse;
+import com.anthropic.errors.RateLimitException;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.RawMessageStreamEvent;
@@ -36,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,7 +57,7 @@ class AnthropicChatModelApiTest {
   @Mock private AnthropicMessageStreamAssembler streamAssembler;
   @Mock private Message assembledMessage;
 
-  private final AnthropicChatModelConfiguration model =
+  private final AnthropicChatModelConfiguration configuration =
       new AnthropicChatModelConfiguration(
           new AnthropicConnection(
               new AnthropicApiBackend("sk-ant-test"),
@@ -72,7 +76,7 @@ class AnthropicChatModelApiTest {
     when(executionContext.configuration()).thenReturn(mock(AgentConfiguration.class));
     api =
         new AnthropicChatModelApi(
-            client, model, requestConverter, responseConverter, streamAssembler);
+            client, configuration, requestConverter, responseConverter, streamAssembler);
   }
 
   @Test
@@ -93,7 +97,7 @@ class AnthropicChatModelApiTest {
     assertThat(result).isSameAs(expected);
     verify(requestConverter)
         .toMessageCreateParams(
-            model, executionContext.configuration().response(), request.snapshot());
+            configuration, executionContext.configuration().response(), request.snapshot());
     verify(messageService).createStreaming(params);
     verify(streamAssembler).assemble(streamResponse);
     verify(streamResponse).close();
@@ -110,6 +114,29 @@ class AnthropicChatModelApiTest {
         .isInstanceOf(ConnectorException.class)
         .extracting(e -> ((ConnectorException) e).getErrorCode())
         .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  }
+
+  @Test
+  void wrapsAnthropicServiceExceptionWithStatusCodeAndErrorType() {
+    when(requestConverter.toMessageCreateParams(any(), any(), any()))
+        .thenReturn(mock(MessageCreateParams.class));
+    final var body =
+        JsonValue.from(Map.of("error", Map.of("type", "rate_limit_error", "message", "slow down")));
+    when(client.messages())
+        .thenThrow(
+            RateLimitException.builder().headers(Headers.builder().build()).body(body).build());
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOf(ConnectorException.class)
+        .satisfies(
+            e -> {
+              final var connectorException = (ConnectorException) e;
+              assertThat(connectorException.getErrorCode())
+                  .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+              assertThat(connectorException.getMessage())
+                  .contains("429")
+                  .contains("rate_limit_error");
+            });
   }
 
   @Test
