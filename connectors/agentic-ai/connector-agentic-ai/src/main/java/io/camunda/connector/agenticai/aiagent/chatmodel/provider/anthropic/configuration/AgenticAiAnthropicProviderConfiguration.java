@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.conf
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelApiFactory;
-import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
+import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -27,8 +27,8 @@ public class AgenticAiAnthropicProviderConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AnthropicChatModelApiFactory aiAgentAnthropicChatModelApiFactory(
-      HttpTransportSupport httpTransportSupport,
+      AgenticAiHttpProxySupport httpProxySupport,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new AnthropicChatModelApiFactory(httpTransportSupport, objectMapper);
+    return new AnthropicChatModelApiFactory(httpProxySupport, objectMapper);
   }
 }

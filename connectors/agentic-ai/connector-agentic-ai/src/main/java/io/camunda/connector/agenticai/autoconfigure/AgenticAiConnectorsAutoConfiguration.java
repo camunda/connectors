@@ -64,7 +64,6 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptContribut
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
@@ -114,13 +113,6 @@ public class AgenticAiConnectorsAutoConfiguration {
             : ProxyConfiguration.NONE;
 
     return new AgenticAiHttpProxySupport(proxyConfiguration);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public HttpTransportSupport agenticAiHttpTransportSupport(
-      AgenticAiHttpProxySupport proxySupport) {
-    return new HttpTransportSupport(proxySupport.getProxyConfiguration());
   }
 
   @Bean

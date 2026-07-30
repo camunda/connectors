@@ -20,7 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleNoAuthentication;
-import io.camunda.connector.agenticai.aiagent.transport.HttpTransportSupport;
+import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +34,7 @@ class AnthropicChatModelApiFactoryTest {
 
   private static final String MODEL_ID = "claude-sonnet-4-6";
 
-  @Mock private HttpTransportSupport transport;
+  @Mock private AgenticAiHttpProxySupport httpProxySupport;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -42,7 +42,7 @@ class AnthropicChatModelApiFactoryTest {
 
   @BeforeEach
   void setUp() {
-    factory = new AnthropicChatModelApiFactory(transport, objectMapper);
+    factory = new AnthropicChatModelApiFactory(httpProxySupport, objectMapper);
   }
 
   @Test
@@ -65,7 +65,7 @@ class AnthropicChatModelApiFactoryTest {
 
   @Test
   void createBuildsWorkingApiForApiBackend() {
-    when(transport.okHttpProxy(any())).thenReturn(Optional.empty());
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
     final ChatModel api = factory.create(apiConfig(MODEL_ID));
 
@@ -75,7 +75,7 @@ class AnthropicChatModelApiFactoryTest {
 
   @Test
   void createBuildsWorkingApiForCompatibleBackend() {
-    when(transport.okHttpProxy(any())).thenReturn(Optional.empty());
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
     final ChatModel api = factory.create(compatibleConfig(MODEL_ID));
 
