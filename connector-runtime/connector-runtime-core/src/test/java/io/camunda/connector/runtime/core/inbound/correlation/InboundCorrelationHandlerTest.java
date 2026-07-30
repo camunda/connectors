@@ -22,11 +22,14 @@ import static org.mockito.Mockito.*;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
@@ -35,7 +38,9 @@ import io.camunda.connector.runtime.core.testutil.command.CorrelateMessageComman
 import io.camunda.connector.runtime.core.testutil.command.CreateCommandDummy;
 import io.camunda.connector.runtime.core.testutil.command.PublishMessageCommandDummy;
 import io.grpc.Status;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +73,10 @@ public class InboundCorrelationHandlerTest {
     camundaClient = mock(CamundaClient.class);
     handler =
         new InboundCorrelationHandler(
-            camundaClient, TestObjectMapperSupplier.INSTANCE, DEFAULT_TTL);
+            camundaClient,
+            TestObjectMapperSupplier.INSTANCE,
+            DEFAULT_TTL,
+            new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
   }
 
   @ParameterizedTest
@@ -607,6 +615,43 @@ public class InboundCorrelationHandlerTest {
 
       assertThat(argumentsCaptured.getValue())
           .containsExactlyEntriesOf(Map.of("otherKeyAlias", "otherValue"));
+    }
+
+    @Test
+    void noResultVar_resultExprWithCreateDocument_shouldProduceRealDocumentReference() {
+      // given — proves the Webhook connector (and any other inbound connector) inherits
+      // createDocument() for free through this same shared correlation path, with no
+      // webhook-specific code (see ADR-0006)
+      var point = new StartEventCorrelationPoint("process1", 0, 0);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+      String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+      when(element.resultExpression()).thenReturn("={myDoc: createDocument(\"" + base64 + "\")}");
+      when(element.element())
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
+
+      var dummyCommand = spy(new CreateCommandDummy());
+      when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+
+      // when
+      handler.correlate(List.of(element), Map.of());
+
+      // then
+      var argumentsCaptured = ArgumentCaptor.forClass(Map.class);
+      verify(dummyCommand).variables((Map<String, String>) argumentsCaptured.capture());
+
+      // NOTE: with the production-shaped ObjectMapper used here (TestObjectMapperSupplier.INSTANCE,
+      // which registers the full JacksonModuleDocumentDeserializer stack just like the real
+      // connectorObjectMapper/outboundConnectorObjectMapper beans), the resolved document
+      // reference JSON gets re-hydrated by Jackson's own Object.class deserializer into a real
+      // Document, not left as a raw reference Map. That's correct: the CamundaClient's JsonMapper
+      // (camundaJsonMapper) re-serializes Document objects back into the reference shape on the
+      // wire via JacksonModuleDocumentSerializer, so a live Document flowing through the variables
+      // map is exactly what production expects here.
+      var myDoc = argumentsCaptured.getValue().get("myDoc");
+      assertThat(myDoc).isInstanceOf(Document.class);
+      assertThat(((Document) myDoc).asByteArray())
+          .isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test

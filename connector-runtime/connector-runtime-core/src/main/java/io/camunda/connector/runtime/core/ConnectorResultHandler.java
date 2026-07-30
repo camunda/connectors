@@ -22,6 +22,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -29,6 +30,7 @@ import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
+import io.camunda.connector.runtime.core.document.ResultDocumentResolver;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
@@ -46,9 +48,11 @@ public class ConnectorResultHandler {
   private final FeelExpressionEvaluator feelExpressionEvaluator =
       new LocalFeelExpressionEvaluator();
   private final ObjectMapper objectMapper;
+  private final ResultDocumentResolver documentResolver;
 
-  public ConnectorResultHandler(ObjectMapper objectMapper) {
+  public ConnectorResultHandler(ObjectMapper objectMapper, DocumentFactory documentFactory) {
     this.objectMapper = objectMapper;
+    this.documentResolver = new ResultDocumentResolver(documentFactory);
   }
 
   /**
@@ -72,9 +76,11 @@ public class ConnectorResultHandler {
               resultExpression, responseContent, wrapResponse(responseContent));
       if (mappedResponseJson != null) {
         verifyNoForbiddenLiterals(mappedResponseJson);
+        var resolvedResponseJson =
+            resolveDocumentsAsJson(mappedResponseJson, resultExpression, "Result expression");
         var mappedResponse =
             parseJsonVarsAsTypeOrThrow(
-                mappedResponseJson, Map.class, resultExpression, "Result expression");
+                resolvedResponseJson, Map.class, resultExpression, "Result expression");
         if (mappedResponse != null) {
           outputVariables.putAll(mappedResponse);
         }
@@ -92,9 +98,11 @@ public class ConnectorResultHandler {
       return Optional.empty();
     }
     // errorExpression is @NonNull below (NullAway flow narrowing)
-    return Optional.ofNullable(
-            feelExpressionEvaluator.evaluateToJson(
-                errorExpression, responseContent, wrapResponse(responseContent), jobContext))
+    var evaluatedJson =
+        feelExpressionEvaluator.evaluateToJson(
+            errorExpression, responseContent, wrapResponse(responseContent), jobContext);
+    return Optional.ofNullable(evaluatedJson)
+        .map(json -> resolveDocumentsAsJson(json, errorExpression, "Error expression"))
         .filter(
             json ->
                 !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression, "Error expression")
@@ -142,6 +150,34 @@ public class ConnectorResultHandler {
               String.format(ERROR_CANNOT_PARSE_VARIABLES, jsonVars, type.getName()),
               expression,
               jsonVars,
+              e));
+    }
+  }
+
+  private String resolveDocumentsAsJson(
+      final String json, final String expression, final String expressionNameForError) {
+    final JsonNode node;
+    try {
+      node = objectMapper.readTree(json);
+    } catch (JsonProcessingException e) {
+      throw new ConnectorInputException(
+          new FeelEngineWrapperException(
+              String.format(ERROR_CANNOT_PARSE_VARIABLES, json, Map.class.getName()),
+              expression,
+              json,
+              e));
+    }
+    final Object resolved = documentResolver.resolve(node);
+    try {
+      return objectMapper.writeValueAsString(resolved);
+    } catch (JsonProcessingException e) {
+      throw new ConnectorInputException(
+          new FeelEngineWrapperException(
+              String.format(
+                  "Failed to serialize %s after resolving document references",
+                  expressionNameForError),
+              expression,
+              json,
               e));
     }
   }

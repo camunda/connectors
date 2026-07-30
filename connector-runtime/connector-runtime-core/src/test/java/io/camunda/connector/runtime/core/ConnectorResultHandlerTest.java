@@ -21,19 +21,29 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.document.TestDocumentFactory;
+import io.camunda.connector.runtime.core.error.BpmnError;
+import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class ConnectorResultHandlerTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-
+  private final ObjectMapper objectMapper =
+      ConnectorsObjectMapperSupplier.getCopy()
+          .registerModule(new JacksonModuleDocumentSerializer());
+  private final TestDocumentFactory documentFactory = new TestDocumentFactory();
   private final ConnectorResultHandler connectorResultHandler =
-      new ConnectorResultHandler(objectMapper);
+      new ConnectorResultHandler(objectMapper, documentFactory);
 
   @Test
   void feelEngineWrapperTest() {
@@ -210,5 +220,42 @@ class ConnectorResultHandlerTest {
         .contains("Error expression must return a JSON object")
         .contains("array")
         .contains("[1,2,3]");
+  }
+
+  @Test
+  void createOutputVariablesResolvesCreateDocumentInResultExpression() {
+    String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+    String resultExpression =
+        "={myDoc: createDocument({content: \"" + base64 + "\", name: \"hello.txt\"})}";
+
+    Map<String, Object> result =
+        connectorResultHandler.createOutputVariables(Map.of(), null, resultExpression);
+
+    assertThat(result).containsKey("myDoc");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> documentReference = (Map<String, Object>) result.get("myDoc");
+    assertThat(documentReference).containsEntry("camunda.document.type", "camunda");
+    assertThat(documentReference).doesNotContainKey("connectorResultFunction");
+  }
+
+  @Test
+  void examineErrorExpressionResolvesCreateDocumentInsideVariables() {
+    String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+    String errorExpression =
+        "=bpmnError(\"CODE\", \"message\", {myDoc: createDocument(\"" + base64 + "\")})";
+    Map<String, String> headers = Map.of(Keywords.ERROR_EXPRESSION_KEYWORD, errorExpression);
+
+    Optional<ConnectorError> result =
+        connectorResultHandler.examineErrorExpression(
+            Map.of(),
+            headers,
+            new ErrorExpressionJobContext(new ErrorExpressionJobContext.ErrorExpressionJob(3)));
+
+    assertThat(result).isPresent();
+    var bpmnError = (BpmnError) result.get();
+    @SuppressWarnings("unchecked")
+    Map<String, Object> documentReference =
+        (Map<String, Object>) bpmnError.variables().get("myDoc");
+    assertThat(documentReference).containsEntry("camunda.document.type", "camunda");
   }
 }

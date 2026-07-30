@@ -24,6 +24,7 @@ import io.camunda.client.api.response.CorrelateMessageResponse;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.client.api.response.ProcessInstanceResult;
 import io.camunda.client.api.response.PublishMessageResponse;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.InlineSizeGuard;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
@@ -62,12 +63,15 @@ public class InboundCorrelationHandler {
   private final ObjectMapper objectMapper;
 
   public InboundCorrelationHandler(
-      CamundaClient camundaClient, ObjectMapper objectMapper, Duration defaultMessageTtl) {
+      CamundaClient camundaClient,
+      ObjectMapper objectMapper,
+      Duration defaultMessageTtl,
+      DocumentFactory documentFactory) {
     this.camundaClient = camundaClient;
     this.objectMapper = objectMapper;
     this.activationConditionEvaluator = new ActivationConditionEvaluator(feelExpressionEvaluator);
     this.defaultMessageTtl = defaultMessageTtl;
-    this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
+    this.connectorResultHandler = new ConnectorResultHandler(objectMapper, documentFactory);
   }
 
   public CorrelationResult correlate(List<InboundConnectorElement> elements, Object variables) {
