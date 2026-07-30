@@ -34,11 +34,6 @@ import org.slf4j.LoggerFactory;
  *
  * <p>The {@link AnthropicClient} is built once by the factory and owned for the lifetime of this
  * instance (one agent request, across all continuation rounds); {@link #close()} closes it once.
- * {@link AnthropicClient#close()} is deliberately not exercised through try-with-resources: the
- * vendor SDK's {@code AnthropicClient} interface does not implement {@link AutoCloseable} (its
- * {@code close()} is a plain, unchecked method the SDK explicitly documents as usually unnecessary
- * to call). {@link StreamResponse}, in contrast, does implement {@code AutoCloseable} and is closed
- * via try-with-resources on every call.
  */
 public class AnthropicChatModelApi implements ChatModel {
 
@@ -76,8 +71,8 @@ public class AnthropicChatModelApi implements ChatModel {
   public ChatResult execute(ChatRequest request) {
     final MessageCreateParams params =
         requestConverter.toMessageCreateParams(request.executionContext(), request.snapshot());
-    if (LOG.isDebugEnabled()) {
-      LOG.debug(
+    if (LOG.isTraceEnabled()) {
+      LOG.trace(
           "Anthropic Messages API request: {}", JsonPayloadLogging.toJson(MAPPER, params._body()));
     }
 
@@ -88,8 +83,8 @@ public class AnthropicChatModelApi implements ChatModel {
           client.messages().createStreaming(params)) {
         message = streamAssembler.assemble(stream);
       }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug(
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
             "Anthropic Messages API response: {}", JsonPayloadLogging.toJson(MAPPER, message));
       }
       final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
@@ -104,6 +99,8 @@ public class AnthropicChatModelApi implements ChatModel {
     }
   }
 
+  // Not exercised through try-with-resources: AnthropicClient does not implement AutoCloseable
+  // (its close() is a plain, unchecked method the SDK documents as usually unnecessary to call).
   @Override
   public void close() {
     try {
