@@ -64,19 +64,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * /v1/messages}, requested with {@code Accept: text/event-stream} and {@code "stream": true}) with
  * real Server-Sent-Events framing.
  *
- * <p>Any client driving the vendor SDK's {@code client.messages().createStreaming(params)} feeds
- * the raw event stream to the SDK's {@code MessageAccumulator}, which requires a {@code
- * message_start} &rarr; ... &rarr; {@code message_stop} event sequence and throws ({@code
- * IllegalStateException: 'message_stop' event not yet received.}) if handed anything else - in
- * particular the single buffered JSON body that {@link AnthropicMessagesChatModelStubs} (used by
- * fixtures whose client issues a plain non-streaming POST) returns.
- *
  * <p>Each event is built using the vendor SDK's own {@code RawMessageStreamEvent} member types
  * (rather than hand-rolled JSON) and serialized with the SDK's own {@link
- * ObjectMappers#jsonMapper()}, so the bytes are guaranteed to parse exactly the way {@code
- * MessageAccumulator} expects them to. The per-turn data (assistant text, tool_use calls,
- * input/output token usage, stop reason) mirrors {@link AnthropicMessagesChatModelStubs.Turn}
- * exactly, just framed as SSE instead of one buffered JSON object:
+ * ObjectMappers#jsonMapper()}, so the bytes are guaranteed to parse exactly as real Anthropic would
+ * send them. The per-turn data (assistant text, tool_use calls, input/output token usage, stop
+ * reason) mirrors {@link AnthropicMessagesChatModelStubs.Turn} exactly, just framed as SSE instead
+ * of one buffered JSON object:
  *
  * <ol>
  *   <li>{@code message_start} - a {@link Message} shell (id/type/role=assistant/model, empty
@@ -116,14 +109,6 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
    * returns when it thinks before calling a tool. Always ends the turn with {@code stop_reason:
    * tool_use} (there is always at least one tool call), unlike {@link #sseBody(TurnStub)} which
    * derives the stop reason from whether tool calls are present.
-   *
-   * <p>Exists so e2e coverage can prove the reasoning round-trip end to end through the REAL {@code
-   * MessageAccumulator}: the resulting {@code ReasoningContent}'s raw {@code payload} (captured by
-   * {@code AnthropicMessageResponseConverter}) must be replayed byte-identical - same {@code
-   * thinking}/{@code signature} values, positioned before the tool-call block, exactly as the
-   * domain content ordering preserves it - on the follow-up model call once the tool result is
-   * available (see {@code AnthropicContentConverter}/{@code AnthropicMessageRequestConverter
-   * #assistantParam}).
    */
   public record ThinkingTurnStub(
       String thinking,
@@ -158,7 +143,7 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
       writeToolUseBlock(body, index++, toolCall);
     }
 
-    // Always tool_use: a ThinkingTurnStub always carries at least one client tool call.
+    // stop_reason is always tool_use here: this stub always carries at least one tool call.
     writeEvent(
         body, "message_delta", messageDeltaEvent(true, turn.inputTokens(), turn.outputTokens()));
     writeEvent(body, "message_stop", RawMessageStopEvent.builder().build());
@@ -203,13 +188,6 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
    * thinking}/{@code signature} deltas - followed by one or more client {@code tool_use} blocks.
    * Always ends the turn with {@code stop_reason: tool_use} (there is always at least one tool
    * call), mirroring {@link ThinkingTurnStub}.
-   *
-   * <p>Exists so e2e coverage can prove the redacted-thinking round-trip end to end through the
-   * REAL {@code MessageAccumulator}: the resulting {@code ReasoningContent}'s raw {@code payload}
-   * (captured by {@code AnthropicMessageResponseConverter}'s {@code block.isRedactedThinking()}
-   * branch) must be replayed byte-identical - same {@code data} value, positioned before the
-   * tool-call block - on the follow-up model call once the tool result is available (see {@code
-   * AnthropicContentConverter}).
    */
   public record RedactedThinkingTurnStub(
       String data, List<ToolCallStub> toolCalls, int inputTokens, int outputTokens) {}
@@ -242,7 +220,7 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
       writeToolUseBlock(body, index++, toolCall);
     }
 
-    // Always tool_use: a RedactedThinkingTurnStub always carries at least one client tool call.
+    // stop_reason is always tool_use here: this stub always carries at least one tool call.
     writeEvent(
         body, "message_delta", messageDeltaEvent(true, turn.inputTokens(), turn.outputTokens()));
     writeEvent(body, "message_stop", RawMessageStopEvent.builder().build());

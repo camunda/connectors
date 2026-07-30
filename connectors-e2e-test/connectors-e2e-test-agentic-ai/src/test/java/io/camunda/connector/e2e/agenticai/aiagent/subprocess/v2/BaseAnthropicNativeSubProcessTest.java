@@ -23,24 +23,16 @@ import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.Anth
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.camunda.connector.e2e.ElementTemplate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
-import org.jspecify.annotations.Nullable;
 
-/**
- * Shared plumbing for native-Anthropic-only e2e coverage driven through the v2 element template:
- * points the connector at this test's WireMock server via the native Anthropic {@code compatible}
- * backend (the only Anthropic backend with a configurable endpoint), and provides the recorded
- * request lookup helpers used to assert on the wire format.
- */
 abstract class BaseAnthropicNativeSubProcessTest extends BaseAgentSubProcessV2Test {
 
-  static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final String DEFAULT_MODEL = "claude-sonnet-4-6";
 
   @Override
   protected Function<ElementTemplate, ElementTemplate> providerConfigurer() {
@@ -48,26 +40,21 @@ abstract class BaseAnthropicNativeSubProcessTest extends BaseAgentSubProcessV2Te
   }
 
   /**
-   * Model id to configure alongside the backend wiring, or {@code null} to leave {@code
-   * provider.anthropic.model.model} unset (when each {@code @Test} supplies its own model via a
-   * {@code model(...)} modifier). Override to fix a single model for the whole test class.
+   * Model id to configure alongside the backend wiring. Override to fix a different model for the
+   * whole test class, or leave the default when a test doesn't care which model is used.
    */
-  protected @Nullable String defaultModel() {
-    return null;
+  protected String defaultModel() {
+    return DEFAULT_MODEL;
   }
 
   private ElementTemplate configureAnthropicBackend(ElementTemplate template) {
-    final var configured =
-        template
-            .property("provider.type", "anthropic")
-            .property("provider.anthropic.backend.type", "compatible")
-            .property("provider.anthropic.backend.endpoint", wireMock.getHttpBaseUrl())
-            .property("provider.anthropic.backend.compatibleAuthentication.type", "apiKey")
-            .property("provider.anthropic.backend.compatibleAuthentication.apiKey", "dummy");
-    final var defaultModel = defaultModel();
-    return defaultModel != null
-        ? configured.property("provider.anthropic.model.model", defaultModel)
-        : configured;
+    return template
+        .property("provider.type", "anthropic")
+        .property("provider.anthropic.backend.type", "compatible")
+        .property("provider.anthropic.backend.endpoint", wireMock.getHttpBaseUrl())
+        .property("provider.anthropic.backend.compatibleAuthentication.type", "apiKey")
+        .property("provider.anthropic.backend.compatibleAuthentication.apiKey", "dummy")
+        .property("provider.anthropic.model.model", defaultModel());
   }
 
   static Function<ElementTemplate, ElementTemplate> model(String modelId) {
@@ -87,9 +74,9 @@ abstract class BaseAnthropicNativeSubProcessTest extends BaseAgentSubProcessV2Te
     return requests;
   }
 
-  static JsonNode parseBody(LoggedRequest loggedRequest) {
+  JsonNode parseBody(LoggedRequest loggedRequest) {
     try {
-      return OBJECT_MAPPER.readTree(loggedRequest.getBodyAsString());
+      return objectMapper.readTree(loggedRequest.getBodyAsString());
     } catch (Exception e) {
       throw new IllegalStateException(
           "Failed to parse recorded Anthropic messages request body: "
