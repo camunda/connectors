@@ -90,11 +90,17 @@ public class AnthropicContentConverter {
    * one originally returned by the API (required both for the {@code thinking} block's signature
    * verification and for prompt-caching prefix matching on the next request).
    */
-  @SuppressWarnings("unchecked")
   private ContentBlockParam toReasoningContentBlockParam(ReasoningContent rc) {
     Object payload = rc.payload();
     if (rc.text() != null) {
-      final Map<String, Object> merged = new LinkedHashMap<>((Map<String, Object>) payload);
+      if (!(payload instanceof Map<?, ?> rawPayload)) {
+        throw new ConnectorException(
+            ERROR_CODE_FAILED_MODEL_CALL,
+            "Expected reasoning content payload to be a Map when text is present, got %s"
+                .formatted(payload == null ? "null" : payload.getClass().getSimpleName()));
+      }
+      final Map<String, Object> merged = new LinkedHashMap<>();
+      rawPayload.forEach((k, v) -> merged.put(String.valueOf(k), v));
       merged.put("thinking", rc.text());
       payload = merged;
     }
@@ -142,16 +148,9 @@ public class AnthropicContentConverter {
                           .mediaType(Base64ImageSource.MediaType.of(contentType))
                           .build())
                   .build());
-      // base64Source(String) sets both source.type ("base64") and source.media_type
-      // ("application/pdf") itself -- Base64PdfSource only ever represents a PDF, so its builder
-      // bakes those in; no separate mediaType() call is needed or possible. Matches
-      // https://platform.claude.com/docs/en/build-with-claude/pdf-support's wire shape exactly.
       case PDF ->
           ContentBlockParam.ofDocument(
               DocumentBlockParam.builder().base64Source(doc.document().asBase64()).build());
-      // TEXT-family documents inline as plain text. The Anthropic Messages API otherwise only
-      // accepts images and PDFs as document/image blocks; there is no native block for other
-      // formats (e.g. zip, docx, pptx).
       case TEXT ->
           ContentBlockParam.ofDocument(
               DocumentBlockParam.builder().textSource(decodeUtf8(doc.document())).build());
@@ -163,13 +162,28 @@ public class AnthropicContentConverter {
     };
   }
 
+  private static String contentType(Document document) {
+    final var metadata = document.metadata();
+    final var type = metadata != null ? metadata.getContentType() : null;
+    return type != null ? type : "application/octet-stream";
+  }
+
+  private static String decodeUtf8(Document document) {
+    return new String(document.asByteArray(), StandardCharsets.UTF_8);
+  }
+
+  private String writeAsJson(Object value) {
+    try {
+      return objectMapper.writeValueAsString(value);
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("Failed to serialize content to JSON", e);
+    }
+  }
+
   /**
    * Coarse content-type buckets driving {@link #documentBlock(DocumentContent)}'s choice of
-   * Anthropic block shape. Kept local to this converter -- it only needs to pick between the
-   * handful of block shapes below, not classify the full modality space -- rather than a shared
-   * modality abstraction. Unknown/blank/unparseable types map conservatively to {@link
-   * #UNSUPPORTED}, which fails the request the same way the LangChain4J-routed path's {@code
-   * DocumentToContentConverterImpl} does for the same case.
+   * Anthropic block shape. Unknown/blank/unparseable types map conservatively to {@link
+   * #UNSUPPORTED}, which fails the request.
    */
   private enum DocumentBlockKind {
     IMAGE,
@@ -214,23 +228,5 @@ public class AnthropicContentConverter {
   private static boolean isCompatibleWithAnyOf(
       ContentType contentType, List<ContentType> contentTypes) {
     return contentTypes.stream().anyMatch(contentType::isSameMimeType);
-  }
-
-  private static String contentType(Document document) {
-    final var metadata = document.metadata();
-    final var type = metadata != null ? metadata.getContentType() : null;
-    return type != null ? type : "application/octet-stream";
-  }
-
-  private static String decodeUtf8(Document document) {
-    return new String(document.asByteArray(), StandardCharsets.UTF_8);
-  }
-
-  private String writeAsJson(Object value) {
-    try {
-      return objectMapper.writeValueAsString(value);
-    } catch (JsonProcessingException e) {
-      throw new IllegalStateException("Failed to serialize content to JSON", e);
-    }
   }
 }
