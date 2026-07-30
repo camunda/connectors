@@ -30,8 +30,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Maps an accumulated Anthropic SDK {@link Message} response to the domain {@link
@@ -49,9 +47,6 @@ import org.slf4j.LoggerFactory;
  * {@code StopReason}.
  */
 public class AnthropicMessageResponseConverter {
-
-  private static final Logger LOG =
-      LoggerFactory.getLogger(AnthropicMessageResponseConverter.class);
 
   private final ObjectMapper objectMapper;
 
@@ -104,12 +99,6 @@ public class AnthropicMessageResponseConverter {
         final Map<String, Object> raw =
             ObjectMappers.jsonMapper()
                 .convertValue(block, new TypeReference<Map<String, Object>>() {});
-        if (LOG.isTraceEnabled()) {
-          LOG.trace(
-              "Anthropic server-side content block preserved as ProviderContent: type={}, payload={}",
-              raw.get("type"),
-              raw);
-        }
         content.add(new ProviderContent("anthropic", raw, null));
       }
     }
