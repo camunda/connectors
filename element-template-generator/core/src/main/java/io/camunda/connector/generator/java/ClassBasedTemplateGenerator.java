@@ -38,6 +38,7 @@ import io.camunda.connector.util.reflection.ReflectionUtil;
 import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.util.*;
 import java.util.regex.Pattern;
+import org.apache.commons.lang3.StringUtils;
 
 public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Class<?>> {
 
@@ -270,12 +271,16 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       GeneratorConfiguration configuration,
       ElementTemplate template) {
     var newGroups = new ArrayList<>(groups);
+    var resultExpressionExampleTooltip =
+        buildResultExpressionExampleTooltip(template.outputDataClass());
     if (context instanceof Outbound) {
       newGroups.add(
           PropertyGroup.ADD_CONNECTORS_DETAILS_OUTPUT.apply(template.id(), template.version()));
       newGroups.add(
           PropertyGroup.outputGroupOutbound(
-              template.defaultResultVariable(), template.defaultResultExpression(), null));
+              template.defaultResultVariable(),
+              template.defaultResultExpression(),
+              resultExpressionExampleTooltip));
       newGroups.add(PropertyGroup.ERROR_GROUP);
       newGroups.add(PropertyGroup.RETRIES_GROUP);
     } else {
@@ -308,9 +313,44 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       }
       newGroups.add(
           PropertyGroup.outputGroupInbound(
-              template.defaultResultVariable(), template.defaultResultExpression(), null));
+              template.defaultResultVariable(),
+              template.defaultResultExpression(),
+              resultExpressionExampleTooltip));
     }
     return newGroups;
+  }
+
+  private static String buildResultExpressionExampleTooltip(Class<?> outputDataClass) {
+    if (Void.class.equals(outputDataClass)) {
+      return null;
+    }
+    return ClassBasedDocsGenerator.resolvePrimaryExampleData(outputDataClass)
+        .map(ClassBasedTemplateGenerator::formatExampleTooltip)
+        .orElse(null);
+  }
+
+  private static String formatExampleTooltip(DataExampleModel example) {
+    var tooltip =
+        new StringBuilder("<div><p>Example response:</p><code>")
+            .append(escapeHtml(compactJson(example.json())))
+            .append("</code>");
+    if (StringUtils.isNotBlank(example.feel())) {
+      tooltip
+          .append("<p>Example FEEL expression: <code>")
+          .append(escapeHtml(example.feel()))
+          .append("</code> -&gt; <code>")
+          .append(escapeHtml(compactJson(example.feelResultJson())))
+          .append("</code></p>");
+    }
+    return tooltip.append("</div>").toString();
+  }
+
+  private static String compactJson(String json) {
+    return json == null ? "" : json.replaceAll("\\s+", " ").trim();
+  }
+
+  private static String escapeHtml(String value) {
+    return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
   }
 
   private List<ConfigurationTemplate> buildConfigurationTemplates(
