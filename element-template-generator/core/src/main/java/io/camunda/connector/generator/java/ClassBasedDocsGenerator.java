@@ -59,6 +59,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -87,30 +88,45 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
   }
 
   public static Map<String, DataExampleModel> collectExampleData(Class<?> type) {
-    var methods = findAllDataExampleMethods(type);
-    return methods.stream()
-        .map(
-            pair -> {
-              var method = pair.getLeft();
-              var annotation = pair.getRight();
-              Object result;
-              String json;
-              Object feelResult = null;
-              String feelResultJson = null;
-              try {
-                result = method.invoke(new Arrays[0]);
-                json = OBJECT_WRITER.writeValueAsString(result);
-                if (StringUtils.isNotBlank(annotation.feel())) {
-                  feelResult = feelEngine.evaluate(annotation.feel(), result);
-                  feelResultJson = OBJECT_WRITER.writeValueAsString(feelResult);
-                }
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-              return new DataExampleModel(
-                  annotation.id(), result, json, annotation.feel(), feelResult, feelResultJson);
-            })
+    return findAllDataExampleMethods(type).stream()
+        .map(ClassBasedDocsGenerator::buildDataExampleModel)
         .collect(Collectors.toMap(DataExampleModel::id, v -> v));
+  }
+
+  /**
+   * Resolves the example to show in generated help tooltips: the one explicitly marked with {@link
+   * DataExample#DEFAULT_ID}, or the first one declared if none is marked.
+   */
+  public static Optional<DataExampleModel> resolvePrimaryExampleData(Class<?> type) {
+    var models =
+        findAllDataExampleMethods(type).stream()
+            .map(ClassBasedDocsGenerator::buildDataExampleModel)
+            .toList();
+    return models.stream()
+        .filter(model -> DataExample.DEFAULT_ID.equals(model.id()))
+        .findFirst()
+        .or(() -> models.stream().findFirst());
+  }
+
+  private static DataExampleModel buildDataExampleModel(Pair<Method, DataExample> pair) {
+    var method = pair.getLeft();
+    var annotation = pair.getRight();
+    Object result;
+    String json;
+    Object feelResult = null;
+    String feelResultJson = null;
+    try {
+      result = method.invoke(new Arrays[0]);
+      json = OBJECT_WRITER.writeValueAsString(result);
+      if (StringUtils.isNotBlank(annotation.feel())) {
+        feelResult = feelEngine.evaluate(annotation.feel(), result);
+        feelResultJson = OBJECT_WRITER.writeValueAsString(feelResult);
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    return new DataExampleModel(
+        annotation.id(), result, json, annotation.feel(), feelResult, feelResultJson);
   }
 
   public static List<Pair<Method, DataExample>> findAllDataExampleMethods(Class<?> type) {
