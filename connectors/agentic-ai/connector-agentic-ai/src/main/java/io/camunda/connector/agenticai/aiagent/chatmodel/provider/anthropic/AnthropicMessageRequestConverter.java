@@ -23,7 +23,6 @@ import com.anthropic.models.messages.Tool;
 import com.anthropic.models.messages.ToolResultBlockParam;
 import com.anthropic.models.messages.ToolUseBlockParam;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
-import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -67,8 +66,9 @@ public class AnthropicMessageRequestConverter {
   }
 
   public MessageCreateParams toMessageCreateParams(
-      AgentExecutionContext ctx, ConversationSnapshot snapshot) {
-    final var model = (AnthropicChatModelConfiguration) ctx.configuration().chatModel();
+      AnthropicChatModelConfiguration model,
+      @Nullable ResponseConfiguration response,
+      ConversationSnapshot snapshot) {
     final var connection = model.anthropic();
     final var params = connection.model().parameters();
     final String modelId = connection.model().model();
@@ -81,7 +81,7 @@ public class AnthropicMessageRequestConverter {
     applySystemPrompt(builder, snapshot);
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
-    applyOutputConfig(builder, params, ctx.configuration().response());
+    applyOutputConfig(builder, params, response);
     applyPromptCaching(builder, params);
     applyCompatibleBackendExtensions(builder, connection);
 

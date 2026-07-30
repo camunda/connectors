@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.JsonPayloadLogging;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
@@ -34,6 +35,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>The {@link AnthropicClient} is built once by the factory and owned for the lifetime of this
  * instance (one agent request, across all continuation rounds); {@link #close()} closes it once.
+ * The factory resolves the request-side {@link AnthropicChatModelConfiguration} once too, at the
+ * same time it builds the client, since both are fixed for that lifetime.
  */
 public class AnthropicChatModelApi implements ChatModel {
 
@@ -41,16 +44,19 @@ public class AnthropicChatModelApi implements ChatModel {
   private static final ObjectMapper MAPPER = ObjectMappers.jsonMapper();
 
   private final AnthropicClient client;
+  private final AnthropicChatModelConfiguration model;
   private final AnthropicMessageRequestConverter requestConverter;
   private final AnthropicMessageResponseConverter responseConverter;
   private final AnthropicMessageStreamAssembler streamAssembler;
 
   public AnthropicChatModelApi(
       AnthropicClient client,
+      AnthropicChatModelConfiguration model,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter) {
     this(
         client,
+        model,
         requestConverter,
         responseConverter,
         AnthropicMessageStreamAssembler.accumulating());
@@ -58,10 +64,12 @@ public class AnthropicChatModelApi implements ChatModel {
 
   AnthropicChatModelApi(
       AnthropicClient client,
+      AnthropicChatModelConfiguration model,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter,
       AnthropicMessageStreamAssembler streamAssembler) {
     this.client = client;
+    this.model = model;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
     this.streamAssembler = streamAssembler;
@@ -70,7 +78,8 @@ public class AnthropicChatModelApi implements ChatModel {
   @Override
   public ChatResult execute(ChatRequest request) {
     final MessageCreateParams params =
-        requestConverter.toMessageCreateParams(request.executionContext(), request.snapshot());
+        requestConverter.toMessageCreateParams(
+            model, request.executionContext().configuration().response(), request.snapshot());
     if (LOG.isTraceEnabled()) {
       LOG.trace(
           "Anthropic Messages API request: {}", JsonPayloadLogging.toJson(MAPPER, params._body()));
