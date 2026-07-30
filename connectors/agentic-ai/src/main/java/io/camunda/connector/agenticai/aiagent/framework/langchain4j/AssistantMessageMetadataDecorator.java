@@ -16,7 +16,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderCon
 import java.util.Map;
 
 /**
- * Decorates the {@code AiMessage.attributes()} <-> {@code AssistantMessage.metadata()} round trip
+ * Decorates the {@code AiMessage.attributes()} / {@code AssistantMessage.metadata()} round trip
  * with provider-specific knowledge of what is safe to persist into a Camunda process variable.
  *
  * <p>{@code AiMessage.attributes()} is a generic map, populated only by langchain4j's own
