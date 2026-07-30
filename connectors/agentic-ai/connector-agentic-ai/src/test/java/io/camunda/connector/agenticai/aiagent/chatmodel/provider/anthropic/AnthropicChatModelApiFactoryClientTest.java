@@ -32,8 +32,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCompatibleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleNoAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.BufferedReader;
@@ -116,7 +116,7 @@ class AnthropicChatModelApiFactoryClientTest {
             null,
             null,
             null,
-            new CompatibleApiKeyAuthentication("compatible-secret-key")));
+            new ApiKeyAuthentication("compatible-secret-key")));
 
     verify(
         postRequestedFor(urlPathEqualTo("/v1/messages"))
@@ -127,7 +127,7 @@ class AnthropicChatModelApiFactoryClientTest {
   void compatibleBackendWithNoAuthenticationSendsNoApiKeyHeader(WireMockRuntimeInfo wireMock) {
     executeAgainst(
         new AnthropicCompatibleBackend(
-            wireMock.getHttpBaseUrl(), null, null, null, new CompatibleNoAuthentication()));
+            wireMock.getHttpBaseUrl(), null, null, null, new NoAuthentication()));
 
     verify(postRequestedFor(urlPathEqualTo("/v1/messages")).withoutHeader("x-api-key"));
   }
@@ -148,7 +148,7 @@ class AnthropicChatModelApiFactoryClientTest {
               null,
               null,
               null,
-              new CompatibleApiKeyAuthentication("direct-secret-key")));
+              new ApiKeyAuthentication("direct-secret-key")));
 
       assertThat(fakeProxy.lastRequestLine()).contains("192.0.2.1");
     }
@@ -167,7 +167,7 @@ class AnthropicChatModelApiFactoryClientTest {
               null,
               null,
               null,
-              new CompatibleApiKeyAuthentication("direct-secret-key")));
+              new ApiKeyAuthentication("direct-secret-key")));
 
       assertThat(fakeProxy.lastProxyAuthorizationHeader())
           .isEqualTo(

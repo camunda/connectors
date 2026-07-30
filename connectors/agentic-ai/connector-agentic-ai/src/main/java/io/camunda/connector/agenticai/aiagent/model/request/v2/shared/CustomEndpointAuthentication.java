@@ -20,11 +20,9 @@ import jakarta.validation.constraints.NotBlank;
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
+  @JsonSubTypes.Type(value = CustomEndpointAuthentication.NoAuthentication.class, name = "none"),
   @JsonSubTypes.Type(
-      value = CompatibleAuthentication.CompatibleNoAuthentication.class,
-      name = "none"),
-  @JsonSubTypes.Type(
-      value = CompatibleAuthentication.CompatibleApiKeyAuthentication.class,
+      value = CustomEndpointAuthentication.ApiKeyAuthentication.class,
       name = "apiKey")
 })
 @TemplateDiscriminatorProperty(
@@ -33,13 +31,13 @@ import jakarta.validation.constraints.NotBlank;
     name = "type",
     defaultValue = "none",
     description = "Authentication for the compatible API.")
-public sealed interface CompatibleAuthentication {
+public sealed interface CustomEndpointAuthentication {
 
   @TemplateSubType(id = "none", label = "None")
-  record CompatibleNoAuthentication() implements CompatibleAuthentication {}
+  record NoAuthentication() implements CustomEndpointAuthentication {}
 
   @TemplateSubType(id = "apiKey", label = "API key")
-  record CompatibleApiKeyAuthentication(
+  record ApiKeyAuthentication(
       @NotBlank
           @TemplateProperty(
               group = "provider",
@@ -48,11 +46,11 @@ public sealed interface CompatibleAuthentication {
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String apiKey)
-      implements CompatibleAuthentication {
+      implements CustomEndpointAuthentication {
 
     @Override
     public String toString() {
-      return "CompatibleApiKeyAuthentication{apiKey=[REDACTED]}";
+      return "ApiKeyAuthentication{apiKey=[REDACTED]}";
     }
   }
 }
