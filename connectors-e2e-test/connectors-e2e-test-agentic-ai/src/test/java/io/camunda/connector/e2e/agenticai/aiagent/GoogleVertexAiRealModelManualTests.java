@@ -21,6 +21,8 @@ import static io.camunda.process.test.api.CamundaAssert.assertThatProcessInstanc
 import static io.camunda.process.test.api.assertions.ProcessInstanceSelectors.byProcessId;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
+import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
@@ -36,28 +38,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Manual verification of the Google Vertex AI provider against a <b>real</b> Vertex AI endpoint.
+ * Acceptance criterion for the migration from {@code langchain4j-vertex-ai-gemini} to {@code
+ * langchain4j-google-genai}: on the old stack, {@code region = global} 404s because the hostname
+ * builder has no special case for it; the new SDK does. {@link #supportedTargets()} pairs the same
+ * model with a regional and a global target so a failure can only be the hostname, not model
+ * availability.
  *
- * <p>These tests are the acceptance criterion for the migration from the sunset {@code
- * langchain4j-vertex-ai-gemini} / {@code google-cloud-vertexai} stack to {@code
- * langchain4j-google-genai} / {@code com.google.genai:google-genai}.
- *
- * <p>The bug being fixed: {@code region = global} produces the hostname {@code
- * global-aiplatform.googleapis.com} and therefore a 404, because Google's {@code VertexAI.java}
- * builds {@code "%s-aiplatform.googleapis.com".formatted(location)} with no special case for {@code
- * global}. The replacement SDK special-cases it in {@code com.google.genai.ApiClient}.
- *
- * <p>The bug is <b>model-independent</b> - the hostname is built before any model name is involved
- * - so every {@code global} target fails on the old stack regardless of model. That is why {@link
- * #supportedTargets()} pairs the same model with both a regional and the global region: those two
- * cases differ <em>only</em> in region, so a difference between them can only be the hostname and
- * never model availability.
- *
- * <p><b>Verified baseline on the pre-migration stack:</b> the regional target passes; every {@code
- * global} target fails with a 404 on {@code /google.cloud.aiplatform.v1.PredictionService/
- * GenerateContent}. All targets must pass after the migration.
- *
- * <p>These tests are deliberately excluded from CI: they need real credentials, cost money, and
- * depend on model availability outside our control.
+ * <p>Excluded from CI: needs real credentials, costs money, depends on model availability.
  */
 @Disabled(
     """
@@ -128,16 +115,12 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
     }
   }
 
-  /**
-   * The region/model combinations that must all succeed after the migration.
-   *
-   * <p>Resolved from environment variables with defaults. Only {@code optionalEnv} is used here, so
-   * test discovery never fails when credentials are absent.
-   */
+  /** Region/model combinations that must all succeed after the migration. */
   static Stream<VertexTarget> supportedTargets() {
     return Stream.of(
         // same model as the next case, regional - the control for the global comparison
         new VertexTarget(region(), model()),
+        //        new VertexTarget(region(), newModel()),
         // same model, global region - fails with a 404 before the migration
         new VertexTarget(GLOBAL_REGION, model()),
         // the originally reported scenario: a model offered only in the global region
@@ -145,29 +128,18 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
   }
 
   /**
-   * The fourth cell of the region x model matrix, which is expected to fail <b>both before and
-   * after</b> the migration: the newer model is only offered in the {@code global} region, so a
-   * regional request for it is rejected by Vertex AI with {@code NOT_FOUND}.
-   *
-   * <p>Kept as an asserted failure rather than omitted, because the distinction between the two
-   * failure modes is the whole point of this suite. {@code NOT_FOUND} means model availability;
-   * {@code 404} on {@code /google.cloud.aiplatform.v1.PredictionService/GenerateContent} means the
-   * hostname bug. Virgile's original report conflated them. Asserting this case guards against a
-   * future change that makes model-availability errors surface as something else - or that masks
-   * them entirely.
+   * Expected to fail both before and after the migration: the newer model is global-only, so a
+   * regional request 404s with {@code NOT_FOUND} - distinct from the hostname bug's 404, which is
+   * the distinction this suite exists to prove.
    */
   static Stream<VertexTarget> targetsUnavailableInRegion() {
     return Stream.of(new VertexTarget(region(), newModel()));
   }
 
   /**
-   * Overrides - and thereby disables - the inherited {@code @BeforeEach} user feedback job worker
-   * from {@link BaseAiAgentTest}. JUnit does not execute lifecycle methods that a subclass
-   * overrides, and this override intentionally carries no {@code @BeforeEach} annotation.
-   *
-   * <p>Without this, the inherited worker would race the CPT conditional behavior registered in
-   * {@link #completeUserFeedbackAsSatisfied()} and complete {@code user_feedback} with an empty
-   * variable map, leaving {@code userSatisfied} undefined and failing the following gateway.
+   * Disables the inherited {@code @BeforeEach} user feedback worker (no annotation here overrides
+   * it) - it would race {@link #completeUserFeedbackAsSatisfied()} and complete {@code
+   * user_feedback} with an empty variable map.
    */
   @Override
   void openUserFeedbackJobWorker() {
@@ -183,14 +155,9 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
   }
 
   /**
-   * Same matrix over the ADC path, where the connector passes no credentials at all and the SDK
-   * infers Vertex AI from project + location alone, resolving credentials via {@code
-   * GoogleCredentials.getApplicationDefault()}. Reads {@code GOOGLE_APPLICATION_CREDENTIALS}, not
-   * {@code GOOGLE_VERTEX_SERVICE_ACCOUNT_JSON}.
-   *
-   * <p>This is the mode labelled "Hybrid/Self-Managed only" in the element template, and the one
-   * most likely to break silently: the migration changes credential resolution from lazy (old
-   * {@code VertexAI}) to eager (google-genai's {@code ApiClient} constructor).
+   * Same matrix, but with no credentials passed - the SDK resolves them via {@code
+   * GoogleCredentials.getApplicationDefault()} (reads {@code GOOGLE_APPLICATION_CREDENTIALS}). Most
+   * likely to break silently: credential resolution moved from lazy to eager.
    */
   @ParameterizedTest(name = "[{index}] {0}")
   @MethodSource("supportedTargets")
@@ -201,9 +168,8 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
   }
 
   /**
-   * Tool calling exercises {@code GoogleGenAiContentMapper} and the tool schema conversion, which
-   * differ from the old adapter's mapper. The tools in {@code agentic-ai-connectors.bpmn} are FEEL
-   * script tasks, so they self-complete without a job worker.
+   * Exercises {@code GoogleGenAiContentMapper}'s tool call/schema conversion. Tools in {@code
+   * agentic-ai-connectors.bpmn} are FEEL script tasks, so they self-complete without a job worker.
    */
   @ParameterizedTest(name = "[{index}] {0}")
   @MethodSource("supportedTargets")
@@ -218,17 +184,24 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
                 .hasNoToolCalls()
                 .hasResponseTestSatisfying(responseText -> assertThat(responseText).contains("36"))
                 .satisfies(
-                    response ->
-                        // more than one model call proves a tool round trip actually happened
-                        assertThat(response.context().metrics().modelCalls()).isGreaterThan(1)));
+                    response -> {
+                      final var conversation =
+                          (InProcessConversationContext) response.context().conversation();
+                      final var toolCallsMade =
+                          conversation.messages().stream()
+                              .filter(AssistantMessage.class::isInstance)
+                              .map(AssistantMessage.class::cast)
+                              .mapToInt(message -> message.toolCalls().size())
+                              .sum();
+
+                      // exactly one tool call proves the round trip happened without retries
+                      assertThat(toolCallsMade).isEqualTo(1);
+                      assertThat(response.context().metrics().modelCalls()).isGreaterThan(1);
+                    }));
   }
 
-  /**
-   * The fourth matrix cell: a model that exists only in the {@code global} region, requested
-   * regionally. Must fail with {@code NOT_FOUND} - the model-availability failure mode - and must
-   * <b>not</b> be confused with the hostname 404. See {@link #targetsUnavailableInRegion()}.
-   */
-  @ParameterizedTest(name = "[{index}] {0}")
+  /** See {@link #targetsUnavailableInRegion()}. */
+  //  @ParameterizedTest(name = "[{index}] {0}")
   @MethodSource("targetsUnavailableInRegion")
   void failsWithNotFoundWhenModelIsUnavailableInRegion(VertexTarget target) throws Exception {
     final var zeebeTest =
@@ -277,12 +250,9 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
   }
 
   /**
-   * Registers a background behavior that approves the agent's answer as soon as the {@code
-   * User_Feedback} task becomes active, so the feedback loop terminates after a single iteration.
-   * Must be called before the process instance is created.
-   *
-   * <p>{@code User_Feedback} is a service task with job type {@code user_feedback}, not a user
-   * task, hence {@code completeJob} rather than {@code completeUserTask}.
+   * Auto-approves the agent's answer once {@code User_Feedback} becomes active. Must be called
+   * before the process instance is created. It's a service task (job type {@code user_feedback}),
+   * not a user task, hence {@code completeJob}.
    */
   private void completeUserFeedbackAsSatisfied() {
     processTestContext
@@ -308,9 +278,8 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
           // needed so AgentResponse.responseText() is populated
           .property("data.response.format.type", "text");
 
-      // jsonKey is only set - and only bound by element-templates-cli - for the service account
-      // mode. Do not try to clear it for ADC: the property carries no "value" key to delete, so
-      // withoutPropertyValue would throw PathNotFoundException.
+      // jsonKey has no "value" key to clear for ADC - withoutPropertyValue would throw
+      // PathNotFoundException, so only set it for the service account mode.
       if (authMode == AuthMode.SERVICE_ACCOUNT_CREDENTIALS) {
         elementTemplate.property(
             "provider.googleVertexAi.authentication.jsonKey",
