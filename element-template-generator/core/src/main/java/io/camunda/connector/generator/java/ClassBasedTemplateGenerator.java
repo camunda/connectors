@@ -53,6 +53,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
   private static final int MIN_ENGINE_MINOR_FOR_CONFIGURATIONS = 10;
   private static final Pattern ENGINE_VERSION_NUMBER_PATTERN =
       Pattern.compile("^[~^]?(\\d+)\\.(\\d+)");
+  private static final Pattern BARE_MAJOR_VERSION_PATTERN = Pattern.compile("^[~^]?(\\d+)$");
 
   private final ClassLoader classLoader;
 
@@ -344,17 +345,24 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       // used on any engine version.
       return false;
     }
-    var matcher = ENGINE_VERSION_NUMBER_PATTERN.matcher(engineVersion);
-    if (!matcher.find()) {
-      // engineVersion already passed SEM_VER_PATTERN but isn't a simple "^major.minor" (e.g. a
-      // range or wildcard); not enough information to compare against the floor, so don't block.
-      return true;
+    var majorMinorMatcher = ENGINE_VERSION_NUMBER_PATTERN.matcher(engineVersion);
+    if (majorMinorMatcher.find()) {
+      int major = Integer.parseInt(majorMinorMatcher.group(1));
+      int minor = Integer.parseInt(majorMinorMatcher.group(2));
+      return major > MIN_ENGINE_MAJOR_FOR_CONFIGURATIONS
+          || (major == MIN_ENGINE_MAJOR_FOR_CONFIGURATIONS
+              && minor >= MIN_ENGINE_MINOR_FOR_CONFIGURATIONS);
     }
-    int major = Integer.parseInt(matcher.group(1));
-    int minor = Integer.parseInt(matcher.group(2));
-    return major > MIN_ENGINE_MAJOR_FOR_CONFIGURATIONS
-        || (major == MIN_ENGINE_MAJOR_FOR_CONFIGURATIONS
-            && minor >= MIN_ENGINE_MINOR_FOR_CONFIGURATIONS);
+    var bareMajorMatcher = BARE_MAJOR_VERSION_PATTERN.matcher(engineVersion);
+    if (bareMajorMatcher.matches()) {
+      // a bare major (e.g. "8" or "^7") permits any minor within that major, so it only proves
+      // the floor is met when the major itself is already past it - "8" alone still allows 8.0.
+      return Integer.parseInt(bareMajorMatcher.group(1)) > MIN_ENGINE_MAJOR_FOR_CONFIGURATIONS;
+    }
+    // anything else SEM_VER_PATTERN still accepts ("*", an unparsed range lower bound, etc.)
+    // can't be proven to satisfy the floor - reject conservatively rather than let it slip
+    // through as a false pass.
+    return false;
   }
 
   private List<ConfigurationTemplate> buildConfigurationTemplates(
