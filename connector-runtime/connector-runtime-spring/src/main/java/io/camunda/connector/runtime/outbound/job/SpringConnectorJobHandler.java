@@ -259,12 +259,13 @@ public class SpringConnectorJobHandler implements JobHandler {
   }
 
   /**
-   * Reads the {@link Keywords#JOB_TIMEOUT_KEYWORD} header and, if present, extends the job's Zeebe
-   * activation deadline via {@code UpdateJobTimeoutCommand} before the connector function runs.
-   * Returns the parsed duration on success, or {@code null} if there was no header to apply
-   * (missing/blank) or the update command itself failed (logged as a WARN, execution continues with
-   * the job's original deadline). A malformed duration is a configuration error and is not
-   * swallowed — it propagates so the job fails immediately, mirroring {@link #getBackoffDuration}.
+   * Reads the {@link Keywords#JOB_TIMEOUT_KEYWORD} header and, if present, sets the job's Zeebe
+   * activation deadline to {@code now + duration} via {@code UpdateJobTimeoutCommand} before the
+   * connector function runs. Returns the parsed duration on success, or {@code null} if there was
+   * no header to apply (missing/blank) or the update command itself failed (logged as a WARN,
+   * execution continues with the job's original deadline). A malformed or non-positive duration is
+   * a configuration error and is not swallowed — it propagates so the job fails immediately,
+   * mirroring {@link #getBackoffDuration}.
    */
   private Duration updateJobTimeoutIfPresent(ActivatedJob job) {
     String timeoutHeader = job.getCustomHeaders().get(Keywords.JOB_TIMEOUT_KEYWORD);
@@ -279,6 +280,10 @@ public class SpringConnectorJobHandler implements JobHandler {
           "Failed to parse job timeout header. Expected ISO-8601 duration, e.g. PT10M, got: "
               + timeoutHeader,
           e);
+    }
+    if (timeout.isZero() || timeout.isNegative()) {
+      throw new InvalidJobTimeoutException(
+          "Job timeout must be a positive duration, got: " + timeoutHeader, null);
     }
     try {
       camundaClient.newUpdateTimeoutCommand(job).timeout(timeout).execute();

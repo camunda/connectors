@@ -172,6 +172,22 @@ class SpringConnectorJobHandlerTest {
         mock(CamundaClient.class, RETURNS_DEEP_STUBS));
   }
 
+  private SpringConnectorJobHandler newConnectorJobHandler(
+      OutboundConnectorFunction call,
+      CamundaClient camundaClient,
+      JobCallbackCommandWrapperFactory jobCallbackCommandWrapperFactory) {
+    return new SpringConnectorJobHandler(
+        new MicrometerMetricsRecorder(new SimpleMeterRegistry()),
+        jobCallbackCommandWrapperFactory,
+        new SecretProviderAggregator(List.of(new FooBarSecretProvider())),
+        new DefaultValidationProvider(),
+        mock(DocumentFactory.class),
+        TestObjectMapperSupplier.INSTANCE,
+        call,
+        job -> SecretFilter.allowAll(),
+        camundaClient);
+  }
+
   @Nested
   class DocumentReturnTests {
 
@@ -967,6 +983,64 @@ class SpringConnectorJobHandlerTest {
 
       // then — connector still ran and the job still completed
       assertThat(result.getVariables()).isNotNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"PT0S", "P0D", "PT-10M"})
+    void shouldFailJob_WhenHeaderNonPositive_ConnectorNotInvoked(String nonPositiveTimeout)
+        throws Exception {
+      // given
+      var connectorFunction = mock(OutboundConnectorFunction.class);
+      var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
+      var jobBuilder =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, nonPositiveTimeout));
+
+      // when
+      var result = jobBuilder.executeAndCaptureResult(jobHandler, false);
+
+      // then — a zero or negative duration is rejected before the update command is ever issued
+      assertThat(result.getRetries()).isEqualTo(0);
+      assertThat(result.getErrorMessage()).contains("must be a positive duration");
+      verify(connectorFunction, times(0)).execute(any());
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
+    void shouldUseUpdatedDeadline_ForFailJobCallback_WhenHeaderPresent() throws Exception {
+      // given — a job with plenty of time left on its current deadline
+      long staleDeadline = System.currentTimeMillis() + Duration.ofMinutes(25).toMillis();
+      var factory = mock(JobCallbackCommandWrapperFactory.class, RETURNS_DEEP_STUBS);
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new RuntimeException("boom");
+              },
+              camundaClient,
+              factory);
+      var jobBuilder =
+          JobBuilder.create()
+              .withDeadline(staleDeadline)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
+
+      // when — the connector function throws, so the job fails via failJob
+      jobBuilder.execute(jobHandler);
+
+      // then — the deadline update command was issued with the requested duration
+      ArgumentCaptor<Duration> timeoutCaptor = ArgumentCaptor.forClass(Duration.class);
+      verify(updateTimeoutStep1).timeout(timeoutCaptor.capture());
+      assertThat(timeoutCaptor.getValue()).isEqualTo(Duration.ofMinutes(10));
+
+      // and — the fail-command callback was scheduled against the NEW deadline (now + 10 minutes),
+      // not the stale one captured at activation
+      ArgumentCaptor<Long> deadlineCaptor = ArgumentCaptor.forClass(Long.class);
+      verify(factory).create(any(), deadlineCaptor.capture(), any(), anyInt());
+      long capturedDeadline = deadlineCaptor.getValue();
+      long expectedDeadline = System.currentTimeMillis() + Duration.ofMinutes(10).toMillis();
+
+      assertThat(capturedDeadline).isNotEqualTo(staleDeadline);
+      assertThat(Math.abs(capturedDeadline - expectedDeadline)).isLessThan(5000L);
     }
   }
 

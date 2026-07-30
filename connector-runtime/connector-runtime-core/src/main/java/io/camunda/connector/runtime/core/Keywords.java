@@ -112,8 +112,11 @@ public class Keywords {
 
   /**
    * The keyword that identifies the source of `job timeout` property of an outbound Connector. Job
-   * timeout is an ISO8601 duration used to extend the Zeebe job's activation deadline via an {@code
-   * UpdateJobTimeoutCommand}, issued once when the job handler starts processing the job.
+   * timeout is an ISO8601 duration used to set the Zeebe job's activation deadline to {@code now +
+   * duration} via an {@code UpdateJobTimeoutCommand}, issued once when the job handler starts
+   * processing the job. Note that this is not necessarily an extension: if the duration is shorter
+   * than the time remaining on the job's current deadline, the new deadline will be earlier than
+   * the current one.
    *
    * <p>This value only exists for outbound Connectors and comes from the job headers.
    */
