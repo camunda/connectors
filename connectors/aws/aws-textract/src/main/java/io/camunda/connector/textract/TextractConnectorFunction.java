@@ -31,7 +31,7 @@ import software.amazon.awssdk.services.textract.TextractClient;
     },
     type = "io.camunda:aws-textract:1")
 @ElementTemplate(
-    engineVersion = "^8.6",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.AWSTEXTRACT.v1",
     name = "Extract Text from Document with AWS Textract",
     description = "Extract text and data using AWS Textract.",
@@ -50,7 +50,7 @@ import software.amazon.awssdk.services.textract.TextractClient;
     },
     inputDataClass = TextractRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 5,
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
