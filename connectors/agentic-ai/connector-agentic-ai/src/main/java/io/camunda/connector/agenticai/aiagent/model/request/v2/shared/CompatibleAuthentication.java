@@ -15,9 +15,8 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
 /**
- * Authentication strategies shared by the "compatible" backends (OpenAI-compatible gateways,
- * Anthropic-compatible APIs). Extensible: more schemes can be added later without breaking existing
- * configs.
+ * Authentication strategies shared by "compatible"-backend endpoints. Extensible: more schemes can
+ * be added later without breaking existing configs.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
