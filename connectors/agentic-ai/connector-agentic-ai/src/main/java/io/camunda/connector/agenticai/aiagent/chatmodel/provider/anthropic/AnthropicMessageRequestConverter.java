@@ -66,10 +66,10 @@ public class AnthropicMessageRequestConverter {
   }
 
   public MessageCreateParams toMessageCreateParams(
-      AnthropicChatModelConfiguration model,
+      AnthropicChatModelConfiguration configuration,
       @Nullable ResponseConfiguration response,
       ConversationSnapshot snapshot) {
-    final var connection = model.anthropic();
+    final var connection = configuration.anthropic();
     final var params = connection.model().parameters();
     final String modelId = connection.model().model();
 
@@ -226,7 +226,7 @@ public class AnthropicMessageRequestConverter {
   }
 
   private void applyMessages(MessageCreateParams.Builder builder, List<Message> messages) {
-    // Seed an empty list so build() doesn't throw for an all-system/empty snapshot.
+    // Seed an empty list so build() doesn't throw for an all-system/empty snapshot
     builder.messages(List.of());
     for (final Message message : messages) {
       switch (message) {
@@ -246,10 +246,8 @@ public class AnthropicMessageRequestConverter {
     }
   }
 
-  // Known limitation: `content` is always emitted before `toolCalls`, since the domain model
-  // tracks an assistant message's non-tool-call content and its tool calls as two separate
-  // ordered lists that don't record their relative position. Anthropic responses don't interleave
-  // these groups today, so this is intentional; only restructure if that changes.
+  // Known limitation: `content` is always emitted before `toolCalls` since the domain model
+  // doesn't record their relative position; restructure if Anthropic starts interleaving these.
   private MessageParam assistantParam(AssistantMessage assistant) {
     final List<ContentBlockParam> blocks =
         new ArrayList<>(contentConverter.toContentBlockParams(assistant.content()));

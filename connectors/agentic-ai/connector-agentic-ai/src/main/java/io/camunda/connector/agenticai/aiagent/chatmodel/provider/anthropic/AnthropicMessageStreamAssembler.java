@@ -32,12 +32,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Drives a streamed Anthropic Messages API response to a single, fully-assembled {@link Message},
- * equivalent to what the non-streaming API would have returned. Extracted as its own seam (rather
- * than inlined in the Anthropic chat model implementation) so tests can inject a canned {@link
- * Message} without needing to feed a full, valid raw event sequence through the vendor SDK's {@link
- * MessageAccumulator} (which throws unless driven from a {@code message_start} through a {@code
- * message_stop} event).
+ * Drives a streamed Anthropic Messages API response to a single, fully-assembled {@link Message}.
+ * Extracted as its own seam so tests can inject a canned {@link Message} directly.
  */
 @FunctionalInterface
 public interface AnthropicMessageStreamAssembler {
