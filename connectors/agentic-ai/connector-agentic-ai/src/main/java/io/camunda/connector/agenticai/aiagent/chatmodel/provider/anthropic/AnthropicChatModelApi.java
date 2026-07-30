@@ -11,6 +11,8 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.core.ObjectMappers;
 import com.anthropic.core.http.StreamResponse;
+import com.anthropic.errors.AnthropicServiceException;
+import com.anthropic.models.ErrorType;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.RawMessageStreamEvent;
@@ -35,28 +37,26 @@ import org.slf4j.LoggerFactory;
  *
  * <p>The {@link AnthropicClient} is built once by the factory and owned for the lifetime of this
  * instance (one agent request, across all continuation rounds); {@link #close()} closes it once.
- * The factory resolves the request-side {@link AnthropicChatModelConfiguration} once too, at the
- * same time it builds the client, since both are fixed for that lifetime.
  */
 public class AnthropicChatModelApi implements ChatModel {
 
   private static final Logger LOG = LoggerFactory.getLogger(AnthropicChatModelApi.class);
   private static final ObjectMapper MAPPER = ObjectMappers.jsonMapper();
 
+  private final AnthropicChatModelConfiguration configuration;
   private final AnthropicClient client;
-  private final AnthropicChatModelConfiguration model;
   private final AnthropicMessageRequestConverter requestConverter;
   private final AnthropicMessageResponseConverter responseConverter;
   private final AnthropicMessageStreamAssembler streamAssembler;
 
   public AnthropicChatModelApi(
       AnthropicClient client,
-      AnthropicChatModelConfiguration model,
+      AnthropicChatModelConfiguration configuration,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter) {
     this(
         client,
-        model,
+        configuration,
         requestConverter,
         responseConverter,
         AnthropicMessageStreamAssembler.accumulating());
@@ -64,12 +64,12 @@ public class AnthropicChatModelApi implements ChatModel {
 
   AnthropicChatModelApi(
       AnthropicClient client,
-      AnthropicChatModelConfiguration model,
+      AnthropicChatModelConfiguration configuration,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter,
       AnthropicMessageStreamAssembler streamAssembler) {
     this.client = client;
-    this.model = model;
+    this.configuration = configuration;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
     this.streamAssembler = streamAssembler;
@@ -79,7 +79,9 @@ public class AnthropicChatModelApi implements ChatModel {
   public ChatResult execute(ChatRequest request) {
     final MessageCreateParams params =
         requestConverter.toMessageCreateParams(
-            model, request.executionContext().configuration().response(), request.snapshot());
+            configuration,
+            request.executionContext().configuration().response(),
+            request.snapshot());
     if (LOG.isTraceEnabled()) {
       LOG.trace(
           "Anthropic Messages API request: {}", JsonPayloadLogging.toJson(MAPPER, params._body()));
@@ -98,6 +100,14 @@ public class AnthropicChatModelApi implements ChatModel {
       }
       final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
       return responseConverter.toResult(message, executionTime);
+    } catch (AnthropicServiceException e) {
+      final String errorType =
+          e.errorType().map(ErrorType::asString).orElse(e.getClass().getSimpleName());
+      throw new ConnectorException(
+          ERROR_CODE_FAILED_MODEL_CALL,
+          "Model call failed with HTTP %d (%s): %s"
+              .formatted(e.statusCode(), errorType, e.getMessage()),
+          e);
     } catch (Exception e) {
       final String detail =
           Optional.ofNullable(e.getMessage())
@@ -108,8 +118,6 @@ public class AnthropicChatModelApi implements ChatModel {
     }
   }
 
-  // Not exercised through try-with-resources: AnthropicClient does not implement AutoCloseable
-  // (its close() is a plain, unchecked method the SDK documents as usually unnecessary to call).
   @Override
   public void close() {
     try {
