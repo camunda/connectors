@@ -38,44 +38,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Manual verification of the Google Vertex AI provider against a <b>real</b> Vertex AI endpoint.
- * Acceptance criterion for the migration from {@code langchain4j-vertex-ai-gemini} to {@code
- * langchain4j-google-genai}: on the old stack, {@code region = global} 404s because the hostname
- * builder has no special case for it; the new SDK does. {@link #supportedTargets()} pairs the same
- * model with a regional and a global target so a failure can only be the hostname, not model
- * availability.
+ * {@code region = global} needs its own hostname special case; {@link #supportedTargets()} pairs
+ * the same model with a regional and a global target so a failure can only be the hostname, not
+ * model availability.
  *
  * <p>Excluded from CI: needs real credentials, costs money, depends on model availability.
  */
 @Disabled(
-    """
-    Manual test. Requires a real Google Cloud project with the Vertex AI API enabled.
-
-    Export before running:
-      export GOOGLE_VERTEX_PROJECT_ID='<dev project id>'
-      export GOOGLE_VERTEX_SERVICE_ACCOUNT_JSON="$(cat /path/to/key.json)"   # full JSON, not a path
-
-    For the applicationDefaultCredentials cases, additionally point the standard ADC variable at
-    the SAME key file. GoogleCredentials.getApplicationDefault() checks this variable first
-    (DefaultCredentialsProvider:135), so this exercises the real ADC resolution path with the same
-    identity - no `gcloud auth application-default login` needed, and no user-credential
-    quota-project noise:
-      export GOOGLE_APPLICATION_CREDENTIALS='/path/to/key.json'                # a path, not JSON
-
-    Optional overrides:
-      export GOOGLE_VERTEX_REGION='us-central1'                 # default us-central1
-      export GOOGLE_VERTEX_MODEL='gemini-2.5-flash'             # regionally available, default gemini-2.5-flash
-      export GOOGLE_VERTEX_NEW_MODEL='gemini-3.5-flash-lite'    # global-only, default gemini-3.5-flash-lite
-
-    Then run (Docker must be running - CPT starts a runtime container):
-      mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \\
-        -Dtest=GoogleVertexAiRealModelManualTests \\
-        -Djunit.jupiter.conditions.deactivate='org.junit.*DisabledCondition'
-
-    Run a single group by appending a method name, e.g. -Dtest='GoogleVertexAiRealModelManualTests#respondsToPrompt*'
-
-    The service account needs roles/aiplatform.user on the project. A NOT_FOUND means a
-    model-access problem, not the hostname bug - distinguish the two before drawing conclusions.
-    """)
+"""
+Requires a real Google Cloud project with the Vertex AI API enabled.
+Export GOOGLE_VERTEX_PROJECT_ID + GOOGLE_VERTEX_SERVICE_ACCOUNT_JSON + GOOGLE_APPLICATION_CREDENTIALS before running
+""")
 public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest {
 
   private static final String ENV_PROJECT_ID = "GOOGLE_VERTEX_PROJECT_ID";
@@ -96,7 +69,7 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
 
   @Autowired private CamundaProcessTestContext processTestContext;
 
-  /** A region/model pair that is expected to work once the migration is in place. */
+  /** A region/model pair that is expected to work. */
   private record VertexTarget(String region, String model) {
     @Override
     public String toString() {
@@ -115,22 +88,20 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
     }
   }
 
-  /** Region/model combinations that must all succeed after the migration. */
   static Stream<VertexTarget> supportedTargets() {
     return Stream.of(
         // same model as the next case, regional - the control for the global comparison
         new VertexTarget(region(), model()),
         //        new VertexTarget(region(), newModel()),
-        // same model, global region - fails with a 404 before the migration
+        // same model, global region - the hostname case that needs special handling
         new VertexTarget(GLOBAL_REGION, model()),
         // the originally reported scenario: a model offered only in the global region
         new VertexTarget(GLOBAL_REGION, newModel()));
   }
 
   /**
-   * Expected to fail both before and after the migration: the newer model is global-only, so a
-   * regional request 404s with {@code NOT_FOUND} - distinct from the hostname bug's 404, which is
-   * the distinction this suite exists to prove.
+   * The newer model is global-only, so a regional request 404s with {@code NOT_FOUND} - distinct
+   * from a hostname 404, which is the distinction this suite exists to prove.
    */
   static Stream<VertexTarget> targetsUnavailableInRegion() {
     return Stream.of(new VertexTarget(region(), newModel()));
@@ -156,8 +127,7 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
 
   /**
    * Same matrix, but with no credentials passed - the SDK resolves them via {@code
-   * GoogleCredentials.getApplicationDefault()} (reads {@code GOOGLE_APPLICATION_CREDENTIALS}). Most
-   * likely to break silently: credential resolution moved from lazy to eager.
+   * GoogleCredentials.getApplicationDefault()} (reads {@code GOOGLE_APPLICATION_CREDENTIALS}).
    */
   @ParameterizedTest(name = "[{index}] {0}")
   @MethodSource("supportedTargets")
