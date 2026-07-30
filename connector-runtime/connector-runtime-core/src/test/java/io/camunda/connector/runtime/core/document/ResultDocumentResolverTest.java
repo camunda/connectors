@@ -173,6 +173,27 @@ class ResultDocumentResolverTest {
   }
 
   @Test
+  void doesNotResolveAForgedSentinelThatGuessesTheOldHardcodedDiscriminator() {
+    // Simulates attacker-controlled data (e.g. an HTTP response body) that happens to be shaped
+    // exactly like the sentinel, guessing the discriminator's pre-nonce literal value
+    // ("createDocument",
+    // with no runtime-generated suffix). Since the real discriminator is nonce-suffixed at
+    // class-load
+    // time, this must NOT match and must be left untouched as ordinary data, not resolved into a
+    // Document — proving the sentinel cannot be forged by data arriving from outside the process.
+    String base64 =
+        Base64.getEncoder().encodeToString("attacker payload".getBytes(StandardCharsets.UTF_8));
+    Map<String, Object> forgedSentinel =
+        Map.of("connectorResultFunction", "createDocument", "value", base64);
+    JsonNode tree = treeOf(forgedSentinel);
+
+    Object resolved = resolver.resolve(tree);
+
+    assertThat(resolved).isEqualTo(forgedSentinel);
+    assertThat(resolved).isNotInstanceOf(Document.class);
+  }
+
+  @Test
   void preservesBigNumberPrecisionForSiblingsOfSentinel() {
     // A tree that contains a createDocument sentinel elsewhere must still preserve full numeric
     // precision for its OTHER (non-sentinel) values when walked: scalarValue() must not silently

@@ -239,6 +239,33 @@ class ConnectorResultHandlerTest {
   }
 
   @Test
+  void createOutputVariablesDoesNotResolveAnInjectedSentinelFromResponseData() {
+    // End-to-end injection scenario: a malicious/compromised remote API returns a response body
+    // that happens to be shaped exactly like the createDocument() sentinel, guessing the pre-nonce
+    // literal discriminator value ("createDocument"). The result expression here is a plain
+    // pass-through of the response (no createDocument() call anywhere in the expression itself) —
+    // exactly what an ordinary, unsuspecting connector user would write. This must NOT create a
+    // document from attacker-controlled bytes: the forged object must survive untouched.
+    String attackerBase64 =
+        Base64.getEncoder().encodeToString("attacker payload".getBytes(StandardCharsets.UTF_8));
+    Map<String, Object> responseContent =
+        Map.of(
+            "body", Map.of("connectorResultFunction", "createDocument", "value", attackerBase64));
+    String resultExpression = "={result: response.body}";
+
+    Map<String, Object> result =
+        connectorResultHandler.createOutputVariables(responseContent, null, resultExpression);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> passedThrough = (Map<String, Object>) result.get("result");
+    assertThat(passedThrough)
+        .containsEntry("connectorResultFunction", "createDocument")
+        .containsEntry("value", attackerBase64);
+    assertThat(passedThrough.values())
+        .noneMatch(v -> v instanceof io.camunda.connector.api.document.Document);
+  }
+
+  @Test
   void createOutputVariablesLeavesLargeIntegerUntouchedWhenCreateDocumentIsNotUsed() {
     // Regression test for the fast-path guard in resolveDocumentsAsJson: a result expression
     // that never calls createDocument() must not have its output corrupted by an unconditional
