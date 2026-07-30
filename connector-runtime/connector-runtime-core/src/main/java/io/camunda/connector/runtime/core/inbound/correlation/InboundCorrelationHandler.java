@@ -379,7 +379,10 @@ public class InboundCorrelationHandler {
 
   protected Object extractVariables(Object rawVariables, InboundConnectorElement definition) {
     return connectorResultHandler.createOutputVariables(
-        rawVariables, definition.resultVariable(), definition.resultExpression());
+        rawVariables,
+        definition.resultVariable(),
+        definition.resultExpression(),
+        definition.physicalTenantId());
   }
 
   private void checkVariablesSize(Object variables) {

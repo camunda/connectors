@@ -321,6 +321,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       var result =
           FeelContextAwareObjectReader.of(objectMapper)
               .withEvaluator(evaluator)
+              .withAttribute(DocumentFactory.PHYSICAL_TENANT_ID_ATTRIBUTE, physicalTenantId())
               .readValue(propertiesJson, cls);
       getValidationProvider().validate(result);
       return result;
@@ -345,11 +346,14 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
               objectMapper,
               wrapped,
               new SecretContext(
-                  connectorDetails.tenantId(), connectorDetails.processDefinitionId()));
+                  connectorDetails.tenantId(),
+                  connectorDetails.processDefinitionId(),
+                  physicalTenantId()));
       var propertiesJson = objectMapper.valueToTree(withSecrets);
       var result =
           FeelContextAwareObjectReader.of(objectMapper)
               .withEvaluator(evaluator)
+              .withAttribute(DocumentFactory.PHYSICAL_TENANT_ID_ATTRIBUTE, physicalTenantId())
               .readValue(propertiesJson, cls);
       getValidationProvider().validate(result);
       return result;
@@ -364,6 +368,18 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     }
   }
 
+  /**
+   * The physical tenant (Zeebe cluster/"engine") this connector's element is deployed against, or
+   * {@code null} if this context has no elements (shouldn't normally happen, but mirrors {@link
+   * #getDefinition()}'s own guard) — set as a Jackson reader attribute in {@link #bindProperties}/
+   * {@link #bindElementProperties} so {@code DocumentDeserializer} can resolve {@code Document}-
+   * typed fields against the correct physical tenant's document store.
+   */
+  private @Nullable String physicalTenantId() {
+    var elements = connectorDetails.connectorElements();
+    return elements.isEmpty() ? null : elements.getFirst().physicalTenantId();
+  }
+
   @Override
   public InboundConnectorDefinition getDefinition() {
     var elements = connectorDetails.connectorElements();
@@ -372,7 +388,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         connectorDetails.tenantId(),
         connectorDetails.deduplicationId(),
         elements.stream().map(InboundConnectorElement::element).collect(Collectors.toList()),
-        elements.isEmpty() ? null : elements.getFirst().physicalTenantId());
+        physicalTenantId());
   }
 
   @Override
@@ -457,7 +473,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
               objectMapper,
               properties,
               new SecretContext(
-                  connectorDetails.tenantId(), connectorDetails.processDefinitionId()));
+                  connectorDetails.tenantId(),
+                  connectorDetails.processDefinitionId(),
+                  physicalTenantId()));
     }
     return propertiesWithSecrets;
   }
@@ -491,7 +509,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public Document create(DocumentCreationRequest request) {
-    return documentFactory.create(request);
+    return documentFactory.create(request.withPhysicalTenantIdIfAbsent(physicalTenantId()));
   }
 
   @Override

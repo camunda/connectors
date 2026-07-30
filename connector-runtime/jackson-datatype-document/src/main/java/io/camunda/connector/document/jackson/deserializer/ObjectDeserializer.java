@@ -28,6 +28,7 @@ import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.D
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class ObjectDeserializer extends AbstractDeserializer<Object> {
 
@@ -41,6 +42,19 @@ public class ObjectDeserializer extends AbstractDeserializer<Object> {
     super(settings);
     this.documentDeserializer =
         new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor, settings);
+    this.functionDeserializer =
+        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor, settings);
+  }
+
+  /** Physical-tenant-aware variant — see {@link DocumentDeserializer}'s equivalent constructor. */
+  public ObjectDeserializer(
+      Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId,
+      IntrinsicFunctionExecutor intrinsicFunctionExecutor,
+      DocumentModuleSettings settings) {
+    super(settings);
+    this.documentDeserializer =
+        new DocumentDeserializer(
+            documentFactoriesByPhysicalTenantId, intrinsicFunctionExecutor, settings);
     this.functionDeserializer =
         new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor, settings);
   }

@@ -19,6 +19,7 @@ package io.camunda.connector.runtime;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.impl.CamundaObjectMapper;
+import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.client.spring.configuration.CamundaAutoConfiguration;
 import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -40,6 +41,7 @@ import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
+import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
 import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
@@ -56,6 +58,7 @@ import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -86,6 +89,9 @@ public class ConnectorsAutoConfiguration {
 
   @Value("${camunda.connector.secretprovider.environment.prefix:SECRET_}")
   String environmentSecretProviderPrefix;
+
+  @Value("${camunda.connector.secretprovider.environment.physicaltenantaware:false}")
+  boolean environmentSecretProviderPhysicalTenantAware;
 
   @Value("${camunda.connector.secretprovider.environment.tenantaware:false}")
   boolean environmentSecretProviderTenantAware;
@@ -160,6 +166,7 @@ public class ConnectorsAutoConfiguration {
     return new EnvironmentSecretProvider(
         environment,
         environmentSecretProviderPrefix,
+        environmentSecretProviderPhysicalTenantAware,
         environmentSecretProviderTenantAware,
         environmentSecretProviderProcessDefinitionAware);
   }
@@ -216,16 +223,22 @@ public class ConnectorsAutoConfiguration {
   @ConnectorsObjectMapper
   @ConditionalOnMissingBean(name = "connectorObjectMapper")
   public ObjectMapper connectorObjectMapper(
-      DocumentFactory documentFactory, FeelExpressionEvaluator feelExpressionEvaluator) {
+      CamundaClientRegistry registry,
+      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      DocumentFactory legacyDocumentFactory,
+      FeelExpressionEvaluator feelExpressionEvaluator) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
     // default intrinsic function contains a pointer of the copy
     var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
 
     // The deserializer module contains the function executor, which contains the pointer of the
     // object mapper
+    var documentFactoriesByPhysicalTenantId =
+        PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
+            registry, legacyCamundaClient, legacyDocumentFactory);
     var jacksonModuleDocumentDeserializer =
         new JacksonModuleDocumentDeserializer(
-            documentFactory,
+            documentFactoriesByPhysicalTenantId,
             functionExecutor,
             JacksonModuleDocumentDeserializer.DocumentModuleSettings.create());
 

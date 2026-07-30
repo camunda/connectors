@@ -20,7 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.TestDocumentFactory;
@@ -35,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class ConnectorResultHandlerTest {
 
@@ -67,7 +72,8 @@ class ConnectorResultHandlerTest {
                 	res5: data[date(item.date) = date("2024-02-01")][1].attr,
                 	res6: today()
                 }
-                """);
+                """,
+            null);
 
     assertThat(actual)
         .contains(
@@ -92,7 +98,9 @@ class ConnectorResultHandlerTest {
     final var exception =
         assertThrows(
             ConnectorInputException.class,
-            () -> connectorResultHandler.createOutputVariables(context, null, resultExpression));
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    context, null, resultExpression, null));
 
     assertThat(exception)
         .hasMessageContaining(
@@ -107,7 +115,7 @@ class ConnectorResultHandlerTest {
 
     // when - should not throw exception even though responseContent is null
     final var actual =
-        connectorResultHandler.createOutputVariables(responseContent, null, resultExpression);
+        connectorResultHandler.createOutputVariables(responseContent, null, resultExpression, null);
 
     // then - should evaluate successfully with null values
     assertThat(actual).containsEntry("status", null);
@@ -125,7 +133,7 @@ class ConnectorResultHandlerTest {
             ConnectorInputException.class,
             () ->
                 connectorResultHandler.createOutputVariables(
-                    responseContent, null, resultExpression));
+                    responseContent, null, resultExpression, null));
 
     // then - should indicate that an array was returned and JSON object is expected
     assertThat(exception.getMessage())
@@ -146,7 +154,7 @@ class ConnectorResultHandlerTest {
             ConnectorInputException.class,
             () ->
                 connectorResultHandler.createOutputVariables(
-                    responseContent, null, resultExpression));
+                    responseContent, null, resultExpression, null));
 
     // then - should indicate that a string was returned and JSON object is expected
     assertThat(exception.getMessage())
@@ -167,7 +175,7 @@ class ConnectorResultHandlerTest {
             ConnectorInputException.class,
             () ->
                 connectorResultHandler.createOutputVariables(
-                    responseContent, null, resultExpression));
+                    responseContent, null, resultExpression, null));
 
     // then - should indicate that a number was returned and JSON object is expected
     assertThat(exception.getMessage())
@@ -188,7 +196,7 @@ class ConnectorResultHandlerTest {
             ConnectorInputException.class,
             () ->
                 connectorResultHandler.createOutputVariables(
-                    responseContent, null, resultExpression));
+                    responseContent, null, resultExpression, null));
 
     // then - should indicate that a boolean was returned and JSON object is expected
     assertThat(exception.getMessage())
@@ -217,7 +225,7 @@ class ConnectorResultHandlerTest {
             ConnectorInputException.class,
             () ->
                 connectorResultHandler.examineErrorExpression(
-                    responseContent, jobHeaders, jobContext));
+                    responseContent, jobHeaders, jobContext, null));
 
     assertThat(exception)
         .hasMessageContaining(
@@ -240,7 +248,7 @@ class ConnectorResultHandlerTest {
             ConnectorInputException.class,
             () ->
                 connectorResultHandler.examineErrorExpression(
-                    responseContent, jobHeaders, jobContext));
+                    responseContent, jobHeaders, jobContext, null));
 
     // then - should indicate that an array was returned and "Error expression" is mentioned
     assertThat(exception.getMessage())
@@ -256,7 +264,7 @@ class ConnectorResultHandlerTest {
         "={myDoc: createDocument({content: \"" + base64 + "\", name: \"hello.txt\"})}";
 
     Map<String, Object> result =
-        connectorResultHandler.createOutputVariables(Map.of(), null, resultExpression);
+        connectorResultHandler.createOutputVariables(Map.of(), null, resultExpression, null);
 
     assertThat(result).containsKey("myDoc");
     @SuppressWarnings("unchecked")
@@ -281,7 +289,7 @@ class ConnectorResultHandlerTest {
     String resultExpression = "={result: response.body}";
 
     Map<String, Object> result =
-        connectorResultHandler.createOutputVariables(responseContent, null, resultExpression);
+        connectorResultHandler.createOutputVariables(responseContent, null, resultExpression, null);
 
     @SuppressWarnings("unchecked")
     Map<String, Object> passedThrough = (Map<String, Object>) result.get("result");
@@ -307,7 +315,7 @@ class ConnectorResultHandlerTest {
     String resultExpression = "={bigNumber: " + Long.MAX_VALUE + "}";
 
     Map<String, Object> result =
-        connectorResultHandler.createOutputVariables(Map.of(), null, resultExpression);
+        connectorResultHandler.createOutputVariables(Map.of(), null, resultExpression, null);
 
     assertThat(result.get("bigNumber")).isEqualTo(Long.MAX_VALUE);
   }
@@ -323,7 +331,8 @@ class ConnectorResultHandlerTest {
         connectorResultHandler.examineErrorExpression(
             Map.of(),
             headers,
-            new ErrorExpressionJobContext(new ErrorExpressionJobContext.ErrorExpressionJob(3)));
+            new ErrorExpressionJobContext(new ErrorExpressionJobContext.ErrorExpressionJob(3)),
+            null);
 
     assertThat(result).isPresent();
     var bpmnError = (BpmnError) result.get();
@@ -331,5 +340,42 @@ class ConnectorResultHandlerTest {
     Map<String, Object> documentReference =
         (Map<String, Object>) bpmnError.variables().get("myDoc");
     assertThat(documentReference).containsEntry("camunda.document.type", "camunda");
+  }
+
+  @Test
+  void createOutputVariables_resolvesADocumentInTheResultThroughItsOwnPhysicalTenant() {
+    // reproduces a real webhook bug: a Document created via the webhook is echoed back through a
+    // result expression BEFORE the process instance is created, using the same map-based
+    // (multi-tenant) ObjectMapper the runtime uses for property binding elsewhere. Without the
+    // PHYSICAL_TENANT_ID_ATTRIBUTE, DocumentDeserializer.resolveDocumentFactory throws "no
+    // physical tenant ID attribute was set", which surfaces as an HTTP 422 and no process
+    // instance ever gets created.
+    var factoryA = Mockito.mock(DocumentFactory.class);
+    var factoryB = Mockito.mock(DocumentFactory.class);
+    var expectedDocument = Mockito.mock(Document.class);
+    Mockito.when(factoryB.resolve(Mockito.any())).thenReturn(expectedDocument);
+    var multiTenantMapper =
+        new ObjectMapper()
+            .registerModule(
+                new JacksonModuleDocumentDeserializer(
+                    Map.of("tenant-a", factoryA, "tenant-b", factoryB),
+                    Mockito.mock(IntrinsicFunctionExecutor.class),
+                    JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()));
+    var handler =
+        new ConnectorResultHandler(multiTenantMapper, Mockito.mock(DocumentFactory.class));
+
+    var documentReference =
+        Map.of(
+            "camunda.document.type", "camunda",
+            "storeId", "store-1",
+            "documentId", "doc-1",
+            "contentHash", "hash-1");
+    var responseContent = Map.of("document", documentReference);
+
+    var result =
+        handler.createOutputVariables(responseContent, null, "={document: document}", "tenant-b");
+
+    assertThat(result.get("document")).isEqualTo(expectedDocument);
+    Mockito.verifyNoInteractions(factoryA);
   }
 }

@@ -228,7 +228,23 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public CamundaDocumentStore documentStore(CamundaClient camundaClient) {
-    return new CamundaDocumentStoreImpl(camundaClient);
+    return new CamundaDocumentStoreImpl(
+        camundaClient, readPhysicalTenantIdIfAvailable(camundaClient));
+  }
+
+  /**
+   * Reads the client's configured physical tenant ID, tolerating the case where its configuration
+   * cannot be read at all — some test doubles (e.g. the {@code camunda-process-test-spring} client
+   * proxy) defer real initialization until the test container is ready and throw if queried during
+   * Spring context startup. Returning {@code null} here simply means the resulting {@link
+   * CamundaDocumentStoreImpl} skips its physical-tenant sanity check, rather than failing startup.
+   */
+  private static String readPhysicalTenantIdIfAvailable(CamundaClient camundaClient) {
+    try {
+      return camundaClient.getConfiguration().getPhysicalTenantId();
+    } catch (RuntimeException e) {
+      return null;
+    }
   }
 
   @Bean
@@ -330,7 +346,7 @@ public class OutboundConnectorRuntimeConfiguration {
    * of the real per-physical-tenant map. Avoiding {@code Map<String, X>}-typed {@code @Bean}
    * parameters entirely sidesteps this.
    */
-  public static Map<String, CamundaDocumentStore> buildDocumentStoresByPhysicalTenantId(
+  private static Map<String, CamundaDocumentStore> buildDocumentStoresByPhysicalTenantId(
       CamundaClientRegistry registry, CamundaClient legacyCamundaClient) {
     return clientNames(registry, legacyCamundaClient).stream()
         .collect(
@@ -339,25 +355,23 @@ public class OutboundConnectorRuntimeConfiguration {
                 legacyCamundaClient,
                 name ->
                     new CamundaDocumentStoreImpl(
-                        resolveClient(registry, name, legacyCamundaClient))));
+                        resolveClient(registry, name, legacyCamundaClient),
+                        resolvePhysicalTenantId(registry, name, legacyCamundaClient))));
   }
 
   /**
-   * Builds the per-physical-tenant {@link DocumentFactory} map. In the single-physical-tenant case
-   * (no {@link CamundaClientRegistry}), the already-resolved {@code injectedDocumentFactory} bean
-   * is reused instead of always constructing a new client-backed one: this preserves pre-#6961
-   * behavior for single-client/custom runtimes that override the {@code documentFactory} bean (e.g.
-   * an in-memory document store in tests), which would otherwise be silently bypassed.
-   *
-   * <p>{@code public} (rather than {@code private}, like {@link
-   * #buildDocumentStoresByPhysicalTenantId}'s other callers) so inbound configuration classes
-   * ({@code InboundCorrelationConfiguration}, {@code InboundConnectorRuntimeConfiguration}) can
-   * call it directly with their own raw {@code registry}/{@code legacyCamundaClient}/{@code
-   * documentFactory} dependencies, instead of declaring a {@code Map<String, DocumentFactory>}
-   * {@code @Bean} parameter — see the class-level Javadoc on {@code PhysicalTenantIds} for why that
-   * parameter shape silently resolves to the wrong map.
+   * Builds the per-physical-tenant {@link DocumentFactory} map, for the outbound path. In the
+   * single-physical-tenant case (no {@link CamundaClientRegistry}), the already-resolved {@code
+   * injectedDocumentFactory} bean is reused instead of always constructing a new client-backed one:
+   * this preserves pre-#6961 behavior for single-client/custom runtimes that override the {@code
+   * documentFactory} bean (e.g. an in-memory document store in tests), which would otherwise be
+   * silently bypassed. The inbound path has its own equivalent, {@code
+   * PhysicalTenantIds#buildDocumentFactoriesByPhysicalTenantId} in {@code
+   * connector-runtime/connector-runtime-spring/.../inbound/}, since it applies a different
+   * single-tenant-override condition ({@code registry.clientNames().size() <= 1} rather than {@code
+   * registry == null}).
    */
-  public static Map<String, DocumentFactory> buildDocumentFactoriesByPhysicalTenantId(
+  private static Map<String, DocumentFactory> buildDocumentFactoriesByPhysicalTenantId(
       CamundaClientRegistry registry,
       CamundaClient legacyCamundaClient,
       DocumentFactory injectedDocumentFactory) {

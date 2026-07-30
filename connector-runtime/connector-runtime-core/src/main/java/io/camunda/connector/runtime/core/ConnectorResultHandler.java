@@ -35,6 +35,7 @@ import io.camunda.connector.runtime.core.document.ResultDocumentResolver;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,8 @@ public class ConnectorResultHandler {
   public Map<String, Object> createOutputVariables(
       final Object responseContent,
       final @Nullable String resultVariableName,
-      final @Nullable String resultExpression) {
+      final @Nullable String resultExpression,
+      final @Nullable String physicalTenantId) {
     final Map<String, Object> outputVariables = new HashMap<>();
 
     if (isNotBlank(resultVariableName)) {
@@ -87,7 +89,11 @@ public class ConnectorResultHandler {
             resolveDocumentsAsJson(mappedResponseJson, resultExpression, "Result expression");
         var mappedResponse =
             parseJsonVarsAsTypeOrThrow(
-                resolvedResponseJson, Map.class, resultExpression, "Result expression");
+                resolvedResponseJson,
+                Map.class,
+                resultExpression,
+                "Result expression",
+                physicalTenantId);
         if (mappedResponse != null) {
           outputVariables.putAll(mappedResponse);
         }
@@ -99,7 +105,8 @@ public class ConnectorResultHandler {
   public Optional<ConnectorError> examineErrorExpression(
       final Object responseContent,
       final Map<String, String> jobHeaders,
-      ErrorExpressionJobContext jobContext) {
+      ErrorExpressionJobContext jobContext,
+      final @Nullable String physicalTenantId) {
     final var errorExpression = jobHeaders.get(Keywords.ERROR_EXPRESSION_KEYWORD);
     if (errorExpression == null || errorExpression.isBlank()) {
       return Optional.empty();
@@ -115,12 +122,17 @@ public class ConnectorResultHandler {
         .map(json -> resolveDocumentsAsJson(json, errorExpression, "Error expression"))
         .filter(
             json ->
-                !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression, "Error expression")
+                !parseJsonVarsAsTypeOrThrow(
+                        json, Map.class, errorExpression, "Error expression", physicalTenantId)
                     .isEmpty())
         .map(
             json ->
                 parseJsonVarsAsTypeOrThrow(
-                    json, ConnectorError.class, errorExpression, "Error expression"))
+                    json,
+                    ConnectorError.class,
+                    errorExpression,
+                    "Error expression",
+                    physicalTenantId))
         .filter(
             error -> {
               if (error instanceof BpmnError bpmnError) {
@@ -134,7 +146,8 @@ public class ConnectorResultHandler {
       final String jsonVars,
       Class<T> type,
       final String expression,
-      final String expressionNameForError) {
+      final String expressionNameForError,
+      final @Nullable String physicalTenantId) {
     try {
       // When expecting a Map (from a FEEL evaluation), check if it's actually a JSON object
       if (type.equals(Map.class)) {
@@ -149,12 +162,25 @@ public class ConnectorResultHandler {
                   jsonVars));
         }
       }
-      return objectMapper.readValue(jsonVars, type);
+      return objectMapper
+          .reader()
+          .withAttribute(DocumentFactory.PHYSICAL_TENANT_ID_ATTRIBUTE, physicalTenantId)
+          .readValue(jsonVars, type);
     } catch (ConnectorInputException e) {
       // Re-throw our custom exception
       throw e;
     } catch (JsonProcessingException e) {
       // For other types (like ConnectorError), keep the original message
+      throw new ConnectorInputException(
+          new FeelEngineWrapperException(
+              String.format(ERROR_CANNOT_PARSE_VARIABLES, jsonVars, type.getName()),
+              expression,
+              jsonVars,
+              e));
+    } catch (IOException e) {
+      // ObjectReader#readValue declares the broader IOException (unlike ObjectMapper#readValue's
+      // JsonProcessingException), though in practice this path only ever throws for JSON-parsing
+      // reasons already covered above; kept for exhaustiveness.
       throw new ConnectorInputException(
           new FeelEngineWrapperException(
               String.format(ERROR_CANNOT_PARSE_VARIABLES, jsonVars, type.getName()),

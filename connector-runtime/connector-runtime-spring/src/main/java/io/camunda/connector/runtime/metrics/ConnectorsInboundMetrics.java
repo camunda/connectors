@@ -33,6 +33,7 @@ public class ConnectorsInboundMetrics {
   private final Map<String, AtomicLong> lastTriggeredGauges = new ConcurrentHashMap<>();
   private final Counter processDefinitionCacheHitCounter;
   private final Counter processDefinitionCacheMissCounter;
+  private final Counter processStateChangePublishFailureCounter;
 
   public ConnectorsInboundMetrics(MeterRegistry meterRegistry) {
     this.meterRegistry = meterRegistry;
@@ -43,6 +44,9 @@ public class ConnectorsInboundMetrics {
     this.processDefinitionCacheMissCounter =
         Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_PROCESS_DEFINITION_CACHE_ACCESSES)
             .tag(ConnectorMetrics.Tag.RESULT, ConnectorMetrics.Inbound.RESULT_CACHE_MISS)
+            .register(meterRegistry);
+    this.processStateChangePublishFailureCounter =
+        Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_PROCESS_STATE_CHANGE_PUBLISH_FAILURES)
             .register(meterRegistry);
   }
 
@@ -167,6 +171,11 @@ public class ConnectorsInboundMetrics {
   /** Records a miss on the process-definition inspection cache. */
   public void increaseProcessDefinitionCacheMiss() {
     processDefinitionCacheMissCounter.increment();
+  }
+
+  /** Records a process state change that could not be published and will be retried. */
+  public void increaseProcessStateChangePublishFailure() {
+    processStateChangePublishFailureCounter.increment();
   }
 
   private void recordLastActivated(String type) {
