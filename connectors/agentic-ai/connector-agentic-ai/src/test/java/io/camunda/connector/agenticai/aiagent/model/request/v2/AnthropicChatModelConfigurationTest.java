@@ -17,7 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicThinking;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.ApiKeyAuthentication;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Set;
@@ -107,7 +107,7 @@ class AnthropicChatModelConfigurationTest {
     assertThat(compatible.endpoint()).isEqualTo("https://compatible.example.com");
     assertThat(compatible.headers()).containsEntry("X-Custom-Header", "value");
     assertThat(compatible.compatibleAuthentication())
-        .isEqualTo(new CompatibleApiKeyAuthentication("sk-compat-123"));
+        .isEqualTo(new ApiKeyAuthentication("sk-compat-123"));
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
@@ -173,7 +173,7 @@ class AnthropicChatModelConfigurationTest {
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
                 new AnthropicCompatibleBackend(
-                    "", null, null, null, new CompatibleApiKeyAuthentication("  ")),
+                    "", null, null, null, new ApiKeyAuthentication("  ")),
                 null,
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null));

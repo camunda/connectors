@@ -16,7 +16,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.Anthr
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -169,7 +169,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 feel = FeelMode.required,
                 optional = true)
             @Nullable Map<String, Object> requestParameters,
-        @Valid @NotNull CompatibleAuthentication compatibleAuthentication)
+        @Valid @NotNull CustomEndpointAuthentication compatibleAuthentication)
         implements AnthropicBackend {
 
       @Override

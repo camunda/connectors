@@ -17,7 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCompatibleBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
@@ -104,8 +104,7 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
       AnthropicOkHttpClient.Builder builder, AnthropicCompatibleBackend compatible) {
     builder.baseUrl(compatible.endpoint());
 
-    if (compatible.compatibleAuthentication()
-        instanceof CompatibleApiKeyAuthentication apiKeyAuth) {
+    if (compatible.compatibleAuthentication() instanceof ApiKeyAuthentication apiKeyAuth) {
       builder.apiKey(apiKeyAuth.apiKey());
     }
   }

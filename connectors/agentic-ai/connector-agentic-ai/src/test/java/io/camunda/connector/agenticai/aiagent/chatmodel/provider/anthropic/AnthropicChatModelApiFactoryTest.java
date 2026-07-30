@@ -19,7 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CompatibleAuthentication.CompatibleNoAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.util.Map;
 import java.util.Optional;
@@ -93,11 +93,7 @@ class AnthropicChatModelApiFactoryTest {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicCompatibleBackend(
-                "https://compatible.example.com",
-                null,
-                null,
-                null,
-                new CompatibleNoAuthentication()),
+                "https://compatible.example.com", null, null, null, new NoAuthentication()),
             new AnthropicModel(modelId, null),
             null));
   }
