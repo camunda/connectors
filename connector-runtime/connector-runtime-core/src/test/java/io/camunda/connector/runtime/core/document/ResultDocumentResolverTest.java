@@ -134,6 +134,36 @@ class ResultDocumentResolverTest {
   }
 
   @Test
+  void toleratesLineWrappedBase64() {
+    // 76-char MIME-wrapped base64 (line breaks inserted) is common from third-party APIs and must
+    // still decode successfully.
+    String raw =
+        Base64.getEncoder()
+            .encodeToString("hello world".repeat(10).getBytes(StandardCharsets.UTF_8));
+    String lineWrapped =
+        Base64.getMimeEncoder(20, "\r\n".getBytes(StandardCharsets.UTF_8))
+            .encodeToString(Base64.getDecoder().decode(raw));
+    JsonNode tree =
+        treeOf(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", lineWrapped));
+
+    Document resolved = (Document) resolver.resolve(tree);
+
+    assertThat(resolved.asByteArray())
+        .isEqualTo("hello world".repeat(10).getBytes(StandardCharsets.UTF_8));
+  }
+
+  @Test
+  void rejectsBase64WithEmbeddedPunctuation() {
+    // Base64.getMimeDecoder() alone would silently ignore stray punctuation anywhere in the
+    // string, masking genuinely corrupt input; the resolver must still reject it.
+    String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+    String corrupted = base64.substring(0, 2) + "!!" + base64.substring(2);
+    JsonNode tree = treeOf(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", corrupted));
+
+    assertThatThrownBy(() -> resolver.resolve(tree)).isInstanceOf(ConnectorInputException.class);
+  }
+
+  @Test
   void leavesNonSentinelValuesUntouched() {
     JsonNode tree = treeOf(Map.of("a", 1, "b", List.of("x", "y"), "c", true));
 

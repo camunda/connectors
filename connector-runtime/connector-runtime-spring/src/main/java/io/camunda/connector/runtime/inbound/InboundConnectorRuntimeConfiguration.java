@@ -95,6 +95,7 @@ public class InboundConnectorRuntimeConfiguration {
       @Autowired(required = false) ValidationProvider validationProvider,
       Map<String, ProcessInstanceClient> processInstanceClientsByPhysicalTenantId,
       DocumentFactory documentFactory,
+      Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId,
       CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient) {
     Map<String, InboundCorrelationHandler> correlationHandlersByPhysicalTenantId =
@@ -103,7 +104,7 @@ public class InboundConnectorRuntimeConfiguration {
             legacyCamundaClient,
             mapper,
             messageTtl,
-            documentFactory,
+            documentFactoriesByPhysicalTenantId,
             connectorsInboundMetrics);
     Map<String, InboundConnectorContextFactory> delegatesByPhysicalTenantId =
         registry.clientNames().stream()

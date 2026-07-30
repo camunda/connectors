@@ -49,8 +49,7 @@ public class ResultDocumentResolver {
         return createDocument(node.get("value"));
       }
       Map<String, Object> result = new LinkedHashMap<>();
-      node.fields()
-          .forEachRemaining(entry -> result.put(entry.getKey(), resolve(entry.getValue())));
+      node.properties().forEach(entry -> result.put(entry.getKey(), resolve(entry.getValue())));
       return result;
     }
     if (node.isArray()) {
@@ -94,9 +93,11 @@ public class ResultDocumentResolver {
     }
     byte[] decoded;
     try {
-      // MIME decoder tolerates whitespace/line-wraps (76-char MIME chunks), which is common in
-      // base64 returned by third-party APIs, while still rejecting genuinely invalid input.
-      decoded = Base64.getMimeDecoder().decode(content);
+      // Strip whitespace/line-wraps (76-char MIME chunks are common in base64 returned by
+      // third-party APIs) explicitly, then decode with the strict decoder — Base64.getMimeDecoder()
+      // would also silently ignore *any* non-alphabet character (not just whitespace), masking
+      // genuinely corrupt input instead of rejecting it.
+      decoded = Base64.getDecoder().decode(content.replaceAll("\\s", ""));
     } catch (IllegalArgumentException e) {
       throw new ConnectorInputException(
           "createDocument() 'content'/'data' is not valid base64: " + e.getMessage());

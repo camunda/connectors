@@ -32,7 +32,7 @@ import scala.collection.immutable.Map$;
 /**
  * FEEL function {@code createDocument(value)}. Deliberately stateless: it only tags {@code value}
  * with a sentinel discriminator so it survives JSON serialization intact. Actual document creation
- * happens later, when {@code io.camunda.connector.runtime.core.document .ResultDocumentResolver}
+ * happens later, when {@code io.camunda.connector.runtime.core.document.ResultDocumentResolver}
  * walks the evaluated result/error expression tree and finds this sentinel — this function has no
  * access to a {@code DocumentFactory} and must not attempt to create anything itself.
  */

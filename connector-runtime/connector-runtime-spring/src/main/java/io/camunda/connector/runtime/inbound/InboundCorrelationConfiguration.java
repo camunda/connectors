@@ -52,20 +52,24 @@ public class InboundCorrelationConfiguration {
       CamundaClient legacyCamundaClient,
       ObjectMapper objectMapper,
       Duration messageTtl,
-      DocumentFactory documentFactory,
+      Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId,
       ConnectorsInboundMetrics connectorsInboundMetrics) {
     return registry.clientNames().stream()
         .collect(
             PhysicalTenantIds.toMapByPhysicalTenantId(
                 registry,
                 legacyCamundaClient,
-                name ->
-                    new MeteredInboundCorrelationHandler(
-                        PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient),
-                        objectMapper,
-                        messageTtl,
-                        documentFactory,
-                        connectorsInboundMetrics)));
+                name -> {
+                  var physicalTenantId =
+                      PhysicalTenantIds.resolvePhysicalTenantId(
+                          registry, name, legacyCamundaClient);
+                  return new MeteredInboundCorrelationHandler(
+                      PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient),
+                      objectMapper,
+                      messageTtl,
+                      documentFactoriesByPhysicalTenantId.get(physicalTenantId),
+                      connectorsInboundMetrics);
+                }));
   }
 
   /**
@@ -81,7 +85,7 @@ public class InboundCorrelationConfiguration {
       CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
       @ConnectorsObjectMapper ObjectMapper objectMapper,
-      DocumentFactory documentFactory,
+      Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId,
       ConnectorsInboundMetrics connectorsInboundMetrics) {
     return PhysicalTenantIds.onlyValue(
         buildCorrelationHandlersByPhysicalTenantId(
@@ -89,7 +93,7 @@ public class InboundCorrelationConfiguration {
             legacyCamundaClient,
             objectMapper,
             messageTtl,
-            documentFactory,
+            documentFactoriesByPhysicalTenantId,
             connectorsInboundMetrics),
         InboundCorrelationHandler.class);
   }
