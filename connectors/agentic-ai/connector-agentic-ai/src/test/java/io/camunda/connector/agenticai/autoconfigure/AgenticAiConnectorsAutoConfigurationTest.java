@@ -29,6 +29,8 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandle
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
@@ -53,10 +55,25 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.document.Camun
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AzureOpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AzureOpenAiProviderConfiguration.AzureOpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.AzureOpenAiProviderConfiguration.AzureOpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration.AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration.BedrockConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration.BedrockModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiCompatibleProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration.OpenAiAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration.OpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
@@ -295,26 +312,97 @@ class AgenticAiConnectorsAutoConfigurationTest {
             });
   }
 
-  @Test
-  void whenAnthropicChatModelConfigurationIsResolved_thenAnthropicChatModelApiFactoryHandlesIt() {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("chatModelResolutionCases")
+  void resolvesChatModelForConfiguration(ChatModelResolutionCase resolutionCase) {
     contextRunner.run(
         context -> {
-          assertThat(context).hasSingleBean(AnthropicChatModelApiFactory.class);
+          assertThat(context).hasSingleBean(resolutionCase.factoryClass());
 
           final var chatModelRegistry = context.getBean(ChatModelRegistry.class);
-          final var configuration =
-              new AnthropicChatModelConfiguration(
-                  new AnthropicConnection(
-                      new AnthropicApiBackend("sk-ant-test"),
-                      new AnthropicModel("claude-sonnet-4-6", null),
-                      null));
-
-          // resolving must not throw the registry's "no chat model registered" error -- the
-          // Anthropic factory bean must actually be wired in and matched
-          try (var chatModel = chatModelRegistry.resolve(configuration)) {
+          try (var chatModel = chatModelRegistry.resolve(resolutionCase.configuration())) {
             assertThat(chatModel).isNotNull();
           }
         });
+  }
+
+  static Stream<ChatModelResolutionCase> chatModelResolutionCases() {
+    return Stream.of(
+        new ChatModelResolutionCase(
+            "anthropic (native)",
+            new AnthropicChatModelConfiguration(
+                new AnthropicConnection(
+                    new AnthropicApiBackend("sk-ant-test"),
+                    new AnthropicModel("claude-sonnet-5", null),
+                    null)),
+            AnthropicChatModelApiFactory.class),
+        new ChatModelResolutionCase(
+            "anthropic (langchain4j)",
+            new AnthropicProviderConfiguration(
+                new AnthropicProviderConfiguration.AnthropicConnection(
+                    null,
+                    new AnthropicProviderConfiguration.AnthropicAuthentication("sk-ant-test"),
+                    null,
+                    new AnthropicProviderConfiguration.AnthropicModel("claude-sonnet-5", null))),
+            AnthropicChatModelFactory.class),
+        new ChatModelResolutionCase(
+            "azure-openai",
+            new AzureOpenAiProviderConfiguration(
+                new AzureOpenAiConnection(
+                    "https://example.openai.azure.com",
+                    new AzureApiKeyAuthentication("azure-api-key"),
+                    null,
+                    new AzureOpenAiModel("gpt-4o", null))),
+            AzureOpenAiChatModelFactory.class),
+        new ChatModelResolutionCase(
+            "bedrock",
+            new BedrockProviderConfiguration(
+                new BedrockConnection(
+                    "eu-west-1",
+                    null,
+                    new AwsDefaultCredentialsChainAuthentication(),
+                    null,
+                    new BedrockModel("anthropic.claude-3-sonnet", null))),
+            BedrockChatModelFactory.class),
+        new ChatModelResolutionCase(
+            "google-vertex-ai",
+            new GoogleVertexAiProviderConfiguration(
+                new GoogleVertexAiConnection(
+                    "my-project",
+                    "us-central1",
+                    new ApplicationDefaultCredentialsAuthentication(),
+                    new GoogleVertexAiModel("gemini-2.5-pro", null))),
+            GoogleVertexAiChatModelFactory.class),
+        new ChatModelResolutionCase(
+            "openai",
+            new OpenAiProviderConfiguration(
+                new OpenAiConnection(
+                    new OpenAiAuthentication("sk-openai-test", null, null),
+                    null,
+                    new OpenAiModel("gpt-4o", null))),
+            OpenAiChatModelFactory.class),
+        new ChatModelResolutionCase(
+            "openai-compatible",
+            new OpenAiCompatibleProviderConfiguration(
+                new OpenAiCompatibleConnection(
+                    "https://my-endpoint.local",
+                    new OpenAiCompatibleAuthentication("api-key"),
+                    null,
+                    null,
+                    null,
+                    new OpenAiCompatibleModel("test-model", null))),
+            OpenAiCompatibleChatModelFactory.class));
+  }
+
+  record ChatModelResolutionCase(
+      String label,
+      ChatModelConfiguration configuration,
+      Class<? extends ChatModelFactory> factoryClass) {
+
+    @Override
+    public String toString() {
+      return label;
+    }
   }
 
   @Nested
