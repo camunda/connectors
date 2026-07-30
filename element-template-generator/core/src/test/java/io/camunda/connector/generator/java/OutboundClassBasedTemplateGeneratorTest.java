@@ -1759,6 +1759,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
         id = "test-jdbc",
         name = "JDBC",
         version = 1,
+        engineVersion = "^8.10",
         inputDataClass = JdbcRequest.class,
         configurations = {JdbcConnection.class})
     static class JdbcConnector implements OutboundConnectorFunction {
@@ -1840,6 +1841,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
         id = "test-aws",
         name = "AWS",
         version = 1,
+        engineVersion = "^8.10",
         inputDataClass = AwsRequest.class,
         configurations = {AwsCredential.class})
     static class AwsConnector implements OutboundConnectorFunction {
@@ -1920,6 +1922,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
         id = "test-blank-name",
         name = "BlankName",
         version = 1,
+        engineVersion = "^8.10",
         inputDataClass = BlankNameRequest.class,
         configurations = {BlankName.class})
     static class BlankNameConnector implements OutboundConnectorFunction {
@@ -1956,6 +1959,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
         id = "test-blank-kind",
         name = "BlankKind",
         version = 1,
+        engineVersion = "^8.10",
         inputDataClass = BlankKindRequest.class,
         configurations = {BlankKind.class})
     static class BlankKindConnector implements OutboundConnectorFunction {
@@ -1970,6 +1974,254 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThatThrownBy(() -> generator.generate(BlankKindConnector.class))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("must declare a non-blank kind");
+    }
+
+    // --- engineVersion floor: Configuration (credential) templates require Camunda >= 8.10 ---
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:below-floor:1",
+        version = 1,
+        name = "Below Floor Credential")
+    record BelowFloorCredential(String field) {}
+
+    record BelowFloorRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Configuration,
+                binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+            BelowFloorCredential configuration) {}
+
+    @OutboundConnector(name = "BelowFloor", type = "test:below-floor")
+    @ElementTemplate(
+        id = "test-below-floor",
+        name = "BelowFloor",
+        version = 1,
+        engineVersion = "^8.9",
+        inputDataClass = BelowFloorRequest.class,
+        configurations = {BelowFloorCredential.class})
+    static class BelowFloorConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void engineVersionBelow810_isRejectedWhenConfigurationsUsed() {
+      assertThatThrownBy(() -> generator.generate(BelowFloorConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("requires engineVersion >= 8.10")
+          .hasMessageContaining("^8.9");
+    }
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:no-floor:1",
+        version = 1,
+        name = "No Floor Credential")
+    record NoFloorCredential(String field) {}
+
+    record NoFloorRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Configuration,
+                binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+            NoFloorCredential configuration) {}
+
+    @OutboundConnector(name = "NoFloor", type = "test:no-floor")
+    @ElementTemplate(
+        id = "test-no-floor",
+        name = "NoFloor",
+        version = 1,
+        // no engineVersion declared at all
+        inputDataClass = NoFloorRequest.class,
+        configurations = {NoFloorCredential.class})
+    static class NoFloorConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void blankEngineVersion_isRejectedWhenConfigurationsUsed() {
+      assertThatThrownBy(() -> generator.generate(NoFloorConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("requires engineVersion >= 8.10")
+          .hasMessageContaining("declared was none");
+    }
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:at-floor:1",
+        version = 1,
+        name = "At Floor Credential")
+    record AtFloorCredential(String field) {}
+
+    record AtFloorRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Configuration,
+                binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+            AtFloorCredential configuration) {}
+
+    @OutboundConnector(name = "AtFloor", type = "test:at-floor")
+    @ElementTemplate(
+        id = "test-at-floor",
+        name = "AtFloor",
+        version = 1,
+        engineVersion = "^8.10",
+        inputDataClass = AtFloorRequest.class,
+        configurations = {AtFloorCredential.class})
+    static class AtFloorConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void engineVersionAtOrAbove810_isAccepted() {
+      var template = generator.generate(AtFloorConnector.class).getFirst();
+      assertThat(template.engines()).isNotNull();
+    }
+
+    // --- underspecified engineVersion forms that SEM_VER_PATTERN accepts but that don't
+    // guarantee the 8.10 floor is met: wildcard and bare-major must be rejected too ---
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:wildcard:1",
+        version = 1,
+        name = "Wildcard Credential")
+    record WildcardCredential(String field) {}
+
+    record WildcardRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Configuration,
+                binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+            WildcardCredential configuration) {}
+
+    @OutboundConnector(name = "Wildcard", type = "test:wildcard")
+    @ElementTemplate(
+        id = "test-wildcard",
+        name = "Wildcard",
+        version = 1,
+        engineVersion = "*",
+        inputDataClass = WildcardRequest.class,
+        configurations = {WildcardCredential.class})
+    static class WildcardConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void wildcardEngineVersion_isRejectedWhenConfigurationsUsed() {
+      assertThatThrownBy(() -> generator.generate(WildcardConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("requires engineVersion >= 8.10")
+          .hasMessageContaining("\"*\"");
+    }
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:bare-major-at-floor:1",
+        version = 1,
+        name = "Bare Major At Floor Credential")
+    record BareMajorAtFloorCredential(String field) {}
+
+    record BareMajorAtFloorRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Configuration,
+                binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+            BareMajorAtFloorCredential configuration) {}
+
+    // engineVersion = "8" means "^8", i.e. any 8.x - it does NOT guarantee minor >= 10, so it
+    // must be rejected exactly like an explicit "^8.9" would be.
+    @OutboundConnector(name = "BareMajorAtFloor", type = "test:bare-major-at-floor")
+    @ElementTemplate(
+        id = "test-bare-major-at-floor",
+        name = "BareMajorAtFloor",
+        version = 1,
+        engineVersion = "8",
+        inputDataClass = BareMajorAtFloorRequest.class,
+        configurations = {BareMajorAtFloorCredential.class})
+    static class BareMajorAtFloorConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void bareMajorAtFloor_isRejectedWhenConfigurationsUsed() {
+      assertThatThrownBy(() -> generator.generate(BareMajorAtFloorConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("requires engineVersion >= 8.10");
+    }
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:bare-major-below-floor:1",
+        version = 1,
+        name = "Bare Major Below Floor Credential")
+    record BareMajorBelowFloorCredential(String field) {}
+
+    record BareMajorBelowFloorRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Configuration,
+                binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+            BareMajorBelowFloorCredential configuration) {}
+
+    @OutboundConnector(name = "BareMajorBelowFloor", type = "test:bare-major-below-floor")
+    @ElementTemplate(
+        id = "test-bare-major-below-floor",
+        name = "BareMajorBelowFloor",
+        version = 1,
+        engineVersion = "7",
+        inputDataClass = BareMajorBelowFloorRequest.class,
+        configurations = {BareMajorBelowFloorCredential.class})
+    static class BareMajorBelowFloorConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void bareMajorBelowFloor_isRejectedWhenConfigurationsUsed() {
+      assertThatThrownBy(() -> generator.generate(BareMajorBelowFloorConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("requires engineVersion >= 8.10");
+    }
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:bare-major-above-floor:1",
+        version = 1,
+        name = "Bare Major Above Floor Credential")
+    record BareMajorAboveFloorCredential(String field) {}
+
+    record BareMajorAboveFloorRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Configuration,
+                binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+            BareMajorAboveFloorCredential configuration) {}
+
+    // engineVersion = "9" means "^9", i.e. any 9.x - strictly above the 8.10 floor, so it must
+    // be accepted even though it's a bare major with no minor component.
+    @OutboundConnector(name = "BareMajorAboveFloor", type = "test:bare-major-above-floor")
+    @ElementTemplate(
+        id = "test-bare-major-above-floor",
+        name = "BareMajorAboveFloor",
+        version = 1,
+        engineVersion = "9",
+        inputDataClass = BareMajorAboveFloorRequest.class,
+        configurations = {BareMajorAboveFloorCredential.class})
+    static class BareMajorAboveFloorConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void bareMajorAboveFloor_isAccepted() {
+      var template = generator.generate(BareMajorAboveFloorConnector.class).getFirst();
+      assertThat(template.engines()).isNotNull();
     }
   }
 }

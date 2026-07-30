@@ -16,4 +16,33 @@
  */
 package io.camunda.connector.api.secret;
 
-public record SecretContext(String tenantId, String processDefinitionId) {}
+import org.jspecify.annotations.Nullable;
+
+/**
+ * Scope in which a secret is resolved.
+ *
+ * @param tenantId the logical (multi-tenancy) tenant the process belongs to
+ * @param processDefinitionId the BPMN process definition ID the secret is resolved for
+ * @param physicalTenantId identifies the orchestration cluster (engine) the process runs on, so
+ *     that secrets can be resolved per engine in multi-engine deployments. {@code null} when the
+ *     runtime could not determine it, e.g. against a cluster that predates multi-engine support.
+ */
+public record SecretContext(
+    String tenantId, String processDefinitionId, @Nullable String physicalTenantId) {
+
+  public SecretContext {
+    // clients report an unset physical tenant as an empty string (protobuf/REST default);
+    // normalize it so providers only have to check for null
+    if (physicalTenantId != null && physicalTenantId.isBlank()) {
+      physicalTenantId = null;
+    }
+  }
+
+  /**
+   * Retains the pre-multi-engine constructor signature so code compiled against the previous record
+   * shape keeps working. Leaves {@link #physicalTenantId()} unset.
+   */
+  public SecretContext(String tenantId, String processDefinitionId) {
+    this(tenantId, processDefinitionId, null);
+  }
+}

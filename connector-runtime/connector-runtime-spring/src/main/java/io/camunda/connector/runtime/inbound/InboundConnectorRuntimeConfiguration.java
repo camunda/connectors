@@ -224,7 +224,9 @@ public class InboundConnectorRuntimeConfiguration {
   public ProcessStateManager processStateManager(
       InboundExecutableRegistry registry,
       ProcessDefinitionInspector inspector,
-      ProcessStateContainer processStateContainer) {
-    return new ProcessStateManagerImpl(processStateContainer, inspector, registry);
+      ProcessStateContainer processStateContainer,
+      ConnectorsInboundMetrics connectorsInboundMetrics) {
+    return new ProcessStateManagerImpl(
+        processStateContainer, inspector, registry, connectorsInboundMetrics);
   }
 }

@@ -345,7 +345,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
               objectMapper,
               wrapped,
               new SecretContext(
-                  connectorDetails.tenantId(), connectorDetails.processDefinitionId()));
+                  connectorDetails.tenantId(),
+                  connectorDetails.processDefinitionId(),
+                  getPhysicalTenantId()));
       var propertiesJson = objectMapper.valueToTree(withSecrets);
       var result =
           FeelContextAwareObjectReader.of(objectMapper)
@@ -372,7 +374,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         connectorDetails.tenantId(),
         connectorDetails.deduplicationId(),
         elements.stream().map(InboundConnectorElement::element).collect(Collectors.toList()),
-        elements.isEmpty() ? null : elements.getFirst().physicalTenantId());
+        getPhysicalTenantId());
+  }
+
+  private @Nullable String getPhysicalTenantId() {
+    var elements = connectorDetails.connectorElements();
+    return elements.isEmpty() ? null : elements.getFirst().physicalTenantId();
   }
 
   @Override
@@ -457,7 +464,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
               objectMapper,
               properties,
               new SecretContext(
-                  connectorDetails.tenantId(), connectorDetails.processDefinitionId()));
+                  connectorDetails.tenantId(),
+                  connectorDetails.processDefinitionId(),
+                  getPhysicalTenantId()));
     }
     return propertiesWithSecrets;
   }

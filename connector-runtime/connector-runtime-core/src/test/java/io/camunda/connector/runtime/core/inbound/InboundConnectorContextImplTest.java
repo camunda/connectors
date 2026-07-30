@@ -33,6 +33,7 @@ import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.ElementTemplateDetails;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Severity;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
@@ -77,6 +78,32 @@ class InboundConnectorContextImplTest {
             properties,
             new StandaloneMessageCorrelationPoint("", "", null, null),
             new ProcessElementWithRuntimeData("bool", 0, 0, "id", tenantId));
+    var details = InboundConnectorDetails.of(element.deduplicationId(List.of()), List.of(element));
+    assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
+    return (ValidInboundConnectorDetails) details;
+  }
+
+  private static ValidInboundConnectorDetails getInboundConnectorDefinitionWithPhysicalTenant(
+      Map<String, String> properties, String physicalTenantId) {
+    properties = new HashMap<>(properties);
+    properties.put("inbound.type", "io.camunda:connector:1");
+    InboundConnectorElement element =
+        new InboundConnectorElement(
+            properties,
+            new StandaloneMessageCorrelationPoint("", "", null, null),
+            new ProcessElementWithRuntimeData(
+                "bool",
+                null,
+                null,
+                0,
+                0,
+                "id",
+                null,
+                null,
+                "<default>",
+                physicalTenantId,
+                new ElementTemplateDetails("Test", "1", "icon"),
+                properties));
     var details = InboundConnectorDetails.of(element.deduplicationId(List.of()), List.of(element));
     assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
     return (ValidInboundConnectorDetails) details;
@@ -193,6 +220,54 @@ class InboundConnectorContextImplTest {
     assertThat(exception).hasMessageContaining("Failed to bind process instance properties");
     assertThat(exception).hasStackTraceContaining(FeelEngineWrapperException.class.getName());
     assertThat(exception).hasStackTraceContaining("Failed to evaluate expression");
+  }
+
+  @Test
+  void bindProperties_secretContextCarriesTheElementsPhysicalTenantId() {
+    // given a connector deployed on a specific engine, secrets must be resolved against that
+    // engine's physical tenant so multi-engine runtimes can scope secret lookups per cluster
+    var definition =
+        getInboundConnectorDefinitionWithPhysicalTenant(
+            Map.of("stringMap", "={}", "token", "secrets.FOO"), "engine-1");
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("bar");
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when
+    context.bindProperties(TestPropertiesClass.class);
+
+    // then
+    var secretContext = ArgumentCaptor.forClass(SecretContext.class);
+    verify(secretProvider).getSecret(eq("FOO"), secretContext.capture());
+    assertThat(secretContext.getValue().physicalTenantId()).isEqualTo("engine-1");
+    assertThat(secretContext.getValue().tenantId()).isEqualTo("<default>");
+  }
+
+  @Test
+  void getDefinition_reportsTheElementsPhysicalTenantId() {
+    var definition =
+        getInboundConnectorDefinitionWithPhysicalTenant(Map.of("stringMap", "={}"), "engine-1");
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    assertThat(context.getDefinition().physicalTenantId()).isEqualTo("engine-1");
   }
 
   @Test
