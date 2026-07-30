@@ -185,6 +185,6 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   @Override
   public Document create(DocumentCreationRequest request) {
-    return documentFactory.create(request);
+    return documentFactory.create(request.withPhysicalTenantIdIfAbsent(job.getPhysicalTenantId()));
   }
 }

@@ -228,7 +228,23 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public CamundaDocumentStore documentStore(CamundaClient camundaClient) {
-    return new CamundaDocumentStoreImpl(camundaClient);
+    return new CamundaDocumentStoreImpl(
+        camundaClient, readPhysicalTenantIdIfAvailable(camundaClient));
+  }
+
+  /**
+   * Reads the client's configured physical tenant ID, tolerating the case where its configuration
+   * cannot be read at all — some test doubles (e.g. the {@code camunda-process-test-spring} client
+   * proxy) defer real initialization until the test container is ready and throw if queried during
+   * Spring context startup. Returning {@code null} here simply means the resulting {@link
+   * CamundaDocumentStoreImpl} skips its physical-tenant sanity check, rather than failing startup.
+   */
+  private static String readPhysicalTenantIdIfAvailable(CamundaClient camundaClient) {
+    try {
+      return camundaClient.getConfiguration().getPhysicalTenantId();
+    } catch (RuntimeException e) {
+      return null;
+    }
   }
 
   @Bean
@@ -339,7 +355,8 @@ public class OutboundConnectorRuntimeConfiguration {
                 legacyCamundaClient,
                 name ->
                     new CamundaDocumentStoreImpl(
-                        resolveClient(registry, name, legacyCamundaClient))));
+                        resolveClient(registry, name, legacyCamundaClient),
+                        resolvePhysicalTenantId(registry, name, legacyCamundaClient))));
   }
 
   /**
