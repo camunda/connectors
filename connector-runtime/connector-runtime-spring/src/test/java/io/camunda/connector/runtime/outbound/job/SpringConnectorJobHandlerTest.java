@@ -36,6 +36,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.client.api.command.FailJobCommandStep1;
 import io.camunda.client.api.command.UpdateTimeoutJobCommandStep1;
 import io.camunda.client.api.command.UpdateTimeoutJobCommandStep1.UpdateTimeoutJobCommandStep2;
@@ -974,7 +975,8 @@ class SpringConnectorJobHandlerTest {
     @Test
     void shouldContinueExecution_WhenUpdateCommandFailsTransiently() throws Exception {
       // given — a transient transport failure, where the broker's actual outcome is ambiguous
-      when(updateTimeoutStep2.execute()).thenThrow(Status.UNAVAILABLE.asRuntimeException());
+      when(updateTimeoutStep2.execute())
+          .thenThrow(new ClientStatusException(Status.UNAVAILABLE, new RuntimeException("boom")));
       var jobHandler = newConnectorJobHandler(context -> "ok", camundaClient);
       var jobBuilder =
           JobBuilder.create().withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
@@ -990,7 +992,8 @@ class SpringConnectorJobHandlerTest {
     void shouldNotInvokeConnector_WhenUpdateCommandDefinitivelyRejected() throws Exception {
       // given — NOT_FOUND means the broker no longer recognizes this job: this worker's lease is
       // definitively gone, so the connector must not run (risk of duplicate side effects)
-      when(updateTimeoutStep2.execute()).thenThrow(Status.NOT_FOUND.asRuntimeException());
+      when(updateTimeoutStep2.execute())
+          .thenThrow(new ClientStatusException(Status.NOT_FOUND, new RuntimeException("boom")));
       var connectorFunction = mock(OutboundConnectorFunction.class);
       var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
       var jobBuilder =
@@ -1112,7 +1115,8 @@ class SpringConnectorJobHandlerTest {
       // shorter one; the update command fails transiently, but the broker may have applied it
       // anyway
       long staleDeadline = System.currentTimeMillis() + Duration.ofMinutes(25).toMillis();
-      when(updateTimeoutStep2.execute()).thenThrow(Status.UNAVAILABLE.asRuntimeException());
+      when(updateTimeoutStep2.execute())
+          .thenThrow(new ClientStatusException(Status.UNAVAILABLE, new RuntimeException("boom")));
       var factory = mock(JobCallbackCommandWrapperFactory.class, RETURNS_DEEP_STUBS);
       var jobHandler =
           newConnectorJobHandler(

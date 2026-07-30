@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientHttpException;
+import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.client.api.command.JobCallbackFinalCommandStep;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.response.CompleteJobResponse;
@@ -357,6 +358,14 @@ public class SpringConnectorJobHandler implements JobHandler {
    * JobCallbackCommandWrapper} already applies to job completion commands.
    */
   private static boolean isTransientTransportFailure(Exception e) {
+    // CamundaFuture#join() (invoked by execute()) converts a gRPC StatusRuntimeException into a
+    // ClientStatusException before it ever reaches a caller, so that's the type actually observed
+    // here in practice. The raw StatusRuntimeException check is kept for defense in depth in case
+    // some other invocation path ever surfaces one directly.
+    if (e instanceof ClientStatusException clientStatusException) {
+      return JobCallbackCommandWrapper.RETRIABLE_CODES.contains(
+          clientStatusException.getStatusCode());
+    }
     if (e instanceof StatusRuntimeException statusRuntimeException) {
       return JobCallbackCommandWrapper.RETRIABLE_CODES.contains(
           statusRuntimeException.getStatus().getCode());
