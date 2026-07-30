@@ -12,8 +12,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicEffort;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication;
@@ -271,6 +269,20 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       }
     }
 
+    /** Anthropic effort levels, trading thoroughness against speed and cost. */
+    public enum AnthropicEffort {
+      @JsonProperty("low")
+      LOW,
+      @JsonProperty("medium")
+      MEDIUM,
+      @JsonProperty("high")
+      HIGH,
+      @JsonProperty("xhigh")
+      XHIGH,
+      @JsonProperty("max")
+      MAX
+    }
+
     /**
      * Anthropic automatic prompt caching. A record rather than a bare boolean so it stays
      * extensible: a cache-type (e.g. explicit breakpoints instead of automatic) or a configurable
@@ -340,6 +352,19 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                         property = "provider.anthropic.model.parameters.thinking.mode",
                         equals = "adaptive"))
             @Nullable ThinkingDisplay display) {}
+
+    /**
+     * Anthropic extended-thinking mechanisms a model may support: {@code enabled} (manual token
+     * budget, older models), {@code adaptive} (model-managed, newer models) or {@code disabled}.
+     */
+    public enum ThinkingMode {
+      @JsonProperty("enabled")
+      ENABLED,
+      @JsonProperty("adaptive")
+      ADAPTIVE,
+      @JsonProperty("disabled")
+      DISABLED
+    }
 
     /** Adaptive-thinking output display mode (config-only; Anthropic wire format). */
     public enum ThinkingDisplay {

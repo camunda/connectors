@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+
 import com.anthropic.core.JsonValue;
 import com.anthropic.models.messages.CacheControlEphemeral;
 import com.anthropic.models.messages.ContentBlockParam;
@@ -33,10 +35,14 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCompatibleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicEffort;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicThinking;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,11 +77,11 @@ public class AnthropicMessageRequestConverter {
         MessageCreateParams.builder().model(modelId).maxTokens(resolveMaxTokens(params));
 
     applyModelParameters(builder, params);
-    applyReasoning(builder, params, modelId);
-    applySystemPrompt(builder, snapshot.messages());
+    applyThinking(builder, params, modelId);
+    applySystemPrompt(builder, snapshot);
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
-    applyOutputConfig(builder, ctx.configuration().response(), params);
+    applyOutputConfig(builder, params, ctx.configuration().response());
     applyPromptCaching(builder, params);
     applyCompatibleBackendExtensions(builder, connection);
 
@@ -89,11 +95,10 @@ public class AnthropicMessageRequestConverter {
     return DEFAULT_MAX_TOKENS;
   }
 
-  // temperature()/topP()/topK() are deprecated in anthropic-java 2.48.0: models released after
-  // Claude Opus 4.6 reject arbitrary values for these (a narrow backwards-compatible value is
-  // still accepted), and newer models drop them entirely. The connector's model configuration
-  // still exposes them for all the other, still-supported models, so keep mapping them; do not
-  // remove.
+  // temperature()/topP()/topK() are deprecated in the Anthropic SDK: models released after Claude
+  // Opus 4.6 reject arbitrary values for these (a narrow backwards-compatible value is still
+  // accepted), and newer models drop them entirely. The connector's model configuration still
+  // exposes them for all the other, still-supported models, so keep mapping them; do not remove.
   @SuppressWarnings("deprecation")
   private void applyModelParameters(
       MessageCreateParams.Builder builder, @Nullable AnthropicModelParameters params) {
@@ -112,19 +117,18 @@ public class AnthropicMessageRequestConverter {
   }
 
   /**
-   * Maps the {@code thinking} configuration onto the SDK's {@code thinking} union, after the one
-   * surviving structural check (see {@link AnthropicReasoningValidator}). {@code mode == null} (the
-   * modeler left the dropdown blank) means unset - no thinking param is emitted and the model's own
-   * default applies. Wire enum values use {@code name().toLowerCase()} ({@link ThinkingMode}/{@code
-   * ThinkingDisplay} already carry matching lowercase {@code JsonProperty} values, see those
-   * enums).
+   * Maps the {@code thinking} configuration onto the SDK's {@code thinking} union. {@code mode ==
+   * null} (the modeler left the dropdown blank) means unset - no thinking param is emitted and the
+   * model's own default applies. Wire enum values use {@code name().toLowerCase()} ({@link
+   * ThinkingMode}/{@code ThinkingDisplay} already carry matching lowercase {@code JsonProperty}
+   * values, see those enums).
    */
-  private void applyReasoning(
+  private void applyThinking(
       MessageCreateParams.Builder builder,
       @Nullable AnthropicModelParameters params,
       String modelId) {
     final var thinking = params == null ? null : params.thinking();
-    AnthropicReasoningValidator.validate(thinking, modelId);
+    validateThinking(thinking, modelId);
 
     final ThinkingMode mode = thinking == null ? null : thinking.mode();
     if (thinking == null || mode == null) {
@@ -155,14 +159,26 @@ public class AnthropicMessageRequestConverter {
     }
   }
 
-  private void applySystemPrompt(MessageCreateParams.Builder builder, List<Message> messages) {
-    // Relies on the upstream invariant of a single, prepended SystemMessage: hoisting every
-    // SystemMessage is equivalent to hoisting just the leading one.
+  // The SDK's ThinkingConfigEnabled has no meaningful default budget, so ENABLED requires an
+  // explicit budgetTokens value; a thinking object with a null mode is unset and never checked.
+  private void validateThinking(@Nullable AnthropicThinking thinking, String modelId) {
+    if (thinking != null
+        && thinking.mode() == ThinkingMode.ENABLED
+        && thinking.budgetTokens() == null) {
+      throw new ConnectorException(
+          ERROR_CODE_FAILED_MODEL_CALL,
+          "Thinking mode ENABLED requires a budget tokens value for model '%s'".formatted(modelId));
+    }
+  }
+
+  private void applySystemPrompt(
+      MessageCreateParams.Builder builder, ConversationSnapshot snapshot) {
+    final SystemMessage systemMessage = snapshot.systemMessage();
+    if (systemMessage == null) {
+      return;
+    }
     final String system =
-        messages.stream()
-            .filter(SystemMessage.class::isInstance)
-            .map(SystemMessage.class::cast)
-            .flatMap(m -> m.content().stream())
+        systemMessage.content().stream()
             .filter(TextContent.class::isInstance)
             .map(c -> ((TextContent) c).text())
             .collect(Collectors.joining("\n"));
@@ -173,10 +189,9 @@ public class AnthropicMessageRequestConverter {
 
   /**
    * Enables Anthropic automatic prompt caching: sets a single top-level {@code cache_control:
-   * {"type":"ephemeral"}} so the API automatically applies the cache breakpoint to the last
-   * cacheable block, caching the whole prefix (system prompt + tool definitions + prior messages)
-   * with the default 5-minute TTL. No {@code anthropic-beta} header or per-block marker is
-   * required. A cross-request cache hit requires a byte-identical prefix; the system prompt and
+   * {"type":"ephemeral"}} so the API applies the cache breakpoint to the last cacheable block,
+   * caching the whole prefix (system prompt + tool definitions + prior messages) with the default
+   * 5-minute TTL. A cross-request cache hit requires a byte-identical prefix; the system prompt and
    * tools stay stable across turns, but the sliding message window shifts the message-history
    * portion of the prefix once it starts evicting the oldest messages.
    */
@@ -189,14 +204,8 @@ public class AnthropicMessageRequestConverter {
   }
 
   /**
-   * Merges the {@code compatible} backend's headers, query parameters, and raw request (body)
-   * parameters onto the built request. All three are applied here, per request, rather than split
-   * across client construction and request building: the {@link
-   * com.anthropic.client.AnthropicClient} is short-lived (built fresh per job worker execution, not
-   * reused across calls), so there's no amortization benefit to setting headers/queryParams at the
-   * client level, and {@link MessageCreateParams.Builder} already exposes all three uniformly
-   * ({@code putAdditionalHeader}/{@code putAdditionalQueryParam}/{@code
-   * putAdditionalBodyProperty}).
+   * Merges the {@code compatible} backend's headers, query parameters, and raw body parameters onto
+   * the request.
    */
   private void applyCompatibleBackendExtensions(
       MessageCreateParams.Builder builder, AnthropicConnection connection) {
@@ -217,10 +226,7 @@ public class AnthropicMessageRequestConverter {
   }
 
   private void applyMessages(MessageCreateParams.Builder builder, List<Message> messages) {
-    // The SDK builder tracks `messages` as unset (not merely empty) until either `.messages(...)`
-    // or `.addMessage(...)` is called at least once; `build()` then throws IllegalStateException
-    // for an all-system (or otherwise empty) snapshot. Seed an empty list up front so `addMessage`
-    // always has an initialized, mutable backing list to append to.
+    // Seed an empty list so build() doesn't throw for an all-system/empty snapshot.
     builder.messages(List.of());
     for (final Message message : messages) {
       switch (message) {
@@ -240,16 +246,10 @@ public class AnthropicMessageRequestConverter {
     }
   }
 
-  // Known limitation: `content` (including any ProviderContent server-tool blocks, e.g.
-  // server_tool_use/code_execution_tool_result, in their original order) is always emitted BEFORE
-  // `toolCalls` (client tool_use blocks) below, since the domain model splits an assistant
-  // message's server-tool blocks and client tool calls into two separate ordered lists that don't
-  // record their relative position. A response that interleaves a client tool_use BETWEEN two
-  // server blocks therefore cannot be replayed with that exact interleaving on the request side.
-  // No known real Anthropic scenario interleaves this way -- server blocks and client tool_use
-  // blocks are documented as appearing in separate, non-interleaved groups -- so this grouping is
-  // intentional; only restructure if a genuine interleaving case surfaces (see
-  // AnthropicMessageRequestConverterTest#appendsClientToolCallsAfterProviderContentBlocksRegardlessOfOriginalInterleaving).
+  // Known limitation: `content` is always emitted before `toolCalls`, since the domain model
+  // tracks an assistant message's non-tool-call content and its tool calls as two separate
+  // ordered lists that don't record their relative position. Anthropic responses don't interleave
+  // these groups today, so this is intentional; only restructure if that changes.
   private MessageParam assistantParam(AssistantMessage assistant) {
     final List<ContentBlockParam> blocks =
         new ArrayList<>(contentConverter.toContentBlockParams(assistant.content()));
@@ -311,30 +311,33 @@ public class AnthropicMessageRequestConverter {
   }
 
   /**
-   * Maps both the structured-output JSON schema and the {@code effort} dial onto the single {@code
-   * output_config} field. Both are built into ONE {@link OutputConfig} and applied via a single
-   * {@code builder.outputConfig} call: {@code
-   * MessageCreateParams.Builder#outputConfig(OutputConfig)} is a plain setter that replaces the
-   * whole field, so two separate calls (one for the schema, one for effort) would silently drop
-   * whichever was set first whenever both are configured together.
+   * Maps both the {@code effort} dial and the structured-output JSON schema onto the single {@code
+   * output_config} field via one {@link OutputConfig} builder call: {@code outputConfig()} is a
+   * plain setter that replaces the whole field, so two separate calls would drop whichever was set
+   * first.
    */
   private void applyOutputConfig(
       MessageCreateParams.Builder builder,
-      @Nullable ResponseConfiguration response,
-      @Nullable AnthropicModelParameters params) {
+      @Nullable AnthropicModelParameters params,
+      @Nullable ResponseConfiguration response) {
+    final AnthropicEffort effort = params == null ? null : params.effort();
     final Map<String, Object> jsonSchema =
         response != null && response.format() instanceof JsonResponseFormatConfiguration json
             ? json.schema()
             : null;
-    final AnthropicEffort effort = params == null ? null : params.effort();
 
-    if (jsonSchema == null && effort == null) {
-      return; // TEXT / parseJson with no effort has no request-side effect
+    if (effort == null && jsonSchema == null) {
+      return;
     }
 
     final var outputConfigBuilder = OutputConfig.builder();
 
+    if (effort != null) {
+      outputConfigBuilder.effort(OutputConfig.Effort.of(effort.name().toLowerCase()));
+    }
+
     if (jsonSchema != null) {
+      // same additionalProperties passthrough as toInputSchema() above
       final Map<String, JsonValue> schema = new LinkedHashMap<>();
       jsonSchema.forEach((k, v) -> schema.put(k, JsonValue.from(v)));
       outputConfigBuilder.format(
@@ -343,13 +346,11 @@ public class AnthropicMessageRequestConverter {
               .build());
     }
 
-    if (effort != null) {
-      outputConfigBuilder.effort(OutputConfig.Effort.of(effort.name().toLowerCase()));
-    }
-
     builder.outputConfig(outputConfigBuilder.build());
   }
 
+  // ToolUseBlockParam.Input has no typed fields; arguments flow entirely through
+  // additionalProperties.
   private ToolUseBlockParam.Input toInput(Map<String, Object> arguments) {
     final Map<String, JsonValue> converted = new LinkedHashMap<>();
     arguments.forEach((k, v) -> converted.put(k, JsonValue.from(v)));
