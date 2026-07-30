@@ -28,7 +28,7 @@ import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
     inputVariables = {"authentication", "configuration", "input", "awsCredential"},
     type = "io.camunda:aws-sagemaker:1")
 @ElementTemplate(
-    engineVersion = "^8.6",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.AWSSAGEMAKER.v1",
     name = "Run Inference with AWS SageMaker",
     description = "Run inferences using AWS SageMaker.",
@@ -45,7 +45,7 @@ import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
     },
     inputDataClass = SageMakerRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 3,
+    version = 4,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

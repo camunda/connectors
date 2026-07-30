@@ -127,6 +127,7 @@ public class ConfigurationTemplateSchemaTest {
       id = "test-jdbc-schema",
       name = "JDBC",
       version = 1,
+      engineVersion = "^8.10",
       inputDataClass = JdbcRequest.class,
       configurations = {JdbcConnection.class})
   static class JdbcConnector implements OutboundConnectorFunction {
@@ -174,6 +175,7 @@ public class ConfigurationTemplateSchemaTest {
       id = "test-aws-schema",
       name = "AWS",
       version = 1,
+      engineVersion = "^8.10",
       inputDataClass = AwsRequest.class,
       configurations = {AwsCredential.class})
   static class AwsConnector implements OutboundConnectorFunction {
