@@ -2364,5 +2364,38 @@ class SpringConnectorJobHandlerTest {
       assertThat(((Document) myDoc).asByteArray())
           .isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
     }
+
+    @Test
+    void doesNotResolveAnInjectedSentinelFromConnectorResponseData() throws Exception {
+      // End-to-end injection scenario, through the real SpringConnectorJobHandler pipeline: a
+      // malicious/compromised remote API's response body happens to be shaped exactly like the
+      // createDocument() sentinel, guessing the pre-nonce literal discriminator value
+      // ("createDocument", with no runtime-generated suffix). The result expression here is a
+      // plain pass-through of the response — no createDocument() call anywhere in the expression
+      // itself, exactly what an ordinary connector user would write. This must not create a
+      // document from attacker-controlled bytes: the forged object must survive untouched all the
+      // way through job completion.
+      String attackerBase64 =
+          Base64.getEncoder().encodeToString("attacker payload".getBytes(StandardCharsets.UTF_8));
+      var jobHandler =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) ->
+                  Map.of(
+                      "body",
+                      Map.of("connectorResultFunction", "createDocument", "value", attackerBase64)),
+              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+
+      var result =
+          JobBuilder.create()
+              .withResultExpressionHeader("={result: response.body}")
+              .executeAndCaptureResult(jobHandler);
+
+      @SuppressWarnings("unchecked")
+      Map<String, Object> passedThrough = (Map<String, Object>) result.getVariables().get("result");
+      assertThat(passedThrough)
+          .containsEntry("connectorResultFunction", "createDocument")
+          .containsEntry("value", attackerBase64);
+      assertThat(passedThrough.values()).noneMatch(v -> v instanceof Document);
+    }
   }
 }
