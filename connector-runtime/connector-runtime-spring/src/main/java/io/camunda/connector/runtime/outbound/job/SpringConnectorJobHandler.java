@@ -217,7 +217,8 @@ public class SpringConnectorJobHandler implements JobHandler {
           connectorResultHandler.createOutputVariables(
               connectorResponse.responseValue(),
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
-              job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
+              job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD),
+              job.getPhysicalTenantId());
       if (!responseVariables.isEmpty()) {
         InlineSizeGuard.check(objectMapper.writeValueAsBytes(responseVariables).length);
       }
@@ -269,7 +270,8 @@ public class SpringConnectorJobHandler implements JobHandler {
               finalResult.responseValue(),
               job.getCustomHeaders(),
               new ErrorExpressionJobContext(
-                  new ErrorExpressionJobContext.ErrorExpressionJob(job.getRetries())));
+                  new ErrorExpressionJobContext.ErrorExpressionJob(job.getRetries())),
+              job.getPhysicalTenantId());
       optionalConnectorError.ifPresentOrElse(
           error ->
               handleConnectorError(client, job, context, finalResult, error, counterMetricsContext),
