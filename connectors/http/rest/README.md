@@ -224,11 +224,13 @@ used in the result expression.
 
 The body can be accessed via FEEL:
 ```json
-= body.order.id
+= { orderId: body.order.id }
 ```
 leading to the following result
 ```json
-"123"
+{
+  "orderId" : "123"
+}
 ```
 
 

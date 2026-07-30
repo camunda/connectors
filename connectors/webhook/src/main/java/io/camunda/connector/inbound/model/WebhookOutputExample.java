@@ -14,7 +14,7 @@ public class WebhookOutputExample {
 
   public record ResultExpressionContext(MappedHttpRequest request) {}
 
-  @DataExample(feel = "= request.body.orderId")
+  @DataExample(feel = "= { orderId: request.body.orderId }")
   public static ResultExpressionContext example() {
     return new ResultExpressionContext(
         new MappedHttpRequest(

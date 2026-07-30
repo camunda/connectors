@@ -37,7 +37,7 @@ public record AgentResponse(
   @JsonPOJOBuilder(withPrefix = "")
   public static class AgentResponseJacksonProxyBuilder extends AgentResponseBuilder {}
 
-  @DataExample(id = DataExample.DEFAULT_ID, feel = "=responseText")
+  @DataExample(id = DataExample.DEFAULT_ID, feel = "={ responseText: responseText }")
   public static AgentResponse exampleResultWithTextResponse() {
     final var agentContext =
         AgentContext.builder()

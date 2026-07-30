@@ -19,6 +19,8 @@ package io.camunda.connector.generator.java;
 import static io.camunda.connector.generator.java.util.OperationBasedConnectorUtil.*;
 import static io.camunda.connector.generator.java.util.TemplateGenerationStringUtil.camelCaseToSpaces;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -42,6 +44,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Class<?>> {
 
+  private static final ObjectMapper TOOLTIP_JSON_MAPPER = new ObjectMapper();
   private static final Pattern SEM_VER_PATTERN =
       Pattern.compile(
           "^(?:[~^]?(?:0|[1-9]\\d*)\\.(?:\\d+)(?:\\.\\d+)?(?:-[\\da-z.-]+)?(?:\\+[\\da-z.-]+)?|\\*|\\d+\\.\\d+|\\d+)(?:\\s*[-,]\\s*[~^]?(?:0|[1-9]\\d*)\\.(?:\\d+)(?:\\.\\d+)?(?:-[\\da-z.-]+)?(?:\\+[\\da-z.-]+)?)?$");
@@ -353,8 +356,19 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     return tooltip.append("</div>").toString();
   }
 
+  /**
+   * Re-serializes pretty-printed JSON compactly, rather than collapsing whitespace with a regex — a
+   * regex would also collapse meaningful whitespace inside JSON string values.
+   */
   private static String compactJson(String json) {
-    return json == null ? "" : json.replaceAll("\\s+", " ").trim();
+    if (json == null) {
+      return "";
+    }
+    try {
+      return TOOLTIP_JSON_MAPPER.readTree(json).toString();
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("Failed to compact JSON for tooltip: " + json, e);
+    }
   }
 
   private static String escapeHtml(String value) {
