@@ -21,7 +21,7 @@ import java.util.Map;
 
 public record MyConnectorResult(Map<String, Object> payload) {
 
-  @DataExample(feel = "= payload.orderId")
+  @DataExample(feel = "= { orderId: payload.orderId }")
   public static MyConnectorResult example() {
     return new MyConnectorResult(Map.of("orderId", "123"));
   }

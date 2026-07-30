@@ -21,7 +21,7 @@ import java.util.List;
 
 public record MyConnectorOutput(List<String> myListOutputProperty) {
 
-  @DataExample(feel = "= myListOutputProperty[1]")
+  @DataExample(feel = "= { firstItem: myListOutputProperty[1] }")
   public static MyConnectorOutput example() {
     return new MyConnectorOutput(List.of("first-item", "second-item"));
   }
