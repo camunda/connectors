@@ -148,13 +148,8 @@ class AnthropicMessageResponseConverterTest {
         .containsExactly(
             new ReasoningContent(
                 "anthropic",
-                Map.of(
-                    "type",
-                    "thinking",
-                    "thinking",
-                    "Let me think it through",
-                    "signature",
-                    "sig-123"),
+                Map.of("type", "thinking", "signature", "sig-123"),
+                "Let me think it through",
                 null),
             TextContent.textContent("the answer"));
   }
@@ -183,7 +178,10 @@ class AnthropicMessageResponseConverterTest {
     assertThat(assistantMessage.content())
         .containsExactly(
             new ReasoningContent(
-                "anthropic", Map.of("type", "redacted_thinking", "data", "encrypted-blob"), null),
+                "anthropic",
+                Map.of("type", "redacted_thinking", "data", "encrypted-blob"),
+                null,
+                null),
             TextContent.textContent("the answer"));
   }
 
