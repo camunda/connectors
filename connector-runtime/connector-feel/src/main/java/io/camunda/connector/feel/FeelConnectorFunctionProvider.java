@@ -37,12 +37,26 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
   public static final String BPMN_ERROR_TYPE_VALUE = "bpmnError";
   public static final String JOB_ERROR_TYPE_VALUE = "jobError";
   public static final String IGNORE_ERROR_TYPE_VALUE = "ignoreError";
+
+  /**
+   * Key of the sentinel object {@code io.camunda.connector.feel.function.CreateDocumentFunction}
+   * produces when {@code createDocument(...)} is called in a result/error expression — e.g. {@code
+   * {"connectorResultFunction": CREATE_DOCUMENT_TYPE_VALUE, "value": <argument>}}. {@code
+   * io.camunda.connector.runtime.core.document.ResultDocumentResolver} (invoked from {@code
+   * ConnectorResultHandler} right after FEEL evaluation) walks the evaluated JSON tree looking for
+   * an object with this key set to {@link #CREATE_DOCUMENT_TYPE_VALUE}, and replaces each match
+   * with a real {@code Document} built via {@code DocumentFactory}.
+   */
   public static final String RESULT_FUNCTION_TYPE_PROPERTY = "connectorResultFunction";
 
   /**
-   * Includes a runtime-generated UUID so this discriminator can never be forged by response/request
-   * data arriving as connector input — the sentinel only ever exists transiently within a single
-   * JVM's FEEL evaluation, never serialized across a process boundary.
+   * The value {@code CreateDocumentFunction} tags its sentinel with, and the exact value {@code
+   * ResultDocumentResolver} compares against to recognize one — see {@link
+   * #RESULT_FUNCTION_TYPE_PROPERTY} for how producer and consumer are wired together.
+   *
+   * <p>Includes a runtime-generated UUID so this discriminator can never be forged by
+   * response/request data arriving as connector input — the sentinel only ever exists transiently
+   * within a single JVM's FEEL evaluation, never serialized across a process boundary.
    */
   public static final String CREATE_DOCUMENT_TYPE_VALUE = "createDocument:" + UUID.randomUUID();
 

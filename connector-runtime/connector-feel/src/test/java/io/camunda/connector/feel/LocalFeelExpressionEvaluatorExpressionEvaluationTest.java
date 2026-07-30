@@ -606,6 +606,31 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
   }
 
   @Test
+  void createDocumentFunctionWithObjectArgumentContentOnly() {
+    // name/contentType are optional at this layer — CreateDocumentFunction just tags whatever
+    // object it receives; defaulting (random filename, MimeTypeResolver-inferred content type)
+    // happens later, in ResultDocumentResolver, not here.
+    final var resultExpression = "=createDocument({content: \"aGVsbG8=\"})";
+    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
+    @SuppressWarnings("unchecked")
+    Map<String, Object> value = (Map<String, Object>) result.get("value");
+    assertThat(value).containsOnly(Map.entry("content", "aGVsbG8="));
+  }
+
+  @Test
+  void createDocumentFunctionPassesThroughArbitraryContentTypeVerbatim() {
+    // The function itself does no MIME validation — an unrecognized/made-up contentType string
+    // is passed through as-is. (ResultDocumentResolver doesn't validate it either: an explicit
+    // contentType, valid-looking or not, is used verbatim — see MimeTypeResolver.)
+    final var resultExpression =
+        "=createDocument({content: \"aGVsbG8=\", contentType: \"not-a-real-mimetype\"})";
+    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
+    @SuppressWarnings("unchecked")
+    Map<String, Object> value = (Map<String, Object>) result.get("value");
+    assertThat(value).containsEntry("contentType", "not-a-real-mimetype");
+  }
+
+  @Test
   void createDocumentTypeValueIsNonceSuffixed() {
     // Guards against the discriminator regressing to a plain, forgeable literal: it must be
     // unpredictable per-JVM so it can never be forged by data arriving in a connector response.

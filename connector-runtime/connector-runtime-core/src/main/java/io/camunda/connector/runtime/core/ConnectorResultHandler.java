@@ -108,6 +108,9 @@ public class ConnectorResultHandler {
     var evaluatedJson =
         feelExpressionEvaluator.evaluateToJson(
             errorExpression, responseContent, wrapResponse(responseContent), jobContext);
+    if (evaluatedJson != null) {
+      verifyNoForbiddenLiterals(evaluatedJson);
+    }
     return Optional.ofNullable(evaluatedJson)
         .map(json -> resolveDocumentsAsJson(json, errorExpression, "Error expression"))
         .filter(

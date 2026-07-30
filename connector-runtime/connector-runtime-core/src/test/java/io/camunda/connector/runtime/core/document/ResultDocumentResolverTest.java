@@ -83,6 +83,25 @@ class ResultDocumentResolverTest {
   }
 
   @Test
+  void doesNotValidateAnUnrecognizedExplicitContentType() {
+    // MimeTypeResolver.resolveContentType never throws or validates: an explicit contentType is
+    // always used verbatim, valid MIME type or not. This pins that down so it doesn't regress
+    // into an unexpected exception if validation is ever added upstream without updating here.
+    String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+    JsonNode tree =
+        treeOf(
+            Map.of(
+                "connectorResultFunction",
+                CREATE_DOCUMENT,
+                "value",
+                Map.of("content", base64, "contentType", "not-a-real-mimetype")));
+
+    Document resolved = (Document) resolver.resolve(tree);
+
+    assertThat(resolved.metadata().getContentType()).isEqualTo("not-a-real-mimetype");
+  }
+
+  @Test
   void generatesRandomFileNameAndDefaultsContentTypeWhenOmitted() {
     String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
     JsonNode tree =
