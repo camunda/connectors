@@ -188,7 +188,13 @@ class AgentSubProcessAnthropicReasoningEffortTests extends BaseAnthropicNativeSu
     assertThat(loggedRequests).as("recorded model-call requests").hasSize(2);
 
     final var secondRequest = parseBody(loggedRequests.get(1));
-    assertThinkingBlockRoundTripsBeforeToolResult(secondRequest, thinkingText, signature);
+    final var thinkingBlock = assertSoleAssistantContentBlockOfType(secondRequest, "thinking");
+    assertThat(thinkingBlock.path("thinking").asText())
+        .as("round-tripped thinking text")
+        .isEqualTo(thinkingText);
+    assertThat(thinkingBlock.path("signature").asText())
+        .as("round-tripped thinking signature")
+        .isEqualTo(signature);
   }
 
   // ---------------------------------------------------------------------------
@@ -227,66 +233,36 @@ class AgentSubProcessAnthropicReasoningEffortTests extends BaseAnthropicNativeSu
     assertThat(loggedRequests).as("recorded model-call requests").hasSize(2);
 
     final var secondRequest = parseBody(loggedRequests.get(1));
-    assertRedactedThinkingBlockRoundTripsBeforeToolResult(secondRequest, redactedData);
-  }
-
-  /**
-   * Asserts the second request's assistant message replays the first turn's {@code thinking} block
-   * byte-identical (same {@code thinking}/{@code signature}) and positioned before the {@code
-   * tool_use} block - proves the response-side {@code ReasoningContent} capture and the
-   * request-side round-trip both work end to end through the real accumulator.
-   */
-  private void assertThinkingBlockRoundTripsBeforeToolResult(
-      JsonNode request, String expectedThinking, String expectedSignature) {
-    final var assistantMessage =
-        StreamSupport.stream(request.path("messages").spliterator(), false)
-            .filter(message -> "assistant".equals(message.path("role").asText()))
-            .findFirst()
-            .orElseThrow(() -> new AssertionError("No assistant message found in second request"));
-
-    final var contentBlocks = assistantMessage.path("content");
-    final var contentBlockTypes =
-        StreamSupport.stream(contentBlocks.spliterator(), false)
-            .map(block -> block.path("type").asText())
-            .toList();
-    assertThat(contentBlockTypes)
-        .as("assistant history content block types, in order")
-        .containsExactly("thinking", "tool_use");
-
-    final var thinkingBlock = contentBlocks.get(0);
-    assertThat(thinkingBlock.path("thinking").asText())
-        .as("round-tripped thinking text")
-        .isEqualTo(expectedThinking);
-    assertThat(thinkingBlock.path("signature").asText())
-        .as("round-tripped thinking signature")
-        .isEqualTo(expectedSignature);
-  }
-
-  /**
-   * Mirrors {@link #assertThinkingBlockRoundTripsBeforeToolResult(JsonNode, String, String)} for a
-   * {@code redacted_thinking} block (no {@code thinking}/{@code signature}, only opaque {@code
-   * data}).
-   */
-  private void assertRedactedThinkingBlockRoundTripsBeforeToolResult(
-      JsonNode request, String expectedData) {
-    final var assistantMessage =
-        StreamSupport.stream(request.path("messages").spliterator(), false)
-            .filter(message -> "assistant".equals(message.path("role").asText()))
-            .findFirst()
-            .orElseThrow(() -> new AssertionError("No assistant message found in second request"));
-
-    final var contentBlocks = assistantMessage.path("content");
-    final var contentBlockTypes =
-        StreamSupport.stream(contentBlocks.spliterator(), false)
-            .map(block -> block.path("type").asText())
-            .toList();
-    assertThat(contentBlockTypes)
-        .as("assistant history content block types, in order")
-        .containsExactly("redacted_thinking", "tool_use");
-
-    final var redactedThinkingBlock = contentBlocks.get(0);
+    final var redactedThinkingBlock =
+        assertSoleAssistantContentBlockOfType(secondRequest, "redacted_thinking");
     assertThat(redactedThinkingBlock.path("data").asText())
         .as("round-tripped redacted thinking data")
-        .isEqualTo(expectedData);
+        .isEqualTo(redactedData);
+  }
+
+  /**
+   * Asserts the second request's assistant message replays the first turn's reasoning block
+   * positioned before the {@code tool_use} block, exactly as the domain content ordering preserves
+   * it, and returns that reasoning block for field-level assertions - proves the response-side
+   * {@code ReasoningContent} capture and the request-side round-trip both work end to end through
+   * the real accumulator.
+   */
+  private JsonNode assertSoleAssistantContentBlockOfType(JsonNode request, String expectedType) {
+    final var assistantMessage =
+        StreamSupport.stream(request.path("messages").spliterator(), false)
+            .filter(message -> "assistant".equals(message.path("role").asText()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("No assistant message found in second request"));
+
+    final var contentBlocks = assistantMessage.path("content");
+    final var contentBlockTypes =
+        StreamSupport.stream(contentBlocks.spliterator(), false)
+            .map(block -> block.path("type").asText())
+            .toList();
+    assertThat(contentBlockTypes)
+        .as("assistant history content block types, in order")
+        .containsExactly(expectedType, "tool_use");
+
+    return contentBlocks.get(0);
   }
 }
