@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.memory;
 
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.List;
@@ -26,11 +27,7 @@ public record ConversationSnapshot(List<Message> messages, List<ToolDefinition> 
     toolDefinitions = List.copyOf(toolDefinitions);
   }
 
-  // Windowing never evicts the system message (see MessageWindowFilter), so it is always the
-  // leading message if present.
   public @Nullable SystemMessage systemMessage() {
-    return !messages.isEmpty() && messages.getFirst() instanceof SystemMessage systemMessage
-        ? systemMessage
-        : null;
+    return MessageUtil.leadingSystemMessage(messages);
   }
 }

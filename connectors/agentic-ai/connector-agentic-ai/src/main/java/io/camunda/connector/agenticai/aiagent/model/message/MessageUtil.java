@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 public class MessageUtil {
   private MessageUtil() {}
@@ -19,5 +20,13 @@ public class MessageUtil {
 
   public static List<Content> content(Content... contents) {
     return List.of(contents);
+  }
+
+  // Windowing never evicts the system message (see MessageWindowFilter), so it is always the
+  // leading message if present.
+  public static @Nullable SystemMessage leadingSystemMessage(List<Message> messages) {
+    return !messages.isEmpty() && messages.getFirst() instanceof SystemMessage systemMessage
+        ? systemMessage
+        : null;
   }
 }
