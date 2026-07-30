@@ -5,7 +5,7 @@
   "description" : "Execute a single AI-powered action with tool calling capabilities",
   "keywords" : [ "AI", "AI Agent", "agentic orchestration" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
-  "version" : 12,
+  "version" : 11,
   "category" : {
     "id" : "aiTools",
     "name" : "AI Tools"
@@ -1679,7 +1679,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "12",
+    "value" : "11",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -1718,7 +1718,6 @@
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
-    "tooltip" : "<div><p>Example response:</p><code>{ \"context\" : { \"metrics\" : { \"modelCalls\" : 3, \"tokenUsage\" : { \"inputTokenCount\" : 10, \"outputTokenCount\" : 20 }, \"toolCalls\" : 0 }, \"schemaVersion\" : 1, \"state\" : \"READY\", \"toolDefinitions\" : [ { \"description\" : \"A sample tool for demonstration purposes.\", \"inputSchema\" : { \"properties\" : { \"input1\" : { \"type\" : \"string\" }, \"input2\" : { \"type\" : \"number\" } }, \"required\" : [ \"input1\", \"input2\" ], \"type\" : \"object\" }, \"name\" : \"sampleTool\" } ] }, \"responseMessage\" : { \"role\" : \"assistant\", \"content\" : [ { \"type\" : \"text\", \"text\" : \"This is a sample response text from the AI agent.\" } ], \"metadata\" : { \"framework\" : { \"finishReason\" : \"STOP\", \"id\" : \"chatcmpl-123\", \"tokenUsage\" : { \"inputTokenCount\" : 5, \"outputTokenCount\" : 6, \"totalTokenCount\" : 11 } } } }, \"toolCalls\" : [ ] }</code><p>Example FEEL expression: <code>=responseMessage.content[type = \"text\"][1].text</code> -&gt; <code>\"This is a sample response text from the AI agent.\"</code></p></div>",
     "type" : "Text"
   }, {
     "id" : "errorExpression",
