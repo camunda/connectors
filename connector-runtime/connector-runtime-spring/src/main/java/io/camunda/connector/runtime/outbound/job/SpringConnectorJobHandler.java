@@ -215,8 +215,9 @@ public class SpringConnectorJobHandler implements JobHandler {
 
   /**
    * Pairs a {@link ConnectorResult} with the deadline that should be used for the completion
-   * command that follows it — the job's original activation deadline, or a later one if {@link
-   * #updateJobTimeoutIfPresent} extended it.
+   * command that follows it — the job's original activation deadline, or an updated one if {@link
+   * #updateJobTimeoutIfPresent} applied a {@code jobTimeout} header. The updated deadline is not
+   * necessarily later: a short {@code jobTimeout} can move it earlier than the original.
    */
   private record ResultWithDeadline(ConnectorResult result, long deadline) {}
 
@@ -261,9 +262,8 @@ public class SpringConnectorJobHandler implements JobHandler {
   /**
    * Reads the {@link Keywords#JOB_TIMEOUT_KEYWORD} header and, if present, sets the job's Zeebe
    * activation deadline to {@code now + duration} via {@code UpdateJobTimeoutCommand} before the
-   * connector function runs. Returns the resulting deadline (epoch millis) on success, or {@code
-   * null} if there was no header to apply (missing/blank) or the update command itself failed
-   * (logged as a WARN, execution continues with the job's original deadline). A malformed or
+   * connector function runs. Returns {@code null} only if there was no header to apply
+   * (missing/blank) — the caller then keeps the job's original deadline. A malformed or
    * non-positive duration is a configuration error and is not swallowed — it propagates so the job
    * fails immediately, mirroring {@link #getBackoffDuration}.
    *
@@ -271,6 +271,12 @@ public class SpringConnectorJobHandler implements JobHandler {
    * command is sent, not after it returns — Zeebe applies {@code now + duration} when it processes
    * the command on the broker, which happens before the client sees the response, so using a
    * post-call timestamp would make the locally tracked deadline later than the broker's actual one.
+   *
+   * <p>If the update command itself fails (logged as a {@code WARN}, connector execution continues
+   * regardless), the outcome is ambiguous: the broker may have applied the change before the client
+   * lost or timed out on the response. Rather than assume the update never took effect, this
+   * returns the <em>earlier</em> of the job's original deadline and the requested one, so a later
+   * completion-command retry check is never overly optimistic about how much time remains.
    */
   private Long updateJobTimeoutIfPresent(ActivatedJob job) {
     String timeoutHeader = job.getCustomHeaders().get(Keywords.JOB_TIMEOUT_KEYWORD);
@@ -319,7 +325,10 @@ public class SpringConnectorJobHandler implements JobHandler {
           job.getKey(),
           job.getType(),
           e);
-      return null;
+      // Ambiguous outcome: the broker may have applied the update despite the client not
+      // observing success. Assume the worst case for the callback-retry check by taking the
+      // earlier of the two possible deadlines, not just the job's original one.
+      return Math.min(job.getDeadline(), deadline);
     }
     return deadline;
   }

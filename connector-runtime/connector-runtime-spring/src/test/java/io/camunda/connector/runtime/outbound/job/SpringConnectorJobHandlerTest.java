@@ -1084,6 +1084,40 @@ class SpringConnectorJobHandlerTest {
       assertThat(capturedDeadline).isNotEqualTo(staleDeadline);
       assertThat(Math.abs(capturedDeadline - expectedDeadline)).isLessThan(5000L);
     }
+
+    @Test
+    void shouldUseEarlierDeadline_ForFailJobCallback_WhenUpdateCommandFailsAmbiguously()
+        throws Exception {
+      // given — a job with a long remaining lease, and a jobTimeout header requesting a much
+      // shorter one; the update command itself fails, but the broker may have applied it anyway
+      long staleDeadline = System.currentTimeMillis() + Duration.ofMinutes(25).toMillis();
+      when(updateTimeoutStep2.execute()).thenThrow(new RuntimeException("boom"));
+      var factory = mock(JobCallbackCommandWrapperFactory.class, RETURNS_DEEP_STUBS);
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new RuntimeException("boom");
+              },
+              camundaClient,
+              factory);
+      var jobBuilder =
+          JobBuilder.create()
+              .withDeadline(staleDeadline)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT1M"));
+
+      // when
+      jobBuilder.execute(jobHandler);
+
+      // then — the callback uses the earlier (requested) deadline, not the later stale one, so
+      // the retry-worthiness check is never overly optimistic about the ambiguous outcome
+      ArgumentCaptor<Long> deadlineCaptor = ArgumentCaptor.forClass(Long.class);
+      verify(factory).create(any(), deadlineCaptor.capture(), any(), anyInt());
+      long capturedDeadline = deadlineCaptor.getValue();
+      long expectedDeadline = System.currentTimeMillis() + Duration.ofMinutes(1).toMillis();
+
+      assertThat(capturedDeadline).isLessThan(staleDeadline);
+      assertThat(Math.abs(capturedDeadline - expectedDeadline)).isLessThan(5000L);
+    }
   }
 
   @Nested
