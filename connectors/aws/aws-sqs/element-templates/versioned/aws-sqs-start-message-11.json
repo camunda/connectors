@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Amazon SQS Message Start Event Connector",
-  "id" : "io.camunda.connectors.AWSSQS.startmessage.v1-hybrid",
+  "name" : "Amazon SQS Message Start Event Connector",
+  "id" : "io.camunda.connectors.AWSSQS.startmessage.v1",
   "description" : "Receive messages from Amazon SQS.",
   "keywords" : [ "receive message", "receive event", "receive message from queue", "receive event from queue", "event driven", "queue", "dequeue" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
-  "version" : 12,
+  "version" : 11,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -16,12 +16,9 @@
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "engines" : {
-    "camunda" : "^8.10"
+    "camunda" : "^8.3"
   },
   "groups" : [ {
-    "id" : "connectorType",
-    "label" : "Connector type"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -52,14 +49,12 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
-    "id" : "connectorType",
     "value" : "io.camunda:aws-sqs-inbound:1",
-    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",

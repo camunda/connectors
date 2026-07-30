@@ -1,65 +1,51 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Amazon SQS Message Start Event Connector",
-  "id" : "io.camunda.connectors.AWSSQS.startmessage.v1-hybrid",
-  "description" : "Receive messages from Amazon SQS.",
-  "keywords" : [ "receive message", "receive event", "receive message from queue", "receive event from queue", "event driven", "queue", "dequeue" ],
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
+  "name" : "Send Message to AWS SQS",
+  "id" : "io.camunda.connectors.AWSSQS.v1",
+  "description" : "Send messages to Amazon SQS.",
+  "keywords" : [ "send message", "publish message", "send message to queue", "publish message to queue", "enqueue", "queue", "FIFO", "standard queue" ],
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=outbound",
   "version" : 12,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:StartEvent" ],
+  "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {
-    "value" : "bpmn:StartEvent",
-    "eventDefinition" : "bpmn:MessageEventDefinition"
+    "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.10"
+    "camunda" : "^8.3"
   },
   "groups" : [ {
-    "id" : "connectorType",
-    "label" : "Connector type"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
     "id" : "configuration",
-    "label" : "Configuration"
-  }, {
-    "id" : "queueProperties",
     "label" : "Queue properties"
   }, {
-    "id" : "messagePollingProperties",
-    "label" : "Message polling properties"
-  }, {
     "id" : "input",
-    "label" : "Use next attribute names for activation condition"
+    "label" : "Input message data"
   }, {
-    "id" : "activation",
-    "label" : "Activation"
-  }, {
-    "id" : "correlation",
-    "label" : "Correlation",
-    "tooltip" : "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>."
-  }, {
-    "id" : "deduplication",
-    "label" : "Deduplication",
-    "tooltip" : "Deduplication allows you to configure multiple inbound connector elements to reuse the same backend (consumer/thread/endpoint) by sharing the same deduplication ID."
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "connectorType",
-    "value" : "io.camunda:aws-sqs-inbound:1",
-    "group" : "connectorType",
+    "value" : "io.camunda:aws-sqs:1",
     "binding" : {
-      "name" : "inbound.type",
-      "type" : "zeebe:property"
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
@@ -68,7 +54,7 @@
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.type",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -85,10 +71,11 @@
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.accessKey",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -105,10 +92,11 @@
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.secretKey",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -126,10 +114,47 @@
     "group" : "authentication",
     "binding" : {
       "name" : "awsCredential",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "type" : "Configuration",
     "configurationTemplate" : "io.camunda:aws-credential:1"
+  }, {
+    "id" : "queue.url",
+    "label" : "URL",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "queue.url",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "URL of the SQS queue to send the message to.",
+    "type" : "String"
+  }, {
+    "id" : "queue.type",
+    "label" : "Queue type",
+    "optional" : false,
+    "value" : "standard",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "configuration",
+    "binding" : {
+      "name" : "queue.type",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Whether the queue is a <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html\">standard</a> or <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html\">FIFO</a> queue.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Standard",
+      "value" : "standard"
+    }, {
+      "name" : "FIFO",
+      "value" : "fifo"
+    } ]
   }, {
     "id" : "configuration.region",
     "label" : "Region",
@@ -137,10 +162,11 @@
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "configuration",
     "binding" : {
       "name" : "configuration.region",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "type" : "String"
   }, {
@@ -151,247 +177,90 @@
     "group" : "configuration",
     "binding" : {
       "name" : "configuration.endpoint",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "type" : "Hidden"
   }, {
-    "id" : "queue.queue.url",
-    "label" : "Queue URL",
+    "id" : "queue.messageBody",
+    "label" : "Message body",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
-    "group" : "queueProperties",
+    "feel" : "required",
+    "group" : "input",
     "binding" : {
-      "name" : "queue.url",
-      "type" : "zeebe:property"
+      "name" : "queue.messageBody",
+      "type" : "zeebe:input"
     },
-    "tooltip" : "URL of the SQS queue to subscribe to.",
-    "type" : "String"
+    "tooltip" : "Data to send to the SQS queue",
+    "type" : "Text"
   }, {
-    "id" : "queue.queue.pollingWaitTime",
-    "label" : "Polling wait time",
-    "optional" : false,
-    "value" : "20",
-    "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^([0-9]?|1[0-9]|20|secrets\\..+)$"
-      }
-    },
-    "group" : "messagePollingProperties",
+    "id" : "queue.messageAttributes",
+    "label" : "Message attributes",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "input",
     "binding" : {
-      "name" : "queue.pollingWaitTime",
-      "type" : "zeebe:property"
+      "name" : "queue.messageAttributes",
+      "type" : "zeebe:input"
     },
-    "tooltip" : "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">Amazon SQS connector guide</a>. A value of 0 is automatically overridden to 1.",
-    "type" : "String"
+    "tooltip" : "Optional message metadata as a map keyed by attribute name, each value having a StringValue and DataType, following the <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html#sqs-message-attributes\" target=\"_blank\">SQS message attribute format</a>.",
+    "type" : "Text"
   }, {
-    "id" : "queue.queue.attributeNames",
-    "label" : "Attribute names",
+    "id" : "queue.messageGroupId",
+    "label" : "Message group ID",
     "optional" : false,
     "feel" : "optional",
     "group" : "input",
     "binding" : {
-      "name" : "queue.attributeNames",
-      "type" : "zeebe:property"
+      "name" : "queue.messageGroupId",
+      "type" : "zeebe:input"
     },
-    "tooltip" : "Array of queue attribute names. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">Amazon SQS connector guide</a>.",
+    "condition" : {
+      "property" : "queue.type",
+      "equals" : "fifo",
+      "type" : "simple"
+    },
+    "tooltip" : "FIFO only. See <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html\">MessageGroupId property</a> in the Amazon SQS developer guide.",
     "type" : "String"
   }, {
-    "id" : "queue.queue.messageAttributeNames",
-    "label" : "Message attribute names",
-    "optional" : false,
+    "id" : "queue.messageDeduplicationId",
+    "label" : "Message deduplication ID",
+    "optional" : true,
     "feel" : "optional",
     "group" : "input",
     "binding" : {
-      "name" : "queue.messageAttributeNames",
-      "type" : "zeebe:property"
-    },
-    "tooltip" : "Array of message attribute names. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">Amazon SQS connector guide</a>.",
-    "type" : "String"
-  }, {
-    "id" : "activationCondition",
-    "label" : "Activation condition",
-    "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "activation",
-    "binding" : {
-      "name" : "activationCondition",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "consumeUnmatchedEvents",
-    "label" : "Consume unmatched events",
-    "value" : true,
-    "group" : "activation",
-    "binding" : {
-      "name" : "consumeUnmatchedEvents",
-      "type" : "zeebe:property"
-    },
-    "tooltip" : "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
-    "type" : "Boolean"
-  }, {
-    "id" : "correlationRequired",
-    "label" : "Subprocess correlation required",
-    "description" : "Indicates whether correlation is required. This is needed for event-based subprocess message start events",
-    "value" : "notRequired",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "correlationRequired",
-      "type" : "zeebe:property"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Correlation not required",
-      "value" : "notRequired"
-    }, {
-      "name" : "Correlation required",
-      "value" : "required"
-    } ]
-  }, {
-    "id" : "correlationKeyProcess",
-    "label" : "Correlation key (process)",
-    "description" : "Sets up the correlation key from process variables",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "correlationKey",
-      "type" : "bpmn:Message#zeebe:subscription#property"
+      "name" : "queue.messageDeduplicationId",
+      "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "correlationRequired",
-      "equals" : "required",
+      "property" : "queue.type",
+      "equals" : "fifo",
       "type" : "simple"
     },
+    "tooltip" : "FIFO only. See <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html\">MessageDeduplicationId property</a> in the Amazon SQS developer guide.",
     "type" : "String"
   }, {
-    "id" : "correlationKeyPayload",
-    "label" : "Correlation key (payload)",
-    "description" : "Extracts the correlation key from the incoming message payload",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "correlation",
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "12",
+    "group" : "connector",
     "binding" : {
-      "name" : "correlationKeyExpression",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "correlationRequired",
-      "equals" : "required",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "messageIdExpression",
-    "label" : "Message ID expression",
-    "description" : "Expression to extract unique identifier of a message",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "messageIdExpression",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "messageTtl",
-    "label" : "Message TTL",
-    "description" : "Time-to-live for the message in the broker (ISO-8601 duration)",
-    "optional" : true,
-    "constraints" : {
-      "notEmpty" : false,
-      "pattern" : {
-        "value" : "^(PT.*|)$",
-        "message" : "must be an ISO-8601 duration"
-      }
-    },
-    "feel" : "optional",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "messageTtl",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "messageNameUuid",
-    "label" : "Message name",
-    "generatedValue" : {
-      "type" : "uuid"
-    },
-    "feel" : "optional",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "name",
-      "type" : "bpmn:Message#property"
-    },
-    "tooltip" : "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.",
-    "type" : "String"
-  }, {
-    "id" : "deduplicationModeManualFlag",
-    "label" : "Manual mode",
-    "description" : "By default, similar connectors receive the same deduplication ID. Customize by activating manual mode",
-    "value" : false,
-    "group" : "deduplication",
-    "binding" : {
-      "name" : "deduplicationModeManualFlag",
-      "type" : "zeebe:property"
-    },
-    "type" : "Boolean"
-  }, {
-    "id" : "deduplicationId",
-    "label" : "Deduplication ID",
-    "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^[a-zA-Z0-9_-]+$",
-        "message" : "can only contain alphanumeric characters, dashes, and underscores"
-      }
-    },
-    "group" : "deduplication",
-    "binding" : {
-      "name" : "deduplicationId",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "deduplicationModeManualFlag",
-      "equals" : true,
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "deduplicationModeManual",
-    "value" : "MANUAL",
-    "group" : "deduplication",
-    "binding" : {
-      "name" : "deduplicationMode",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "deduplicationId",
-      "isActive" : true,
-      "type" : "simple"
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"
   }, {
-    "id" : "deduplicationModeAuto",
-    "value" : "AUTO",
-    "group" : "deduplication",
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.AWSSQS.v1",
+    "group" : "connector",
     "binding" : {
-      "name" : "deduplicationMode",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "deduplicationId",
-      "isActive" : false,
-      "type" : "simple"
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"
   }, {
@@ -400,8 +269,8 @@
     "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
     "group" : "output",
     "binding" : {
-      "name" : "resultVariable",
-      "type" : "zeebe:property"
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
     },
     "type" : "String"
   }, {
@@ -411,10 +280,44 @@
     "feel" : "required",
     "group" : "output",
     "binding" : {
-      "name" : "resultExpression",
-      "type" : "zeebe:property"
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
     },
     "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT30S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
   } ],
   "configurationTemplates" : [ {
     "id" : "io.camunda:aws-credential:1",

@@ -21,10 +21,10 @@ import io.camunda.connector.jdbc.model.response.JdbcResponse;
     inputVariables = {"database", "connection", "data", "configuration"},
     type = "io.camunda:connector-jdbc:1")
 @ElementTemplate(
-    engineVersion = "^8.6",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.Jdbc.v1",
     name = "Execute SQL Statement on Database",
-    version = 4,
+    version = 5,
     description =
         "Read and write data from a Camunda process directly to a SQL database (e.g., Microsoft SQL Server, MySQL, PostgreSQL)",
     keywords = {
