@@ -17,6 +17,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.AssistantMessageBuilder;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
@@ -31,7 +32,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +42,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
   private static final Logger LOGGER = LoggerFactory.getLogger(ChatMessageConverterImpl.class);
 
   private static final String FRAMEWORK_METADATA_KEY = "framework";
-  private static final String ATTRIBUTES_METADATA_KEY = "attributes";
+  private static final String PROVIDER_METADATA_KEY = "provider";
 
   private final ContentConverter contentConverter;
   private final ToolCallConverter toolCallConverter;
@@ -97,12 +97,12 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   @Override
   public dev.langchain4j.data.message.AiMessage fromAssistantMessage(
-      AssistantMessage assistantMessage) {
-    return fromAssistantMessageBuilder(assistantMessage).build();
+      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
+    return fromAssistantMessageBuilder(assistantMessage, providerConfiguration).build();
   }
 
   protected dev.langchain4j.data.message.AiMessage.Builder fromAssistantMessageBuilder(
-      AssistantMessage assistantMessage) {
+      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
     final var builder = AiMessage.builder();
 
     if (!CollectionUtils.isEmpty(assistantMessage.content())) {
@@ -125,7 +125,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       builder.toolExecutionRequests(toolExecutionRequests);
     }
 
-    final var attributes = frameworkAttributes(assistantMessage);
+    final var attributes = providerAttributes(assistantMessage, providerConfiguration);
     if (!attributes.isEmpty()) {
       builder.attributes(attributes);
     }
@@ -134,51 +134,55 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
   }
 
   /**
-   * Framework attributes carry data the provider requires us to echo back verbatim on the next
-   * request. Gemini 3 rejects a request whose function calls are missing their {@code
-   * thoughtSignature}, which langchain4j round-trips through {@link AiMessage#attributes()} keyed
-   * by tool call ID, so they have to survive being persisted to the conversation history.
+   * Provider attributes carry data the provider requires us to echo back verbatim on the next
+   * request. This is provider-specific, not langchain4j framework data, so it is kept separate from
+   * {@link #serializedChatResponseMetadata}. What is safe to restore is provider-specific - see
+   * {@link AssistantMessageMetadataDecorator}.
    */
-  protected Map<String, Object> frameworkAttributes(AssistantMessage assistantMessage) {
+  protected Map<String, Object> providerAttributes(
+      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
     if (CollectionUtils.isEmpty(assistantMessage.metadata())) {
       return Map.of();
     }
 
-    // messages persisted before attributes were supported have no "attributes" key - a missing key
+    // messages persisted before attributes were supported have no "provider" key - a missing key
     // yields null, which fails the instanceof and short-circuits to an empty map
-    if (!(assistantMessage.metadata().get(FRAMEWORK_METADATA_KEY) instanceof Map<?, ?> framework)
-        || !(framework.get(ATTRIBUTES_METADATA_KEY) instanceof Map<?, ?> attributes)) {
+    if (!(assistantMessage.metadata().get(PROVIDER_METADATA_KEY) instanceof Map<?, ?> attributes)) {
       return Map.of();
     }
 
-    // the conversation is stored in a process variable, so the contents are neither type-safe nor
-    // beyond tampering. Keep only the string values langchain4j writes - anything else would fail
-    // as an unhelpful ClassCastException inside the provider's mapper.
-    return attributes.entrySet().stream()
-        .filter(entry -> entry.getKey() instanceof String && entry.getValue() instanceof String)
-        .collect(Collectors.toMap(entry -> (String) entry.getKey(), Map.Entry::getValue));
+    return AssistantMessageMetadataDecorator.forProvider(providerConfiguration)
+        .decorateOnRead(attributes);
   }
 
   @Override
-  public AssistantMessage toAssistantMessage(ChatResponse chatResponse) {
-    return toAssistantMessageBuilder(chatResponse).build();
+  public AssistantMessage toAssistantMessage(
+      ChatResponse chatResponse, ProviderConfiguration providerConfiguration) {
+    return toAssistantMessageBuilder(chatResponse, providerConfiguration).build();
   }
 
-  protected AssistantMessageBuilder toAssistantMessageBuilder(ChatResponse chatResponse) {
+  protected AssistantMessageBuilder toAssistantMessageBuilder(
+      ChatResponse chatResponse, ProviderConfiguration providerConfiguration) {
     final var builder = AssistantMessage.builder();
     final var aiMessage = chatResponse.aiMessage();
 
-    if (chatResponse.metadata() != null || !CollectionUtils.isEmpty(aiMessage.attributes())) {
-      final var frameworkMetadata =
-          new LinkedHashMap<>(serializedChatResponseMetadata(chatResponse.metadata()));
+    // see providerAttributes(...) - what is safe to persist is provider-specific
+    final var decoratedAttributes =
+        CollectionUtils.isEmpty(aiMessage.attributes())
+            ? Map.<String, Object>of()
+            : AssistantMessageMetadataDecorator.forProvider(providerConfiguration)
+                .decorateOnWrite(aiMessage.attributes());
 
-      // see frameworkAttributes(...) - these must be echoed back on the next request
-      if (!CollectionUtils.isEmpty(aiMessage.attributes())) {
-        frameworkMetadata.put(ATTRIBUTES_METADATA_KEY, aiMessage.attributes());
+    if (chatResponse.metadata() != null || !decoratedAttributes.isEmpty()) {
+      final var metadata = new LinkedHashMap<String, Object>();
+      metadata.put("timestamp", ZonedDateTime.now());
+      metadata.put(FRAMEWORK_METADATA_KEY, serializedChatResponseMetadata(chatResponse.metadata()));
+
+      if (!decoratedAttributes.isEmpty()) {
+        metadata.put(PROVIDER_METADATA_KEY, decoratedAttributes);
       }
 
-      builder.metadata(
-          Map.of("timestamp", ZonedDateTime.now(), FRAMEWORK_METADATA_KEY, frameworkMetadata));
+      builder.metadata(metadata);
     }
 
     if (StringUtils.isNotBlank(aiMessage.text())) {
