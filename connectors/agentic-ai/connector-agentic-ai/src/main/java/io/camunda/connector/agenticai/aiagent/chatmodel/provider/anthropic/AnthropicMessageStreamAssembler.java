@@ -11,10 +11,6 @@ import com.anthropic.helpers.MessageAccumulator;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.RawMessageStreamEvent;
 
-/**
- * Drives a streamed Anthropic Messages API response to a single, fully-assembled {@link Message}.
- * Extracted as its own seam so tests can inject a canned {@link Message} directly.
- */
 @FunctionalInterface
 public interface AnthropicMessageStreamAssembler {
 
