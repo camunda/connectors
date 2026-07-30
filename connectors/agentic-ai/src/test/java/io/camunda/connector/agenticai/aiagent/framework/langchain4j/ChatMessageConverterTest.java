@@ -30,6 +30,13 @@ import dev.langchain4j.model.openai.OpenAiTokenUsage;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
@@ -60,6 +67,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ChatMessageConverterTest {
+
+  private static final ProviderConfiguration ANTHROPIC = new AnthropicProviderConfiguration(null);
+  private static final ProviderConfiguration VERTEX_AI =
+      new GoogleVertexAiProviderConfiguration(null);
+
+  static Stream<ProviderConfiguration> nonVertexAiProviders() {
+    return Stream.of(
+        new AnthropicProviderConfiguration(null),
+        new BedrockProviderConfiguration(null),
+        new AzureOpenAiProviderConfiguration(null),
+        new OpenAiProviderConfiguration(null),
+        new OpenAiCompatibleProviderConfiguration(null));
+  }
 
   @Mock private ToolCallConverter toolCallConverter;
   @Mock private ContentConverter contentConverter;
@@ -149,7 +169,7 @@ class ChatMessageConverterTest {
     AssistantMessage assistantMessage =
         AssistantMessage.builder().content(List.of(textContent("Test assistant message"))).build();
 
-    AiMessage result = chatMessageConverter.fromAssistantMessage(assistantMessage);
+    AiMessage result = chatMessageConverter.fromAssistantMessage(assistantMessage, ANTHROPIC);
 
     assertThat(result.text()).isEqualTo("Test assistant message");
     assertThat(result.toolExecutionRequests()).isEmpty();
@@ -159,7 +179,7 @@ class ChatMessageConverterTest {
   void fromAssistantMessage_withoutAnyContent_returnsAiMessage() {
     AssistantMessage assistantMessage = AssistantMessage.builder().build();
 
-    AiMessage result = chatMessageConverter.fromAssistantMessage(assistantMessage);
+    AiMessage result = chatMessageConverter.fromAssistantMessage(assistantMessage, ANTHROPIC);
 
     assertThat(result.text()).isNull();
     assertThat(result.toolExecutionRequests()).isEmpty();
@@ -177,7 +197,7 @@ class ChatMessageConverterTest {
     ToolExecutionRequest toolExecutionRequest = mock(ToolExecutionRequest.class);
     when(toolCallConverter.asToolExecutionRequest(toolCall)).thenReturn(toolExecutionRequest);
 
-    AiMessage result = chatMessageConverter.fromAssistantMessage(assistantMessage);
+    AiMessage result = chatMessageConverter.fromAssistantMessage(assistantMessage, ANTHROPIC);
 
     assertThat(result.text()).isEqualTo("Test message");
     assertThat(result.toolExecutionRequests()).hasSize(1);
@@ -195,21 +215,29 @@ class ChatMessageConverterTest {
                     DocumentContent.documentContent(mock(Document.class))))
             .build();
 
-    assertThatThrownBy(() -> chatMessageConverter.fromAssistantMessage(assistantMessage))
+    assertThatThrownBy(() -> chatMessageConverter.fromAssistantMessage(assistantMessage, ANTHROPIC))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(
             "AiMessage currently only supports a single TextContent block, 3 content blocks found instead.");
   }
 
   /**
-   * Framework message attributes carry data the provider requires us to echo back verbatim on the
+   * Provider message attributes carry data the provider requires us to echo back verbatim on the
    * next request - most notably Gemini 3 thought signatures, without which a follow-up request
    * containing function calls is rejected with a 400. They must survive the round trip through the
-   * conversation history.
+   * conversation history. Only the {@code thought_signature_*} entries survive - a decoy key proves
+   * the Google Vertex AI decorator narrows the dump, it does not pass it through unfiltered.
    */
   @Test
-  void assistantMessageRoundTrip_preservesFrameworkAttributes() {
-    final var attributes = Map.<String, Object>of("thought_signature_toolCallId", "c2lnbmF0dXJl");
+  void assistantMessageRoundTrip_preservesProviderAttributes() {
+    final var attributes =
+        Map.<String, Object>of(
+            "thought_signature_toolCallId",
+            "c2lnbmF0dXJl",
+            "raw_http_response",
+            "should-be-dropped");
+    final var expectedAttributes =
+        Map.<String, Object>of("thought_signature_toolCallId", "c2lnbmF0dXJl");
     final var aiMessage = AiMessage.builder().text("AI response").attributes(attributes).build();
     final var chatResponse =
         new ChatResponse.Builder()
@@ -217,39 +245,72 @@ class ChatMessageConverterTest {
             .metadata(ChatResponseMetadata.builder().finishReason(FinishReason.STOP).build())
             .build();
 
-    final var assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse);
+    final var assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse, VERTEX_AI);
 
-    assertThat(assistantMessage.metadata().get("framework"))
-        .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsEntry("attributes", attributes);
+    assertThat(assistantMessage.metadata()).containsEntry("provider", expectedAttributes);
 
-    assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage).attributes())
-        .isEqualTo(attributes);
+    assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage, VERTEX_AI).attributes())
+        .isEqualTo(expectedAttributes);
   }
 
   @Test
-  void toAssistantMessage_withoutAttributes_doesNotAddAttributesMetadata() {
+  void toAssistantMessage_withoutAttributes_doesNotAddProviderMetadata() {
     final var chatResponse =
         new ChatResponse.Builder()
             .aiMessage(AiMessage.builder().text("AI response").build())
             .metadata(ChatResponseMetadata.builder().finishReason(FinishReason.STOP).build())
             .build();
 
-    assertThat(chatMessageConverter.toAssistantMessage(chatResponse).metadata().get("framework"))
-        .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .doesNotContainKey("attributes");
+    assertThat(chatMessageConverter.toAssistantMessage(chatResponse, VERTEX_AI).metadata())
+        .doesNotContainKey("provider");
+  }
+
+  @ParameterizedTest
+  @MethodSource("nonVertexAiProviders")
+  void toAssistantMessage_forNonVertexAiProvider_neverPersistsAttributes(
+      ProviderConfiguration providerConfiguration) {
+    final var attributes =
+        Map.<String, Object>of(
+            "thought_signature_toolCallId", "c2lnbmF0dXJl", "raw_http_response", "leak-risk");
+    final var chatResponse =
+        new ChatResponse.Builder()
+            .aiMessage(AiMessage.builder().text("AI response").attributes(attributes).build())
+            .metadata(ChatResponseMetadata.builder().finishReason(FinishReason.STOP).build())
+            .build();
+
+    final var assistantMessage =
+        chatMessageConverter.toAssistantMessage(chatResponse, providerConfiguration);
+
+    assertThat(assistantMessage.metadata()).doesNotContainKey("provider");
+  }
+
+  @ParameterizedTest
+  @MethodSource("nonVertexAiProviders")
+  void fromAssistantMessage_forNonVertexAiProvider_neverRestoresAttributes(
+      ProviderConfiguration providerConfiguration) {
+    final var assistantMessage =
+        AssistantMessage.builder()
+            .content(List.of(textContent("Test message")))
+            .metadata(Map.of("provider", Map.of("thought_signature_toolCallId", "c2lnbmF0dXJl")))
+            .build();
+
+    assertThat(
+            chatMessageConverter
+                .fromAssistantMessage(assistantMessage, providerConfiguration)
+                .attributes())
+        .isEmpty();
   }
 
   /**
-   * Conversations persisted before framework attributes were supported must keep working - a
-   * process already in flight has no "attributes" key, and older ones may have no metadata at all.
-   * The conversation lives in a process variable, so the shapes here are neither type-safe nor
-   * beyond tampering.
+   * Conversations persisted before provider attributes were supported must keep working - a process
+   * already in flight has no "provider" key, and older ones may have no metadata at all. The
+   * conversation lives in a process variable, so the shapes here are neither type-safe nor beyond
+   * tampering.
    */
   @ParameterizedTest
   @NullSource
   @MethodSource("metadataWithoutUsableAttributes")
-  void fromAssistantMessage_withoutUsableFrameworkAttributes_returnsEmptyAttributes(
+  void fromAssistantMessage_withoutUsableProviderAttributes_returnsEmptyAttributes(
       Map<String, Object> metadata) {
     final var assistantMessage =
         AssistantMessage.builder()
@@ -257,7 +318,8 @@ class ChatMessageConverterTest {
             .metadata(metadata)
             .build();
 
-    assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage).attributes()).isEmpty();
+    assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage, VERTEX_AI).attributes())
+        .isEmpty();
   }
 
   static Stream<Map<String, Object>> metadataWithoutUsableAttributes() {
@@ -265,12 +327,10 @@ class ChatMessageConverterTest {
         Map.of(),
         // the shape persisted by any process started before this change
         Map.of("timestamp", ZonedDateTime.now(), "framework", Map.of("finishReason", "STOP")),
-        // no framework key at all
+        // no provider key at all
         Map.of("timestamp", ZonedDateTime.now()),
-        // framework/attributes present but not maps
-        Map.of("framework", "not-a-map"),
-        Map.of("framework", Map.of("attributes", "not-a-map")),
-        Map.of("framework", Map.of("attributes", Map.of())));
+        // provider present but not a map
+        Map.of("provider", "not-a-map"));
   }
 
   @Test
@@ -280,13 +340,10 @@ class ChatMessageConverterTest {
             .content(List.of(textContent("Test message")))
             .metadata(
                 Map.of(
-                    "framework",
-                    Map.of(
-                        "attributes",
-                        Map.of("thought_signature_a", "c2ln", "thought_signature_b", 42))))
+                    "provider", Map.of("thought_signature_a", "c2ln", "thought_signature_b", 42)))
             .build();
 
-    assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage).attributes())
+    assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage, VERTEX_AI).attributes())
         .containsExactly(entry("thought_signature_a", "c2ln"));
   }
 
@@ -304,7 +361,7 @@ class ChatMessageConverterTest {
     final var chatResponse =
         new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
 
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse, ANTHROPIC);
 
     assertThat(result.content())
         .hasSize(1)
@@ -361,7 +418,7 @@ class ChatMessageConverterTest {
     final var chatResponse =
         new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
 
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse, ANTHROPIC);
 
     final var expectedTokenUsage = new LinkedHashMap<String, Object>();
     expectedTokenUsage.put("inputTokenCount", 10);
@@ -393,7 +450,7 @@ class ChatMessageConverterTest {
     final var chatResponse =
         new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
 
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse, ANTHROPIC);
 
     assertThat(result.content()).isEmpty();
 
@@ -414,7 +471,7 @@ class ChatMessageConverterTest {
 
     final var chatResponse = new ChatResponse.Builder().aiMessage(aiMessage).build();
 
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse, ANTHROPIC);
 
     assertThat(result.content()).isEmpty();
   }
@@ -424,7 +481,7 @@ class ChatMessageConverterTest {
     final var chatResponse =
         new ChatResponse.Builder().aiMessage(AiMessage.builder().build()).build();
 
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse, ANTHROPIC);
 
     assertThat(result.metadata()).containsKey("framework");
     assertThat(result.metadata().get("framework"))
@@ -449,7 +506,7 @@ class ChatMessageConverterTest {
     ToolCall toolCall = ToolCall.builder().id("toolCallId").name("toolName").build();
     when(toolCallConverter.asToolCall(toolExecutionRequest)).thenReturn(toolCall);
 
-    AssistantMessage result = chatMessageConverter.toAssistantMessage(chatResponse);
+    AssistantMessage result = chatMessageConverter.toAssistantMessage(chatResponse, ANTHROPIC);
 
     assertThat(result.toolCalls()).hasSize(1).containsExactly(toolCall);
   }
@@ -477,7 +534,7 @@ class ChatMessageConverterTest {
     SystemMessage systemMessage =
         SystemMessage.builder().content(List.of(textContent("Test system message"))).build();
 
-    List<ChatMessage> result = chatMessageConverter.map(systemMessage);
+    List<ChatMessage> result = chatMessageConverter.map(systemMessage, ANTHROPIC);
 
     assertThat(result)
         .hasSize(1)
@@ -498,7 +555,8 @@ class ChatMessageConverterTest {
     UserMessage userMessage =
         UserMessage.builder().content(List.of(textContent("User message"))).build();
 
-    List<ChatMessage> result = chatMessageConverter.map(List.of(systemMessage, userMessage));
+    List<ChatMessage> result =
+        chatMessageConverter.map(List.of(systemMessage, userMessage), ANTHROPIC);
 
     assertThat(result).hasSize(2);
     assertThat(result.get(0)).isInstanceOf(dev.langchain4j.data.message.SystemMessage.class);
@@ -515,7 +573,7 @@ class ChatMessageConverterTest {
           }
         };
 
-    assertThatThrownBy(() -> chatMessageConverter.map(unknownMessage))
+    assertThatThrownBy(() -> chatMessageConverter.map(unknownMessage, ANTHROPIC))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Unknown message type");
   }

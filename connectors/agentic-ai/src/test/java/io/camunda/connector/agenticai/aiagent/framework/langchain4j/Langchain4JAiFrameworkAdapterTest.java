@@ -114,7 +114,7 @@ class Langchain4JAiFrameworkAdapterTest {
   void setUp() {
     runtimeMemory = new DefaultRuntimeMemory();
     runtimeMemory.addMessages(INPUT_MESSAGES);
-    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(runtimeMemory.filteredMessages(), null)).thenReturn(L4J_MESSAGES);
 
     when(toolSpecificationConverter.asToolSpecifications(TOOL_DEFINITIONS))
         .thenReturn(L4J_TOOL_SPECIFICATIONS);
@@ -122,7 +122,7 @@ class Langchain4JAiFrameworkAdapterTest {
     when(chatModelFactory.createChatModel(any())).thenReturn(chatModel);
     when(chatModel.chat(chatRequestCaptor.capture())).thenReturn(chatResponse);
     when(chatResponse.tokenUsage()).thenReturn(new TokenUsage(5, 6));
-    when(chatMessageConverter.toAssistantMessage(chatResponse)).thenReturn(ASSISTANT_MESSAGE);
+    when(chatMessageConverter.toAssistantMessage(chatResponse, null)).thenReturn(ASSISTANT_MESSAGE);
 
     adapter =
         new Langchain4JAiFrameworkAdapter(
@@ -144,7 +144,7 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void wrapsUnderlyingExceptionsInConnectorException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(runtimeMemory.filteredMessages(), null)).thenReturn(L4J_MESSAGES);
 
     final var cause = new ModelNotFoundException("Model 'dummy' was not found");
     doThrow(cause).when(chatModel).chat(any(ChatRequest.class));
@@ -165,7 +165,7 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void usesExceptionClassIfNoMessageIncludedInException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(runtimeMemory.filteredMessages(), null)).thenReturn(L4J_MESSAGES);
 
     final var cause = new UnresolvedModelServerException((String) null);
     doThrow(cause).when(chatModel).chat(any(ChatRequest.class));
@@ -308,7 +308,7 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void closesChatModelEvenWhenChatCallThrows() throws Exception {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(runtimeMemory.filteredMessages(), null)).thenReturn(L4J_MESSAGES);
     doThrow(new RuntimeException("model unavailable")).when(chatModel).chat(any(ChatRequest.class));
 
     assertThatThrownBy(
