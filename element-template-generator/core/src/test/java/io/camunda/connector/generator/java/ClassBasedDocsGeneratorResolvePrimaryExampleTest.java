@@ -26,7 +26,7 @@ public class ClassBasedDocsGeneratorResolvePrimaryExampleTest {
   public static class NoExamples {}
 
   public static class SingleDefaultExample {
-    @DataExample
+    @DataExample(id = DataExample.DEFAULT_ID)
     public static String example() {
       return "single";
     }
@@ -50,7 +50,7 @@ public class ClassBasedDocsGeneratorResolvePrimaryExampleTest {
       return "explicit-value";
     }
 
-    @DataExample
+    @DataExample(id = DataExample.DEFAULT_ID)
     public static String canonical() {
       return "canonical-value";
     }
