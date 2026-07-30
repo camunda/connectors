@@ -986,7 +986,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"PT0S", "P0D", "PT-10M"})
+    @ValueSource(strings = {"PT0S", "P0D", "PT-10M", "PT0.000000001S"})
     void shouldFailJob_WhenHeaderNonPositive_ConnectorNotInvoked(String nonPositiveTimeout)
         throws Exception {
       // given

@@ -281,7 +281,10 @@ public class SpringConnectorJobHandler implements JobHandler {
               + timeoutHeader,
           e);
     }
-    if (timeout.isZero() || timeout.isNegative()) {
+    if (timeout.toMillis() <= 0) {
+      // Zeebe's UpdateJobTimeoutCommand truncates to milliseconds (Duration#toMillis), so a
+      // sub-millisecond-but-technically-positive Duration (e.g. PT0.000000001S) would otherwise
+      // slip past an isZero()/isNegative() check and still be sent to the broker as 0.
       throw new InvalidJobTimeoutException(
           "Job timeout must be a positive duration, got: " + timeoutHeader, null);
     }
