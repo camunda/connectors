@@ -71,6 +71,7 @@ import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import io.grpc.Status;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -971,9 +972,9 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldContinueExecution_WhenUpdateCommandFails() throws Exception {
-      // given
-      when(updateTimeoutStep2.execute()).thenThrow(new RuntimeException("boom"));
+    void shouldContinueExecution_WhenUpdateCommandFailsTransiently() throws Exception {
+      // given — a transient transport failure, where the broker's actual outcome is ambiguous
+      when(updateTimeoutStep2.execute()).thenThrow(Status.UNAVAILABLE.asRuntimeException());
       var jobHandler = newConnectorJobHandler(context -> "ok", camundaClient);
       var jobBuilder =
           JobBuilder.create().withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
@@ -983,6 +984,25 @@ class SpringConnectorJobHandlerTest {
 
       // then — connector still ran and the job still completed
       assertThat(result.getVariables()).isNotNull();
+    }
+
+    @Test
+    void shouldNotInvokeConnector_WhenUpdateCommandDefinitivelyRejected() throws Exception {
+      // given — NOT_FOUND means the broker no longer recognizes this job: this worker's lease is
+      // definitively gone, so the connector must not run (risk of duplicate side effects)
+      when(updateTimeoutStep2.execute()).thenThrow(Status.NOT_FOUND.asRuntimeException());
+      var connectorFunction = mock(OutboundConnectorFunction.class);
+      var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
+      var jobBuilder =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
+
+      // when
+      jobBuilder.executeAndCaptureResult(jobHandler, false);
+
+      // then
+      verify(connectorFunction, times(0)).execute(any());
     }
 
     @ParameterizedTest
@@ -1089,9 +1109,10 @@ class SpringConnectorJobHandlerTest {
     void shouldUseEarlierDeadline_ForFailJobCallback_WhenUpdateCommandFailsAmbiguously()
         throws Exception {
       // given — a job with a long remaining lease, and a jobTimeout header requesting a much
-      // shorter one; the update command itself fails, but the broker may have applied it anyway
+      // shorter one; the update command fails transiently, but the broker may have applied it
+      // anyway
       long staleDeadline = System.currentTimeMillis() + Duration.ofMinutes(25).toMillis();
-      when(updateTimeoutStep2.execute()).thenThrow(new RuntimeException("boom"));
+      when(updateTimeoutStep2.execute()).thenThrow(Status.UNAVAILABLE.asRuntimeException());
       var factory = mock(JobCallbackCommandWrapperFactory.class, RETURNS_DEEP_STUBS);
       var jobHandler =
           newConnectorJobHandler(

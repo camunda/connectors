@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNullElse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.JobCallbackFinalCommandStep;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.response.CompleteJobResponse;
@@ -29,6 +30,7 @@ import io.camunda.client.api.response.ThrowErrorResponse;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.api.worker.JobHandler;
 import io.camunda.client.jobhandling.CommandOutcome;
+import io.camunda.client.jobhandling.JobCallbackCommandWrapper;
 import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.metrics.MetricsRecorder.CounterMetricsContext;
@@ -69,6 +71,7 @@ import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.ConnectorOutboundMetrics;
+import io.grpc.StatusRuntimeException;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -272,11 +275,17 @@ public class SpringConnectorJobHandler implements JobHandler {
    * the command on the broker, which happens before the client sees the response, so using a
    * post-call timestamp would make the locally tracked deadline later than the broker's actual one.
    *
-   * <p>If the update command itself fails (logged as a {@code WARN}, connector execution continues
-   * regardless), the outcome is ambiguous: the broker may have applied the change before the client
-   * lost or timed out on the response. Rather than assume the update never took effect, this
-   * returns the <em>earlier</em> of the job's original deadline and the requested one, so a later
-   * completion-command retry check is never overly optimistic about how much time remains.
+   * <p>If the update command fails with a transient transport error (logged as a {@code WARN},
+   * connector execution continues regardless), the outcome is ambiguous: the broker may have
+   * applied the change before the client lost or timed out on the response. Rather than assume the
+   * update never took effect, this returns the <em>earlier</em> of the job's original deadline and
+   * the requested one, so a later completion-command retry check is never overly optimistic about
+   * how much time remains.
+   *
+   * <p>If the update command fails with anything else — a definitive broker rejection (e.g. {@code
+   * NOT_FOUND}, meaning this worker's lease on the job is already gone) or an unrecognized failure
+   * — the exception propagates instead of being swallowed, so the connector function is never
+   * invoked without a lease this worker can still be confident it holds.
    */
   private Long updateJobTimeoutIfPresent(ActivatedJob job) {
     String timeoutHeader = job.getCustomHeaders().get(Keywords.JOB_TIMEOUT_KEYWORD);
@@ -320,6 +329,14 @@ public class SpringConnectorJobHandler implements JobHandler {
     try {
       camundaClient.newUpdateTimeoutCommand(job).timeout(timeout).execute();
     } catch (Exception e) {
+      if (!isTransientTransportFailure(e)) {
+        // A definitive rejection (e.g. NOT_FOUND: the job no longer exists on the broker, so this
+        // worker's lease on it is already gone) or an unrecognized failure — propagate instead of
+        // continuing, so the connector function is never invoked without a lease this worker can
+        // still be confident it holds. The subsequent job-handling failure path may itself hit the
+        // same rejection when it tries to fail the job, which is a harmless no-op there.
+        throw e;
+      }
       LOGGER.warn(
           "Failed to update timeout for job: {} of type: {}, continuing with existing deadline",
           job.getKey(),
@@ -331,6 +348,23 @@ public class SpringConnectorJobHandler implements JobHandler {
       return Math.min(job.getDeadline(), deadline);
     }
     return deadline;
+  }
+
+  /**
+   * Distinguishes a transient transport-level failure (network hiccup, broker overload, request
+   * timeout) — where the update command's outcome is genuinely ambiguous — from a definitive
+   * rejection or any other unrecognized failure, using the same status-code classification {@link
+   * JobCallbackCommandWrapper} already applies to job completion commands.
+   */
+  private static boolean isTransientTransportFailure(Exception e) {
+    if (e instanceof StatusRuntimeException statusRuntimeException) {
+      return JobCallbackCommandWrapper.RETRIABLE_CODES.contains(
+          statusRuntimeException.getStatus().getCode());
+    }
+    if (e instanceof ClientHttpException clientHttpException) {
+      return JobCallbackCommandWrapper.REST_RETRYABLE_CODES.contains(clientHttpException.code());
+    }
+    return false;
   }
 
   private ConnectorResponse getConnectorResponse(OutboundConnectorContext context)
