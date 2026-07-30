@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -72,10 +74,13 @@ public class AnthropicMessageResponseConverter {
 
     for (final ContentBlock block : message.content()) {
       if (block.isText()) {
-        content.add(TextContent.textContent(block.text().orElseThrow().text()));
+        final var text = block.text().orElseThrow();
+        content.add(new TextContent(text.text(), residualMetadata(text, "text")));
       } else if (block.isToolUse()) {
         final var toolUse = block.toolUse().orElseThrow();
-        toolCalls.add(new ToolCall(toolUse.id(), toolUse.name(), toolUseArguments(toolUse)));
+        toolCalls.add(
+            new ToolCall(
+                toolUse.id(), toolUse.name(), toolUseArguments(toolUse), toolUseMetadata(toolUse)));
       } else if (block.isThinking()) {
         // Raw block preserved verbatim (minus the lifted-out text) so it replays byte-identical
         // on the request side; see AnthropicContentConverter, which merges the text back in
@@ -125,6 +130,34 @@ public class AnthropicMessageResponseConverter {
     final Map<String, Object> arguments =
         objectMapper.convertValue(input, new TypeReference<Map<String, Object>>() {});
     return arguments != null ? arguments : Map.of();
+  }
+
+  // Any block field not already represented by the domain object (id/name/input on ToolCall,
+  // text on TextContent, ...) is preserved verbatim under "anthropic" rather than silently
+  // dropped - so replaying it (see AnthropicMessageRequestConverter/AnthropicContentConverter)
+  // reproduces the exact byte sequence the response was cached under, and a currently-unused
+  // Anthropic feature (citations, server-tool callers, a future field) doesn't quietly lose data
+  // the moment it gets turned on, without this converter having to know about it in advance.
+  private @Nullable Map<String, Object> residualMetadata(Object block, String... mappedKeys) {
+    final Map<String, Object> raw =
+        new LinkedHashMap<>(
+            ObjectMappers.jsonMapper().convertValue(block, new TypeReference<>() {}));
+    raw.keySet().removeAll(Set.of(mappedKeys));
+    raw.remove("type"); // pure discriminator, always inferable from the domain type
+    return raw.isEmpty() ? null : Map.of("anthropic", raw);
+  }
+
+  // Direct is the default caller for a plain client tool call and carries no data beyond that
+  // discriminator; only a server-tool caller (e.g. code execution invoking another tool) has
+  // content worth preserving.
+  private @Nullable Map<String, Object> toolUseMetadata(ToolUseBlock toolUse) {
+    // caller is a recent addition to the API; older fixtures/responses may omit it entirely, so
+    // read it via the non-throwing accessor rather than caller(), which requires the field
+    final Optional<ToolUseBlock.Caller> caller = toolUse._caller().asKnown();
+    if (caller.isEmpty() || caller.get().isDirect()) {
+      return residualMetadata(toolUse, "id", "name", "input", "caller");
+    }
+    return residualMetadata(toolUse, "id", "name", "input");
   }
 
   private AgentMetrics toMetrics(Message message, int toolCalls, Duration executionTime) {
