@@ -12,11 +12,14 @@ import java.util.Map;
 
 public class WebhookOutputExample {
 
-  @DataExample(feel = "= body.orderId")
-  public static MappedHttpRequest example() {
-    return new MappedHttpRequest(
-        Map.of("orderId", "123", "status", "created"),
-        Map.of("Content-Type", "application/json"),
-        Map.of());
+  public record ResultExpressionContext(MappedHttpRequest request) {}
+
+  @DataExample(feel = "= request.body.orderId")
+  public static ResultExpressionContext example() {
+    return new ResultExpressionContext(
+        new MappedHttpRequest(
+            Map.of("orderId", "123", "status", "created"),
+            Map.of("Content-Type", "application/json"),
+            Map.of()));
   }
 }

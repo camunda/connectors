@@ -579,7 +579,7 @@
       "name" : "resultExpression",
       "type" : "zeebe:property"
     },
-    "tooltip" : "<div><p>Example response:</p><code>{ \"body\" : { \"orderId\" : \"123\", \"status\" : \"created\" }, \"headers\" : { \"Content-Type\" : \"application/json\" }, \"params\" : { } }</code><p>Example FEEL expression: <code>= body.orderId</code> -&gt; <code>\"123\"</code></p></div>",
+    "tooltip" : "<div><p>Example response:</p><code>{ \"request\" : { \"body\" : { \"orderId\" : \"123\", \"status\" : \"created\" }, \"headers\" : { \"Content-Type\" : \"application/json\" }, \"params\" : { } } }</code><p>Example FEEL expression: <code>= request.body.orderId</code> -&gt; <code>\"123\"</code></p></div>",
     "type" : "Text"
   } ],
   "icon" : {
