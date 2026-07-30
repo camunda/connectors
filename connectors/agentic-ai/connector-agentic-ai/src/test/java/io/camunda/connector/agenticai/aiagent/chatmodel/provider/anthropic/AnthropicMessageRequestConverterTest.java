@@ -379,6 +379,7 @@ class AnthropicMessageRequestConverterTest {
                 "type", "thinking",
                 "thinking", "Let me think it through",
                 "signature", "sig-123"),
+            null,
             null);
 
     final var snapshot =
@@ -417,6 +418,7 @@ class AnthropicMessageRequestConverterTest {
                 "type", "thinking",
                 "thinking", "Let me think it through",
                 "signature", "sig-123"),
+            null,
             null);
 
     final var snapshot =
@@ -743,6 +745,35 @@ class AnthropicMessageRequestConverterTest {
           .as("message[%d] re-sent byte-identically", i)
           .isEqualTo(messages1.get(i));
     }
+  }
+
+  @Test
+  void promptCachingReplaysReasoningContentByteIdenticallyAfterTextExtraction() {
+    // ReasoningContent stores the thinking text separately from the (stripped) payload; the
+    // converter must merge it back in so the replayed thinking block -- and thus the cached
+    // prefix -- is identical across turns, not just structurally equivalent.
+    final var reasoning =
+        new ReasoningContent(
+            "anthropic",
+            Map.of("type", "thinking", "signature", "sig-123"),
+            "Let me think it through",
+            null);
+    final var turn1Messages =
+        List.<Message>of(AssistantMessage.builder().content(List.of(reasoning)).build());
+
+    final var turn1 =
+        converter.toMessageCreateParams(
+            ctx(promptCachingModel(true), null),
+            new ConversationSnapshot(turn1Messages, List.of()));
+    final var turn2 =
+        converter.toMessageCreateParams(
+            ctx(promptCachingModel(true), null),
+            new ConversationSnapshot(turn1Messages, List.of()));
+
+    final JsonNode messages1 = requestBodyAsJson(turn1).path("messages");
+    final JsonNode messages2 = requestBodyAsJson(turn2).path("messages");
+    assertThat(messages2).as("reasoning message re-sent byte-identically").isEqualTo(messages1);
+    assertThat(messages1.at("/0/content/0/thinking").asText()).isEqualTo("Let me think it through");
   }
 
   // --- Compatible backend: headers, query parameters, and request (body) parameters ------------

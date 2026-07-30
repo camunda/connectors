@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -96,15 +97,23 @@ public class AnthropicMessageResponseConverter {
         // The raw block (type/thinking/signature) is preserved verbatim as payload so it
         // can be replayed byte-identical on the request side (see AnthropicContentConverter);
         // uses the SDK's own mapper for the same reason as the ProviderContent branch below.
+        // The human-readable thinking text is lifted into the dedicated `text` field and
+        // removed from the stored payload so it isn't persisted twice; AnthropicContentConverter
+        // merges it back into the payload before the block is replayed on the next request.
         final Map<String, Object> raw =
-            ObjectMappers.jsonMapper()
-                .convertValue(block, new TypeReference<Map<String, Object>>() {});
-        content.add(new ReasoningContent("anthropic", raw, null));
+            new LinkedHashMap<>(
+                ObjectMappers.jsonMapper()
+                    .convertValue(block, new TypeReference<Map<String, Object>>() {}));
+        final String text = block.thinking().orElseThrow().thinking();
+        raw.remove("thinking");
+        content.add(new ReasoningContent("anthropic", raw, text, null));
       } else if (block.isRedactedThinking()) {
+        // Redacted thinking blocks carry no readable text (the `data` field is encrypted), so
+        // there is nothing to lift out of the payload.
         final Map<String, Object> raw =
             ObjectMappers.jsonMapper()
                 .convertValue(block, new TypeReference<Map<String, Object>>() {});
-        content.add(new ReasoningContent("anthropic", raw, null));
+        content.add(new ReasoningContent("anthropic", raw, null, null));
       } else {
         // Server-tool / provider-specific blocks (server_tool_use, code_execution_tool_result,
         // web_search_tool_result, container_upload, etc.) have no provider-neutral

@@ -322,8 +322,14 @@ for future provider-specific chat models that emit structured content directly.
 
 The sealed `Content` model gained two additive members alongside the existing `TextContent` /
 `DocumentContent` / `ObjectContent`:
-- **`ReasoningContent`** — an opaque provider reasoning payload (`provider`, `payload`, `metadata`),
-  carried verbatim.
+- **`ReasoningContent`** — an opaque provider reasoning payload (`provider`, `payload`, `text`,
+  `metadata`). `payload` is carried verbatim except for the human-readable reasoning text, which is
+  lifted into the dedicated `text` field and stripped out of `payload` so it isn't persisted twice.
+  Provider-specific request converters merge `text` back into a copy of `payload` before replaying
+  the block on the next request, so the round trip is still byte-identical (required for signature
+  verification on blocks that have one, and for prompt-caching prefix matching). `text` is `null`
+  when a provider has nothing human-readable to extract (e.g. Anthropic's `redacted_thinking`
+  blocks).
 - **`ProviderContent`** — a provider-native content block preserved verbatim (`provider`, `payload`,
   `metadata`); each payload self-describes its own block shape (e.g. via an internal `type` field), so
   there is no separate discriminator field.

@@ -108,6 +108,27 @@ class AnthropicContentConverterTest {
 
     @Test
     void mapsReasoningContentThinkingPayloadToNativeBlockRoundTrip() {
+      // The `thinking` text is stored separately in the `text` field, stripped from the payload
+      // (see AnthropicMessageResponseConverter), and must be merged back in here.
+      final var payload =
+          Map.<String, Object>of(
+              "type", "thinking",
+              "signature", "sig-123");
+
+      final var blocks =
+          converter.toContentBlockParams(
+              List.of(new ReasoningContent("anthropic", payload, "Let me think it through", null)));
+
+      assertThat(blocks).hasSize(1);
+      final var thinking = blocks.get(0).thinking().orElseThrow();
+      assertThat(thinking.thinking()).isEqualTo("Let me think it through");
+      assertThat(thinking.signature()).isEqualTo("sig-123");
+    }
+
+    @Test
+    void mapsReasoningContentThinkingPayloadWithoutTextFallsBackToPayloadAsIs() {
+      // Older/pre-existing payloads may already contain the `thinking` key with no separate
+      // `text` field populated; the converter must not fail or blank it out.
       final var payload =
           Map.<String, Object>of(
               "type", "thinking",
@@ -115,7 +136,8 @@ class AnthropicContentConverterTest {
               "signature", "sig-123");
 
       final var blocks =
-          converter.toContentBlockParams(List.of(new ReasoningContent("anthropic", payload, null)));
+          converter.toContentBlockParams(
+              List.of(new ReasoningContent("anthropic", payload, null, null)));
 
       assertThat(blocks).hasSize(1);
       final var thinking = blocks.get(0).thinking().orElseThrow();
@@ -129,7 +151,8 @@ class AnthropicContentConverterTest {
           Map.<String, Object>of("type", "redacted_thinking", "data", "encrypted-blob");
 
       final var blocks =
-          converter.toContentBlockParams(List.of(new ReasoningContent("anthropic", payload, null)));
+          converter.toContentBlockParams(
+              List.of(new ReasoningContent("anthropic", payload, null, null)));
 
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isRedactedThinking()).isTrue();
@@ -237,7 +260,8 @@ class AnthropicContentConverterTest {
       final var blocks =
           converter.toToolResultBlocks(
               List.of(
-                  new ReasoningContent("anthropic", Map.of("thinking", "some reasoning"), null)));
+                  new ReasoningContent(
+                      "anthropic", Map.of("thinking", "some reasoning"), null, null)));
 
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isText()).isTrue();

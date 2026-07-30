@@ -27,8 +27,10 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.apache.hc.core5.http.ContentType;
 
 /**
@@ -71,15 +73,32 @@ public class AnthropicContentConverter {
             blocks.add(
                 ContentBlockParam.ofText(
                     TextBlockParam.builder().text(writeAsJson(obj.content())).build()));
-        case ReasoningContent rc ->
-            blocks.add(
-                ObjectMappers.jsonMapper().convertValue(rc.payload(), ContentBlockParam.class));
+        case ReasoningContent rc -> blocks.add(toReasoningContentBlockParam(rc));
         case ProviderContent pc ->
             blocks.add(
                 ObjectMappers.jsonMapper().convertValue(pc.payload(), ContentBlockParam.class));
       }
     }
     return blocks;
+  }
+
+  /**
+   * Reconstructs the native content block from a {@link ReasoningContent}. The human-readable
+   * thinking text was lifted out of the payload into {@code text} when the response was received
+   * (see {@code AnthropicMessageResponseConverter}) so it isn't persisted twice; here it is merged
+   * back into the payload verbatim before replay, so the resulting block is byte-identical to the
+   * one originally returned by the API (required both for the {@code thinking} block's signature
+   * verification and for prompt-caching prefix matching on the next request).
+   */
+  @SuppressWarnings("unchecked")
+  private ContentBlockParam toReasoningContentBlockParam(ReasoningContent rc) {
+    Object payload = rc.payload();
+    if (rc.text() != null) {
+      final Map<String, Object> merged = new LinkedHashMap<>((Map<String, Object>) payload);
+      merged.put("thinking", rc.text());
+      payload = merged;
+    }
+    return ObjectMappers.jsonMapper().convertValue(payload, ContentBlockParam.class);
   }
 
   public List<ToolResultBlockParam.Content.Block> toToolResultBlocks(List<Content> content) {

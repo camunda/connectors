@@ -19,7 +19,7 @@ class ReasoningContentTest {
 
   @Test
   void rejectsNullPayload() {
-    assertThatThrownBy(() -> new ReasoningContent("anthropic", null, null))
+    assertThatThrownBy(() -> new ReasoningContent("anthropic", null, null, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Payload cannot be null");
   }
@@ -29,25 +29,39 @@ class ReasoningContentTest {
     final var payload =
         Map.of(
             "signature", "abc123", "nested", Map.of("thinking", "some internal reasoning trace"));
-    final var reasoningContent = new ReasoningContent("anthropic", payload, Map.of("foo", "bar"));
+    final var reasoningContent =
+        new ReasoningContent(
+            "anthropic", payload, "some internal reasoning trace", Map.of("foo", "bar"));
 
     final var serialized = objectMapper.writeValueAsString(reasoningContent);
     final var deserialized = objectMapper.readValue(serialized, ReasoningContent.class);
 
     assertThat(deserialized.payload()).isEqualTo(payload);
+    assertThat(deserialized.text()).isEqualTo("some internal reasoning trace");
     assertThat(deserialized.metadata()).isEqualTo(Map.of("foo", "bar"));
   }
 
   @Test
   void omitsMetadataWhenNullOrEmpty() throws Exception {
-    final var nullMetadata = new ReasoningContent("anthropic", Map.of("signature", "abc123"), null);
+    final var nullMetadata =
+        new ReasoningContent("anthropic", Map.of("signature", "abc123"), null, null);
     final var emptyMetadata =
-        new ReasoningContent("anthropic", Map.of("signature", "abc123"), Map.of());
+        new ReasoningContent("anthropic", Map.of("signature", "abc123"), null, Map.of());
 
     final var serializedNullMetadata = objectMapper.writeValueAsString(nullMetadata);
     final var serializedEmptyMetadata = objectMapper.writeValueAsString(emptyMetadata);
 
     assertThat(serializedNullMetadata).doesNotContain("metadata");
     assertThat(serializedEmptyMetadata).doesNotContain("metadata");
+  }
+
+  @Test
+  void omitsTextWhenNull() throws Exception {
+    final var withoutText =
+        new ReasoningContent("anthropic", Map.of("type", "redacted_thinking"), null, null);
+
+    final var serialized = objectMapper.writeValueAsString(withoutText);
+
+    assertThat(serialized).doesNotContain("\"text\"");
   }
 }
