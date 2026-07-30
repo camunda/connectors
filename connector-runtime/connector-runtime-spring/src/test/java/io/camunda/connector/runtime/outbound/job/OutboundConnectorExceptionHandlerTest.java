@@ -23,11 +23,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.response.ActivatedJob;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -106,5 +110,100 @@ class OutboundConnectorExceptionHandlerTest {
                 SecretFilter.allowAll());
 
     assertThat(result.responseValue().toString()).doesNotContain("super-secret");
+  }
+
+  /**
+   * The error message was already masked, but the error variables are copied straight off the
+   * original exception. For HTTP connectors those carry the whole response body and headers, so an
+   * API that echoes a rejected credential back used to publish the resolved secret as a process
+   * variable.
+   */
+  @Test
+  void errorVariables_maskSecretsNestedInAnHttpResponseBody() {
+    var errorVariables =
+        Map.<String, Object>of(
+            "response",
+            Map.of(
+                "headers",
+                Map.of("www-authenticate", "Bearer error=\"invalid_token super-secret\""),
+                "body",
+                Map.of("errors", List.of(Map.of("detail", "token super-secret is not valid")))));
+
+    var masked = maskedErrorVariables(errorVariables);
+
+    assertThat(masked.toString()).doesNotContain("super-secret").contains("***");
+  }
+
+  @Test
+  void errorVariables_maskSecretsUsedAsMapKeys() {
+    var masked = maskedErrorVariables(Map.of("super-secret", "harmless"));
+
+    assertThat(masked).containsOnlyKeys("***");
+  }
+
+  /** Processes branch on these, so rewriting them into strings would change behaviour. */
+  @Test
+  void errorVariables_leaveNonStringLeavesUntouched() {
+    var errorVariables = new HashMap<String, Object>();
+    errorVariables.put("status", 401);
+    errorVariables.put("retryable", false);
+    errorVariables.put("body", null);
+
+    var masked = maskedErrorVariables(errorVariables);
+
+    assertThat(masked).containsEntry("status", 401).containsEntry("retryable", false);
+    assertThat(masked).containsKey("body");
+    assertThat(masked.get("body")).isNull();
+  }
+
+  /** Error variables are supplied by connector authors, so a container may contain itself. */
+  @Test
+  void errorVariables_terminateOnSelfReferencingContainers() {
+    var errorVariables = new HashMap<String, Object>();
+    errorVariables.put("detail", "token super-secret rejected");
+    errorVariables.put("self", errorVariables);
+
+    var masked = maskedErrorVariables(errorVariables);
+
+    assertThat(masked).containsEntry("detail", "token *** rejected");
+    assertThat(masked).containsEntry("self", "[circular reference]");
+  }
+
+  /**
+   * BPMN error boundary events match on the error code, so masking it would silently stop the error
+   * from being caught. Codes come from HTTP statuses and connector-authored constants, not from
+   * remote payloads.
+   */
+  @Test
+  void errorCode_isNotMasked() {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(1);
+    when(secretProvider.fetchAll(any(), any())).thenReturn(List.of("401"));
+
+    var result =
+        handler.handleFinalResultException(
+            new ConnectorException("401", "Unauthorized"), job, SecretFilter.allowAll());
+
+    assertThat(error(result)).containsEntry("code", "401");
+  }
+
+  @SuppressWarnings("unchecked")
+  private Map<String, Object> maskedErrorVariables(Map<String, Object> errorVariables) {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(1);
+    when(secretProvider.fetchAll(any(), any())).thenReturn(List.of("super-secret"));
+
+    var result =
+        handler.handleFinalResultException(
+            new ConnectorException("401", "Unauthorized", null, errorVariables),
+            job,
+            SecretFilter.allowAll());
+
+    return (Map<String, Object>) error(result).get("variables");
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> error(ConnectorResult.ErrorResult result) {
+    return (Map<String, Object>) ((Map<String, Object>) result.responseValue()).get("error");
   }
 }
