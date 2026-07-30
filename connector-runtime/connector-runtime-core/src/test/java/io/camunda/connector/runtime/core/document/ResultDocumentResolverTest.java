@@ -126,6 +126,24 @@ class ResultDocumentResolverTest {
   }
 
   @Test
+  void acceptsExplicitlyEmptyContentInObjectForm() {
+    // "" is a valid (if unusual) base64 encoding of zero bytes. createDocument("") — the bare
+    // string form — already accepts it; the object form must not reject the same value just
+    // because "content" is present but blank.
+    JsonNode tree =
+        treeOf(
+            Map.of(
+                "connectorResultFunction",
+                CREATE_DOCUMENT,
+                "value",
+                Map.of("content", "", "name", "empty.txt")));
+
+    Document resolved = (Document) resolver.resolve(tree);
+
+    assertThat(resolved.asByteArray()).isEmpty();
+  }
+
+  @Test
   void throwsWhenContentIsNotValidBase64() {
     JsonNode tree =
         treeOf(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", "not-base64!!"));

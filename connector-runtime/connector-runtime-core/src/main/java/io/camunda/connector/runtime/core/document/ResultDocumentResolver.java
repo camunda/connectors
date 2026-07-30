@@ -79,7 +79,10 @@ public class ResultDocumentResolver {
     if (value.isTextual()) {
       content = value.textValue();
     } else if (value.isObject()) {
-      content = firstNonBlankText(value, "content", "data");
+      // content is read without requiring it to be nonblank: "" is a valid (if unusual) base64
+      // encoding of zero bytes, and createDocument("") — the bare-string form — already accepts
+      // it, so the object form must not reject the same value just because it's blank.
+      content = firstTextual(value, "content", "data");
       name = firstNonBlankText(value, "name", "fileName");
       contentType = firstNonBlankText(value, "contentType");
     } else {
@@ -115,6 +118,16 @@ public class ResultDocumentResolver {
     for (String key : keys) {
       JsonNode fieldValue = object.get(key);
       if (fieldValue != null && fieldValue.isTextual() && !fieldValue.textValue().isBlank()) {
+        return fieldValue.textValue();
+      }
+    }
+    return null;
+  }
+
+  private String firstTextual(JsonNode object, String... keys) {
+    for (String key : keys) {
+      JsonNode fieldValue = object.get(key);
+      if (fieldValue != null && fieldValue.isTextual()) {
         return fieldValue.textValue();
       }
     }
