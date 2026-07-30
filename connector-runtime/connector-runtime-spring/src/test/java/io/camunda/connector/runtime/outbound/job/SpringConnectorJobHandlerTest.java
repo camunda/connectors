@@ -35,7 +35,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.FailJobCommandStep1;
+import io.camunda.client.api.command.UpdateTimeoutJobCommandStep1;
+import io.camunda.client.api.command.UpdateTimeoutJobCommandStep1.UpdateTimeoutJobCommandStep2;
+import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.BackoffSupplier;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.jobhandling.CommandOutcome;
@@ -124,6 +128,14 @@ class SpringConnectorJobHandlerTest {
 
   private SpringConnectorJobHandler newConnectorJobHandler(
       OutboundConnectorFunction call, SecretProviderAggregator secretProviderAggregator) {
+    return newConnectorJobHandler(
+        call, secretProviderAggregator, mock(CamundaClient.class, RETURNS_DEEP_STUBS));
+  }
+
+  private SpringConnectorJobHandler newConnectorJobHandler(
+      OutboundConnectorFunction call,
+      SecretProviderAggregator secretProviderAggregator,
+      CamundaClient camundaClient) {
     var metricsRecorder = new MicrometerMetricsRecorder(new SimpleMeterRegistry());
     return new SpringConnectorJobHandler(
         metricsRecorder,
@@ -134,7 +146,14 @@ class SpringConnectorJobHandlerTest {
         mock(DocumentFactory.class),
         TestObjectMapperSupplier.INSTANCE,
         call,
-        job -> SecretFilter.allowAll());
+        job -> SecretFilter.allowAll(),
+        camundaClient);
+  }
+
+  private SpringConnectorJobHandler newConnectorJobHandler(
+      OutboundConnectorFunction call, CamundaClient camundaClient) {
+    return newConnectorJobHandler(
+        call, new SecretProviderAggregator(List.of(new FooBarSecretProvider())), camundaClient);
   }
 
   private SpringConnectorJobHandler newConnectorJobHandler(
@@ -149,7 +168,8 @@ class SpringConnectorJobHandlerTest {
         mock(DocumentFactory.class),
         TestObjectMapperSupplier.INSTANCE,
         call,
-        job -> SecretFilter.allowAll());
+        job -> SecretFilter.allowAll(),
+        mock(CamundaClient.class, RETURNS_DEEP_STUBS));
   }
 
   @Nested
@@ -865,6 +885,88 @@ class SpringConnectorJobHandlerTest {
       verify(secondStepMock).errorMessage(any());
       verify(secondStepMock, times(0)).retryBackoff(any()); // not set
       verify(secondStepMock).send();
+    }
+  }
+
+  @Nested
+  class JobTimeoutTests {
+
+    private CamundaClient camundaClient;
+    private UpdateTimeoutJobCommandStep1 updateTimeoutStep1;
+    private UpdateTimeoutJobCommandStep2 updateTimeoutStep2;
+
+    @BeforeEach
+    void init() {
+      camundaClient = mock(CamundaClient.class);
+      updateTimeoutStep1 = mock(UpdateTimeoutJobCommandStep1.class);
+      updateTimeoutStep2 = mock(UpdateTimeoutJobCommandStep2.class);
+      when(camundaClient.newUpdateTimeoutCommand(any(ActivatedJob.class)))
+          .thenReturn(updateTimeoutStep1);
+      when(updateTimeoutStep1.timeout(any(Duration.class))).thenReturn(updateTimeoutStep2);
+    }
+
+    @Test
+    void shouldUpdateJobTimeout_WhenHeaderPresent() throws Exception {
+      // given
+      var jobHandler = newConnectorJobHandler(context -> "ok", camundaClient);
+      var jobBuilder =
+          JobBuilder.create().withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
+
+      // when
+      jobBuilder.executeAndCaptureResult(jobHandler);
+
+      // then
+      ArgumentCaptor<Duration> timeoutCaptor = ArgumentCaptor.forClass(Duration.class);
+      verify(updateTimeoutStep1).timeout(timeoutCaptor.capture());
+      assertThat(timeoutCaptor.getValue()).isEqualTo(Duration.ofMinutes(10));
+      verify(updateTimeoutStep2).execute();
+    }
+
+    @Test
+    void shouldNotUpdateJobTimeout_WhenHeaderMissing() throws Exception {
+      // given
+      var jobHandler = newConnectorJobHandler(context -> "ok", camundaClient);
+      var jobBuilder = JobBuilder.create();
+
+      // when
+      jobBuilder.executeAndCaptureResult(jobHandler);
+
+      // then
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
+    void shouldFailJob_WhenHeaderInvalid_ConnectorNotInvoked() throws Exception {
+      // given
+      var connectorFunction = mock(OutboundConnectorFunction.class);
+      var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
+      var jobBuilder =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "not-a-duration"));
+
+      // when
+      var result = jobBuilder.executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getRetries()).isEqualTo(0);
+      verify(connectorFunction, times(0)).execute(any());
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
+    void shouldContinueExecution_WhenUpdateCommandFails() throws Exception {
+      // given
+      when(updateTimeoutStep2.execute()).thenThrow(new RuntimeException("boom"));
+      var jobHandler = newConnectorJobHandler(context -> "ok", camundaClient);
+      var jobBuilder =
+          JobBuilder.create().withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
+
+      // when
+      var result = jobBuilder.executeAndCaptureResult(jobHandler);
+
+      // then — connector still ran and the job still completed
+      assertThat(result.getVariables()).isNotNull();
     }
   }
 

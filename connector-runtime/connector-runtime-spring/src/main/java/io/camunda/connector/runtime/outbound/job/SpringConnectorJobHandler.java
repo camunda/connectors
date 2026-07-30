@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNullElse;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.JobCallbackFinalCommandStep;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.response.CompleteJobResponse;
@@ -56,6 +57,7 @@ import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.error.IgnoreError;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
+import io.camunda.connector.runtime.core.error.InvalidJobTimeoutException;
 import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
@@ -98,6 +100,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private final ObjectMapper objectMapper;
   private final SecretFilterFactory secretFilterFactory;
   private final DocumentReturnProcessor documentReturnProcessor;
+  private final CamundaClient camundaClient;
 
   public SpringConnectorJobHandler(
       MetricsRecorder outboundMetrics,
@@ -107,7 +110,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      CamundaClient camundaClient) {
     this(
         new ConnectorOutboundMetrics(outboundMetrics, null),
         jobCallbackCommandWrapperFactory,
@@ -116,7 +120,8 @@ public class SpringConnectorJobHandler implements JobHandler {
         documentFactory,
         objectMapper,
         connectorFunction,
-        secretFilterFactory);
+        secretFilterFactory,
+        camundaClient);
   }
 
   public SpringConnectorJobHandler(
@@ -127,7 +132,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      CamundaClient camundaClient) {
     this.call = connectorFunction;
     this.secretProvider = secretProviderAggregator;
     this.validationProvider = validationProvider;
@@ -140,6 +146,7 @@ public class SpringConnectorJobHandler implements JobHandler {
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
     this.jobCallbackCommandWrapperFactory = jobCallbackCommandWrapperFactory;
     this.connectorsOutboundMetrics = outboundMetrics;
+    this.camundaClient = camundaClient;
   }
 
   private SecretProvider getSecretProvider() {
@@ -195,22 +202,42 @@ public class SpringConnectorJobHandler implements JobHandler {
             documentFactory,
             objectMapper,
             secretFilter);
-    ConnectorResult result = getConnectorResult(job, context, secretFilter);
-    processFinalResult(client, job, context, result, counterMetricsContext, secretFilter);
+    ResultWithDeadline resultWithDeadline = getConnectorResult(job, context, secretFilter);
+    processFinalResult(
+        client,
+        job,
+        context,
+        resultWithDeadline.result(),
+        counterMetricsContext,
+        secretFilter,
+        resultWithDeadline.deadline());
   }
 
-  private ConnectorResult getConnectorResult(
+  /**
+   * Pairs a {@link ConnectorResult} with the deadline that should be used for the completion
+   * command that follows it — the job's original activation deadline, or a later one if {@link
+   * #updateJobTimeoutIfPresent} extended it.
+   */
+  private record ResultWithDeadline(ConnectorResult result, long deadline) {}
+
+  private ResultWithDeadline getConnectorResult(
       ActivatedJob job, OutboundConnectorContext context, SecretFilter secretFilter) {
     Duration retryBackoff = null;
+    long deadline = job.getDeadline();
     try {
       retryBackoff = getBackoffDuration(job);
+      Duration jobTimeout = updateJobTimeoutIfPresent(job);
+      if (jobTimeout != null) {
+        deadline = System.currentTimeMillis() + jobTimeout.toMillis();
+      }
 
       var connectorResponse = getConnectorResponse(context);
 
       if (connectorResponse instanceof AdHocSubProcessConnectorResponse ahsp) {
         InlineSizeGuard.check(objectMapper.writeValueAsBytes(ahsp.variables()).length);
         // AHSP responses provide their own variables; skip result expression evaluation
-        return new ConnectorResult.SuccessResult(connectorResponse, Map.of());
+        return new ResultWithDeadline(
+            new ConnectorResult.SuccessResult(connectorResponse, Map.of()), deadline);
       }
 
       var responseVariables =
@@ -221,11 +248,49 @@ public class SpringConnectorJobHandler implements JobHandler {
       if (!responseVariables.isEmpty()) {
         InlineSizeGuard.check(objectMapper.writeValueAsBytes(responseVariables).length);
       }
-      return new ConnectorResult.SuccessResult(connectorResponse, responseVariables);
+      return new ResultWithDeadline(
+          new ConnectorResult.SuccessResult(connectorResponse, responseVariables), deadline);
     } catch (Exception e) {
-      return outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-          e, job, retryBackoff, secretFilter);
+      return new ResultWithDeadline(
+          outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
+              e, job, retryBackoff, secretFilter),
+          deadline);
     }
+  }
+
+  /**
+   * Reads the {@link Keywords#JOB_TIMEOUT_KEYWORD} header and, if present, extends the job's Zeebe
+   * activation deadline via {@code UpdateJobTimeoutCommand} before the connector function runs.
+   * Returns the parsed duration on success, or {@code null} if there was no header to apply
+   * (missing/blank) or the update command itself failed (logged as a WARN, execution continues with
+   * the job's original deadline). A malformed duration is a configuration error and is not
+   * swallowed — it propagates so the job fails immediately, mirroring {@link #getBackoffDuration}.
+   */
+  private Duration updateJobTimeoutIfPresent(ActivatedJob job) {
+    String timeoutHeader = job.getCustomHeaders().get(Keywords.JOB_TIMEOUT_KEYWORD);
+    if (timeoutHeader == null || timeoutHeader.isBlank()) {
+      return null;
+    }
+    Duration timeout;
+    try {
+      timeout = Duration.parse(timeoutHeader);
+    } catch (DateTimeParseException e) {
+      throw new InvalidJobTimeoutException(
+          "Failed to parse job timeout header. Expected ISO-8601 duration, e.g. PT10M, got: "
+              + timeoutHeader,
+          e);
+    }
+    try {
+      camundaClient.newUpdateTimeoutCommand(job).timeout(timeout).execute();
+    } catch (Exception e) {
+      LOGGER.warn(
+          "Failed to update timeout for job: {} of type: {}, continuing with existing deadline",
+          job.getKey(),
+          job.getType(),
+          e);
+      return null;
+    }
+    return timeout;
   }
 
   private ConnectorResponse getConnectorResponse(OutboundConnectorContext context)
@@ -262,7 +327,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       OutboundConnectorContext context,
       ConnectorResult finalResult,
       CounterMetricsContext counterMetricsContext,
-      SecretFilter secretFilter) {
+      SecretFilter secretFilter,
+      long deadline) {
     try {
       Optional<ConnectorError> optionalConnectorError =
           connectorResultHandler.examineErrorExpression(
@@ -272,8 +338,11 @@ public class SpringConnectorJobHandler implements JobHandler {
                   new ErrorExpressionJobContext.ErrorExpressionJob(job.getRetries())));
       optionalConnectorError.ifPresentOrElse(
           error ->
-              handleConnectorError(client, job, context, finalResult, error, counterMetricsContext),
-          () -> handleFinalResult(client, job, context, finalResult, counterMetricsContext));
+              handleConnectorError(
+                  client, job, context, finalResult, error, counterMetricsContext, deadline),
+          () ->
+              handleFinalResult(
+                  client, job, context, finalResult, counterMetricsContext, deadline));
     } catch (Exception ex) {
       if (Thread.currentThread().isInterrupted()) {
         // the job-handling thread was interrupted (e.g. runtime shutdown) while evaluating the
@@ -299,7 +368,8 @@ public class SpringConnectorJobHandler implements JobHandler {
               job,
               this.outboundConnectorExceptionHandler.handleFinalResultException(
                   ex, job, secretFilter),
-              counterMetricsContext);
+              counterMetricsContext,
+              deadline);
       notifyFailureOnCommandOutcome(
           failJobRequest,
           context,
@@ -313,10 +383,11 @@ public class SpringConnectorJobHandler implements JobHandler {
       ActivatedJob job,
       OutboundConnectorContext context,
       ConnectorResult finalResult,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      long deadline) {
     if (finalResult instanceof ConnectorResult.SuccessResult successResult) {
       LOGGER.info("Completing job: {} for tenant: {}", job.getKey(), job.getTenantId());
-      completeJob(jobClient, job, context, successResult, counterMetricsContext);
+      completeJob(jobClient, job, context, successResult, counterMetricsContext, deadline);
     } else if (finalResult instanceof ConnectorResult.ErrorResult errorResult) {
       // Handle Java error, e.g. ConnectorException
       // these errors won't be handled ConnectorHelper.examineErrorExpression
@@ -329,7 +400,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       // pre-response failure path: function threw before returning a response, so notify with a
       // null response (subscribers to JobCompletionListener can still react)
       CompletableFuture<CommandOutcome> failJobRequest =
-          failJob(jobClient, job, errorResult, counterMetricsContext);
+          failJob(jobClient, job, errorResult, counterMetricsContext, deadline);
       notifyFailureOnCommandOutcome(
           failJobRequest,
           context,
@@ -344,7 +415,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       OutboundConnectorContext context,
       ConnectorResult finalResult,
       ConnectorError error,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      long deadline) {
     var response = connectorResponseOrNull(finalResult);
 
     switch (error) {
@@ -353,7 +425,7 @@ public class SpringConnectorJobHandler implements JobHandler {
         LOGGER.debug(
             "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
         CompletableFuture<CommandOutcome> throwBpmnErrorRequest =
-            throwBpmnError(client, job, bpmnError, counterMetricsContext);
+            throwBpmnError(client, job, bpmnError, counterMetricsContext, deadline);
         notifyFailureOnCommandOutcome(
             throwBpmnErrorRequest,
             context,
@@ -377,7 +449,8 @@ public class SpringConnectorJobHandler implements JobHandler {
                     new RuntimeException(jobError.errorMessage()),
                     jobError.retries(),
                     jobError.retryBackoff()),
-                counterMetricsContext);
+                counterMetricsContext,
+                deadline);
         notifyFailureOnCommandOutcome(
             failJobRequest,
             context,
@@ -390,7 +463,14 @@ public class SpringConnectorJobHandler implements JobHandler {
       }
       case IgnoreError ignoreError ->
           handleIgnoreError(
-              client, job, context, finalResult, response, ignoreError, counterMetricsContext);
+              client,
+              job,
+              context,
+              finalResult,
+              response,
+              ignoreError,
+              counterMetricsContext,
+              deadline);
     }
   }
 
@@ -401,7 +481,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       ConnectorResult finalResult,
       ConnectorResponse response,
       IgnoreError ignoreError,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      long deadline) {
     if (finalResult instanceof ConnectorResult.SuccessResult successResult
         && successResult.connectorResponse() instanceof AdHocSubProcessConnectorResponse) {
       LOGGER.debug(
@@ -413,7 +494,8 @@ public class SpringConnectorJobHandler implements JobHandler {
               client,
               job,
               new ConnectorResult.ErrorResult(ignoreError.variables(), cause, 0, null),
-              counterMetricsContext);
+              counterMetricsContext,
+              deadline);
 
       notifyFailureOnCommandOutcome(
           failJobRequest,
@@ -429,7 +511,8 @@ public class SpringConnectorJobHandler implements JobHandler {
           context,
           new ConnectorResult.SuccessResult(
               StandardConnectorResponse.of(null), ignoreError.variables()),
-          counterMetricsContext);
+          counterMetricsContext,
+          deadline);
     }
   }
 
@@ -453,11 +536,12 @@ public class SpringConnectorJobHandler implements JobHandler {
       JobClient client,
       ActivatedJob job,
       ConnectorResult.ErrorResult result,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      long deadline) {
     connectorsOutboundMetrics.recordFailed(job.getType());
     final var command = prepareFailJobCommand(client, job, result);
     return jobCallbackCommandWrapperFactory
-        .create(command, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
+        .create(command, deadline, counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
         .executeAsync();
   }
 
@@ -487,10 +571,11 @@ public class SpringConnectorJobHandler implements JobHandler {
       JobClient client,
       ActivatedJob job,
       BpmnError value,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      long deadline) {
     final var command = prepareThrowBpmnErrorCommand(client, job, value);
     return jobCallbackCommandWrapperFactory
-        .create(command, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
+        .create(command, deadline, counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
         .executeAsync();
   }
 
@@ -510,7 +595,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       ActivatedJob job,
       OutboundConnectorContext context,
       ConnectorResult.SuccessResult result,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      long deadline) {
     ConnectorResponse connectorResponse = result.connectorResponse();
 
     final var command =
@@ -522,7 +608,7 @@ public class SpringConnectorJobHandler implements JobHandler {
 
     CompletableFuture<CommandOutcome> completeJobRequest =
         jobCallbackCommandWrapperFactory
-            .create(command, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
+            .create(command, deadline, counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
             .executeAsync();
 
     completeJobRequest.whenComplete(

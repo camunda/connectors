@@ -205,7 +205,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
                 documentFactory,
                 objectMapper,
                 connectorFunction,
-                secretFilterFactory);
+                secretFilterFactory,
+                client);
     jobWorkerManager.createJobWorker(
         client, new ManagedJobWorker(jobWorkerValue, jobHandlerFactory), this);
   }
