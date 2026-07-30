@@ -5,7 +5,7 @@
   "description" : "Invoke REST API",
   "keywords" : [ "HTTP", "REST", "API call", "web request", "GET", "POST", "PUT", "PATCH", "DELETE", "fetch data", "send request", "invoke API" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 18,
+  "version" : 17,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -708,7 +708,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "18",
+    "value" : "17",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
