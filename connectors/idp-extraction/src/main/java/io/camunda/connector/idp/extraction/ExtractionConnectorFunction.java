@@ -32,10 +32,10 @@ import io.camunda.connector.idp.extraction.service.UnstructuredService;
     inputVariables = {"baseRequest", "input"},
     type = "io.camunda:idp-extraction-connector-template:1")
 @ElementTemplate(
-    engineVersion = "^8.7",
+    engineVersion = "^8.10",
     id = "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
     name = "IDP extraction outbound Connector",
-    version = 3,
+    version = 4,
     description = "Execute IDP extraction requests",
     icon = "icon.svg",
     documentationRef = "https://docs.camunda.io/docs/guides/",
