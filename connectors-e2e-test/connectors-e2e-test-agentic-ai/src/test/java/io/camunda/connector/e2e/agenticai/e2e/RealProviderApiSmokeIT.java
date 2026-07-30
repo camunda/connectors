@@ -50,7 +50,6 @@ import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -80,7 +79,7 @@ import org.springframework.core.io.ResourceLoader;
 @WireMockTest
 class RealProviderApiSmokeIT {
 
-  static final String BPMN_RESOURCE = "classpath:native-provider-acceptance-agent.bpmn";
+  static final String BPMN_RESOURCE = "classpath:real-provider-api-smoke.bpmn";
   static final String PROCESS_ID = "native_provider_acceptance";
   static final String TOOL_JOB_TYPE = "native-acceptance-tool";
   static final Duration PROCESS_TIMEOUT = Duration.ofMinutes(3);
@@ -106,18 +105,16 @@ class RealProviderApiSmokeIT {
           + "\"required\":[\"codeName\",\"clearanceLevel\"],"
           + "\"additionalProperties\":false}";
 
-  // Long, stable system prompt whose token count clears Anthropic's minimum cacheable-prefix size
-  // (1024 tokens for Sonnet-class models) on its own. The cacheable prefix is the turn-to-turn
-  // identical head of the request (system + tools); Anthropic only reports
-  // cache_creation_input_tokens/cache_read_input_tokens once that prefix reaches the minimum. Each
-  // repeated segment below is ~65 tokens, so 24 repeats (~1.5k tokens) clears the threshold with
-  // margin.
+  // Repeated to clear Anthropic's minimum cacheable-prefix size (~1024 tokens for Sonnet-class
+  // models); each repeat is ~65 tokens, so 24 repeats gives comfortable margin.
   private static final String LONG_SYSTEM_PROMPT =
-      ("You are an assistant operating under a detailed classified-information handling protocol. "
-              + "Always be precise, never fabricate facts, and when the user asks for an internal "
-              + "or classified code name you must call the Lookup Classified Fact tool and quote "
-              + "its result verbatim without paraphrasing. Follow every rule in this protocol "
-              + "carefully and consistently across the whole conversation. ")
+      """
+      You are an assistant operating under a detailed classified-information handling protocol. \
+      Always be precise, never fabricate facts, and when the user asks for an internal \
+      or classified code name you must call the Lookup Classified Fact tool and quote \
+      its result verbatim without paraphrasing. Follow every rule in this protocol \
+      carefully and consistently across the whole conversation. \
+      """
           .repeat(24);
 
   private static final String DOC_DIR = "document-tool-call-results/";
@@ -142,9 +139,7 @@ class RealProviderApiSmokeIT {
     REASONING,
     PROMPT_CACHING,
     MULTIMODAL_USER_MESSAGE,
-    MULTIMODAL_TOOL_RESULT,
-    WEB_SEARCH,
-    CODE_INTERPRETER
+    MULTIMODAL_TOOL_RESULT
   }
 
   /**
@@ -162,17 +157,13 @@ class RealProviderApiSmokeIT {
       String requiredEnvVar,
       Map<String, String> properties,
       Map<Capability, Map<String, String>> capabilityProperties,
-      // Whether this row's reasoning config FORCES the model to emit reasoning tokens (a forcing
-      // mode like Anthropic "enabled"), so the reasoning scenario can additionally assert
-      // reasoningTokenCount > 0. For "adaptive"/effort-only modes the model may answer without
-      // billable thinking, so only completion + a correct answer is asserted.
+      // Whether this row's reasoning config forces reasoning tokens (e.g. Anthropic "enabled"), so
+      // the reasoning scenario can additionally assert reasoningTokenCount > 0.
       boolean forcesReasoningTokens,
       // Whether this row reports a distinct cache-creation (write) token count in addition to
-      // cache-read (Anthropic reports `cache_creation_input_tokens` for the turn that writes the
-      // cache) — the cache-creation assertion in the prompt-caching scenario is gated on this flag.
+      // cache-read; gates the cache-creation assertion in the prompt-caching scenario.
       boolean reportsCacheCreationTokens,
-      // Manual on/off switch (independent of the env-var gate) so a single row can be muted while
-      // iterating locally; mirrors DocumentToolCallResultsIT.ProviderConfig#disabled().
+      // Manual on/off switch (independent of the env-var gate) for muting a row while iterating.
       boolean enabled) {
 
     Provider(
@@ -221,12 +212,12 @@ class RealProviderApiSmokeIT {
     }
   }
 
-  static Provider anthropicDirect(
+  static Provider anthropicApi(
       String model,
       Map<Capability, Map<String, String>> capabilityProperties,
       boolean forcesReasoningTokens) {
     return new Provider(
-        "anthropic-direct/" + model,
+        "anthropic-api/" + model,
         "ANTHROPIC_API_KEY",
         Map.of(
             "provider.type",
@@ -246,7 +237,7 @@ class RealProviderApiSmokeIT {
     return Stream.of(
             // claude-sonnet-4-6 supports thinking mode "enabled" (explicit budget) — forced
             // thinking, so reasoning tokens are guaranteed.
-            anthropicDirect(
+            anthropicApi(
                 "claude-sonnet-4-6",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
@@ -260,9 +251,8 @@ class RealProviderApiSmokeIT {
                             "provider.anthropic.model.parameters.thinking.budgetTokens", "2048")),
                 true),
             // claude-sonnet-5 does NOT accept "enabled"; it allows "adaptive" (the model decides
-            // whether to think), so reasoning tokens are not guaranteed. This row does not
-            // populate Capability.WEB_SEARCH / Capability.CODE_INTERPRETER.
-            anthropicDirect(
+            // whether to think), so reasoning tokens are not guaranteed.
+            anthropicApi(
                 "claude-sonnet-5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
@@ -282,10 +272,6 @@ class RealProviderApiSmokeIT {
     return System.getenv().getOrDefault(envVar, "NOT_SET");
   }
 
-  private static String providerContentTag(Provider provider) {
-    return provider.label().startsWith("anthropic") ? "anthropic" : "openai";
-  }
-
   @BeforeEach
   void mockClassifiedFactTool() {
     processTestContext
@@ -297,98 +283,6 @@ class RealProviderApiSmokeIT {
                     .variable("toolCallResult", PLANTED_SECRET)
                     .send()
                     .join());
-  }
-
-  /**
-   * Builds the applied BPMN for the given provider, with baseline props + per-scenario overrides.
-   * The system prompt is referenced via FEEL ({@code =systemPrompt}) rather than baked into the
-   * template as a string literal; {@link #startAgent} supplies the {@code systemPrompt} process
-   * variable.
-   */
-  BpmnModelInstance buildModel(
-      Provider provider,
-      String templatePath,
-      String bpmnResource,
-      String systemPrompt,
-      Consumer<ElementTemplate> customize) {
-    var template = ElementTemplate.from(templatePath);
-
-    template
-        .property("agentContext", "=agent.context")
-        .property("data.systemPrompt.prompt", "=systemPrompt")
-        .property("data.userPrompt.prompt", "=userPrompt")
-        .property("data.memory.storage.type", "in-process")
-        .property("data.memory.contextWindowSize", "=50")
-        .property("data.response.includeAssistantMessage", "=true")
-        .property("data.response.includeAgentContext", "=true");
-
-    provider.properties().forEach(template::property);
-    customize.accept(template);
-
-    try {
-      var templateFile = template.writeTo(new File(tempDir, "template.json"));
-      var bpmnFile = resourceLoader.getResource(bpmnResource).getFile();
-      return new BpmnFile(bpmnFile)
-          .apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to build BPMN model for " + provider.label(), e);
-    }
-  }
-
-  /** Deploys {@code model} and starts an instance, supplying {@code systemPrompt} as a variable. */
-  ProcessInstanceEvent startAgent(
-      BpmnModelInstance model,
-      String processId,
-      String systemPrompt,
-      Map<String, Object> variables) {
-    ZeebeTest.with(camundaClient).awaitCompleteTopology().deploy(model);
-    final var allVariables = new HashMap<>(variables);
-    allVariables.put("systemPrompt", systemPrompt);
-    return camundaClient
-        .newCreateInstanceCommand()
-        .bpmnProcessId(processId)
-        .latestVersion()
-        .variables(allVariables)
-        .send()
-        .join();
-  }
-
-  void assertAgentResponse(
-      ProcessInstanceEvent instance, ThrowingConsumer<AgentSubProcessResponse> assertions) {
-    assertThat(instance)
-        .withAssertionTimeout(PROCESS_TIMEOUT)
-        .isCompleted()
-        .hasVariableSatisfies(
-            AGENT_RESPONSE_VARIABLE,
-            Map.class,
-            map -> {
-              var response = objectMapper.convertValue(map, AgentSubProcessResponse.class);
-              assertions.accept(response);
-            });
-  }
-
-  /**
-   * Asserts substrings on the agent's {@code responseText} read directly from the raw output map,
-   * WITHOUT deserializing the whole response. Use this when the persisted agent context contains a
-   * {@link io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent} whose
-   * abstract {@code Document} the plain test ObjectMapper cannot reconstruct (the multimodal
-   * scenario): a full {@code convertValue(..., AgentSubProcessResponse.class)} would fail on the
-   * Document reference, not on the text we actually want to assert.
-   */
-  void assertResponseTextContains(ProcessInstanceEvent instance, String... expectedSubstrings) {
-    assertThat(instance)
-        .withAssertionTimeout(PROCESS_TIMEOUT)
-        .isCompleted()
-        .hasVariableSatisfies(
-            AGENT_RESPONSE_VARIABLE,
-            Map.class,
-            map -> {
-              final var responseText = String.valueOf(map.get("responseText"));
-              final var textAssert = Assertions.assertThat(responseText);
-              for (final String expected : expectedSubstrings) {
-                textAssert.contains(expected);
-              }
-            });
   }
 
   @ParameterizedTest(name = "{0}")
@@ -513,10 +407,8 @@ class RealProviderApiSmokeIT {
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithPromptCaching")
   void promptCachingReportsCacheReadAndWriteTokens(Provider provider) {
-    // Pass the long system prompt as a process VARIABLE referenced by FEEL rather than baking a
-    // ~5KB string literal into the element template (baking it produced a deploy-time
-    // ConnectionClosedException). The resolved system prompt is identical every turn, so the
-    // cacheable prefix stays byte-stable.
+    // Passed as a process VARIABLE via FEEL rather than baked into the element template (baking it
+    // produced a deploy-time ConnectionClosedException).
     var model =
         buildModel(
             provider,
@@ -524,7 +416,6 @@ class RealProviderApiSmokeIT {
             BPMN_RESOURCE,
             DEFAULT_SYSTEM_PROMPT,
             template -> {
-              // Caching enablement is provider-specific and comes from the provider row.
               provider.propertiesFor(Capability.PROMPT_CACHING).forEach(template::property);
               template.property("data.systemPrompt.prompt", "=longSystemPrompt");
             });
@@ -540,14 +431,11 @@ class RealProviderApiSmokeIT {
                 "longSystemPrompt",
                 LONG_SYSTEM_PROMPT));
 
-    // The tool call forces a second model call: turn 1 writes the cache (system+tools prefix),
-    // turn 2 re-sends the byte-identical prefix and reads it. Cumulative run metrics carry both.
+    // The tool call forces a second model call: turn 1 writes the cache, turn 2 reads it.
     assertAgentResponse(
         instance,
         response -> {
           var agentAssert = AgentSubProcessResponseAssert.assertThat(response).isReady();
-          // Cache-creation (write) tokens are only reported by providers that expose a distinct
-          // write metric; this assertion is gated on that flag.
           if (provider.reportsCacheCreationTokens()) {
             agentAssert.metricsSatisfy(
                 metrics ->
@@ -610,15 +498,6 @@ class RealProviderApiSmokeIT {
     assertResponseTextContains(instance, "Zypherion");
   }
 
-  private void stubPdfDownloads() {
-    for (var doc : List.of(DOC_PROJECT_LAUNCH, DOC_HEADCOUNT_REPORT, DOC_AUTHOR_INFO)) {
-      stubFor(
-          get(urlPathEqualTo("/" + doc))
-              .willReturn(
-                  aResponse().withBodyFile(doc).withHeader("Content-Type", "application/pdf")));
-    }
-  }
-
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithMultimodalToolResult")
   void documentInToolResultIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
@@ -650,87 +529,100 @@ class RealProviderApiSmokeIT {
     assertResponseTextContains(instance, "Zypherion", "847", "Kael Thrennix");
   }
 
-  static Stream<Provider> providersWithCodeInterpreter() {
-    return providers().filter(p -> p.supports(Capability.CODE_INTERPRETER));
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
+  private BpmnModelInstance buildModel(
+      Provider provider,
+      String templatePath,
+      String bpmnResource,
+      String systemPrompt,
+      Consumer<ElementTemplate> customize) {
+    var template = ElementTemplate.from(templatePath);
+
+    template
+        .property("agentContext", "=agent.context")
+        .property("data.systemPrompt.prompt", "=systemPrompt")
+        .property("data.userPrompt.prompt", "=userPrompt")
+        .property("data.memory.storage.type", "in-process")
+        .property("data.memory.contextWindowSize", "=50")
+        .property("data.response.includeAssistantMessage", "=true")
+        .property("data.response.includeAgentContext", "=true");
+
+    provider.properties().forEach(template::property);
+    customize.accept(template);
+
+    try {
+      var templateFile = template.writeTo(new File(tempDir, "template.json"));
+      var bpmnFile = resourceLoader.getResource(bpmnResource).getFile();
+      return new BpmnFile(bpmnFile)
+          .apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to build BPMN model for " + provider.label(), e);
+    }
   }
 
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("providersWithCodeInterpreter")
-  @Disabled(
-      "No provider row currently populates Capability.CODE_INTERPRETER, so this parameterized"
-          + " scenario has no rows to run.")
-  void codeInterpreterComputesDeterministicResult(Provider provider) {
-    var model =
-        buildModel(
-            provider,
-            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-            BPMN_RESOURCE,
-            "You may run code to compute exact answers.",
-            template ->
-                provider.propertiesFor(Capability.CODE_INTERPRETER).forEach(template::property));
-
-    var instance =
-        startAgent(
-            model,
-            PROCESS_ID,
-            "You may run code to compute exact answers.",
-            Map.of(
-                "userPrompt",
-                "Compute 987654321 * 123456789 exactly using code. Reply with just the number."));
-
-    // Deterministic text is the hard gate; the provider content block additionally proves the
-    // provider's code-execution result block (OpenAI code_interpreter_call / Anthropic
-    // bash_code_execution_tool_result) was captured as a structural round-trip witness.
-    assertAgentResponse(
-        instance,
-        response ->
-            AgentSubProcessResponseAssert.assertThat(response)
-                .isReady()
-                .hasResponseTextSatisfying(
-                    text -> Assertions.assertThat(text).contains("121932631112635269"))
-                .hasProviderContentBlockOfTypeInConversation(providerContentTag(provider)));
+  private ProcessInstanceEvent startAgent(
+      BpmnModelInstance model,
+      String processId,
+      String systemPrompt,
+      Map<String, Object> variables) {
+    ZeebeTest.with(camundaClient).awaitCompleteTopology().deploy(model);
+    final var allVariables = new HashMap<>(variables);
+    allVariables.put("systemPrompt", systemPrompt);
+    return camundaClient
+        .newCreateInstanceCommand()
+        .bpmnProcessId(processId)
+        .latestVersion()
+        .variables(allVariables)
+        .send()
+        .join();
   }
 
-  static Stream<Provider> providersWithWebSearch() {
-    return providers().filter(p -> p.supports(Capability.WEB_SEARCH));
+  private void assertAgentResponse(
+      ProcessInstanceEvent instance, ThrowingConsumer<AgentSubProcessResponse> assertions) {
+    assertThat(instance)
+        .withAssertionTimeout(PROCESS_TIMEOUT)
+        .isCompleted()
+        .hasVariableSatisfies(
+            AGENT_RESPONSE_VARIABLE,
+            Map.class,
+            map -> {
+              var response = objectMapper.convertValue(map, AgentSubProcessResponse.class);
+              assertions.accept(response);
+            });
   }
 
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("providersWithWebSearch")
-  @Disabled(
-      "No provider row currently populates Capability.WEB_SEARCH, so this parameterized scenario"
-          + " has no rows to run.")
-  void webSearchCompletesAndRoundTrips(Provider provider) {
-    final var systemPrompt = "Use web search when you need current information.";
-    var model =
-        buildModel(
-            provider,
-            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-            BPMN_RESOURCE,
-            systemPrompt,
-            template -> provider.propertiesFor(Capability.WEB_SEARCH).forEach(template::property));
+  /**
+   * Asserts substrings on the agent's {@code responseText} read directly from the raw output map,
+   * without deserializing the whole response - the multimodal scenario's persisted agent context
+   * contains a {@link io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent}
+   * whose abstract {@code Document} the plain test ObjectMapper cannot reconstruct.
+   */
+  private void assertResponseTextContains(
+      ProcessInstanceEvent instance, String... expectedSubstrings) {
+    assertThat(instance)
+        .withAssertionTimeout(PROCESS_TIMEOUT)
+        .isCompleted()
+        .hasVariableSatisfies(
+            AGENT_RESPONSE_VARIABLE,
+            Map.class,
+            map -> {
+              final var responseText = String.valueOf(map.get("responseText"));
+              final var textAssert = Assertions.assertThat(responseText);
+              for (final String expected : expectedSubstrings) {
+                textAssert.contains(expected);
+              }
+            });
+  }
 
-    var instance =
-        startAgent(
-            model,
-            PROCESS_ID,
-            systemPrompt,
-            Map.of(
-                "userPrompt",
-                "Search the web for the current stable version of the Camunda 8 documentation "
-                    + "and briefly state what you found."));
-
-    // Content is non-deterministic (live web search), so completion itself is the primary
-    // round-trip witness: a failed server-tool block replay would 400 and the process would not
-    // complete. The provider content block additionally proves the provider's web-search result
-    // block (OpenAI web_search_call / Anthropic web_search_tool_result) was captured (no
-    // DocumentContent is involved here, so the full typed response, unlike the multimodal
-    // scenario, deserializes safely via assertAgentResponse).
-    assertAgentResponse(
-        instance,
-        response ->
-            AgentSubProcessResponseAssert.assertThat(response)
-                .isReady()
-                .hasProviderContentBlockOfTypeInConversation(providerContentTag(provider)));
+  private void stubPdfDownloads() {
+    for (var doc : List.of(DOC_PROJECT_LAUNCH, DOC_HEADCOUNT_REPORT, DOC_AUTHOR_INFO)) {
+      stubFor(
+          get(urlPathEqualTo("/" + doc))
+              .willReturn(
+                  aResponse().withBodyFile(doc).withHeader("Content-Type", "application/pdf")));
+    }
   }
 }
