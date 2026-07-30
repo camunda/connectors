@@ -577,4 +577,26 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
         .isInstanceOf(FeelEngineWrapperException.class)
         .hasMessageContaining("jitterFactor");
   }
+
+  @Test
+  void createDocumentFunctionWithObjectArgument() {
+    final var resultExpression =
+        "=createDocument({content: \"aGVsbG8=\", name: \"hello.txt\", contentType: \"text/plain\"})";
+    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
+    assertThat(result).containsEntry("connectorResultFunction", "createDocument");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> value = (Map<String, Object>) result.get("value");
+    assertThat(value)
+        .containsEntry("content", "aGVsbG8=")
+        .containsEntry("name", "hello.txt")
+        .containsEntry("contentType", "text/plain");
+  }
+
+  @Test
+  void createDocumentFunctionWithStringArgument() {
+    final var resultExpression = "=createDocument(\"aGVsbG8=\")";
+    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
+    assertThat(result).containsEntry("connectorResultFunction", "createDocument");
+    assertThat(result).containsEntry("value", "aGVsbG8=");
+  }
 }

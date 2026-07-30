@@ -18,6 +18,7 @@ package io.camunda.connector.feel;
 
 import io.camunda.connector.feel.function.BackoffFunction;
 import io.camunda.connector.feel.function.BpmnErrorFunction;
+import io.camunda.connector.feel.function.CreateDocumentFunction;
 import io.camunda.connector.feel.function.IgnoreErrorFunction;
 import io.camunda.connector.feel.function.JobErrorFunction;
 import java.util.Collection;
@@ -35,13 +36,16 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
   public static final String BPMN_ERROR_TYPE_VALUE = "bpmnError";
   public static final String JOB_ERROR_TYPE_VALUE = "jobError";
   public static final String IGNORE_ERROR_TYPE_VALUE = "ignoreError";
+  public static final String RESULT_FUNCTION_TYPE_PROPERTY = "connectorResultFunction";
+  public static final String CREATE_DOCUMENT_TYPE_VALUE = "createDocument";
 
   private static final Map<String, List<JavaFunction>> functions =
       Map.of(
           BpmnErrorFunction.NAME, BpmnErrorFunction.FUNCTIONS,
           JobErrorFunction.NAME, JobErrorFunction.FUNCTIONS,
           IgnoreErrorFunction.NAME, IgnoreErrorFunction.FUNCTIONS,
-          BackoffFunction.NAME, BackoffFunction.FUNCTIONS);
+          BackoffFunction.NAME, BackoffFunction.FUNCTIONS,
+          CreateDocumentFunction.NAME, CreateDocumentFunction.FUNCTIONS);
 
   @Override
   public Optional<JavaFunction> resolveFunction(String functionName) {
