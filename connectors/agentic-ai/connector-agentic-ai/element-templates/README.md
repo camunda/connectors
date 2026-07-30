@@ -15,7 +15,7 @@ field in each JSON file captures the same information (e.g. `^8.9` means
 "requires Camunda 8.9 or later").
 
 For example, if you are on Camunda 8.9, use the AI Agent template version `7`;
-if you are on Camunda 8.10, use version `11`.
+if you are on Camunda 8.10, use version `12`.
 
 ## AI Agent connectors
 
