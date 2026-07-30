@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import java.util.Set;
@@ -54,7 +55,11 @@ class InboundCorrelationConfigurationTest {
 
     var result =
         configuration.inboundCorrelationHandler(
-            registry, null, mock(ObjectMapper.class), mock(ConnectorsInboundMetrics.class));
+            registry,
+            null,
+            mock(ObjectMapper.class),
+            mock(DocumentFactory.class),
+            mock(ConnectorsInboundMetrics.class));
 
     assertThat(result).isInstanceOf(InboundCorrelationHandler.class);
   }
@@ -71,7 +76,11 @@ class InboundCorrelationConfigurationTest {
     assertThatThrownBy(
             () ->
                 configuration.inboundCorrelationHandler(
-                    registry, null, mock(ObjectMapper.class), mock(ConnectorsInboundMetrics.class)))
+                    registry,
+                    null,
+                    mock(ObjectMapper.class),
+                    mock(DocumentFactory.class),
+                    mock(ConnectorsInboundMetrics.class)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("InboundCorrelationHandler");
   }

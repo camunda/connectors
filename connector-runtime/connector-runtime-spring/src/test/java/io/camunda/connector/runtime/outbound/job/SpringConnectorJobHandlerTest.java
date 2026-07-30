@@ -41,6 +41,7 @@ import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.jobhandling.CommandOutcome;
 import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.metrics.MicrometerMetricsRecorder;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.document.RawPayload;
@@ -63,6 +64,8 @@ import io.camunda.connector.runtime.JobBuilder;
 import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
@@ -71,6 +74,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -132,6 +136,21 @@ class SpringConnectorJobHandlerTest {
         secretProviderAggregator,
         new DefaultValidationProvider(),
         mock(DocumentFactory.class),
+        TestObjectMapperSupplier.INSTANCE,
+        call,
+        job -> SecretFilter.allowAll());
+  }
+
+  private SpringConnectorJobHandler newConnectorJobHandlerWithDocumentFactory(
+      OutboundConnectorFunction call, DocumentFactory documentFactory) {
+    var metricsRecorder = new MicrometerMetricsRecorder(new SimpleMeterRegistry());
+    return new SpringConnectorJobHandler(
+        metricsRecorder,
+        new JobCallbackCommandWrapperFactory(
+            BackoffSupplier.newBackoffBuilder().build(), commandScheduler, metricsRecorder),
+        new SecretProviderAggregator(List.of(new FooBarSecretProvider())),
+        new DefaultValidationProvider(),
+        documentFactory,
         TestObjectMapperSupplier.INSTANCE,
         call,
         job -> SecretFilter.allowAll());
@@ -2309,6 +2328,41 @@ class SpringConnectorJobHandlerTest {
           JobCompletionFailure failure) {
         delegate.onJobCompletionFailed(context, response, failure);
       }
+    }
+  }
+
+  @Nested
+  class CreateDocumentTests {
+
+    @Test
+    void resultExpressionCreateDocumentProducesRealDocumentInOutputVariables() throws Exception {
+      // given a connector whose response embeds a base64-encoded file inside its JSON body,
+      // mirroring the shape from https://github.com/camunda/connectors/issues/4715
+      String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+      var jobHandler =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) -> Map.of("body", Map.of("file", base64)),
+              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+
+      // when the result expression extracts just that field via createDocument
+      var result =
+          JobBuilder.create()
+              .withResultExpressionHeader("={myDoc: createDocument(response.body.file)}")
+              .executeAndCaptureResult(jobHandler);
+
+      // then the output variable holds a real document reference, not the raw base64 string.
+      // NOTE (Task 3 correction, verified against InboundCorrelationHandlerTest): with the
+      // production-shaped ObjectMapper used here (TestObjectMapperSupplier.INSTANCE, which
+      // registers the full JacksonModuleDocumentDeserializer stack just like the real
+      // connectorObjectMapper/outboundConnectorObjectMapper beans), the resolved document
+      // reference JSON gets re-hydrated by Jackson's own Object.class deserializer into a real
+      // Document rather than staying a raw reference Map. The Mockito ArgumentCaptor in
+      // JobBuilder captures the in-memory variables Map directly (no JsonMapper round-trip
+      // through a Zeebe client), so that live Document object survives into the captured result.
+      var myDoc = result.getVariables().get("myDoc");
+      assertThat(myDoc).isInstanceOf(Document.class);
+      assertThat(((Document) myDoc).asByteArray())
+          .isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
     }
   }
 }

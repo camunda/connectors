@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.inbound;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
@@ -51,6 +52,7 @@ public class InboundCorrelationConfiguration {
       CamundaClient legacyCamundaClient,
       ObjectMapper objectMapper,
       Duration messageTtl,
+      DocumentFactory documentFactory,
       ConnectorsInboundMetrics connectorsInboundMetrics) {
     return registry.clientNames().stream()
         .collect(
@@ -62,6 +64,7 @@ public class InboundCorrelationConfiguration {
                         PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient),
                         objectMapper,
                         messageTtl,
+                        documentFactory,
                         connectorsInboundMetrics)));
   }
 
@@ -78,10 +81,16 @@ public class InboundCorrelationConfiguration {
       CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
       @ConnectorsObjectMapper ObjectMapper objectMapper,
+      DocumentFactory documentFactory,
       ConnectorsInboundMetrics connectorsInboundMetrics) {
     return PhysicalTenantIds.onlyValue(
         buildCorrelationHandlersByPhysicalTenantId(
-            registry, legacyCamundaClient, objectMapper, messageTtl, connectorsInboundMetrics),
+            registry,
+            legacyCamundaClient,
+            objectMapper,
+            messageTtl,
+            documentFactory,
+            connectorsInboundMetrics),
         InboundCorrelationHandler.class);
   }
 }

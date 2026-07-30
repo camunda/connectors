@@ -99,7 +99,12 @@ public class InboundConnectorRuntimeConfiguration {
       @Autowired(required = false) CamundaClient legacyCamundaClient) {
     Map<String, InboundCorrelationHandler> correlationHandlersByPhysicalTenantId =
         InboundCorrelationConfiguration.buildCorrelationHandlersByPhysicalTenantId(
-            registry, legacyCamundaClient, mapper, messageTtl, connectorsInboundMetrics);
+            registry,
+            legacyCamundaClient,
+            mapper,
+            messageTtl,
+            documentFactory,
+            connectorsInboundMetrics);
     Map<String, InboundConnectorContextFactory> delegatesByPhysicalTenantId =
         registry.clientNames().stream()
             .collect(

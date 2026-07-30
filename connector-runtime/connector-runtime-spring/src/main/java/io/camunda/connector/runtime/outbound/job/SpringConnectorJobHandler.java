@@ -137,7 +137,7 @@ public class SpringConnectorJobHandler implements JobHandler {
     this.documentReturnProcessor = new DocumentReturnProcessor(documentFactory, objectMapper);
     this.outboundConnectorExceptionHandler =
         new OutboundConnectorExceptionHandler(getSecretProvider());
-    this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
+    this.connectorResultHandler = new ConnectorResultHandler(objectMapper, documentFactory);
     this.jobCallbackCommandWrapperFactory = jobCallbackCommandWrapperFactory;
     this.connectorsOutboundMetrics = outboundMetrics;
   }
