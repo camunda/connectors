@@ -27,6 +27,7 @@ import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.api.document.DocumentReturnFormat;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
@@ -37,6 +38,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -126,6 +128,36 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("1");
     assertThat(jobHandlerContext.bindVariables(TestClass.class).integer).isEqualTo(1);
+  }
+
+  @Test
+  void bindVariables_secretContextCarriesTheJobsPhysicalTenantId() {
+    when(activatedJob.getVariables()).thenReturn("{ \"integer\": {{secrets.FOO}} }");
+    when(activatedJob.getTenantId()).thenReturn("my-tenant");
+    when(activatedJob.getBpmnProcessId()).thenReturn("my-process");
+    when(activatedJob.getPhysicalTenantId()).thenReturn("engine-1");
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("1");
+
+    jobHandlerContext.bindVariables(TestClass.class);
+
+    var secretContext = ArgumentCaptor.forClass(SecretContext.class);
+    verify(secretProvider).getSecret(eq("FOO"), secretContext.capture());
+    assertThat(secretContext.getValue())
+        .isEqualTo(new SecretContext("my-tenant", "my-process", "engine-1"));
+  }
+
+  @Test
+  void bindVariables_secretContextHasNoPhysicalTenantIdWhenTheJobReportsNone() {
+    // clusters that predate multi-engine support report an empty physical tenant
+    when(activatedJob.getVariables()).thenReturn("{ \"integer\": {{secrets.FOO}} }");
+    when(activatedJob.getPhysicalTenantId()).thenReturn("");
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("1");
+
+    jobHandlerContext.bindVariables(TestClass.class);
+
+    var secretContext = ArgumentCaptor.forClass(SecretContext.class);
+    verify(secretProvider).getSecret(eq("FOO"), secretContext.capture());
+    assertThat(secretContext.getValue().physicalTenantId()).isNull();
   }
 
   @Test

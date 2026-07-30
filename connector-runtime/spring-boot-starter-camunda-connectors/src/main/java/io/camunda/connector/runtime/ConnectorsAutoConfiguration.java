@@ -87,6 +87,9 @@ public class ConnectorsAutoConfiguration {
   @Value("${camunda.connector.secretprovider.environment.prefix:SECRET_}")
   String environmentSecretProviderPrefix;
 
+  @Value("${camunda.connector.secretprovider.environment.physicaltenantaware:false}")
+  boolean environmentSecretProviderPhysicalTenantAware;
+
   @Value("${camunda.connector.secretprovider.environment.tenantaware:false}")
   boolean environmentSecretProviderTenantAware;
 
@@ -160,6 +163,7 @@ public class ConnectorsAutoConfiguration {
     return new EnvironmentSecretProvider(
         environment,
         environmentSecretProviderPrefix,
+        environmentSecretProviderPhysicalTenantAware,
         environmentSecretProviderTenantAware,
         environmentSecretProviderProcessDefinitionAware);
   }

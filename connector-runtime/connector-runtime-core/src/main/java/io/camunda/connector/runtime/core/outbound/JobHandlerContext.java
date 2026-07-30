@@ -93,7 +93,9 @@ public class JobHandlerContext extends AbstractConnectorContext
       jsonWithSecrets =
           getSecretHandler()
               .replaceSecrets(
-                  job.getVariables(), new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
+                  job.getVariables(),
+                  new SecretContext(
+                      job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId()));
     }
     return jsonWithSecrets;
   }
