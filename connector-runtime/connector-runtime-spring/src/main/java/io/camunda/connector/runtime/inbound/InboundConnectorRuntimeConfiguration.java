@@ -48,6 +48,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessStateManagerImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.instances.service.InboundInstancesService;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
+import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.Map;
@@ -95,9 +96,16 @@ public class InboundConnectorRuntimeConfiguration {
       @Autowired(required = false) ValidationProvider validationProvider,
       Map<String, ProcessInstanceClient> processInstanceClientsByPhysicalTenantId,
       DocumentFactory documentFactory,
-      Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId,
       CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient) {
+    // Built from raw dependencies rather than injected as a Map<String, DocumentFactory> @Bean
+    // parameter: Spring resolves such a parameter by collecting scalar DocumentFactory beans by
+    // name instead of finding the bean whose own declared type is the map (see PhysicalTenantIds'
+    // class-level Javadoc) — with a scalar `documentFactory` bean also present in this context,
+    // that would silently produce a wrong single-entry map instead of the real per-tenant one.
+    var documentFactoriesByPhysicalTenantId =
+        OutboundConnectorRuntimeConfiguration.buildDocumentFactoriesByPhysicalTenantId(
+            registry, legacyCamundaClient, documentFactory);
     Map<String, InboundCorrelationHandler> correlationHandlersByPhysicalTenantId =
         InboundCorrelationConfiguration.buildCorrelationHandlersByPhysicalTenantId(
             registry,

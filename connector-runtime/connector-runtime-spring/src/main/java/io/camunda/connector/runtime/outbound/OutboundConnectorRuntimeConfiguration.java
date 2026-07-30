@@ -330,7 +330,7 @@ public class OutboundConnectorRuntimeConfiguration {
    * of the real per-physical-tenant map. Avoiding {@code Map<String, X>}-typed {@code @Bean}
    * parameters entirely sidesteps this.
    */
-  private static Map<String, CamundaDocumentStore> buildDocumentStoresByPhysicalTenantId(
+  public static Map<String, CamundaDocumentStore> buildDocumentStoresByPhysicalTenantId(
       CamundaClientRegistry registry, CamundaClient legacyCamundaClient) {
     return clientNames(registry, legacyCamundaClient).stream()
         .collect(
@@ -348,8 +348,16 @@ public class OutboundConnectorRuntimeConfiguration {
    * is reused instead of always constructing a new client-backed one: this preserves pre-#6961
    * behavior for single-client/custom runtimes that override the {@code documentFactory} bean (e.g.
    * an in-memory document store in tests), which would otherwise be silently bypassed.
+   *
+   * <p>{@code public} (rather than {@code private}, like {@link
+   * #buildDocumentStoresByPhysicalTenantId}'s other callers) so inbound configuration classes
+   * ({@code InboundCorrelationConfiguration}, {@code InboundConnectorRuntimeConfiguration}) can
+   * call it directly with their own raw {@code registry}/{@code legacyCamundaClient}/{@code
+   * documentFactory} dependencies, instead of declaring a {@code Map<String, DocumentFactory>}
+   * {@code @Bean} parameter — see the class-level Javadoc on {@code PhysicalTenantIds} for why that
+   * parameter shape silently resolves to the wrong map.
    */
-  private static Map<String, DocumentFactory> buildDocumentFactoriesByPhysicalTenantId(
+  public static Map<String, DocumentFactory> buildDocumentFactoriesByPhysicalTenantId(
       CamundaClientRegistry registry,
       CamundaClient legacyCamundaClient,
       DocumentFactory injectedDocumentFactory) {

@@ -70,7 +70,7 @@ class InboundCorrelationConfigurationTest {
             registry,
             null,
             mock(ObjectMapper.class),
-            Map.of("tenant", mock(DocumentFactory.class)),
+            mock(DocumentFactory.class),
             mock(ConnectorsInboundMetrics.class));
 
     assertThat(result).isInstanceOf(InboundCorrelationHandler.class);
@@ -91,9 +91,7 @@ class InboundCorrelationConfigurationTest {
                     registry,
                     null,
                     mock(ObjectMapper.class),
-                    Map.of(
-                        "tenant-a", mock(DocumentFactory.class),
-                        "tenant-b", mock(DocumentFactory.class)),
+                    mock(DocumentFactory.class),
                     mock(ConnectorsInboundMetrics.class)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("InboundCorrelationHandler");
