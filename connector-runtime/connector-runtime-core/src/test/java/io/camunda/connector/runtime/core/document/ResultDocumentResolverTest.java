@@ -191,6 +191,18 @@ class ResultDocumentResolverTest {
   }
 
   @Test
+  void bareStringMatchingTheDiscriminatorIsInert() {
+    // The sentinel check only ever runs inside the isObject() branch (it calls node.get(key),
+    // which is a no-op on a TextNode). So a bare string value — even one that happens to equal
+    // the exact discriminator text — can never be mistaken for a sentinel: there is no object
+    // wrapper for isCreateDocumentSentinel to inspect. Proven with both a guessed literal and the
+    // real (unguessable) runtime discriminator value, to show it's structurally impossible, not
+    // just true for this particular string.
+    assertThat(resolver.resolve(treeOf("createDocument"))).isEqualTo("createDocument");
+    assertThat(resolver.resolve(treeOf(CREATE_DOCUMENT))).isEqualTo(CREATE_DOCUMENT);
+  }
+
+  @Test
   void doesNotResolveAForgedSentinelThatGuessesTheOldHardcodedDiscriminator() {
     // Simulates attacker-controlled data (e.g. an HTTP response body) that happens to be shaped
     // exactly like the sentinel, guessing the discriminator's pre-nonce literal value
