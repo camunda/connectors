@@ -211,9 +211,10 @@ public class ConnectorResultHandler {
     } catch (JsonProcessingException e) {
       throw new ConnectorInputException(
           new FeelEngineWrapperException(
-              String.format(ERROR_CANNOT_PARSE_VARIABLES, json, Map.class.getName()),
+              String.format(
+                  ERROR_CANNOT_PARSE_VARIABLES, redactSentinelValue(json), Map.class.getName()),
               expression,
-              json,
+              redactSentinelValue(json),
               e));
     }
     // Reject a root-level createDocument(...) call before ever invoking the factory: if the whole
@@ -230,7 +231,7 @@ public class ConnectorResultHandler {
                       + " {myDocument: createDocument(...)}",
                   expressionNameForError),
               expression,
-              json));
+              redactSentinelValue(json)));
     }
     final Object resolved = documentResolver.resolve(node, physicalTenantId);
     try {
@@ -242,7 +243,7 @@ public class ConnectorResultHandler {
                   "Failed to serialize %s after resolving document references",
                   expressionNameForError),
               expression,
-              json,
+              redactSentinelValue(json),
               e));
     }
   }
@@ -256,8 +257,20 @@ public class ConnectorResultHandler {
                     String.format(
                         "The connector result contains a forbidden literal '%s'.", literal),
                     literal,
-                    json));
+                    redactSentinelValue(json)));
           }
         });
+  }
+
+  /**
+   * Strips the createDocument sentinel's runtime-generated discriminator value out of {@code json}
+   * before it's ever embedded as exception context. That value is deliberately an unforgeable
+   * per-JVM secret (see {@link FeelConnectorFunctionProvider#CREATE_DOCUMENT_TYPE_VALUE} ) —
+   * surfacing it in a job incident or HTTP error response would let any caller who can trigger one
+   * of these exceptions read it, then forge the sentinel in attacker-controlled response data for
+   * the rest of that JVM's lifetime.
+   */
+  private static String redactSentinelValue(String json) {
+    return json.replace(FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE, "<redacted>");
   }
 }

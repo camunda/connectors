@@ -26,6 +26,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.feel.FeelConnectorFunctionProvider;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.TestDocumentFactory;
 import io.camunda.connector.runtime.core.error.BpmnError;
@@ -247,6 +248,11 @@ class ConnectorResultHandlerTest {
                     Map.of(), null, resultExpression, null));
 
     assertThat(exception).hasMessageContaining("must not be a bare createDocument");
+    // the sentinel's discriminator is a deliberately unforgeable per-JVM secret — it must never
+    // appear in an exception message, since that message becomes a job incident or HTTP error
+    // response any caller who triggers this exact rejection can read.
+    assertThat(exception.getMessage())
+        .doesNotContain(FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE);
   }
 
   @Test
@@ -267,7 +273,29 @@ class ConnectorResultHandlerTest {
             () -> handler.examineErrorExpression(Map.of(), jobHeaders, jobContext, null));
 
     assertThat(exception).hasMessageContaining("must not be a bare createDocument");
+    assertThat(exception.getMessage())
+        .doesNotContain(FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE);
     Mockito.verifyNoInteractions(mockFactory);
+  }
+
+  @Test
+  void forbiddenLiteralRejectionDoesNotLeakTheCreateDocumentSecretEvenWhenBothAppearTogether() {
+    // A single expression can produce both a forbidden intrinsic-function literal AND a
+    // createDocument() sentinel in the same evaluated tree — verifyNoForbiddenLiterals throws
+    // first, but its exception must not embed the discriminator either.
+    String resultExpression =
+        "={leaked: {\"camunda.function.type\": \"x\", \"params\": []}, myDoc: createDocument(\"aGVsbG8=\")}";
+
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    Map.of(), null, resultExpression, null));
+
+    assertThat(exception).hasMessageContaining("The connector result contains a forbidden literal");
+    assertThat(exception.getMessage())
+        .doesNotContain(FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE);
   }
 
   @Test
