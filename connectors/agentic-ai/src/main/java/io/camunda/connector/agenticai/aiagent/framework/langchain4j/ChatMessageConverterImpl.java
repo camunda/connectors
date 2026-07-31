@@ -135,9 +135,9 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   /**
    * Provider attributes carry data the provider requires us to echo back verbatim on the next
-   * request. This is provider-specific, not langchain4j framework data, so it is kept separate from
-   * {@link #serializedChatResponseMetadata}. What is safe to restore is provider-specific - see
-   * {@link AssistantMessageMetadataDecorator}.
+   * request. This is provider-specific data, kept separate from {@link
+   * #serializedChatResponseMetadata}. What is safe to restore is provider-specific - see {@link
+   * AssistantMessageMetadataDecorator}.
    */
   protected Map<String, Object> providerAttributes(
       AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
@@ -145,8 +145,6 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       return Map.of();
     }
 
-    // messages persisted before attributes were supported have no "provider" key - a missing key
-    // yields null, which fails the instanceof and short-circuits to an empty map
     if (!(assistantMessage.metadata().get(PROVIDER_METADATA_KEY) instanceof Map<?, ?> attributes)) {
       return Map.of();
     }
@@ -166,7 +164,6 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     final var builder = AssistantMessage.builder();
     final var aiMessage = chatResponse.aiMessage();
 
-    // see providerAttributes(...) - what is safe to persist is provider-specific
     final var decoratedAttributes =
         CollectionUtils.isEmpty(aiMessage.attributes())
             ? Map.<String, Object>of()
