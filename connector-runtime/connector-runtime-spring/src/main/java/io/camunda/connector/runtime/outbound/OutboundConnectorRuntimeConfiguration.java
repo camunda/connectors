@@ -285,17 +285,19 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   /**
-   * Builds the per-physical-tenant {@link DocumentFactory} map. In the single-physical-tenant case
-   * (no {@link CamundaClientRegistry}), the already-resolved {@code injectedDocumentFactory} bean
-   * is reused instead of always constructing a new client-backed one: this preserves pre-#6961
-   * behavior for single-client/custom runtimes that override the {@code documentFactory} bean (e.g.
-   * an in-memory document store in tests), which would otherwise be silently bypassed.
+   * Builds the per-physical-tenant {@link DocumentFactory} map. In the single-physical-tenant case,
+   * the already-resolved {@code injectedDocumentFactory} bean is reused instead of always
+   * constructing a new client-backed one: this preserves pre-#6961 behavior for single-client/
+   * custom runtimes that override the {@code documentFactory} bean (e.g. an in-memory document
+   * store in tests), which would otherwise be silently bypassed. Note this must check the actual
+   * client count rather than {@code registry == null}: {@link CamundaClientRegistry} is registered
+   * unconditionally by the camunda-client Spring Boot starter, so it is never actually null.
    */
   private static Map<String, DocumentFactory> buildDocumentFactoriesByPhysicalTenantId(
       CamundaClientRegistry registry,
       CamundaClient legacyCamundaClient,
       DocumentFactory injectedDocumentFactory) {
-    if (registry == null && injectedDocumentFactory != null) {
+    if (injectedDocumentFactory != null && clientNames(registry, legacyCamundaClient).size() <= 1) {
       return clientNames(registry, legacyCamundaClient).stream()
           .collect(
               toMapByPhysicalTenantId(
@@ -523,7 +525,7 @@ public class OutboundConnectorRuntimeConfiguration {
             registry, legacyCamundaClient, secretKeyCacheManager, secretFilterMode);
     var objectMappersByPhysicalTenantId =
         buildOutboundConnectorObjectMappersByPhysicalTenantId(
-            registry, documentFactoriesByPhysicalTenantId, outboundConnectorObjectMapper);
+            documentFactoriesByPhysicalTenantId, outboundConnectorObjectMapper);
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
@@ -541,12 +543,14 @@ public class OutboundConnectorRuntimeConfiguration {
    * Per-physical-tenant outbound {@link ObjectMapper}s, each wired to that tenant's {@link
    * DocumentFactory} so that {@code Document}-typed job variables are deserialized through the
    * correct engine's document store (see #6961) instead of always going through a single
-   * globally-cached mapper. When {@code registry == null} (no {@link CamundaClientRegistry}
-   * configured), the already-built {@code outboundConnectorObjectMapper} instance (injected above)
-   * is reused as-is: this mirrors {@link #buildDocumentFactoriesByPhysicalTenantId}'s own condition
-   * for reusing the injected {@link DocumentFactory} bean in that case, so a custom/overridden
-   * {@code DocumentFactory} bean (e.g. an in-memory one in tests) and the {@code ObjectMapper} that
-   * deserializes {@code Document}-typed variables stay backed by the very same factory instance.
+   * globally-cached mapper. In the single-physical-tenant case, the already-built {@code
+   * outboundConnectorObjectMapper} instance (injected above) is reused as-is: this mirrors {@link
+   * #buildDocumentFactoriesByPhysicalTenantId}'s own condition for reusing the injected {@link
+   * DocumentFactory} bean in that case — {@code documentFactoriesByPhysicalTenantId} has exactly
+   * one entry, and it is (by construction) the very same {@code DocumentFactory} instance that
+   * {@code outboundConnectorObjectMapper} was built from — so a custom/overridden {@code
+   * DocumentFactory} bean (e.g. an in-memory one in tests) and the {@code ObjectMapper} that
+   * deserializes {@code Document}-typed variables stay backed by the same factory instance.
    *
    * <p>Deliberately a plain (non-{@code @Bean}) static method rather than a {@code Map<String,
    * ObjectMapper>}-typed {@code @Bean}: as documented above for the document/secret-filter maps,
@@ -556,10 +560,9 @@ public class OutboundConnectorRuntimeConfiguration {
    * "outboundConnectorObjectMapper"} instead of physical tenant IDs.
    */
   private static Map<String, ObjectMapper> buildOutboundConnectorObjectMappersByPhysicalTenantId(
-      CamundaClientRegistry registry,
       Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId,
       ObjectMapper outboundConnectorObjectMapper) {
-    if (registry == null) {
+    if (documentFactoriesByPhysicalTenantId.size() <= 1) {
       return documentFactoriesByPhysicalTenantId.keySet().stream()
           .collect(Collectors.toMap(id -> id, id -> outboundConnectorObjectMapper));
     }
