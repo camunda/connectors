@@ -27,6 +27,7 @@ import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry.RegisteredValidator;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretHandler;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,11 +36,18 @@ import org.slf4j.LoggerFactory;
  * invokes its {@link ConfigurationValidator}, mapping the outcome to a {@link
  * ConfigurationValidationResult}.
  *
- * <p>Pipeline: look up the registered validator by id; resolve {@code credentialRef} to JSON via
- * the (cluster-backed) FEEL evaluator; replace secret placeholders; deserialize into the registered
+ * <p>Pipeline: look up the registered validator by id; select the (cluster-backed) FEEL evaluator
+ * for the request's physical tenant and resolve {@code credentialRef} to JSON with it; replace
+ * secret placeholders in that same physical tenant's scope; deserialize into the registered
  * configuration class; run Jakarta bean validation (as normal connector binding does); then call
  * the validator. A missing registration yields {@code UNSUPPORTED}; anything else that goes wrong
  * yields {@code FAILURE}.
+ *
+ * <p><b>Multi-engine.</b> A stored configuration lives on one orchestration cluster, so both halves
+ * of resolution are physical-tenant-scoped: the reference must be evaluated against the engine that
+ * holds it (each engine has its own {@code camunda.vars.env.*}), and its secrets must be resolved
+ * in that engine's scope (see {@link SecretContext#physicalTenantId()}). Evaluating against the
+ * wrong engine would silently validate a different configuration, or none at all.
  *
  * <p><b>Message-safety policy.</b> The resolved configuration and everything derived from it
  * (deserialization errors, constraint-violation messages, exceptions thrown from connector code)
@@ -65,19 +73,19 @@ public class ConfigurationValidationService {
   private static final String VALIDATOR_ERROR_MESSAGE = "Validation could not be completed.";
 
   private final ConfigurationValidationRegistry registry;
-  private final FeelExpressionEvaluator feelExpressionEvaluator;
+  private final Map<String, FeelExpressionEvaluator> feelExpressionEvaluatorsByPhysicalTenantId;
   private final SecretHandler secretHandler;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
 
   public ConfigurationValidationService(
       ConfigurationValidationRegistry registry,
-      FeelExpressionEvaluator feelExpressionEvaluator,
+      Map<String, FeelExpressionEvaluator> feelExpressionEvaluatorsByPhysicalTenantId,
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
       ObjectMapper objectMapper) {
     this.registry = registry;
-    this.feelExpressionEvaluator = feelExpressionEvaluator;
+    this.feelExpressionEvaluatorsByPhysicalTenantId = feelExpressionEvaluatorsByPhysicalTenantId;
     // Out-of-band validation has no process/element scope, so no secret allow-list applies.
     this.secretHandler = new SecretHandler(secretProvider, SecretFilter.allowAll());
     this.validationProvider = validationProvider;
@@ -90,9 +98,22 @@ public class ConfigurationValidationService {
       return ConfigurationValidationResult.unsupported();
     }
 
+    final FeelExpressionEvaluator feelExpressionEvaluator;
+    try {
+      feelExpressionEvaluator = resolveEvaluator(request.physicalTenantId());
+    } catch (IllegalArgumentException e) {
+      // Unlike everything downstream of secret replacement, this message is derived purely from
+      // caller-supplied routing metadata and the runtime's own engine configuration — no resolved
+      // configuration content — so it is safe to log in full.
+      LOG.warn("Cannot validate configuration '{}': {}", request.credentialId(), e.getMessage());
+      return ConfigurationValidationResult.failure(
+          RESOLUTION_FAILURE_CODE, RESOLUTION_FAILURE_MESSAGE);
+    }
+
     final Object configuration;
     try {
-      configuration = resolveConfiguration(request, registered.configurationClass());
+      configuration =
+          resolveConfiguration(request, feelExpressionEvaluator, registered.configurationClass());
     } catch (Exception e) {
       // Log only the exception type, never the throwable: FEEL/secret/JSON error messages (and
       // stack-trace detail) can echo resolved secret material into the logs.
@@ -150,11 +171,44 @@ public class ConfigurationValidationService {
     }
   }
 
+  /**
+   * Selects the FEEL evaluator bound to the engine that holds the configuration. A {@code null}
+   * physical tenant (a single-engine deployment, or a caller that predates multi-engine support) is
+   * unambiguous only while one engine is configured; with several, the request is rejected rather
+   * than resolved against an arbitrary engine.
+   */
+  private FeelExpressionEvaluator resolveEvaluator(String physicalTenantId) {
+    if (physicalTenantId != null) {
+      FeelExpressionEvaluator evaluator =
+          feelExpressionEvaluatorsByPhysicalTenantId.get(physicalTenantId);
+      if (evaluator == null) {
+        throw new IllegalArgumentException(
+            "no engine configured for physical tenant '"
+                + physicalTenantId
+                + "' (configured: "
+                + feelExpressionEvaluatorsByPhysicalTenantId.keySet()
+                + ")");
+      }
+      return evaluator;
+    }
+    if (feelExpressionEvaluatorsByPhysicalTenantId.size() != 1) {
+      throw new IllegalArgumentException(
+          "physicalTenantId is required when several engines are configured (configured: "
+              + feelExpressionEvaluatorsByPhysicalTenantId.keySet()
+              + ")");
+    }
+    return feelExpressionEvaluatorsByPhysicalTenantId.values().iterator().next();
+  }
+
   private Object resolveConfiguration(
-      ConfigurationValidationRequest request, Class<?> configurationClass) throws Exception {
+      ConfigurationValidationRequest request,
+      FeelExpressionEvaluator feelExpressionEvaluator,
+      Class<?> configurationClass)
+      throws Exception {
     String rawJson = feelExpressionEvaluator.evaluateToJson(request.credentialRef());
     String withSecrets =
-        secretHandler.replaceSecrets(rawJson, new SecretContext(request.tenantId(), null));
+        secretHandler.replaceSecrets(
+            rawJson, new SecretContext(request.tenantId(), null, request.physicalTenantId()));
     return objectMapper.readValue(withSecrets, configurationClass);
   }
 }

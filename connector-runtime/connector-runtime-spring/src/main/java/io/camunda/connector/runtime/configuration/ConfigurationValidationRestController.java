@@ -30,9 +30,13 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>Configuration validation is direction-agnostic — the same configuration types are consumed by
  * both inbound and outbound connectors — so this endpoint is not scoped under {@code /outbound}.
  *
- * <p>{@code POST /configurations/validate} with {@code {credentialId, credentialRef, tenantId}}
- * returns one of {@code {"status":"SUCCESS"}}, {@code
+ * <p>{@code POST /configurations/validate} with {@code {credentialId, credentialRef, tenantId,
+ * physicalTenantId}} returns one of {@code {"status":"SUCCESS"}}, {@code
  * {"status":"FAILURE","code":...,"message":...}}, or {@code {"status":"UNSUPPORTED"}}.
+ *
+ * <p>{@code physicalTenantId} identifies the orchestration cluster holding the configuration. It
+ * may be omitted against a single-engine runtime; in a multi-engine runtime it is required, since
+ * the reference has to be evaluated against the engine that actually holds it.
  */
 @RestController
 @RequestMapping("/configurations")

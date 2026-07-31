@@ -22,7 +22,22 @@ package io.camunda.connector.runtime.core.configuration;
  * @param credentialId the configuration id to validate (matches {@code @Configuration#id})
  * @param credentialRef a FEEL expression pointing at the stored configuration (cluster variable),
  *     e.g. {@code =camunda.vars.env.awsProd}
- * @param tenantId the tenant the configuration belongs to; used for secret resolution
+ * @param tenantId the logical (multi-tenancy) tenant the configuration belongs to; used for secret
+ *     resolution
+ * @param physicalTenantId identifies the orchestration cluster (engine) holding the configuration,
+ *     so that {@code credentialRef} is evaluated against that engine and secrets are resolved in
+ *     its scope in multi-engine deployments. Optional: {@code null} selects the only configured
+ *     engine, and validation fails if several are configured, since guessing would evaluate the
+ *     reference against the wrong cluster.
  */
 public record ConfigurationValidationRequest(
-    String credentialId, String credentialRef, String tenantId) {}
+    String credentialId, String credentialRef, String tenantId, String physicalTenantId) {
+
+  public ConfigurationValidationRequest {
+    // clients report an unset physical tenant as an empty string (protobuf/REST default); normalize
+    // it the same way SecretContext does, so only null has to be handled downstream
+    if (physicalTenantId != null && physicalTenantId.isBlank()) {
+      physicalTenantId = null;
+    }
+  }
+}

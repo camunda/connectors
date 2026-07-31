@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.configuration;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -27,6 +28,7 @@ import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRe
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -36,7 +38,8 @@ class ConfigurationValidationRestControllerTest {
 
   private static final String BODY =
       """
-      {"credentialId":"io.camunda:aws-credential:1","credentialRef":"=ref","tenantId":"acme"}""";
+      {"credentialId":"io.camunda:aws-credential:1","credentialRef":"=ref","tenantId":"acme",\
+      "physicalTenantId":"engine-a"}""";
 
   private ConfigurationValidationService service;
   private MockMvc mockMvc;
@@ -73,6 +76,37 @@ class ConfigurationValidationRestControllerTest {
         .andExpect(
             content()
                 .string("{\"status\":\"FAILURE\",\"code\":\"UNAUTHORIZED\",\"message\":\"nope\"}"));
+  }
+
+  @Test
+  void bindsPhysicalTenantIdFromTheRequestBody() throws Exception {
+    var captor = ArgumentCaptor.forClass(ConfigurationValidationRequest.class);
+    when(service.validate(captor.capture())).thenReturn(ConfigurationValidationResult.success());
+
+    mockMvc
+        .perform(
+            post("/configurations/validate").contentType(MediaType.APPLICATION_JSON).content(BODY))
+        .andExpect(status().isOk());
+
+    assertThat(captor.getValue().physicalTenantId()).isEqualTo("engine-a");
+  }
+
+  @Test
+  void omittedPhysicalTenantIdBindsToNull() throws Exception {
+    var captor = ArgumentCaptor.forClass(ConfigurationValidationRequest.class);
+    when(service.validate(captor.capture())).thenReturn(ConfigurationValidationResult.success());
+
+    mockMvc
+        .perform(
+            post("/configurations/validate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"credentialId":"io.camunda:aws-credential:1","credentialRef":"=ref",\
+                    "tenantId":"acme"}"""))
+        .andExpect(status().isOk());
+
+    assertThat(captor.getValue().physicalTenantId()).isNull();
   }
 
   @Test

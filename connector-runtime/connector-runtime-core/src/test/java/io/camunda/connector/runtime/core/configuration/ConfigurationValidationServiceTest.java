@@ -30,7 +30,9 @@ import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import jakarta.validation.constraints.Size;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ConfigurationValidationServiceTest {
@@ -63,6 +65,20 @@ class ConfigurationValidationServiceTest {
     @Override
     public ConfigurationValidationResult validate(ConstrainedConfig configuration) {
       throw new AssertionError("validator must not run when bean validation already failed");
+    }
+  }
+
+  @Configuration(id = "recording", name = "Recording")
+  record RecordingConfig(String value) {}
+
+  /** Captures the configuration that actually reached the validator. */
+  static class RecordingValidator implements ConfigurationValidator<RecordingConfig> {
+    private RecordingConfig seen;
+
+    @Override
+    public ConfigurationValidationResult validate(RecordingConfig configuration) {
+      seen = configuration;
+      return ConfigurationValidationResult.success();
     }
   }
 
@@ -103,25 +119,43 @@ class ConfigurationValidationServiceTest {
     };
   }
 
+  /** Records the {@link SecretContext} each lookup was made with, and resolves nothing. */
+  private static final class RecordingSecretProvider implements SecretProvider {
+    private final List<SecretContext> contexts = new ArrayList<>();
+
+    @Override
+    public String getSecret(String name, SecretContext context) {
+      contexts.add(context);
+      return null;
+    }
+  }
+
   private ConfigurationValidationService serviceWith(String resolvedJson) {
+    return serviceWith(Map.of("engine-a", feelReturning(resolvedJson)));
+  }
+
+  private ConfigurationValidationService serviceWith(
+      Map<String, FeelExpressionEvaluator> evaluatorsByPhysicalTenantId) {
+    return serviceWith(evaluatorsByPhysicalTenantId, new RecordingSecretProvider());
+  }
+
+  private final RecordingValidator recordingValidator = new RecordingValidator();
+
+  private ConfigurationValidationService serviceWith(
+      Map<String, FeelExpressionEvaluator> evaluatorsByPhysicalTenantId,
+      SecretProvider secretProvider) {
     var registry =
         new ConfigurationValidationRegistry(
             List.of(
                 new OkValidator(),
                 new ThrowingValidator(),
                 new ConstrainedValidator(),
-                new NullReturningValidator()));
-    SecretProvider noSecrets =
-        new SecretProvider() {
-          @Override
-          public String getSecret(String name, SecretContext context) {
-            return null;
-          }
-        };
+                new NullReturningValidator(),
+                recordingValidator));
     return new ConfigurationValidationService(
         registry,
-        feelReturning(resolvedJson),
-        noSecrets,
+        evaluatorsByPhysicalTenantId,
+        secretProvider,
         ValidationUtil.discoverDefaultValidationProviderImplementation(),
         objectMapper);
   }
@@ -130,7 +164,8 @@ class ConfigurationValidationServiceTest {
   void returnsSuccessWhenValidatorPasses() {
     var service = serviceWith("{\"value\":\"x\"}");
 
-    var result = service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant"));
+    var result =
+        service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant", "engine-a"));
 
     assertThat(result.status()).isEqualTo(Status.SUCCESS);
   }
@@ -139,7 +174,9 @@ class ConfigurationValidationServiceTest {
   void keepsThrownErrorCodeButDoesNotLeakThrownMessage() {
     var service = serviceWith("{\"value\":\"x\"}");
 
-    var result = service.validate(new ConfigurationValidationRequest("throws", "=ref", "tenant"));
+    var result =
+        service.validate(
+            new ConfigurationValidationRequest("throws", "=ref", "tenant", "engine-a"));
 
     assertThat(result.status()).isEqualTo(Status.FAILURE);
     assertThat(result.code()).isEqualTo("UNAUTHORIZED");
@@ -151,7 +188,8 @@ class ConfigurationValidationServiceTest {
   void mapsNullValidatorResultToFailureInsteadOfNpe() {
     var service = serviceWith("{\"value\":\"x\"}");
 
-    var result = service.validate(new ConfigurationValidationRequest("null", "=ref", "tenant"));
+    var result =
+        service.validate(new ConfigurationValidationRequest("null", "=ref", "tenant", "engine-a"));
 
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(Status.FAILURE);
@@ -162,7 +200,9 @@ class ConfigurationValidationServiceTest {
   void returnsUnsupportedForUnknownConfigurationId() {
     var service = serviceWith("{\"value\":\"x\"}");
 
-    var result = service.validate(new ConfigurationValidationRequest("unknown", "=ref", "tenant"));
+    var result =
+        service.validate(
+            new ConfigurationValidationRequest("unknown", "=ref", "tenant", "engine-a"));
 
     assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
   }
@@ -172,11 +212,94 @@ class ConfigurationValidationServiceTest {
     // The resolved value is invalid JSON; Jackson's error would echo it, so it must be suppressed.
     var service = serviceWith("this-is-not-json-and-could-be-a-secret");
 
-    var result = service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant"));
+    var result =
+        service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant", "engine-a"));
 
     assertThat(result.status()).isEqualTo(Status.FAILURE);
     assertThat(result.code()).isEqualTo("RESOLUTION_ERROR");
     assertThat(result.message()).doesNotContain("this-is-not-json-and-could-be-a-secret");
+  }
+
+  @Test
+  void evaluatesTheReferenceAgainstTheRequestedPhysicalTenantsEngine() {
+    // Each engine holds its own camunda.vars.env.*, so resolving against the wrong one would
+    // validate an entirely different configuration.
+    var service =
+        serviceWith(
+            Map.of(
+                "engine-a", feelReturning("{\"value\":\"from-engine-a\"}"),
+                "engine-b", feelReturning("{\"value\":\"from-engine-b\"}")));
+
+    var result =
+        service.validate(
+            new ConfigurationValidationRequest("recording", "=ref", "tenant", "engine-b"));
+
+    assertThat(result.status()).isEqualTo(Status.SUCCESS);
+    assertThat(recordingValidator.seen.value()).isEqualTo("from-engine-b");
+  }
+
+  @Test
+  void resolvesSecretsInTheRequestedPhysicalTenantsScope() {
+    var secretProvider = new RecordingSecretProvider();
+    var service =
+        serviceWith(
+            Map.of("engine-b", feelReturning("{\"value\":\"{{secrets.TOKEN}}\"}")), secretProvider);
+
+    service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant", "engine-b"));
+
+    assertThat(secretProvider.contexts)
+        .isNotEmpty()
+        .allSatisfy(
+            context -> {
+              assertThat(context.physicalTenantId()).isEqualTo("engine-b");
+              assertThat(context.tenantId()).isEqualTo("tenant");
+            });
+  }
+
+  @Test
+  void usesTheOnlyConfiguredEngineWhenThePhysicalTenantIsOmitted() {
+    // Single-engine deployments, and callers predating multi-engine support, omit the field.
+    var service = serviceWith(Map.of("engine-a", feelReturning("{\"value\":\"x\"}")));
+
+    var result = service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant", null));
+
+    assertThat(result.status()).isEqualTo(Status.SUCCESS);
+  }
+
+  @Test
+  void treatsABlankPhysicalTenantAsOmitted() {
+    // Clients report an unset physical tenant as an empty string.
+    var service = serviceWith(Map.of("engine-a", feelReturning("{\"value\":\"x\"}")));
+
+    var result = service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant", ""));
+
+    assertThat(result.status()).isEqualTo(Status.SUCCESS);
+  }
+
+  @Test
+  void failsInsteadOfGuessingAnEngineWhenSeveralAreConfigured() {
+    var service =
+        serviceWith(
+            Map.of(
+                "engine-a", feelReturning("{\"value\":\"x\"}"),
+                "engine-b", feelReturning("{\"value\":\"x\"}")));
+
+    var result = service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant", null));
+
+    assertThat(result.status()).isEqualTo(Status.FAILURE);
+    assertThat(result.code()).isEqualTo("RESOLUTION_ERROR");
+  }
+
+  @Test
+  void failsForAnUnknownPhysicalTenantWithoutLeakingConfiguredEngines() {
+    var service = serviceWith(Map.of("engine-a", feelReturning("{\"value\":\"x\"}")));
+
+    var result =
+        service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant", "engine-zzz"));
+
+    assertThat(result.status()).isEqualTo(Status.FAILURE);
+    assertThat(result.code()).isEqualTo("RESOLUTION_ERROR");
+    assertThat(result.message()).doesNotContain("engine-a");
   }
 
   @Test
@@ -185,7 +308,8 @@ class ConfigurationValidationServiceTest {
     var service = serviceWith("{\"token\":\"supersecretvalue\"}");
 
     var result =
-        service.validate(new ConfigurationValidationRequest("constrained", "=ref", "tenant"));
+        service.validate(
+            new ConfigurationValidationRequest("constrained", "=ref", "tenant", "engine-a"));
 
     assertThat(result.status()).isEqualTo(Status.FAILURE);
     assertThat(result.code()).isEqualTo("INVALID_INPUT");
