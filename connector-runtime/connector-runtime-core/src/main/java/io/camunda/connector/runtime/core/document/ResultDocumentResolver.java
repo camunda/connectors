@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Resolves {@code createDocument(...)} sentinel markers produced by {@code
@@ -43,18 +44,27 @@ public class ResultDocumentResolver {
     this.documentFactory = documentFactory;
   }
 
-  public Object resolve(JsonNode node) {
+  /**
+   * @param physicalTenantId threaded into each resolved {@link Document}'s {@link
+   *     DocumentCreationRequest}, matching the {@code withPhysicalTenantIdIfAbsent(...)} pattern
+   *     already used by {@code JobHandlerContext.create}/{@code InboundConnectorContextImpl.create}
+   *     — without it, {@code CamundaDocumentStoreImpl}'s cross-tenant validation silently has
+   *     nothing to check against.
+   */
+  public Object resolve(JsonNode node, @Nullable String physicalTenantId) {
     if (node.isObject()) {
       if (isCreateDocumentSentinel(node)) {
-        return createDocument(node.get("value"));
+        return createDocument(node.get("value"), physicalTenantId);
       }
       Map<String, Object> result = new LinkedHashMap<>();
-      node.properties().forEach(entry -> result.put(entry.getKey(), resolve(entry.getValue())));
+      node.properties()
+          .forEach(
+              entry -> result.put(entry.getKey(), resolve(entry.getValue(), physicalTenantId)));
       return result;
     }
     if (node.isArray()) {
       List<Object> result = new ArrayList<>();
-      node.forEach(element -> result.add(resolve(element)));
+      node.forEach(element -> result.add(resolve(element, physicalTenantId)));
       return result;
     }
     return scalarValue(node);
@@ -68,7 +78,7 @@ public class ResultDocumentResolver {
             discriminator.textValue());
   }
 
-  private Document createDocument(JsonNode value) {
+  private Document createDocument(JsonNode value, @Nullable String physicalTenantId) {
     if (value == null || value.isMissingNode() || value.isNull()) {
       throw new ConnectorInputException(
           "createDocument() was called without a value to convert into a document");
@@ -111,7 +121,8 @@ public class ResultDocumentResolver {
         DocumentCreationRequest.from(decoded)
             .contentType(resolvedContentType)
             .fileName(fileName)
-            .build());
+            .build()
+            .withPhysicalTenantIdIfAbsent(physicalTenantId));
   }
 
   private String firstNonBlankText(JsonNode object, String... keys) {

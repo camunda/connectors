@@ -86,7 +86,8 @@ public class ConnectorResultHandler {
       if (mappedResponseJson != null) {
         verifyNoForbiddenLiterals(mappedResponseJson);
         var resolvedResponseJson =
-            resolveDocumentsAsJson(mappedResponseJson, resultExpression, "Result expression");
+            resolveDocumentsAsJson(
+                mappedResponseJson, resultExpression, "Result expression", physicalTenantId);
         var mappedResponse =
             parseJsonVarsAsTypeOrThrow(
                 resolvedResponseJson,
@@ -119,7 +120,9 @@ public class ConnectorResultHandler {
       verifyNoForbiddenLiterals(evaluatedJson);
     }
     return Optional.ofNullable(evaluatedJson)
-        .map(json -> resolveDocumentsAsJson(json, errorExpression, "Error expression"))
+        .map(
+            json ->
+                resolveDocumentsAsJson(json, errorExpression, "Error expression", physicalTenantId))
         .filter(
             json ->
                 !parseJsonVarsAsTypeOrThrow(
@@ -191,7 +194,10 @@ public class ConnectorResultHandler {
   }
 
   private String resolveDocumentsAsJson(
-      final String json, final String expression, final String expressionNameForError) {
+      final String json,
+      final String expression,
+      final String expressionNameForError,
+      final @Nullable String physicalTenantId) {
     // Fast path: skip the parse/walk/reserialize round-trip entirely when the createDocument
     // sentinel isn't present anywhere in the JSON. This is the common case (createDocument not
     // used) and avoids both a performance cost and unconditional numeric precision loss (see
@@ -210,7 +216,7 @@ public class ConnectorResultHandler {
               json,
               e));
     }
-    final Object resolved = documentResolver.resolve(node);
+    final Object resolved = documentResolver.resolve(node, physicalTenantId);
     try {
       return objectMapper.writeValueAsString(resolved);
     } catch (JsonProcessingException e) {
