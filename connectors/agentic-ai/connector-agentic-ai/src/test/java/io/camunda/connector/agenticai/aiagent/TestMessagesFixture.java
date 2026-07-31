@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.io.IOException;
 import java.util.List;
@@ -135,6 +136,8 @@ public abstract class TestMessagesFixture {
   }
 
   public static ToolCallResultMessage toolCallResultMessage(List<ToolCallResult> results) {
-    return ToolCallResultMessage.builder().results(results).build();
+    return ToolCallResultMessage.builder()
+        .results(results.stream().map(ToolCallResultContent::from).toList())
+        .build();
   }
 }

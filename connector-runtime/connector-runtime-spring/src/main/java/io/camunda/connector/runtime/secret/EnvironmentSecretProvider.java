@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.secret;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import jakarta.annotation.PostConstruct;
+import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -26,17 +27,42 @@ import org.springframework.util.StringUtils;
 
 public class EnvironmentSecretProvider implements SecretProvider {
   private static final Logger LOG = LoggerFactory.getLogger(EnvironmentSecretProvider.class);
+
+  /**
+   * Segment used when the physical tenant is unknown, i.e. against a cluster that predates
+   * multi-engine support. Matches the {@code "default"} convention already used for the physical
+   * tenant elsewhere in the runtime, so a single-cluster deployment that enables {@code
+   * physicalTenantAware} resolves a stable, predictable name instead of silently falling back to an
+   * unscoped one.
+   */
+  private static final String DEFAULT_PHYSICAL_TENANT_ID = "default";
+
   private final Environment environment;
   private final String prefix;
+  private final boolean physicalTenantAware;
   private final boolean tenantAware;
   private final boolean processDefinitionAware;
 
   public EnvironmentSecretProvider(
-      Environment environment, String prefix, boolean tenantAware, boolean processDefinitionAware) {
+      Environment environment,
+      String prefix,
+      boolean physicalTenantAware,
+      boolean tenantAware,
+      boolean processDefinitionAware) {
     this.environment = environment;
     this.prefix = prefix;
+    this.physicalTenantAware = physicalTenantAware;
     this.tenantAware = tenantAware;
     this.processDefinitionAware = processDefinitionAware;
+  }
+
+  /**
+   * Retains the pre-multi-engine constructor signature, leaving the physical tenant out of the
+   * composed secret name.
+   */
+  public EnvironmentSecretProvider(
+      Environment environment, String prefix, boolean tenantAware, boolean processDefinitionAware) {
+    this(environment, prefix, false, tenantAware, processDefinitionAware);
   }
 
   @PostConstruct
@@ -92,67 +118,40 @@ public class EnvironmentSecretProvider implements SecretProvider {
     return composeSecretNameWithPrefix(name, context, prefix);
   }
 
-  /** Composes the full secret name using the given prefix (may be empty for unprefixed lookup). */
+  /**
+   * Composes the full secret name as {@code ${prefix}${scope segments...}_${name}}, where the scope
+   * segments are those enabled by configuration, in the order physical tenant, tenant, process
+   * definition. With no scope enabled this is just {@code ${prefix}${name}}.
+   *
+   * <p>{@code context} is only dereferenced for the scopes that are actually enabled, so an
+   * unscoped provider still resolves with a {@code null} context.
+   *
+   * @param effectivePrefix the prefix to prepend (may be empty for unprefixed lookup)
+   */
   private String composeSecretNameWithPrefix(
       String name, SecretContext context, String effectivePrefix) {
     String resolvedPrefix = StringUtils.hasText(effectivePrefix) ? effectivePrefix : "";
-    return tenantAware
-        ? (processDefinitionAware
-            ? composeSecretNameTenantAwareProcessDefinitionAware(name, context, resolvedPrefix)
-            : composeSecretNameTenantAware(name, context, resolvedPrefix))
-        : (processDefinitionAware
-            ? composeSecretNameProcessDefinitionAware(name, context, resolvedPrefix)
-            : composeSecretNameSimple(name, resolvedPrefix));
+    var segments = new ArrayList<String>();
+    if (physicalTenantAware) {
+      segments.add(resolvePhysicalTenantId(context));
+    }
+    if (tenantAware) {
+      segments.add(context.tenantId());
+    }
+    if (processDefinitionAware) {
+      segments.add(context.processDefinitionId());
+    }
+    segments.add(name);
+    return resolvedPrefix + String.join("_", segments);
   }
 
   /**
-   * Returns the secret name in format {@code ${prefix}${name}}.
-   *
-   * @param name the secret name to find the value for
-   * @param resolvedPrefix the prefix to prepend (may be empty)
-   * @return the final secret name
+   * Returns the context's physical tenant, or {@link #DEFAULT_PHYSICAL_TENANT_ID} when it is unset
+   * — resolving to an unscoped name instead would let a misconfigured multi-engine deployment
+   * silently share one secret across engines.
    */
-  private String composeSecretNameSimple(String name, String resolvedPrefix) {
-    return String.format("%s%s", resolvedPrefix, name);
-  }
-
-  /**
-   * Returns the secret name in format {@code ${prefix}${tenantId}_${name}}.
-   *
-   * @param name the secret name to find the value for
-   * @param context the context of where the secret is originated
-   * @param resolvedPrefix the prefix to prepend (may be empty)
-   * @return the final secret name
-   */
-  private String composeSecretNameTenantAware(
-      String name, SecretContext context, String resolvedPrefix) {
-    return String.format("%s%s_%s", resolvedPrefix, context.tenantId(), name);
-  }
-
-  /**
-   * Returns the secret name in format {@code ${prefix}${processDefinitionId}_${name}}.
-   *
-   * @param name the secret name to find the value for
-   * @param context the context of where the secret is originated
-   * @param resolvedPrefix the prefix to prepend (may be empty)
-   * @return the final secret name
-   */
-  private String composeSecretNameProcessDefinitionAware(
-      String name, SecretContext context, String resolvedPrefix) {
-    return String.format("%s%s_%s", resolvedPrefix, context.processDefinitionId(), name);
-  }
-
-  /**
-   * Returns the secret name in format {@code ${prefix}${tenantId}_${processDefinitionId}_${name}}.
-   *
-   * @param name the secret name to find the value for
-   * @param context the context of where the secret is originated
-   * @param resolvedPrefix the prefix to prepend (may be empty)
-   * @return the final secret name
-   */
-  private String composeSecretNameTenantAwareProcessDefinitionAware(
-      String name, SecretContext context, String resolvedPrefix) {
-    return String.format(
-        "%s%s_%s_%s", resolvedPrefix, context.tenantId(), context.processDefinitionId(), name);
+  private String resolvePhysicalTenantId(SecretContext context) {
+    var physicalTenantId = context.physicalTenantId();
+    return physicalTenantId != null ? physicalTenantId : DEFAULT_PHYSICAL_TENANT_ID;
   }
 }

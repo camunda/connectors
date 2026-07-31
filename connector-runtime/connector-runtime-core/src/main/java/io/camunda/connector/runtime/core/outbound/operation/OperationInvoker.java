@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
@@ -47,7 +48,21 @@ public class OperationInvoker {
     this.descriptor = descriptor;
   }
 
+  /**
+   * Resolves the {@link ObjectMapper} to use for this invocation: prefers the per-physical-tenant
+   * mapper carried by a {@link JobHandlerContext} (the real runtime context, correctly wired per
+   * tenant by {@code OutboundConnectorManager}) over the mapper captured in this instance at
+   * connector-registration time, which is otherwise stale/wrong for any tenant other than the one
+   * active when the operation-based connector's registration was built.
+   */
+  private ObjectMapper resolveObjectMapper(OutboundConnectorContext context) {
+    return context instanceof JobHandlerContext jobHandlerContext
+        ? jobHandlerContext.getObjectMapper()
+        : objectMapper;
+  }
+
   public Object invoke(Object connectorInstance, OutboundConnectorContext context) {
+    ObjectMapper mapper = resolveObjectMapper(context);
     Object[] args = new Object[descriptor.params().size()];
     JsonNode jobVariables = null;
     for (int i = 0; i < args.length; i++) {
@@ -57,21 +72,23 @@ public class OperationInvoker {
             case ParameterDescriptor.Context ignored -> context;
             case ParameterDescriptor.Variable<?> variable -> {
               if (jobVariables == null) {
-                jobVariables = readJsonAsTree(context.getJobContext().getVariables());
+                jobVariables = readJsonAsTree(context.getJobContext().getVariables(), mapper);
               }
-              yield resolveVariableValue(variable, jobVariables);
+              yield resolveVariableValue(variable, jobVariables, mapper);
             }
             case ParameterDescriptor.Header<?> header ->
-                resolveHeaderValue(header, context.getJobContext().getCustomHeaders());
+                resolveHeaderValue(header, context.getJobContext().getCustomHeaders(), mapper);
           };
     }
     return invokeMethod(connectorInstance, args);
   }
 
   private Object resolveVariableValue(
-      ParameterDescriptor.Variable<?> variableDescriptor, JsonNode jobVariables) {
+      ParameterDescriptor.Variable<?> variableDescriptor,
+      JsonNode jobVariables,
+      ObjectMapper mapper) {
     JsonPointer jsonPointer = variableDescriptor.getJsonPointer();
-    Object value = readValueAs(jobVariables, jsonPointer, variableDescriptor.getType());
+    Object value = readValueAs(jobVariables, jsonPointer, variableDescriptor.getType(), mapper);
     if (variableDescriptor.isRequired() && value == null) {
       throw new ConnectorInputException(
           "Required variable '"
@@ -85,11 +102,13 @@ public class OperationInvoker {
   }
 
   private Object resolveHeaderValue(
-      ParameterDescriptor.Header<?> headerDescriptor, Map<String, String> headers) {
+      ParameterDescriptor.Header<?> headerDescriptor,
+      Map<String, String> headers,
+      ObjectMapper mapper) {
     String rawValue = headers.get(headerDescriptor.name());
     Object value;
     try {
-      value = objectMapper.convertValue(rawValue, headerDescriptor.type());
+      value = mapper.convertValue(rawValue, headerDescriptor.type());
     } catch (Throwable e) {
       throw new RuntimeException(e);
     }
@@ -103,21 +122,22 @@ public class OperationInvoker {
     return value;
   }
 
-  private Object readValueAs(JsonNode jsonNode, JsonPointer jsonPointer, Type type) {
+  private Object readValueAs(
+      JsonNode jsonNode, JsonPointer jsonPointer, Type type, ObjectMapper mapper) {
     JsonNode node = jsonNode.at(jsonPointer);
 
-    JavaType javaType = objectMapper.getTypeFactory().constructType(type);
+    JavaType javaType = mapper.getTypeFactory().constructType(type);
 
-    try (JsonParser parser = node.traverse(objectMapper)) {
-      return objectMapper.readValue(parser, javaType);
+    try (JsonParser parser = node.traverse(mapper)) {
+      return mapper.readValue(parser, javaType);
     } catch (IOException ex) {
       throw new RuntimeException(ex);
     }
   }
 
-  private JsonNode readJsonAsTree(String json) {
+  private JsonNode readJsonAsTree(String json, ObjectMapper mapper) {
     try {
-      return objectMapper.readTree(json);
+      return mapper.readTree(json);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }

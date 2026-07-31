@@ -22,17 +22,34 @@ import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.runtime.core.document.CamundaDocumentReferenceImpl;
 import java.io.InputStream;
+import org.jspecify.annotations.Nullable;
 
 public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
 
   private final CamundaClient camundaClient;
+  private final @Nullable String physicalTenantId;
 
   public CamundaDocumentStoreImpl(CamundaClient camundaClient) {
+    this(camundaClient, null);
+  }
+
+  public CamundaDocumentStoreImpl(CamundaClient camundaClient, @Nullable String physicalTenantId) {
     this.camundaClient = camundaClient;
+    this.physicalTenantId = physicalTenantId;
   }
 
   @Override
   public CamundaDocumentReference createDocument(DocumentCreationRequest request) {
+    if (physicalTenantId != null
+        && request.physicalTenantId() != null
+        && !physicalTenantId.equals(request.physicalTenantId())) {
+      throw new IllegalStateException(
+          "Attempted to create a document for physical tenant '"
+              + request.physicalTenantId()
+              + "' using a document store configured for physical tenant '"
+              + physicalTenantId
+              + "' — this likely indicates a DocumentFactory reused across physical tenants.");
+    }
     final var command = camundaClient.newCreateDocumentCommand().content(request.content());
 
     if (request.contentType() != null) {

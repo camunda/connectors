@@ -22,4 +22,19 @@ public record InboundConnectorDefinition(
     String type,
     String tenantId,
     String deduplicationId,
-    List<? extends ProcessElement> elements) {}
+    List<? extends ProcessElement> elements,
+    String physicalTenantId) {
+
+  /**
+   * Legacy constructor retained for source/binary compatibility with existing connector code built
+   * against the pre-multi-tenant four-argument constructor. Defaults {@code physicalTenantId} to
+   * {@code "default"}.
+   */
+  public InboundConnectorDefinition(
+      String type,
+      String tenantId,
+      String deduplicationId,
+      List<? extends ProcessElement> elements) {
+    this(type, tenantId, deduplicationId, elements, "default");
+  }
+}

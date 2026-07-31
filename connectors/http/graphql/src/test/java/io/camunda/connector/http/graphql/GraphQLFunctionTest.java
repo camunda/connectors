@@ -23,6 +23,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.http.base.model.HttpCommonResult;
+import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.utils.GraphQLRequestMapper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
@@ -30,6 +31,7 @@ import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilde
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -77,6 +79,63 @@ public class GraphQLFunctionTest extends BaseTest {
     // then
     assertThat(functionCallResponseAsObject.headers())
         .containsValue(APPLICATION_JSON.getMimeType());
+  }
+
+  /**
+   * Guards the {@code @Valid} cascade on the bound credential: validation must descend through
+   * {@code authenticationConfiguration -> RestAuthenticationConfiguration.authentication ->
+   * BearerAuthentication} so a credential carrying a blank token (which {@code @NotEmpty} forbids)
+   * is rejected the same way inline authentication would be. Runs through the real runtime
+   * validation path ({@code bindVariables}).
+   */
+  @Test
+  void credentialWithBlankTokenIsRejectedByCascadingValidation() {
+    String variables =
+        """
+        {
+          "graphql": {
+            "query": "query { field }",
+            "method": "get",
+            "url": "http://localhost:8085/http-endpoint"
+          },
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "" }
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(variables)
+            .includeAllValidators()
+            .build();
+
+    assertThatThrownBy(() -> context.bindVariables(GraphQLRequest.class))
+        .hasMessageContaining("token");
+  }
+
+  @Test
+  void credentialWithValidTokenDoesNotTripAuthValidation() {
+    String variables =
+        """
+        {
+          "graphql": {
+            "query": "query { field }",
+            "method": "get",
+            "url": "http://localhost:8085/http-endpoint"
+          },
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" }
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(variables)
+            .includeAllValidators()
+            .build();
+
+    var request = context.bindVariables(GraphQLRequest.class);
+    assertThat(request.authentication()).isInstanceOf(BearerAuthentication.class);
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")

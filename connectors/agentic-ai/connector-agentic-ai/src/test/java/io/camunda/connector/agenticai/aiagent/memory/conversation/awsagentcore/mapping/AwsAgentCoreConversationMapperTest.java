@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -21,7 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -316,6 +317,72 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(reconstructed.content().get(1)).isInstanceOf(ObjectContent.class);
   }
 
+  @Test
+  void shouldRoundTripAssistantMessageWithModelIdMessageIdAndKnownStopReason() {
+    // given
+    AssistantMessage original =
+        AssistantMessage.builder()
+            .content(List.of(textContent("Here's the answer")))
+            .modelId("gpt-4o")
+            .messageId("msg-123")
+            .stopReason(StopReason.STOP)
+            .build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    AssistantMessage reconstructed = (AssistantMessage) message;
+    assertThat(reconstructed.modelId()).isEqualTo("gpt-4o");
+    assertThat(reconstructed.messageId()).isEqualTo("msg-123");
+    assertThat(reconstructed.stopReason()).isEqualTo(StopReason.STOP);
+  }
+
+  @Test
+  void shouldRoundTripAssistantMessageWithUnknownStopReason() {
+    // given
+    AssistantMessage original =
+        AssistantMessage.builder()
+            .content(List.of(textContent("Here's the answer")))
+            .modelId("claude-opus")
+            .messageId("msg-456")
+            .stopReason(StopReason.of("vendor_specific_reason"))
+            .build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    AssistantMessage reconstructed = (AssistantMessage) message;
+    assertThat(reconstructed.modelId()).isEqualTo("claude-opus");
+    assertThat(reconstructed.messageId()).isEqualTo("msg-456");
+    assertThat(reconstructed.stopReason())
+        .isEqualTo(StopReason.of("vendor_specific_reason"))
+        .isInstanceOf(StopReason.UnknownStopReason.class);
+  }
+
+  @Test
+  void shouldRoundTripAssistantMessageWithoutModelIdMessageIdOrStopReason() {
+    // given - existing behavior must not regress: absent fields stay absent
+    AssistantMessage original =
+        AssistantMessage.builder().content(List.of(textContent("No metadata here"))).build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    AssistantMessage reconstructed = (AssistantMessage) message;
+    assertThat(reconstructed.modelId()).isNull();
+    assertThat(reconstructed.messageId()).isNull();
+    assertThat(reconstructed.stopReason()).isNull();
+  }
+
   // ==================== ToolCallResultMessage Tests ====================
 
   @Test
@@ -325,10 +392,10 @@ class AwsAgentCoreConversationMapperTest {
         ToolCallResultMessage.builder()
             .results(
                 List.of(
-                    ToolCallResult.builder()
+                    ToolCallResultContent.builder()
                         .id("call-1")
                         .name("search")
-                        .content("Found 3 items")
+                        .content(List.of(TextContent.textContent("Found 3 items")))
                         .build()))
             .build();
 
@@ -351,8 +418,12 @@ class AwsAgentCoreConversationMapperTest {
         ToolCallResultMessage.builder()
             .results(
                 List.of(
-                    ToolCallResult.builder().content("Result 1").build(),
-                    ToolCallResult.builder().content("Result 2").build()))
+                    ToolCallResultContent.builder()
+                        .content(List.of(TextContent.textContent("Result 1")))
+                        .build(),
+                    ToolCallResultContent.builder()
+                        .content(List.of(TextContent.textContent("Result 2")))
+                        .build()))
             .build();
 
     // when
@@ -368,7 +439,11 @@ class AwsAgentCoreConversationMapperTest {
     Map<String, Object> contentMap = Map.of("items", List.of("a", "b"), "count", 2);
     ToolCallResultMessage message =
         ToolCallResultMessage.builder()
-            .results(List.of(ToolCallResult.builder().content(contentMap).build()))
+            .results(
+                List.of(
+                    ToolCallResultContent.builder()
+                        .content(List.of(ObjectContent.objectContent(contentMap)))
+                        .build()))
             .build();
 
     // when
@@ -385,7 +460,12 @@ class AwsAgentCoreConversationMapperTest {
     ToolCallResultMessage original =
         ToolCallResultMessage.builder()
             .results(
-                List.of(ToolCallResult.builder().id("call-1").name("search").content(null).build()))
+                List.of(
+                    ToolCallResultContent.builder()
+                        .id("call-1")
+                        .name("search")
+                        .content(List.of())
+                        .build()))
             .build();
 
     // when
@@ -407,10 +487,10 @@ class AwsAgentCoreConversationMapperTest {
         ToolCallResultMessage.builder()
             .results(
                 List.of(
-                    ToolCallResult.builder()
+                    ToolCallResultContent.builder()
                         .id("call-1")
                         .name("search")
-                        .content("Found 3 items")
+                        .content(List.of(TextContent.textContent("Found 3 items")))
                         .properties(Map.of("interrupted", true, "custom", "value"))
                         .build()))
             .build();
@@ -425,7 +505,8 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(reconstructed.results()).hasSize(1);
     assertThat(reconstructed.results().get(0).id()).isEqualTo("call-1");
     assertThat(reconstructed.results().get(0).name()).isEqualTo("search");
-    assertThat(reconstructed.results().get(0).content()).isEqualTo("Found 3 items");
+    assertThat(reconstructed.results().get(0).content())
+        .containsExactly(TextContent.textContent("Found 3 items"));
     assertThat(reconstructed.results().get(0).properties())
         .isEqualTo(Map.of("interrupted", true, "custom", "value"));
   }
@@ -587,7 +668,11 @@ class AwsAgentCoreConversationMapperTest {
 
     ToolCallResultMessage original =
         ToolCallResultMessage.builder()
-            .results(List.of(ToolCallResult.builder().content("Result").build()))
+            .results(
+                List.of(
+                    ToolCallResultContent.builder()
+                        .content(List.of(TextContent.textContent("Result")))
+                        .build()))
             .metadata(metadata)
             .build();
 

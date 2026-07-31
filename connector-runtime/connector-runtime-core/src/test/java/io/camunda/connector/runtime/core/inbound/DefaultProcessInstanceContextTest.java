@@ -26,16 +26,24 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.EvaluateExpressionCommandStep1.EvaluateExpressionCommandStep2;
 import io.camunda.client.api.response.EvaluateExpressionResponse;
 import io.camunda.client.api.search.response.ElementInstance;
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
+import io.camunda.connector.runtime.core.document.DocumentDeserializationTest;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class DefaultProcessInstanceContextTest {
 
@@ -48,7 +56,7 @@ class DefaultProcessInstanceContextTest {
     when(intermediateContext.getProperties()).thenReturn(Map.of("str", "= anything"));
     when(intermediateContext.getDefinition())
         .thenReturn(
-            new InboundConnectorDefinition("type", "tenant-A", "dedup", java.util.List.of()));
+            new InboundConnectorDefinition("type", "tenant-A", "dedup", java.util.List.of(), null));
 
     var elementInstance = mock(ElementInstance.class);
     when(elementInstance.getElementInstanceKey()).thenReturn(987654321L);
@@ -83,7 +91,7 @@ class DefaultProcessInstanceContextTest {
     when(intermediateContext.getProperties()).thenReturn(Map.of("str", "= failing"));
     when(intermediateContext.getDefinition())
         .thenReturn(
-            new InboundConnectorDefinition("type", "tenant-A", "dedup", java.util.List.of()));
+            new InboundConnectorDefinition("type", "tenant-A", "dedup", java.util.List.of(), null));
 
     var elementInstance = mock(ElementInstance.class);
     when(elementInstance.getElementInstanceKey()).thenReturn(987654321L);
@@ -107,6 +115,66 @@ class DefaultProcessInstanceContextTest {
         .hasMessageContaining("tenantId=tenant-A")
         .hasMessageContaining("scopeKey=987654321")
         .hasRootCauseMessage("remote FEEL failed");
+  }
+
+  @Test
+  void bind_resolvesDocumentFieldsThroughTheContextsOwnPhysicalTenant() {
+    // given: two physical tenants, each with its own DocumentFactory/store
+    var storeA = Mockito.mock(CamundaDocumentStore.class);
+    var storeB = Mockito.mock(CamundaDocumentStore.class);
+    var factoryA = new DocumentFactoryImpl(storeA);
+    var factoryB = new DocumentFactoryImpl(storeB);
+    var multiTenantMapper =
+        new ObjectMapper()
+            .registerModule(
+                new JacksonModuleDocumentDeserializer(
+                    Map.of("tenant-a", factoryA, "tenant-b", factoryB),
+                    Mockito.mock(IntrinsicFunctionExecutor.class),
+                    JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()))
+            .registerModule(new Jdk8Module());
+
+    var ref = DocumentDeserializationTest.createDocumentMock("hello from tenant b", null, storeB);
+
+    var intermediateContext = mock(InboundIntermediateConnectorContextImpl.class);
+    when(intermediateContext.getProperties()).thenReturn(Map.of("document", ref));
+    when(intermediateContext.getDefinition())
+        .thenReturn(
+            new InboundConnectorDefinition(
+                "type", "tenant-A", "dedup", java.util.List.of(), "tenant-b"));
+
+    var elementInstance = mock(ElementInstance.class);
+    when(elementInstance.getElementInstanceKey()).thenReturn(1L);
+
+    var camundaClient = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
+    ValidationProvider validationProvider = obj -> {};
+
+    var context =
+        new DefaultProcessInstanceContext(
+            intermediateContext,
+            elementInstance,
+            validationProvider,
+            null,
+            multiTenantMapper,
+            camundaClient);
+
+    // when
+    var result = context.bind(DocumentProps.class);
+
+    // then: resolved through tenant-b's factory, matching the reader attribute set from
+    // context.getDefinition().physicalTenantId()
+    assertThat(result.getDocument().reference()).isEqualTo(ref);
+  }
+
+  public static class DocumentProps {
+    private Document document;
+
+    public Document getDocument() {
+      return document;
+    }
+
+    public void setDocument(Document document) {
+      this.document = document;
+    }
   }
 
   public static class SimpleProps {

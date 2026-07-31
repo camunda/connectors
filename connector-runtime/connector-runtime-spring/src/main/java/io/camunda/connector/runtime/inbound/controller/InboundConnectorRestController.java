@@ -20,6 +20,7 @@ import static io.camunda.connector.runtime.core.http.InstanceForwardingHttpClien
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.runtime.inbound.executable.*;
+import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
 import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,6 +28,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,7 +36,7 @@ import org.springframework.web.bind.annotation.*;
 public class InboundConnectorRestController {
 
   private final InboundExecutableRegistry executableRegistry;
-  private final ConnectorDataMapper connectorDataMapper = new ConnectorDataMapper();
+  private final ConnectorDataMapper connectorDataMapper;
   private final InstanceForwardingRouter instanceForwardingRouter;
 
   @Value("${camunda.connector.hostname:${HOSTNAME:localhost}}")
@@ -43,8 +45,28 @@ public class InboundConnectorRestController {
   public InboundConnectorRestController(
       InboundExecutableRegistry executableRegistry,
       InstanceForwardingRouter instanceForwardingRouter) {
+    this(executableRegistry, instanceForwardingRouter, null);
+  }
+
+  /**
+   * Derives the mapper's path-scoping flag from the actual {@link WebhookConnectorRegistry} bean
+   * (absent when webhooks are disabled) rather than re-resolving the {@code
+   * append-physical-tenant-and-tenant-to-path} property independently: the registry may have
+   * inferred the flag from the configured client count when the property is left unset (see {@code
+   * WebhookConnectorConfiguration}), and resolving it here a second time with its own default would
+   * disagree with the registry whenever that inference kicks in.
+   */
+  @Autowired
+  public InboundConnectorRestController(
+      InboundExecutableRegistry executableRegistry,
+      InstanceForwardingRouter instanceForwardingRouter,
+      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     this.executableRegistry = executableRegistry;
     this.instanceForwardingRouter = instanceForwardingRouter;
+    this.connectorDataMapper =
+        new ConnectorDataMapper(
+            webhookConnectorRegistry != null
+                && webhookConnectorRegistry.appendsPhysicalTenantAndTenantToPath());
   }
 
   @GetMapping("/inbound")

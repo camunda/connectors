@@ -18,6 +18,16 @@ package io.camunda.connector.api.document;
 
 public interface DocumentFactory {
 
+  /**
+   * Jackson {@code ObjectReader}/{@code DeserializationContext} attribute key used to carry the
+   * physical tenant (Zeebe cluster/"engine") a {@code Document}-typed field should be resolved
+   * against. Set via {@code objectMapper.reader().withAttribute(PHYSICAL_TENANT_ID_ATTRIBUTE, ...)}
+   * before deserializing, read back via {@code context.getAttribute(PHYSICAL_TENANT_ID_ATTRIBUTE)}
+   * inside the deserializer — necessary because the {@code ObjectMapper}/module holding the
+   * document deserializer is a long-lived singleton, not rebuilt per physical tenant.
+   */
+  String PHYSICAL_TENANT_ID_ATTRIBUTE = "physicalTenantId";
+
   /** Given a document reference, create the Document object */
   Document resolve(DocumentReference reference);
 

@@ -127,7 +127,8 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
         event.elementsByProcessDefinitionKey().size());
     LOG.debug("Received target elements: {}", event.elementsByProcessDefinitionKey());
 
-    var processLockKey = processLockKey(event.tenantId(), event.bpmnProcessId());
+    var processLockKey =
+        processLockKey(event.physicalTenantId(), event.tenantId(), event.bpmnProcessId());
 
     synchronized (processLocks.computeIfAbsent(processLockKey, k -> new Object())) {
       try {
@@ -136,7 +137,8 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
         var targetState = stateTransitionService.computeTargetState(allElements);
         var currentState =
-            stateTransitionService.computeCurrentState(event.bpmnProcessId(), event.tenantId());
+            stateTransitionService.computeCurrentState(
+                event.physicalTenantId(), event.bpmnProcessId(), event.tenantId());
         var plan = stateTransitionService.determineActions(targetState, currentState);
 
         if (!plan.isEmpty()) {
@@ -382,11 +384,12 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
    */
   private String extractProcessLockKey(RegisteredExecutable executable) {
     var element = extractConnectorElements(executable).getFirst();
-    return processLockKey(element.tenantId(), element.element().bpmnProcessId());
+    return processLockKey(
+        element.physicalTenantId(), element.tenantId(), element.element().bpmnProcessId());
   }
 
-  private String processLockKey(String tenantId, String bpmnProcessId) {
-    return tenantId + bpmnProcessId;
+  private String processLockKey(String physicalTenantId, String tenantId, String bpmnProcessId) {
+    return physicalTenantId + " " + tenantId + " " + bpmnProcessId;
   }
 
   @Scheduled(fixedDelay = 30000)

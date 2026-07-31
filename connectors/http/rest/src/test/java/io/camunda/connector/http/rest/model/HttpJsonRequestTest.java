@@ -19,6 +19,7 @@ package io.camunda.connector.http.rest.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
+import io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration;
 import org.junit.jupiter.api.Test;
 
 /** Verifies the per-connector consumption of a bound authentication credential (configuration). */

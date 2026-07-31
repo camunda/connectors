@@ -6,12 +6,10 @@
  */
 package io.camunda.connector.sagemaker;
 
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntime;
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntimeAsync;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.aws.CredentialsProviderSupport;
+import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.sagemaker.caller.SageMakerAsyncCaller;
@@ -22,13 +20,15 @@ import io.camunda.connector.sagemaker.model.SageMakerRequest;
 import io.camunda.connector.sagemaker.model.SageMakerSyncResponse;
 import io.camunda.connector.sagemaker.suppliers.SageMakeClientSupplier;
 import java.util.function.BiFunction;
+import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeAsyncClient;
+import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 
 @OutboundConnector(
     name = "AWS SageMaker",
     inputVariables = {"authentication", "configuration", "input", "awsCredential"},
     type = "io.camunda:aws-sagemaker:1")
 @ElementTemplate(
-    engineVersion = "^8.6",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.AWSSAGEMAKER.v1",
     name = "Run Inference with AWS SageMaker",
     description = "Run inferences using AWS SageMaker.",
@@ -45,7 +45,7 @@ import java.util.function.BiFunction;
     },
     inputDataClass = SageMakerRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 3,
+    version = 4,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
@@ -57,9 +57,9 @@ import java.util.function.BiFunction;
 public class SagemakerConnectorFunction implements OutboundConnectorFunction {
 
   private final SageMakeClientSupplier sageMakeClientSupplier;
-  private final BiFunction<AmazonSageMakerRuntime, SageMakerRequest, SageMakerSyncResponse>
+  private final BiFunction<SageMakerRuntimeClient, SageMakerRequest, SageMakerSyncResponse>
       syncCallerFunction;
-  private final BiFunction<AmazonSageMakerRuntimeAsync, SageMakerRequest, SageMakerAsyncResponse>
+  private final BiFunction<SageMakerRuntimeAsyncClient, SageMakerRequest, SageMakerAsyncResponse>
       asyncCallerFunction;
 
   public SagemakerConnectorFunction() {
@@ -71,9 +71,9 @@ public class SagemakerConnectorFunction implements OutboundConnectorFunction {
 
   public SagemakerConnectorFunction(
       final SageMakeClientSupplier sageMakeClientSupplier,
-      final BiFunction<AmazonSageMakerRuntime, SageMakerRequest, SageMakerSyncResponse>
+      final BiFunction<SageMakerRuntimeClient, SageMakerRequest, SageMakerSyncResponse>
           syncCallerFunction,
-      final BiFunction<AmazonSageMakerRuntimeAsync, SageMakerRequest, SageMakerAsyncResponse>
+      final BiFunction<SageMakerRuntimeAsyncClient, SageMakerRequest, SageMakerAsyncResponse>
           asyncCallerFunction) {
     this.sageMakeClientSupplier = sageMakeClientSupplier;
     this.syncCallerFunction = syncCallerFunction;
@@ -84,17 +84,19 @@ public class SagemakerConnectorFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) {
     final var request = context.bindVariables(SageMakerRequest.class);
     if (request.getInput().invocationType() == SageMakerInvocationType.ASYNC) {
-      return asyncCallerFunction.apply(
+      try (var client =
           sageMakeClientSupplier.getAsyncClient(
-              CredentialsProviderSupport.credentialsProvider(request),
-              request.getConfiguration().region()),
-          request);
+              CredentialsProviderSupportV2.credentialsProvider(request),
+              request.getConfiguration().region())) {
+        return asyncCallerFunction.apply(client, request);
+      }
     } else {
-      return syncCallerFunction.apply(
+      try (var client =
           sageMakeClientSupplier.getSyncClient(
-              CredentialsProviderSupport.credentialsProvider(request),
-              request.getConfiguration().region()),
-          request);
+              CredentialsProviderSupportV2.credentialsProvider(request),
+              request.getConfiguration().region())) {
+        return syncCallerFunction.apply(client, request);
+      }
     }
   }
 }

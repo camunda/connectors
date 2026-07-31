@@ -13,7 +13,10 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Re
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -27,8 +30,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
@@ -53,7 +58,7 @@ public abstract class BaseAgentRequestHandler<
   private final AgentInitializer agentInitializer;
   private final ConversationStoreRegistry conversationStoreRegistry;
   private final AgentConversationTurnInputComposer agentInputComposer;
-  private final AiFrameworkAdapter<?> framework;
+  private final ChatModelRegistry chatModelRegistry;
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
@@ -62,14 +67,14 @@ public abstract class BaseAgentRequestHandler<
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentInputComposer,
-      AiFrameworkAdapter<?> framework,
+      ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
-    this.framework = framework;
+    this.chatModelRegistry = chatModelRegistry;
     this.systemPromptComposer = systemPromptComposer;
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
@@ -158,18 +163,12 @@ public abstract class BaseAgentRequestHandler<
         conversation.lastTurn(),
         OffsetDateTime.now());
 
-    LOGGER.debug("Executing chat request with AI framework");
-    final var chatResponse =
-        framework.executeMeasuringTime(
-            executionContext, conversation.window(agentConfiguration.contextWindowSize()));
-    final var updatedConversation =
-        conversation.ingest(chatResponse.assistantMessage(), chatResponse.metrics());
-
-    agentInstanceClient.createHistoryForAssistantMessage(
-        executionContext,
-        agentInstanceKey,
-        updatedConversation.currentTurn(),
-        OffsetDateTime.now());
+    final AgentConversation updatedConversation;
+    try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
+      updatedConversation =
+          driveContinuationLoop(
+              executionContext, agentConfiguration, conversation, chatModel, agentInstanceKey);
+    }
 
     LOGGER.debug("Storing conversation messages to session");
     final var storedRef =
@@ -197,6 +196,59 @@ public abstract class BaseAgentRequestHandler<
         AgentJobCompletionListener.compose(
             messageStorageCompletionListener,
             createMetricsCompletionListener(executionContext, storedConversation, agentResponse)));
+  }
+
+  /**
+   * Drives the given chat model until it returns a {@code Completed} result, ingesting each round
+   * (including intermediate {@code Continuation} rounds) as its own turn.
+   */
+  private AgentConversation driveContinuationLoop(
+      C executionContext,
+      AgentConfiguration agentConfiguration,
+      AgentConversation conversation,
+      ChatModel chatModel,
+      @Nullable AgentInstanceKey agentInstanceKey) {
+    var workingConversation = conversation;
+    boolean continued;
+    do {
+      LOGGER.debug(
+          "Sending turn (iterationKey={}) to the model",
+          workingConversation.currentTurn().iterationKey());
+
+      final var windowedSnapshot =
+          workingConversation.window(agentConfiguration.contextWindowSize());
+      final var chatResult = chatModel.execute(new ChatRequest(executionContext, windowedSnapshot));
+
+      throwIfContentFiltered(chatResult.assistantMessage());
+
+      workingConversation =
+          workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
+
+      agentInstanceClient.createHistoryForAssistantMessage(
+          executionContext,
+          agentInstanceKey,
+          workingConversation.currentTurn(),
+          OffsetDateTime.now());
+
+      continued = chatResult instanceof ChatResult.Continuation;
+      if (continued) {
+        LOGGER.debug(
+            "Provider requested continuation (iterationKey={}); resuming with another round",
+            workingConversation.currentTurn().iterationKey());
+
+        throwIfLimitsReached(workingConversation, agentConfiguration);
+        workingConversation = workingConversation.nextContinuationRound();
+      }
+    } while (continued);
+    return workingConversation;
+  }
+
+  private void throwIfContentFiltered(AssistantMessage assistantMessage) {
+    if (assistantMessage.stopReason() == StopReason.CONTENT_FILTERED) {
+      throw new ConnectorException(
+          AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
+          "Model response was blocked by provider content filtering.");
+    }
   }
 
   private void throwIfLimitsReached(
@@ -319,8 +371,11 @@ public abstract class BaseAgentRequestHandler<
       AgentConversation conversation,
       AgentResponse response,
       boolean rethrowOnFailure) {
-    final var metricsDelta = conversation.currentTurnMetrics();
-    final var nextState = nextAgentInstanceState(metricsDelta.toolCalls());
+    final var metricsDelta = conversation.jobMetrics();
+    // Continuation rounds are pauses (no client tool calls), so the final turn owns the tool-call
+    // count; status must reflect the final turn, while the pushed delta covers the whole
+    // invocation.
+    final var nextState = nextAgentInstanceState(conversation.currentTurnMetrics().toolCalls());
     final var agentContext = response.context();
 
     notifyMetrics(executionContext, agentContext, metricsDelta, nextState, rethrowOnFailure);
@@ -371,7 +426,7 @@ public abstract class BaseAgentRequestHandler<
 
       @Override
       public void onJobCompletionFailed(JobCompletionFailure failure) {
-        final var strippedDelta = conversation.currentTurnMetrics().withToolCalls(0);
+        final var strippedDelta = conversation.jobMetrics().withToolCalls(0);
         if (failure instanceof JobCompletionFailure.CommandFailure.CommandIgnored) {
           // Superseded job: report model/token cost but don't overwrite the current status
           notifyMetrics(executionContext, response.context(), strippedDelta, null, false);

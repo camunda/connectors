@@ -25,7 +25,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedToolCall;
 import java.util.List;
 
 /**
- * Provider-agnostic counterpart of {@code BaseAiAgentTest.ExpectedMessage}, asserting against the
+ * Provider-agnostic counterpart of {@code BaseAgentTest.ExpectedMessage}, asserting against the
  * {@link RecordedMessage} SPI shape shared by all provider wire-format fixtures instead of the
  * OpenAI-specific recorded message type.
  *

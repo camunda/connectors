@@ -16,5 +16,18 @@
  */
 package io.camunda.connector.runtime.inbound.state.model;
 
-/** A composite key for identifying a process definition by its BPMN process ID and tenant ID. */
-public record ProcessDefinitionRef(String bpmnProcessId, String tenantId) {}
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
+
+/**
+ * A composite key for identifying a process definition by its physical tenant ID, BPMN process ID
+ * and tenant ID.
+ */
+public record ProcessDefinitionRef(String physicalTenantId, String bpmnProcessId, String tenantId) {
+
+  public static final String DEFAULT_PHYSICAL_TENANT_ID =
+      ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID;
+
+  public ProcessDefinitionRef(String bpmnProcessId, String tenantId) {
+    this(DEFAULT_PHYSICAL_TENANT_ID, bpmnProcessId, tenantId);
+  }
+}

@@ -102,6 +102,15 @@ public class ConnectorMetrics {
     public static final String RESULT_CACHE_MISS = "miss";
 
     /**
+     * Number of process state changes that could not be published to the executable registry,
+     * typically because the Orchestration Cluster was unreachable while the BPMN model was fetched.
+     * Each one is retried on a subsequent poll, so a non-zero rate that does not settle indicates
+     * connectors are failing to activate.
+     */
+    public static final String METRIC_NAME_PROCESS_STATE_CHANGE_PUBLISH_FAILURES =
+        "camunda.connector.inbound.process-state-change.publish-failures";
+
+    /**
      * Epoch-millisecond timestamp of the last successful activation, per connector type. Value is
      * {@code 0} if no activation has occurred yet.
      */

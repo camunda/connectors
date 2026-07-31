@@ -77,12 +77,25 @@ public class JobHandlerContext extends AbstractConnectorContext
     return mappedObject;
   }
 
+  /**
+   * Exposes the {@link ObjectMapper} this context was built with (i.e. the correct per-physical-
+   * tenant mapper selected by {@code OutboundConnectorManager}), so that {@link
+   * io.camunda.connector.runtime.core.outbound.operation.OperationInvoker} can deserialize
+   * {@code @Variable}/{@code @Header} parameters with it instead of a mapper captured once at
+   * connector registration time.
+   */
+  public ObjectMapper getObjectMapper() {
+    return objectMapper;
+  }
+
   private String getJsonReplacedWithSecrets() {
     if (jsonWithSecrets == null) {
       jsonWithSecrets =
           getSecretHandler()
               .replaceSecrets(
-                  job.getVariables(), new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
+                  job.getVariables(),
+                  new SecretContext(
+                      job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId()));
     }
     return jsonWithSecrets;
   }
@@ -172,6 +185,6 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   @Override
   public Document create(DocumentCreationRequest request) {
-    return documentFactory.create(request);
+    return documentFactory.create(request.withPhysicalTenantIdIfAbsent(job.getPhysicalTenantId()));
   }
 }

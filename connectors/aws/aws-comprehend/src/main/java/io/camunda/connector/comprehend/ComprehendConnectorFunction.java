@@ -24,7 +24,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     inputVariables = {"authentication", "configuration", "input", "awsCredential"},
     type = "io.camunda:aws-comprehend:1")
 @ElementTemplate(
-    engineVersion = "^8.7",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.AWSCOMPREHEND.v1",
     name = "AWS Comprehend Outbound Connector",
     description = "Execute Comprehend models",
@@ -38,7 +38,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     },
     inputDataClass = ComprehendRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 4,
+    version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
@@ -76,9 +76,12 @@ public class ComprehendConnectorFunction implements OutboundConnectorFunction {
     var request = context.bindVariables(ComprehendRequest.class);
     ComprehendRequestData requestData = request.getInput();
     if (requestData instanceof ComprehendSyncRequestData syncRequestData) {
-      return syncComprehendCaller.call(clientSupplier.getSyncClient(request), syncRequestData);
+      try (var client = clientSupplier.getSyncClient(request)) {
+        return syncComprehendCaller.call(client, syncRequestData);
+      }
     }
-    return asyncComprehendCaller.call(
-        clientSupplier.getAsyncClient(request), (ComprehendAsyncRequestData) requestData);
+    try (var client = clientSupplier.getAsyncClient(request)) {
+      return asyncComprehendCaller.call(client, (ComprehendAsyncRequestData) requestData);
+    }
   }
 }

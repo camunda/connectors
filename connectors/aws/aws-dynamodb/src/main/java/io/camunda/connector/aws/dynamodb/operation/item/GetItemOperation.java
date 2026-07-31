@@ -6,16 +6,16 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.item;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.dynamodb.model.GetItem;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
-import java.util.HashMap;
-import java.util.Optional;
+import io.camunda.connector.aws.dynamodb.util.AttributeValueConverter;
+import java.util.Map;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
 
 public class GetItemOperation implements AwsDynamoDbOperation {
 
@@ -27,20 +27,27 @@ public class GetItemOperation implements AwsDynamoDbOperation {
     this.objectMapper = ObjectMapperSupplier.getMapperInstance();
   }
 
+  /**
+   * Returns the item as an array of single-key objects (one per attribute, in the item's own field
+   * order), matching v1's {@code Item#attributes()} quirk exactly -- or JSON {@code null} when the
+   * item does not exist. AWS SDK v2's {@link GetItemResponse#item()} returns an empty map (never
+   * {@code null}) when there is no match, so {@link GetItemResponse#hasItem()} must be checked
+   * explicitly to reproduce today's null-on-miss behavior instead of serializing an empty array.
+   */
   @Override
-  public Object invoke(final DynamoDB dynamoDB) {
-    return Optional.ofNullable(
-            dynamoDB.getTable(getItemModel.tableName()).getItem(createPrimaryKey()))
-        .map(Item::attributes)
-        .orElse(null);
-  }
-
-  private PrimaryKey createPrimaryKey() {
-    PrimaryKey primaryKey = new PrimaryKey();
-    objectMapper
-        .convertValue(
-            getItemModel.primaryKeyComponents(), new TypeReference<HashMap<String, Object>>() {})
-        .forEach(primaryKey::addComponent);
-    return primaryKey;
+  public Object invoke(final DynamoDbClient client) {
+    Map<String, Object> key =
+        objectMapper.convertValue(
+            getItemModel.primaryKeyComponents(), new TypeReference<Map<String, Object>>() {});
+    GetItemResponse response =
+        client.getItem(
+            GetItemRequest.builder()
+                .tableName(getItemModel.tableName())
+                .key(AttributeValueConverter.toAttributeValueMap(key))
+                .build());
+    if (!response.hasItem() || response.item().isEmpty()) {
+      return null;
+    }
+    return AttributeValueConverter.toSingleKeyEntries(response.item());
   }
 }

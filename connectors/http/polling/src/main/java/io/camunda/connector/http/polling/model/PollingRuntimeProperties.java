@@ -9,8 +9,10 @@ package io.camunda.connector.http.polling.model;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.auth.Authentication;
+import io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,6 +21,19 @@ import java.util.Map;
 
 public class PollingRuntimeProperties {
   @Valid private Authentication authentication;
+
+  @TemplateProperty(
+      id = "authenticationConfiguration",
+      label = "Authentication credential",
+      group = "authentication",
+      type = PropertyType.Configuration,
+      optional = true,
+      binding = @TemplateProperty.PropertyBinding(name = "authenticationConfiguration"),
+      description =
+          "Choose a reusable REST authentication credential. When set, it is bound as a whole to"
+              + " the connector's 'authenticationConfiguration' input.")
+  @Valid
+  private RestAuthenticationConfiguration authenticationConfiguration;
 
   @FEEL
   @NotNull
@@ -116,12 +131,29 @@ public class PollingRuntimeProperties {
   @FEEL
   private boolean followRedirects;
 
+  /**
+   * Per-connector consumption of the bound authentication credential: when a credential
+   * (configuration) is bound, its authentication takes precedence; the inline authentication is the
+   * fallback. Per-field inline override is not modeled because authentication is a whole object.
+   */
   public Authentication getAuthentication() {
+    if (authenticationConfiguration != null) {
+      return authenticationConfiguration.authentication();
+    }
     return authentication;
   }
 
   public void setAuthentication(Authentication authentication) {
     this.authentication = authentication;
+  }
+
+  public RestAuthenticationConfiguration getAuthenticationConfiguration() {
+    return authenticationConfiguration;
+  }
+
+  public void setAuthenticationConfiguration(
+      RestAuthenticationConfiguration authenticationConfiguration) {
+    this.authenticationConfiguration = authenticationConfiguration;
   }
 
   public HttpMethod getMethod() {

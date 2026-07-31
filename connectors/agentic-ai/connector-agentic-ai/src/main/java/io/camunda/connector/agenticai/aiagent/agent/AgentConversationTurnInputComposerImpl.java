@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
@@ -99,19 +100,24 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
       final var toolCalls = previousConversation.turns().getLast().toolCalls();
 
-      final var toolCallResultMessage =
-          createToolCallResultMessage(
+      final var orderedToolCallResults =
+          resolveOrderedToolCallResults(
               agentContext, toolCalls, agentInput.toolCallResults(), interruptMissingToolCalls);
 
       // either we have all results or we interrupted the missing tool calls
-      // if message is null, we wait on further tool call results to be added
-      if (toolCallResultMessage.isEmpty()) {
+      // if empty, we wait on further tool call results to be added
+      if (orderedToolCallResults.isEmpty()) {
         return new CompositionResult.Deferred();
       }
 
-      final var toolCallResult = toolCallResultMessage.get();
-      messages.add(toolCallResult);
-      var documentMessage = createDocumentMessageForToolResults(toolCallResult.results());
+      final var toolCallResults = orderedToolCallResults.get();
+      final var toolCallResultMessage =
+          ToolCallResultMessage.builder()
+              .results(toolCallResults.stream().map(ToolCallResultContent::from).toList())
+              .metadata(defaultMessageMetadata())
+              .build();
+      messages.add(toolCallResultMessage);
+      final var documentMessage = createDocumentMessageForToolResults(toolCallResults);
       if (documentMessage != null) {
         messages.add(documentMessage);
       }
@@ -152,7 +158,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     return UserMessage.builder().content(content).metadata(defaultMessageMetadata()).build();
   }
 
-  private Optional<ToolCallResultMessage> createToolCallResultMessage(
+  private Optional<List<ToolCallResult>> resolveOrderedToolCallResults(
       AgentContext agentContext,
       List<ToolCall> toolCalls,
       List<ToolCallResult> toolCallResults,
@@ -192,11 +198,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return Optional.empty();
     }
 
-    return Optional.of(
-        ToolCallResultMessage.builder()
-            .results(orderedToolCallResults)
-            .metadata(defaultMessageMetadata())
-            .build());
+    return Optional.of(orderedToolCallResults);
   }
 
   private @Nullable UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {

@@ -1533,6 +1533,7 @@
   }, {
     "id" : "data.memory.storage.storeType",
     "label" : "Implementation type",
+    "description" : "Identifier for the custom memory storage implementation.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1548,6 +1549,7 @@
       "equals" : "custom",
       "type" : "simple"
     },
+    "tooltip" : "Must match the identifier configured for the custom implementation.",
     "type" : "String"
   }, {
     "id" : "data.memory.storage.parameters",

@@ -73,7 +73,15 @@ public class CustomResponseHandler<T> implements HttpClientResponseHandler<HttpR
       StreamingHttpResponse rawResponse = new StreamingHttpResponse(code, reason, headers, null);
       throw ConnectorExceptionMapper.from(rawResponse);
     }
-    return new HttpResponse<>(code, reason, headers, null);
+    try {
+      StreamingHttpResponse rawResponse =
+          new StreamingHttpResponse(code, reason, headers, InputStream.nullInputStream());
+      T mappedResponse = responseMapper.apply(rawResponse);
+      return new HttpResponse<>(code, reason, headers, mappedResponse);
+    } catch (final Exception e) {
+      LOGGER.error("Failed to process response: {}", response, e);
+      throw ConnectorExceptionMapper.from(e);
+    }
   }
 
   private static Map<String, List<String>> formatHeaders(Header[] headersArray) {
