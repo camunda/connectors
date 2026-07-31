@@ -70,7 +70,15 @@ public class ResultDocumentResolver {
     return scalarValue(node);
   }
 
-  private boolean isCreateDocumentSentinel(JsonNode node) {
+  /**
+   * Exposed so {@code ConnectorResultHandler} can reject a root-level {@code createDocument(...)}
+   * call before ever invoking the factory: a result/error expression whose entire evaluated value
+   * IS the sentinel (e.g. {@code =createDocument("...")} with no wrapping object) would otherwise
+   * have the resolved {@code Document}'s own reference fields parsed as generic output variables
+   * (success path) or fail to parse as a {@code ConnectorError} only after the document was already
+   * uploaded (error path).
+   */
+  public boolean isCreateDocumentSentinel(JsonNode node) {
     JsonNode discriminator = node.get(FeelConnectorFunctionProvider.RESULT_FUNCTION_TYPE_PROPERTY);
     return discriminator != null
         && discriminator.isTextual()

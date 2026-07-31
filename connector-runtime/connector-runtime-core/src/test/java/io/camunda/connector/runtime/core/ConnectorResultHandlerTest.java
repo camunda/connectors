@@ -233,6 +233,44 @@ class ConnectorResultHandlerTest {
   }
 
   @Test
+  void createOutputVariablesRejectsABareRootLevelCreateDocumentCall() {
+    // =createDocument("...") with no wrapping object would otherwise have the resolved
+    // Document's own reference fields (camunda.document.type, storeId, ...) parsed as generic
+    // top-level output variables instead of one named variable holding the document reference.
+    String resultExpression = "=createDocument(\"aGVsbG8=\")";
+
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    Map.of(), null, resultExpression, null));
+
+    assertThat(exception).hasMessageContaining("must not be a bare createDocument");
+  }
+
+  @Test
+  void examineErrorExpressionRejectsABareRootLevelCreateDocumentCallWithoutCreatingADocument() {
+    // On the error path this must be rejected BEFORE the factory is called: a bare
+    // createDocument(...) error expression would otherwise upload a document and only then fail
+    // to parse as a ConnectorError, orphaning the document it just created.
+    var mockFactory = Mockito.mock(DocumentFactory.class);
+    var handler = new ConnectorResultHandler(objectMapper, mockFactory);
+    String errorExpression = "=createDocument(\"aGVsbG8=\")";
+    Map<String, String> jobHeaders = Map.of(Keywords.ERROR_EXPRESSION_KEYWORD, errorExpression);
+    ErrorExpressionJobContext jobContext =
+        new ErrorExpressionJobContext(new ErrorExpressionJobContext.ErrorExpressionJob(3));
+
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () -> handler.examineErrorExpression(Map.of(), jobHeaders, jobContext, null));
+
+    assertThat(exception).hasMessageContaining("must not be a bare createDocument");
+    Mockito.verifyNoInteractions(mockFactory);
+  }
+
+  @Test
   void shouldProvideGoodErrorMessage_WhenErrorExpressionReturnsArray() {
     // given - error expression that produces an array (invalid type)
     final Object responseContent = Map.of("status", "error");

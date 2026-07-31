@@ -216,6 +216,22 @@ public class ConnectorResultHandler {
               json,
               e));
     }
+    // Reject a root-level createDocument(...) call before ever invoking the factory: if the whole
+    // expression IS the sentinel (e.g. `=createDocument("...")`, no wrapping object), resolving it
+    // would either spread the Document's own reference fields into unrelated top-level output
+    // variables (result expression) or upload a document only to then fail to parse as a
+    // ConnectorError (error expression) — in both cases surprising the user instead of failing
+    // clearly, and in the error case only after the document was already created.
+    if (documentResolver.isCreateDocumentSentinel(node)) {
+      throw new ConnectorInputException(
+          new FeelEngineWrapperException(
+              String.format(
+                  "%s must not be a bare createDocument(...) call — wrap it inside a field, e.g."
+                      + " {myDocument: createDocument(...)}",
+                  expressionNameForError),
+              expression,
+              json));
+    }
     final Object resolved = documentResolver.resolve(node, physicalTenantId);
     try {
       return objectMapper.writeValueAsString(resolved);
