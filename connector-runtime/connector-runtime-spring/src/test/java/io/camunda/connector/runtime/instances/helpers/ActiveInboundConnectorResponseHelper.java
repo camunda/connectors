@@ -53,7 +53,8 @@ public class ActiveInboundConnectorResponseHelper {
         Map.of("dataKey", "dataValue"),
         health,
         activationTimestamp,
-        List.of());
+        List.of(),
+        "physicalTenantId");
   }
 
   public static Stream<Arguments> getConnectorInstancesWithExpectedResult() {
@@ -88,6 +89,7 @@ public class ActiveInboundConnectorResponseHelper {
     assertThat(actualResult.executableId()).isEqualTo(expectedResult.executableId());
     assertThat(actualResult.type()).isEqualTo(expectedResult.type());
     assertThat(actualResult.tenantId()).isEqualTo(expectedResult.tenantId());
+    assertThat(actualResult.physicalTenantId()).isEqualTo(expectedResult.physicalTenantId());
     assertThat(actualResult.data()).isEqualTo(expectedResult.data());
     assertThat(actualResult.health().getStatus()).isEqualTo(expectedResult.health().getStatus());
     assertThat(actualResult.health().getDetails()).isEqualTo(expectedResult.health().getDetails());

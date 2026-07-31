@@ -102,4 +102,13 @@ class ConnectorDataMapperTest {
     assertThat(response.data().get("inbound.context"))
         .isEqualTo("myPhysicalTenant/myTenant/myPath");
   }
+
+  @Test
+  void physicalTenantIdIsPopulatedFromTheFirstElement() {
+    var mapper = new ConnectorDataMapper(false);
+
+    var response = mapper.createActiveInboundConnectorResponse(webhookResponse());
+
+    assertThat(response.physicalTenantId()).isEqualTo("myPhysicalTenant");
+  }
 }
