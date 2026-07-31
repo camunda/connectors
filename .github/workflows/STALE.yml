@@ -58,7 +58,7 @@ jobs:
             activity. Please reopen if this is still relevant.
 
       - name: Send Slack notification
-        if: steps.stale.outputs.closed-issues-prs != ''
+        if: steps.stale.outputs.closed-issues-prs != '[]'
         uses: slackapi/slack-github-action@v4.0.0
         with:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
