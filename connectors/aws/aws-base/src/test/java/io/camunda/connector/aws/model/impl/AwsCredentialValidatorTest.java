@@ -88,6 +88,43 @@ class AwsCredentialValidatorTest {
     assertThat(called[0]).isFalse();
   }
 
+  @Test
+  void rejectsDefaultCredentialsChainInSaasWithoutCallingAws() {
+    // In SaaS the chain would authenticate as Camunda's own runtime identity, and connector
+    // execution rejects it there — so it must never be reported as a usable credential.
+    var called = new boolean[] {false};
+    var validator = new AwsCredentialValidator(configuration -> called[0] = true, () -> true);
+
+    var result =
+        validator.validate(
+            new AwsCredentialConfiguration(
+                new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(), "us-east-1"));
+
+    assertThat(result.status()).isEqualTo(Status.FAILURE);
+    assertThat(result.code()).isEqualTo("INVALID_INPUT");
+    assertThat(called[0]).isFalse();
+  }
+
+  @Test
+  void allowsDefaultCredentialsChainOutsideSaas() {
+    // Hybrid/Self-Managed run as the customer's own identity, where the chain is a valid choice.
+    var validator = new AwsCredentialValidator(configuration -> {}, () -> false);
+
+    var result =
+        validator.validate(
+            new AwsCredentialConfiguration(
+                new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(), "us-east-1"));
+
+    assertThat(result.status()).isEqualTo(Status.SUCCESS);
+  }
+
+  @Test
+  void staticCredentialsAreUnaffectedBySaas() {
+    var validator = new AwsCredentialValidator(configuration -> {}, () -> true);
+
+    assertThat(validator.validate(VALID).status()).isEqualTo(Status.SUCCESS);
+  }
+
   private static void throwSts(int status) {
     throw sts(status, "message");
   }

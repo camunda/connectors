@@ -28,7 +28,8 @@ package io.camunda.connector.api.validation;
  *       Produced by the runtime, not by connector authors.
  * </ul>
  *
- * <p>Connector authors return {@link #success()} or {@link #failure(String, String)}.
+ * <p>Connector authors return {@link #success()} or {@link #failure(ErrorCode, String)}, preferring
+ * a shared {@link ErrorCode} over inventing a per-connector one.
  */
 public record ConfigurationValidationResult(Status status, String code, String message) {
 
@@ -38,10 +39,38 @@ public record ConfigurationValidationResult(Status status, String code, String m
     UNSUPPORTED
   }
 
+  /**
+   * The failure codes shared by every configuration validator, so that clients can branch on a
+   * known set instead of on strings coined independently by each connector.
+   *
+   * <p>{@code code} stays a {@code String} on the record rather than this enum: a validator may
+   * still surface a domain-specific code via {@link #failure(String, String)}, and a {@code
+   * ConnectorException} thrown out of a validator carries an arbitrary error code that the runtime
+   * passes through. Reach for those only when no constant below fits.
+   */
+  public enum ErrorCode {
+    /** The target system rejected the credential. */
+    UNAUTHORIZED,
+    /** The configuration is structurally invalid — a required value is missing or malformed. */
+    INVALID_INPUT,
+    /** The stored configuration could not be resolved from its reference. */
+    RESOLUTION_ERROR,
+    /** Validation could not be completed, for any other reason. */
+    ERROR
+  }
+
   public static ConfigurationValidationResult success() {
     return new ConfigurationValidationResult(Status.SUCCESS, null, null);
   }
 
+  public static ConfigurationValidationResult failure(ErrorCode code, String message) {
+    return new ConfigurationValidationResult(Status.FAILURE, code.name(), message);
+  }
+
+  /**
+   * Escape hatch for a code {@link ErrorCode} does not cover. Prefer {@link #failure(ErrorCode,
+   * String)} so clients keep a single set of codes to branch on.
+   */
   public static ConfigurationValidationResult failure(String code, String message) {
     return new ConfigurationValidationResult(Status.FAILURE, code, message);
   }

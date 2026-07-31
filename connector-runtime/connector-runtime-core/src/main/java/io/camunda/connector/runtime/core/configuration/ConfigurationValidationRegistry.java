@@ -31,9 +31,11 @@ import org.slf4j.LoggerFactory;
  * Builds and holds the {@code configurationId -> validator} map used to validate stored
  * configurations out-of-band.
  *
- * <p>Validators are discovered elsewhere (a classpath scan for {@link ConfigurationValidator}
- * implementations) and handed to this registry. For each validator, the configuration type {@code
- * T} is resolved from its {@code ConfigurationValidator<T>} interface, and the id is read from that
+ * <p>Validators are discovered elsewhere — via the {@link java.util.ServiceLoader} SPI, so an
+ * implementation is only found when it is declared in {@code META-INF/services/} + {@code
+ * io.camunda.connector.api.validation.ConfigurationValidator}; merely implementing the interface is
+ * not enough — and handed to this registry. For each validator, the configuration type {@code T} is
+ * resolved from its {@code ConfigurationValidator<T>} interface, and the id is read from that
  * type's {@link Configuration#id()}. Two validators claiming the same id is a conflict and fails
  * fast at construction time.
  */

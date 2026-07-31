@@ -45,6 +45,12 @@ import org.springframework.context.annotation.Import;
  * configuration types are consumed by both inbound and outbound connectors, so it is imported by
  * the neutral top-level runtime auto-configuration rather than the outbound-specific one — an
  * inbound-only runtime exposes it too.
+ *
+ * <p>{@code POST /configurations/validate} resolves stored secrets to run a validator, and applies
+ * no secret allow-list while doing so — out-of-band validation has no process or element scope to
+ * derive one from. No resolved value can reach the response (see the message-safety policy on
+ * {@code ConfigurationValidationService}), but the route is still expected to be reachable only by
+ * trusted callers; the SaaS bundle covers it with the Console JWT {@code SecurityFilterChain}.
  */
 @Configuration
 @Import(ConfigurationValidationRestController.class)
@@ -61,40 +67,33 @@ public class ConfigurationValidationConfiguration {
    * configured physical tenant, mirroring the per-physical-tenant maps the outbound runtime builds
    * for document stores and secret caches.
    *
-   * <p>A directly-supplied {@code FeelExpressionEvaluator} bean (the {@code @Primary} one from
-   * {@code ConnectorsAutoConfiguration}, or a test/user override) is used as-is while at most one
-   * client is configured, so existing single-engine deployments and overrides keep working
-   * unchanged. With several clients the override is ignored: applying one engine's evaluator to
-   * every physical tenant would silently resolve every configuration against that same engine —
-   * exactly the bug this map exists to prevent.
+   * <p>Every evaluator is constructed here from a {@link CamundaClient}, and the ambient {@code
+   * FeelExpressionEvaluator} bean is deliberately <b>not</b> consulted. That bean is only
+   * {@code @ConditionalOnMissingBean}, so a deployment or test may replace it with a local
+   * (embedded-engine) evaluator — which cannot reach {@code camunda.vars.env.*} at all and would
+   * fail at request time in a way that is hard to trace back to the substituted bean. Constructing
+   * the evaluators here makes that substitution structurally impossible rather than merely
+   * discouraged.
    */
   private static Map<String, FeelExpressionEvaluator>
       buildFeelExpressionEvaluatorsByPhysicalTenantId(
-          CamundaClientRegistry registry,
-          CamundaClient legacyCamundaClient,
-          FeelExpressionEvaluator injectedFeelExpressionEvaluator) {
-    var names = clientNames(registry, legacyCamundaClient);
-    boolean useOverride = injectedFeelExpressionEvaluator != null && names.size() <= 1;
-    return names.stream()
+          CamundaClientRegistry registry, CamundaClient legacyCamundaClient) {
+    return clientNames(registry, legacyCamundaClient).stream()
         .collect(
             toMapByPhysicalTenantId(
                 registry,
                 legacyCamundaClient,
                 name ->
-                    useOverride
-                        ? injectedFeelExpressionEvaluator
-                        : FeelExpressionEvaluatorBuilder.camundaClient(
-                                resolveClient(registry, name, legacyCamundaClient))
-                            .build()));
+                    FeelExpressionEvaluatorBuilder.camundaClient(
+                            resolveClient(registry, name, legacyCamundaClient))
+                        .build()));
   }
 
   @Bean
   public Map<String, FeelExpressionEvaluator> feelExpressionEvaluatorsByPhysicalTenantId(
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
-      @Autowired(required = false) FeelExpressionEvaluator injectedFeelExpressionEvaluator) {
-    return buildFeelExpressionEvaluatorsByPhysicalTenantId(
-        registry, legacyCamundaClient, injectedFeelExpressionEvaluator);
+      @Autowired(required = false) CamundaClient legacyCamundaClient) {
+    return buildFeelExpressionEvaluatorsByPhysicalTenantId(registry, legacyCamundaClient);
   }
 
   /**
@@ -113,12 +112,10 @@ public class ConfigurationValidationConfiguration {
       ValidationProvider validationProvider,
       @OutboundConnectorObjectMapper ObjectMapper objectMapper,
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
-      @Autowired(required = false) FeelExpressionEvaluator injectedFeelExpressionEvaluator) {
+      @Autowired(required = false) CamundaClient legacyCamundaClient) {
     return new ConfigurationValidationService(
         configurationValidationRegistry,
-        buildFeelExpressionEvaluatorsByPhysicalTenantId(
-            registry, legacyCamundaClient, injectedFeelExpressionEvaluator),
+        buildFeelExpressionEvaluatorsByPhysicalTenantId(registry, legacyCamundaClient),
         secretProviderAggregator,
         validationProvider,
         objectMapper);

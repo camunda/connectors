@@ -21,6 +21,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ConfigurationValidationResult;
+import io.camunda.connector.api.validation.ConfigurationValidationResult.ErrorCode;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
@@ -60,10 +61,6 @@ import org.slf4j.LoggerFactory;
 public class ConfigurationValidationService {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConfigurationValidationService.class);
-
-  private static final String DEFAULT_FAILURE_CODE = "ERROR";
-  private static final String RESOLUTION_FAILURE_CODE = "RESOLUTION_ERROR";
-  private static final String INPUT_VALIDATION_FAILURE_CODE = "INVALID_INPUT";
 
   // Static, value-free messages. Never interpolate resolved configuration content into these.
   private static final String RESOLUTION_FAILURE_MESSAGE =
@@ -107,7 +104,7 @@ public class ConfigurationValidationService {
       // configuration content — so it is safe to log in full.
       LOG.warn("Cannot validate configuration '{}': {}", request.credentialId(), e.getMessage());
       return ConfigurationValidationResult.failure(
-          RESOLUTION_FAILURE_CODE, RESOLUTION_FAILURE_MESSAGE);
+          ErrorCode.RESOLUTION_ERROR, RESOLUTION_FAILURE_MESSAGE);
     }
 
     final Object configuration;
@@ -122,7 +119,7 @@ public class ConfigurationValidationService {
           request.credentialId(),
           e.getClass().getName());
       return ConfigurationValidationResult.failure(
-          RESOLUTION_FAILURE_CODE, RESOLUTION_FAILURE_MESSAGE);
+          ErrorCode.RESOLUTION_ERROR, RESOLUTION_FAILURE_MESSAGE);
     }
 
     try {
@@ -136,7 +133,7 @@ public class ConfigurationValidationService {
           request.credentialId(),
           e.getClass().getName());
       return ConfigurationValidationResult.failure(
-          INPUT_VALIDATION_FAILURE_CODE, INPUT_VALIDATION_FAILURE_MESSAGE);
+          ErrorCode.INVALID_INPUT, INPUT_VALIDATION_FAILURE_MESSAGE);
     }
 
     try {
@@ -149,11 +146,9 @@ public class ConfigurationValidationService {
       // surfaced.
       ConfigurationValidationResult result = validator.validate(configuration);
       if (result == null) {
-        // The SDK contract does not enforce a non-null result; a validator returning null would
-        // otherwise NPE in response mapping and surface as HTTP 500. Normalize it to the same
-        // value-free failure used for a thrown validator error.
+        // Nothing stops a validator returning null, and that would NPE in response mapping.
         LOG.warn("Validator for configuration '{}' returned null", request.credentialId());
-        return ConfigurationValidationResult.failure(DEFAULT_FAILURE_CODE, VALIDATOR_ERROR_MESSAGE);
+        return ConfigurationValidationResult.failure(ErrorCode.ERROR, VALIDATOR_ERROR_MESSAGE);
       }
       return result;
     } catch (Exception e) {
@@ -163,10 +158,12 @@ public class ConfigurationValidationService {
           "Validator for configuration '{}' threw ({})",
           request.credentialId(),
           e.getClass().getName());
+      // A ConnectorException's error code is author-chosen and may legitimately fall outside
+      // ErrorCode, so it is passed through as-is; anything else collapses to the shared ERROR.
       String code =
           e instanceof ConnectorException ce && ce.getErrorCode() != null
               ? ce.getErrorCode()
-              : DEFAULT_FAILURE_CODE;
+              : ErrorCode.ERROR.name();
       return ConfigurationValidationResult.failure(code, VALIDATOR_ERROR_MESSAGE);
     }
   }

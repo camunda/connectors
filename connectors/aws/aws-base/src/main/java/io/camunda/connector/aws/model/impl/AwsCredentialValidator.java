@@ -7,8 +7,12 @@
 package io.camunda.connector.aws.model.impl;
 
 import io.camunda.connector.api.validation.ConfigurationValidationResult;
+import io.camunda.connector.api.validation.ConfigurationValidationResult.ErrorCode;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
+import java.util.function.BooleanSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.services.sts.model.StsException;
@@ -24,16 +28,22 @@ import software.amazon.awssdk.services.sts.model.StsException;
  *
  * <p>Messages returned to the caller are static and value-free: raw AWS SDK exception text can
  * carry endpoints, request ids, profile paths, or credential-identifying detail, so it is never
- * surfaced.
+ * surfaced. The full exception is available at {@code DEBUG} for operators who need to diagnose a
+ * failure — enabling that level is an explicit, deployment-level decision to accept those details
+ * in the logs.
  */
 public class AwsCredentialValidator implements ConfigurationValidator<AwsCredentialConfiguration> {
 
-  static final String UNAUTHORIZED_CODE = "UNAUTHORIZED";
-  static final String ERROR_CODE = "ERROR";
-  static final String INVALID_INPUT_CODE = "INVALID_INPUT";
+  private static final Logger LOG = LoggerFactory.getLogger(AwsCredentialValidator.class);
+
+  /** Set in SaaS deployments; mirrors the detection in {@code AwsBaseRequest}. */
+  private static final String SAAS_ENV_VAR = "CAMUNDA_CONNECTOR_RUNTIME_SAAS";
+
   static final String UNAUTHORIZED_MESSAGE = "AWS rejected the credential (unauthorized).";
   static final String GENERIC_MESSAGE = "The AWS credential could not be validated.";
   static final String MISSING_AUTH_MESSAGE = "Authentication is required.";
+  static final String DEFAULT_CHAIN_IN_SAAS_MESSAGE =
+      "The default credentials chain is not supported in SaaS.";
 
   /** Seam for testing: performs the authenticated call, throwing on failure. */
   @FunctionalInterface
@@ -42,32 +52,51 @@ public class AwsCredentialValidator implements ConfigurationValidator<AwsCredent
   }
 
   private final IdentityCheck identityCheck;
+  private final BooleanSupplier saas;
 
   public AwsCredentialValidator() {
     this(AwsCredentialValidator::callGetCallerIdentity);
   }
 
   AwsCredentialValidator(IdentityCheck identityCheck) {
+    this(identityCheck, () -> System.getenv().containsKey(SAAS_ENV_VAR));
+  }
+
+  AwsCredentialValidator(IdentityCheck identityCheck, BooleanSupplier saas) {
     this.identityCheck = identityCheck;
+    this.saas = saas;
   }
 
   @Override
   public ConfigurationValidationResult validate(AwsCredentialConfiguration configuration) {
-    // Defensive: a null authentication would otherwise fall through to the runtime's default
-    // credential chain and validate using the runtime's own identity. Normally rejected upstream by
-    // @NotNull, but guarded here in case the validator is invoked without prior bean validation.
+    // The only guard against a missing authentication: the configuration record deliberately
+    // carries no @NotNull, so nothing upstream rejects it. Without this check it would fall through
+    // to the runtime's default credential chain and validate using the runtime's own identity.
     if (configuration.authentication() == null) {
-      return ConfigurationValidationResult.failure(INVALID_INPUT_CODE, MISSING_AUTH_MESSAGE);
+      return ConfigurationValidationResult.failure(ErrorCode.INVALID_INPUT, MISSING_AUTH_MESSAGE);
+    }
+    // The default credentials chain authenticates as the runtime itself, which in SaaS is Camunda's
+    // own identity rather than the customer's. Connector execution rejects it there
+    // (AwsBaseRequest#isDefaultCredentialsChainUsedInSaaS), so validating it would report SUCCESS
+    // for a credential every SaaS connector will refuse.
+    if (configuration.authentication()
+            instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication
+        && saas.getAsBoolean()) {
+      return ConfigurationValidationResult.failure(
+          ErrorCode.INVALID_INPUT, DEFAULT_CHAIN_IN_SAAS_MESSAGE);
     }
     try {
       identityCheck.run(configuration);
       return ConfigurationValidationResult.success();
     } catch (StsException e) {
-      String code = e.statusCode() == 403 || e.statusCode() == 401 ? UNAUTHORIZED_CODE : ERROR_CODE;
-      String message = code.equals(UNAUTHORIZED_CODE) ? UNAUTHORIZED_MESSAGE : GENERIC_MESSAGE;
-      return ConfigurationValidationResult.failure(code, message);
+      boolean unauthorized = e.statusCode() == 403 || e.statusCode() == 401;
+      LOG.debug("AWS rejected the credential (status {})", e.statusCode(), e);
+      return unauthorized
+          ? ConfigurationValidationResult.failure(ErrorCode.UNAUTHORIZED, UNAUTHORIZED_MESSAGE)
+          : ConfigurationValidationResult.failure(ErrorCode.ERROR, GENERIC_MESSAGE);
     } catch (Exception e) {
-      return ConfigurationValidationResult.failure(ERROR_CODE, GENERIC_MESSAGE);
+      LOG.debug("AWS credential validation failed", e);
+      return ConfigurationValidationResult.failure(ErrorCode.ERROR, GENERIC_MESSAGE);
     }
   }
 

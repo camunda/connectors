@@ -72,8 +72,8 @@ class MultiClientConfigurationValidationWiringTest {
   void everyEvaluatorIsClusterBackedAndDistinct() {
     var evaluators = evaluatorsByPhysicalTenantId();
 
-    // With several clients the scalar @Primary evaluator is deliberately ignored: reusing it for
-    // every tenant is exactly the single-engine bug this map exists to prevent.
+    // Reusing one engine's evaluator for every tenant is exactly the bug this map exists to
+    // prevent, so each physical tenant must get its own cluster-backed instance.
     assertThat(evaluators.values())
         .allSatisfy(e -> assertThat(e).isInstanceOf(CamundaClientFeelExpressionEvaluator.class));
     assertThat(evaluators.get("tenanta")).isNotSameAs(evaluators.get("tenantb"));
