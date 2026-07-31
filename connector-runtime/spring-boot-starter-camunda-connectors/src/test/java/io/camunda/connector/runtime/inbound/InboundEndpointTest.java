@@ -88,7 +88,7 @@ public class InboundEndpointTest {
     InboundConnectorRestController statusController =
         new InboundConnectorRestController(executableRegistry, new LocalInstanceForwardingRouter());
 
-    var response = statusController.getActiveInboundConnectors(null, null, null);
+    var response = statusController.getActiveInboundConnectors(null, null, null, null);
     assertEquals(1, response.size());
     assertEquals("myPath", response.getFirst().data().get("inbound.context"));
   }
@@ -131,7 +131,7 @@ public class InboundEndpointTest {
             new LocalInstanceForwardingRouter(),
             new WebhookConnectorRegistry(true));
 
-    var response = statusController.getActiveInboundConnectors(null, null, null);
+    var response = statusController.getActiveInboundConnectors(null, null, null, null);
     assertEquals(1, response.size());
     assertEquals(
         "myPhysicalTenant/myTenant/myPath", response.getFirst().data().get("inbound.context"));
@@ -179,7 +179,7 @@ public class InboundEndpointTest {
             new LocalInstanceForwardingRouter(),
             new WebhookConnectorRegistry(true));
 
-    var response = statusController.getActiveInboundConnectors(null, null, null);
+    var response = statusController.getActiveInboundConnectors(null, null, null, null);
     assertEquals(1, response.size());
     assertEquals(
         "myPhysicalTenant/myTenant/myPath", response.getFirst().data().get("inbound.context"));
@@ -207,7 +207,7 @@ public class InboundEndpointTest {
     InboundConnectorRestController statusController =
         new InboundConnectorRestController(executableRegistry, new LocalInstanceForwardingRouter());
 
-    var response = statusController.getActiveInboundConnectors(null, null, null);
+    var response = statusController.getActiveInboundConnectors(null, null, null, null);
     assertEquals(1, response.size());
     assertEquals(Health.down(), (response.getFirst()).health());
   }

@@ -73,11 +73,12 @@ public class InboundInstancesRestController {
   @GetMapping()
   public List<ConnectorInstances> getConnectorInstances(
       HttpServletRequest request,
-      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor) {
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
+      @RequestParam(required = false, value = "physicalTenantIds") List<String> physicalTenantIds) {
     return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
         request,
         forwardedFor,
-        inboundInstancesService::findAllConnectorInstances,
+        () -> inboundInstancesService.findAllConnectorInstances(physicalTenantIds),
         new TypeReference<>() {});
   }
 
@@ -85,12 +86,13 @@ public class InboundInstancesRestController {
   public ConnectorInstances getConnectorInstance(
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
-      @PathVariable(name = "type") String type) {
+      @PathVariable(name = "type") String type,
+      @RequestParam(required = false, value = "physicalTenantIds") List<String> physicalTenantIds) {
     return Optional.ofNullable(
             instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
                 request,
                 forwardedFor,
-                () -> inboundInstancesService.findConnectorInstancesOfType(type),
+                () -> inboundInstancesService.findConnectorInstancesOfType(type, physicalTenantIds),
                 new TypeReference<>() {}))
         .orElseThrow(() -> new DataNotFoundException(ConnectorInstances.class, type));
   }

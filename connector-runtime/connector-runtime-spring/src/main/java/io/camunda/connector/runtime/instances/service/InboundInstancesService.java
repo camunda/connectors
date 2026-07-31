@@ -100,7 +100,18 @@ public class InboundInstancesService {
   }
 
   public ConnectorInstances findConnectorInstancesOfType(String type) {
-    var connectorInstances = getConnectorsInstances(f -> f.type(type));
+    return findConnectorInstancesOfType(type, null);
+  }
+
+  /**
+   * @param physicalTenantIds when non-empty, restricts results to connectors registered under one
+   *     of these physical tenants (engines) — a distinct dimension from the logical {@code
+   *     tenantId} exposed elsewhere on this API.
+   */
+  public ConnectorInstances findConnectorInstancesOfType(
+      String type, List<String> physicalTenantIds) {
+    var connectorInstances =
+        getConnectorsInstances(f -> f.type(type).physicalTenantIds(physicalTenantIds));
     if (connectorInstances.isEmpty()) {
       throw new DataNotFoundException(ConnectorInstances.class, type);
     }
@@ -108,7 +119,16 @@ public class InboundInstancesService {
   }
 
   public List<ConnectorInstances> findAllConnectorInstances() {
-    return getConnectorsInstances(null);
+    return findAllConnectorInstances(null);
+  }
+
+  /**
+   * @param physicalTenantIds when non-empty, restricts results to connectors registered under one
+   *     of these physical tenants (engines) — a distinct dimension from the logical {@code
+   *     tenantId} exposed elsewhere on this API.
+   */
+  public List<ConnectorInstances> findAllConnectorInstances(List<String> physicalTenantIds) {
+    return getConnectorsInstances(f -> f.physicalTenantIds(physicalTenantIds));
   }
 
   /**
