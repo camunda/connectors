@@ -22,14 +22,15 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import java.util.Optional;
 
-public record Result(String type, String id, String version, String key) {
+public record Result(String type, String id, String version, String physicalTenantId, String key) {
 
   public static Result getResult(ActivatedJob job) {
     String type = job.getType();
     String id = job.getCustomHeaders().getOrDefault("elementTemplateId", "unknown");
     String version = job.getCustomHeaders().getOrDefault("elementTemplateVersion", "unknown");
+    String physicalTenantId = job.getPhysicalTenantId();
     String key = type + "_" + id + "_" + version;
-    return new Result(type, id, version, key);
+    return new Result(type, id, version, physicalTenantId, key);
   }
 
   public static Result getResult(InboundConnectorElement connectorElement) {
@@ -46,8 +47,9 @@ public record Result(String type, String id, String version, String key) {
             .map(ProcessElementWithRuntimeData::elementTemplateDetails)
             .map(ElementTemplateDetails::version)
             .orElse("unknown");
-    String key = type + "_" + id + "_" + version;
-    return new Result(type, id, version, key);
+    String physicalTenantId = connectorElement.physicalTenantId();
+    String key = type + "_" + id + "_" + version + "_" + physicalTenantId;
+    return new Result(type, id, version, physicalTenantId, key);
   }
 
   public String createKey(String actionActivated) {

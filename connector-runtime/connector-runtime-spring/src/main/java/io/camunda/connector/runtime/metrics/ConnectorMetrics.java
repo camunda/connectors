@@ -30,6 +30,7 @@ public class ConnectorMetrics {
     public static final String ACTION = "action";
     public static final String ELEMENT_TEMPLATE_VERSION = "elementTemplateVersion";
     public static final String RESULT = "result";
+    public static final String PHYSICAL_TENANT_ID = "physicalTenantId";
   }
 
   public static class Outbound {

@@ -159,31 +159,19 @@ public class InboundInstancesRestController {
             () -> new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId));
   }
 
-  /** Returns aggregated inbound connector metrics across all connector types. */
+  /**
+   * Returns aggregated inbound connector metrics across all connector types.
+   *
+   * @param physicalTenantIds when non-empty, restricts the aggregate to connectors registered under
+   *     one of these physical tenants (engines) — a distinct dimension from the logical {@code
+   *     tenantId} exposed elsewhere on this API. Omitted or empty sums across every physical
+   *     tenant, matching the pre-existing (unfiltered) behavior of this endpoint.
+   */
   @GetMapping("/metrics")
   public List<InboundConnectorMetrics> getMetrics(
       HttpServletRequest request,
-      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor) {
-    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
-        request,
-        forwardedFor,
-        () ->
-            meterRegistry == null
-                ? List.of()
-                : List.of(ConnectorMetricsAggregator.inbound(meterRegistry, null, hostname)),
-        new TypeReference<>() {});
-  }
-
-  /**
-   * Returns inbound connector metrics for a specific connector type.
-   *
-   * @param connectorType connector type (e.g. {@code io.camunda:webhook:1})
-   */
-  @GetMapping("/metrics/{connectorType}")
-  public List<InboundConnectorMetrics> getMetricsByType(
-      HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
-      @PathVariable(name = "connectorType") String connectorType) {
+      @RequestParam(required = false, value = "physicalTenantIds") List<String> physicalTenantIds) {
     return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
         request,
         forwardedFor,
@@ -191,7 +179,35 @@ public class InboundInstancesRestController {
             meterRegistry == null
                 ? List.of()
                 : List.of(
-                    ConnectorMetricsAggregator.inbound(meterRegistry, connectorType, hostname)),
+                    ConnectorMetricsAggregator.inbound(
+                        meterRegistry, null, physicalTenantIds, hostname)),
+        new TypeReference<>() {});
+  }
+
+  /**
+   * Returns inbound connector metrics for a specific connector type.
+   *
+   * @param connectorType connector type (e.g. {@code io.camunda:webhook:1})
+   * @param physicalTenantIds when non-empty, restricts the result to connectors registered under
+   *     one of these physical tenants (engines) — a distinct dimension from the logical {@code
+   *     tenantId} exposed elsewhere on this API. Omitted or empty sums across every physical
+   *     tenant, matching the pre-existing (unfiltered) behavior of this endpoint.
+   */
+  @GetMapping("/metrics/{connectorType}")
+  public List<InboundConnectorMetrics> getMetricsByType(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
+      @PathVariable(name = "connectorType") String connectorType,
+      @RequestParam(required = false, value = "physicalTenantIds") List<String> physicalTenantIds) {
+    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+        request,
+        forwardedFor,
+        () ->
+            meterRegistry == null
+                ? List.of()
+                : List.of(
+                    ConnectorMetricsAggregator.inbound(
+                        meterRegistry, connectorType, physicalTenantIds, hostname)),
         new TypeReference<>() {});
   }
 }
