@@ -52,7 +52,8 @@ public class DefaultInstanceForwardingServiceTest {
                     Map.of("dataKey", "dataValue"),
                     Health.down(),
                     System.currentTimeMillis(),
-                    List.of())));
+                    List.of(),
+                    "physicalTenantId")));
     DefaultInstanceForwardingService service =
         new DefaultInstanceForwardingService(mockHttpClient, "localhost");
     var mockHttpServletRequest = new MockHttpServletRequest(method, path);

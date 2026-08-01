@@ -74,6 +74,34 @@ class InboundConnectorRestControllerMultiInstancesTest extends BaseMultiInstance
   }
 
   @Test
+  public void shouldReturnActivityLogs_whenPhysicalTenantIdsFilterMatches() {
+    ResponseEntity<List<Collection<InstanceAwareModel.InstanceAwareActivity>>> response =
+        restTemplate.exchange(
+            "http://localhost:"
+                + port1
+                + "/tenants/tenantId/inbound/ProcessC/id2/logs?physicalTenantIds=default",
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<>() {});
+    var logs = response.getBody();
+    assertEquals(2, logs.size());
+  }
+
+  @Test
+  public void shouldReturnNoActivityLogs_whenPhysicalTenantIdsFilterDoesNotMatch() {
+    ResponseEntity<List<Collection<InstanceAwareModel.InstanceAwareActivity>>> response =
+        restTemplate.exchange(
+            "http://localhost:"
+                + port1
+                + "/tenants/tenantId/inbound/ProcessC/id2/logs?physicalTenantIds=nonexistent-tenant",
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<>() {});
+    var logs = response.getBody();
+    assertTrue(logs.isEmpty());
+  }
+
+  @Test
   public void shouldNotReturnActivityLogs_whenNoLogs() {
     ResponseEntity<List<Collection<InstanceAwareModel.InstanceAwareActivity>>> response =
         restTemplate.exchange(

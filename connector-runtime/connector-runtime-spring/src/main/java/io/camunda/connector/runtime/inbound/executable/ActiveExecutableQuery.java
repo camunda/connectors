@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.executable;
 
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
+import java.util.List;
 
 /** Mutable filter used with the consumer-based {@code query} API. */
 public class ActiveExecutableQuery {
@@ -26,6 +27,7 @@ public class ActiveExecutableQuery {
   private String type;
   private String tenantId;
   private ExecutableId executableId;
+  private List<String> physicalTenantIds;
 
   public ActiveExecutableQuery bpmnProcessId(String bpmnProcessId) {
     this.bpmnProcessId = bpmnProcessId;
@@ -57,6 +59,11 @@ public class ActiveExecutableQuery {
     return this;
   }
 
+  public ActiveExecutableQuery physicalTenantIds(List<String> physicalTenantIds) {
+    this.physicalTenantIds = physicalTenantIds;
+    return this;
+  }
+
   public String bpmnProcessId() {
     return bpmnProcessId;
   }
@@ -75,5 +82,9 @@ public class ActiveExecutableQuery {
 
   public ExecutableId executableId() {
     return executableId;
+  }
+
+  public List<String> physicalTenantIds() {
+    return physicalTenantIds;
   }
 }
