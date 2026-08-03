@@ -45,10 +45,12 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>The {@code pause_turn} stop reason surfaces as a {@link ChatResult.Continuation}; every other
  * stop reason surfaces as {@link ChatResult.Completed}. The raw vendor stop reason string is always
- * preserved in {@link AssistantMessage#metadata()}, independent of how it normalizes to the domain
- * {@code StopReason}.
+ * preserved under the {@value #ANTHROPIC_METADATA_KEY} key in {@link AssistantMessage#metadata()},
+ * independent of how it normalizes to the domain {@code StopReason}.
  */
 public class AnthropicMessageResponseConverter {
+
+  private static final String ANTHROPIC_METADATA_KEY = "anthropic";
 
   private final ObjectMapper objectMapper;
 
@@ -90,21 +92,21 @@ public class AnthropicMessageResponseConverter {
                     .convertValue(block, new TypeReference<Map<String, Object>>() {}));
         final String text = block.thinking().orElseThrow().thinking();
         raw.remove("thinking");
-        content.add(new ReasoningContent("anthropic", raw, text, null));
+        content.add(new ReasoningContent(ANTHROPIC_METADATA_KEY, raw, text, null));
       } else if (block.isRedactedThinking()) {
         // Redacted thinking blocks carry no readable text (the `data` field is encrypted), so
         // there is nothing to lift out of the payload.
         final Map<String, Object> raw =
             ObjectMappers.jsonMapper()
                 .convertValue(block, new TypeReference<Map<String, Object>>() {});
-        content.add(new ReasoningContent("anthropic", raw, null, null));
+        content.add(new ReasoningContent(ANTHROPIC_METADATA_KEY, raw, null, null));
       } else {
         // Fallback for any Anthropic content block type not explicitly handled above: preserve
         // it losslessly, in original order, as ProviderContent
         final Map<String, Object> raw =
             ObjectMappers.jsonMapper()
                 .convertValue(block, new TypeReference<Map<String, Object>>() {});
-        content.add(new ProviderContent("anthropic", raw, null));
+        content.add(new ProviderContent(ANTHROPIC_METADATA_KEY, raw, null));
       }
     }
 
@@ -115,7 +117,12 @@ public class AnthropicMessageResponseConverter {
             .messageId(message.id())
             .modelId(message.model().asString())
             .stopReason(mapStopReason(message.stopReason().orElse(null)));
-    message.stopReason().ifPresent(sr -> builder.metadata(Map.of("stopReason", sr.asString())));
+    message
+        .stopReason()
+        .ifPresent(
+            sr ->
+                builder.metadata(
+                    Map.of(ANTHROPIC_METADATA_KEY, Map.of("stopReason", sr.asString()))));
     return builder.build();
   }
 
@@ -132,24 +139,21 @@ public class AnthropicMessageResponseConverter {
     return arguments != null ? arguments : Map.of();
   }
 
-  // Any block field not already represented by the domain object (id/name/input on ToolCall,
-  // text on TextContent, ...) is preserved verbatim under "anthropic" rather than silently
-  // dropped - so replaying it (see AnthropicMessageRequestConverter/AnthropicContentConverter)
-  // reproduces the exact byte sequence the response was cached under, and a currently-unused
-  // Anthropic feature (citations, server-tool callers, a future field) doesn't quietly lose data
-  // the moment it gets turned on, without this converter having to know about it in advance.
+  /**
+   * Preserves any block field not already mapped to the domain object (e.g. id/name/input on {@link
+   * ToolCall}) under {@value #ANTHROPIC_METADATA_KEY}, so replaying it reproduces the exact
+   * response byte sequence and an unmapped Anthropic feature doesn't silently lose data.
+   */
   private @Nullable Map<String, Object> residualMetadata(Object block, String... mappedKeys) {
     final Map<String, Object> raw =
         new LinkedHashMap<>(
             ObjectMappers.jsonMapper().convertValue(block, new TypeReference<>() {}));
     raw.keySet().removeAll(Set.of(mappedKeys));
     raw.remove("type"); // pure discriminator, always inferable from the domain type
-    return raw.isEmpty() ? null : Map.of("anthropic", raw);
+    return raw.isEmpty() ? null : Map.of(ANTHROPIC_METADATA_KEY, raw);
   }
 
-  // Direct is the default caller for a plain client tool call and carries no data beyond that
-  // discriminator; only a server-tool caller (e.g. code execution invoking another tool) has
-  // content worth preserving.
+  /** Direct callers carry no extra data; only a server-tool caller has content worth preserving. */
   private @Nullable Map<String, Object> toolUseMetadata(ToolUseBlock toolUse) {
     // caller is a recent addition to the API; older fixtures/responses may omit it entirely, so
     // read it via the non-throwing accessor rather than caller(), which requires the field
