@@ -59,18 +59,20 @@ import org.junit.jupiter.api.Test;
  * issues a real (WireMock-backed) request, and assertions verify what actually went over the wire.
  *
  * <p>The {@code anthropic-api} backend normally targets the production Anthropic base URL; its
- * hidden {@code endpoint} override (settable only by editing the BPMN XML, not via the Modeler UI)
- * is exercised here the same way as the {@code custom} backend's endpoint.
+ * hidden {@code endpoint} override is exercised here the same way as the {@code custom} backend's
+ * endpoint.
  */
 @WireMockTest
 class AnthropicChatModelApiFactoryClientTest {
 
   private static final String MODEL_ID = "claude-sonnet-4-6";
 
-  // Minimal Anthropic Messages streaming (SSE) response: message_start -> one text block -> a
-  // message_delta/stop_reason -> message_stop. AnthropicChatModelApi always drives
-  // createStreaming(), so a plain buffered JSON body (as a non-streaming stub would return) isn't
-  // accepted by the vendor SDK's MessageAccumulator.
+  /*
+   * Minimal Anthropic Messages streaming (SSE) response: message_start -> one text block -> a
+   * message_delta/stop_reason -> message_stop. AnthropicChatModelApi always drives
+   * createStreaming(), so a plain buffered JSON body (as a non-streaming stub would return) isn't
+   * accepted by the vendor SDK's MessageAccumulator.
+   */
   private static final String SSE_RESPONSE_BODY =
       """
       event: message_start

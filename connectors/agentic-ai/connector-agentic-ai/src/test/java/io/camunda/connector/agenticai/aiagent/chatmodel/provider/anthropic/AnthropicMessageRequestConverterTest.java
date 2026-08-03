@@ -412,12 +412,9 @@ class AnthropicMessageRequestConverterTest {
 
   @Test
   void appendsClientToolCallsAfterProviderContentBlocksRegardlessOfOriginalInterleaving() {
-    // Documents a known limitation: assistantParam() always emits `content` blocks (including any
-    // ProviderContent server-tool blocks, in their original order) BEFORE appending `toolCalls` as
-    // trailing tool_use blocks. This mirrors the domain model split (ProviderContent lives in
-    // `content`, client tool calls live in the separate `toolCalls` list) and is order-preserving
-    // *within* each group, but not globally. Deliberate simplification; see
-    // AnthropicMessageRequestConverter#assistantParam.
+    // Known limitation: assistantParam() emits `content` blocks (including ProviderContent
+    // server-tool blocks) before `toolCalls`, so a response that interleaves server- and
+    // client-tool blocks doesn't replay in its original order; see #assistantParam.
     final var serverToolUse =
         new ProviderContent(
             "anthropic",
