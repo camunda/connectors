@@ -7,7 +7,6 @@
 package io.camunda.connector.textract;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -17,21 +16,41 @@ import io.camunda.connector.textract.model.TextractRequest;
 import org.junit.jupiter.api.Test;
 
 /**
- * Reproduces the "Camunda Document" document-source defect.
+ * Pins the "Camunda Document" document-source contract.
  *
- * <p>{@code input.executionType} is annotated {@code @NotNull}, but its element-template property
- * is conditioned on {@code input.documentLocationType == "S3"}. Per the element-template contract,
- * "if a property is not active, it is not displayed, and its value is removed from the XML" — so a
- * model that selects the Camunda Document source sends no {@code executionType} at all, and binding
- * the request fails validation before the connector ever runs.
+ * <p>Until template v7 the {@code executionType} property was rendered only for the S3 source, and
+ * an element template property whose condition is not met has its value removed from the BPMN XML.
+ * A model selecting the Camunda document source therefore sent no {@code executionType} at all and
+ * was rejected by the {@code @NotNull} on {@code TextractRequestData.executionType} before the
+ * connector ever ran — the path was unusable.
  *
- * <p>The variables below are exactly what such a model emits: {@code documentLocationType} set to
- * {@code UPLOADED}, and no {@code executionType} key. Every other conditional S3 property is
- * likewise absent.
+ * <p>From v7 the {@code uploadedExecutionType} property writes {@code SYNC} explicitly on that
+ * branch, so the variable is always present. Models still on v6 or earlier must be upgraded to v7
+ * in Modeler and redeployed; that is a deliberate choice, since the old path never worked and so
+ * has no behavior worth preserving.
  */
 class TextractCamundaDocumentSourceTest {
 
-  private static final String CAMUNDA_DOCUMENT_SOURCE_VARIABLES =
+  /** What template v7 emits for the Camunda document source. */
+  private static final String V7_CAMUNDA_DOCUMENT_VARIABLES =
+      """
+      {
+        "input": {
+          "documentLocationType": "UPLOADED",
+          "executionType": "SYNC",
+          "analyzeTables": true,
+          "analyzeForms": true,
+          "analyzeSignatures": true,
+          "analyzeLayout": false,
+          "analyzeQueries": false
+        },
+        "configuration": { "region": "eu-central-1" },
+        "authentication": { "type": "defaultCredentialsChain" }
+      }
+      """;
+
+  /** What template v6 and earlier emitted: the conditional property is stripped entirely. */
+  private static final String PRE_V7_CAMUNDA_DOCUMENT_VARIABLES =
       """
       {
         "input": {
@@ -47,49 +66,27 @@ class TextractCamundaDocumentSourceTest {
       }
       """;
 
-  private static final String S3_SOURCE_VARIABLES_WITHOUT_EXECUTION_TYPE =
-      """
-      {
-        "input": {
-          "documentLocationType": "S3",
-          "documentS3Bucket": "bucket",
-          "documentName": "file.pdf",
-          "analyzeTables": true,
-          "analyzeForms": true,
-          "analyzeSignatures": true,
-          "analyzeLayout": false,
-          "analyzeQueries": false
-        },
-        "configuration": { "region": "eu-central-1" },
-        "authentication": { "type": "defaultCredentialsChain" }
-      }
-      """;
-
   @Test
-  void bindsCamundaDocumentSourceWithoutExplicitExecutionType() {
+  void bindsCamundaDocumentSourceWhenTemplateSuppliesSync() {
     var context =
-        OutboundConnectorContextBuilder.create()
-            .variables(CAMUNDA_DOCUMENT_SOURCE_VARIABLES)
-            .build();
+        OutboundConnectorContextBuilder.create().variables(V7_CAMUNDA_DOCUMENT_VARIABLES).build();
 
-    // FAILS before the fix: ConnectorInputException
-    //   "Property: input.executionType: Validation failed. Original message: must not be null"
-    assertThatCode(() -> context.bindVariables(TextractRequest.class)).doesNotThrowAnyException();
-
-    // Only SYNC can analyze inline bytes — Textract's async/polling APIs require an S3 location.
+    // SYNC is the only mode that can run here: Textract's StartDocumentAnalysis (polling and async)
+    // takes a DocumentLocation, so it cannot analyze inline bytes.
     assertThat(context.bindVariables(TextractRequest.class).getInput().executionType())
         .isEqualTo(TextractExecutionType.SYNC);
   }
 
   @Test
-  void stillRejectsMissingExecutionTypeForS3Source() {
+  void rejectsPreV7ModelThatOmitsExecutionType() {
     var context =
         OutboundConnectorContextBuilder.create()
-            .variables(S3_SOURCE_VARIABLES_WITHOUT_EXECUTION_TYPE)
+            .variables(PRE_V7_CAMUNDA_DOCUMENT_VARIABLES)
             .build();
 
-    // The default is scoped to UPLOADED on purpose: the S3 source always renders executionType, so
-    // a missing value there is a malformed model and must not silently degrade to single-page SYNC.
+    // Intentional: pre-v7 models must be upgraded to v7 in Modeler and redeployed. Defaulting the
+    // missing value in code was considered and rejected — the old path always failed, so there is
+    // no working behavior to stay compatible with.
     assertThatThrownBy(() -> context.bindVariables(TextractRequest.class))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("input.executionType");

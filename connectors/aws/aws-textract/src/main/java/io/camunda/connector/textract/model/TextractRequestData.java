@@ -243,29 +243,6 @@ public record TextractRequestData(
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String outputConfigS3Prefix) {
 
-  /**
-   * Backward-compatibility shim for models built on template v6 and earlier, where no {@code
-   * executionType} reaches the connector at all on the Camunda document branch.
-   *
-   * <p>Until v7 the {@code executionType} property was rendered only for the S3 source, and an
-   * element template property whose condition is not met has its value removed from the BPMN XML. A
-   * model selecting the Camunda document source therefore sent no {@code executionType}, and the
-   * {@code @NotNull} above rejected the request before the connector ever ran. From v7 on, {@link
-   * #uploadedExecutionType} writes {@code SYNC} explicitly, so this shim is inert for new models —
-   * but deployed process definitions are immutable, so it is what repairs existing ones without
-   * requiring a remodel.
-   *
-   * <p>Deliberately scoped to {@code UPLOADED}: for the S3 source the property has always been
-   * rendered, so a missing value there means a hand-edited model and should still fail loudly
-   * rather than silently run as {@code SYNC} — which, unlike the template's {@code POLLING}
-   * default, is capped at a single page.
-   */
-  public TextractRequestData {
-    if (executionType == null && documentLocationType == DocumentLocationType.UPLOADED) {
-      executionType = TextractExecutionType.SYNC;
-    }
-  }
-
   @TemplateProperty(ignore = true)
   public static final String WRONG_NOTIFICATION_VALUES_MSG =
       "Either both notification values role ARN and topic ARN must be filled in or none of them.";
