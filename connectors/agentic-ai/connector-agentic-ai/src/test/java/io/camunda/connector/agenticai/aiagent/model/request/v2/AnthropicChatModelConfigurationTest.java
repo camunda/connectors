@@ -133,7 +133,9 @@ class AnthropicChatModelConfigurationTest {
 
     final var violations = validator.validate(config);
 
-    assertThat(violations).anyMatch(v -> v.getPropertyPath().toString().contains("apiKey"));
+    assertThat(violations)
+        .extracting(v -> v.getPropertyPath().toString())
+        .contains("anthropic.backend.anthropic.apiKey");
   }
 
   @Test
@@ -151,7 +153,9 @@ class AnthropicChatModelConfigurationTest {
     final Set<ConstraintViolation<AnthropicChatModelConfiguration>> violations =
         validator.validate(config);
 
-    assertThat(violations).anyMatch(v -> v.getPropertyPath().toString().contains("budgetTokens"));
+    assertThat(violations)
+        .extracting(v -> v.getPropertyPath().toString())
+        .contains("anthropic.model.parameters.thinking.budgetTokens");
   }
 
   @Test
@@ -180,7 +184,8 @@ class AnthropicChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anyMatch(v -> v.getPropertyPath().toString().contains("endpoint"))
-        .anyMatch(v -> v.getPropertyPath().toString().contains("apiKey"));
+        .extracting(v -> v.getPropertyPath().toString())
+        .contains(
+            "anthropic.backend.custom.endpoint", "anthropic.backend.custom.authentication.apiKey");
   }
 }
