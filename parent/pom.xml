@@ -640,7 +640,6 @@ limitations under the License.</license.inlineheader>
         <artifactId>google-api-services-sheets</artifactId>
         <version>${version.google-api-services-sheets}</version>
       </dependency>
-      <!-- keep in sync with langchain4j-google-genai -->
       <dependency>
         <groupId>com.google.genai</groupId>
         <artifactId>google-genai</artifactId>

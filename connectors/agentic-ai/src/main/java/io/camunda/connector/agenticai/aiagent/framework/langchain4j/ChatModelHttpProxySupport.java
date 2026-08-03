@@ -23,6 +23,7 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
@@ -232,5 +233,38 @@ public class ChatModelHttpProxySupport {
   private static URI toUri(ProxyConfiguration.ProxyDetails proxyDetails) {
     return URI.create(
         proxyDetails.scheme() + "://" + proxyDetails.host() + ":" + proxyDetails.port());
+  }
+
+  Optional<com.google.genai.types.ProxyOptions> createGoogleGenAiProxyOptions(String endpoint) {
+    final var scheme =
+        Optional.ofNullable(endpoint)
+            .filter(StringUtils::isNotBlank)
+            .map(URI::create)
+            .map(URI::getScheme)
+            .orElse(ProxyConfiguration.SCHEME_HTTPS);
+
+    return proxyConfiguration
+        .getProxyDetails(scheme)
+        .map(
+            proxyDetails -> {
+              LOG.debug(
+                  "Using proxy for target scheme [{}] => [{}://{}:{}]",
+                  scheme,
+                  proxyDetails.scheme(),
+                  proxyDetails.host(),
+                  proxyDetails.port());
+
+              final var proxyOptionsBuilder =
+                  com.google.genai.types.ProxyOptions.builder()
+                      .type(com.google.genai.types.ProxyType.Known.HTTP)
+                      .host(proxyDetails.host())
+                      .port(proxyDetails.port());
+
+              if (proxyDetails.hasCredentials()) {
+                proxyOptionsBuilder.username(proxyDetails.user()).password(proxyDetails.password());
+              }
+
+              return proxyOptionsBuilder.build();
+            });
   }
 }

@@ -171,7 +171,7 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
   }
 
   /** See {@link #targetsUnavailableInRegion()}. */
-  //  @ParameterizedTest(name = "[{index}] {0}")
+  @ParameterizedTest(name = "[{index}] {0}")
   @MethodSource("targetsUnavailableInRegion")
   void failsWithNotFoundWhenModelIsUnavailableInRegion(VertexTarget target) throws Exception {
     final var zeebeTest =
@@ -244,9 +244,7 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
           .property("provider.googleVertexAi.projectId", requiredEnv(ENV_PROJECT_ID))
           .property("provider.googleVertexAi.region", target.region())
           .property("provider.googleVertexAi.model.model", target.model())
-          .property("provider.googleVertexAi.authentication.type", authMode.templateValue)
-          // needed so AgentResponse.responseText() is populated
-          .property("data.response.format.type", "text");
+          .property("provider.googleVertexAi.authentication.type", authMode.templateValue);
 
       // jsonKey has no "value" key to clear for ADC - withoutPropertyValue would throw
       // PathNotFoundException, so only set it for the service account mode.
