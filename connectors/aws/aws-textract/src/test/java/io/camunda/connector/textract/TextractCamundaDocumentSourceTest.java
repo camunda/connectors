@@ -15,20 +15,7 @@ import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequest;
 import org.junit.jupiter.api.Test;
 
-/**
- * Pins the "Camunda Document" document-source contract.
- *
- * <p>Until template v7 the {@code executionType} property was rendered only for the S3 source, and
- * an element template property whose condition is not met has its value removed from the BPMN XML.
- * A model selecting the Camunda document source therefore sent no {@code executionType} at all and
- * was rejected by the {@code @NotNull} on {@code TextractRequestData.executionType} before the
- * connector ever ran — the path was unusable.
- *
- * <p>From v7 the {@code uploadedExecutionType} property writes {@code SYNC} explicitly on that
- * branch, so the variable is always present. Models still on v6 or earlier must be upgraded to v7
- * in Modeler and redeployed; that is a deliberate choice, since the old path never worked and so
- * has no behavior worth preserving.
- */
+/** Pins the "Camunda Document" document-source contract: v7 supplies sync, pre-v7 is rejected. */
 class TextractCamundaDocumentSourceTest {
 
   /** What template v7 emits for the Camunda document source. */
@@ -71,8 +58,7 @@ class TextractCamundaDocumentSourceTest {
     var context =
         OutboundConnectorContextBuilder.create().variables(V7_CAMUNDA_DOCUMENT_VARIABLES).build();
 
-    // SYNC is the only mode that can run here: Textract's StartDocumentAnalysis (polling and async)
-    // takes a DocumentLocation, so it cannot analyze inline bytes.
+    // Sync is the only runnable mode here: StartDocumentAnalysis needs an S3 DocumentLocation.
     assertThat(context.bindVariables(TextractRequest.class).getInput().executionType())
         .isEqualTo(TextractExecutionType.SYNC);
   }
@@ -84,9 +70,7 @@ class TextractCamundaDocumentSourceTest {
             .variables(PRE_V7_CAMUNDA_DOCUMENT_VARIABLES)
             .build();
 
-    // Intentional: pre-v7 models must be upgraded to v7 in Modeler and redeployed. Defaulting the
-    // missing value in code was considered and rejected — the old path always failed, so there is
-    // no working behavior to stay compatible with.
+    // Intentional: pre-v7 models must be upgraded and redeployed, not defaulted to sync in code.
     assertThatThrownBy(() -> context.bindVariables(TextractRequest.class))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("input.executionType");
