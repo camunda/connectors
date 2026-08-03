@@ -11,6 +11,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.genai.Client;
 import com.google.genai.errors.GenAiIOException;
+import com.google.genai.types.ClientOptions;
 import com.google.genai.types.HttpOptions;
 import com.google.genai.types.HttpRetryOptions;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
@@ -253,6 +254,13 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
             .project(connection.projectId())
             .location(connection.region())
             .httpOptions(httpOptions.build());
+
+    proxySupport
+        .createGoogleGenAiProxyOptions(connection.endpoint())
+        .ifPresent(
+            proxyOptions ->
+                clientBuilder.clientOptions(
+                    ClientOptions.builder().proxyOptions(proxyOptions).build()));
 
     if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
       clientBuilder.credentials(createGoogleServiceAccountCredentials(sac));
