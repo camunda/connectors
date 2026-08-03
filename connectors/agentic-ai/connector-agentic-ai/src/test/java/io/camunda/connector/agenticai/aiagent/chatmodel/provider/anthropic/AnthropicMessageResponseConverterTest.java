@@ -87,7 +87,8 @@ class AnthropicMessageResponseConverterTest {
     assertThat(assistantMessage.messageId()).isEqualTo("msg_1");
     assertThat(assistantMessage.modelId()).isEqualTo("claude-sonnet-4-6");
     assertThat(assistantMessage.stopReason()).isEqualTo(StopReason.TOOL_USE);
-    assertThat(assistantMessage.metadata()).containsEntry("stopReason", "tool_use");
+    assertThat(assistantMessage.metadata())
+        .containsEntry("anthropic", Map.of("stopReason", "tool_use"));
 
     final var metrics = result.metrics();
     assertThat(metrics.modelCalls()).isEqualTo(1);
@@ -225,7 +226,8 @@ class AnthropicMessageResponseConverterTest {
     // domain value for it), even though the result itself is a Continuation, not a Completed.
     assertThat(result.assistantMessage().stopReason())
         .isEqualTo(new UnknownStopReason("pause_turn"));
-    assertThat(result.assistantMessage().metadata()).containsEntry("stopReason", "pause_turn");
+    assertThat(result.assistantMessage().metadata())
+        .containsEntry("anthropic", Map.of("stopReason", "pause_turn"));
   }
 
   @Test
@@ -492,7 +494,8 @@ class AnthropicMessageResponseConverterTest {
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
-    assertThat(result.assistantMessage().metadata()).containsEntry("stopReason", "refusal");
+    assertThat(result.assistantMessage().metadata())
+        .containsEntry("anthropic", Map.of("stopReason", "refusal"));
   }
 
   @Test
@@ -517,7 +520,7 @@ class AnthropicMessageResponseConverterTest {
     assertThat(result.assistantMessage().stopReason())
         .isEqualTo(new UnknownStopReason("some_new_vendor_stop_reason"));
     assertThat(result.assistantMessage().metadata())
-        .containsEntry("stopReason", "some_new_vendor_stop_reason");
+        .containsEntry("anthropic", Map.of("stopReason", "some_new_vendor_stop_reason"));
   }
 
   @Test

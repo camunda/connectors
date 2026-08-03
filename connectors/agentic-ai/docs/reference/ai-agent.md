@@ -1870,6 +1870,14 @@ be distinct from every sibling's wrapper field name. Extract each subtype's disc
 all three places plus the discriminator's `defaultValue`, so the string is defined once. Apply this
 convention to every new v2 provider backend (OpenAI, Gemini, Bedrock, etc.), not just Anthropic's.
 
+**Provider-namespaced metadata convention.** Any provider-specific data a converter attaches outside
+a domain object's mapped fields — whether on a content block (`TextContent`/`ToolCall`'s `metadata`,
+see [§5](#5-data-model-agent-context)) or on the message itself (`AssistantMessage#metadata()`, e.g.
+the raw vendor stop reason) — must be nested under a single provider-namespaced key (`"anthropic"`
+for the Anthropic converters), never written as top-level metadata entries. This keeps metadata from
+different providers (and future cross-provider fields) from colliding, and keeps the common,
+nothing-extra-to-preserve case metadata-free. Apply this to every new provider's converters.
+
 The v2 request's `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/
 Hybrid only) is the connector-facing entry point for this SPI: it carries a user-chosen `providerType`
 (dispatch discriminator), a dedicated `model` field (so agent-instance history/reporting works without
