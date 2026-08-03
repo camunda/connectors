@@ -42,6 +42,7 @@ class TextractCallerTest {
             "1",
             null,
             TextractExecutionType.SYNC,
+            null, // uploadedExecutionType: template-only, never bound at runtime
             true,
             true,
             true,
@@ -69,6 +70,7 @@ class TextractCallerTest {
             "1",
             null,
             TextractExecutionType.SYNC,
+            null, // uploadedExecutionType: template-only, never bound at runtime
             false,
             false,
             false,
@@ -100,6 +102,7 @@ class TextractCallerTest {
             "1",
             null,
             TextractExecutionType.SYNC,
+            null, // uploadedExecutionType: template-only, never bound at runtime
             true,
             false,
             false,
