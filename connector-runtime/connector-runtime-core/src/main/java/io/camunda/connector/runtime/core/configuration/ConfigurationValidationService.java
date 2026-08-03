@@ -180,19 +180,13 @@ public class ConfigurationValidationService {
           feelExpressionEvaluatorsByPhysicalTenantId.get(physicalTenantId);
       if (evaluator == null) {
         throw new IllegalArgumentException(
-            "no engine configured for physical tenant '"
-                + physicalTenantId
-                + "' (configured: "
-                + feelExpressionEvaluatorsByPhysicalTenantId.keySet()
-                + ")");
+            "no engine configured for physical tenant '" + physicalTenantId + "'");
       }
       return evaluator;
     }
     if (feelExpressionEvaluatorsByPhysicalTenantId.size() != 1) {
       throw new IllegalArgumentException(
-          "physicalTenantId is required when several engines are configured (configured: "
-              + feelExpressionEvaluatorsByPhysicalTenantId.keySet()
-              + ")");
+          "physicalTenantId is required when several engines are configured.");
     }
     return feelExpressionEvaluatorsByPhysicalTenantId.values().iterator().next();
   }
