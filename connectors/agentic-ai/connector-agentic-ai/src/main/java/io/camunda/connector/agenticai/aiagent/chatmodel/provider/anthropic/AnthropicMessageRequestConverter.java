@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
@@ -168,7 +168,7 @@ public class AnthropicMessageRequestConverter {
         && thinking.mode() == ThinkingMode.ENABLED
         && thinking.budgetTokens() == null) {
       throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL,
+          ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION,
           "Thinking mode ENABLED requires a budget tokens value for model '%s'".formatted(modelId));
     }
   }
