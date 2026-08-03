@@ -15,7 +15,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCompatibleBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration;
@@ -90,14 +90,17 @@ class AnthropicChatModelApiFactoryTest {
   private static AnthropicChatModelConfiguration apiConfig(String modelId) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
-            new AnthropicApiBackend("sk-ant-test"), new AnthropicModel(modelId, null), null));
+            new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-test")),
+            new AnthropicModel(modelId, null),
+            null));
   }
 
   private static AnthropicChatModelConfiguration compatibleConfig(String modelId) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
-            new AnthropicCompatibleBackend(
-                "https://compatible.example.com", null, null, null, new NoAuthentication()),
+            new AnthropicCustomBackend(
+                new AnthropicCustomBackend.CustomBackend(
+                    "https://compatible.example.com", null, null, null, new NoAuthentication())),
             new AnthropicModel(modelId, null),
             null));
   }

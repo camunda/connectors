@@ -1851,6 +1851,25 @@ provider: `AnthropicChatModelApiFactory` (`aiagent/chatmodel/provider/anthropic/
 Messages client directly (no LangChain4J), covering the request/response converter chain, transport,
 reasoning/effort/prompt-caching, and Spring registration end to end.
 
+**Backend-subtype wrapping convention (v2, mandatory for every new backend).** A v2 provider's
+backend is a sealed interface with one `@TemplateSubType` per backend variant, discriminated by a
+`type` property (see `AnthropicChatModelConfiguration.AnthropicBackend`). The element template
+generator flat-validates that every generated property id is globally unique across the whole
+template — it has no awareness that sibling discriminator subtypes are mutually exclusive, so two
+subtypes with a same-named field (e.g. both an `apiKey`, both an `endpoint`) collide even though only
+one is ever active at a time. The fix, applied uniformly to every subtype including the default: each
+subtype wraps **all** of its own fields inside a single container field, uniquely named for that
+subtype (e.g. `anthropic` for `AnthropicApiBackend`, `custom` for `AnthropicCustomBackend`) — since the
+generator derives a container's id-path prefix purely from the Java field name, this makes every
+subtype's whole subtree collision-proof regardless of what its siblings look like, with no per-leaf
+`id=` overrides needed. The wrapper field name does not need to match the subtype's `@TemplateSubType`
+id verbatim (ids may contain characters, such as `-`, invalid in a Java identifier) — it only needs to
+be distinct from every sibling's wrapper field name. Extract each subtype's discriminator string (the
+`@TemplateSubType` id / `@JsonSubTypes.Type` name / `type()` return value — all the same string) into a
+`public static final String` constant on that subtype's own record, and reference the constant from
+all three places plus the discriminator's `defaultValue`, so the string is defined once. Apply this
+convention to every new v2 provider backend (OpenAI, Gemini, Bedrock, etc.), not just Anthropic's.
+
 The v2 request's `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/
 Hybrid only) is the connector-facing entry point for this SPI: it carries a user-chosen `providerType`
 (dispatch discriminator), a dedicated `model` field (so agent-instance history/reporting works without

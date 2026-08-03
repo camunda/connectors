@@ -29,7 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCompatibleBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.ApiKeyAuthentication;
@@ -51,15 +51,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Exercises {@link AnthropicChatModelApiFactory}'s {@code compatible}-backend and proxy wiring
- * through its public surface ({@link AnthropicChatModelApiFactory#create} + {@link
- * ChatModel#execute}) rather than reaching into the private client-building internals: the built
- * {@link ChatModel} issues a real (WireMock-backed) request, and assertions verify what actually
- * went over the wire.
+ * Exercises {@link AnthropicChatModelApiFactory}'s {@code custom}-backend and proxy wiring through
+ * its public surface ({@link AnthropicChatModelApiFactory#create} + {@link ChatModel#execute})
+ * rather than reaching into the private client-building internals: the built {@link ChatModel}
+ * issues a real (WireMock-backed) request, and assertions verify what actually went over the wire.
  *
- * <p>The direct {@code anthropic-api} backend always targets the production Anthropic base URL and
- * has no way to redirect it from the outside, so its api-key wiring isn't covered at the wire level
- * here; {@link AnthropicChatModelApiFactoryTest#createBuildsWorkingApiForApiBackend} covers that it
+ * <p>The {@code anthropic-api} backend always targets the production Anthropic base URL and has no
+ * way to redirect it from the outside, so its api-key wiring isn't covered at the wire level here;
+ * {@link AnthropicChatModelApiFactoryTest#createBuildsWorkingApiForApiBackend} covers that it
  * builds a working {@link ChatModel} at all.
  */
 @WireMockTest
@@ -111,12 +110,13 @@ class AnthropicChatModelApiFactoryClientTest {
   @Test
   void compatibleBackendUsesEndpointAndApiKeyAuthentication(WireMockRuntimeInfo wireMock) {
     executeAgainst(
-        new AnthropicCompatibleBackend(
-            wireMock.getHttpBaseUrl(),
-            null,
-            null,
-            null,
-            new ApiKeyAuthentication("compatible-secret-key")));
+        new AnthropicCustomBackend(
+            new AnthropicCustomBackend.CustomBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                null,
+                null,
+                new ApiKeyAuthentication("compatible-secret-key"))));
 
     verify(
         postRequestedFor(urlPathEqualTo("/v1/messages"))
@@ -126,8 +126,9 @@ class AnthropicChatModelApiFactoryClientTest {
   @Test
   void compatibleBackendWithNoAuthenticationSendsNoApiKeyHeader(WireMockRuntimeInfo wireMock) {
     executeAgainst(
-        new AnthropicCompatibleBackend(
-            wireMock.getHttpBaseUrl(), null, null, null, new NoAuthentication()));
+        new AnthropicCustomBackend(
+            new AnthropicCustomBackend.CustomBackend(
+                wireMock.getHttpBaseUrl(), null, null, null, new NoAuthentication())));
 
     verify(postRequestedFor(urlPathEqualTo("/v1/messages")).withoutHeader("x-api-key"));
   }
@@ -143,12 +144,13 @@ class AnthropicChatModelApiFactoryClientTest {
       // the configured proxy rather than straight to the (unreachable) target.
       executeAgainst(
           realHttpProxySupport,
-          new AnthropicCompatibleBackend(
-              "http://192.0.2.1:1",
-              null,
-              null,
-              null,
-              new ApiKeyAuthentication("direct-secret-key")));
+          new AnthropicCustomBackend(
+              new AnthropicCustomBackend.CustomBackend(
+                  "http://192.0.2.1:1",
+                  null,
+                  null,
+                  null,
+                  new ApiKeyAuthentication("direct-secret-key"))));
 
       assertThat(fakeProxy.lastRequestLine()).contains("192.0.2.1");
     }
@@ -162,12 +164,13 @@ class AnthropicChatModelApiFactoryClientTest {
 
       executeAgainst(
           realHttpProxySupport,
-          new AnthropicCompatibleBackend(
-              "http://192.0.2.1:1",
-              null,
-              null,
-              null,
-              new ApiKeyAuthentication("direct-secret-key")));
+          new AnthropicCustomBackend(
+              new AnthropicCustomBackend.CustomBackend(
+                  "http://192.0.2.1:1",
+                  null,
+                  null,
+                  null,
+                  new ApiKeyAuthentication("direct-secret-key"))));
 
       assertThat(fakeProxy.lastProxyAuthorizationHeader())
           .isEqualTo(
@@ -177,12 +180,12 @@ class AnthropicChatModelApiFactoryClientTest {
     }
   }
 
-  private void executeAgainst(AnthropicCompatibleBackend backend) {
+  private void executeAgainst(AnthropicCustomBackend backend) {
     executeAgainst(httpProxySupport, backend);
   }
 
   private void executeAgainst(
-      AgenticAiHttpProxySupport httpProxySupport, AnthropicCompatibleBackend backend) {
+      AgenticAiHttpProxySupport httpProxySupport, AnthropicCustomBackend backend) {
     final var factory =
         new AnthropicChatModelApiFactory(
             httpProxySupport,

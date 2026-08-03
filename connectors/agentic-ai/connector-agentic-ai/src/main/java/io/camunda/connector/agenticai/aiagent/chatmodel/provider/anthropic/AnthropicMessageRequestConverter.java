@@ -33,7 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCompatibleBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicEffort;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicModelParameters;
@@ -84,7 +84,7 @@ public class AnthropicMessageRequestConverter {
     applyTools(builder, snapshot.toolDefinitions());
     applyOutputConfig(builder, params, response);
     applyPromptCaching(builder, params);
-    applyCompatibleBackendExtensions(builder, connection);
+    applyCustomBackendExtensions(builder, connection);
 
     return builder.build();
   }
@@ -205,22 +205,23 @@ public class AnthropicMessageRequestConverter {
   }
 
   /**
-   * Merges the {@code compatible} backend's headers, query parameters, and raw body parameters onto
-   * the request.
+   * Merges the {@code custom} backend's headers, query parameters, and raw body parameters onto the
+   * request.
    */
-  private void applyCompatibleBackendExtensions(
+  private void applyCustomBackendExtensions(
       MessageCreateParams.Builder builder, AnthropicConnection connection) {
-    if (!(connection.backend() instanceof AnthropicCompatibleBackend compatible)) {
+    if (!(connection.backend() instanceof AnthropicCustomBackend custom)) {
       return;
     }
-    if (compatible.headers() != null) {
-      compatible.headers().forEach(builder::putAdditionalHeader);
+    final var backend = custom.custom();
+    if (backend.headers() != null) {
+      backend.headers().forEach(builder::putAdditionalHeader);
     }
-    if (compatible.queryParameters() != null) {
-      compatible.queryParameters().forEach(builder::putAdditionalQueryParam);
+    if (backend.queryParameters() != null) {
+      backend.queryParameters().forEach(builder::putAdditionalQueryParam);
     }
-    if (compatible.requestParameters() != null) {
-      compatible
+    if (backend.requestParameters() != null) {
+      backend
           .requestParameters()
           .forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));
     }
