@@ -5,7 +5,7 @@ VOLUME /tmp
 WORKDIR /
 
 # Switch to root to allow setting up our own user and dirs
-USER root
+USER 0
 
 # The /opt/app is used for the Connectors runtime, and out-of-the-box connectors
 RUN mkdir /opt/app
