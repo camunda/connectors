@@ -232,8 +232,10 @@ public class AnthropicMessageRequestConverter {
     // Seed an empty list so build() doesn't throw for an all-system/empty snapshot
     builder.messages(List.of());
     for (final Message message : messages) {
+      if (message instanceof SystemMessage) {
+        continue; // hoisted to top-level system
+      }
       switch (message) {
-        case SystemMessage ignored -> {} // hoisted to top-level system
         case UserMessage user ->
             builder.addMessage(
                 MessageParam.builder()
