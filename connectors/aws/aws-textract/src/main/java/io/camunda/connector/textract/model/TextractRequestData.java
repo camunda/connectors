@@ -78,21 +78,7 @@ public record TextractRequestData(
                     equals = "S3"))
         @NotNull
         TextractExecutionType executionType,
-    /**
-     * Template-only companion to {@link #executionType}, and always {@code null} at runtime.
-     *
-     * <p>Binds to the same {@code input.executionType} variable but is shown on the complementary
-     * branch — the Camunda document source — where it offers {@code SYNC} as its only choice.
-     * Textract's {@code StartDocumentAnalysis} (polling and async) takes a {@code
-     * DocumentLocation}, so sync is the only mode that can analyze inline bytes; surfacing it as a
-     * one-option dropdown makes that visible in Modeler instead of leaving users to wonder why the
-     * field vanished.
-     *
-     * <p>Nothing reads this component: the value it writes arrives under the {@code executionType}
-     * JSON key and is bound to {@link #executionType}. Two properties sharing one binding with
-     * mutually exclusive conditions is the same pattern the S3 connector uses for its per-operation
-     * {@code action.bucket} fields.
-     */
+    // Template-only twin of executionType: same binding, inverse condition, null at runtime.
     @TemplateProperty(
             id = "uploadedExecutionType",
             label = "Execution type",
@@ -103,8 +89,7 @@ public record TextractRequestData(
             choices = @TemplateProperty.DropdownPropertyChoice(value = "SYNC", label = "Real-time"),
             tooltip =
                 "Documents supplied from Camunda are analyzed in real time. Polling and asynchronous execution require the document to be stored in Amazon S3.",
-            // Relative to this record's own path: the generator prefixes "input." because
-            // TextractRequest exposes this record under its `input` field.
+            // Relative: the generator prefixes "input." from TextractRequest's `input` field.
             binding = @TemplateProperty.PropertyBinding(name = "executionType"),
             condition =
                 @TemplateProperty.PropertyCondition(
