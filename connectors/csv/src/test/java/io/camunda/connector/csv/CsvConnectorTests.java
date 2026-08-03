@@ -9,15 +9,11 @@ package io.camunda.connector.csv;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.document.DocumentReturnChoice;
-import io.camunda.connector.api.document.DocumentReturnFormat;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.csv.model.*;
 import io.camunda.connector.csv.model.ReadCsvRequest.RowType;
 import io.camunda.connector.runtime.test.document.TestDocument;
@@ -25,7 +21,6 @@ import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilde
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
@@ -240,9 +235,10 @@ public class CsvConnectorTests {
 
   @Test
   public void testWriteCsvAsDocumentReturn() {
-    var context = mock(OutboundConnectorContext.class);
-    when(context.readDocumentReturnFormat())
-        .thenReturn(Optional.of(new DocumentReturnFormat(DocumentReturnChoice.DOCUMENT, null)));
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(Map.of("documentReturnFormat", Map.of("choice", "DOCUMENT")))
+            .build();
     var request =
         new WriteCsvRequest(
             asList(asList("name", "role"), asList("Simon", "Engineering Manager")),
@@ -259,9 +255,10 @@ public class CsvConnectorTests {
 
   @Test
   public void testWriteCsvAsTextReturn() {
-    var context = mock(OutboundConnectorContext.class);
-    when(context.readDocumentReturnFormat())
-        .thenReturn(Optional.of(new DocumentReturnFormat(DocumentReturnChoice.TEXT, null)));
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(Map.of("documentReturnFormat", Map.of("choice", "TEXT")))
+            .build();
     var request =
         new WriteCsvRequest(
             asList(asList("name", "role"), asList("Simon", "Engineering Manager")),

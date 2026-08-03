@@ -425,7 +425,7 @@
   }, {
     "id" : "writeCsv:documentReturnFormat",
     "label" : "Response format",
-    "value" : "DOCUMENT",
+    "value" : "TEXT",
     "group" : "operation",
     "binding" : {
       "name" : "documentReturnFormat.choice",

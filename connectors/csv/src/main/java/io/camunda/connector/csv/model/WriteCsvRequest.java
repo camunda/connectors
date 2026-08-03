@@ -17,11 +17,6 @@ import java.util.List;
         "How the rendered CSV should be returned. Document reference uploads it to the document"
             + " store; as text returns the CSV inline as a String.",
     supportedFormats = {DocumentReturnChoice.DOCUMENT, DocumentReturnChoice.TEXT},
-    defaultFormat = DocumentReturnChoice.DOCUMENT)
+    defaultFormat = DocumentReturnChoice.TEXT)
 public record WriteCsvRequest(
-    List<?> data,
-    // Legacy input from element-template versions <= 2, replaced by the @DocumentReturnFormat
-    // response dropdown. Kept (but hidden) so old templates still deserialize and pick the legacy
-    // output path when documentReturnFormat is absent.
-    @TemplateProperty(ignore = true) boolean createDocument,
-    CsvFormat format) {}
+    List<?> data, @TemplateProperty(ignore = true) boolean createDocument, CsvFormat format) {}

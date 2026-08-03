@@ -11,9 +11,6 @@ import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 public record ReadCsvRequest(
-    // Legacy input from element-template versions <= 2: raw CSV text or a document reference bound
-    // directly to `data`. Kept (but hidden) so old templates and already-running instances keep
-    // working under the new runtime. Superseded by the `document` input below.
     @TemplateProperty(ignore = true) Object data,
     @TemplateDocumentProperty(
             id = "document",

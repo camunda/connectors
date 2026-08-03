@@ -16,7 +16,9 @@ import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReturn;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.csv.model.*;
@@ -75,15 +77,13 @@ public class CsvConnector implements OutboundConnectorProvider {
         Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
       return readCsvRequest(reader, request.format(), rowType, mapper);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw ConnectorRetryException.builder()
+          .message("Failed to read CSV input: " + e.getMessage())
+          .cause(e)
+          .build();
     }
   }
 
-  /**
-   * Resolves the CSV byte source, preferring the new (element-template v3) {@code document} input
-   * and falling back to the legacy {@code data} variable (element-template <= 2), which may hold
-   * raw CSV text or a document reference. The returned stream is owned and closed by the caller.
-   */
   private static InputStream openStream(ReadCsvRequest request) {
     if (request.document() != null) {
       return request.document().asInputStream();
@@ -93,7 +93,7 @@ public class CsvConnector implements OutboundConnectorProvider {
       case Document doc -> doc.asInputStream();
       case null -> throw new ConnectorInputException("No CSV data provided");
       default ->
-          throw new IllegalArgumentException(
+          throw new ConnectorInputException(
               "Unsupported CSV data type: " + request.data().getClass().getSimpleName());
     };
   }
@@ -105,8 +105,6 @@ public class CsvConnector implements OutboundConnectorProvider {
       keywords = {"write csv", "export csv", "generate csv"})
   public Object writeCsv(@Variable WriteCsvRequest request, OutboundConnectorContext context) {
     var csv = createCsv(request.data(), request.format());
-    // New flow (element-template version >= 3): the runtime converts the payload according to the
-    // user's response-format dropdown choice, read from the job variables.
     if (context.readDocumentReturnFormat().isPresent()) {
       return DocumentReturn.of(
           csv.getBytes(StandardCharsets.UTF_8),
@@ -117,7 +115,7 @@ public class CsvConnector implements OutboundConnectorProvider {
                 case DOCUMENT -> new WriteCsvResult.Document((Document) converted);
                 case TEXT -> new WriteCsvResult.Value((String) converted);
                 case JSON ->
-                    throw new IllegalStateException(
+                    throw new ConnectorException(
                         "JSON response format is not supported for CSV output");
               });
     }
