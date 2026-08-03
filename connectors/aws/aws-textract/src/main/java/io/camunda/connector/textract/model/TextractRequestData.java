@@ -210,6 +210,29 @@ public record TextractRequestData(
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String outputConfigS3Prefix) {
 
+  /**
+   * Defaults a missing {@code executionType} to {@link TextractExecutionType#SYNC} when the
+   * document comes from the Camunda document store.
+   *
+   * <p>The {@code executionType} property is only rendered for the S3 source, and an element
+   * template property whose condition is not met has its value removed from the BPMN XML. A model
+   * that selects the Camunda document source therefore sends no {@code executionType} at all, and
+   * the {@code @NotNull} above rejected the request before the connector ever ran. {@code SYNC} is
+   * the only possible mode here: Textract's {@code StartDocumentAnalysis} (polling and async) takes
+   * a {@link software.amazon.awssdk.services.textract.model.DocumentLocation}, so it cannot analyze
+   * inline bytes.
+   *
+   * <p>Deliberately scoped to {@code UPLOADED}: for the S3 source the property is always rendered,
+   * so a missing value there means a hand-edited model and should still fail loudly rather than
+   * silently run as {@code SYNC} — which, unlike the template's {@code POLLING} default, is capped
+   * at a single page.
+   */
+  public TextractRequestData {
+    if (executionType == null && documentLocationType == DocumentLocationType.UPLOADED) {
+      executionType = TextractExecutionType.SYNC;
+    }
+  }
+
   @TemplateProperty(ignore = true)
   public static final String WRONG_NOTIFICATION_VALUES_MSG =
       "Either both notification values role ARN and topic ARN must be filled in or none of them.";
