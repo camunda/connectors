@@ -219,8 +219,6 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
         GoogleGenAiChatModel.builder()
             .client(client)
             .modelName(connection.model().model())
-            // google-genai brings its own retry interceptor, which is disabled below. Disable
-            // langchain4j's retries as well so the configured timeout is an exact upper bound.
             .maxRetries(0);
 
     final var modelParameters = connection.model().parameters();
@@ -238,18 +236,12 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
   }
 
   private Client createGoogleGenAiClient(GoogleVertexAiConnection connection) {
+    final var apiTimeout = deriveTimeoutSetting(connection.timeouts());
+
     final var httpOptions =
         HttpOptions.builder()
-            // genai's retry interceptor defaults to 5 attempts with backoff up to 60s, which
-            // would stack on top of langchain4j's maxRetries.
-            .retryOptions(HttpRetryOptions.builder().attempts(1).build());
-
-    // Applied only when explicitly configured. Deliberately NOT deriveTimeoutSetting(...), which
-    // would impose the default timeout on existing processes that run unbounded today.
-    Optional.ofNullable(connection.timeouts())
-        .map(TimeoutConfiguration::timeout)
-        .filter(Duration::isPositive)
-        .ifPresent(timeout -> httpOptions.timeout((int) timeout.toMillis()));
+            .retryOptions(HttpRetryOptions.builder().attempts(1).build())
+            .timeout((int) apiTimeout.toMillis());
 
     Optional.ofNullable(connection.endpoint())
         .filter(StringUtils::isNotBlank)
