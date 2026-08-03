@@ -23,9 +23,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndp
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -49,14 +52,10 @@ class AnthropicChatModelApiFactoryTest {
             new AnthropicMessageResponseConverter(objectMapper));
   }
 
-  @Test
-  void supportsAnthropicApiV2Config() {
-    assertThat(factory.supports(apiConfig(MODEL_ID))).isTrue();
-  }
-
-  @Test
-  void supportsAnthropicCustomV2Config() {
-    assertThat(factory.supports(customConfig(MODEL_ID))).isTrue();
+  @ParameterizedTest
+  @MethodSource("configs")
+  void supportsAnthropicV2Config(AnthropicChatModelConfiguration config) {
+    assertThat(factory.supports(config)).isTrue();
   }
 
   @Test
@@ -67,24 +66,19 @@ class AnthropicChatModelApiFactoryTest {
     assertThat(factory.supports(config)).isFalse();
   }
 
-  @Test
-  void createBuildsWorkingApiForApiBackend() {
+  @ParameterizedTest
+  @MethodSource("configs")
+  void createBuildsWorkingApi(AnthropicChatModelConfiguration config) {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
-    final ChatModel api = factory.create(apiConfig(MODEL_ID));
+    final ChatModel api = factory.create(config);
 
     assertThat(api).isNotNull().isInstanceOf(AnthropicChatModelApi.class);
     api.close();
   }
 
-  @Test
-  void createBuildsWorkingApiForCustomBackend() {
-    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
-
-    final ChatModel api = factory.create(customConfig(MODEL_ID));
-
-    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModelApi.class);
-    api.close();
+  static Stream<AnthropicChatModelConfiguration> configs() {
+    return Stream.of(apiConfig(MODEL_ID), customConfig(MODEL_ID));
   }
 
   private static AnthropicChatModelConfiguration apiConfig(String modelId) {
