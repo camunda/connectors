@@ -15,13 +15,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Provides HTTP proxy support utilities for Agentic AI connectors. One shared adapter per HTTP
- * client shape a native provider's vendor SDK needs (JDK {@code HttpClient} today, {@code
- * java.net.Proxy} for OkHttp-based SDKs); add another adapter method here rather than a new class
- * when the next shape is needed (e.g. an AWS-SDK proxy configuration for a native Bedrock
- * provider).
- */
+/** Provides HTTP proxy support utilities for Agentic AI connectors. */
 public class AgenticAiHttpProxySupport {
   private static final Logger LOG = LoggerFactory.getLogger(AgenticAiHttpProxySupport.class);
 

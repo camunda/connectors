@@ -466,10 +466,6 @@ class AnthropicMessageResponseConverterTest {
     assertThat(endTurnResult).isInstanceOf(ChatResult.Completed.class);
     assertThat(endTurnResult.assistantMessage().stopReason()).isEqualTo(StopReason.STOP);
 
-    // Anthropic's max_tokens stop reason maps to the domain LENGTH stop reason; unlike the OpenAI
-    // family converters, this converter does NOT throw an ERROR_CODE_RESPONSE_TRUNCATED
-    // ConnectorException for it -- the turn is surfaced as Completed with stopReason=LENGTH and it
-    // is up to the caller/orchestrator to decide what to do with a truncated response.
     assertThat(maxTokensResult).isInstanceOf(ChatResult.Completed.class);
     assertThat(maxTokensResult.assistantMessage().stopReason()).isEqualTo(StopReason.LENGTH);
   }
@@ -551,12 +547,9 @@ class AnthropicMessageResponseConverterTest {
 
   @Test
   void mapsNoArgumentToolUseFromEmptyInputJsonDeltaStream() {
-    // Drives the *real* vendor SDK MessageAccumulator through the exact event sequence
-    // Anthropic streams for a no-argument tool call: a content_block_start for the tool_use
-    // block, followed by an *empty* input_json_delta, followed by content_block_stop. The
-    // accumulator concatenates the (empty) partial JSON and finalizes the block's input as
-    // JsonMissing rather than an empty object -- this is the faithful reproduction of the
-    // reported crash, as opposed to the buffered deserialization path exercised above.
+    // Drives the real vendor SDK MessageAccumulator through the exact streamed event sequence
+    // that finalizes a no-argument tool call's input as JsonMissing (reproducing the reported
+    // crash), rather than exercising the buffered deserialization path above.
     final Message message = accumulateNoArgumentToolUseMessage();
 
     final var result = converter.toResult(message, EXECUTION_TIME);
@@ -567,10 +560,6 @@ class AnthropicMessageResponseConverterTest {
 
   private static Message accumulateNoArgumentToolUseMessage() {
     final MessageAccumulator acc = MessageAccumulator.create();
-    // Note: the stable Message/Usage builders have no contextManagement()/diagnostics() (Message)
-    // or iterations()/speed() (Usage) setters -- those are beta-only fields (context editing,
-    // cache diagnostics, and fallback/fast-mode tracking respectively), so they are simply omitted
-    // here rather than replaced.
     final Message shell =
         Message.builder()
             .id("msg-1")
