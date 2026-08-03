@@ -159,7 +159,19 @@
           "org.apache.kafka:kafka-clients"
         ],
         "allowedVersions": "!/-(ce|ccs|cp\\d*)$/"
-      }
+      },
+    {
+      "description": "Disable minor/major updates for Google Cloud Client Libraries — google-auth-library-oauth2-http 1.50.0+ removes setSecurityProvider method breaking connector-google-gemini tests. Requires code migration.",
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "matchPackageNames": [
+        "com.google.auth:google-auth-library-oauth2-http",
+        "com.google.cloud:libraries-bom"
+      ],
+      "enabled": false
+    }
   ],
   "baseBranchPatterns": [
     "main",
