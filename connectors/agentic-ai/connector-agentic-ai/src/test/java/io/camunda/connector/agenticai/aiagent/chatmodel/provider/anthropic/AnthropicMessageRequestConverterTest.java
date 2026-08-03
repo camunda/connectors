@@ -80,17 +80,17 @@ class AnthropicMessageRequestConverterTest {
             null));
   }
 
-  /** Builds a model on the {@code compatible} backend with the given additional body params. */
-  private static AnthropicChatModelConfiguration compatibleModel(
+  /** Builds a model on the {@code custom} backend with the given additional body params. */
+  private static AnthropicChatModelConfiguration customModel(
       @Nullable Map<String, Object> requestParameters) {
-    return compatibleModel(null, null, requestParameters);
+    return customModel(null, null, requestParameters);
   }
 
   /**
-   * Builds a model on the {@code compatible} backend with the given headers, query parameters, and
+   * Builds a model on the {@code custom} backend with the given headers, query parameters, and
    * additional body params.
    */
-  private static AnthropicChatModelConfiguration compatibleModel(
+  private static AnthropicChatModelConfiguration customModel(
       @Nullable Map<String, String> headers,
       @Nullable Map<String, String> queryParameters,
       @Nullable Map<String, Object> requestParameters) {
@@ -858,13 +858,13 @@ class AnthropicMessageRequestConverterTest {
     assertThat(messages1.at("/0/content/0/thinking").asText()).isEqualTo("Let me think it through");
   }
 
-  // --- Compatible backend: headers, query parameters, and request (body) parameters ------------
+  // --- Custom backend: headers, query parameters, and request (body) parameters -----------------
 
   @Test
-  void compatibleBackendHeadersAreMergedAsAdditionalHeaders() {
+  void customBackendHeadersAreMergedAsAdditionalHeaders() {
     final var params =
         converter.toMessageCreateParams(
-            compatibleModel(Map.of("X-Custom-Header", "custom-value"), null, null),
+            customModel(Map.of("X-Custom-Header", "custom-value"), null, null),
             null,
             new ConversationSnapshot(List.of(), List.of()));
 
@@ -873,10 +873,10 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void compatibleBackendQueryParametersAreMergedAsAdditionalQueryParameters() {
+  void customBackendQueryParametersAreMergedAsAdditionalQueryParameters() {
     final var params =
         converter.toMessageCreateParams(
-            compatibleModel(null, Map.of("api-version", "2026-01-01"), null),
+            customModel(null, Map.of("api-version", "2026-01-01"), null),
             null,
             new ConversationSnapshot(List.of(), List.of()));
 
@@ -884,10 +884,10 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void compatibleBackendRequestParametersAreMergedAsAdditionalBodyProperties() {
+  void customBackendRequestParametersAreMergedAsAdditionalBodyProperties() {
     final var params =
         converter.toMessageCreateParams(
-            compatibleModel(Map.of("custom_field", "custom_value")),
+            customModel(Map.of("custom_field", "custom_value")),
             null,
             new ConversationSnapshot(List.of(), List.of()));
 
@@ -905,10 +905,10 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void compatibleBackendWithNoRequestParametersAddsNothing() {
+  void customBackendWithNoRequestParametersAddsNothing() {
     final var params =
         converter.toMessageCreateParams(
-            compatibleModel(null), null, new ConversationSnapshot(List.of(), List.of()));
+            customModel(null), null, new ConversationSnapshot(List.of(), List.of()));
 
     assertThat(requestBodyAsJson(params).has("custom_field")).isFalse();
   }

@@ -55,8 +55,8 @@ class AnthropicChatModelApiFactoryTest {
   }
 
   @Test
-  void supportsAnthropicCompatibleV2Config() {
-    assertThat(factory.supports(compatibleConfig(MODEL_ID))).isTrue();
+  void supportsAnthropicCustomV2Config() {
+    assertThat(factory.supports(customConfig(MODEL_ID))).isTrue();
   }
 
   @Test
@@ -78,10 +78,10 @@ class AnthropicChatModelApiFactoryTest {
   }
 
   @Test
-  void createBuildsWorkingApiForCompatibleBackend() {
+  void createBuildsWorkingApiForCustomBackend() {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
-    final ChatModel api = factory.create(compatibleConfig(MODEL_ID));
+    final ChatModel api = factory.create(customConfig(MODEL_ID));
 
     assertThat(api).isNotNull().isInstanceOf(AnthropicChatModelApi.class);
     api.close();
@@ -95,12 +95,12 @@ class AnthropicChatModelApiFactoryTest {
             null));
   }
 
-  private static AnthropicChatModelConfiguration compatibleConfig(String modelId) {
+  private static AnthropicChatModelConfiguration customConfig(String modelId) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicCustomBackend(
                 new AnthropicCustomBackend.CustomBackend(
-                    "https://compatible.example.com", null, null, null, new NoAuthentication())),
+                    "https://custom.example.com", null, null, null, new NoAuthentication())),
             new AnthropicModel(modelId, null),
             null));
   }
