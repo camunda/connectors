@@ -126,28 +126,37 @@ public class CsvConnector implements OutboundConnectorProvider {
       keywords = {"write csv", "export csv", "generate csv"})
   public Object writeCsv(@Variable WriteCsvRequest request, OutboundConnectorContext context) {
     var csv = createCsv(request.data(), request.format());
-    if (context.readDocumentReturnFormat().isPresent()) {
-      return DocumentReturn.of(
-          csv.getBytes(StandardCharsets.UTF_8),
-          "text/csv",
-          "result.csv",
-          (converted, choice) ->
-              switch (choice) {
-                case DOCUMENT -> new WriteCsvResult.Document((Document) converted);
-                case TEXT -> new WriteCsvResult.Value((String) converted);
-                case JSON ->
-                    throw new ConnectorException(
-                        "JSON response format is not supported for CSV output");
-              });
-    }
-    // Legacy flow (element-template version <= 2): the createDocument boolean drives the output.
+    return context.readDocumentReturnFormat().isPresent()
+        ? newFlow(csv)
+        : oldFlow(csv, request, context);
+  }
+
+  // New flow (element-template version >= 3): the runtime converts the payload per the user's
+  // response-format dropdown choice.
+  private static DocumentReturn<WriteCsvResult> newFlow(String csv) {
+    return DocumentReturn.of(
+        csv.getBytes(StandardCharsets.UTF_8),
+        "text/csv",
+        "result.csv",
+        (converted, choice) ->
+            switch (choice) {
+              case DOCUMENT -> new WriteCsvResult.Document((Document) converted);
+              case TEXT -> new WriteCsvResult.Value((String) converted);
+              case JSON ->
+                  throw new ConnectorException(
+                      "JSON response format is not supported for CSV output");
+            });
+  }
+
+  // Legacy flow (element-template version <= 2): the createDocument boolean drives the output.
+  private static WriteCsvResult oldFlow(
+      String csv, WriteCsvRequest request, OutboundConnectorContext context) {
     if (request.createDocument()) {
       var documentCreationRequest =
           DocumentCreationRequest.from(csv.getBytes()).contentType("text/csv").build();
       var document = context.create(documentCreationRequest);
       return new WriteCsvResult.Document(document);
-    } else {
-      return new WriteCsvResult.Value(csv);
     }
+    return new WriteCsvResult.Value(csv);
   }
 }
