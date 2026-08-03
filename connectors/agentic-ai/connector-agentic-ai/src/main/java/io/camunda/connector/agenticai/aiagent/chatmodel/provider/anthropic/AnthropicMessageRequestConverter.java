@@ -26,6 +26,7 @@ import com.anthropic.models.messages.ToolUseBlockParam;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -174,12 +175,12 @@ public class AnthropicMessageRequestConverter {
 
   private void applySystemPrompt(
       MessageCreateParams.Builder builder, ConversationSnapshot snapshot) {
-    final SystemMessage systemMessage = snapshot.systemMessage();
-    if (systemMessage == null) {
+    final var systemMessage = MessageUtil.leadingSystemMessage(snapshot.messages());
+    if (systemMessage.isEmpty()) {
       return;
     }
     final String system =
-        systemMessage.content().stream()
+        systemMessage.get().content().stream()
             .filter(TextContent.class::isInstance)
             .map(c -> ((TextContent) c).text())
             .collect(Collectors.joining("\n"));

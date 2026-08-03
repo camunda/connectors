@@ -27,8 +27,7 @@ public final class TurnReconstructor {
       return new PreviousConversation(Optional.empty(), List.of());
     }
 
-    Optional<SystemMessage> systemMessage =
-        Optional.ofNullable(MessageUtil.leadingSystemMessage(messages));
+    Optional<SystemMessage> systemMessage = MessageUtil.leadingSystemMessage(messages);
     var body = messages.subList(systemMessage.isPresent() ? 1 : 0, messages.size());
 
     if (!body.isEmpty() && !(body.getLast() instanceof AssistantMessage)) {

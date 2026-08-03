@@ -7,12 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.memory;
 
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
-import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Objects;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Immutable snapshot of the windowed conversation sent to the LLM. Carries the filtered message
@@ -25,9 +22,5 @@ public record ConversationSnapshot(List<Message> messages, List<ToolDefinition> 
     Objects.requireNonNull(toolDefinitions);
     messages = List.copyOf(messages);
     toolDefinitions = List.copyOf(toolDefinitions);
-  }
-
-  public @Nullable SystemMessage systemMessage() {
-    return MessageUtil.leadingSystemMessage(messages);
   }
 }
