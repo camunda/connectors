@@ -145,13 +145,14 @@
       "allowedVersions": "!/-(ce|ccs|cp\\d*)$/"
     },
     {
-      "description": "Disable minor/major updates for google-auth-library-oauth2-http — 1.50.0+ removes the setSecurityProvider method used by connector-google-gemini's vertexai client, breaking its tests. Requires code migration.",
+      "description": "Disable minor/major updates for google-auth-library-oauth2-http — 1.50.0+ removes the setSecurityProvider method used by connector-google-gemini's vertexai client, breaking its tests. Requires code migration. google-auth-library-credentials is included because parent/pom.xml pins both to the same version.google-auth-library-oauth2-http property, so leaving it unblocked would let Renovate bump the shared property through that dependency instead.",
       "matchUpdateTypes": [
         "major",
         "minor"
       ],
       "matchPackageNames": [
-        "com.google.auth:google-auth-library-oauth2-http"
+        "com.google.auth:google-auth-library-oauth2-http",
+        "com.google.auth:google-auth-library-credentials"
       ],
       "enabled": false
     },
