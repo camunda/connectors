@@ -76,7 +76,7 @@ public class CsvConnector implements OutboundConnectorProvider {
     try (InputStream in = openStream(request);
         Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
       return readCsvRequest(reader, request.format(), rowType, mapper);
-    } catch (ConnectorException e) {
+    } catch (ConnectorException | ConnectorInputException e) {
       throw e;
     } catch (IOException e) {
       throw readRetryException(e);
