@@ -61,6 +61,11 @@ public final class BooleanProperty extends Property {
     return new BooleanPropertyBuilder();
   }
 
+  @Override
+  public BooleanPropertyBuilder toBuilder() {
+    return PropertyBuilder.copyBaseFieldsFrom(builder(), this);
+  }
+
   public static class BooleanPropertyBuilder extends PropertyBuilder {
 
     private BooleanPropertyBuilder() {}
