@@ -10,7 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicBedrockBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicEffort;
@@ -18,24 +20,35 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicThinking;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Map;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith({SpringExtension.class, SystemStubsExtension.class})
 @Import(ValidationAutoConfiguration.class)
 class AnthropicChatModelConfigurationTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
 
   @Autowired private Validator validator;
+  @SystemStub private EnvironmentVariables environment;
+
+  @BeforeEach
+  void setUp() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, null);
+  }
 
   @Test
   void deserialisesAnthropicApiBackendWithReasoningAndCachingAndRoundTrips() throws Exception {
@@ -302,5 +315,141 @@ class AnthropicChatModelConfigurationTest {
                   .isEqualTo("anthropic.backend.custom.authentication.apiKey");
               assertThat(v.getMessage()).isEqualTo("must not be blank");
             });
+  }
+
+  @Test
+  void deserialisesBedrockBackendWithStaticCredentialsAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "anthropic",
+          "anthropic": {
+            "backend": {
+              "type": "bedrock",
+              "bedrock": {
+                "region": "eu-central-1",
+                "authentication": { "type": "credentials", "accessKey": "AKIA123", "secretKey": "secret123" }
+              }
+            },
+            "model": { "model": "claude-sonnet-4-6" }
+          }
+        }
+        """;
+
+    final AnthropicChatModelConfiguration parsed =
+        (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    assertThat(parsed.anthropic().backend()).isInstanceOf(AnthropicBedrockBackend.class);
+    final AnthropicBedrockBackend bedrockBackend =
+        (AnthropicBedrockBackend) parsed.anthropic().backend();
+    assertThat(bedrockBackend.bedrock().region()).isEqualTo("eu-central-1");
+    assertThat(bedrockBackend.bedrock().endpoint()).isNull();
+    assertThat(bedrockBackend.bedrock().authentication())
+        .isEqualTo(
+            new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA123", "secret123"));
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesBedrockBackendWithCustomEndpointAndApiKeyAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "anthropic",
+          "anthropic": {
+            "backend": {
+              "type": "bedrock",
+              "bedrock": {
+                "region": "eu-central-1",
+                "endpoint": "https://vpce-example.vpce.amazonaws.com",
+                "authentication": { "type": "apiKey", "apiKey": "bedrock-secret-key" }
+              }
+            },
+            "model": { "model": "claude-sonnet-4-6" }
+          }
+        }
+        """;
+
+    final AnthropicChatModelConfiguration parsed =
+        (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    final AnthropicBedrockBackend bedrockBackend =
+        (AnthropicBedrockBackend) parsed.anthropic().backend();
+    assertThat(bedrockBackend.bedrock().endpoint())
+        .isEqualTo("https://vpce-example.vpce.amazonaws.com");
+    assertThat(bedrockBackend.bedrock().authentication())
+        .isEqualTo(new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key"));
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void bedrockStaticCredentialsAuthenticationRedactsSecretsInToString() {
+    final var auth =
+        new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA123", "secret123");
+
+    assertThat(auth.toString())
+        .doesNotContain("AKIA123")
+        .doesNotContain("secret123")
+        .contains("[REDACTED]");
+  }
+
+  @Test
+  void bedrockApiKeyAuthenticationRedactsApiKeyInToString() {
+    final var auth = new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key");
+
+    assertThat(auth.toString()).doesNotContain("bedrock-secret-key").contains("[REDACTED]");
+  }
+
+  @Test
+  void requiredBedrockFieldsAreEnforced() {
+    final var config =
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicBedrockBackend(
+                    new AnthropicBedrockBackend.Bedrock(
+                        "",
+                        null,
+                        new AwsAuthentication.AwsStaticCredentialsAuthentication("", ""))),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anyMatch(v -> v.getPropertyPath().toString().contains("region"))
+        .anyMatch(v -> v.getPropertyPath().toString().contains("accessKey"))
+        .anyMatch(v -> v.getPropertyPath().toString().contains("secretKey"));
+  }
+
+  @Test
+  void bedrockDefaultCredentialsChainRejectedOnSaaS() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
+    final var config =
+        bedrockConfig(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
+
+    assertThat(validator.validate(config))
+        .extracting(ConstraintViolation::getMessage)
+        .contains("AWS default credentials chain is not supported on SaaS");
+  }
+
+  @Test
+  void bedrockDefaultCredentialsChainAllowedWhenNotSaaS() {
+    final var config =
+        bedrockConfig(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
+
+    assertThat(validator.validate(config)).isEmpty();
+  }
+
+  private static AnthropicChatModelConfiguration bedrockConfig(AwsAuthentication authentication) {
+    return new AnthropicChatModelConfiguration(
+        new AnthropicConnection(
+            new AnthropicBedrockBackend(
+                new AnthropicBedrockBackend.Bedrock("eu-central-1", null, authentication)),
+            new AnthropicModel("claude-sonnet-4-6", null),
+            null));
   }
 }

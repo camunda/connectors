@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -32,7 +33,9 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicBedrockBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.ApiKeyAuthentication;
@@ -166,6 +169,36 @@ class AnthropicChatModelApiFactoryClientTest {
                 wireMock.getHttpBaseUrl(), null, null, null, new NoAuthentication())));
 
     verify(postRequestedFor(urlPathEqualTo("/v1/messages")).withoutHeader("x-api-key"));
+  }
+
+  @Test
+  void bedrockBackendWithStaticCredentialsSignsRequestWithSigV4(WireMockRuntimeInfo wireMock) {
+    executeAgainstBedrock(
+        wireMock,
+        new AwsAuthentication.AwsStaticCredentialsAuthentication(
+            "AKIAEXAMPLE", "secretExampleKey"));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/v1/messages"))
+            .withHeader("Authorization", matching("AWS4-HMAC-SHA256.*")));
+  }
+
+  @Test
+  void bedrockBackendWithApiKeyAuthenticationSendsBearerToken(WireMockRuntimeInfo wireMock) {
+    executeAgainstBedrock(
+        wireMock, new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key"));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/v1/messages"))
+            .withHeader("Authorization", equalTo("Bearer bedrock-secret-key")));
+  }
+
+  private void executeAgainstBedrock(
+      WireMockRuntimeInfo wireMock, AwsAuthentication authentication) {
+    executeAgainst(
+        new AnthropicBedrockBackend(
+            new AnthropicBedrockBackend.Bedrock(
+                "eu-central-1", wireMock.getHttpBaseUrl(), authentication)));
   }
 
   @Test
