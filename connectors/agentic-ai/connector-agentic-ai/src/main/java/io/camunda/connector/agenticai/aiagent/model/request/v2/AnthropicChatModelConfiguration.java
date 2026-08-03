@@ -96,7 +96,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   group = "provider",
                   label = "API endpoint",
                   type = TemplateProperty.PropertyType.Hidden,
-                  feel = FeelMode.optional,
+                  feel = FeelMode.disabled,
                   optional = true)
               @Nullable String endpoint) {
 

@@ -153,7 +153,6 @@
     "id" : "provider.anthropic.backend.anthropic.endpoint",
     "label" : "API endpoint",
     "optional" : true,
-    "feel" : "optional",
     "group" : "provider",
     "binding" : {
       "name" : "provider.anthropic.backend.anthropic.endpoint",
