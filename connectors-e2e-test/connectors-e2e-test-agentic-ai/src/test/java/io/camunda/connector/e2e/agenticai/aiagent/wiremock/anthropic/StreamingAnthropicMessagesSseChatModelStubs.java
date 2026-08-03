@@ -414,8 +414,8 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
 
   private static List<ToolCallStub> turnToolCalls(TurnStub turn) {
     return switch (turn) {
-      case TurnStub.Text text -> List.of();
       case TurnStub.ToolCalls toolCalls -> toolCalls.toolCalls();
+      default -> List.of();
     };
   }
 

@@ -38,9 +38,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndp
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -49,6 +48,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -286,10 +286,11 @@ class AnthropicChatModelApiFactoryClientTest {
     }
 
     private void handle(Socket socket) throws IOException {
-      var reader =
-          new BufferedReader(
-              new InputStreamReader(socket.getInputStream(), StandardCharsets.US_ASCII));
-      String requestLine = reader.readLine();
+      // Reads directly off the socket's InputStream rather than through a BufferedReader /
+      // InputStreamReader: closing that wrapper closes the underlying socket (per Socket's
+      // documented stream-close coupling), which would break the response write below.
+      final InputStream in = socket.getInputStream();
+      String requestLine = readLine(in);
       if (requestLine == null) {
         return;
       }
@@ -298,9 +299,13 @@ class AnthropicChatModelApiFactoryClientTest {
       int contentLength = 0;
       String proxyAuthorizationHeader = null;
       String line;
-      while ((line = reader.readLine()) != null && !line.isEmpty()) {
+      while ((line = readLine(in)) != null && !line.isEmpty()) {
         if (line.regionMatches(true, 0, "Content-Length:", 0, "Content-Length:".length())) {
-          contentLength = Integer.parseInt(line.substring("Content-Length:".length()).trim());
+          try {
+            contentLength = Integer.parseInt(line.substring("Content-Length:".length()).trim());
+          } catch (NumberFormatException e) {
+            contentLength = 0;
+          }
         }
         if (line.regionMatches(
             true, 0, "Proxy-Authorization:", 0, "Proxy-Authorization:".length())) {
@@ -308,14 +313,12 @@ class AnthropicChatModelApiFactoryClientTest {
         }
       }
 
-      char[] body = new char[contentLength];
       int read = 0;
       while (read < contentLength) {
-        int r = reader.read(body, read, contentLength - read);
-        if (r < 0) {
+        if (in.read() < 0) {
           break;
         }
-        read += r;
+        read++;
       }
 
       boolean authRequired = username != null;
@@ -336,6 +339,21 @@ class AnthropicChatModelApiFactoryClientTest {
             Map.of("Proxy-Authenticate", "Basic realm=\"fake-proxy\""),
             new byte[0]);
       }
+    }
+
+    /** Reads one CRLF- or LF-terminated line as US-ASCII; returns null at end of stream. */
+    private static @Nullable String readLine(InputStream in) throws IOException {
+      var line = new StringBuilder();
+      int c;
+      while ((c = in.read()) != -1 && c != '\n') {
+        if (c != '\r') {
+          line.append((char) c);
+        }
+      }
+      if (c == -1 && line.isEmpty()) {
+        return null;
+      }
+      return line.toString();
     }
 
     private static void writeResponse(
