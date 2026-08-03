@@ -27,7 +27,10 @@ import com.azure.identity.ClientSecretCredential;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.genai.Client;
+import com.google.genai.types.ClientOptions;
 import com.google.genai.types.HttpOptions;
+import com.google.genai.types.ProxyOptions;
+import com.google.genai.types.ProxyType;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.anthropic.AnthropicChatModel.AnthropicChatModelBuilder;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
@@ -75,6 +78,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Nested;
@@ -639,6 +643,7 @@ class ChatModelFactoryTest {
         new GoogleVertexAiModelParameters(10, 1.0, 0.8, 100);
 
     @Captor private ArgumentCaptor<HttpOptions> httpOptionsArgumentCaptor;
+    @Captor private ArgumentCaptor<ClientOptions> clientOptionsArgumentCaptor;
 
     @Test
     void createsGoogleVertexAiChatModel() {
@@ -685,7 +690,7 @@ class ChatModelFactoryTest {
      * Service account credentials must be scoped explicitly. google-genai only scopes the
      * application default credentials it resolves itself and passes user-supplied credentials
      * through verbatim, so an unscoped credential makes the token request fail with {@code
-     * invalid_scope}. The SDK we migrated away from applied this scope for us.
+     * invalid_scope}.
      */
     @Test
     void createsGoogleVertexAiChatModelWithServiceAccountCredential() {
@@ -786,6 +791,28 @@ class ChatModelFactoryTest {
           (builders) -> assertThat(captureHttpOptions(builders).baseUrl()).isEmpty());
     }
 
+    @Test
+    void doesNotApplyClientOptionsWhenProxyNotConfigured() {
+      testGoogleVertexAiChatModelBuilder(
+          createProviderConfig(null, null, new ApplicationDefaultCredentialsAuthentication(), null),
+          (builders) -> verify(builders.clientBuilder, never()).clientOptions(any()));
+    }
+
+    @Test
+    void appliesProxyOptionsWhenConfigured() {
+      final var proxyOptions =
+          ProxyOptions.builder().type(ProxyType.Known.HTTP).host("proxy.local").port(8080).build();
+      doReturn(Optional.of(proxyOptions)).when(proxySupport).createGoogleGenAiProxyOptions(any());
+
+      testGoogleVertexAiChatModelBuilder(
+          createProviderConfig(null, null, new ApplicationDefaultCredentialsAuthentication(), null),
+          (builders) -> {
+            verify(builders.clientBuilder).clientOptions(clientOptionsArgumentCaptor.capture());
+            assertThat(clientOptionsArgumentCaptor.getValue().proxyOptions())
+                .contains(proxyOptions);
+          });
+    }
+
     private HttpOptions captureHttpOptions(GoogleVertexAiBuilderContext builders) {
       verify(builders.clientBuilder).httpOptions(httpOptionsArgumentCaptor.capture());
       return httpOptionsArgumentCaptor.getValue();
@@ -830,6 +857,9 @@ class ChatModelFactoryTest {
             .isSameAs(chatModelResultCaptor.getResult());
         // GoogleGenAiChatModel is not closeable - the client is the resource we must release
         assertThat(((CloseableChatModelDelegate) chatModel).resource()).isSameAs(client);
+
+        verify(proxySupport)
+            .createGoogleGenAiProxyOptions(providerConfig.googleVertexAi().endpoint());
 
         builderAssertions.accept(
             new GoogleVertexAiBuilderContext(clientBuilder, client, chatModelBuilder));
