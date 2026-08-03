@@ -63,6 +63,23 @@ See the [A2A Client connector documentation](https://docs.camunda.io/docs/next/c
 | A2A Client Webhook — Intermediate Catch Event | 8.9 | 0 | [`agenticai-a2a-client-webhook-inbound-connector-intermediate.json`](./agenticai-a2a-client-webhook-inbound-connector-intermediate.json) |
 | A2A Client Webhook — Receive Task             | 8.9 | 0 | [`agenticai-a2a-client-webhook-inbound-connector-receive.json`](./agenticai-a2a-client-webhook-inbound-connector-receive.json) |
 
+## Local Toolbox connectors (experimental)
+
+Experimental "local toolbox" pattern: an AI Agent gateway tool referencing another deployed
+process's own ad-hoc sub-process as a reusable, auto-discovered set of tools within the same
+cluster, without an MCP server round-trip. See
+[camunda/product-hub#3772](https://github.com/camunda/product-hub/issues/3772). Opt-in via
+`camunda.connector.agenticai.local-toolbox.enabled=true`; not part of the shipped default set.
+
+| Connector            | Minimum Camunda version | Template version | File |
+| --- | --- | --- | --- |
+| Local Toolbox Client | 8.9 | 1 | [`agenticai-localtoolbox-client-outbound-connector.json`](./agenticai-localtoolbox-client-outbound-connector.json) |
+
+`Local Toolbox Router` (the toolbox process's own ad-hoc sub-process driver,
+`io.camunda.agenticai:localtoolboxrouter:1`) has no generated element template yet — wire
+`zeebe:taskDefinition` onto the toolbox's ad-hoc sub-process manually, mirroring how the AI Agent
+Sub-process template itself is derived rather than directly annotated.
+
 ## Ad-hoc tools schema connector
 
 Resolves the tools available in an ad-hoc sub-process.

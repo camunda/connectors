@@ -1,0 +1,217 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Local Toolbox Client",
+  "id" : "io.camunda.connectors.agenticai.localtoolbox.client.v0",
+  "description" : "Gateway tool referencing another deployed process as a reusable, auto-discovered set of AI Agent tools within the same cluster.",
+  "version" : 1,
+  "category" : {
+    "id" : "aiTools",
+    "name" : "AI Tools"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.9"
+  },
+  "groups" : [ {
+    "id" : "toolbox",
+    "label" : "Toolbox"
+  }, {
+    "id" : "operation",
+    "label" : "Operation"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda.agenticai:localtoolboxclient:1",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "Hidden"
+  }, {
+    "value" : "localToolbox",
+    "binding" : {
+      "name" : "io.camunda.agenticai.gateway.type",
+      "type" : "zeebe:property"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "data.processId",
+    "label" : "Process ID",
+    "description" : "The BPMN process ID of the toolbox process to invoke.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "toolbox",
+    "binding" : {
+      "name" : "data.processId",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.version",
+    "label" : "Version",
+    "description" : "Pins the toolbox process to a specific version. Leave empty to always use the latest deployed version.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "toolbox",
+    "binding" : {
+      "name" : "data.version",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "The discovered tool schema is resolved once, at agent initialization. Pinning a version keeps that schema stable for the life of the conversation, even if a new toolbox version is deployed later.",
+    "type" : "Number"
+  }, {
+    "id" : "data.containerElementId",
+    "label" : "Tool container element ID",
+    "description" : "The ID of the ad-hoc sub-process inside the toolbox process whose tool elements should be discovered and exposed to the calling agent.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "toolbox",
+    "binding" : {
+      "name" : "data.containerElementId",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.meta",
+    "label" : "Meta",
+    "description" : "Deterministic (non-LLM) variables forwarded unmodified to the toolbox process instance alongside the tool call, bypassing the LLM entirely.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "toolbox",
+    "binding" : {
+      "name" : "data.meta",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.operation.method",
+    "label" : "Method",
+    "description" : "The local toolbox operation to be performed.",
+    "optional" : false,
+    "value" : "=toolCall.method",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.operation.method",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.operation.params",
+    "label" : "Parameters",
+    "description" : "The parameters to be passed to the operation.",
+    "optional" : true,
+    "value" : "=toolCall.params",
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.operation.params",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.agenticai.localtoolbox.client.v0",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "value" : "toolCallResult",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT30S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cmVjdCB4PSIzMCIgeT0iODAiIHdpZHRoPSIxNDAiIGhlaWdodD0iOTAiIHJ4PSIxMCIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxMiIvPgogICAgPHBhdGggZD0iTTcwIDgwVjU1QzcwIDQzIDc5IDM0IDkxIDM0SDEwOUMxMjEgMzQgMTMwIDQzIDEzMCA1NVY4MCIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8bGluZSB4MT0iMzAiIHkxPSIxMTUiIHgyPSIxNzAiIHkyPSIxMTUiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiLz4KPC9zdmc+Cg=="
+  }
+}

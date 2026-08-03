@@ -61,6 +61,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
+import io.camunda.connector.agenticai.localtoolbox.configuration.LocalToolboxConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
@@ -89,7 +90,8 @@ import org.springframework.context.annotation.Import;
   A2aClientOutboundConnectorConfiguration.class,
   A2aClientAgenticToolConfiguration.class,
   A2aClientPollingConfiguration.class,
-  A2aClientWebhookConfiguration.class
+  A2aClientWebhookConfiguration.class,
+  LocalToolboxConfiguration.class
 })
 public class AgenticAiConnectorsAutoConfiguration {
 

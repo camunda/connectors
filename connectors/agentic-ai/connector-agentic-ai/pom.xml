@@ -479,6 +479,17 @@
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
+              <connectorClass>io.camunda.connector.agenticai.localtoolbox.client.LocalToolboxClientFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.agenticai.localtoolbox.client.v0</templateId>
+                  <templateFileName>agenticai-localtoolbox-client-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>false</generateHybridTemplates>
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
+            </connector>
+            <connector>
               <connectorClass>io.camunda.connector.agenticai.a2a.client.outbound.A2aClientOutboundConnectorFunction
               </connectorClass>
               <files>
