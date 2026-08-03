@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
@@ -76,33 +77,12 @@ public class CsvConnector implements OutboundConnectorProvider {
     try (InputStream in = openStream(request);
         Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
       return readCsvRequest(reader, request.format(), rowType, mapper);
-    } catch (ConnectorException | ConnectorInputException e) {
-      throw e;
-    } catch (IOException e) {
-      throw readRetryException(e);
-    } catch (RuntimeException e) {
-      // CsvUtils wraps read failures as RuntimeException; retry only on an I/O root cause, else it
-      // is malformed input.
-      throw isCausedByIo(e)
-          ? readRetryException(e)
-          : new ConnectorInputException("Error reading CSV data", e);
+    } catch (IOException | UncheckedIOException e) {
+      throw ConnectorRetryException.builder()
+          .message("Failed to read CSV input: " + e.getMessage())
+          .cause(e)
+          .build();
     }
-  }
-
-  private static boolean isCausedByIo(Throwable e) {
-    for (Throwable t = e; t != null; t = t.getCause()) {
-      if (t instanceof IOException) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private static ConnectorRetryException readRetryException(Throwable e) {
-    return ConnectorRetryException.builder()
-        .message("Failed to read CSV input: " + e.getMessage())
-        .cause(e)
-        .build();
   }
 
   private static InputStream openStream(ReadCsvRequest request) {
