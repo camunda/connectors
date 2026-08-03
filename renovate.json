@@ -145,14 +145,28 @@
       "allowedVersions": "!/-(ce|ccs|cp\\d*)$/"
     },
     {
-      "description": "Disable minor/major updates for Google Cloud Client Libraries — google-auth-library-oauth2-http 1.50.0+ removes setSecurityProvider method breaking connector-google-gemini tests. Requires code migration.",
+      "description": "Disable minor/major updates for google-auth-library-oauth2-http — 1.50.0+ removes the setSecurityProvider method used by connector-google-gemini's vertexai client, breaking its tests. Requires code migration.",
       "matchUpdateTypes": [
         "major",
         "minor"
       ],
       "matchPackageNames": [
-        "com.google.auth:google-auth-library-oauth2-http",
+        "com.google.auth:google-auth-library-oauth2-http"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Disable minor/major updates for the Google Cloud libraries-bom used by connector-google-gemini specifically — 26.86.0+ pulls in google-auth-library-oauth2-http 1.50.0+ which breaks the connector's vertexai tests. Scoped to the files that feed that module; the independently-versioned libraries-bom in secret-providers/pom.xml is unaffected and can keep updating.",
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "matchPackageNames": [
         "com.google.cloud:libraries-bom"
+      ],
+      "matchFileNames": [
+        "parent/pom.xml",
+        "connectors/google/pom.xml"
       ],
       "enabled": false
     }
