@@ -224,7 +224,7 @@ class RealProviderApiSmokeIT {
             "anthropic",
             "provider.anthropic.backend.type",
             "anthropic-api",
-            "provider.anthropic.backend.apiKey",
+            "provider.anthropic.backend.anthropic.apiKey",
             envOrPlaceholder("ANTHROPIC_API_KEY"),
             "provider.anthropic.model.model",
             model),
