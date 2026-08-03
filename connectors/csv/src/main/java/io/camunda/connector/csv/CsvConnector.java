@@ -127,13 +127,11 @@ public class CsvConnector implements OutboundConnectorProvider {
   public Object writeCsv(@Variable WriteCsvRequest request, OutboundConnectorContext context) {
     var csv = createCsv(request.data(), request.format());
     return context.readDocumentReturnFormat().isPresent()
-        ? newFlow(csv)
-        : oldFlow(csv, request, context);
+        ? writeWithResponseFormat(csv)
+        : writeWithCreateDocumentFlag(csv, request, context);
   }
 
-  // New flow (element-template version >= 3): the runtime converts the payload per the user's
-  // response-format dropdown choice.
-  private static DocumentReturn<WriteCsvResult> newFlow(String csv) {
+  private static DocumentReturn<WriteCsvResult> writeWithResponseFormat(String csv) {
     return DocumentReturn.of(
         csv.getBytes(StandardCharsets.UTF_8),
         "text/csv",
@@ -148,8 +146,7 @@ public class CsvConnector implements OutboundConnectorProvider {
             });
   }
 
-  // Legacy flow (element-template version <= 2): the createDocument boolean drives the output.
-  private static WriteCsvResult oldFlow(
+  private static WriteCsvResult writeWithCreateDocumentFlag(
       String csv, WriteCsvRequest request, OutboundConnectorContext context) {
     if (request.createDocument()) {
       var documentCreationRequest =
