@@ -108,11 +108,11 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.2.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20260720-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260712-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.50.0</version.google-auth-library-oauth2-http>
+    <version.google-auth-library-oauth2-http>1.49.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20260427-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.86.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.85.1</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20260610-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.71.0</version.google-cloud-storage>
     <version.gson-extras>3.3.0</version.gson-extras>
@@ -156,7 +156,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.6.0</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
     
-    <version.langchain4j>1.18.1</version.langchain4j>
+    <version.langchain4j>1.18.0</version.langchain4j>
     <!-- CVE-2026-9563: parsson transitive override — remove once langchain4j-opensearch ships parsson >= 1.1.8
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-9563 -->
     <version.parsson>1.1.9</version.parsson>
@@ -867,7 +867,7 @@ limitations under the License.</license.inlineheader>
                    check whether the parsson override can be removed (see version.parsson). -->
               <requireProperty>
                 <property>version.langchain4j</property>
-                <regex>^1\.18\.1$</regex>
+                <regex>^1\.18\.0$</regex>
                 <regexMessage>
 version.langchain4j was changed! Check if the parsson CVE-2026-9563 override can be removed.
 If the new langchain4j-opensearch version ships parsson &gt;= 1.1.8, remove the version.parsson property,
