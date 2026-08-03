@@ -420,9 +420,11 @@ class AnthropicChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anyMatch(v -> v.getPropertyPath().toString().contains("region"))
-        .anyMatch(v -> v.getPropertyPath().toString().contains("accessKey"))
-        .anyMatch(v -> v.getPropertyPath().toString().contains("secretKey"));
+        .extracting(v -> v.getPropertyPath().toString())
+        .contains(
+            "anthropic.backend.bedrock.region",
+            "anthropic.backend.bedrock.authentication.accessKey",
+            "anthropic.backend.bedrock.authentication.secretKey");
   }
 
   @Test
