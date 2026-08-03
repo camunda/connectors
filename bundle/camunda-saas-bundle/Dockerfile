@@ -9,7 +9,7 @@ VOLUME /tmp
 WORKDIR /
 
 # Switch to root to allow setting up our own user and dirs
-USER root
+USER 0
 
 RUN mkdir /opt/app
 
