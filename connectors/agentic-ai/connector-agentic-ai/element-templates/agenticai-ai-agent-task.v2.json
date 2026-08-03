@@ -145,6 +145,28 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.anthropic.backend.anthropic.endpoint",
+    "label" : "API endpoint",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.anthropic.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "anthropic-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "provider.anthropic.backend.custom.endpoint",
     "label" : "API endpoint",
     "description" : "Base URL of the Anthropic-compatible API; <code>/v1/messages</code> will be appended.",

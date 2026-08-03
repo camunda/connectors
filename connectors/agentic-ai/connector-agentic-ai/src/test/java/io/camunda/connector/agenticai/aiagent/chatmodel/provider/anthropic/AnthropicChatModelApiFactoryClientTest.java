@@ -29,6 +29,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
@@ -56,10 +58,9 @@ import org.junit.jupiter.api.Test;
  * rather than reaching into the private client-building internals: the built {@link ChatModel}
  * issues a real (WireMock-backed) request, and assertions verify what actually went over the wire.
  *
- * <p>The {@code anthropic-api} backend always targets the production Anthropic base URL and has no
- * way to redirect it from the outside, so its api-key wiring isn't covered at the wire level here;
- * {@link AnthropicChatModelApiFactoryTest#createBuildsWorkingApiForApiBackend} covers that it
- * builds a working {@link ChatModel} at all.
+ * <p>The {@code anthropic-api} backend normally targets the production Anthropic base URL; its
+ * hidden {@code endpoint} override (settable only by editing the BPMN XML, not via the Modeler UI)
+ * is exercised here the same way as the {@code custom} backend's endpoint.
  */
 @WireMockTest
 class AnthropicChatModelApiFactoryClientTest {
@@ -105,6 +106,19 @@ class AnthropicChatModelApiFactoryClientTest {
                     .withStatus(200)
                     .withHeader("Content-Type", "text/event-stream")
                     .withBody(SSE_RESPONSE_BODY)));
+  }
+
+  @Test
+  void apiBackendHiddenEndpointOverrideRedirectsRequestAndKeepsApiKeyHeader(
+      WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new AnthropicApiBackend(
+            new AnthropicApiBackend.AnthropicApi(
+                "anthropic-api-secret-key", wireMock.getHttpBaseUrl())));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/v1/messages"))
+            .withHeader("x-api-key", equalTo("anthropic-api-secret-key")));
   }
 
   @Test
@@ -180,12 +194,12 @@ class AnthropicChatModelApiFactoryClientTest {
     }
   }
 
-  private void executeAgainst(AnthropicCustomBackend backend) {
+  private void executeAgainst(AnthropicBackend backend) {
     executeAgainst(httpProxySupport, backend);
   }
 
   private void executeAgainst(
-      AgenticAiHttpProxySupport httpProxySupport, AnthropicCustomBackend backend) {
+      AgenticAiHttpProxySupport httpProxySupport, AnthropicBackend backend) {
     final var factory =
         new AnthropicChatModelApiFactory(
             httpProxySupport,

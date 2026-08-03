@@ -90,11 +90,19 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
                   constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String apiKey) {
+              String apiKey,
+          @HttpUrl
+              @TemplateProperty(
+                  group = "provider",
+                  label = "API endpoint",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.optional,
+                  optional = true)
+              @Nullable String endpoint) {
 
         @Override
         public String toString() {
-          return "AnthropicApi{apiKey=[REDACTED]}";
+          return "AnthropicApi{apiKey=[REDACTED], endpoint=" + endpoint + "}";
         }
       }
     }

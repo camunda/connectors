@@ -61,7 +61,7 @@ class AnthropicMessageRequestConverterTest {
       @Nullable AnthropicModelParameters parameters) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
-            new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-test")),
+            new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-test", null)),
             new AnthropicModel("claude-sonnet-4-6", parameters),
             null));
   }
@@ -75,7 +75,7 @@ class AnthropicMessageRequestConverterTest {
         new AnthropicModelParameters(null, null, promptCaching, null, null, null, null);
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
-            new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-test")),
+            new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-test", null)),
             new AnthropicModel("claude-sonnet-4-6", parameters),
             null));
   }

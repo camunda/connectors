@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 public class AnthropicChatModelApiFactory implements ChatModelFactory {
@@ -69,9 +70,7 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
     }
 
     final String scheme =
-        backend instanceof AnthropicCustomBackend custom
-            ? URI.create(custom.custom().endpoint()).getScheme()
-            : ProxyConfiguration.SCHEME_HTTPS;
+        configuredEndpoint(backend).map(endpoint -> URI.create(endpoint).getScheme()).orElse(null);
     httpProxySupport
         .okHttpProxy(scheme != null ? scheme : ProxyConfiguration.SCHEME_HTTPS)
         .ifPresent(
@@ -87,6 +86,10 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
   private static void applyApiBackend(
       AnthropicOkHttpClient.Builder builder, AnthropicApiBackend apiBackend) {
     builder.apiKey(apiBackend.anthropic().apiKey());
+
+    if (apiBackend.anthropic().endpoint() != null) {
+      builder.baseUrl(apiBackend.anthropic().endpoint());
+    }
   }
 
   private static void applyCustomBackend(
@@ -96,5 +99,17 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
     if (custom.custom().authentication() instanceof ApiKeyAuthentication apiKeyAuth) {
       builder.apiKey(apiKeyAuth.apiKey());
     }
+  }
+
+  /**
+   * The base URL actually configured for this backend, if any: the {@code custom} backend's
+   * endpoint is always set, while the {@code anthropic-api} backend's hidden endpoint override is
+   * usually unset (the SDK then defaults to the production Anthropic API).
+   */
+  private static Optional<String> configuredEndpoint(AnthropicBackend backend) {
+    return switch (backend) {
+      case AnthropicApiBackend apiBackend -> Optional.ofNullable(apiBackend.anthropic().endpoint());
+      case AnthropicCustomBackend custom -> Optional.of(custom.custom().endpoint());
+    };
   }
 }
