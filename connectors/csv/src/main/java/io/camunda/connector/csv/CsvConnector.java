@@ -76,12 +76,33 @@ public class CsvConnector implements OutboundConnectorProvider {
     try (InputStream in = openStream(request);
         Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
       return readCsvRequest(reader, request.format(), rowType, mapper);
+    } catch (ConnectorException e) {
+      throw e;
     } catch (IOException e) {
-      throw ConnectorRetryException.builder()
-          .message("Failed to read CSV input: " + e.getMessage())
-          .cause(e)
-          .build();
+      throw readRetryException(e);
+    } catch (RuntimeException e) {
+      // CsvUtils wraps read failures as RuntimeException; retry only on an I/O root cause, else it
+      // is malformed input.
+      throw isCausedByIo(e)
+          ? readRetryException(e)
+          : new ConnectorInputException("Error reading CSV data", e);
     }
+  }
+
+  private static boolean isCausedByIo(Throwable e) {
+    for (Throwable t = e; t != null; t = t.getCause()) {
+      if (t instanceof IOException) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static ConnectorRetryException readRetryException(Throwable e) {
+    return ConnectorRetryException.builder()
+        .message("Failed to read CSV input: " + e.getMessage())
+        .cause(e)
+        .build();
   }
 
   private static InputStream openStream(ReadCsvRequest request) {
