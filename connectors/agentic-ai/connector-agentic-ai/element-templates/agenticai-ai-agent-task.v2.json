@@ -121,6 +121,9 @@
       "name" : "Anthropic API",
       "value" : "anthropic-api"
     }, {
+      "name" : "AWS Bedrock",
+      "value" : "bedrock"
+    }, {
       "name" : "Custom / compatible endpoint",
       "value" : "custom"
     } ]
@@ -170,6 +173,177 @@
       } ]
     },
     "type" : "Hidden"
+  }, {
+    "id" : "provider.anthropic.backend.bedrock.region",
+    "label" : "AWS region",
+    "description" : "Specify the AWS region (example: <code>eu-west-1</code>).",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.bedrock.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.bedrock.endpoint",
+    "label" : "Custom endpoint",
+    "description" : "Custom API endpoint for VPC/PrivateLink configurations or other non-standard deployments.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.bedrock.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.bedrock.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the AWS authentication strategy.",
+    "value" : "credentials",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.bedrock.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Credentials",
+      "value" : "credentials"
+    }, {
+      "name" : "API key",
+      "value" : "apiKey"
+    }, {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
+    } ]
+  }, {
+    "id" : "provider.anthropic.backend.bedrock.authentication.accessKey",
+    "label" : "Access key",
+    "description" : "AWS IAM access key.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.bedrock.authentication.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.bedrock.authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.bedrock.authentication.secretKey",
+    "label" : "Secret key",
+    "description" : "AWS IAM secret key.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.bedrock.authentication.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.bedrock.authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.bedrock.authentication.apiKey",
+    "label" : "API key",
+    "description" : "Bearer API key for AWS Bedrock Mantle.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.bedrock.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.bedrock.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "provider.anthropic.backend.custom.endpoint",
     "label" : "API endpoint",

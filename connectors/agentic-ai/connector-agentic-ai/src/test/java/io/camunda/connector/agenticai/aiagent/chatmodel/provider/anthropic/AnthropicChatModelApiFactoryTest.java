@@ -15,7 +15,9 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicBedrockBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration;
@@ -59,6 +61,16 @@ class AnthropicChatModelApiFactoryTest {
   }
 
   @Test
+  void supportsAnthropicBedrockV2Config() {
+    assertThat(
+            factory.supports(
+                bedrockConfig(
+                    MODEL_ID,
+                    new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret"))))
+        .isTrue();
+  }
+
+  @Test
   void doesNotSupportOtherProviderConfiguration() {
     final ChatModelConfiguration config =
         new CustomProviderConfiguration("some-custom-provider", MODEL_ID, Map.of());
@@ -81,6 +93,45 @@ class AnthropicChatModelApiFactoryTest {
     return Stream.of(apiConfig(MODEL_ID), customConfig(MODEL_ID));
   }
 
+  @Test
+  void createBuildsWorkingApiForBedrockBackendWithStaticCredentials() {
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
+
+    final ChatModel api =
+        factory.create(
+            bedrockConfig(
+                MODEL_ID,
+                new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret")));
+
+    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModelApi.class);
+    api.close();
+  }
+
+  @Test
+  void createBuildsWorkingApiForBedrockBackendWithApiKey() {
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
+
+    final ChatModel api =
+        factory.create(
+            bedrockConfig(MODEL_ID, new AwsAuthentication.AwsApiKeyAuthentication("bedrock-key")));
+
+    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModelApi.class);
+    api.close();
+  }
+
+  @Test
+  void createBuildsWorkingApiForBedrockBackendWithDefaultCredentialsChain() {
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
+
+    final ChatModel api =
+        factory.create(
+            bedrockConfig(
+                MODEL_ID, new AwsAuthentication.AwsDefaultCredentialsChainAuthentication()));
+
+    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModelApi.class);
+    api.close();
+  }
+
   private static AnthropicChatModelConfiguration apiConfig(String modelId) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
@@ -96,6 +147,16 @@ class AnthropicChatModelApiFactoryTest {
             new AnthropicCustomBackend(
                 new AnthropicCustomBackend.CustomBackend(
                     "https://custom.example.com", null, null, null, new NoAuthentication())),
+            new AnthropicModel(modelId, null),
+            null));
+  }
+
+  private static AnthropicChatModelConfiguration bedrockConfig(
+      String modelId, AwsAuthentication authentication) {
+    return new AnthropicChatModelConfiguration(
+        new AnthropicConnection(
+            new AnthropicBedrockBackend(
+                new AnthropicBedrockBackend.Bedrock("eu-central-1", null, authentication)),
             new AnthropicModel(modelId, null),
             null));
   }
