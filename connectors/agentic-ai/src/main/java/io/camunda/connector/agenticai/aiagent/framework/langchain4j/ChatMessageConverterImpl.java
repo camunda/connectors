@@ -149,8 +149,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       return Map.of();
     }
 
-    return AssistantMessageMetadataDecorator.forProvider(providerConfiguration)
-        .decorateOnRead(attributes);
+    return AssistantMessageMetadataDecorator.decorateOnRead(providerConfiguration, attributes);
   }
 
   @Override
@@ -167,8 +166,8 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     final var decoratedAttributes =
         CollectionUtils.isEmpty(aiMessage.attributes())
             ? Map.<String, Object>of()
-            : AssistantMessageMetadataDecorator.forProvider(providerConfiguration)
-                .decorateOnWrite(aiMessage.attributes());
+            : AssistantMessageMetadataDecorator.decorateOnWrite(
+                providerConfiguration, aiMessage.attributes());
 
     if (chatResponse.metadata() != null || !decoratedAttributes.isEmpty()) {
       final var metadata = new LinkedHashMap<String, Object>();
