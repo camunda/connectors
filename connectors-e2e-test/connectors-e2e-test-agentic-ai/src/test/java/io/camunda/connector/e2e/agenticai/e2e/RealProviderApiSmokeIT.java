@@ -226,6 +226,29 @@ class RealProviderApiSmokeIT {
         true);
   }
 
+  // Bedrock Mantle is a pure Messages-API pass-through (no body/path/response adaptation), so it
+  // shares the anthropic-api row's model IDs and capability surface exactly.
+  static Provider bedrock(String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new Provider(
+        "bedrock/" + model,
+        List.of("ANTHROPIC_BEDROCK_API_KEY"),
+        Map.of(
+            "provider.type",
+            "anthropic",
+            "provider.anthropic.backend.type",
+            "bedrock",
+            "provider.anthropic.backend.bedrock.region",
+            envOrDefault("ANTHROPIC_BEDROCK_REGION", "us-east-1"),
+            "provider.anthropic.backend.bedrock.authentication.type",
+            "apiKey",
+            "provider.anthropic.backend.bedrock.authentication.apiKey",
+            envOrPlaceholder("ANTHROPIC_BEDROCK_API_KEY"),
+            "provider.anthropic.model.model",
+            model),
+        capabilityProperties,
+        true);
+  }
+
   static Stream<Provider> providers() {
     return Stream.of(
             // claude-sonnet-4-6 only supports thinking mode "enabled" (explicit budget) — the model
@@ -256,7 +279,21 @@ class RealProviderApiSmokeIT {
                     Capability.REASONING,
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",
-                            "provider.anthropic.model.parameters.effort", "high"))))
+                            "provider.anthropic.model.parameters.effort", "high"))),
+            // Same model/capability surface as the anthropic-api claude-sonnet-4-6 row above — only
+            // the backend/transport differs, proving Bedrock Mantle's pass-through end-to-end.
+            bedrock(
+                "claude-sonnet-4-6",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
+                    Capability.PROMPT_CACHING,
+                        Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
+                    Capability.REASONING,
+                        Map.of(
+                            "provider.anthropic.model.parameters.thinking.mode", "enabled",
+                            "provider.anthropic.model.parameters.thinking.budgetTokens", "2048"))))
         .filter(Provider::isEnabled);
   }
 
@@ -282,6 +319,10 @@ class RealProviderApiSmokeIT {
 
   private static String envOrPlaceholder(String envVar) {
     return System.getenv().getOrDefault(envVar, "NOT_SET");
+  }
+
+  private static String envOrDefault(String envVar, String defaultValue) {
+    return System.getenv().getOrDefault(envVar, defaultValue);
   }
 
   @BeforeEach
