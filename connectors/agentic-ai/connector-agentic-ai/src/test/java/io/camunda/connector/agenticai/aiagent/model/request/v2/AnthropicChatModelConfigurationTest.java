@@ -89,9 +89,9 @@ class AnthropicChatModelConfigurationTest {
             "backend": {
               "type": "custom",
               "custom": {
-                "endpoint": "https://compatible.example.com",
+                "endpoint": "https://custom.example.com",
                 "headers": { "X-Custom-Header": "value" },
-                "authentication": { "type": "apiKey", "apiKey": "sk-compat-123" }
+                "authentication": { "type": "apiKey", "apiKey": "sk-custom-123" }
               }
             },
             "model": { "model": "claude-sonnet-4-6" }
@@ -105,10 +105,10 @@ class AnthropicChatModelConfigurationTest {
     assertThat(parsed.anthropic().backend()).isInstanceOf(AnthropicCustomBackend.class);
 
     final AnthropicCustomBackend custom = (AnthropicCustomBackend) parsed.anthropic().backend();
-    assertThat(custom.custom().endpoint()).isEqualTo("https://compatible.example.com");
+    assertThat(custom.custom().endpoint()).isEqualTo("https://custom.example.com");
     assertThat(custom.custom().headers()).containsEntry("X-Custom-Header", "value");
     assertThat(custom.custom().authentication())
-        .isEqualTo(new ApiKeyAuthentication("sk-compat-123"));
+        .isEqualTo(new ApiKeyAuthentication("sk-custom-123"));
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
@@ -167,7 +167,7 @@ class AnthropicChatModelConfigurationTest {
   }
 
   @Test
-  void requiredCompatibleFieldsAreEnforced() {
+  void requiredCustomFieldsAreEnforced() {
     final var config =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(

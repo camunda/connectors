@@ -122,7 +122,7 @@ class AnthropicChatModelApiFactoryClientTest {
   }
 
   @Test
-  void compatibleBackendUsesEndpointAndApiKeyAuthentication(WireMockRuntimeInfo wireMock) {
+  void customBackendUsesEndpointAndApiKeyAuthentication(WireMockRuntimeInfo wireMock) {
     executeAgainst(
         new AnthropicCustomBackend(
             new AnthropicCustomBackend.CustomBackend(
@@ -130,15 +130,15 @@ class AnthropicChatModelApiFactoryClientTest {
                 null,
                 null,
                 null,
-                new ApiKeyAuthentication("compatible-secret-key"))));
+                new ApiKeyAuthentication("custom-secret-key"))));
 
     verify(
         postRequestedFor(urlPathEqualTo("/v1/messages"))
-            .withHeader("x-api-key", equalTo("compatible-secret-key")));
+            .withHeader("x-api-key", equalTo("custom-secret-key")));
   }
 
   @Test
-  void compatibleBackendWithNoAuthenticationSendsNoApiKeyHeader(WireMockRuntimeInfo wireMock) {
+  void customBackendWithNoAuthenticationSendsNoApiKeyHeader(WireMockRuntimeInfo wireMock) {
     executeAgainst(
         new AnthropicCustomBackend(
             new AnthropicCustomBackend.CustomBackend(
