@@ -332,7 +332,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
             "anthropic (native)",
             new AnthropicChatModelConfiguration(
                 new AnthropicConnection(
-                    new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-test")),
+                    new AnthropicApiBackend(
+                        new AnthropicApiBackend.AnthropicApi("sk-ant-test", null)),
                     new AnthropicModel("claude-sonnet-5", null),
                     null)),
             AnthropicChatModelApiFactory.class),

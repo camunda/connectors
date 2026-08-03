@@ -60,7 +60,7 @@ class AnthropicChatModelApiTest {
   private final AnthropicChatModelConfiguration configuration =
       new AnthropicChatModelConfiguration(
           new AnthropicConnection(
-              new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-test")),
+              new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-test", null)),
               new AnthropicModel("claude-sonnet-4-6", null),
               null));
 
