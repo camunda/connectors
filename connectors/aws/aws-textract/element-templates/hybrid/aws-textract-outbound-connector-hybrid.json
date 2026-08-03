@@ -268,7 +268,7 @@
       "equals" : "S3",
       "type" : "simple"
     },
-    "tooltip" : "How the document should be processed. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#execution-types\" target=\"_blank\">Amazon Textract execution types documentation</a>.",
+    "tooltip" : "How the document should be processed. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#input-parameters\" target=\"_blank\">Amazon Textract execution types documentation</a>.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Asynchronous",

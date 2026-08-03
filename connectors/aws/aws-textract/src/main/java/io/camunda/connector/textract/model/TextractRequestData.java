@@ -71,7 +71,7 @@ public record TextractRequestData(
             defaultValue = "POLLING",
             feel = FeelMode.disabled,
             tooltip =
-                "How the document should be processed. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#execution-types\" target=\"_blank\">Amazon Textract execution types documentation</a>.",
+                "How the document should be processed. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#input-parameters\" target=\"_blank\">Amazon Textract execution types documentation</a>.",
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.documentLocationType",
