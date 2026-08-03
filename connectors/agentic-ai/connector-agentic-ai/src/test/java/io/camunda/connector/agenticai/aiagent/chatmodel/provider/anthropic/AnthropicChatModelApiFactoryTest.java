@@ -61,16 +61,6 @@ class AnthropicChatModelApiFactoryTest {
   }
 
   @Test
-  void supportsAnthropicBedrockV2Config() {
-    assertThat(
-            factory.supports(
-                bedrockConfig(
-                    MODEL_ID,
-                    new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret"))))
-        .isTrue();
-  }
-
-  @Test
   void doesNotSupportOtherProviderConfiguration() {
     final ChatModelConfiguration config =
         new CustomProviderConfiguration("some-custom-provider", MODEL_ID, Map.of());
@@ -90,21 +80,11 @@ class AnthropicChatModelApiFactoryTest {
   }
 
   static Stream<AnthropicChatModelConfiguration> configs() {
-    return Stream.of(apiConfig(MODEL_ID), customConfig(MODEL_ID));
-  }
-
-  @Test
-  void createBuildsWorkingApiForBedrockBackendWithStaticCredentials() {
-    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
-
-    final ChatModel api =
-        factory.create(
-            bedrockConfig(
-                MODEL_ID,
-                new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret")));
-
-    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModelApi.class);
-    api.close();
+    return Stream.of(
+        apiConfig(MODEL_ID),
+        customConfig(MODEL_ID),
+        bedrockConfig(
+            MODEL_ID, new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret")));
   }
 
   @Test
