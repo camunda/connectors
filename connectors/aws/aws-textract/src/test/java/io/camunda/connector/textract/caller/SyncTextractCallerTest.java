@@ -34,6 +34,7 @@ class SyncTextractCallerTest {
             "1",
             null,
             TextractExecutionType.SYNC,
+            null, // uploadedExecutionType: template-only, never bound at runtime
             true,
             true,
             true,
@@ -73,6 +74,7 @@ class SyncTextractCallerTest {
             null,
             document,
             TextractExecutionType.SYNC,
+            null, // uploadedExecutionType: template-only, never bound at runtime
             true,
             false,
             false,

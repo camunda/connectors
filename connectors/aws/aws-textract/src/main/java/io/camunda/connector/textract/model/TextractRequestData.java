@@ -78,6 +78,39 @@ public record TextractRequestData(
                     equals = "S3"))
         @NotNull
         TextractExecutionType executionType,
+    /**
+     * Template-only companion to {@link #executionType}, and always {@code null} at runtime.
+     *
+     * <p>Binds to the same {@code input.executionType} variable but is shown on the complementary
+     * branch — the Camunda document source — where it offers {@code SYNC} as its only choice.
+     * Textract's {@code StartDocumentAnalysis} (polling and async) takes a {@code
+     * DocumentLocation}, so sync is the only mode that can analyze inline bytes; surfacing it as a
+     * one-option dropdown makes that visible in Modeler instead of leaving users to wonder why the
+     * field vanished.
+     *
+     * <p>Nothing reads this component: the value it writes arrives under the {@code executionType}
+     * JSON key and is bound to {@link #executionType}. Two properties sharing one binding with
+     * mutually exclusive conditions is the same pattern the S3 connector uses for its per-operation
+     * {@code action.bucket} fields.
+     */
+    @TemplateProperty(
+            id = "uploadedExecutionType",
+            label = "Execution type",
+            group = "input",
+            type = TemplateProperty.PropertyType.Dropdown,
+            defaultValue = "SYNC",
+            feel = FeelMode.disabled,
+            choices = @TemplateProperty.DropdownPropertyChoice(value = "SYNC", label = "Real-time"),
+            tooltip =
+                "Documents supplied from Camunda are analyzed in real time. Polling and asynchronous execution require the document to be stored in Amazon S3.",
+            // Relative to this record's own path: the generator prefixes "input." because
+            // TextractRequest exposes this record under its `input` field.
+            binding = @TemplateProperty.PropertyBinding(name = "executionType"),
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "input.documentLocationType",
+                    equals = "UPLOADED"))
+        TextractExecutionType uploadedExecutionType,
     @TemplateProperty(
             label = "Analyze tables",
             tooltip =
@@ -211,21 +244,21 @@ public record TextractRequestData(
         String outputConfigS3Prefix) {
 
   /**
-   * Defaults a missing {@code executionType} to {@link TextractExecutionType#SYNC} when the
-   * document comes from the Camunda document store.
+   * Backward-compatibility shim for models built on template v6 and earlier, where no {@code
+   * executionType} reaches the connector at all on the Camunda document branch.
    *
-   * <p>The {@code executionType} property is only rendered for the S3 source, and an element
-   * template property whose condition is not met has its value removed from the BPMN XML. A model
-   * that selects the Camunda document source therefore sends no {@code executionType} at all, and
-   * the {@code @NotNull} above rejected the request before the connector ever ran. {@code SYNC} is
-   * the only possible mode here: Textract's {@code StartDocumentAnalysis} (polling and async) takes
-   * a {@link software.amazon.awssdk.services.textract.model.DocumentLocation}, so it cannot analyze
-   * inline bytes.
+   * <p>Until v7 the {@code executionType} property was rendered only for the S3 source, and an
+   * element template property whose condition is not met has its value removed from the BPMN XML. A
+   * model selecting the Camunda document source therefore sent no {@code executionType}, and the
+   * {@code @NotNull} above rejected the request before the connector ever ran. From v7 on, {@link
+   * #uploadedExecutionType} writes {@code SYNC} explicitly, so this shim is inert for new models —
+   * but deployed process definitions are immutable, so it is what repairs existing ones without
+   * requiring a remodel.
    *
-   * <p>Deliberately scoped to {@code UPLOADED}: for the S3 source the property is always rendered,
-   * so a missing value there means a hand-edited model and should still fail loudly rather than
-   * silently run as {@code SYNC} — which, unlike the template's {@code POLLING} default, is capped
-   * at a single page.
+   * <p>Deliberately scoped to {@code UPLOADED}: for the S3 source the property has always been
+   * rendered, so a missing value there means a hand-edited model and should still fail loudly
+   * rather than silently run as {@code SYNC} — which, unlike the template's {@code POLLING}
+   * default, is capped at a single page.
    */
   public TextractRequestData {
     if (executionType == null && documentLocationType == DocumentLocationType.UPLOADED) {
