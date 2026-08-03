@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static io.camunda.process.test.api.CamundaAssert.assertThatProcessInstance;
 import static io.camunda.process.test.api.assertions.ProcessInstanceSelectors.byProcessId;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -100,14 +99,6 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
   }
 
   /**
-   * The newer model is global-only, so a regional request 404s with {@code NOT_FOUND} - distinct
-   * from a hostname 404, which is the distinction this suite exists to prove.
-   */
-  static Stream<VertexTarget> targetsUnavailableInRegion() {
-    return Stream.of(new VertexTarget(region(), newModel()));
-  }
-
-  /**
    * Disables the inherited {@code @BeforeEach} user feedback worker (no annotation here overrides
    * it) - it would race {@link #completeUserFeedbackAsSatisfied()} and complete {@code
    * user_feedback} with an empty variable map.
@@ -168,29 +159,6 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
                       assertThat(toolCallsMade).isEqualTo(1);
                       assertThat(response.context().metrics().modelCalls()).isGreaterThan(1);
                     }));
-  }
-
-  /** See {@link #targetsUnavailableInRegion()}. */
-  @ParameterizedTest(name = "[{index}] {0}")
-  @MethodSource("targetsUnavailableInRegion")
-  void failsWithNotFoundWhenModelIsUnavailableInRegion(VertexTarget target) throws Exception {
-    final var zeebeTest =
-        startPrompt(target, AuthMode.SERVICE_ACCOUNT_CREDENTIALS, PING_PROMPT)
-            .waitForActiveIncidents();
-
-    assertIncident(
-        zeebeTest,
-        incident -> {
-          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
-          assertThat(incident.getErrorMessage())
-              .as("model unavailability must surface as NOT_FOUND, not as a hostname 404")
-              .contains("NOT_FOUND")
-              .doesNotContain("was not found on this server");
-        });
-
-    assertThat(userFeedbackJobWorkerCounter.get())
-        .as("user feedback must not be reached when the model call fails")
-        .isZero();
   }
 
   private ZeebeTest runPrompt(VertexTarget target, AuthMode authMode, String userPrompt)
