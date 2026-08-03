@@ -15,7 +15,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCompatibleBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -60,8 +60,8 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
     final var builder = AnthropicOkHttpClient.builder();
 
     switch (backend) {
-      case AnthropicApiBackend direct -> applyApiBackend(builder, direct);
-      case AnthropicCompatibleBackend compatible -> applyCompatibleBackend(builder, compatible);
+      case AnthropicApiBackend apiBackend -> applyApiBackend(builder, apiBackend);
+      case AnthropicCustomBackend custom -> applyCustomBackend(builder, custom);
     }
 
     if (timeout != null) {
@@ -69,8 +69,8 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
     }
 
     final String scheme =
-        backend instanceof AnthropicCompatibleBackend compatible
-            ? URI.create(compatible.endpoint()).getScheme()
+        backend instanceof AnthropicCustomBackend custom
+            ? URI.create(custom.custom().endpoint()).getScheme()
             : ProxyConfiguration.SCHEME_HTTPS;
     httpProxySupport
         .okHttpProxy(scheme != null ? scheme : ProxyConfiguration.SCHEME_HTTPS)
@@ -85,15 +85,15 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
   }
 
   private static void applyApiBackend(
-      AnthropicOkHttpClient.Builder builder, AnthropicApiBackend direct) {
-    builder.apiKey(direct.apiKey());
+      AnthropicOkHttpClient.Builder builder, AnthropicApiBackend apiBackend) {
+    builder.apiKey(apiBackend.anthropic().apiKey());
   }
 
-  private static void applyCompatibleBackend(
-      AnthropicOkHttpClient.Builder builder, AnthropicCompatibleBackend compatible) {
-    builder.baseUrl(compatible.endpoint());
+  private static void applyCustomBackend(
+      AnthropicOkHttpClient.Builder builder, AnthropicCustomBackend custom) {
+    builder.baseUrl(custom.custom().endpoint());
 
-    if (compatible.compatibleAuthentication() instanceof ApiKeyAuthentication apiKeyAuth) {
+    if (custom.custom().authentication() instanceof ApiKeyAuthentication apiKeyAuth) {
       builder.apiKey(apiKeyAuth.apiKey());
     }
   }

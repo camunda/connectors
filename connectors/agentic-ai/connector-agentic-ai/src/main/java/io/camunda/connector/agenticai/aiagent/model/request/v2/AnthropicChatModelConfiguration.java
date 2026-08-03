@@ -7,6 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend.ANTHROPIC_API_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend.CUSTOM_ID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -30,10 +32,6 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
-/**
- * Anthropic Messages wire format. Supports two backends: {@code anthropic-api} (direct, API key)
- * and {@code compatible} (Anthropic-compatible endpoint, optional API key auth).
- */
 @TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
 public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnection anthropic)
     implements ProviderConfiguration {
@@ -54,126 +52,101 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
   /** All Anthropic-specific configuration, nested under the {@code anthropic} wire key. */
   public record AnthropicConnection(
       @Valid @NotNull AnthropicBackend backend,
-      @TemplateProperty(
-              group = "provider",
-              label = "API",
-              type = TemplateProperty.PropertyType.Hidden,
-              feel = FeelMode.disabled,
-              defaultValue = "messages",
-              defaultValueType = TemplateProperty.DefaultValueType.String)
-          AnthropicApi api,
       @Valid @NotNull AnthropicModel model,
-      @Valid @Nullable TimeoutConfiguration timeouts) {
-
-    /**
-     * Convenience constructor for callers that do not need to set the (currently single-valued)
-     * {@code api} field explicitly; it defaults to {@link AnthropicApi#MESSAGES}.
-     */
-    public AnthropicConnection(
-        AnthropicBackend backend, AnthropicModel model, @Nullable TimeoutConfiguration timeouts) {
-      this(backend, AnthropicApi.MESSAGES, model, timeouts);
-    }
-
-    public AnthropicConnection {
-      if (api == null) {
-        api = AnthropicApi.MESSAGES;
-      }
-    }
-  }
-
-  /**
-   * Anthropic wire-format API selector. Single value ({@code messages}); the property is hidden in
-   * the template until a second value is introduced.
-   */
-  public enum AnthropicApi {
-    @JsonProperty("messages")
-    MESSAGES
-  }
+      @Valid @Nullable TimeoutConfiguration timeouts) {}
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
-    @JsonSubTypes.Type(value = AnthropicBackend.AnthropicApiBackend.class, name = "anthropic-api"),
-    @JsonSubTypes.Type(
-        value = AnthropicBackend.AnthropicCompatibleBackend.class,
-        name = "compatible")
+    @JsonSubTypes.Type(value = AnthropicBackend.AnthropicApiBackend.class, name = ANTHROPIC_API_ID),
+    @JsonSubTypes.Type(value = AnthropicBackend.AnthropicCustomBackend.class, name = CUSTOM_ID)
   })
   @TemplateDiscriminatorProperty(
       label = "Backend",
       group = "provider",
       name = "type",
-      defaultValue = "anthropic-api",
+      defaultValue = ANTHROPIC_API_ID,
       description = "Specify how the Anthropic Messages API is reached.")
   public sealed interface AnthropicBackend {
 
     /** The backend discriminator string. */
     String type();
 
-    @TemplateSubType(id = "anthropic-api", label = "Anthropic API")
-    record AnthropicApiBackend(
-        @NotBlank
-            @TemplateProperty(
-                group = "provider",
-                label = "Anthropic API key",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.optional,
-                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-            String apiKey)
-        implements AnthropicBackend {
+    @TemplateSubType(id = ANTHROPIC_API_ID, label = "Anthropic API")
+    record AnthropicApiBackend(@Valid @NotNull AnthropicApi anthropic) implements AnthropicBackend {
+
+      @TemplateProperty(ignore = true)
+      public static final String ANTHROPIC_API_ID = "anthropic-api";
 
       @Override
       public String type() {
-        return "anthropic-api";
+        return ANTHROPIC_API_ID;
       }
 
-      @Override
-      public String toString() {
-        return "AnthropicApiBackend{apiKey=[REDACTED]}";
+      public record AnthropicApi(
+          @NotBlank
+              @TemplateProperty(
+                  group = "provider",
+                  label = "Anthropic API key",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = FeelMode.optional,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              String apiKey) {
+
+        @Override
+        public String toString() {
+          return "AnthropicApi{apiKey=[REDACTED]}";
+        }
       }
     }
 
-    @TemplateSubType(id = "compatible", label = "Custom / compatible endpoint")
-    record AnthropicCompatibleBackend(
-        @NotBlank
-            @HttpUrl
-            @TemplateProperty(
-                group = "provider",
-                label = "API endpoint",
-                description =
-                    "Base URL of the Anthropic-compatible API; <code>/v1/messages</code> will be appended.",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.optional,
-                placeholder = "https://api.anthropic.com",
-                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-            String endpoint,
-        @TemplateProperty(
-                group = "provider",
-                label = "Headers",
-                description = "Map of HTTP headers to add to the request.",
-                feel = FeelMode.required,
-                optional = true)
-            @Nullable Map<String, String> headers,
-        @Valid
-            @TemplateProperty(
-                group = "provider",
-                label = "Query parameters",
-                description = "Map of query parameters to add to the request URL.",
-                feel = FeelMode.required,
-                optional = true)
-            @Nullable Map<@NotBlank String, String> queryParameters,
-        @TemplateProperty(
-                group = "provider",
-                label = "Request parameters",
-                description = "Map of additional parameters to include in the request body.",
-                feel = FeelMode.required,
-                optional = true)
-            @Nullable Map<String, Object> requestParameters,
-        @Valid @NotNull CustomEndpointAuthentication compatibleAuthentication)
+    @TemplateSubType(id = CUSTOM_ID, label = "Custom / compatible endpoint")
+    record AnthropicCustomBackend(@Valid @NotNull CustomBackend custom)
         implements AnthropicBackend {
+
+      @TemplateProperty(ignore = true)
+      public static final String CUSTOM_ID = "custom";
 
       @Override
       public String type() {
-        return "compatible";
+        return CUSTOM_ID;
       }
+
+      public record CustomBackend(
+          @NotBlank
+              @HttpUrl
+              @TemplateProperty(
+                  group = "provider",
+                  label = "API endpoint",
+                  description =
+                      "Base URL of the Anthropic-compatible API; <code>/v1/messages</code> will be appended.",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = FeelMode.optional,
+                  placeholder = "https://api.anthropic.com",
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              String endpoint,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Headers",
+                  description = "Map of HTTP headers to add to the request.",
+                  feel = FeelMode.required,
+                  optional = true)
+              @Nullable Map<String, String> headers,
+          @Valid
+              @TemplateProperty(
+                  group = "provider",
+                  label = "Query parameters",
+                  description = "Map of query parameters to add to the request URL.",
+                  feel = FeelMode.required,
+                  optional = true)
+              @Nullable Map<@NotBlank String, String> queryParameters,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Request parameters",
+                  description = "Map of additional parameters to include in the request body.",
+                  feel = FeelMode.required,
+                  optional = true)
+              @Nullable Map<String, Object> requestParameters,
+          @Valid @NotNull CustomEndpointAuthentication authentication) {}
     }
   }
 

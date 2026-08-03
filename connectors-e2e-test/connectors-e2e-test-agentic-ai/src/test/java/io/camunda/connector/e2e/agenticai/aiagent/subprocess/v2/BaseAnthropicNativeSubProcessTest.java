@@ -50,10 +50,10 @@ abstract class BaseAnthropicNativeSubProcessTest extends BaseAgentSubProcessV2Te
   private ElementTemplate configureAnthropicBackend(ElementTemplate template) {
     return template
         .property("provider.type", "anthropic")
-        .property("provider.anthropic.backend.type", "compatible")
-        .property("provider.anthropic.backend.endpoint", wireMock.getHttpBaseUrl())
-        .property("provider.anthropic.backend.compatibleAuthentication.type", "apiKey")
-        .property("provider.anthropic.backend.compatibleAuthentication.apiKey", "dummy")
+        .property("provider.anthropic.backend.type", "custom")
+        .property("provider.anthropic.backend.custom.endpoint", wireMock.getHttpBaseUrl())
+        .property("provider.anthropic.backend.custom.authentication.type", "apiKey")
+        .property("provider.anthropic.backend.custom.authentication.apiKey", "dummy")
         .property("provider.anthropic.model.model", defaultModel());
   }
 

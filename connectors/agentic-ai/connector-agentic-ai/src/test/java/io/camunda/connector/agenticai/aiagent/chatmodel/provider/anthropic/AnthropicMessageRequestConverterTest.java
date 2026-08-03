@@ -29,7 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCompatibleBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicEffort;
@@ -61,7 +61,7 @@ class AnthropicMessageRequestConverterTest {
       @Nullable AnthropicModelParameters parameters) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
-            new AnthropicApiBackend("sk-ant-test"),
+            new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-test")),
             new AnthropicModel("claude-sonnet-4-6", parameters),
             null));
   }
@@ -75,7 +75,7 @@ class AnthropicMessageRequestConverterTest {
         new AnthropicModelParameters(null, null, promptCaching, null, null, null, null);
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
-            new AnthropicApiBackend("sk-ant-test"),
+            new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-test")),
             new AnthropicModel("claude-sonnet-4-6", parameters),
             null));
   }
@@ -96,12 +96,13 @@ class AnthropicMessageRequestConverterTest {
       @Nullable Map<String, Object> requestParameters) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
-            new AnthropicCompatibleBackend(
-                "https://example.com",
-                headers,
-                queryParameters,
-                requestParameters,
-                new NoAuthentication()),
+            new AnthropicCustomBackend(
+                new AnthropicCustomBackend.CustomBackend(
+                    "https://example.com",
+                    headers,
+                    queryParameters,
+                    requestParameters,
+                    new NoAuthentication())),
             new AnthropicModel("claude-sonnet-4-6", null),
             null));
   }

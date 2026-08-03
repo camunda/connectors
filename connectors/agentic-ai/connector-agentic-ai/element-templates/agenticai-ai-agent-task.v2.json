@@ -117,10 +117,10 @@
       "value" : "anthropic-api"
     }, {
       "name" : "Custom / compatible endpoint",
-      "value" : "compatible"
+      "value" : "custom"
     } ]
   }, {
-    "id" : "provider.anthropic.backend.apiKey",
+    "id" : "provider.anthropic.backend.anthropic.apiKey",
     "label" : "Anthropic API key",
     "optional" : false,
     "constraints" : {
@@ -129,7 +129,7 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.apiKey",
+      "name" : "provider.anthropic.backend.anthropic.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -145,7 +145,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.anthropic.backend.endpoint",
+    "id" : "provider.anthropic.backend.custom.endpoint",
     "label" : "API endpoint",
     "description" : "Base URL of the Anthropic-compatible API; <code>/v1/messages</code> will be appended.",
     "optional" : false,
@@ -155,13 +155,13 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.endpoint",
+      "name" : "provider.anthropic.backend.custom.endpoint",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
         "property" : "provider.anthropic.backend.type",
-        "equals" : "compatible",
+        "equals" : "custom",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -172,20 +172,20 @@
     "placeholder" : "https://api.anthropic.com",
     "type" : "String"
   }, {
-    "id" : "provider.anthropic.backend.headers",
+    "id" : "provider.anthropic.backend.custom.headers",
     "label" : "Headers",
     "description" : "Map of HTTP headers to add to the request.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.headers",
+      "name" : "provider.anthropic.backend.custom.headers",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
         "property" : "provider.anthropic.backend.type",
-        "equals" : "compatible",
+        "equals" : "custom",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -195,20 +195,20 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.anthropic.backend.queryParameters",
+    "id" : "provider.anthropic.backend.custom.queryParameters",
     "label" : "Query parameters",
     "description" : "Map of query parameters to add to the request URL.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.queryParameters",
+      "name" : "provider.anthropic.backend.custom.queryParameters",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
         "property" : "provider.anthropic.backend.type",
-        "equals" : "compatible",
+        "equals" : "custom",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -218,20 +218,20 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.anthropic.backend.requestParameters",
+    "id" : "provider.anthropic.backend.custom.requestParameters",
     "label" : "Request parameters",
     "description" : "Map of additional parameters to include in the request body.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.requestParameters",
+      "name" : "provider.anthropic.backend.custom.requestParameters",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
         "property" : "provider.anthropic.backend.type",
-        "equals" : "compatible",
+        "equals" : "custom",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -241,19 +241,19 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.anthropic.backend.compatibleAuthentication.type",
+    "id" : "provider.anthropic.backend.custom.authentication.type",
     "label" : "Authentication",
     "description" : "Authentication for the compatible API.",
     "value" : "none",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.compatibleAuthentication.type",
+      "name" : "provider.anthropic.backend.custom.authentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
         "property" : "provider.anthropic.backend.type",
-        "equals" : "compatible",
+        "equals" : "custom",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -270,7 +270,7 @@
       "value" : "apiKey"
     } ]
   }, {
-    "id" : "provider.anthropic.backend.compatibleAuthentication.apiKey",
+    "id" : "provider.anthropic.backend.custom.authentication.apiKey",
     "label" : "API key",
     "optional" : false,
     "constraints" : {
@@ -279,17 +279,17 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.compatibleAuthentication.apiKey",
+      "name" : "provider.anthropic.backend.custom.authentication.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.anthropic.backend.compatibleAuthentication.type",
+        "property" : "provider.anthropic.backend.custom.authentication.type",
         "equals" : "apiKey",
         "type" : "simple"
       }, {
         "property" : "provider.anthropic.backend.type",
-        "equals" : "compatible",
+        "equals" : "custom",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -298,22 +298,6 @@
       } ]
     },
     "type" : "String"
-  }, {
-    "id" : "provider.anthropic.api",
-    "label" : "API",
-    "optional" : false,
-    "value" : "messages",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.api",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "type" : "Hidden"
   }, {
     "id" : "provider.anthropic.timeouts.timeout",
     "label" : "Timeout",

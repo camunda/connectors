@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCompatibleBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicEffort;
@@ -43,7 +43,7 @@ class AnthropicChatModelConfigurationTest {
         {
           "type": "anthropic",
           "anthropic": {
-            "backend": { "type": "anthropic-api", "apiKey": "sk-ant-123" },
+            "backend": { "type": "anthropic-api", "anthropic": { "apiKey": "sk-ant-123" } },
             "model": {
               "model": "claude-sonnet-4-6",
               "parameters": {
@@ -65,7 +65,7 @@ class AnthropicChatModelConfigurationTest {
 
     final AnthropicChatModelConfiguration anthropic = (AnthropicChatModelConfiguration) parsed;
     assertThat(anthropic.anthropic().backend()).isInstanceOf(AnthropicApiBackend.class);
-    assertThat(((AnthropicApiBackend) anthropic.anthropic().backend()).apiKey())
+    assertThat(((AnthropicApiBackend) anthropic.anthropic().backend()).anthropic().apiKey())
         .isEqualTo("sk-ant-123");
     final AnthropicModelParameters parameters = anthropic.anthropic().model().parameters();
     assertThat(parameters).isNotNull();
@@ -80,17 +80,19 @@ class AnthropicChatModelConfigurationTest {
   }
 
   @Test
-  void deserialisesCompatibleBackendWithApiKeyAuthAndHeadersAndRoundTrips() throws Exception {
+  void deserialisesCustomBackendWithApiKeyAuthAndHeadersAndRoundTrips() throws Exception {
     final String json =
         """
         {
           "type": "anthropic",
           "anthropic": {
             "backend": {
-              "type": "compatible",
-              "endpoint": "https://compatible.example.com",
-              "headers": { "X-Custom-Header": "value" },
-              "compatibleAuthentication": { "type": "apiKey", "apiKey": "sk-compat-123" }
+              "type": "custom",
+              "custom": {
+                "endpoint": "https://compatible.example.com",
+                "headers": { "X-Custom-Header": "value" },
+                "authentication": { "type": "apiKey", "apiKey": "sk-compat-123" }
+              }
             },
             "model": { "model": "claude-sonnet-4-6" }
           }
@@ -100,13 +102,12 @@ class AnthropicChatModelConfigurationTest {
     final AnthropicChatModelConfiguration parsed =
         (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
-    assertThat(parsed.anthropic().backend()).isInstanceOf(AnthropicCompatibleBackend.class);
+    assertThat(parsed.anthropic().backend()).isInstanceOf(AnthropicCustomBackend.class);
 
-    final AnthropicCompatibleBackend compatible =
-        (AnthropicCompatibleBackend) parsed.anthropic().backend();
-    assertThat(compatible.endpoint()).isEqualTo("https://compatible.example.com");
-    assertThat(compatible.headers()).containsEntry("X-Custom-Header", "value");
-    assertThat(compatible.compatibleAuthentication())
+    final AnthropicCustomBackend custom = (AnthropicCustomBackend) parsed.anthropic().backend();
+    assertThat(custom.custom().endpoint()).isEqualTo("https://compatible.example.com");
+    assertThat(custom.custom().headers()).containsEntry("X-Custom-Header", "value");
+    assertThat(custom.custom().authentication())
         .isEqualTo(new ApiKeyAuthentication("sk-compat-123"));
 
     final String reserialised = mapper.writeValueAsString(parsed);
@@ -115,7 +116,8 @@ class AnthropicChatModelConfigurationTest {
 
   @Test
   void anthropicApiBackendRedactsApiKeyInToString() {
-    final var backend = new AnthropicApiBackend("sk-ant-super-secret");
+    final var backend =
+        new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-super-secret"));
 
     assertThat(backend.toString()).doesNotContain("sk-ant-super-secret").contains("[REDACTED]");
   }
@@ -125,8 +127,7 @@ class AnthropicChatModelConfigurationTest {
     final var config =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
-                new AnthropicApiBackend("  "),
-                null,
+                new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("  ")),
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null));
 
@@ -143,8 +144,7 @@ class AnthropicChatModelConfigurationTest {
     final var config =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
-                new AnthropicApiBackend("sk-ant-123"),
-                null,
+                new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-123")),
                 new AnthropicModel("claude-sonnet-4-6", parameters),
                 null));
 
@@ -159,8 +159,7 @@ class AnthropicChatModelConfigurationTest {
     final var config =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
-                new AnthropicApiBackend("sk-ant-123"),
-                null,
+                new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-123")),
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null));
 
@@ -172,9 +171,9 @@ class AnthropicChatModelConfigurationTest {
     final var config =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
-                new AnthropicCompatibleBackend(
-                    "", null, null, null, new ApiKeyAuthentication("  ")),
-                null,
+                new AnthropicCustomBackend(
+                    new AnthropicCustomBackend.CustomBackend(
+                        "", null, null, null, new ApiKeyAuthentication("  "))),
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null));
 
