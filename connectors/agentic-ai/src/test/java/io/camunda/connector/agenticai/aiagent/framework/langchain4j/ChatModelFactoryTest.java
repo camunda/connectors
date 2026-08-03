@@ -748,20 +748,18 @@ class ChatModelFactoryTest {
               assertThat(captureHttpOptions(builders).timeout()).isPresent().contains(30_000));
     }
 
-    /**
-     * Unlike every other provider, an unset/invalid timeout must yield <em>no</em> timeout instead
-     * of the connector default. The Vertex path never applied a timeout, so applying the default
-     * would cap already-running processes that legitimately run longer today.
-     */
     @ParameterizedTest
     @NullSource
     @MethodSource(
         "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#defaultTimeoutYieldingConfigs")
-    void doesNotApplyATimeoutWhenNoneIsConfigured(TimeoutConfiguration timeouts) {
+    void appliesDefaultTimeoutWhenNoneIsConfigured(TimeoutConfiguration timeouts) {
       testGoogleVertexAiChatModelBuilder(
           createProviderConfig(
               null, timeouts, new ApplicationDefaultCredentialsAuthentication(), null),
-          (builders) -> assertThat(captureHttpOptions(builders).timeout()).isEmpty());
+          (builders) ->
+              assertThat(captureHttpOptions(builders).timeout())
+                  .isPresent()
+                  .contains((int) Duration.ofMinutes(3).toMillis()));
     }
 
     @Test
