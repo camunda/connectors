@@ -16,6 +16,11 @@
  */
 package io.camunda.connector.runtime.outbound;
 
+import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.clientNames;
+import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.resolveClient;
+import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.resolvePhysicalTenantId;
+import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.toMapByPhysicalTenantId;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.client.CamundaClient;
@@ -60,9 +65,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -252,86 +254,9 @@ public class OutboundConnectorRuntimeConfiguration {
     return new DocumentFactoryImpl(documentStore);
   }
 
-  /**
-   * Enumerates the configured client names: the {@link CamundaClientRegistry}'s own names when a
-   * registry bean exists, otherwise a single synthetic {@code "default"} name representing a
-   * directly-supplied legacy {@code CamundaClient} bean — some minimal/test contexts wire a raw
-   * {@code CamundaClient} bean without the full {@code camunda-spring-boot-starter} auto-config
-   * chain that would normally register a {@link CamundaClientRegistry}.
-   */
-  private static Set<String> clientNames(
-      CamundaClientRegistry registry, CamundaClient legacyCamundaClient) {
-    if (registry != null) {
-      return registry.clientNames();
-    }
-    if (legacyCamundaClient != null) {
-      return Set.of("default");
-    }
-    throw new IllegalStateException("No CamundaClient or CamundaClientRegistry configured");
-  }
-
-  /**
-   * Resolves the {@link CamundaClient} for the given client name. Prefers the {@link
-   * CamundaClientRegistry} entry, but falls back to a directly-supplied single {@code
-   * CamundaClient} bean when the registry is absent entirely, or when the registry claims the name
-   * exists but no matching bean was actually registered — e.g. when a {@code CamundaClient} bean is
-   * supplied manually/overridden (as in test fixtures) instead of via {@code camunda.clients.*}.
-   */
-  private static CamundaClient resolveClient(
-      CamundaClientRegistry registry, String name, CamundaClient legacyCamundaClient) {
-    if (registry == null) {
-      if (legacyCamundaClient == null) {
-        throw new IllegalStateException("No CamundaClient configured for client '" + name + "'");
-      }
-      return legacyCamundaClient;
-    }
-    try {
-      return registry.get(name);
-    } catch (RuntimeException e) {
-      if (legacyCamundaClient == null) {
-        throw new IllegalStateException("No CamundaClient configured for client '" + name + "'", e);
-      }
-      return legacyCamundaClient;
-    }
-  }
-
-  /**
-   * Resolves the physical tenant ID for a configured {@code CamundaClientRegistry} client name: the
-   * explicitly configured {@code physical-tenant-id} if present, otherwise the client name itself.
-   * Falls back to the client name if the configuration cannot be read at all — some test doubles
-   * defer real initialization until a test container is ready and throw if queried too early.
-   */
-  private static String resolvePhysicalTenantId(
-      CamundaClientRegistry registry, String name, CamundaClient legacyCamundaClient) {
-    try {
-      var physicalTenantId =
-          resolveClient(registry, name, legacyCamundaClient)
-              .getConfiguration()
-              .getPhysicalTenantId();
-      return physicalTenantId != null ? physicalTenantId : name;
-    } catch (RuntimeException e) {
-      return name;
-    }
-  }
-
-  /**
-   * Builds a {@code Collectors.toMap} collector keyed by the resolved physical tenant ID for each
-   * client name, failing clearly if two clients resolve to the same physical tenant ID rather than
-   * silently dropping one.
-   */
-  private static <T> Collector<String, ?, Map<String, T>> toMapByPhysicalTenantId(
-      CamundaClientRegistry registry,
-      CamundaClient legacyCamundaClient,
-      Function<String, T> valueFn) {
-    return Collectors.toMap(
-        name -> resolvePhysicalTenantId(registry, name, legacyCamundaClient),
-        valueFn,
-        (a, b) -> {
-          throw new IllegalStateException(
-              "Multiple CamundaClients resolve to the same physical tenant ID; "
-                  + "each configured client must have a unique physical-tenant-id");
-        });
-  }
+  // clientNames / resolveClient / resolvePhysicalTenantId / toMapByPhysicalTenantId live in
+  // PhysicalTenantClients: the same four helpers are needed by the direction-agnostic
+  // ConfigurationValidationConfiguration, which builds one FEEL evaluator per physical tenant.
 
   /**
    * Plain (non-{@code @Bean}) helper so this can be called both from the {@code @Bean} method below
