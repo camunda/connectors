@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
@@ -23,6 +24,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class AssistantMessageMetadataDecoratorTest {
 
+  private static final GoogleVertexAiProviderConfiguration GOOGLE_VERTEX_AI =
+      new GoogleVertexAiProviderConfiguration(null);
+
   static Stream<ProviderConfiguration> nonVertexAiProviders() {
     return Stream.of(
         new AnthropicProviderConfiguration(null),
@@ -34,25 +38,40 @@ class AssistantMessageMetadataDecoratorTest {
 
   @ParameterizedTest
   @MethodSource("nonVertexAiProviders")
-  void forProvider_resolvesToDropAttributesForNonVertexAiProviders(
+  void decorateOnWrite_dropsAttributesForNonVertexAiProviders(
       ProviderConfiguration providerConfiguration) {
-    assertThat(AssistantMessageMetadataDecorator.forProvider(providerConfiguration))
-        .isSameAs(AssistantMessageMetadataDecorator.DROP_ATTRIBUTES);
-  }
-
-  @Test
-  void forProvider_resolvesToGoogleVertexAiDecoratorForGoogleVertexAiProvider() {
     assertThat(
-            AssistantMessageMetadataDecorator.forProvider(
-                new GoogleVertexAiProviderConfiguration(null)))
-        .isSameAs(GoogleVertexAiAssistantMessageMetadataDecorator.INSTANCE);
+            AssistantMessageMetadataDecorator.decorateOnWrite(
+                providerConfiguration, Map.of("a", "b")))
+        .isEmpty();
+  }
+
+  @ParameterizedTest
+  @MethodSource("nonVertexAiProviders")
+  void decorateOnRead_dropsAttributesForNonVertexAiProviders(
+      ProviderConfiguration providerConfiguration) {
+    assertThat(
+            AssistantMessageMetadataDecorator.decorateOnRead(
+                providerConfiguration, Map.of("a", "b")))
+        .isEmpty();
   }
 
   @Test
-  void dropAttributes_alwaysReturnsEmptyMap() {
-    assertThat(AssistantMessageMetadataDecorator.DROP_ATTRIBUTES.decorateOnWrite(Map.of("a", "b")))
-        .isEmpty();
-    assertThat(AssistantMessageMetadataDecorator.DROP_ATTRIBUTES.decorateOnRead(Map.of("a", "b")))
-        .isEmpty();
+  void decorateOnWrite_keepsOnlyThoughtSignaturesForGoogleVertexAi() {
+    final var attributes =
+        Map.<String, Object>of(
+            "thought_signature_toolCallId", "c2lnbmF0dXJl",
+            "raw_http_response", "leak-risk");
+
+    assertThat(AssistantMessageMetadataDecorator.decorateOnWrite(GOOGLE_VERTEX_AI, attributes))
+        .containsExactly(entry("thought_signature_toolCallId", "c2lnbmF0dXJl"));
+  }
+
+  @Test
+  void decorateOnRead_keepsOnlyStringValuedThoughtSignaturesForGoogleVertexAi() {
+    final var attributes = Map.of("thought_signature_a", "c2ln", "thought_signature_b", 42);
+
+    assertThat(AssistantMessageMetadataDecorator.decorateOnRead(GOOGLE_VERTEX_AI, attributes))
+        .containsExactly(entry("thought_signature_a", "c2ln"));
   }
 }
