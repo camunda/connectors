@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION;
 
 import com.anthropic.core.JsonValue;
-import com.anthropic.core.ObjectMappers;
 import com.anthropic.models.messages.CacheControlEphemeral;
 import com.anthropic.models.messages.ContentBlockParam;
 import com.anthropic.models.messages.JsonOutputFormat;
@@ -260,7 +259,6 @@ public class AnthropicMessageRequestConverter {
               .id(toolCall.id())
               .name(toolCall.name())
               .input(toInput(toolCall.arguments()));
-      applyAnthropicToolUseMetadata(toolUseBuilder, toolCall.metadata());
       blocks.add(ContentBlockParam.ofToolUse(toolUseBuilder.build()));
     }
     return MessageParam.builder()
@@ -356,22 +354,5 @@ public class AnthropicMessageRequestConverter {
     final Map<String, JsonValue> converted = new LinkedHashMap<>();
     arguments.forEach((k, v) -> converted.put(k, JsonValue.from(v)));
     return ToolUseBlockParam.Input.builder().putAllAdditionalProperties(converted).build();
-  }
-
-  /** Replays {@link AnthropicMessageResponseConverter#toolUseMetadata} onto a tool_use block. */
-  private void applyAnthropicToolUseMetadata(
-      ToolUseBlockParam.Builder builder, @Nullable Map<String, Object> metadata) {
-    if (metadata == null || !(metadata.get("anthropic") instanceof Map<?, ?> anthropic)) {
-      return;
-    }
-    final Map<String, Object> residual = new LinkedHashMap<>();
-    anthropic.forEach((k, v) -> residual.put(String.valueOf(k), v));
-
-    final Object caller = residual.remove("caller");
-    if (caller != null) {
-      builder.caller(
-          ObjectMappers.jsonMapper().convertValue(caller, ToolUseBlockParam.Caller.class));
-    }
-    residual.forEach((k, v) -> builder.putAdditionalProperty(k, JsonValue.from(v)));
   }
 }
