@@ -57,21 +57,48 @@ class AssistantMessageMetadataDecoratorTest {
   }
 
   @Test
-  void decorateOnWrite_keepsOnlyThoughtSignaturesForGoogleVertexAi() {
+  void decorateOnWrite_keepsOnlyThoughtSignaturesForGoogleVertexAi_namespacedByProviderId() {
     final var attributes =
         Map.<String, Object>of(
             "thought_signature_toolCallId", "c2lnbmF0dXJl",
             "raw_http_response", "leak-risk");
 
     assertThat(AssistantMessageMetadataDecorator.decorateOnWrite(GOOGLE_VERTEX_AI, attributes))
-        .containsExactly(entry("thought_signature_toolCallId", "c2lnbmF0dXJl"));
+        .containsExactly(
+            entry(
+                GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
+                Map.of("thought_signature_toolCallId", "c2lnbmF0dXJl")));
+  }
+
+  @Test
+  void decorateOnWrite_dropsResultForGoogleVertexAiWhenNoThoughtSignaturesRemain() {
+    assertThat(
+            AssistantMessageMetadataDecorator.decorateOnWrite(
+                GOOGLE_VERTEX_AI, Map.of("raw_http_response", "leak-risk")))
+        .isEmpty();
   }
 
   @Test
   void decorateOnRead_keepsOnlyStringValuedThoughtSignaturesForGoogleVertexAi() {
-    final var attributes = Map.of("thought_signature_a", "c2ln", "thought_signature_b", 42);
+    final var persisted =
+        Map.of(
+            GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
+            Map.of("thought_signature_a", "c2ln", "thought_signature_b", 42));
 
-    assertThat(AssistantMessageMetadataDecorator.decorateOnRead(GOOGLE_VERTEX_AI, attributes))
+    assertThat(AssistantMessageMetadataDecorator.decorateOnRead(GOOGLE_VERTEX_AI, persisted))
         .containsExactly(entry("thought_signature_a", "c2ln"));
+  }
+
+  /**
+   * Persisted entries are namespaced by provider ID so that attributes left behind by a previous
+   * provider (e.g. after a config update or process instance migration) are never picked up as if
+   * they belonged to the current one.
+   */
+  @Test
+  void decorateOnRead_ignoresAttributesPersistedUnderADifferentProviderId() {
+    final var persisted = Map.of("some-other-provider", Map.of("thought_signature_a", "c2ln"));
+
+    assertThat(AssistantMessageMetadataDecorator.decorateOnRead(GOOGLE_VERTEX_AI, persisted))
+        .isEmpty();
   }
 }

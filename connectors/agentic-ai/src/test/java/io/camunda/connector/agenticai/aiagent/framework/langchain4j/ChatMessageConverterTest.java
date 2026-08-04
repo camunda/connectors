@@ -247,7 +247,10 @@ class ChatMessageConverterTest {
 
     final var assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse, VERTEX_AI);
 
-    assertThat(assistantMessage.metadata()).containsEntry("provider", expectedAttributes);
+    assertThat(assistantMessage.metadata())
+        .containsEntry(
+            "provider",
+            Map.of(GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID, expectedAttributes));
 
     assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage, VERTEX_AI).attributes())
         .isEqualTo(expectedAttributes);
@@ -340,7 +343,10 @@ class ChatMessageConverterTest {
             .content(List.of(textContent("Test message")))
             .metadata(
                 Map.of(
-                    "provider", Map.of("thought_signature_a", "c2ln", "thought_signature_b", 42)))
+                    "provider",
+                    Map.of(
+                        GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
+                        Map.of("thought_signature_a", "c2ln", "thought_signature_b", 42))))
             .build();
 
     assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage, VERTEX_AI).attributes())

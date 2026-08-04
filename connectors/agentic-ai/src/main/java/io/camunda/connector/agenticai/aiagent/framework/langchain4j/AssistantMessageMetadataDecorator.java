@@ -19,6 +19,11 @@ import java.util.stream.Collectors;
  * provider-specific integration code, and is documented as "typically provider-specific". Since the
  * persisted {@code AssistantMessage} lives in an untyped process variable, it must never be dumped
  * verbatim - every provider drops attributes entirely unless explicitly handled below.
+ *
+ * <p>Persisted entries are namespaced by the provider's {@code TemplateSubType} ID (currently only
+ * {@link GoogleVertexAiProviderConfiguration#GOOGLE_VERTEX_AI_ID}), so that switching a process
+ * instance's provider - e.g. via a config update or a process instance migration - cannot leak a
+ * previous provider's persisted attributes into an unrelated one.
  */
 final class AssistantMessageMetadataDecorator {
 
@@ -29,12 +34,15 @@ final class AssistantMessageMetadataDecorator {
   /**
    * Called on the write path with {@code aiMessage.attributes()} (never null, may be empty).
    *
-   * @return the subset that is safe and necessary to persist.
+   * @return the namespaced subset that is safe and necessary to persist.
    */
   static Map<String, Object> decorateOnWrite(
       ProviderConfiguration providerConfiguration, Map<String, Object> attributes) {
     return switch (providerConfiguration) {
-      case GoogleVertexAiProviderConfiguration ignored -> filterGoogleThoughtSignatures(attributes);
+      case GoogleVertexAiProviderConfiguration ignored ->
+          namespaced(
+              GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
+              filterGoogleThoughtSignatures(attributes));
       default -> Map.of();
     };
   }
@@ -48,9 +56,16 @@ final class AssistantMessageMetadataDecorator {
       ProviderConfiguration providerConfiguration, Map<?, ?> persistedAttributes) {
     return switch (providerConfiguration) {
       case GoogleVertexAiProviderConfiguration ignored ->
-          filterGoogleThoughtSignatures(persistedAttributes);
+          persistedAttributes.get(GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID)
+                  instanceof Map<?, ?> googleAttributes
+              ? filterGoogleThoughtSignatures(googleAttributes)
+              : Map.of();
       default -> Map.of();
     };
+  }
+
+  private static Map<String, Object> namespaced(String providerId, Map<String, Object> attributes) {
+    return attributes.isEmpty() ? Map.of() : Map.of(providerId, attributes);
   }
 
   /**
