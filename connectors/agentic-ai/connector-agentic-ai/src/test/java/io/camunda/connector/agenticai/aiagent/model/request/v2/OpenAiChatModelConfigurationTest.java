@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.ApiKeyAuthentication;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,8 +47,11 @@ class OpenAiChatModelConfigurationTest {
     final var config = configuration(responsesApi(), openAiApiBackend("sk-test"), "");
 
     assertThat(validator.validate(config))
-        .extracting(v -> v.getPropertyPath().toString())
-        .contains("openai.model.model");
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString()).isEqualTo("openai.model.model");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            });
   }
 
   @Test
@@ -69,7 +73,13 @@ class OpenAiChatModelConfigurationTest {
   void rejectsNonHttpEndpointOnCustomBackend() {
     final var config = configuration(completionsApi(), customBackend("ftp://nope"), "gpt-5.5");
 
-    assertThat(validator.validate(config)).isNotEmpty();
+    assertThat(validator.validate(config))
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("openai.backend.custom.endpoint");
+              assertThat(v.getMessage()).isEqualTo("Must be an HTTP or HTTPS URL");
+            });
   }
 
   @Test
@@ -115,9 +125,9 @@ class OpenAiChatModelConfigurationTest {
             null,
             null,
             null,
-            java.util.Map.of("Authorization", "Bearer secret-header"),
-            java.util.Map.of("token", "secret-query"),
-            java.util.Map.of("apiKey", "secret-request"));
+            Map.of("Authorization", "Bearer secret-header"),
+            Map.of("token", "secret-query"),
+            Map.of("apiKey", "secret-request"));
 
     assertThat(connection.toString())
         .contains("[REDACTED]")
@@ -231,7 +241,7 @@ class OpenAiChatModelConfigurationTest {
   @Test
   void effortValuesSerializeLowercase() throws Exception {
     for (final var entry :
-        java.util.Map.of(
+        Map.of(
                 OpenAiEffort.MINIMAL, "minimal",
                 OpenAiEffort.LOW, "low",
                 OpenAiEffort.MEDIUM, "medium",
