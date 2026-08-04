@@ -325,7 +325,7 @@
   }, {
     "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
     "label" : "API key",
-    "description" : "Bearer API key for AWS Bedrock Mantle.",
+    "description" : "Bearer API key for Amazon Bedrock.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
