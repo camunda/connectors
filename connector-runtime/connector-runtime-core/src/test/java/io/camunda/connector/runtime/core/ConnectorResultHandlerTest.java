@@ -51,6 +51,24 @@ class ConnectorResultHandlerTest {
       new ConnectorResultHandler(objectMapper, documentFactory);
 
   @Test
+  void createDocumentStillSerializesARealReferenceWhenTheCallerMapperOmitsTheSerializerModule() {
+    // The constructor's own precondition — objectMapper must have JacksonModuleDocumentSerializer
+    // registered — must be enforced internally, not merely documented: a caller mapper without it
+    // would otherwise (since ConnectorsObjectMapperSupplier disables FAIL_ON_EMPTY_BEANS) silently
+    // serialize the just-created Document as {}, uploading it and then losing the only reference.
+    var bareMapper = ConnectorsObjectMapperSupplier.getCopy();
+    var handler = new ConnectorResultHandler(bareMapper, documentFactory);
+
+    var result =
+        handler.createOutputVariables(
+            Map.of(), null, "={myDoc: createDocument(\"aGVsbG8=\")}", null);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> myDoc = (Map<String, Object>) result.get("myDoc");
+    assertThat(myDoc).isNotEmpty();
+  }
+
+  @Test
   void feelEngineWrapperTest() {
     final var jsonDeserialized2 =
         Map.of(

@@ -27,6 +27,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.FeelConnectorFunctionProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
@@ -50,16 +51,28 @@ public class ConnectorResultHandler {
   private final FeelExpressionEvaluator feelExpressionEvaluator =
       new LocalFeelExpressionEvaluator();
   private final ObjectMapper objectMapper;
+  private final ObjectMapper documentSerializingObjectMapper;
   private final ResultDocumentResolver documentResolver;
 
   /**
-   * @param objectMapper must have {@code JacksonModuleDocumentSerializer} registered so a resolved
-   *     {@link io.camunda.connector.api.document.Document} serializes correctly; otherwise (since
-   *     {@code ConnectorsObjectMapperSupplier} disables {@code FAIL_ON_EMPTY_BEANS}) it would
-   *     silently serialize as {@code {}} instead of throwing.
+   * @param objectMapper used for everything except serializing a resolved {@link
+   *     io.camunda.connector.api.document.Document} back to JSON, which instead uses a private
+   *     {@code .copy()} with {@code JacksonModuleDocumentSerializer} registered on it: a caller
+   *     that omitted that module on {@code objectMapper} would otherwise not fail loudly — since
+   *     {@code ConnectorsObjectMapperSupplier} disables {@code FAIL_ON_EMPTY_BEANS} — but instead
+   *     silently serialize the just-created {@code Document} as {@code {}}, uploading it and then
+   *     losing the only reference to it. Copying rather than mutating {@code objectMapper} in place
+   *     avoids surprising callers who share that instance for unrelated serialization. Falls back
+   *     to {@code objectMapper} itself if {@code copy()} returns {@code null} — a real {@code
+   *     ObjectMapper} never does this, but a test double (e.g. a bare {@code
+   *     mock(ObjectMapper.class)} with no stubbing) can, and such callers are by construction not
+   *     relying on real Document serialization anyway.
    */
   public ConnectorResultHandler(ObjectMapper objectMapper, DocumentFactory documentFactory) {
     this.objectMapper = objectMapper;
+    ObjectMapper copy = objectMapper.copy();
+    this.documentSerializingObjectMapper =
+        copy != null ? copy.registerModule(new JacksonModuleDocumentSerializer()) : objectMapper;
     this.documentResolver = new ResultDocumentResolver(documentFactory);
   }
 
@@ -136,16 +149,22 @@ public class ConnectorResultHandler {
       if (evaluatedJson != null) {
         verifyNoForbiddenLiterals(evaluatedJson);
       }
+      // The !isEmpty() filter below runs on the json BEFORE document resolution: an error
+      // expression that evaluates to {} is filtered out ("not actually an error"), and resolving
+      // documents afterward would have been wasted work — worse, a createDocument() sentinel
+      // resolves to a real Document regardless of what happens to the map around it, so creating
+      // it before this filter could orphan a document for an error expression result that's about
+      // to be discarded entirely.
       return Optional.ofNullable(evaluatedJson)
-          .map(
-              json ->
-                  resolveDocumentsAsJson(
-                      json, errorExpression, "Error expression", physicalTenantId))
           .filter(
               json ->
                   !parseJsonVarsAsTypeOrThrow(
                           json, Map.class, errorExpression, "Error expression", physicalTenantId)
                       .isEmpty())
+          .map(
+              json ->
+                  resolveDocumentsAsJson(
+                      json, errorExpression, "Error expression", physicalTenantId))
           .map(
               json ->
                   parseJsonVarsAsTypeOrThrow(
@@ -272,7 +291,7 @@ public class ConnectorResultHandler {
     }
     final Object resolved = documentResolver.resolve(node, physicalTenantId, expectedNonce);
     try {
-      return objectMapper.writeValueAsString(resolved);
+      return documentSerializingObjectMapper.writeValueAsString(resolved);
     } catch (JsonProcessingException e) {
       throw new ConnectorInputException(
           new FeelEngineWrapperException(
