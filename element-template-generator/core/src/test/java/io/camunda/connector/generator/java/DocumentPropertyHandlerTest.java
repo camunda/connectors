@@ -31,6 +31,7 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.StringProperty;
+import io.camunda.connector.generator.java.annotation.DocumentSource;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.FieldVisibility;
 import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
@@ -78,6 +79,23 @@ public class DocumentPropertyHandlerTest extends BaseTest {
               fileName = FieldVisibility.REQUIRED,
               contentType = FieldVisibility.REQUIRED)
           Document doc) {}
+
+  record RestrictedSourcesInput(
+      @TemplateDocumentProperty(sources = {DocumentSource.CAMUNDA, DocumentSource.EXTERNAL})
+          Document doc) {}
+
+  record ReorderedSourcesInput(
+      @TemplateDocumentProperty(sources = {DocumentSource.EXTERNAL, DocumentSource.CAMUNDA})
+          Document doc) {}
+
+  record InlineOnlySourceInput(
+      @TemplateDocumentProperty(sources = DocumentSource.INLINE) Document doc) {}
+
+  record NoSourcesInput(@TemplateDocumentProperty(sources = {}) Document doc) {}
+
+  record RestrictedSourcesListInput(
+      @TemplateDocumentProperty(sources = {DocumentSource.CAMUNDA, DocumentSource.EXTERNAL})
+          List<Document> docs) {}
 
   record ConditionalDocInput(
       String mode,
@@ -208,6 +226,71 @@ public class DocumentPropertyHandlerTest extends BaseTest {
       name = "Doc Test",
       inputDataClass = VisibilityRequiredInput.class)
   static class WithRequiredVisibility implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @OutboundConnector(name = "doc-test", type = "doc-test-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = "doc-test",
+      name = "Doc Test",
+      inputDataClass = RestrictedSourcesInput.class)
+  static class WithRestrictedSources implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @OutboundConnector(name = "doc-test", type = "doc-test-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = "doc-test",
+      name = "Doc Test",
+      inputDataClass = ReorderedSourcesInput.class)
+  static class WithReorderedSources implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @OutboundConnector(name = "doc-test", type = "doc-test-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = "doc-test",
+      name = "Doc Test",
+      inputDataClass = InlineOnlySourceInput.class)
+  static class WithInlineOnlySource implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @OutboundConnector(name = "doc-test", type = "doc-test-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = "doc-test",
+      name = "Doc Test",
+      inputDataClass = NoSourcesInput.class)
+  static class WithNoSources implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @OutboundConnector(name = "doc-test", type = "doc-test-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = "doc-test",
+      name = "Doc Test",
+      inputDataClass = RestrictedSourcesListInput.class)
+  static class WithRestrictedSourcesList implements OutboundConnectorFunction {
     @Override
     public Object execute(OutboundConnectorContext context) {
       return null;
@@ -615,6 +698,92 @@ public class DocumentPropertyHandlerTest extends BaseTest {
 
       var inlineFileName = (StringProperty) getPropertyById("doc_inline_fileName", template);
       assertThat(inlineFileName.getConstraints()).isNull();
+    }
+  }
+
+  /**
+   * Covers {@link TemplateDocumentProperty#sources()}, used by connectors that cannot consume every
+   * source — e.g. AWS Textract, which rejects the UTF-8 text bytes an inline document produces.
+   */
+  @Nested
+  class SourceRestriction {
+
+    @Test
+    void restrictedSources_dropdownOffersOnlyThoseChoices() {
+      var template = generator.generate(WithRestrictedSources.class).getFirst();
+
+      var dropdown = (DropdownProperty) getPropertyById("doc_documentSource", template);
+      assertThat(dropdown.getChoices())
+          .containsExactly(
+              new DropdownChoice("Camunda Document", "camunda"),
+              new DropdownChoice("From URL", "external"));
+    }
+
+    @Test
+    void restrictedSources_omitsExcludedSourceSubProperties() {
+      var template = generator.generate(WithRestrictedSources.class).getFirst();
+
+      assertThat(template.properties())
+          .extracting("id")
+          .doesNotContain("doc_inline_content", "doc_inline_fileName", "doc_inline_contentType")
+          .contains("doc_camundaReference", "doc_external_url");
+    }
+
+    /**
+     * The load-bearing assertion: a composer branch for an excluded source would reference helper
+     * variables that were never generated.
+     */
+    @Test
+    void restrictedSources_composerHasNoBranchForExcludedSource() {
+      var template = generator.generate(WithRestrictedSources.class).getFirst();
+
+      var composer = (HiddenProperty) getPropertyById("doc__composer", template);
+      var value = (String) composer.getValue();
+
+      assertThat(value).contains("\"camunda\"", "\"external\"");
+      assertThat(value).doesNotContain("\"inline\"", "doc_inline_content");
+    }
+
+    @Test
+    void sourceOrderOnAnnotation_doesNotAffectGeneratedOrder() {
+      var template = generator.generate(WithReorderedSources.class).getFirst();
+
+      var dropdown = (DropdownProperty) getPropertyById("doc_documentSource", template);
+      assertThat(dropdown.getChoices())
+          .containsExactly(
+              new DropdownChoice("Camunda Document", "camunda"),
+              new DropdownChoice("From URL", "external"));
+      assertThat(dropdown.getValue()).isEqualTo("camunda");
+    }
+
+    @Test
+    void excludingCamunda_defaultsToFirstRemainingSource() {
+      var template = generator.generate(WithInlineOnlySource.class).getFirst();
+
+      var dropdown = (DropdownProperty) getPropertyById("doc_documentSource", template);
+      assertThat(dropdown.getChoices())
+          .containsExactly(new DropdownChoice("Inline Content", "inline"));
+      assertThat(dropdown.getValue()).isEqualTo("inline");
+      assertThat(template.properties()).extracting("id").doesNotContain("doc_camundaReference");
+    }
+
+    @Test
+    void emptySources_isRejected() {
+      assertThrows(IllegalStateException.class, () -> generator.generate(WithNoSources.class));
+    }
+
+    @Test
+    void restrictedSources_appliesToListSingleMode() {
+      var template = generator.generate(WithRestrictedSourcesList.class).getFirst();
+
+      var dropdown = (DropdownProperty) getPropertyById("docs_single_documentSource", template);
+      assertThat(dropdown.getChoices())
+          .containsExactly(
+              new DropdownChoice("Camunda Document", "camunda"),
+              new DropdownChoice("From URL", "external"));
+
+      var composer = (HiddenProperty) getPropertyById("docs__composer", template);
+      assertThat((String) composer.getValue()).doesNotContain("\"inline\"");
     }
   }
 
