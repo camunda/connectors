@@ -117,19 +117,24 @@ public class BedrockConverseResponseConverter {
    * Anthropic's doesn't.
    */
   private ToolCall toToolCall(ToolUseBlock toolUse) {
-    final Map<String, Object> arguments = toolUseArguments(toolUse);
-    final Map<String, Object> metadata = residualMetadata(toolUse, "toolUseId", "name", "input");
+    // Captured once and reused for both arguments and residual metadata below, rather than each
+    // independently walking the same ToolUseBlock's sdkFields() via BedrockSdkPojoCodec.capture().
+    final Map<String, Object> captured = BedrockSdkPojoCodec.capture(toolUse);
+    final Map<String, Object> arguments = toolUseArguments(captured);
+    final Map<String, Object> metadata =
+        residualMetadataFromCapture(captured, "toolUseId", "name", "input");
     return new ToolCall(toolUse.toolUseId(), toolUse.name(), arguments, metadata);
   }
 
   /**
-   * Converts {@link ToolUseBlock#input()} (a generic AWS {@code Document}) to the domain {@code
-   * arguments} map, reusing {@link BedrockSdkPojoCodec}'s document capture so numbers survive
-   * round-trip precision (see {@link BedrockSdkPojoCodec} for why {@link java.math.BigDecimal} is
-   * used as the plain-Java stand-in for a Document number).
+   * Converts the {@code input} entry of an already-{@link BedrockSdkPojoCodec#capture(SdkPojo)
+   * captured} {@link ToolUseBlock} (a generic AWS {@code Document}) to the domain {@code arguments}
+   * map. Numbers survive round-trip precision because the capture already used {@link
+   * java.math.BigDecimal} as the plain-Java stand-in for a Document number (see {@link
+   * BedrockSdkPojoCodec} for why).
    */
-  private Map<String, Object> toolUseArguments(ToolUseBlock toolUse) {
-    final Object input = BedrockSdkPojoCodec.capture(toolUse).get("input");
+  private Map<String, Object> toolUseArguments(Map<String, Object> captured) {
+    final Object input = captured.get("input");
     if (input instanceof Map<?, ?> map) {
       final Map<String, Object> arguments = new LinkedHashMap<>();
       map.forEach((k, v) -> arguments.put(String.valueOf(k), v));
@@ -175,7 +180,18 @@ public class BedrockConverseResponseConverter {
    * response verbatim and an unmapped Bedrock field doesn't silently lose data.
    */
   private @Nullable Map<String, Object> residualMetadata(SdkPojo pojo, String... mappedKeys) {
-    final Map<String, Object> raw = new LinkedHashMap<>(BedrockSdkPojoCodec.capture(pojo));
+    return residualMetadataFromCapture(BedrockSdkPojoCodec.capture(pojo), mappedKeys);
+  }
+
+  /**
+   * Same as {@link #residualMetadata(SdkPojo, String...)}, but starting from an already-{@link
+   * BedrockSdkPojoCodec#capture(SdkPojo) captured} map, so a caller that also needs the capture for
+   * another purpose (e.g. {@link #toToolCall(ToolUseBlock)} extracting {@code input}) doesn't walk
+   * the same pojo's {@code sdkFields()} twice.
+   */
+  private @Nullable Map<String, Object> residualMetadataFromCapture(
+      Map<String, Object> captured, String... mappedKeys) {
+    final Map<String, Object> raw = new LinkedHashMap<>(captured);
     raw.keySet().removeAll(Set.of(mappedKeys));
     return raw.isEmpty() ? null : Map.of(BEDROCK_METADATA_KEY, raw);
   }

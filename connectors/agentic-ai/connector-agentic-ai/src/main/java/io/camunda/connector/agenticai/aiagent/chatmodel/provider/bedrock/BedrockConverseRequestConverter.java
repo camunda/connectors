@@ -27,7 +27,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -330,40 +329,23 @@ public class BedrockConverseRequestConverter {
 
   /**
    * Converts an already-deserialized JSON value tree (as produced by FEEL evaluation or JSON
-   * deserialization: maps, lists, strings, numbers, booleans, null) into the AWS SDK's generic
-   * {@code Document} value tree, used for tool input schemas ({@link ToolInputSchema#fromJson}) and
-   * {@code additionalModelRequestFields}.
+   * deserialization: maps, lists, strings, numbers, booleans, null, or an arbitrary POJO) into the
+   * AWS SDK's generic {@code Document} value tree, used for tool input schemas ({@link
+   * ToolInputSchema#fromJson}) and {@code additionalModelRequestFields}. See {@link
+   * BedrockDocuments} for the conversion policy shared with the other Bedrock Converse converters;
+   * a value that policy cannot make sense of either is reported here as an unsupported model
+   * configuration, since both call sites of this method (tool input schemas and request parameters)
+   * originate from the connector's own configuration/tool definitions.
    */
-  private static software.amazon.awssdk.core.document.Document toDocument(@Nullable Object value) {
-    if (value == null) {
-      return software.amazon.awssdk.core.document.Document.fromNull();
+  private software.amazon.awssdk.core.document.Document toDocument(@Nullable Object value) {
+    try {
+      return BedrockDocuments.toDocument(value, objectMapper);
+    } catch (RuntimeException e) {
+      throw new ConnectorException(
+          ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION,
+          "Cannot convert value of type '%s' to a Bedrock Document: %s"
+              .formatted(value == null ? "null" : value.getClass().getName(), e.getMessage()),
+          e);
     }
-    if (value instanceof Boolean bool) {
-      return software.amazon.awssdk.core.document.Document.fromBoolean(bool);
-    }
-    if (value instanceof String str) {
-      return software.amazon.awssdk.core.document.Document.fromString(str);
-    }
-    if (value instanceof Number number) {
-      return software.amazon.awssdk.core.document.Document.fromNumber(number.toString());
-    }
-    if (value instanceof Map<?, ?> map) {
-      final Map<String, software.amazon.awssdk.core.document.Document> result =
-          new LinkedHashMap<>();
-      map.forEach((k, v) -> result.put(String.valueOf(k), toDocument(v)));
-      return software.amazon.awssdk.core.document.Document.fromMap(result);
-    }
-    if (value instanceof List<?> list) {
-      final List<software.amazon.awssdk.core.document.Document> result =
-          new ArrayList<>(list.size());
-      for (final Object element : list) {
-        result.add(toDocument(element));
-      }
-      return software.amazon.awssdk.core.document.Document.fromList(result);
-    }
-    throw new ConnectorException(
-        ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION,
-        "Cannot convert value of type '%s' to a Bedrock Document"
-            .formatted(value.getClass().getName()));
   }
 }

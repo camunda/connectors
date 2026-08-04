@@ -223,37 +223,11 @@ public class BedrockConverseContentConverter {
    * Normalizes an arbitrary Java value (as produced by {@code
    * ToolCallResultContent.contentFromObject}, i.e. already-deserialized JSON: maps, lists, strings,
    * numbers, booleans, null, or an arbitrary POJO) into the AWS SDK's generic {@code Document}
-   * value tree, used by {@code ToolResultContentBlock.json}.
+   * value tree, used by {@code ToolResultContentBlock.json}. See {@link BedrockDocuments} for the
+   * conversion policy shared with the other Bedrock Converse converters.
    */
   private software.amazon.awssdk.core.document.Document toBedrockDocument(@Nullable Object value) {
-    if (value == null) {
-      return software.amazon.awssdk.core.document.Document.fromNull();
-    }
-    if (value instanceof Boolean bool) {
-      return software.amazon.awssdk.core.document.Document.fromBoolean(bool);
-    }
-    if (value instanceof String str) {
-      return software.amazon.awssdk.core.document.Document.fromString(str);
-    }
-    if (value instanceof Number number) {
-      return software.amazon.awssdk.core.document.Document.fromNumber(number.toString());
-    }
-    if (value instanceof Map<?, ?> map) {
-      final Map<String, software.amazon.awssdk.core.document.Document> result =
-          new LinkedHashMap<>();
-      map.forEach((k, v) -> result.put(String.valueOf(k), toBedrockDocument(v)));
-      return software.amazon.awssdk.core.document.Document.fromMap(result);
-    }
-    if (value instanceof List<?> list) {
-      final List<software.amazon.awssdk.core.document.Document> result =
-          new ArrayList<>(list.size());
-      for (final Object element : list) {
-        result.add(toBedrockDocument(element));
-      }
-      return software.amazon.awssdk.core.document.Document.fromList(result);
-    }
-    // Arbitrary POJO: normalize to its JSON tree shape (Map/List/scalar) via Jackson and retry.
-    return toBedrockDocument(objectMapper.convertValue(value, Object.class));
+    return BedrockDocuments.toDocument(value, objectMapper);
   }
 
   private static String contentType(Document document) {

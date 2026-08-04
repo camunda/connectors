@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -239,36 +238,23 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
     }
   }
 
-  private static Document toDocument(@Nullable Object value) {
-    if (value == null) {
-      return Document.fromNull();
+  /**
+   * Converts the parsed streamed tool-use input JSON value tree into an AWS {@link Document}. See
+   * {@link BedrockDocuments} for the conversion policy shared with the other Bedrock Converse
+   * converters; a value that policy cannot make sense of either is reported here as a failed model
+   * call, since it originates from the model's own (malformed) streamed response.
+   */
+  private Document toDocument(@Nullable Object value) {
+    try {
+      return BedrockDocuments.toDocument(value, objectMapper);
+    } catch (RuntimeException e) {
+      throw new ConnectorException(
+          ERROR_CODE_FAILED_MODEL_CALL,
+          "Unsupported JSON value encountered while parsing Bedrock Converse streamed tool-use "
+              + "input: "
+              + e.getMessage(),
+          e);
     }
-    if (value instanceof Boolean bool) {
-      return Document.fromBoolean(bool);
-    }
-    if (value instanceof String str) {
-      return Document.fromString(str);
-    }
-    if (value instanceof Number number) {
-      return Document.fromNumber(number.toString());
-    }
-    if (value instanceof Map<?, ?> map) {
-      final Map<String, Document> result = new LinkedHashMap<>();
-      map.forEach((k, v) -> result.put(String.valueOf(k), toDocument(v)));
-      return Document.fromMap(result);
-    }
-    if (value instanceof List<?> list) {
-      final List<Document> result = new ArrayList<>(list.size());
-      for (final Object element : list) {
-        result.add(toDocument(element));
-      }
-      return Document.fromList(result);
-    }
-    throw new ConnectorException(
-        ERROR_CODE_FAILED_MODEL_CALL,
-        "Unsupported JSON value type '"
-            + value.getClass().getName()
-            + "' encountered while parsing Bedrock Converse streamed tool-use input.");
   }
 
   /** Mutable per-{@code contentBlockIndex} accumulation state for one content block. */
