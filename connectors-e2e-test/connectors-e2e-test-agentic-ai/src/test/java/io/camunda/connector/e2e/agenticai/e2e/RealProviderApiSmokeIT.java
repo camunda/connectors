@@ -254,6 +254,28 @@ class RealProviderApiSmokeIT {
         true);
   }
 
+  // The Converse API never reports a distinct reasoning token count, and always exposes a
+  // cache-write count in TokenUsage.
+  static Provider bedrockConverse(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new Provider(
+        "bedrock-converse/" + model,
+        List.of("BEDROCK_CONVERSE_API_KEY"),
+        Map.of(
+            "provider.type",
+            "bedrock",
+            "provider.bedrock.region",
+            envOrDefault("BEDROCK_CONVERSE_REGION", "us-east-1"),
+            "provider.bedrock.authentication.type",
+            "apiKey",
+            "provider.bedrock.authentication.apiKey",
+            envOrPlaceholder("BEDROCK_CONVERSE_API_KEY"),
+            "provider.bedrock.model.model",
+            model),
+        capabilityProperties,
+        true);
+  }
+
   // Always targets the openai-api backend, mirroring anthropicApi above.
   static Provider openAiCompletionsApi(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
@@ -330,6 +352,32 @@ class RealProviderApiSmokeIT {
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",
                             "provider.anthropic.model.parameters.effort", "high"))),
+            // Amazon's own flagship Converse model: Nova Lite-class models are multimodal, and
+            // Nova documents both explicit prompt-caching cachePoints and a reasoningConfig
+            // request shape.
+            bedrockConverse(
+                "us.amazon.nova-2-lite-v1:0",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING,
+                        Map.of("provider.bedrock.model.parameters.promptCaching.enabled", "true"),
+                    Capability.REASONING,
+                        Map.of(
+                            "provider.bedrock.model.parameters.requestParameters",
+                            "={reasoningConfig: {type: \"enabled\", maxReasoningEffort: \"medium\"}}"))),
+            // A non-Amazon Converse model: gpt-oss-120b's model card lists text-only input
+            // modalities, and neither structured output nor explicit prompt caching is documented
+            // for it, so those capabilities are left undeclared. Its reasoning uses a
+            // "reasoning_effort" shape (no "type", no budget), proving a third incompatible
+            // reasoning request shape works through the same provider-agnostic scenario.
+            bedrockConverse(
+                "openai.gpt-oss-120b-1:0",
+                Map.of(
+                    Capability.REASONING,
+                    Map.of(
+                        "provider.bedrock.model.parameters.requestParameters",
+                        "={reasoning_effort: \"medium\"}"))),
             // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
             // domain block in addition to reasoning_tokens, so REASONING is exercisable here.
             openAiResponsesApi(
