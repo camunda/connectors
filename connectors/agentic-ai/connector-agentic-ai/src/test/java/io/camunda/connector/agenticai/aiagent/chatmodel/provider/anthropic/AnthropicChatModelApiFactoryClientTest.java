@@ -14,6 +14,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -106,7 +107,7 @@ class AnthropicChatModelApiFactoryClientTest {
   void setUp() {
     when(httpProxySupport.okHttpProxy(anyString())).thenReturn(Optional.empty());
     stubFor(
-        post(urlPathEqualTo("/v1/messages"))
+        post(urlPathMatching(".*/v1/messages"))
             .willReturn(
                 aResponse()
                     .withStatus(200)
@@ -179,7 +180,7 @@ class AnthropicChatModelApiFactoryClientTest {
             "AKIAEXAMPLE", "secretExampleKey"));
 
     verify(
-        postRequestedFor(urlPathEqualTo("/v1/messages"))
+        postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
             .withHeader("Authorization", matching("AWS4-HMAC-SHA256.*")));
   }
 
@@ -189,16 +190,19 @@ class AnthropicChatModelApiFactoryClientTest {
         wireMock, new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key"));
 
     verify(
-        postRequestedFor(urlPathEqualTo("/v1/messages"))
+        postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
             .withHeader("Authorization", equalTo("Bearer bedrock-secret-key")));
   }
 
   private void executeAgainstBedrock(
       WireMockRuntimeInfo wireMock, AwsAuthentication authentication) {
+    // the endpoint override must be the full Bedrock Mantle base URL, including the /anthropic
+    // path segment BedrockMantleBackend's own default derivation appends (see
+    // AnthropicChatModelApiFactory#applyBedrockBackend).
     executeAgainst(
         new AnthropicBedrockBackend(
             new AnthropicBedrockBackend.Bedrock(
-                "eu-central-1", wireMock.getHttpBaseUrl(), authentication)));
+                "eu-central-1", wireMock.getHttpBaseUrl() + "/anthropic", authentication)));
   }
 
   @Test

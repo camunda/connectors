@@ -363,7 +363,7 @@ class AnthropicChatModelConfigurationTest {
               "type": "bedrock",
               "bedrock": {
                 "region": "eu-central-1",
-                "endpoint": "https://vpce-example.vpce.amazonaws.com",
+                "endpoint": "https://vpce-example.vpce.amazonaws.com/anthropic",
                 "authentication": { "type": "apiKey", "apiKey": "bedrock-secret-key" }
               }
             },
@@ -378,7 +378,7 @@ class AnthropicChatModelConfigurationTest {
     final AnthropicBedrockBackend bedrockBackend =
         (AnthropicBedrockBackend) parsed.anthropic().backend();
     assertThat(bedrockBackend.bedrock().endpoint())
-        .isEqualTo("https://vpce-example.vpce.amazonaws.com");
+        .isEqualTo("https://vpce-example.vpce.amazonaws.com/anthropic");
     assertThat(bedrockBackend.bedrock().authentication())
         .isEqualTo(new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key"));
 
@@ -425,6 +425,21 @@ class AnthropicChatModelConfigurationTest {
             "anthropic.backend.bedrock.region",
             "anthropic.backend.bedrock.authentication.accessKey",
             "anthropic.backend.bedrock.authentication.secretKey");
+  }
+
+  @Test
+  void missingBedrockContainerIsRejectedWithoutThrowingOnSaaS() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
+    final var config =
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicBedrockBackend(null),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null));
+
+    assertThat(validator.validate(config))
+        .extracting(v -> v.getPropertyPath().toString())
+        .contains("anthropic.backend.bedrock");
   }
 
   @Test

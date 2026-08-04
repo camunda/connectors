@@ -113,6 +113,9 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
     final var backendBuilder = BedrockMantleBackend.builder().region(Region.of(bedrock.region()));
 
     if (bedrock.endpoint() != null) {
+      // passed through verbatim: BedrockMantleBackend.baseUrl() otherwise defaults to
+      // https://bedrock-mantle.<region>.api.aws/anthropic, so an override must include the
+      // /anthropic path segment itself (documented on the endpoint field).
       backendBuilder.baseUrl(bedrock.endpoint());
     }
 
