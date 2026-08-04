@@ -71,9 +71,11 @@ class BrokerJobStreamClientTest {
 
     var result = client.fetchRemoteStreams();
 
-    assertThat(result.streams()).hasSize(1);
-    assertThat(result.streams().getFirst().jobType()).isEqualTo(JOB_TYPE);
-    assertThat(result.streams().getFirst().consumers().getFirst()).containsEntry("id", STREAM_ID);
+    assertThat(result.streamsByBroker()).hasSize(1);
+    var brokerStreams = result.streamsByBroker().getFirst();
+    assertThat(brokerStreams).hasSize(1);
+    assertThat(brokerStreams.getFirst().jobType()).isEqualTo(JOB_TYPE);
+    assertThat(brokerStreams.getFirst().consumers().getFirst()).containsEntry("id", STREAM_ID);
     assertThat(result.brokerCount()).isEqualTo(1);
     verify(getRequestedFor(urlEqualTo(JOB_STREAMS_PATH)));
   }
@@ -99,8 +101,10 @@ class BrokerJobStreamClientTest {
 
     var result = client.fetchRemoteStreams();
 
-    assertThat(result.streams()).hasSize(2);
-    assertThat(result.streams()).allMatch(s -> JOB_TYPE.equals(s.jobType()));
+    assertThat(result.streamsByBroker()).hasSize(2);
+    assertThat(result.streamsByBroker())
+        .allMatch(
+            brokerStreams -> brokerStreams.stream().allMatch(s -> JOB_TYPE.equals(s.jobType())));
     assertThat(result.brokerCount()).isEqualTo(2);
     verify(2, getRequestedFor(urlEqualTo(JOB_STREAMS_PATH)));
   }
@@ -118,7 +122,8 @@ class BrokerJobStreamClientTest {
     var client = clientWithAddresses(wmRuntimeInfo.getHttpPort(), "localhost");
 
     var result = client.fetchRemoteStreams();
-    assertThat(result.streams()).isEmpty();
+    assertThat(result.streamsByBroker()).hasSize(1);
+    assertThat(result.streamsByBroker().getFirst()).isEmpty();
     assertThat(result.brokerCount()).isEqualTo(1);
   }
 
@@ -157,8 +162,8 @@ class BrokerJobStreamClientTest {
 
     var result = client.fetchRemoteStreams();
 
-    assertThat(result.streams()).hasSize(1);
-    assertThat(result.streams().getFirst().jobType()).isEqualTo(JOB_TYPE);
+    assertThat(result.streamsByBroker()).hasSize(1);
+    assertThat(result.streamsByBroker().getFirst().getFirst().jobType()).isEqualTo(JOB_TYPE);
     assertThat(result.brokerCount()).isEqualTo(1);
     verify(getRequestedFor(urlEqualTo(JOB_STREAMS_PATH)));
   }
