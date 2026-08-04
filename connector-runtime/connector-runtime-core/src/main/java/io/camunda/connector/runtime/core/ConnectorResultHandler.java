@@ -240,6 +240,20 @@ public class ConnectorResultHandler {
               json,
               e));
     }
+    // Reject a wrong-shaped root before ever invoking the factory: a result/error expression must
+    // ultimately parse as a JSON object (see parseJsonVarsAsTypeOrThrow's own Map-shape check), so
+    // e.g. `=[{d: createDocument("...")}]` (an array at the root) would otherwise have its
+    // document created here and only THEN fail that later shape check — uploading a document that
+    // can never be referenced from a rejected result.
+    if (!node.isObject()) {
+      throw new ConnectorInputException(
+          new FeelEngineWrapperException(
+              String.format(
+                  "%s must return a JSON object, but got %s. Evaluated value: %s",
+                  expressionNameForError, node.getNodeType().name().toLowerCase(), json),
+              expression,
+              json));
+    }
     // Reject a root-level createDocument(...) call before ever invoking the factory: if the whole
     // expression IS the sentinel (e.g. `=createDocument("...")`, no wrapping object), resolving it
     // would either spread the Document's own reference fields into unrelated top-level output

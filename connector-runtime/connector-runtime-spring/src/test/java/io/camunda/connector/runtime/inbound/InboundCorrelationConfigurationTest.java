@@ -139,4 +139,24 @@ class InboundCorrelationConfigurationTest {
     verify(documentFactoryA).create(any());
     verifyNoInteractions(documentFactoryB);
   }
+
+  @Test
+  void buildCorrelationHandlersByPhysicalTenantId_legacyFiveArgOverloadStillWorks() {
+    // Preserves source/binary compatibility for callers compiled against the pre-createDocument()
+    // five-argument overload (no DocumentFactory map parameter).
+    var registry = mock(CamundaClientRegistry.class);
+    var client = clientWithPhysicalTenantId("tenant");
+    when(registry.clientNames()).thenReturn(Set.of("engine-a"));
+    when(registry.get("engine-a")).thenReturn(client);
+
+    var handlers =
+        InboundCorrelationConfiguration.buildCorrelationHandlersByPhysicalTenantId(
+            registry,
+            null,
+            TestObjectMapperSupplier.INSTANCE,
+            Duration.ofHours(1),
+            mock(ConnectorsInboundMetrics.class));
+
+    assertThat(handlers.get("tenant")).isInstanceOf(InboundCorrelationHandler.class);
+  }
 }

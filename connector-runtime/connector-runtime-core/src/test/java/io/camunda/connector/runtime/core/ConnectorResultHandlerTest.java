@@ -271,6 +271,25 @@ class ConnectorResultHandlerTest {
   }
 
   @Test
+  void createOutputVariablesRejectsAnArrayRootedResultWithoutCreatingADocument() {
+    // The result expression must ultimately parse as a JSON object (checked downstream in
+    // parseJsonVarsAsTypeOrThrow), so an array root containing a createDocument() call must be
+    // rejected BEFORE the factory is invoked — otherwise a document gets created for a result that
+    // was always going to be rejected for its shape, orphaning it.
+    var mockFactory = Mockito.mock(DocumentFactory.class);
+    var handler = new ConnectorResultHandler(objectMapper, mockFactory);
+    String resultExpression = "=[{d: createDocument(\"aGVsbG8=\")}]";
+
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () -> handler.createOutputVariables(Map.of(), null, resultExpression, null));
+
+    assertThat(exception).hasMessageContaining("must return a JSON object");
+    Mockito.verifyNoInteractions(mockFactory);
+  }
+
+  @Test
   void forbiddenLiteralRejectionStillFiresWhenACreateDocumentSentinelAppearsInTheSameTree() {
     // A single expression can produce both a forbidden intrinsic-function literal AND a
     // createDocument() sentinel in the same evaluated tree — verifyNoForbiddenLiterals must still

@@ -73,6 +73,30 @@ public class InboundCorrelationConfiguration {
   }
 
   /**
+   * Preserves source/binary compatibility for callers compiled against the pre-{@code
+   * createDocument()} five-argument overload. {@code createDocument()} is unavailable through the
+   * handlers this produces (see {@code MeteredInboundCorrelationHandler}'s legacy constructor).
+   */
+  public static Map<String, InboundCorrelationHandler> buildCorrelationHandlersByPhysicalTenantId(
+      CamundaClientRegistry registry,
+      CamundaClient legacyCamundaClient,
+      ObjectMapper objectMapper,
+      Duration messageTtl,
+      ConnectorsInboundMetrics connectorsInboundMetrics) {
+    return registry.clientNames().stream()
+        .collect(
+            PhysicalTenantIds.toMapByPhysicalTenantId(
+                registry,
+                legacyCamundaClient,
+                name ->
+                    new MeteredInboundCorrelationHandler(
+                        PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient),
+                        objectMapper,
+                        messageTtl,
+                        connectorsInboundMetrics)));
+  }
+
+  /**
    * Backward-compatible scalar bean for existing single-physical-tenant call sites that
    * {@code @Autowired} {@link InboundCorrelationHandler} directly rather than the
    * per-physical-tenant map. {@code @Lazy} so it is only resolved (and only then required to be
