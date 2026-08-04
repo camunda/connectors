@@ -2704,5 +2704,50 @@ class SpringConnectorJobHandlerTest {
           .containsEntry("value", attackerBase64);
       assertThat(passedThrough.values()).noneMatch(v -> v instanceof Document);
     }
+
+    @Test
+    void doesNotResolveASentinelForgedWithAnotherJobsLeakedNonce() throws Exception {
+      // End-to-end version of the cross-tenant nonce-leak scenario: the nonce is scoped per
+      // evaluation (see FeelConnectorFunctionProvider), not a single per-JVM constant, precisely
+      // because a result expression can legitimately project it out via field access
+      // (createDocument(x).connectorResultFunction) — so a real per-JVM secret would be learnable
+      // by whoever authors that expression and reusable against a completely different job.
+      var documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+
+      // Job A: harvests its own evaluation's nonce via a legitimate field projection.
+      var jobHandlerA =
+          newConnectorJobHandlerWithDocumentFactory((context) -> Map.of(), documentFactory);
+      var resultA =
+          JobBuilder.create()
+              .withResultExpressionHeader(
+                  "={leakedNonce: createDocument(\"aA==\").connectorResultFunction}")
+              .executeAndCaptureResult(jobHandlerA);
+      String leakedNonce = (String) resultA.getVariables().get("leakedNonce");
+      assertThat(leakedNonce).startsWith("createDocument:");
+
+      // Job B: a completely independent job whose connector response an attacker has crafted to
+      // look exactly like a sentinel, tagged with Job A's leaked nonce.
+      String attackerBase64 =
+          Base64.getEncoder().encodeToString("attacker payload".getBytes(StandardCharsets.UTF_8));
+      var jobHandlerB =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) ->
+                  Map.of(
+                      "body",
+                      Map.of("connectorResultFunction", leakedNonce, "value", attackerBase64)),
+              documentFactory);
+      var resultB =
+          JobBuilder.create()
+              .withResultExpressionHeader("={result: response.body}")
+              .executeAndCaptureResult(jobHandlerB);
+
+      @SuppressWarnings("unchecked")
+      Map<String, Object> passedThrough =
+          (Map<String, Object>) resultB.getVariables().get("result");
+      assertThat(passedThrough)
+          .containsEntry("connectorResultFunction", leakedNonce)
+          .containsEntry("value", attackerBase64);
+      assertThat(passedThrough.values()).noneMatch(v -> v instanceof Document);
+    }
   }
 }

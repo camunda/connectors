@@ -26,7 +26,6 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
-import io.camunda.connector.feel.FeelConnectorFunctionProvider;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.TestDocumentFactory;
 import io.camunda.connector.runtime.core.error.BpmnError;
@@ -248,11 +247,6 @@ class ConnectorResultHandlerTest {
                     Map.of(), null, resultExpression, null));
 
     assertThat(exception).hasMessageContaining("must not be a bare createDocument");
-    // the sentinel's discriminator is a deliberately unforgeable per-JVM secret — it must never
-    // appear in an exception message, since that message becomes a job incident or HTTP error
-    // response any caller who triggers this exact rejection can read.
-    assertThat(exception.getMessage())
-        .doesNotContain(FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE);
   }
 
   @Test
@@ -273,16 +267,14 @@ class ConnectorResultHandlerTest {
             () -> handler.examineErrorExpression(Map.of(), jobHeaders, jobContext, null));
 
     assertThat(exception).hasMessageContaining("must not be a bare createDocument");
-    assertThat(exception.getMessage())
-        .doesNotContain(FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE);
     Mockito.verifyNoInteractions(mockFactory);
   }
 
   @Test
-  void forbiddenLiteralRejectionDoesNotLeakTheCreateDocumentSecretEvenWhenBothAppearTogether() {
+  void forbiddenLiteralRejectionStillFiresWhenACreateDocumentSentinelAppearsInTheSameTree() {
     // A single expression can produce both a forbidden intrinsic-function literal AND a
-    // createDocument() sentinel in the same evaluated tree — verifyNoForbiddenLiterals throws
-    // first, but its exception must not embed the discriminator either.
+    // createDocument() sentinel in the same evaluated tree — verifyNoForbiddenLiterals must still
+    // throw first, before any document resolution is attempted.
     String resultExpression =
         "={leaked: {\"camunda.function.type\": \"x\", \"params\": []}, myDoc: createDocument(\"aGVsbG8=\")}";
 
@@ -294,8 +286,36 @@ class ConnectorResultHandlerTest {
                     Map.of(), null, resultExpression, null));
 
     assertThat(exception).hasMessageContaining("The connector result contains a forbidden literal");
-    assertThat(exception.getMessage())
-        .doesNotContain(FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE);
+  }
+
+  @Test
+  void resolverRejectsASentinelTaggedWithADifferentEvaluationsNonce() {
+    // The createDocument() nonce is scoped per evaluation, not a single per-JVM constant,
+    // specifically because a plain FEEL field projection can reveal it (see
+    // FeelConnectorFunctionProvider's javadoc): =createDocument(x).connectorResultFunction
+    // legitimately returns the nonce as ordinary data to whoever is already authoring that
+    // expression. This test proves that learning a nonce this way is worthless against any OTHER
+    // evaluation, by simulating an attacker who has captured evaluation A's nonce and planted it
+    // in evaluation B's "response" data, hoping evaluation B's resolver mistakes it for a real
+    // sentinel.
+    Map<String, Object> evaluationAOutput =
+        connectorResultHandler.createOutputVariables(
+            Map.of(),
+            null,
+            "={leakedNonce: createDocument(\"aA==\").connectorResultFunction}",
+            null);
+    String leakedNonce = (String) evaluationAOutput.get("leakedNonce");
+    assertThat(leakedNonce).startsWith("createDocument:");
+
+    var victimFactory = Mockito.mock(DocumentFactory.class);
+    var victimHandler = new ConnectorResultHandler(objectMapper, victimFactory);
+    Object forgedResponse = Map.of("connectorResultFunction", leakedNonce, "value", "aGVsbG8=");
+
+    Map<String, Object> evaluationBOutput =
+        victimHandler.createOutputVariables(forgedResponse, null, "={myDoc: response}", null);
+
+    assertThat(evaluationBOutput.get("myDoc")).isInstanceOf(Map.class);
+    Mockito.verifyNoInteractions(victimFactory);
   }
 
   @Test

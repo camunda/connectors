@@ -41,6 +41,20 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
     this.connectorsInboundMetrics = connectorsInboundMetrics;
   }
 
+  /**
+   * Preserves source/binary compatibility for callers compiled against the pre-{@code
+   * createDocument()} four-argument constructor. {@code createDocument()} is unavailable through
+   * this instance (see {@code ConnectorResultHandler(ObjectMapper)}).
+   */
+  public MeteredInboundCorrelationHandler(
+      CamundaClient camundaClient,
+      ObjectMapper objectMapper,
+      Duration messageTtl,
+      ConnectorsInboundMetrics connectorsInboundMetrics) {
+    super(camundaClient, objectMapper, messageTtl);
+    this.connectorsInboundMetrics = connectorsInboundMetrics;
+  }
+
   @Override
   public CorrelationResult correlate(
       List<InboundConnectorElement> elementList, CorrelationRequest correlationRequest) {

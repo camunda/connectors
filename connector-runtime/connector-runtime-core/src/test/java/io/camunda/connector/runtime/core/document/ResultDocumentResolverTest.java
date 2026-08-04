@@ -27,7 +27,6 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.feel.FeelConnectorFunctionProvider;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -40,8 +39,11 @@ import org.mockito.ArgumentCaptor;
 
 class ResultDocumentResolverTest {
 
-  private static final String CREATE_DOCUMENT =
-      FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE;
+  // Stands in for a single evaluation's nonce (see FeelConnectorFunctionProvider): these tests
+  // build JsonNode trees directly rather than going through FEEL evaluation, so there's no active
+  // per-evaluation scope to read a real one from — any fixed value works as long as it's passed
+  // consistently as resolve()'s expectedNonce argument, matching what the sentinel is tagged with.
+  private static final String CREATE_DOCUMENT = "createDocument:test-nonce";
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private TestDocumentFactory documentFactory;
@@ -58,11 +60,25 @@ class ResultDocumentResolverTest {
   }
 
   @Test
+  void constructedWithoutADocumentFactoryRejectsASentinelClearlyRatherThanNpe() {
+    // The null-DocumentFactory constructor path only exists for source/binary compatibility with
+    // callers on the pre-createDocument() ConnectorResultHandler(ObjectMapper) constructor; it
+    // must fail with a clear ConnectorInputException, not a bare NullPointerException, if such a
+    // caller's expression happens to use createDocument() anyway.
+    var resolverWithoutFactory = new ResultDocumentResolver(null);
+    String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+    JsonNode tree = treeOf(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", base64));
+
+    assertThatThrownBy(() -> resolverWithoutFactory.resolve(tree, null, CREATE_DOCUMENT))
+        .isInstanceOf(ConnectorInputException.class);
+  }
+
+  @Test
   void resolvesBareStringArgument() {
     String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
     JsonNode tree = treeOf(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", base64));
 
-    Object resolved = resolver.resolve(tree, null);
+    Object resolved = resolver.resolve(tree, null, CREATE_DOCUMENT);
 
     assertThat(resolved).isInstanceOf(Document.class);
     assertThat(((Document) resolved).asByteArray())
@@ -81,7 +97,7 @@ class ResultDocumentResolverTest {
     String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
     JsonNode tree = treeOf(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", base64));
 
-    resolverWithMockFactory.resolve(tree, "tenant-a");
+    resolverWithMockFactory.resolve(tree, "tenant-a", CREATE_DOCUMENT);
 
     assertThat(requestCaptor.getValue().physicalTenantId()).isEqualTo("tenant-a");
   }
@@ -97,7 +113,7 @@ class ResultDocumentResolverTest {
                 "value",
                 Map.of("content", base64, "name", "hello.txt", "contentType", "text/plain")));
 
-    Document resolved = (Document) resolver.resolve(tree, null);
+    Document resolved = (Document) resolver.resolve(tree, null, CREATE_DOCUMENT);
 
     assertThat(resolved.asByteArray()).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
     assertThat(resolved.metadata().getFileName()).isEqualTo("hello.txt");
@@ -118,7 +134,7 @@ class ResultDocumentResolverTest {
                 "value",
                 Map.of("content", base64, "contentType", "not-a-real-mimetype")));
 
-    Document resolved = (Document) resolver.resolve(tree, null);
+    Document resolved = (Document) resolver.resolve(tree, null, CREATE_DOCUMENT);
 
     assertThat(resolved.metadata().getContentType()).isEqualTo("not-a-real-mimetype");
   }
@@ -130,7 +146,7 @@ class ResultDocumentResolverTest {
         treeOf(
             Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", Map.of("content", base64)));
 
-    Document resolved = (Document) resolver.resolve(tree, null);
+    Document resolved = (Document) resolver.resolve(tree, null, CREATE_DOCUMENT);
 
     assertThat(resolved.metadata().getFileName()).isNotBlank();
     assertThat(resolved.metadata().getContentType()).isEqualTo("application/octet-stream");
@@ -148,7 +164,8 @@ class ResultDocumentResolverTest {
                 "unrelated"));
 
     @SuppressWarnings("unchecked")
-    Map<String, Object> resolved = (Map<String, Object>) resolver.resolve(tree, null);
+    Map<String, Object> resolved =
+        (Map<String, Object>) resolver.resolve(tree, null, CREATE_DOCUMENT);
 
     assertThat(resolved.get("label")).isEqualTo("unrelated");
     @SuppressWarnings("unchecked")
@@ -163,7 +180,7 @@ class ResultDocumentResolverTest {
         treeOf(
             Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", Map.of("name", "x.txt")));
 
-    assertThatThrownBy(() -> resolver.resolve(tree, null))
+    assertThatThrownBy(() -> resolver.resolve(tree, null, CREATE_DOCUMENT))
         .isInstanceOf(ConnectorInputException.class);
   }
 
@@ -180,7 +197,7 @@ class ResultDocumentResolverTest {
                 "value",
                 Map.of("content", "", "name", "empty.txt")));
 
-    Document resolved = (Document) resolver.resolve(tree, null);
+    Document resolved = (Document) resolver.resolve(tree, null, CREATE_DOCUMENT);
 
     assertThat(resolved.asByteArray()).isEmpty();
   }
@@ -190,7 +207,7 @@ class ResultDocumentResolverTest {
     JsonNode tree =
         treeOf(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", "not-base64!!"));
 
-    assertThatThrownBy(() -> resolver.resolve(tree, null))
+    assertThatThrownBy(() -> resolver.resolve(tree, null, CREATE_DOCUMENT))
         .isInstanceOf(ConnectorInputException.class);
   }
 
@@ -207,7 +224,7 @@ class ResultDocumentResolverTest {
     JsonNode tree =
         treeOf(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", lineWrapped));
 
-    Document resolved = (Document) resolver.resolve(tree, null);
+    Document resolved = (Document) resolver.resolve(tree, null, CREATE_DOCUMENT);
 
     assertThat(resolved.asByteArray())
         .isEqualTo("hello world".repeat(10).getBytes(StandardCharsets.UTF_8));
@@ -221,7 +238,7 @@ class ResultDocumentResolverTest {
     String corrupted = base64.substring(0, 2) + "!!" + base64.substring(2);
     JsonNode tree = treeOf(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", corrupted));
 
-    assertThatThrownBy(() -> resolver.resolve(tree, null))
+    assertThatThrownBy(() -> resolver.resolve(tree, null, CREATE_DOCUMENT))
         .isInstanceOf(ConnectorInputException.class);
   }
 
@@ -229,7 +246,7 @@ class ResultDocumentResolverTest {
   void leavesNonSentinelValuesUntouched() {
     JsonNode tree = treeOf(Map.of("a", 1, "b", List.of("x", "y"), "c", true));
 
-    Object resolved = resolver.resolve(tree, null);
+    Object resolved = resolver.resolve(tree, null, CREATE_DOCUMENT);
 
     assertThat(resolved).isEqualTo(Map.of("a", 1, "b", List.of("x", "y"), "c", true));
   }
@@ -242,8 +259,10 @@ class ResultDocumentResolverTest {
     // wrapper for isCreateDocumentSentinel to inspect. Proven with both a guessed literal and the
     // real (unguessable) runtime discriminator value, to show it's structurally impossible, not
     // just true for this particular string.
-    assertThat(resolver.resolve(treeOf("createDocument"), null)).isEqualTo("createDocument");
-    assertThat(resolver.resolve(treeOf(CREATE_DOCUMENT), null)).isEqualTo(CREATE_DOCUMENT);
+    assertThat(resolver.resolve(treeOf("createDocument"), null, CREATE_DOCUMENT))
+        .isEqualTo("createDocument");
+    assertThat(resolver.resolve(treeOf(CREATE_DOCUMENT), null, CREATE_DOCUMENT))
+        .isEqualTo(CREATE_DOCUMENT);
   }
 
   @Test
@@ -261,9 +280,27 @@ class ResultDocumentResolverTest {
         Map.of("connectorResultFunction", "createDocument", "value", base64);
     JsonNode tree = treeOf(forgedSentinel);
 
-    Object resolved = resolver.resolve(tree, null);
+    Object resolved = resolver.resolve(tree, null, CREATE_DOCUMENT);
 
     assertThat(resolved).isEqualTo(forgedSentinel);
+    assertThat(resolved).isNotInstanceOf(Document.class);
+  }
+
+  @Test
+  void doesNotResolveASentinelTaggedWithADifferentEvaluationsNonce() {
+    // The nonce is scoped per evaluation (see FeelConnectorFunctionProvider), not a single
+    // per-JVM constant: a value learned from one evaluation (e.g. via a FEEL field projection)
+    // must be worthless against a DIFFERENT evaluation's resolve() call, whose expectedNonce will
+    // never match a sentinel tagged with someone else's nonce.
+    String otherEvaluationsNonce = "createDocument:some-other-evaluation";
+    String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+    Map<String, Object> sentinelFromAnotherEvaluation =
+        Map.of("connectorResultFunction", otherEvaluationsNonce, "value", base64);
+    JsonNode tree = treeOf(sentinelFromAnotherEvaluation);
+
+    Object resolved = resolver.resolve(tree, null, CREATE_DOCUMENT);
+
+    assertThat(resolved).isEqualTo(sentinelFromAnotherEvaluation);
     assertThat(resolved).isNotInstanceOf(Document.class);
   }
 
@@ -286,7 +323,8 @@ class ResultDocumentResolverTest {
                 List.of(Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", base64))));
 
     @SuppressWarnings("unchecked")
-    Map<String, Object> resolved = (Map<String, Object>) resolver.resolve(tree, null);
+    Map<String, Object> resolved =
+        (Map<String, Object>) resolver.resolve(tree, null, CREATE_DOCUMENT);
 
     assertThat(resolved.get("bigNumber")).isEqualTo(bigNumber);
     assertThat(resolved.get("bigDecimal")).isEqualTo(bigDecimal);

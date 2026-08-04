@@ -41,24 +41,76 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
   /**
    * Key of the sentinel object {@code io.camunda.connector.feel.function.CreateDocumentFunction}
    * produces when {@code createDocument(...)} is called in a result/error expression — e.g. {@code
-   * {"connectorResultFunction": CREATE_DOCUMENT_TYPE_VALUE, "value": <argument>}}. {@code
-   * io.camunda.connector.runtime.core.document.ResultDocumentResolver} (invoked from {@code
+   * {"connectorResultFunction": "createDocument:<per-evaluation nonce>", "value": <argument>}}.
+   * {@code io.camunda.connector.runtime.core.document.ResultDocumentResolver} (invoked from {@code
    * ConnectorResultHandler} right after FEEL evaluation) walks the evaluated JSON tree looking for
-   * an object with this key set to {@link #CREATE_DOCUMENT_TYPE_VALUE}, and replaces each match
-   * with a real {@code Document} built via {@code DocumentFactory}.
+   * an object with this key set to the current evaluation's nonce (see {@link
+   * #currentCreateDocumentNonce()}), and replaces each match with a real {@code Document} built via
+   * {@code DocumentFactory}.
    */
   public static final String RESULT_FUNCTION_TYPE_PROPERTY = "connectorResultFunction";
 
   /**
-   * The value {@code CreateDocumentFunction} tags its sentinel with, and the exact value {@code
+   * Holds the nonce {@code CreateDocumentFunction} tags its sentinel with for the currently
+   * evaluating result/error expression on this thread, and the exact value {@code
    * ResultDocumentResolver} compares against to recognize one — see {@link
    * #RESULT_FUNCTION_TYPE_PROPERTY} for how producer and consumer are wired together.
    *
-   * <p>Includes a runtime-generated UUID so this discriminator can never be forged by
-   * response/request data arriving as connector input — the sentinel only ever exists transiently
-   * within a single JVM's FEEL evaluation, never serialized across a process boundary.
+   * <p>Deliberately scoped per evaluation (not a single per-JVM constant): a per-JVM value would be
+   * a plain FEEL-visible string once produced — nothing stops an expression from projecting it back
+   * out (e.g. {@code createDocument(x).connectorResultFunction}) — so any tenant able to author a
+   * result/error expression on a shared runtime could learn it and later forge sentinels in another
+   * tenant's response/request data. Scoping a fresh nonce to each evaluation means a value learned
+   * during one evaluation is worthless against any other: {@link
+   * #beginCreateDocumentEvaluationScope()} installs a fresh one before evaluation starts, and
+   * {@link #currentCreateDocumentNonce()} lazily generates it on first use within that scope only —
+   * so evaluations that never call {@code createDocument()} never pay the UUID generation cost.
    */
-  public static final String CREATE_DOCUMENT_TYPE_VALUE = "createDocument:" + UUID.randomUUID();
+  private static final ThreadLocal<NonceHolder> CURRENT_NONCE = new ThreadLocal<>();
+
+  /**
+   * Opens a fresh {@code createDocument()} nonce scope for the calling thread. Callers must pair
+   * this with a {@code finally}-block call to {@link #endCreateDocumentEvaluationScope()} once the
+   * current result/error expression's evaluation AND document resolution have both completed, and
+   * must call this before {@code FeelExpressionEvaluator#evaluateToJson} so {@code
+   * CreateDocumentFunction} has an active scope to tag its sentinel from.
+   */
+  public static void beginCreateDocumentEvaluationScope() {
+    CURRENT_NONCE.set(new NonceHolder());
+  }
+
+  /** Ends the calling thread's active {@code createDocument()} nonce scope, if any. */
+  public static void endCreateDocumentEvaluationScope() {
+    CURRENT_NONCE.remove();
+  }
+
+  /**
+   * Returns the current thread's active scope nonce, generating it on first call within that scope.
+   * Called both by {@code CreateDocumentFunction} (to tag a new sentinel) and by {@code
+   * ResultDocumentResolver} (to recognize one) — see {@link #CURRENT_NONCE}.
+   *
+   * @throws IllegalStateException if no scope is active, i.e. {@code createDocument()} was called
+   *     from a FEEL expression other than a result/error expression, which cannot resolve it.
+   */
+  public static String currentCreateDocumentNonce() {
+    NonceHolder holder = CURRENT_NONCE.get();
+    if (holder == null) {
+      throw new IllegalStateException(
+          "createDocument() can only be used inside a result or error expression");
+    }
+    return holder.get();
+  }
+
+  private static final class NonceHolder {
+    private String value;
+
+    String get() {
+      if (value == null) {
+        value = "createDocument:" + UUID.randomUUID();
+      }
+      return value;
+    }
+  }
 
   private static final Map<String, List<JavaFunction>> functions =
       Map.of(

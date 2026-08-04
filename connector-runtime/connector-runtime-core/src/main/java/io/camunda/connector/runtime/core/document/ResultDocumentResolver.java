@@ -38,9 +38,15 @@ import org.jspecify.annotations.Nullable;
  */
 public class ResultDocumentResolver {
 
-  private final DocumentFactory documentFactory;
+  private final @Nullable DocumentFactory documentFactory;
 
-  public ResultDocumentResolver(DocumentFactory documentFactory) {
+  /**
+   * @param documentFactory {@code null} only for callers still on the pre-{@code createDocument()}
+   *     legacy constructor (see {@code ConnectorResultHandler(ObjectMapper)}); {@link
+   *     #createDocument} rejects a {@code createDocument()} sentinel with a clear error in that
+   *     case instead of throwing a bare {@code NullPointerException}.
+   */
+  public ResultDocumentResolver(@Nullable DocumentFactory documentFactory) {
     this.documentFactory = documentFactory;
   }
 
@@ -50,21 +56,27 @@ public class ResultDocumentResolver {
    *     already used by {@code JobHandlerContext.create}/{@code InboundConnectorContextImpl.create}
    *     — without it, {@code CamundaDocumentStoreImpl}'s cross-tenant validation silently has
    *     nothing to check against.
+   * @param expectedNonce the calling evaluation's own {@code createDocument()} nonce (see {@code
+   *     FeelConnectorFunctionProvider#currentCreateDocumentNonce()}) — only a sentinel tagged with
+   *     this exact evaluation's nonce is resolved; one carrying a different (e.g. previously
+   *     leaked) nonce is left as plain data instead of being mistaken for a real sentinel.
    */
-  public Object resolve(JsonNode node, @Nullable String physicalTenantId) {
+  public Object resolve(JsonNode node, @Nullable String physicalTenantId, String expectedNonce) {
     if (node.isObject()) {
-      if (isCreateDocumentSentinel(node)) {
+      if (isCreateDocumentSentinel(node, expectedNonce)) {
         return createDocument(node.get("value"), physicalTenantId);
       }
       Map<String, Object> result = new LinkedHashMap<>();
       node.properties()
           .forEach(
-              entry -> result.put(entry.getKey(), resolve(entry.getValue(), physicalTenantId)));
+              entry ->
+                  result.put(
+                      entry.getKey(), resolve(entry.getValue(), physicalTenantId, expectedNonce)));
       return result;
     }
     if (node.isArray()) {
       List<Object> result = new ArrayList<>();
-      node.forEach(element -> result.add(resolve(element, physicalTenantId)));
+      node.forEach(element -> result.add(resolve(element, physicalTenantId, expectedNonce)));
       return result;
     }
     return scalarValue(node);
@@ -78,15 +90,19 @@ public class ResultDocumentResolver {
    * (success path) or fail to parse as a {@code ConnectorError} only after the document was already
    * uploaded (error path).
    */
-  public boolean isCreateDocumentSentinel(JsonNode node) {
+  public boolean isCreateDocumentSentinel(JsonNode node, String expectedNonce) {
     JsonNode discriminator = node.get(FeelConnectorFunctionProvider.RESULT_FUNCTION_TYPE_PROPERTY);
     return discriminator != null
         && discriminator.isTextual()
-        && FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE.equals(
-            discriminator.textValue());
+        && expectedNonce.equals(discriminator.textValue());
   }
 
   private Document createDocument(JsonNode value, @Nullable String physicalTenantId) {
+    if (documentFactory == null) {
+      throw new ConnectorInputException(
+          "createDocument() is not available: this runtime component was constructed without a"
+              + " DocumentFactory");
+    }
     if (value == null || value.isMissingNode() || value.isNull()) {
       throw new ConnectorInputException(
           "createDocument() was called without a value to convert into a document");

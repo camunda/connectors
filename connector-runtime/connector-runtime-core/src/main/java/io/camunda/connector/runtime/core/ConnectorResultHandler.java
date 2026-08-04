@@ -64,6 +64,16 @@ public class ConnectorResultHandler {
   }
 
   /**
+   * Preserves source/binary compatibility for callers compiled against the pre-{@code
+   * createDocument()} single-argument constructor. {@code createDocument()} is unavailable through
+   * this instance: {@link ResultDocumentResolver} rejects it with a clear error instead of a bare
+   * {@code NullPointerException}, since no {@link DocumentFactory} was supplied.
+   */
+  public ConnectorResultHandler(ObjectMapper objectMapper) {
+    this(objectMapper, null);
+  }
+
+  /**
    * @return a map with output process variables for a given response from an {@link
    *     OutboundConnectorFunction} or an {@link InboundConnectorExecutable}. configured with
    *     headers from a Zeebe Job or inbound Connector properties.
@@ -80,24 +90,29 @@ public class ConnectorResultHandler {
     }
 
     if (isNotBlank(resultExpression)) {
-      var mappedResponseJson =
-          feelExpressionEvaluator.evaluateToJson(
-              resultExpression, responseContent, wrapResponse(responseContent));
-      if (mappedResponseJson != null) {
-        verifyNoForbiddenLiterals(mappedResponseJson);
-        var resolvedResponseJson =
-            resolveDocumentsAsJson(
-                mappedResponseJson, resultExpression, "Result expression", physicalTenantId);
-        var mappedResponse =
-            parseJsonVarsAsTypeOrThrow(
-                resolvedResponseJson,
-                Map.class,
-                resultExpression,
-                "Result expression",
-                physicalTenantId);
-        if (mappedResponse != null) {
-          outputVariables.putAll(mappedResponse);
+      FeelConnectorFunctionProvider.beginCreateDocumentEvaluationScope();
+      try {
+        var mappedResponseJson =
+            feelExpressionEvaluator.evaluateToJson(
+                resultExpression, responseContent, wrapResponse(responseContent));
+        if (mappedResponseJson != null) {
+          verifyNoForbiddenLiterals(mappedResponseJson);
+          var resolvedResponseJson =
+              resolveDocumentsAsJson(
+                  mappedResponseJson, resultExpression, "Result expression", physicalTenantId);
+          var mappedResponse =
+              parseJsonVarsAsTypeOrThrow(
+                  resolvedResponseJson,
+                  Map.class,
+                  resultExpression,
+                  "Result expression",
+                  physicalTenantId);
+          if (mappedResponse != null) {
+            outputVariables.putAll(mappedResponse);
+          }
         }
+      } finally {
+        FeelConnectorFunctionProvider.endCreateDocumentEvaluationScope();
       }
     }
     return outputVariables;
@@ -113,36 +128,42 @@ public class ConnectorResultHandler {
       return Optional.empty();
     }
     // errorExpression is @NonNull below (NullAway flow narrowing)
-    var evaluatedJson =
-        feelExpressionEvaluator.evaluateToJson(
-            errorExpression, responseContent, wrapResponse(responseContent), jobContext);
-    if (evaluatedJson != null) {
-      verifyNoForbiddenLiterals(evaluatedJson);
+    FeelConnectorFunctionProvider.beginCreateDocumentEvaluationScope();
+    try {
+      var evaluatedJson =
+          feelExpressionEvaluator.evaluateToJson(
+              errorExpression, responseContent, wrapResponse(responseContent), jobContext);
+      if (evaluatedJson != null) {
+        verifyNoForbiddenLiterals(evaluatedJson);
+      }
+      return Optional.ofNullable(evaluatedJson)
+          .map(
+              json ->
+                  resolveDocumentsAsJson(
+                      json, errorExpression, "Error expression", physicalTenantId))
+          .filter(
+              json ->
+                  !parseJsonVarsAsTypeOrThrow(
+                          json, Map.class, errorExpression, "Error expression", physicalTenantId)
+                      .isEmpty())
+          .map(
+              json ->
+                  parseJsonVarsAsTypeOrThrow(
+                      json,
+                      ConnectorError.class,
+                      errorExpression,
+                      "Error expression",
+                      physicalTenantId))
+          .filter(
+              error -> {
+                if (error instanceof BpmnError bpmnError) {
+                  return bpmnError.hasCode();
+                }
+                return true;
+              });
+    } finally {
+      FeelConnectorFunctionProvider.endCreateDocumentEvaluationScope();
     }
-    return Optional.ofNullable(evaluatedJson)
-        .map(
-            json ->
-                resolveDocumentsAsJson(json, errorExpression, "Error expression", physicalTenantId))
-        .filter(
-            json ->
-                !parseJsonVarsAsTypeOrThrow(
-                        json, Map.class, errorExpression, "Error expression", physicalTenantId)
-                    .isEmpty())
-        .map(
-            json ->
-                parseJsonVarsAsTypeOrThrow(
-                    json,
-                    ConnectorError.class,
-                    errorExpression,
-                    "Error expression",
-                    physicalTenantId))
-        .filter(
-            error -> {
-              if (error instanceof BpmnError bpmnError) {
-                return bpmnError.hasCode();
-              }
-              return true;
-            });
   }
 
   private <T> T parseJsonVarsAsTypeOrThrow(
@@ -201,20 +222,22 @@ public class ConnectorResultHandler {
     // Fast path: skip the parse/walk/reserialize round-trip entirely when the createDocument
     // sentinel isn't present anywhere in the JSON. This is the common case (createDocument not
     // used) and avoids both a performance cost and unconditional numeric precision loss (see
-    // ResultDocumentResolver#scalarValue) on every connector result/error expression.
+    // ResultDocumentResolver#scalarValue) on every connector result/error expression. It's also
+    // what keeps FeelConnectorFunctionProvider#currentCreateDocumentNonce() from generating a UUID
+    // on every evaluation regardless of whether createDocument() was used.
     if (!json.contains(FeelConnectorFunctionProvider.RESULT_FUNCTION_TYPE_PROPERTY)) {
       return json;
     }
+    final String expectedNonce = FeelConnectorFunctionProvider.currentCreateDocumentNonce();
     final JsonNode node;
     try {
       node = objectMapper.readTree(json);
     } catch (JsonProcessingException e) {
       throw new ConnectorInputException(
           new FeelEngineWrapperException(
-              String.format(
-                  ERROR_CANNOT_PARSE_VARIABLES, redactSentinelValue(json), Map.class.getName()),
+              String.format(ERROR_CANNOT_PARSE_VARIABLES, json, Map.class.getName()),
               expression,
-              redactSentinelValue(json),
+              json,
               e));
     }
     // Reject a root-level createDocument(...) call before ever invoking the factory: if the whole
@@ -223,7 +246,7 @@ public class ConnectorResultHandler {
     // variables (result expression) or upload a document only to then fail to parse as a
     // ConnectorError (error expression) — in both cases surprising the user instead of failing
     // clearly, and in the error case only after the document was already created.
-    if (documentResolver.isCreateDocumentSentinel(node)) {
+    if (documentResolver.isCreateDocumentSentinel(node, expectedNonce)) {
       throw new ConnectorInputException(
           new FeelEngineWrapperException(
               String.format(
@@ -231,9 +254,9 @@ public class ConnectorResultHandler {
                       + " {myDocument: createDocument(...)}",
                   expressionNameForError),
               expression,
-              redactSentinelValue(json)));
+              json));
     }
-    final Object resolved = documentResolver.resolve(node, physicalTenantId);
+    final Object resolved = documentResolver.resolve(node, physicalTenantId, expectedNonce);
     try {
       return objectMapper.writeValueAsString(resolved);
     } catch (JsonProcessingException e) {
@@ -243,7 +266,7 @@ public class ConnectorResultHandler {
                   "Failed to serialize %s after resolving document references",
                   expressionNameForError),
               expression,
-              redactSentinelValue(json),
+              json,
               e));
     }
   }
@@ -257,20 +280,8 @@ public class ConnectorResultHandler {
                     String.format(
                         "The connector result contains a forbidden literal '%s'.", literal),
                     literal,
-                    redactSentinelValue(json)));
+                    json));
           }
         });
-  }
-
-  /**
-   * Strips the createDocument sentinel's runtime-generated discriminator value out of {@code json}
-   * before it's ever embedded as exception context. That value is deliberately an unforgeable
-   * per-JVM secret (see {@link FeelConnectorFunctionProvider#CREATE_DOCUMENT_TYPE_VALUE} ) —
-   * surfacing it in a job incident or HTTP error response would let any caller who can trigger one
-   * of these exceptions read it, then forge the sentinel in attacker-controlled response data for
-   * the rest of that JVM's lifetime.
-   */
-  private static String redactSentinelValue(String json) {
-    return json.replace(FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE, "<redacted>");
   }
 }

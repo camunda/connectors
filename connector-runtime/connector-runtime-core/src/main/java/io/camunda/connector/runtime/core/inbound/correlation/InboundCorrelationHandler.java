@@ -74,6 +74,20 @@ public class InboundCorrelationHandler {
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper, documentFactory);
   }
 
+  /**
+   * Preserves source/binary compatibility for callers compiled against the pre-{@code
+   * createDocument()} three-argument constructor. {@code createDocument()} is unavailable through
+   * this instance (see {@code ConnectorResultHandler(ObjectMapper)}).
+   */
+  public InboundCorrelationHandler(
+      CamundaClient camundaClient, ObjectMapper objectMapper, Duration defaultMessageTtl) {
+    this.camundaClient = camundaClient;
+    this.objectMapper = objectMapper;
+    this.activationConditionEvaluator = new ActivationConditionEvaluator(feelExpressionEvaluator);
+    this.defaultMessageTtl = defaultMessageTtl;
+    this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
+  }
+
   public CorrelationResult correlate(List<InboundConnectorElement> elements, Object variables) {
     return correlate(elements, CorrelationRequest.builder().variables(variables).build());
   }

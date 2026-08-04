@@ -583,26 +583,36 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
   void createDocumentFunctionWithObjectArgument() {
     final var resultExpression =
         "=createDocument({content: \"aGVsbG8=\", name: \"hello.txt\", contentType: \"text/plain\"})";
-    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
-    assertThat(result)
-        .containsEntry(
-            "connectorResultFunction", FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE);
-    @SuppressWarnings("unchecked")
-    Map<String, Object> value = (Map<String, Object>) result.get("value");
-    assertThat(value)
-        .containsEntry("content", "aGVsbG8=")
-        .containsEntry("name", "hello.txt")
-        .containsEntry("contentType", "text/plain");
+    FeelConnectorFunctionProvider.beginCreateDocumentEvaluationScope();
+    try {
+      Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
+      assertThat(result)
+          .extractingByKey("connectorResultFunction")
+          .isEqualTo(FeelConnectorFunctionProvider.currentCreateDocumentNonce());
+      @SuppressWarnings("unchecked")
+      Map<String, Object> value = (Map<String, Object>) result.get("value");
+      assertThat(value)
+          .containsEntry("content", "aGVsbG8=")
+          .containsEntry("name", "hello.txt")
+          .containsEntry("contentType", "text/plain");
+    } finally {
+      FeelConnectorFunctionProvider.endCreateDocumentEvaluationScope();
+    }
   }
 
   @Test
   void createDocumentFunctionWithStringArgument() {
     final var resultExpression = "=createDocument(\"aGVsbG8=\")";
-    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
-    assertThat(result)
-        .containsEntry(
-            "connectorResultFunction", FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE);
-    assertThat(result).containsEntry("value", "aGVsbG8=");
+    FeelConnectorFunctionProvider.beginCreateDocumentEvaluationScope();
+    try {
+      Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
+      assertThat(result)
+          .extractingByKey("connectorResultFunction")
+          .isEqualTo(FeelConnectorFunctionProvider.currentCreateDocumentNonce());
+      assertThat(result).containsEntry("value", "aGVsbG8=");
+    } finally {
+      FeelConnectorFunctionProvider.endCreateDocumentEvaluationScope();
+    }
   }
 
   @Test
@@ -611,10 +621,15 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
     // object it receives; defaulting (random filename, MimeTypeResolver-inferred content type)
     // happens later, in ResultDocumentResolver, not here.
     final var resultExpression = "=createDocument({content: \"aGVsbG8=\"})";
-    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
-    @SuppressWarnings("unchecked")
-    Map<String, Object> value = (Map<String, Object>) result.get("value");
-    assertThat(value).containsOnly(Map.entry("content", "aGVsbG8="));
+    FeelConnectorFunctionProvider.beginCreateDocumentEvaluationScope();
+    try {
+      Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
+      @SuppressWarnings("unchecked")
+      Map<String, Object> value = (Map<String, Object>) result.get("value");
+      assertThat(value).containsOnly(Map.entry("content", "aGVsbG8="));
+    } finally {
+      FeelConnectorFunctionProvider.endCreateDocumentEvaluationScope();
+    }
   }
 
   @Test
@@ -624,18 +639,54 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
     // contentType, valid-looking or not, is used verbatim — see MimeTypeResolver.)
     final var resultExpression =
         "=createDocument({content: \"aGVsbG8=\", contentType: \"not-a-real-mimetype\"})";
-    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
-    @SuppressWarnings("unchecked")
-    Map<String, Object> value = (Map<String, Object>) result.get("value");
-    assertThat(value).containsEntry("contentType", "not-a-real-mimetype");
+    FeelConnectorFunctionProvider.beginCreateDocumentEvaluationScope();
+    try {
+      Map<String, Object> result = objectUnderTest.evaluate(resultExpression, Map.of());
+      @SuppressWarnings("unchecked")
+      Map<String, Object> value = (Map<String, Object>) result.get("value");
+      assertThat(value).containsEntry("contentType", "not-a-real-mimetype");
+    } finally {
+      FeelConnectorFunctionProvider.endCreateDocumentEvaluationScope();
+    }
   }
 
   @Test
   void createDocumentTypeValueIsNonceSuffixed() {
     // Guards against the discriminator regressing to a plain, forgeable literal: it must be
-    // unpredictable per-JVM so it can never be forged by data arriving in a connector response.
-    assertThat(FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE)
-        .startsWith("createDocument:")
-        .hasSizeGreaterThan(CreateDocumentFunction.NAME.length());
+    // unpredictable per evaluation so it can never be forged by data arriving in a connector
+    // response, nor reused across a different evaluation's scope.
+    FeelConnectorFunctionProvider.beginCreateDocumentEvaluationScope();
+    try {
+      assertThat(FeelConnectorFunctionProvider.currentCreateDocumentNonce())
+          .startsWith("createDocument:")
+          .hasSizeGreaterThan(CreateDocumentFunction.NAME.length());
+    } finally {
+      FeelConnectorFunctionProvider.endCreateDocumentEvaluationScope();
+    }
+  }
+
+  @Test
+  void createDocumentNonceDiffersAcrossEvaluationScopes() {
+    // The whole point of scoping the nonce per evaluation rather than per JVM: a value learned
+    // during one evaluation must not match a later, independent evaluation's nonce.
+    FeelConnectorFunctionProvider.beginCreateDocumentEvaluationScope();
+    String first;
+    try {
+      first = FeelConnectorFunctionProvider.currentCreateDocumentNonce();
+    } finally {
+      FeelConnectorFunctionProvider.endCreateDocumentEvaluationScope();
+    }
+    FeelConnectorFunctionProvider.beginCreateDocumentEvaluationScope();
+    try {
+      assertThat(FeelConnectorFunctionProvider.currentCreateDocumentNonce()).isNotEqualTo(first);
+    } finally {
+      FeelConnectorFunctionProvider.endCreateDocumentEvaluationScope();
+    }
+  }
+
+  @Test
+  void currentCreateDocumentNonceThrowsOutsideAnActiveScope() {
+    assertThatThrownBy(FeelConnectorFunctionProvider::currentCreateDocumentNonce)
+        .isInstanceOf(IllegalStateException.class);
   }
 }

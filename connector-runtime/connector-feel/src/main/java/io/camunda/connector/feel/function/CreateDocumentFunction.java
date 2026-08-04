@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.feel.function;
 
-import static io.camunda.connector.feel.FeelConnectorFunctionProvider.CREATE_DOCUMENT_TYPE_VALUE;
 import static io.camunda.connector.feel.FeelConnectorFunctionProvider.RESULT_FUNCTION_TYPE_PROPERTY;
+import static io.camunda.connector.feel.FeelConnectorFunctionProvider.currentCreateDocumentNonce;
 
 import java.util.HashMap;
 import java.util.List;
@@ -30,11 +30,14 @@ import scala.collection.immutable.Map;
 import scala.collection.immutable.Map$;
 
 /**
- * FEEL function {@code createDocument(value)}. Deliberately stateless: it only tags {@code value}
- * with a sentinel discriminator so it survives JSON serialization intact. Actual document creation
- * happens later, when {@code io.camunda.connector.runtime.core.document.ResultDocumentResolver}
- * walks the evaluated result/error expression tree and finds this sentinel — this function has no
- * access to a {@code DocumentFactory} and must not attempt to create anything itself.
+ * FEEL function {@code createDocument(value)}. It only tags {@code value} with a sentinel
+ * discriminator so it survives JSON serialization intact — actual document creation happens later,
+ * when {@code io.camunda.connector.runtime.core.document.ResultDocumentResolver} walks the
+ * evaluated result/error expression tree and finds this sentinel. This function has no access to a
+ * {@code DocumentFactory} and must not attempt to create anything itself. The discriminator's value
+ * is read from {@link
+ * io.camunda.connector.feel.FeelConnectorFunctionProvider#currentCreateDocumentNonce()}, scoped to
+ * the currently evaluating expression rather than a per-JVM constant.
  */
 public class CreateDocumentFunction {
 
@@ -49,7 +52,7 @@ public class CreateDocumentFunction {
 
   private static ValContext createContext(Val value) {
     java.util.Map<String, Object> javaMap = new HashMap<>();
-    javaMap.put(RESULT_FUNCTION_TYPE_PROPERTY, CREATE_DOCUMENT_TYPE_VALUE);
+    javaMap.put(RESULT_FUNCTION_TYPE_PROPERTY, currentCreateDocumentNonce());
     javaMap.put("value", value);
     return new ValContext(
         new Context.StaticContext(Map.from(JavaConverters.asScala(javaMap)), Map$.MODULE$.empty()));
