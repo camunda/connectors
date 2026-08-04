@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
@@ -116,11 +117,29 @@ class AnthropicChatModelApiFactoryClientTest {
     executeAgainst(
         new AnthropicApiBackend(
             new AnthropicApiBackend.AnthropicApi(
-                "anthropic-api-secret-key", wireMock.getHttpBaseUrl())));
+                "anthropic-api-secret-key", wireMock.getHttpBaseUrl(), null, null, null)));
 
     verify(
         postRequestedFor(urlPathEqualTo("/v1/messages"))
             .withHeader("x-api-key", equalTo("anthropic-api-secret-key")));
+  }
+
+  @Test
+  void apiBackendHiddenExtensionsAreMergedOntoTheRequest(WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new AnthropicApiBackend(
+            new AnthropicApiBackend.AnthropicApi(
+                "anthropic-api-secret-key",
+                wireMock.getHttpBaseUrl(),
+                Map.of("X-Hidden-Header", "hidden-value"),
+                Map.of("hidden-param", "hidden-value"),
+                Map.of("hidden_field", "hidden_value"))));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/v1/messages"))
+            .withHeader("X-Hidden-Header", equalTo("hidden-value"))
+            .withQueryParam("hidden-param", equalTo("hidden-value"))
+            .withRequestBody(matchingJsonPath("$.hidden_field", equalTo("hidden_value"))));
   }
 
   @Test

@@ -98,11 +98,44 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   type = TemplateProperty.PropertyType.Hidden,
                   feel = FeelMode.disabled,
                   optional = true)
-              @Nullable String endpoint) {
+              @Nullable String endpoint,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Headers",
+                  description = "Map of HTTP headers to add to the request.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable Map<String, String> headers,
+          @Valid
+              @TemplateProperty(
+                  group = "provider",
+                  label = "Query parameters",
+                  description = "Map of query parameters to add to the request URL.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable Map<@NotBlank String, String> queryParameters,
+          @TemplateProperty(
+                  group = "model-options",
+                  label = "Request parameters",
+                  description = "Map of additional parameters to include in the request body.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable Map<String, Object> requestParameters) {
 
         @Override
         public String toString() {
-          return "AnthropicApi{apiKey=[REDACTED], endpoint=" + endpoint + "}";
+          return "AnthropicApi{apiKey=[REDACTED], endpoint="
+              + endpoint
+              + ", headers="
+              + headers
+              + ", queryParameters="
+              + queryParameters
+              + ", requestParameters="
+              + requestParameters
+              + "}";
         }
       }
     }
@@ -148,7 +181,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   optional = true)
               @Nullable Map<@NotBlank String, String> queryParameters,
           @TemplateProperty(
-                  group = "provider",
+                  group = "model-options",
                   label = "Request parameters",
                   description = "Map of additional parameters to include in the request body.",
                   feel = FeelMode.required,
