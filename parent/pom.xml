@@ -18,6 +18,17 @@
   <name>Connectors Parent</name>
   <description>${project.name}</description>
   <inceptionYear>2022</inceptionYear>
+  <developers>
+    <developer>
+      <id>camunda</id>
+      <name>Camunda</name>
+      <email>info@camunda.com</email>
+      <url>https://camunda.com</url>
+      <organization>Camunda Services GmbH</organization>
+      <organizationUrl>https://camunda.com</organizationUrl>
+    </developer>
+  </developers>
+
 
   <url>https://github.com/camunda/connectors</url>
 

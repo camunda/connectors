@@ -13,6 +13,32 @@
   <description>Camunda Connector Test</description>
   <artifactId>connector-test</artifactId>
   <packaging>jar</packaging>
+  <url>https://github.com/camunda/connectors</url>
+  <scm>
+    <url>https://github.com/camunda/connectors</url>
+    <connection>scm:git:git@github.com:camunda/connectors.git</connection>
+    <developerConnection>scm:git:git@github.com:camunda/connectors.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+  <developers>
+    <developer>
+      <id>camunda</id>
+      <name>Camunda</name>
+      <email>info@camunda.com</email>
+      <url>https://camunda.com</url>
+      <organization>Camunda Services GmbH</organization>
+      <organizationUrl>https://camunda.com</organizationUrl>
+    </developer>
+  </developers>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+
 
   <dependencies>
     <dependency>

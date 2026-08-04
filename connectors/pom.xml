@@ -34,6 +34,16 @@
       <organizationUrl>https://www.camunda.com</organizationUrl>
     </developer>
   </developers>
+  <licenses>
+    <license>
+      <name>Camunda Self-Managed Free Edition license</name>
+      <url>https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/</url>
+    </license>
+    <license>
+      <name>Camunda Self-Managed Enterprise Edition license</name>
+    </license>
+  </licenses>
+
 
   <modules>
     <module>app-integrations</module>

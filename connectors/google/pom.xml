@@ -15,6 +15,34 @@
   <name>google-connector-parent</name>
   <description>Parent POM for Google Connectors</description>
   <inceptionYear>2023</inceptionYear>
+  <url>https://github.com/camunda/connectors</url>
+  <scm>
+    <url>https://github.com/camunda/connectors</url>
+    <connection>scm:git:git@github.com:camunda/connectors.git</connection>
+    <developerConnection>scm:git:git@github.com:camunda/connectors.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+  <developers>
+    <developer>
+      <id>camunda</id>
+      <name>Camunda</name>
+      <email>info@camunda.com</email>
+      <url>https://camunda.com</url>
+      <organization>Camunda Services GmbH</organization>
+      <organizationUrl>https://camunda.com</organizationUrl>
+    </developer>
+  </developers>
+  <licenses>
+    <license>
+      <name>Camunda Self-Managed Free Edition license</name>
+      <url>https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/</url>
+    </license>
+    <license>
+      <name>Camunda Self-Managed Enterprise Edition license</name>
+    </license>
+  </licenses>
+
+
 
   <modules>
     <module>google-base</module>

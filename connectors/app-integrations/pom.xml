@@ -12,6 +12,23 @@
   <description>Camunda App Integrations Connector</description>
   <artifactId>connector-app-integrations</artifactId>
   <packaging>jar</packaging>
+  <scm>
+    <url>https://github.com/camunda/connectors</url>
+    <connection>scm:git:git@github.com:camunda/connectors.git</connection>
+    <developerConnection>scm:git:git@github.com:camunda/connectors.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+  <developers>
+    <developer>
+      <id>camunda</id>
+      <name>Camunda</name>
+      <email>info@camunda.com</email>
+      <url>https://camunda.com</url>
+      <organization>Camunda Services GmbH</organization>
+      <organizationUrl>https://camunda.com</organizationUrl>
+    </developer>
+  </developers>
+
 
   <licenses>
     <license>

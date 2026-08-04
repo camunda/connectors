@@ -14,6 +14,24 @@
     <description>Camunda Connector AWS DynamoDB e2e tests</description>
     <artifactId>connectors-e2e-test-aws-dynamodb</artifactId>
     <packaging>jar</packaging>
+  <url>https://github.com/camunda/connectors</url>
+  <scm>
+    <url>https://github.com/camunda/connectors</url>
+    <connection>scm:git:git@github.com:camunda/connectors.git</connection>
+    <developerConnection>scm:git:git@github.com:camunda/connectors.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+  <developers>
+    <developer>
+      <id>camunda</id>
+      <name>Camunda</name>
+      <email>info@camunda.com</email>
+      <url>https://camunda.com</url>
+      <organization>Camunda Services GmbH</organization>
+      <organizationUrl>https://camunda.com</organizationUrl>
+    </developer>
+  </developers>
+
 
     <dependencies>
         <dependency>
