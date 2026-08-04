@@ -47,6 +47,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.fac
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
@@ -77,6 +78,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelFactoryOverrides.CustomAnthropicProviderConfig.CustomAnthropicChatModelFactory;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelFactoryOverrides.CustomAzureOpenAiProviderConfig.CustomAzureOpenAiChatModelFactory;
@@ -127,7 +129,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentSubProcessV2Function.class,
           AgentInstanceClient.class,
           ChatModelRegistry.class,
-          AnthropicChatModelFactory.class);
+          AnthropicChatModelFactory.class,
+          OpenAiChatModelApiFactory.class);
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
       List.of(
@@ -398,7 +401,21 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     new GoogleVertexAiModel("gemini-2.5-pro", null))),
             GoogleVertexAiChatModelFactory.class),
         new ChatModelResolutionCase(
-            "openai",
+            "openai (native)",
+            new OpenAiChatModelConfiguration(
+                new OpenAiChatModelConfiguration.OpenAiConnection(
+                    new OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi(
+                        new OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi
+                            .ResponsesParameters(null, null, null, null)),
+                    new OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend(
+                        new OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend
+                            .OpenAiApiConnection(
+                            "sk-openai-test", null, null, null, null, null, null)),
+                    new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
+                    null)),
+            OpenAiChatModelApiFactory.class),
+        new ChatModelResolutionCase(
+            "openai (langchain4j)",
             new OpenAiProviderConfiguration(
                 new OpenAiConnection(
                     new OpenAiAuthentication("sk-openai-test", null, null),
