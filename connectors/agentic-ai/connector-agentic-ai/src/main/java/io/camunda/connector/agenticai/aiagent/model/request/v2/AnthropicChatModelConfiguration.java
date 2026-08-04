@@ -129,13 +129,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
         public String toString() {
           return "AnthropicApi{apiKey=[REDACTED], endpoint="
               + endpoint
-              + ", headers="
-              + headers
-              + ", queryParameters="
-              + queryParameters
-              + ", requestParameters="
-              + requestParameters
-              + "}";
+              + ", headers=[REDACTED], queryParameters=[REDACTED], requestParameters=[REDACTED]}";
         }
       }
     }
@@ -187,7 +181,17 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   feel = FeelMode.required,
                   optional = true)
               @Nullable Map<String, Object> requestParameters,
-          @Valid @NotNull CustomEndpointAuthentication authentication) {}
+          @Valid @NotNull CustomEndpointAuthentication authentication) {
+
+        @Override
+        public String toString() {
+          return "CustomBackend{endpoint="
+              + endpoint
+              + ", headers=[REDACTED], queryParameters=[REDACTED], requestParameters=[REDACTED], authentication="
+              + authentication
+              + "}";
+        }
+      }
     }
   }
 

@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.ApiKeyAuthentication;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -115,12 +116,47 @@ class AnthropicChatModelConfigurationTest {
   }
 
   @Test
-  void anthropicApiBackendRedactsApiKeyInToString() {
+  void anthropicApiBackendRedactsApiKeyHeadersAndParametersInToString() {
     final var backend =
         new AnthropicApiBackend(
-            new AnthropicApiBackend.AnthropicApi("sk-ant-super-secret", null, null, null, null));
+            new AnthropicApiBackend.AnthropicApi(
+                "sk-ant-super-secret",
+                null,
+                Map.of("Authorization", "Bearer secret"),
+                Map.of("api-version", "2026-01-01"),
+                Map.of("large_field", "large_value")));
 
-    assertThat(backend.toString()).doesNotContain("sk-ant-super-secret").contains("[REDACTED]");
+    final String toString = backend.toString();
+    assertThat(toString)
+        .doesNotContain("sk-ant-super-secret", "Authorization", "Bearer secret", "large_field");
+    assertThat(toString)
+        .contains(
+            "apiKey=[REDACTED]",
+            "headers=[REDACTED]",
+            "queryParameters=[REDACTED]",
+            "requestParameters=[REDACTED]");
+  }
+
+  @Test
+  void customBackendRedactsHeadersAndParametersInToString() {
+    final var backend =
+        new AnthropicCustomBackend(
+            new AnthropicCustomBackend.CustomBackend(
+                "https://custom.example.com",
+                Map.of("Authorization", "Bearer secret"),
+                Map.of("api-version", "2026-01-01"),
+                Map.of("large_field", "large_value"),
+                new ApiKeyAuthentication("sk-custom-super-secret")));
+
+    final String toString = backend.toString();
+    assertThat(toString)
+        .doesNotContain("sk-custom-super-secret", "Authorization", "Bearer secret", "large_field");
+    assertThat(toString)
+        .contains(
+            "headers=[REDACTED]",
+            "queryParameters=[REDACTED]",
+            "requestParameters=[REDACTED]",
+            "apiKey=[REDACTED]");
   }
 
   @Test
