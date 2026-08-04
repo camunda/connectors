@@ -174,7 +174,8 @@ class SpringConnectorJobHandlerTest {
         documentFactory,
         TestObjectMapperSupplier.INSTANCE,
         call,
-        job -> SecretFilter.allowAll());
+        job -> SecretFilter.allowAll(),
+        mock(CamundaClient.class, RETURNS_DEEP_STUBS));
   }
 
   private SpringConnectorJobHandler newConnectorJobHandler(
