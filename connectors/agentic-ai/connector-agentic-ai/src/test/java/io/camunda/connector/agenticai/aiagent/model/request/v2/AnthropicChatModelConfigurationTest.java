@@ -410,7 +410,7 @@ class AnthropicChatModelConfigurationTest {
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
                 new AnthropicBedrockBackend(
-                    new AnthropicBedrockBackend.Bedrock(
+                    new AnthropicBedrockBackend.BedrockBackend(
                         "",
                         null,
                         new AwsAuthentication.AwsStaticCredentialsAuthentication("", ""))),
@@ -481,7 +481,7 @@ class AnthropicChatModelConfigurationTest {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicBedrockBackend(
-                new AnthropicBedrockBackend.Bedrock("eu-central-1", null, authentication)),
+                new AnthropicBedrockBackend.BedrockBackend("eu-central-1", null, authentication)),
             new AnthropicModel("claude-sonnet-4-6", null),
             null));
   }

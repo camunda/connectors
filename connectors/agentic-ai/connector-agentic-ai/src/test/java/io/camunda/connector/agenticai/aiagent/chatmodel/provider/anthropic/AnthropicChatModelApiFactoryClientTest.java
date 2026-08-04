@@ -201,7 +201,7 @@ class AnthropicChatModelApiFactoryClientTest {
     // AnthropicChatModelApiFactory#applyBedrockBackend).
     executeAgainst(
         new AnthropicBedrockBackend(
-            new AnthropicBedrockBackend.Bedrock(
+            new AnthropicBedrockBackend.BedrockBackend(
                 "eu-central-1", wireMock.getHttpBaseUrl() + "/anthropic", authentication)));
   }
 

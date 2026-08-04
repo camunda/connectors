@@ -146,7 +146,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
     }
 
     @TemplateSubType(id = BEDROCK_ID, label = "AWS Bedrock")
-    record AnthropicBedrockBackend(@Valid @NotNull Bedrock bedrock) implements AnthropicBackend {
+    record AnthropicBedrockBackend(@Valid @NotNull BedrockBackend bedrock)
+        implements AnthropicBackend {
 
       @TemplateProperty(ignore = true)
       public static final String BEDROCK_ID = "bedrock";
@@ -156,16 +157,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
         return BEDROCK_ID;
       }
 
-      @JsonIgnore
-      @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
-      public boolean isDefaultCredentialsChainUsedInSaaS() {
-        return bedrock != null
-            && ConnectorUtils.isSaaS()
-            && bedrock.authentication()
-                instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
-      }
-
-      public record Bedrock(
+      public record BedrockBackend(
           @NotBlank
               @TemplateProperty(
                   group = "provider",
@@ -189,7 +181,16 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   feel = FeelMode.optional,
                   optional = true)
               @Nullable String endpoint,
-          @Valid @NotNull AwsAuthentication authentication) {}
+          @Valid @NotNull AwsAuthentication authentication) {
+
+        @JsonIgnore
+        @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
+        public boolean isDefaultCredentialsChainUsedInSaaS() {
+          return ConnectorUtils.isSaaS()
+              && authentication
+                  instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+        }
+      }
     }
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
