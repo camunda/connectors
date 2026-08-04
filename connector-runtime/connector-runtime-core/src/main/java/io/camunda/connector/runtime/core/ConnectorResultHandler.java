@@ -27,9 +27,12 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.feel.FeelConnectorFunctionProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
+import io.camunda.connector.runtime.core.document.ResultDocumentResolver;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
@@ -48,9 +51,39 @@ public class ConnectorResultHandler {
   private final FeelExpressionEvaluator feelExpressionEvaluator =
       new LocalFeelExpressionEvaluator();
   private final ObjectMapper objectMapper;
+  private final ObjectMapper documentSerializingObjectMapper;
+  private final ResultDocumentResolver documentResolver;
 
-  public ConnectorResultHandler(ObjectMapper objectMapper) {
+  /**
+   * @param objectMapper used for everything except serializing a resolved {@link
+   *     io.camunda.connector.api.document.Document} back to JSON, which instead uses a private
+   *     {@code .copy()} with {@code JacksonModuleDocumentSerializer} registered on it: a caller
+   *     that omitted that module on {@code objectMapper} would otherwise not fail loudly — since
+   *     {@code ConnectorsObjectMapperSupplier} disables {@code FAIL_ON_EMPTY_BEANS} — but instead
+   *     silently serialize the just-created {@code Document} as {@code {}}, uploading it and then
+   *     losing the only reference to it. Copying rather than mutating {@code objectMapper} in place
+   *     avoids surprising callers who share that instance for unrelated serialization. Falls back
+   *     to {@code objectMapper} itself if {@code copy()} returns {@code null} — a real {@code
+   *     ObjectMapper} never does this, but a test double (e.g. a bare {@code
+   *     mock(ObjectMapper.class)} with no stubbing) can, and such callers are by construction not
+   *     relying on real Document serialization anyway.
+   */
+  public ConnectorResultHandler(ObjectMapper objectMapper, DocumentFactory documentFactory) {
     this.objectMapper = objectMapper;
+    ObjectMapper copy = objectMapper.copy();
+    this.documentSerializingObjectMapper =
+        copy != null ? copy.registerModule(new JacksonModuleDocumentSerializer()) : objectMapper;
+    this.documentResolver = new ResultDocumentResolver(documentFactory);
+  }
+
+  /**
+   * Preserves source/binary compatibility for callers compiled against the pre-{@code
+   * createDocument()} single-argument constructor. {@code createDocument()} is unavailable through
+   * this instance: {@link ResultDocumentResolver} rejects it with a clear error instead of a bare
+   * {@code NullPointerException}, since no {@link DocumentFactory} was supplied.
+   */
+  public ConnectorResultHandler(ObjectMapper objectMapper) {
+    this(objectMapper, null);
   }
 
   /**
@@ -70,21 +103,29 @@ public class ConnectorResultHandler {
     }
 
     if (isNotBlank(resultExpression)) {
-      var mappedResponseJson =
-          feelExpressionEvaluator.evaluateToJson(
-              resultExpression, responseContent, wrapResponse(responseContent));
-      if (mappedResponseJson != null) {
-        verifyNoForbiddenLiterals(mappedResponseJson);
-        var mappedResponse =
-            parseJsonVarsAsTypeOrThrow(
-                mappedResponseJson,
-                Map.class,
-                resultExpression,
-                "Result expression",
-                physicalTenantId);
-        if (mappedResponse != null) {
-          outputVariables.putAll(mappedResponse);
+      FeelConnectorFunctionProvider.beginCreateDocumentEvaluationScope();
+      try {
+        var mappedResponseJson =
+            feelExpressionEvaluator.evaluateToJson(
+                resultExpression, responseContent, wrapResponse(responseContent));
+        if (mappedResponseJson != null) {
+          verifyNoForbiddenLiterals(mappedResponseJson);
+          var resolvedResponseJson =
+              resolveDocumentsAsJson(
+                  mappedResponseJson, resultExpression, "Result expression", physicalTenantId);
+          var mappedResponse =
+              parseJsonVarsAsTypeOrThrow(
+                  resolvedResponseJson,
+                  Map.class,
+                  resultExpression,
+                  "Result expression",
+                  physicalTenantId);
+          if (mappedResponse != null) {
+            outputVariables.putAll(mappedResponse);
+          }
         }
+      } finally {
+        FeelConnectorFunctionProvider.endCreateDocumentEvaluationScope();
       }
     }
     return outputVariables;
@@ -100,29 +141,48 @@ public class ConnectorResultHandler {
       return Optional.empty();
     }
     // errorExpression is @NonNull below (NullAway flow narrowing)
-    return Optional.ofNullable(
-            feelExpressionEvaluator.evaluateToJson(
-                errorExpression, responseContent, wrapResponse(responseContent), jobContext))
-        .filter(
-            json ->
-                !parseJsonVarsAsTypeOrThrow(
-                        json, Map.class, errorExpression, "Error expression", physicalTenantId)
-                    .isEmpty())
-        .map(
-            json ->
-                parseJsonVarsAsTypeOrThrow(
-                    json,
-                    ConnectorError.class,
-                    errorExpression,
-                    "Error expression",
-                    physicalTenantId))
-        .filter(
-            error -> {
-              if (error instanceof BpmnError bpmnError) {
-                return bpmnError.hasCode();
-              }
-              return true;
-            });
+    FeelConnectorFunctionProvider.beginCreateDocumentEvaluationScope();
+    try {
+      var evaluatedJson =
+          feelExpressionEvaluator.evaluateToJson(
+              errorExpression, responseContent, wrapResponse(responseContent), jobContext);
+      if (evaluatedJson != null) {
+        verifyNoForbiddenLiterals(evaluatedJson);
+      }
+      // The !isEmpty() filter below runs on the json BEFORE document resolution: an error
+      // expression that evaluates to {} is filtered out ("not actually an error"), and resolving
+      // documents afterward would have been wasted work — worse, a createDocument() sentinel
+      // resolves to a real Document regardless of what happens to the map around it, so creating
+      // it before this filter could orphan a document for an error expression result that's about
+      // to be discarded entirely.
+      return Optional.ofNullable(evaluatedJson)
+          .filter(
+              json ->
+                  !parseJsonVarsAsTypeOrThrow(
+                          json, Map.class, errorExpression, "Error expression", physicalTenantId)
+                      .isEmpty())
+          .map(
+              json ->
+                  resolveDocumentsAsJson(
+                      json, errorExpression, "Error expression", physicalTenantId))
+          .map(
+              json ->
+                  parseJsonVarsAsTypeOrThrow(
+                      json,
+                      ConnectorError.class,
+                      errorExpression,
+                      "Error expression",
+                      physicalTenantId))
+          .filter(
+              error -> {
+                if (error instanceof BpmnError bpmnError) {
+                  return bpmnError.hasCode();
+                }
+                return true;
+              });
+    } finally {
+      FeelConnectorFunctionProvider.endCreateDocumentEvaluationScope();
+    }
   }
 
   private <T> T parseJsonVarsAsTypeOrThrow(
@@ -169,6 +229,77 @@ public class ConnectorResultHandler {
               String.format(ERROR_CANNOT_PARSE_VARIABLES, jsonVars, type.getName()),
               expression,
               jsonVars,
+              e));
+    }
+  }
+
+  private String resolveDocumentsAsJson(
+      final String json,
+      final String expression,
+      final String expressionNameForError,
+      final @Nullable String physicalTenantId) {
+    // Fast path: skip the parse/walk/reserialize round-trip entirely when the createDocument
+    // sentinel isn't present anywhere in the JSON. This is the common case (createDocument not
+    // used) and avoids both a performance cost and unconditional numeric precision loss (see
+    // ResultDocumentResolver#scalarValue) on every connector result/error expression. It's also
+    // what keeps FeelConnectorFunctionProvider#currentCreateDocumentNonce() from generating a UUID
+    // on every evaluation regardless of whether createDocument() was used.
+    if (!json.contains(FeelConnectorFunctionProvider.RESULT_FUNCTION_TYPE_PROPERTY)) {
+      return json;
+    }
+    final String expectedNonce = FeelConnectorFunctionProvider.currentCreateDocumentNonce();
+    final JsonNode node;
+    try {
+      node = objectMapper.readTree(json);
+    } catch (JsonProcessingException e) {
+      throw new ConnectorInputException(
+          new FeelEngineWrapperException(
+              String.format(ERROR_CANNOT_PARSE_VARIABLES, json, Map.class.getName()),
+              expression,
+              json,
+              e));
+    }
+    // Reject a wrong-shaped root before ever invoking the factory: a result/error expression must
+    // ultimately parse as a JSON object (see parseJsonVarsAsTypeOrThrow's own Map-shape check), so
+    // e.g. `=[{d: createDocument("...")}]` (an array at the root) would otherwise have its
+    // document created here and only THEN fail that later shape check — uploading a document that
+    // can never be referenced from a rejected result.
+    if (!node.isObject()) {
+      throw new ConnectorInputException(
+          new FeelEngineWrapperException(
+              String.format(
+                  "%s must return a JSON object, but got %s. Evaluated value: %s",
+                  expressionNameForError, node.getNodeType().name().toLowerCase(), json),
+              expression,
+              json));
+    }
+    // Reject a root-level createDocument(...) call before ever invoking the factory: if the whole
+    // expression IS the sentinel (e.g. `=createDocument("...")`, no wrapping object), resolving it
+    // would either spread the Document's own reference fields into unrelated top-level output
+    // variables (result expression) or upload a document only to then fail to parse as a
+    // ConnectorError (error expression) — in both cases surprising the user instead of failing
+    // clearly, and in the error case only after the document was already created.
+    if (documentResolver.isCreateDocumentSentinel(node, expectedNonce)) {
+      throw new ConnectorInputException(
+          new FeelEngineWrapperException(
+              String.format(
+                  "%s must not be a bare createDocument(...) call — wrap it inside a field, e.g."
+                      + " {myDocument: createDocument(...)}",
+                  expressionNameForError),
+              expression,
+              json));
+    }
+    final Object resolved = documentResolver.resolve(node, physicalTenantId, expectedNonce);
+    try {
+      return documentSerializingObjectMapper.writeValueAsString(resolved);
+    } catch (JsonProcessingException e) {
+      throw new ConnectorInputException(
+          new FeelEngineWrapperException(
+              String.format(
+                  "Failed to serialize %s after resolving document references",
+                  expressionNameForError),
+              expression,
+              json,
               e));
     }
   }

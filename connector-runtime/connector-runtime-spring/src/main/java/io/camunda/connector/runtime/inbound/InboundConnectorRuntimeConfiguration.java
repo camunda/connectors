@@ -97,12 +97,17 @@ public class InboundConnectorRuntimeConfiguration {
       @Autowired(required = false) DocumentFactory legacyDocumentFactory,
       CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient) {
-    Map<String, InboundCorrelationHandler> correlationHandlersByPhysicalTenantId =
-        InboundCorrelationConfiguration.buildCorrelationHandlersByPhysicalTenantId(
-            registry, legacyCamundaClient, mapper, messageTtl, connectorsInboundMetrics);
     Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId =
         PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
             registry, legacyCamundaClient, legacyDocumentFactory);
+    Map<String, InboundCorrelationHandler> correlationHandlersByPhysicalTenantId =
+        InboundCorrelationConfiguration.buildCorrelationHandlersByPhysicalTenantId(
+            registry,
+            legacyCamundaClient,
+            mapper,
+            messageTtl,
+            documentFactoriesByPhysicalTenantId,
+            connectorsInboundMetrics);
     Map<String, InboundConnectorContextFactory> delegatesByPhysicalTenantId =
         registry.clientNames().stream()
             .collect(

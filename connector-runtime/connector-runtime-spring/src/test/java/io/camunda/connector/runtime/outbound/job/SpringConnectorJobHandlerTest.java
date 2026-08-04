@@ -46,6 +46,7 @@ import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.jobhandling.CommandOutcome;
 import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.metrics.MicrometerMetricsRecorder;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.document.RawPayload;
@@ -68,6 +69,8 @@ import io.camunda.connector.runtime.JobBuilder;
 import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
@@ -77,6 +80,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -156,6 +160,22 @@ class SpringConnectorJobHandlerTest {
       OutboundConnectorFunction call, CamundaClient camundaClient) {
     return newConnectorJobHandler(
         call, new SecretProviderAggregator(List.of(new FooBarSecretProvider())), camundaClient);
+  }
+
+  private SpringConnectorJobHandler newConnectorJobHandlerWithDocumentFactory(
+      OutboundConnectorFunction call, DocumentFactory documentFactory) {
+    var metricsRecorder = new MicrometerMetricsRecorder(new SimpleMeterRegistry());
+    return new SpringConnectorJobHandler(
+        metricsRecorder,
+        new JobCallbackCommandWrapperFactory(
+            BackoffSupplier.newBackoffBuilder().build(), commandScheduler, metricsRecorder),
+        new SecretProviderAggregator(List.of(new FooBarSecretProvider())),
+        new DefaultValidationProvider(),
+        documentFactory,
+        TestObjectMapperSupplier.INSTANCE,
+        call,
+        job -> SecretFilter.allowAll(),
+        mock(CamundaClient.class, RETURNS_DEEP_STUBS));
   }
 
   private SpringConnectorJobHandler newConnectorJobHandler(
@@ -2615,6 +2635,119 @@ class SpringConnectorJobHandlerTest {
           JobCompletionFailure failure) {
         delegate.onJobCompletionFailed(context, response, failure);
       }
+    }
+  }
+
+  @Nested
+  class CreateDocumentTests {
+
+    @Test
+    void resultExpressionCreateDocumentProducesRealDocumentInOutputVariables() throws Exception {
+      // given a connector whose response embeds a base64-encoded file inside its JSON body,
+      // mirroring the shape from https://github.com/camunda/connectors/issues/4715
+      String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+      var jobHandler =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) -> Map.of("body", Map.of("file", base64)),
+              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+
+      // when the result expression extracts just that field via createDocument
+      var result =
+          JobBuilder.create()
+              .withResultExpressionHeader("={myDoc: createDocument(response.body.file)}")
+              .executeAndCaptureResult(jobHandler);
+
+      // then the output variable holds a real document reference, not the raw base64 string.
+      // NOTE (Task 3 correction, verified against InboundCorrelationHandlerTest): with the
+      // production-shaped ObjectMapper used here (TestObjectMapperSupplier.INSTANCE, which
+      // registers the full JacksonModuleDocumentDeserializer stack just like the real
+      // connectorObjectMapper/outboundConnectorObjectMapper beans), the resolved document
+      // reference JSON gets re-hydrated by Jackson's own Object.class deserializer into a real
+      // Document rather than staying a raw reference Map. The Mockito ArgumentCaptor in
+      // JobBuilder captures the in-memory variables Map directly (no JsonMapper round-trip
+      // through a Zeebe client), so that live Document object survives into the captured result.
+      var myDoc = result.getVariables().get("myDoc");
+      assertThat(myDoc).isInstanceOf(Document.class);
+      assertThat(((Document) myDoc).asByteArray())
+          .isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void doesNotResolveAnInjectedSentinelFromConnectorResponseData() throws Exception {
+      // End-to-end injection scenario, through the real SpringConnectorJobHandler pipeline: a
+      // malicious/compromised remote API's response body happens to be shaped exactly like the
+      // createDocument() sentinel, guessing the pre-nonce literal discriminator value
+      // ("createDocument", with no runtime-generated suffix). The result expression here is a
+      // plain pass-through of the response — no createDocument() call anywhere in the expression
+      // itself, exactly what an ordinary connector user would write. This must not create a
+      // document from attacker-controlled bytes: the forged object must survive untouched all the
+      // way through job completion.
+      String attackerBase64 =
+          Base64.getEncoder().encodeToString("attacker payload".getBytes(StandardCharsets.UTF_8));
+      var jobHandler =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) ->
+                  Map.of(
+                      "body",
+                      Map.of("connectorResultFunction", "createDocument", "value", attackerBase64)),
+              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+
+      var result =
+          JobBuilder.create()
+              .withResultExpressionHeader("={result: response.body}")
+              .executeAndCaptureResult(jobHandler);
+
+      @SuppressWarnings("unchecked")
+      Map<String, Object> passedThrough = (Map<String, Object>) result.getVariables().get("result");
+      assertThat(passedThrough)
+          .containsEntry("connectorResultFunction", "createDocument")
+          .containsEntry("value", attackerBase64);
+      assertThat(passedThrough.values()).noneMatch(v -> v instanceof Document);
+    }
+
+    @Test
+    void doesNotResolveASentinelForgedWithAnotherJobsLeakedNonce() throws Exception {
+      // End-to-end version of the cross-tenant nonce-leak scenario: the nonce is scoped per
+      // evaluation (see FeelConnectorFunctionProvider), not a single per-JVM constant, precisely
+      // because a result expression can legitimately project it out via field access
+      // (createDocument(x).connectorResultFunction) — so a real per-JVM secret would be learnable
+      // by whoever authors that expression and reusable against a completely different job.
+      var documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+
+      // Job A: harvests its own evaluation's nonce via a legitimate field projection.
+      var jobHandlerA =
+          newConnectorJobHandlerWithDocumentFactory((context) -> Map.of(), documentFactory);
+      var resultA =
+          JobBuilder.create()
+              .withResultExpressionHeader(
+                  "={leakedNonce: createDocument(\"aA==\").connectorResultFunction}")
+              .executeAndCaptureResult(jobHandlerA);
+      String leakedNonce = (String) resultA.getVariables().get("leakedNonce");
+      assertThat(leakedNonce).startsWith("createDocument:");
+
+      // Job B: a completely independent job whose connector response an attacker has crafted to
+      // look exactly like a sentinel, tagged with Job A's leaked nonce.
+      String attackerBase64 =
+          Base64.getEncoder().encodeToString("attacker payload".getBytes(StandardCharsets.UTF_8));
+      var jobHandlerB =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) ->
+                  Map.of(
+                      "body",
+                      Map.of("connectorResultFunction", leakedNonce, "value", attackerBase64)),
+              documentFactory);
+      var resultB =
+          JobBuilder.create()
+              .withResultExpressionHeader("={result: response.body}")
+              .executeAndCaptureResult(jobHandlerB);
+
+      @SuppressWarnings("unchecked")
+      Map<String, Object> passedThrough =
+          (Map<String, Object>) resultB.getVariables().get("result");
+      assertThat(passedThrough)
+          .containsEntry("connectorResultFunction", leakedNonce)
+          .containsEntry("value", attackerBase64);
+      assertThat(passedThrough.values()).noneMatch(v -> v instanceof Document);
     }
   }
 }
