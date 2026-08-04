@@ -37,7 +37,8 @@
     {"id": "parameters", "label": "Parameters"},
     {"id": "connector", "label": "Connector"},
     {"id": "output", "label": "Response mapping"},
-    {"id": "errors", "label": "Error handling"}
+    {"id": "errors", "label": "Error handling"},
+    {"id": "retries", "label": "Retries"}
   ],
   "properties": [
     {"type":"Hidden","value":"io.camunda:http-json:1","binding":{"type":"zeebe:taskDefinition","property":"type"}},
@@ -75,7 +76,10 @@
     {"label":"Connection timeout","group":"errors","type":"String","value":"20","binding":{"type":"zeebe:input","name":"connectionTimeoutInSeconds"},"optional":true,"feel":"optional","constraints":{"notEmpty":false,"pattern":{"value":"^(=.*|[0-9]+|\\{\\{secrets\\..+\\}\\})$","message":"Must be a non-negative integer, a {{secrets.NAME}} reference, or a FEEL expression starting with ="}},"tooltip":"Seconds to wait when establishing the TCP connection. <code>0</code> disables the timeout (not recommended in production)."},
     {"label":"Error expression","group":"errors","type":"Text","feel":"required","binding":{"type":"zeebe:taskHeader","key":"errorExpression"},"tooltip":"FEEL expression that maps connector errors to a BPMN error. Example: <code>=if error.code = \"404\" then bpmnError(\"NOT_FOUND\", error.message) else null</code>. See <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN errors docs</a>."},
     {"id":"version","label":"Version","value":"2","group":"connector","binding":{"key":"elementTemplateVersion","type":"zeebe:taskHeader"},"type":"Hidden","tooltip":"Version of the element template"},
-    {"id":"id","label":"ID","value":"io.camunda.connectors.CamundaOrchestrationCluster.v1","group":"connector","binding":{"key":"elementTemplateId","type":"zeebe:taskHeader"},"type":"Hidden","tooltip":"ID of the element template"}
+    {"id":"id","label":"ID","value":"io.camunda.connectors.CamundaOrchestrationCluster.v1","group":"connector","binding":{"key":"elementTemplateId","type":"zeebe:taskHeader"},"type":"Hidden","tooltip":"ID of the element template"},
+    {"id":"retryCount","label":"Retries","value":"3","feel":"optional","group":"retries","binding":{"property":"retries","type":"zeebe:taskDefinition"},"type":"String"},
+    {"id":"retryBackoff","label":"Retry backoff","tooltip":"ISO-8601 duration to wait between retries","value":"PT30S","group":"retries","binding":{"key":"retryBackoff","type":"zeebe:taskHeader"},"type":"String"},
+    {"id":"jobTimeout","label":"Job timeout","description":"ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout","optional":true,"group":"retries","binding":{"key":"jobTimeout","type":"zeebe:taskHeader"},"type":"String"}
   ],
   "steps" : [ {
     "name" : "Process instances",
