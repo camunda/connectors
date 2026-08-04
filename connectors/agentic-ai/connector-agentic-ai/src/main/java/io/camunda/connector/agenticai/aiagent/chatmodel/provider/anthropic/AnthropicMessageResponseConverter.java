@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
+
 import com.anthropic.core.JsonObject;
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
@@ -29,7 +31,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
@@ -80,9 +81,7 @@ public class AnthropicMessageResponseConverter {
         content.add(new TextContent(text.text(), residualMetadata(text, "text")));
       } else if (block.isToolUse()) {
         final var toolUse = block.toolUse().orElseThrow();
-        toolCalls.add(
-            new ToolCall(
-                toolUse.id(), toolUse.name(), toolUseArguments(toolUse), toolUseMetadata(toolUse)));
+        toolCalls.add(new ToolCall(toolUse.id(), toolUse.name(), toolUseArguments(toolUse)));
       } else if (block.isThinking()) {
         // Raw block preserved verbatim (minus the lifted-out text) so it replays byte-identical
         // on the request side; see AnthropicContentConverter, which merges the text back in
@@ -92,21 +91,21 @@ public class AnthropicMessageResponseConverter {
                     .convertValue(block, new TypeReference<Map<String, Object>>() {}));
         final String text = block.thinking().orElseThrow().thinking();
         raw.remove("thinking");
-        content.add(new ReasoningContent(ANTHROPIC_METADATA_KEY, raw, text, null));
+        content.add(new ReasoningContent(ANTHROPIC_ID, raw, text, null));
       } else if (block.isRedactedThinking()) {
         // Redacted thinking blocks carry no readable text (the `data` field is encrypted), so
         // there is nothing to lift out of the payload.
         final Map<String, Object> raw =
             ObjectMappers.jsonMapper()
                 .convertValue(block, new TypeReference<Map<String, Object>>() {});
-        content.add(new ReasoningContent(ANTHROPIC_METADATA_KEY, raw, null, null));
+        content.add(new ReasoningContent(ANTHROPIC_ID, raw, null, null));
       } else {
         // Fallback for any Anthropic content block type not explicitly handled above: preserve
         // it losslessly, in original order, as ProviderContent
         final Map<String, Object> raw =
             ObjectMappers.jsonMapper()
                 .convertValue(block, new TypeReference<Map<String, Object>>() {});
-        content.add(new ProviderContent(ANTHROPIC_METADATA_KEY, raw, null));
+        content.add(new ProviderContent(ANTHROPIC_ID, raw, null));
       }
     }
 
@@ -151,17 +150,6 @@ public class AnthropicMessageResponseConverter {
     raw.keySet().removeAll(Set.of(mappedKeys));
     raw.remove("type"); // pure discriminator, always inferable from the domain type
     return raw.isEmpty() ? null : Map.of(ANTHROPIC_METADATA_KEY, raw);
-  }
-
-  /** Direct callers carry no extra data; only a server-tool caller has content worth preserving. */
-  private @Nullable Map<String, Object> toolUseMetadata(ToolUseBlock toolUse) {
-    // caller is a recent addition to the API; older fixtures/responses may omit it entirely, so
-    // read it via the non-throwing accessor rather than caller(), which requires the field
-    final Optional<ToolUseBlock.Caller> caller = toolUse._caller().asKnown();
-    if (caller.isEmpty() || caller.get().isDirect()) {
-      return residualMetadata(toolUse, "id", "name", "input", "caller");
-    }
-    return residualMetadata(toolUse, "id", "name", "input");
   }
 
   private AgentMetrics toMetrics(Message message, int toolCalls, Duration executionTime) {
