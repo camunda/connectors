@@ -225,17 +225,31 @@ public final class ConnectorMetricsAggregator {
    */
   public static InboundConnectorMetrics inbound(
       MeterRegistry registry, String connectorType, String runtimeId) {
+    return inbound(registry, connectorType, null, runtimeId);
+  }
+
+  /**
+   * @param physicalTenantIds when non-null and non-empty, restricts the sums to meters recorded for
+   *     one of these physical tenants (engines) — a distinct dimension from connector {@code type}.
+   *     {@code null}/empty sums across every physical tenant, matching the pre-existing behavior of
+   *     this method.
+   */
+  public static InboundConnectorMetrics inbound(
+      MeterRegistry registry,
+      String connectorType,
+      List<String> physicalTenantIds,
+      String runtimeId) {
     if (registry == null) {
       return new InboundConnectorMetrics(runtimeId, null, null, null);
     }
     if (connectorType != null && !connectorType.isBlank()) {
-      return buildInbound(registry, connectorType, runtimeId);
+      return buildInbound(registry, connectorType, physicalTenantIds, runtimeId);
     }
-    return buildInboundAggregate(registry, runtimeId);
+    return buildInboundAggregate(registry, physicalTenantIds, runtimeId);
   }
 
   private static InboundConnectorMetrics buildInboundAggregate(
-      MeterRegistry registry, String runtimeId) {
+      MeterRegistry registry, List<String> physicalTenantIds, String runtimeId) {
     Set<String> types = discoverTypes(registry, null, allInboundMetricNames());
 
     long activated = 0, deactivated = 0, activationFailed = 0;
@@ -249,51 +263,66 @@ public final class ConnectorMetricsAggregator {
               registry,
               ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
               type,
-              ConnectorMetrics.Inbound.ACTION_ACTIVATED);
+              ConnectorMetrics.Inbound.ACTION_ACTIVATED,
+              physicalTenantIds);
       deactivated +=
           sumCounterByAction(
               registry,
               ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
               type,
-              ConnectorMetrics.Inbound.ACTION_DEACTIVATED);
+              ConnectorMetrics.Inbound.ACTION_DEACTIVATED,
+              physicalTenantIds);
       activationFailed +=
           sumCounterByAction(
               registry,
               ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
               type,
-              ConnectorMetrics.Inbound.ACTION_ACTIVATION_FAILED);
+              ConnectorMetrics.Inbound.ACTION_ACTIVATION_FAILED,
+              physicalTenantIds);
       triggered +=
           sumCounterByAction(
               registry,
               ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
               type,
-              ConnectorMetrics.Inbound.ACTION_TRIGGERED);
+              ConnectorMetrics.Inbound.ACTION_TRIGGERED,
+              physicalTenantIds);
       correlated +=
           sumCounterByAction(
               registry,
               ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
               type,
-              ConnectorMetrics.Inbound.ACTION_CORRELATED);
+              ConnectorMetrics.Inbound.ACTION_CORRELATED,
+              physicalTenantIds);
       correlationFailed +=
           sumCounterByAction(
               registry,
               ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
               type,
-              ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED);
+              ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED,
+              physicalTenantIds);
       activationConditionFailed +=
           sumCounterByAction(
               registry,
               ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
               type,
-              ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED);
+              ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED,
+              physicalTenantIds);
       maxLastActivated =
           Math.max(
               maxLastActivated,
-              readGauge(registry, ConnectorMetrics.Inbound.METRIC_NAME_LAST_ACTIVATED, type));
+              readGauge(
+                  registry,
+                  ConnectorMetrics.Inbound.METRIC_NAME_LAST_ACTIVATED,
+                  type,
+                  physicalTenantIds));
       maxLastTriggered =
           Math.max(
               maxLastTriggered,
-              readGauge(registry, ConnectorMetrics.Inbound.METRIC_NAME_LAST_TRIGGERED, type));
+              readGauge(
+                  registry,
+                  ConnectorMetrics.Inbound.METRIC_NAME_LAST_TRIGGERED,
+                  type,
+                  physicalTenantIds));
     }
 
     return new InboundConnectorMetrics(
@@ -310,7 +339,7 @@ public final class ConnectorMetricsAggregator {
   }
 
   private static InboundConnectorMetrics buildInbound(
-      MeterRegistry registry, String type, String runtimeId) {
+      MeterRegistry registry, String type, List<String> physicalTenantIds, String runtimeId) {
     return new InboundConnectorMetrics(
         runtimeId,
         new InboundConnectorMetrics.Runtime(readRuntimeUptime(registry)),
@@ -319,42 +348,57 @@ public final class ConnectorMetricsAggregator {
                 registry,
                 ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
                 type,
-                ConnectorMetrics.Inbound.ACTION_ACTIVATED),
+                ConnectorMetrics.Inbound.ACTION_ACTIVATED,
+                physicalTenantIds),
             sumCounterByAction(
                 registry,
                 ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
                 type,
-                ConnectorMetrics.Inbound.ACTION_DEACTIVATED),
+                ConnectorMetrics.Inbound.ACTION_DEACTIVATED,
+                physicalTenantIds),
             sumCounterByAction(
                 registry,
                 ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
                 type,
-                ConnectorMetrics.Inbound.ACTION_ACTIVATION_FAILED),
+                ConnectorMetrics.Inbound.ACTION_ACTIVATION_FAILED,
+                physicalTenantIds),
             epochMsToInstant(
-                readGauge(registry, ConnectorMetrics.Inbound.METRIC_NAME_LAST_ACTIVATED, type))),
+                readGauge(
+                    registry,
+                    ConnectorMetrics.Inbound.METRIC_NAME_LAST_ACTIVATED,
+                    type,
+                    physicalTenantIds))),
         new InboundConnectorMetrics.Trigger(
             sumCounterByAction(
                 registry,
                 ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
                 type,
-                ConnectorMetrics.Inbound.ACTION_TRIGGERED),
+                ConnectorMetrics.Inbound.ACTION_TRIGGERED,
+                physicalTenantIds),
             sumCounterByAction(
                 registry,
                 ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
                 type,
-                ConnectorMetrics.Inbound.ACTION_CORRELATED),
+                ConnectorMetrics.Inbound.ACTION_CORRELATED,
+                physicalTenantIds),
             sumCounterByAction(
                 registry,
                 ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
                 type,
-                ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED),
+                ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED,
+                physicalTenantIds),
             sumCounterByAction(
                 registry,
                 ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
                 type,
-                ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED),
+                ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED,
+                physicalTenantIds),
             epochMsToInstant(
-                readGauge(registry, ConnectorMetrics.Inbound.METRIC_NAME_LAST_TRIGGERED, type))));
+                readGauge(
+                    registry,
+                    ConnectorMetrics.Inbound.METRIC_NAME_LAST_TRIGGERED,
+                    type,
+                    physicalTenantIds))));
   }
 
   // -------------------------------------------------------------------------
@@ -392,6 +436,41 @@ public final class ConnectorMetricsAggregator {
     return (long) sum;
   }
 
+  /**
+   * Physical-tenant-aware variant used by inbound aggregation only — see {@link
+   * #matchesPhysicalTenantIds}. Outbound aggregation has no physical-tenant dimension yet and keeps
+   * using the 4-arg overload above unchanged.
+   */
+  private static long sumCounterByAction(
+      MeterRegistry registry,
+      String metricName,
+      String type,
+      String action,
+      List<String> physicalTenantIds) {
+    double sum =
+        registry
+            .find(metricName)
+            .tag(ConnectorMetrics.Tag.TYPE, type)
+            .tag(ConnectorMetrics.Tag.ACTION, action)
+            .counters()
+            .stream()
+            .filter(counter -> matchesPhysicalTenantIds(counter.getId(), physicalTenantIds))
+            .mapToDouble(Counter::count)
+            .sum();
+    return (long) sum;
+  }
+
+  /**
+   * @return {@code true} when {@code physicalTenantIds} is {@code null}/empty (no filtering — sums
+   *     across every physical tenant, matching the pre-existing behavior of this aggregator) or the
+   *     meter's own {@code physicalTenantId} tag is one of the requested values.
+   */
+  private static boolean matchesPhysicalTenantIds(Meter.Id id, List<String> physicalTenantIds) {
+    return physicalTenantIds == null
+        || physicalTenantIds.isEmpty()
+        || physicalTenantIds.contains(id.getTag(ConnectorMetrics.Tag.PHYSICAL_TENANT_ID));
+  }
+
   private static double sumCounter(MeterRegistry registry, String metricName, String type) {
     return registry.find(metricName).tag(ConnectorMetrics.Tag.TYPE, type).counters().stream()
         .mapToDouble(Counter::count)
@@ -418,6 +497,16 @@ public final class ConnectorMetricsAggregator {
    */
   private static long readGauge(MeterRegistry registry, String metricName, String type) {
     return registry.find(metricName).tag(ConnectorMetrics.Tag.TYPE, type).gauges().stream()
+        .mapToLong(g -> (long) g.value())
+        .max()
+        .orElse(0L);
+  }
+
+  /** Physical-tenant-aware variant used by inbound aggregation only — see {@link #readGauge}. */
+  private static long readGauge(
+      MeterRegistry registry, String metricName, String type, List<String> physicalTenantIds) {
+    return registry.find(metricName).tag(ConnectorMetrics.Tag.TYPE, type).gauges().stream()
+        .filter(gauge -> matchesPhysicalTenantIds(gauge.getId(), physicalTenantIds))
         .mapToLong(g -> (long) g.value())
         .max()
         .orElse(0L);

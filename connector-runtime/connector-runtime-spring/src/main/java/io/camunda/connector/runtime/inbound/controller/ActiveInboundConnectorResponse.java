@@ -32,4 +32,5 @@ public record ActiveInboundConnectorResponse(
     Map<String, String> data,
     Health health,
     Long activationTimestamp,
-    Collection<Activity> logs) {}
+    Collection<Activity> logs,
+    String physicalTenantId) {}

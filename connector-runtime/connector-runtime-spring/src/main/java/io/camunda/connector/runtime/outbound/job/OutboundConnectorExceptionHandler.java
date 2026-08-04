@@ -25,6 +25,7 @@ import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
+import io.camunda.connector.runtime.core.error.InvalidJobTimeoutException;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
@@ -161,6 +162,8 @@ public class OutboundConnectorExceptionHandler {
     return switch (e) {
       case InvalidBackOffDurationException invalidBackOffDurationException ->
           handleBackOffException(invalidBackOffDurationException, secrets);
+      case InvalidJobTimeoutException invalidJobTimeoutException ->
+          handleBackOffException(invalidJobTimeoutException, secrets);
       case ConnectorRetryException connectorRetryException ->
           handleConnectorRetryException(
               job, connectorRetryException, secrets, retryBackoffDuration);

@@ -399,4 +399,42 @@ class InboundInstancesRestControllerMultiInstancesTest extends BaseMultiInstance
     assertTrue(metrics.stream().anyMatch(m -> "instance1".equals(m.runtimeId())));
     assertTrue(metrics.stream().anyMatch(m -> "instance2".equals(m.runtimeId())));
   }
+
+  @Test
+  public void shouldAcceptPhysicalTenantIdsFilter_onAggregateMetricsEndpoint() throws Exception {
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "http://localhost:" + port1 + "/inbound-instances/metrics?physicalTenantIds=default",
+            HttpMethod.GET,
+            null,
+            String.class);
+
+    assertEquals(200, response.getStatusCode().value());
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response.getBody(), new TypeReference<>() {});
+    // still one entry per pod — the filter narrows each pod's own sums, not the pod fan-out itself
+    assertEquals(2, metrics.size());
+  }
+
+  @Test
+  public void shouldAcceptPhysicalTenantIdsFilter_onMetricsByTypeEndpoint() throws Exception {
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "http://localhost:"
+                + port1
+                + "/inbound-instances/metrics/"
+                + TYPE_1
+                + "?physicalTenantIds=nonexistent-tenant",
+            HttpMethod.GET,
+            null,
+            String.class);
+
+    assertEquals(200, response.getStatusCode().value());
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response.getBody(), new TypeReference<>() {});
+    assertEquals(2, metrics.size());
+    assertTrue(metrics.stream().allMatch(m -> m.activation().activated() == 0));
+  }
 }

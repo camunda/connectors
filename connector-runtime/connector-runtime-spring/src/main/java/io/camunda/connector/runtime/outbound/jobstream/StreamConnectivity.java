@@ -44,23 +44,30 @@ public record StreamConnectivity(BrokerConnectivityState brokerState, List<Strin
   public static StreamConnectivity compute(
       String jobType, Optional<BrokerStreamsResult> brokerStreams) {
 
-    Optional<List<RemoteJobStream>> filteredStreams =
+    Optional<List<List<RemoteJobStream>>> filteredStreamsByBroker =
         brokerStreams.map(
-            data -> data.streams().stream().filter(s -> jobType.equals(s.jobType())).toList());
+            data ->
+                data.streamsByBroker().stream()
+                    .map(
+                        perBroker ->
+                            perBroker.stream().filter(s -> jobType.equals(s.jobType())).toList())
+                    .toList());
 
-    int totalBrokerCount = brokerStreams.map(BrokerStreamsResult::brokerCount).orElse(0);
     BrokerConnectivityState brokerState =
-        filteredStreams
-            .map(streams -> computeBrokerState(streams, totalBrokerCount))
+        filteredStreamsByBroker
+            .map(StreamConnectivity::computeBrokerState)
             .orElse(BrokerConnectivityState.UNKNOWN);
 
-    List<String> streamIds = extractStreamIds(filteredStreams);
+    List<String> streamIds = extractStreamIds(filteredStreamsByBroker);
     return new StreamConnectivity(brokerState, streamIds);
   }
 
   /**
-   * Determines connectivity state from the filtered (job-type-specific) streams and the total
-   * number of brokers that were queried.
+   * Determines connectivity state from the filtered (job-type-specific) streams, grouped by broker
+   * of origin. A broker counts as connected for this job type if ANY of its entries has a consumer
+   * with a non-null id — a single broker reporting the job type across several entries (e.g. one
+   * entry per consumer registration, instead of one entry listing every consumer) still counts as
+   * one connected broker, not several.
    *
    * <ul>
    *   <li>{@link BrokerConnectivityState#NONE} – no broker has any consumer with a non-null id for
@@ -72,18 +79,23 @@ public record StreamConnectivity(BrokerConnectivityState brokerState, List<Strin
    * </ul>
    */
   private static BrokerConnectivityState computeBrokerState(
-      List<RemoteJobStream> filteredStreams, int totalBrokerCount) {
+      List<List<RemoteJobStream>> filteredStreamsByBroker) {
 
+    int totalBrokerCount = filteredStreamsByBroker.size();
     if (totalBrokerCount == 0) {
       return BrokerConnectivityState.NONE;
     }
 
     long brokersWithValidConsumer =
-        filteredStreams.stream()
+        filteredStreamsByBroker.stream()
             .filter(
-                remote ->
-                    remote.consumers() != null
-                        && remote.consumers().stream().anyMatch(c -> c.get("id") != null))
+                brokerStreams ->
+                    brokerStreams.stream()
+                        .anyMatch(
+                            remote ->
+                                remote.consumers() != null
+                                    && remote.consumers().stream()
+                                        .anyMatch(c -> c.get("id") != null)))
             .count();
 
     if (brokersWithValidConsumer == 0) {
@@ -95,12 +107,14 @@ public record StreamConnectivity(BrokerConnectivityState brokerState, List<Strin
     return BrokerConnectivityState.PARTIALLY_CONNECTED;
   }
 
-  private static List<String> extractStreamIds(Optional<List<RemoteJobStream>> remoteStreams) {
+  private static List<String> extractStreamIds(
+      Optional<List<List<RemoteJobStream>>> streamsByBroker) {
     List<String> ids =
-        remoteStreams
+        streamsByBroker
             .map(
-                streams ->
-                    streams.stream()
+                perBroker ->
+                    perBroker.stream()
+                        .flatMap(List::stream)
                         .filter(r -> r.consumers() != null)
                         .flatMap(r -> r.consumers().stream())
                         .map(c -> c.get("id"))

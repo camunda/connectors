@@ -19,18 +19,18 @@ configuration, the result will contain the following fields:
 #### Text response
 
 ```json
-{{ exampleData["text"].json }}
+{{ exampleData["default"].json }}
 
 ```
 
 The response text can be accessed via FEEL:
 ```json
-{{ exampleData["text"].feel }}
+{{ exampleData["default"].feel }}
 
 ```
 leading to the following result
 ```json
-{{ exampleData["text"].feelResultJson }}
+{{ exampleData["default"].feelResultJson }}
 
 ```
 

@@ -256,6 +256,17 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
+    void jobTimeoutProperty() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      var property = getPropertyByLabel("Job timeout", template);
+      assertThat(property.getType()).isEqualTo("String");
+      assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
+      assertThat(((ZeebeTaskHeader) property.getBinding()).key()).isEqualTo("jobTimeout");
+      assertThat(property.getGroup()).isEqualTo("retries");
+      assertThat(property.getValue()).isNull();
+    }
+
+    @Test
     void retryCountProperty() {
       var templates = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
       var property = getPropertyByLabel("Retries", templates.getFirst());
@@ -294,6 +305,20 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(property.getFeel()).isEqualTo(null);
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskDefinition");
       assertThat(((ZeebeTaskDefinition) property.getBinding()).property()).isEqualTo("type");
+    }
+
+    @Test
+    void resultExpressionProperty_tooltipPopulated_whenOutputDataClassHasExample() {
+      var template = generator.generate(MyConnectorFunction.FullyAnnotated.class).getFirst();
+      var property = getPropertyByLabel("Result expression", template);
+      assertThat(property.getTooltip()).contains("myListOutputProperty").contains("first-item");
+    }
+
+    @Test
+    void resultExpressionProperty_tooltipNull_whenNoOutputDataClass() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      var property = getPropertyByLabel("Result expression", template);
+      assertThat(property.getTooltip()).isNull();
     }
   }
 
@@ -1458,7 +1483,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(template.id()).isNotNull();
       assertThat(template.id()).isEqualTo(OperationAnnotatedConnector.ID);
       assertThat(template.name()).isEqualTo(OperationAnnotatedConnector.NAME);
-      assertThat(template.properties()).hasSize(14);
+      assertThat(template.properties()).hasSize(15);
 
       DropdownProperty operationProperty =
           (DropdownProperty) getPropertyById("operation", template);

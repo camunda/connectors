@@ -85,6 +85,7 @@ public class ConnectorDataMapper {
     var logs = connector.logs();
     var type = elements.getFirst().type();
     var tenantId = elements.getFirst().element().tenantId();
+    var physicalTenantId = elements.getFirst().physicalTenantId();
     return new ActiveInboundConnectorResponse(
         connector.executableId(),
         type,
@@ -95,6 +96,7 @@ public class ConnectorDataMapper {
             this.appendPhysicalTenantAndTenantToPath && appendPhysicalTenantAndTenantToPath),
         connector.health(),
         connector.activationTimestamp(),
-        logs);
+        logs,
+        physicalTenantId);
   }
 }

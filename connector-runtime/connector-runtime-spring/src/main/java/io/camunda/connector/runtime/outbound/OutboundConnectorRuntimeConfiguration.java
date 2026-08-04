@@ -16,6 +16,11 @@
  */
 package io.camunda.connector.runtime.outbound;
 
+import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.clientNames;
+import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.resolveClient;
+import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.resolvePhysicalTenantId;
+import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.toMapByPhysicalTenantId;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.client.CamundaClient;
@@ -60,9 +65,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -252,86 +254,9 @@ public class OutboundConnectorRuntimeConfiguration {
     return new DocumentFactoryImpl(documentStore);
   }
 
-  /**
-   * Enumerates the configured client names: the {@link CamundaClientRegistry}'s own names when a
-   * registry bean exists, otherwise a single synthetic {@code "default"} name representing a
-   * directly-supplied legacy {@code CamundaClient} bean — some minimal/test contexts wire a raw
-   * {@code CamundaClient} bean without the full {@code camunda-spring-boot-starter} auto-config
-   * chain that would normally register a {@link CamundaClientRegistry}.
-   */
-  private static Set<String> clientNames(
-      CamundaClientRegistry registry, CamundaClient legacyCamundaClient) {
-    if (registry != null) {
-      return registry.clientNames();
-    }
-    if (legacyCamundaClient != null) {
-      return Set.of("default");
-    }
-    throw new IllegalStateException("No CamundaClient or CamundaClientRegistry configured");
-  }
-
-  /**
-   * Resolves the {@link CamundaClient} for the given client name. Prefers the {@link
-   * CamundaClientRegistry} entry, but falls back to a directly-supplied single {@code
-   * CamundaClient} bean when the registry is absent entirely, or when the registry claims the name
-   * exists but no matching bean was actually registered — e.g. when a {@code CamundaClient} bean is
-   * supplied manually/overridden (as in test fixtures) instead of via {@code camunda.clients.*}.
-   */
-  private static CamundaClient resolveClient(
-      CamundaClientRegistry registry, String name, CamundaClient legacyCamundaClient) {
-    if (registry == null) {
-      if (legacyCamundaClient == null) {
-        throw new IllegalStateException("No CamundaClient configured for client '" + name + "'");
-      }
-      return legacyCamundaClient;
-    }
-    try {
-      return registry.get(name);
-    } catch (RuntimeException e) {
-      if (legacyCamundaClient == null) {
-        throw new IllegalStateException("No CamundaClient configured for client '" + name + "'", e);
-      }
-      return legacyCamundaClient;
-    }
-  }
-
-  /**
-   * Resolves the physical tenant ID for a configured {@code CamundaClientRegistry} client name: the
-   * explicitly configured {@code physical-tenant-id} if present, otherwise the client name itself.
-   * Falls back to the client name if the configuration cannot be read at all — some test doubles
-   * defer real initialization until a test container is ready and throw if queried too early.
-   */
-  private static String resolvePhysicalTenantId(
-      CamundaClientRegistry registry, String name, CamundaClient legacyCamundaClient) {
-    try {
-      var physicalTenantId =
-          resolveClient(registry, name, legacyCamundaClient)
-              .getConfiguration()
-              .getPhysicalTenantId();
-      return physicalTenantId != null ? physicalTenantId : name;
-    } catch (RuntimeException e) {
-      return name;
-    }
-  }
-
-  /**
-   * Builds a {@code Collectors.toMap} collector keyed by the resolved physical tenant ID for each
-   * client name, failing clearly if two clients resolve to the same physical tenant ID rather than
-   * silently dropping one.
-   */
-  private static <T> Collector<String, ?, Map<String, T>> toMapByPhysicalTenantId(
-      CamundaClientRegistry registry,
-      CamundaClient legacyCamundaClient,
-      Function<String, T> valueFn) {
-    return Collectors.toMap(
-        name -> resolvePhysicalTenantId(registry, name, legacyCamundaClient),
-        valueFn,
-        (a, b) -> {
-          throw new IllegalStateException(
-              "Multiple CamundaClients resolve to the same physical tenant ID; "
-                  + "each configured client must have a unique physical-tenant-id");
-        });
-  }
+  // clientNames / resolveClient / resolvePhysicalTenantId / toMapByPhysicalTenantId live in
+  // PhysicalTenantClients: the same four helpers are needed by the direction-agnostic
+  // ConfigurationValidationConfiguration, which builds one FEEL evaluator per physical tenant.
 
   /**
    * Plain (non-{@code @Bean}) helper so this can be called both from the {@code @Bean} method below
@@ -361,21 +286,21 @@ public class OutboundConnectorRuntimeConfiguration {
 
   /**
    * Builds the per-physical-tenant {@link DocumentFactory} map, for the outbound path. In the
-   * single-physical-tenant case (no {@link CamundaClientRegistry}), the already-resolved {@code
-   * injectedDocumentFactory} bean is reused instead of always constructing a new client-backed one:
-   * this preserves pre-#6961 behavior for single-client/custom runtimes that override the {@code
-   * documentFactory} bean (e.g. an in-memory document store in tests), which would otherwise be
-   * silently bypassed. The inbound path has its own equivalent, {@code
+   * single-physical-tenant case, the already-resolved {@code injectedDocumentFactory} bean is
+   * reused instead of always constructing a new client-backed one: this preserves pre-#6961
+   * behavior for single-client/custom runtimes that override the {@code documentFactory} bean (e.g.
+   * an in-memory document store in tests), which would otherwise be silently bypassed. This must
+   * check the actual client count rather than {@code registry == null}: {@link
+   * CamundaClientRegistry} is registered unconditionally by the camunda-client Spring Boot starter,
+   * so it is never actually null. The inbound path has its own equivalent, {@code
    * PhysicalTenantIds#buildDocumentFactoriesByPhysicalTenantId} in {@code
-   * connector-runtime/connector-runtime-spring/.../inbound/}, since it applies a different
-   * single-tenant-override condition ({@code registry.clientNames().size() <= 1} rather than {@code
-   * registry == null}).
+   * connector-runtime/connector-runtime-spring/.../inbound/}, using the same condition.
    */
   private static Map<String, DocumentFactory> buildDocumentFactoriesByPhysicalTenantId(
       CamundaClientRegistry registry,
       CamundaClient legacyCamundaClient,
       DocumentFactory injectedDocumentFactory) {
-    if (registry == null && injectedDocumentFactory != null) {
+    if (injectedDocumentFactory != null && clientNames(registry, legacyCamundaClient).size() <= 1) {
       return clientNames(registry, legacyCamundaClient).stream()
           .collect(
               toMapByPhysicalTenantId(
@@ -603,7 +528,7 @@ public class OutboundConnectorRuntimeConfiguration {
             registry, legacyCamundaClient, secretKeyCacheManager, secretFilterMode);
     var objectMappersByPhysicalTenantId =
         buildOutboundConnectorObjectMappersByPhysicalTenantId(
-            registry, documentFactoriesByPhysicalTenantId, outboundConnectorObjectMapper);
+            documentFactoriesByPhysicalTenantId, outboundConnectorObjectMapper);
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
@@ -621,12 +546,14 @@ public class OutboundConnectorRuntimeConfiguration {
    * Per-physical-tenant outbound {@link ObjectMapper}s, each wired to that tenant's {@link
    * DocumentFactory} so that {@code Document}-typed job variables are deserialized through the
    * correct engine's document store (see #6961) instead of always going through a single
-   * globally-cached mapper. When {@code registry == null} (no {@link CamundaClientRegistry}
-   * configured), the already-built {@code outboundConnectorObjectMapper} instance (injected above)
-   * is reused as-is: this mirrors {@link #buildDocumentFactoriesByPhysicalTenantId}'s own condition
-   * for reusing the injected {@link DocumentFactory} bean in that case, so a custom/overridden
-   * {@code DocumentFactory} bean (e.g. an in-memory one in tests) and the {@code ObjectMapper} that
-   * deserializes {@code Document}-typed variables stay backed by the very same factory instance.
+   * globally-cached mapper. In the single-physical-tenant case, the already-built {@code
+   * outboundConnectorObjectMapper} instance (injected above) is reused as-is: this mirrors {@link
+   * #buildDocumentFactoriesByPhysicalTenantId}'s own condition for reusing the injected {@link
+   * DocumentFactory} bean in that case — {@code documentFactoriesByPhysicalTenantId} has exactly
+   * one entry, and it is (by construction) the very same {@code DocumentFactory} instance that
+   * {@code outboundConnectorObjectMapper} was built from — so a custom/overridden {@code
+   * DocumentFactory} bean (e.g. an in-memory one in tests) and the {@code ObjectMapper} that
+   * deserializes {@code Document}-typed variables stay backed by the same factory instance.
    *
    * <p>Deliberately a plain (non-{@code @Bean}) static method rather than a {@code Map<String,
    * ObjectMapper>}-typed {@code @Bean}: as documented above for the document/secret-filter maps,
@@ -636,10 +563,9 @@ public class OutboundConnectorRuntimeConfiguration {
    * "outboundConnectorObjectMapper"} instead of physical tenant IDs.
    */
   private static Map<String, ObjectMapper> buildOutboundConnectorObjectMappersByPhysicalTenantId(
-      CamundaClientRegistry registry,
       Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId,
       ObjectMapper outboundConnectorObjectMapper) {
-    if (registry == null) {
+    if (documentFactoriesByPhysicalTenantId.size() <= 1) {
       return documentFactoriesByPhysicalTenantId.keySet().stream()
           .collect(Collectors.toMap(id -> id, id -> outboundConnectorObjectMapper));
     }
