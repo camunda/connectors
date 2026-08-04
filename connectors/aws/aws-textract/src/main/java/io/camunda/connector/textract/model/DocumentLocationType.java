@@ -9,8 +9,8 @@ package io.camunda.connector.textract.model;
 import io.camunda.connector.generator.java.annotation.DropdownItem;
 
 public enum DocumentLocationType {
-  @DropdownItem(label = "Camunda Document")
+  @DropdownItem(label = "Uploaded document")
   UPLOADED,
-  @DropdownItem(label = "S3")
+  @DropdownItem(label = "Amazon S3")
   S3
 }
