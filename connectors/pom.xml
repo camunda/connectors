@@ -17,6 +17,24 @@
   <description>Parent POM for Connectors implementations</description>
   <inceptionYear>2022</inceptionYear>
 
+  <url>https://github.com/camunda/connectors</url>
+
+  <scm>
+    <connection>scm:git:git@github.com:camunda/connectors.git</connection>
+    <developerConnection>scm:git:git@github.com:camunda/connectors.git</developerConnection>
+    <tag>HEAD</tag>
+    <url>https://github.com/camunda/connectors</url>
+  </scm>
+
+  <developers>
+    <developer>
+      <id>camunda.org</id>
+      <name>Camunda</name>
+      <organization>Camunda Services GmbH</organization>
+      <organizationUrl>https://www.camunda.com</organizationUrl>
+    </developer>
+  </developers>
+
   <modules>
     <module>app-integrations</module>
     <module>agentic-ai</module>

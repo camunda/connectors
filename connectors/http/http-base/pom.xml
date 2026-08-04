@@ -12,6 +12,17 @@
 
   <artifactId>connector-http-base</artifactId>
   <name>HTTP Connector Base</name>
+  <description>HTTP Connector Base functionality</description>
+
+  <licenses>
+    <license>
+      <name>Camunda Self-Managed Free Edition license</name>
+      <url>https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/</url>
+    </license>
+    <license>
+      <name>Camunda Self-Managed Enterprise Edition license</name>
+    </license>
+  </licenses>
 
   <properties>
     <maven.compiler.source>21</maven.compiler.source>
