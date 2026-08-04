@@ -89,7 +89,7 @@ public class BrokerJobStreamClient {
    */
   public BrokerStreamsResult fetchRemoteStreams() throws Exception {
     List<URI> uris = resolveUris();
-    List<RemoteJobStream> result = new ArrayList<>();
+    List<List<RemoteJobStream>> result = new ArrayList<>();
     for (URI uri : uris) {
       HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
       HttpResponse<String> response =
@@ -98,9 +98,9 @@ public class BrokerJobStreamClient {
         throw new IOException(
             "Broker job-streams endpoint returned status " + response.statusCode() + ": " + uri);
       }
-      result.addAll(objectMapper.readValue(response.body(), JobStreamsResponse.class).remote());
+      result.add(objectMapper.readValue(response.body(), JobStreamsResponse.class).remote());
     }
-    return new BrokerStreamsResult(result, uris.size());
+    return new BrokerStreamsResult(result);
   }
 
   private List<URI> resolveUris() {
