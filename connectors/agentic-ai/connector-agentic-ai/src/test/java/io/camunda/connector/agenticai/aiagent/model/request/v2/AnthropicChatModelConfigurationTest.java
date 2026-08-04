@@ -420,11 +420,24 @@ class AnthropicChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .extracting(v -> v.getPropertyPath().toString())
-        .contains(
-            "anthropic.backend.bedrock.region",
-            "anthropic.backend.bedrock.authentication.accessKey",
-            "anthropic.backend.bedrock.authentication.secretKey");
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.bedrock.region");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.bedrock.authentication.accessKey");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.bedrock.authentication.secretKey");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            });
   }
 
   @Test
@@ -438,8 +451,11 @@ class AnthropicChatModelConfigurationTest {
                 null));
 
     assertThat(validator.validate(config))
-        .extracting(v -> v.getPropertyPath().toString())
-        .contains("anthropic.backend.bedrock");
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString()).isEqualTo("anthropic.backend.bedrock");
+              assertThat(v.getMessage()).isEqualTo("must not be null");
+            });
   }
 
   @Test
