@@ -61,7 +61,8 @@ class AnthropicMessageRequestConverterTest {
       @Nullable AnthropicModelParameters parameters) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
-            new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-test", null)),
+            new AnthropicApiBackend(
+                new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
             new AnthropicModel("claude-sonnet-4-6", parameters),
             null));
   }
@@ -75,7 +76,8 @@ class AnthropicMessageRequestConverterTest {
         new AnthropicModelParameters(null, null, promptCaching, null, null, null, null);
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
-            new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-test", null)),
+            new AnthropicApiBackend(
+                new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
             new AnthropicModel("claude-sonnet-4-6", parameters),
             null));
   }
@@ -84,6 +86,23 @@ class AnthropicMessageRequestConverterTest {
   private static AnthropicChatModelConfiguration customModel(
       @Nullable Map<String, Object> requestParameters) {
     return customModel(null, null, requestParameters);
+  }
+
+  /**
+   * Builds a model on the {@code anthropic-api} backend with the given hidden headers, query
+   * parameters, and additional body params.
+   */
+  private static AnthropicChatModelConfiguration apiModel(
+      @Nullable Map<String, String> headers,
+      @Nullable Map<String, String> queryParameters,
+      @Nullable Map<String, Object> requestParameters) {
+    return new AnthropicChatModelConfiguration(
+        new AnthropicConnection(
+            new AnthropicApiBackend(
+                new AnthropicApiBackend.AnthropicApi(
+                    "sk-ant-test", null, headers, queryParameters, requestParameters)),
+            new AnthropicModel("claude-sonnet-4-6", null),
+            null));
   }
 
   /**
@@ -845,5 +864,41 @@ class AnthropicMessageRequestConverterTest {
             customModel(null), null, new ConversationSnapshot(List.of(), List.of()));
 
     assertThat(requestBodyAsJson(params).has("custom_field")).isFalse();
+  }
+
+  // --- Anthropic API backend: hidden headers, query parameters, and request parameters ----------
+
+  @Test
+  void apiBackendHiddenHeadersAreMergedAsAdditionalHeaders() {
+    final var params =
+        converter.toMessageCreateParams(
+            apiModel(Map.of("X-Hidden-Header", "hidden-value"), null, null),
+            null,
+            new ConversationSnapshot(List.of(), List.of()));
+
+    assertThat(params._additionalHeaders().values("X-Hidden-Header"))
+        .containsExactly("hidden-value");
+  }
+
+  @Test
+  void apiBackendHiddenQueryParametersAreMergedAsAdditionalQueryParameters() {
+    final var params =
+        converter.toMessageCreateParams(
+            apiModel(null, Map.of("api-version", "2026-01-01"), null),
+            null,
+            new ConversationSnapshot(List.of(), List.of()));
+
+    assertThat(params._additionalQueryParams().values("api-version")).containsExactly("2026-01-01");
+  }
+
+  @Test
+  void apiBackendHiddenRequestParametersAreMergedAsAdditionalBodyProperties() {
+    final var params =
+        converter.toMessageCreateParams(
+            apiModel(null, null, Map.of("hidden_field", "hidden_value")),
+            null,
+            new ConversationSnapshot(List.of(), List.of()));
+
+    assertThat(requestBodyAsJson(params).path("hidden_field").asText()).isEqualTo("hidden_value");
   }
 }

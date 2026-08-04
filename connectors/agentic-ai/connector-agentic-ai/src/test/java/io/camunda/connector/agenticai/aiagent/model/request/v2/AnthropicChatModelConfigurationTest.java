@@ -117,7 +117,8 @@ class AnthropicChatModelConfigurationTest {
   @Test
   void anthropicApiBackendRedactsApiKeyInToString() {
     final var backend =
-        new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-super-secret", null));
+        new AnthropicApiBackend(
+            new AnthropicApiBackend.AnthropicApi("sk-ant-super-secret", null, null, null, null));
 
     assertThat(backend.toString()).doesNotContain("sk-ant-super-secret").contains("[REDACTED]");
   }
@@ -127,7 +128,8 @@ class AnthropicChatModelConfigurationTest {
     final var config =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
-                new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("  ", null)),
+                new AnthropicApiBackend(
+                    new AnthropicApiBackend.AnthropicApi("  ", null, null, null, null)),
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null));
 
@@ -150,7 +152,8 @@ class AnthropicChatModelConfigurationTest {
     final var config =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
-                new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-123", null)),
+                new AnthropicApiBackend(
+                    new AnthropicApiBackend.AnthropicApi("sk-ant-123", null, null, null, null)),
                 new AnthropicModel("claude-sonnet-4-6", parameters),
                 null));
 
@@ -171,7 +174,8 @@ class AnthropicChatModelConfigurationTest {
     final var config =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
-                new AnthropicApiBackend(new AnthropicApiBackend.AnthropicApi("sk-ant-123", null)),
+                new AnthropicApiBackend(
+                    new AnthropicApiBackend.AnthropicApi("sk-ant-123", null, null, null, null)),
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null));
 
