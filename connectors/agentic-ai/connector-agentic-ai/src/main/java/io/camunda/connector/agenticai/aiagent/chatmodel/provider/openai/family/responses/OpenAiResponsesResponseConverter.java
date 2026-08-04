@@ -53,12 +53,15 @@ import org.slf4j.LoggerFactory;
  * to act on. Any future/unknown output item kind not recognized by this SDK version falls back to
  * the same {@link ProviderContent} treatment rather than being silently dropped.
  *
- * <p>A response that was cut off because it hit the max output token limit ({@code
- * incomplete_details.reason == max_output_tokens}) maps to {@link StopReason#LENGTH} on the
- * assistant message and is still surfaced as a normal {@link ChatResult.Completed} -- mirroring
- * {@code AnthropicMessageResponseConverter}'s {@code MAX_TOKENS -> LENGTH} mapping -- rather than
- * throwing. The Responses API otherwise has no equivalent of Anthropic's {@code pause_turn} stop
- * reason, so every other call always surfaces as {@link ChatResult.Completed} too.
+ * <p>The domain {@link StopReason} is derived from the response shape rather than a single vendor
+ * enum (the Responses API exposes none): an {@code incomplete_details.reason} of {@code
+ * max_output_tokens} maps to {@link StopReason#LENGTH} and {@code content_filter} maps to {@link
+ * StopReason#CONTENT_FILTERED} -- both still surfaced as a normal {@link ChatResult.Completed}
+ * rather than thrown, mirroring {@code AnthropicMessageResponseConverter}'s {@code MAX_TOKENS ->
+ * LENGTH} / {@code REFUSAL -> CONTENT_FILTERED} mappings. Otherwise, a response containing one or
+ * more {@code function_call} items maps to {@link StopReason#TOOL_USE}, and a normal completion
+ * maps to {@link StopReason#STOP}. The Responses API otherwise has no equivalent of Anthropic's
+ * {@code pause_turn} stop reason, so every call always surfaces as {@link ChatResult.Completed}.
  */
 public class OpenAiResponsesResponseConverter {
 
@@ -128,22 +131,33 @@ public class OpenAiResponsesResponseConverter {
         .toolCalls(toolCalls)
         .messageId(response.id())
         .modelId(modelId(response.model()))
-        .stopReason(truncated(response) ? StopReason.LENGTH : null)
+        .stopReason(mapStopReason(response, !toolCalls.isEmpty()))
         .build();
   }
 
   /**
-   * The response is complete except that it was cut off by the max output token limit. Mapped to
-   * {@link StopReason#LENGTH} rather than raised as an error -- mirrors {@code
-   * AnthropicMessageResponseConverter}'s {@code MAX_TOKENS -> LENGTH} mapping; the caller decides
-   * whether/how to react to a truncated turn, the converter never throws for it.
+   * Maps the Responses API's response shape to the domain {@link StopReason}: an {@code
+   * incomplete_details.reason} of {@code max_output_tokens} maps to {@link StopReason#LENGTH}
+   * (returned as a normal completion rather than raised as an error -- the caller decides
+   * whether/how to react to a truncated turn) and {@code content_filter} maps to {@link
+   * StopReason#CONTENT_FILTERED} -- mirroring {@code AnthropicMessageResponseConverter}'s {@code
+   * MAX_TOKENS -> LENGTH} / {@code REFUSAL -> CONTENT_FILTERED} mappings. Otherwise, a response
+   * containing one or more {@code function_call} items maps to {@link StopReason#TOOL_USE}, and a
+   * normal completion maps to {@link StopReason#STOP}.
    */
-  private boolean truncated(Response response) {
-    return response
-        .incompleteDetails()
-        .flatMap(Response.IncompleteDetails::reason)
-        .map(reason -> reason.value() == Response.IncompleteDetails.Reason.Value.MAX_OUTPUT_TOKENS)
-        .orElse(false);
+  private StopReason mapStopReason(Response response, boolean hasToolCalls) {
+    final var incompleteReason =
+        response.incompleteDetails().flatMap(Response.IncompleteDetails::reason);
+    if (incompleteReason.isPresent()) {
+      final var reason = incompleteReason.get();
+      return switch (reason.value()) {
+        case MAX_OUTPUT_TOKENS -> StopReason.LENGTH;
+        case CONTENT_FILTER -> StopReason.CONTENT_FILTERED;
+        default -> new StopReason.UnknownStopReason(reason.asString());
+      };
+    }
+
+    return hasToolCalls ? StopReason.TOOL_USE : StopReason.STOP;
   }
 
   /**

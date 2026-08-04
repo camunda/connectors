@@ -79,6 +79,18 @@ class OpenAiResponsesResponseConverterTest {
         """);
   }
 
+  private static Response contentFilteredResponse() {
+    return responseFromJson(
+        """
+        {
+          "id": "resp_2", "object": "response", "created_at": 0, "model": "gpt-5",
+          "status": "incomplete",
+          "incomplete_details": {"reason": "content_filter"},
+          "output": [], "parallel_tool_calls": true, "tool_choice": "auto", "tools": []
+        }
+        """);
+  }
+
   private static Response responseWithReasoning() {
     return baseResponse(
         """
@@ -119,6 +131,7 @@ class OpenAiResponsesResponseConverterTest {
     assertThat(result.assistantMessage().toolCalls()).isEmpty();
     assertThat(result.assistantMessage().messageId()).isEqualTo("resp_123");
     assertThat(result.assistantMessage().modelId()).isEqualTo("gpt-5");
+    assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.STOP);
   }
 
   @Test
@@ -173,6 +186,7 @@ class OpenAiResponsesResponseConverterTest {
                 .arguments(Map.of("city", "Berlin"))
                 .build());
     assertThat(result.assistantMessage().content()).isEmpty();
+    assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.TOOL_USE);
   }
 
   @Test
@@ -366,5 +380,14 @@ class OpenAiResponsesResponseConverterTest {
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(((ChatResult.Completed) result).assistantMessage().stopReason())
         .isEqualTo(StopReason.LENGTH);
+  }
+
+  @Test
+  void mapsContentFilteredResponseToContentFilteredWithoutThrowing() {
+    final ChatResult result = converter.toResult(contentFilteredResponse(), Duration.ofSeconds(1));
+
+    assertThat(result).isInstanceOf(ChatResult.Completed.class);
+    assertThat(((ChatResult.Completed) result).assistantMessage().stopReason())
+        .isEqualTo(StopReason.CONTENT_FILTERED);
   }
 }
