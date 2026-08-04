@@ -9,14 +9,39 @@ package io.camunda.connector.textract;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequest;
+import java.io.File;
+import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Test;
 
 /** Pins the "Camunda Document" document-source contract: v7 supplies sync, pre-v7 is rejected. */
 class TextractCamundaDocumentSourceTest {
+
+  private static final File TEMPLATE_FILE =
+      new File("element-templates/aws-textract-outbound-connector.json");
+
+  @Test
+  void v7TemplateBindsUploadedExecutionTypeToSyncOnUploadedSource() throws Exception {
+    JsonNode template = new ObjectMapper().readTree(TEMPLATE_FILE);
+    JsonNode property =
+        StreamSupport.stream(template.get("properties").spliterator(), false)
+            .filter(p -> p.has("id"))
+            .filter(p -> "input.uploadedExecutionType".equals(p.get("id").asText()))
+            .findFirst()
+            .orElseThrow(
+                () -> new AssertionError("input.uploadedExecutionType property not found"));
+
+    assertThat(property.get("binding").get("name").asText()).isEqualTo("input.executionType");
+    assertThat(property.get("value").asText()).isEqualTo("SYNC");
+    assertThat(property.get("condition").get("property").asText())
+        .isEqualTo("input.documentLocationType");
+    assertThat(property.get("condition").get("equals").asText()).isEqualTo("UPLOADED");
+  }
 
   /** What template v7 emits for the Camunda document source. */
   private static final String V7_CAMUNDA_DOCUMENT_VARIABLES =
