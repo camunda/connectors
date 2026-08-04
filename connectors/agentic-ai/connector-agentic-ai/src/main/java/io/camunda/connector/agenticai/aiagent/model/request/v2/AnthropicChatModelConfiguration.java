@@ -159,7 +159,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       @JsonIgnore
       @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
       public boolean isDefaultCredentialsChainUsedInSaaS() {
-        return ConnectorUtils.isSaaS()
+        return bedrock != null
+            && ConnectorUtils.isSaaS()
             && bedrock.authentication()
                 instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
       }
@@ -179,7 +180,11 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   group = "provider",
                   label = "Custom endpoint",
                   description =
-                      "Custom API endpoint for VPC/PrivateLink configurations or other non-standard deployments.",
+                      "Custom API endpoint for VPC/PrivateLink configurations or other non-standard "
+                          + "deployments. Must be the full Bedrock Mantle base URL, including the "
+                          + "<code>/anthropic</code> path segment (e.g. "
+                          + "<code>https://your-vpce-host/anthropic</code>) — it replaces the default "
+                          + "<code>https://bedrock-mantle.&lt;region&gt;.api.aws/anthropic</code> verbatim.",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
                   optional = true)

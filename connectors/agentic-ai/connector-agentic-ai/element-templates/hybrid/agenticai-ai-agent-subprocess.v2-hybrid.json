@@ -235,7 +235,7 @@
   }, {
     "id" : "provider.anthropic.backend.bedrock.endpoint",
     "label" : "Custom endpoint",
-    "description" : "Custom API endpoint for VPC/PrivateLink configurations or other non-standard deployments.",
+    "description" : "Custom API endpoint for VPC/PrivateLink configurations or other non-standard deployments. Must be the full Bedrock Mantle base URL, including the <code>/anthropic</code> path segment (e.g. <code>https://your-vpce-host/anthropic</code>) — it replaces the default <code>https://bedrock-mantle.&lt;region&gt;.api.aws/anthropic</code> verbatim.",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
