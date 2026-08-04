@@ -25,6 +25,7 @@
     <version.errorprone>2.50.0</version.errorprone>
     <version.nullaway>0.13.8</version.nullaway>
     <version.anthropic-java>2.54.0</version.anthropic-java>
+    <version.openai-java>4.50.0</version.openai-java>
     <version.java-uuid-generator>5.2.0</version.java-uuid-generator>
   </properties>
 
@@ -188,6 +189,23 @@
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp-jvm</artifactId>
       <version>${version.okhttp}</version>
+    </dependency>
+
+    <!--
+      openai-java mirrors anthropic-java's structure (both Stainless-generated): declared directly
+      rather than via the com.openai:openai-java aggregator, so the OkHttp client artifact and the
+      models core stay independently visible. okhttp-jvm is already declared above (OkHttp 5's
+      `okhttp` artifact is an empty shell) and covers this client too.
+    -->
+    <dependency>
+      <groupId>com.openai</groupId>
+      <artifactId>openai-java-core</artifactId>
+      <version>${version.openai-java}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.openai</groupId>
+      <artifactId>openai-java-client-okhttp</artifactId>
+      <version>${version.openai-java}</version>
     </dependency>
 
     <!-- Native MCP Java SDK -->
@@ -475,6 +493,19 @@
                      dependency declaration above); the analyzer would otherwise flag it unused. -->
                 <ignoredDependency>com.squareup.okhttp3:okhttp-jvm</ignoredDependency>
               </ignoredDependencies>
+              <!--
+                Task 1 of the native OpenAI provider plan only adds openai-java-core /
+                openai-java-client-okhttp and a compile-time surface-pinning test
+                (OpenAiSdkSurfaceTest); no production code depends on them yet, so the analyzer
+                flags both as "non-test scoped test only dependencies". Remove this ignore once a
+                later task wires the SDK into production code (chat model API factory / wire
+                mappers), mirroring the anthropic-java-core / anthropic-java-client-okhttp
+                dependencies above.
+              -->
+              <ignoredNonTestScopedDependencies combine.children="append">
+                <dependency>com.openai:openai-java-core</dependency>
+                <dependency>com.openai:openai-java-client-okhttp</dependency>
+              </ignoredNonTestScopedDependencies>
             </configuration>
           </execution>
         </executions>
