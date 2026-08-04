@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -71,6 +72,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProvi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
@@ -768,6 +770,20 @@ class ChatModelFactoryTest {
     }
 
     @Test
+    void throwsForTimeoutExceedingIntegerMillisRange() {
+      final var providerConfig =
+          createProviderConfig(
+              null,
+              new TimeoutConfiguration(Duration.ofDays(30)),
+              new ApplicationDefaultCredentialsAuthentication(),
+              null);
+
+      assertThatThrownBy(() -> chatModelFactory.createChatModel(providerConfig))
+          .isInstanceOf(ConnectorInputException.class)
+          .hasMessageContaining("exceeds the maximum supported by the Google GenAI SDK");
+    }
+
+    @Test
     void appliesCustomEndpoint() {
       testGoogleVertexAiChatModelBuilder(
           createProviderConfig(
@@ -802,7 +818,9 @@ class ChatModelFactoryTest {
     void appliesProxyOptionsWhenConfigured() {
       final var proxyOptions =
           ProxyOptions.builder().type(ProxyType.Known.HTTP).host("proxy.local").port(8080).build();
-      doReturn(Optional.of(proxyOptions)).when(proxySupport).createGoogleGenAiProxyOptions(any());
+      doReturn(Optional.of(proxyOptions))
+          .when(proxySupport)
+          .createGoogleGenAiProxyOptions(any(), any());
 
       testGoogleVertexAiChatModelBuilder(
           createProviderConfig(null, null, new ApplicationDefaultCredentialsAuthentication(), null),
@@ -859,7 +877,9 @@ class ChatModelFactoryTest {
         assertThat(((CloseableChatModelDelegate) chatModel).resource()).isSameAs(client);
 
         verify(proxySupport)
-            .createGoogleGenAiProxyOptions(providerConfig.googleVertexAi().endpoint());
+            .createGoogleGenAiProxyOptions(
+                providerConfig.googleVertexAi().endpoint(),
+                providerConfig.googleVertexAi().region());
 
         builderAssertions.accept(
             new GoogleVertexAiBuilderContext(clientBuilder, client, chatModelBuilder));
