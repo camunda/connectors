@@ -105,7 +105,8 @@ public record PropertyGroup(
           .label("Retries")
           .properties(
               CommonProperties.retryCount().binding(ZeebeTaskDefinition.RETRIES).build(),
-              CommonProperties.retryBackoff().binding(new ZeebeTaskHeader("retryBackoff")).build())
+              CommonProperties.retryBackoff().binding(new ZeebeTaskHeader("retryBackoff")).build(),
+              CommonProperties.jobTimeout().binding(new ZeebeTaskHeader("jobTimeout")).build())
           .build();
 
   public static PropertyGroup ACTIVATION_GROUP =

@@ -117,6 +117,18 @@ public class CommonProperties {
         .value("PT30S");
   }
 
+  public static PropertyBuilder jobTimeout() {
+    return StringProperty.builder()
+        .id("jobTimeout")
+        .label("Job timeout")
+        .feel(FeelMode.disabled)
+        .description(
+            "ISO-8601 duration after which Zeebe considers this job timed out if not yet "
+                + "completed. Leave empty to use the default timeout")
+        .group("retries")
+        .optional(true);
+  }
+
   public static PropertyBuilder activationCondition() {
     return StringProperty.builder()
         .id("activationCondition")
