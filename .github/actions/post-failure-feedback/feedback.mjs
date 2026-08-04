@@ -6,6 +6,8 @@
 //   FB_EVIDENCE        optional free-text evidence (e.g. failing step name)
 //   FB_REPO            owner/repo of the failing run (for links)
 //   FB_PR              PR number, or a merge_group head_ref to extract it from, or empty
+//   FB_PR_IS_DRAFT     "true"/"false" when the caller knows it; empty → resolve via API
+//   FB_SKIP_ON_DRAFT   "false" to Slack-alert on draft PRs too (default: skip)
 //   FB_COOKBOOK_URL    debugging cookbook link
 //   FB_SLACK_CHANNEL   Slack channel id/name (optional → skip Slack)
 //   GH_TOKEN           token with PR write on FB_REPO (optional → skip PR comment)
@@ -22,6 +24,18 @@ const MARKER = '<!-- alwaysgreen-feedback -->'; // upsert anchor
 const ASK = 'https://camunda.slack.com/archives/C0AQ378VBEV'; // #ask-alwaysgreen
 const RELIABILITY =
   'https://camunda.slack.com/archives/C0AK0AVKRL0'; // #alwaysgreen-reliability
+
+// Owner→medic Slack subteam map — keep in sync with the streak detectors.
+const MEDIC = {
+  '@camunda/test-automation-team': '<!subteam^S09UF0EV0HG|test-automation-medic>',
+  '@camunda/distribution': '<!subteam^S053K7C7QKU|distribution-medic>',
+  '@camunda/engineering-operations': '<!subteam^S07D6C6B18T|monorepo-ci-medic>',
+  '@camunda/core-features': '<!subteam^S08P2CU9V8W|core-features-medic>',
+};
+// No fallback: an unmapped/missing owner (e.g. the "unknown" default) must not
+// silently page monorepo-ci-medic. Returns '' (nothing to concatenate) when
+// there's no mapping, so callers don't need to worry about spacing either.
+const medicMention = (owner) => (MEDIC[owner] ? ` ${MEDIC[owner]}` : '');
 
 const CATALOG = {
   product: {
@@ -102,6 +116,8 @@ function model() {
     repo: env('FB_REPO'),
     cookbook: env('FB_COOKBOOK_URL'),
     pr,
+    prIsDraft: env('FB_PR_IS_DRAFT').toLowerCase(),
+    skipOnDraft: env('FB_SKIP_ON_DRAFT', 'true').toLowerCase() !== 'false',
   };
 }
 
@@ -141,7 +157,7 @@ function slackText(m) {
   ]
     .filter(Boolean)
     .join(' · ');
-  return `${m.emoji} *AlwaysGreen — ${m.title}*\n*Stage:* \`${m.stage}\` · *Category:* \`${m.category}\` · *Owner:* ${m.owner}${prLink}\n*Evidence:* ${ev}\n*Next steps:*\n${steps}\n${links}`;
+  return `${m.emoji} *AlwaysGreen — ${m.title}*\n*Stage:* \`${m.stage}\` · *Category:* \`${m.category}\` · *Owner:* ${m.owner}${medicMention(m.owner)}${prLink}\n*Evidence:* ${ev}\n*Next steps:*\n${steps}\n${links}`;
 }
 
 const gh = (args) => exec('gh', args, {maxBuffer: 64 * 1024 * 1024});
@@ -194,12 +210,50 @@ async function upsertPrComment(m, md) {
   }
 }
 
+// Draft state of m.pr: the caller-supplied value first (no API call), then the
+// API. Returns null when it can't be determined — that is treated as "not a
+// draft" so an unresolvable lookup never silences a real failure.
+async function resolveDraft(m) {
+  if (!m.pr) return false;
+  if (m.prIsDraft === 'true') return true;
+  if (m.prIsDraft === 'false') return false;
+  if (!m.repo || !env('GH_TOKEN')) return null;
+  try {
+    const {stdout} = await gh([
+      'api',
+      `repos/${m.repo}/pulls/${m.pr}`,
+      '--jq',
+      '.draft',
+    ]);
+    const draft = stdout.trim();
+    if (draft === 'true') return true;
+    if (draft === 'false') return false;
+    return null;
+  } catch (e) {
+    console.error(`[feedback] draft lookup failed: ${e.message || e}`);
+    return null;
+  }
+}
+
 async function postSlack(m) {
   const channel = env('FB_SLACK_CHANNEL');
   const token = env('SLACK_BOT_TOKEN');
   if (!channel || !token) {
     console.log('[feedback] Slack skipped (no channel/token)');
     return;
+  }
+  // Draft PRs are work in progress: their failures are expected often enough
+  // that alerting on them is noise for everyone but the author, who still gets
+  // the job summary and the PR comment.
+  if (m.skipOnDraft) {
+    const draft = await resolveDraft(m);
+    if (draft === true) {
+      console.log(`[feedback] Slack skipped (PR #${m.pr} is a draft)`);
+      return;
+    }
+    if (draft === null) {
+      console.log('[feedback] draft state unresolved — posting to Slack anyway');
+    }
   }
   try {
     const res = await fetch('https://slack.com/api/chat.postMessage', {
