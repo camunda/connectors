@@ -74,13 +74,12 @@ except in compliance with the proprietary license.</license.inlineheader>
       <scope>test</scope>
     </dependency>
 
-    <!-- used directly in golden-JSON shape tests to serialize with the production ObjectMapper
-         and assert against the expected JsonNode tree; otherwise only a transitive compile
-         dependency via connector-aws-base -->
+    <!-- used in main code to serialize the analysis result for the document return format, and
+         directly in golden-JSON shape tests to serialize with the production ObjectMapper and
+         assert against the expected JsonNode tree -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <scope>test</scope>
     </dependency>
 
   </dependencies>

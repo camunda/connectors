@@ -6,12 +6,36 @@
  */
 package io.camunda.connector.textract.model;
 
+import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
+import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
+import io.camunda.connector.generator.java.annotation.FieldVisibility;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
+@DocumentReturnFormat(
+    group = "input",
+    supportedFormats = {DocumentReturnChoice.JSON, DocumentReturnChoice.DOCUMENT},
+    defaultFormat = DocumentReturnChoice.JSON,
+    // TEXT is left out: the payload is always a JSON analysis tree, so decoding the bytes into a
+    // String would only yield the same JSON as a single unusable blob.
+    encoding = FieldVisibility.HIDDEN,
+    tooltip =
+        "How the analysis result should be returned. JSON returns the result directly in the"
+            + " process variables; Document reference uploads it to the document store and returns"
+            + " the reference.",
+    // Element template conditions have no OR, and "oneOf {SYNC, POLLING}" on input.executionType
+    // cannot be used: on the uploaded-document path that property is inactive, so its value is
+    // removed from the XML and the condition never matches. The output bucket is active exactly
+    // when the execution type is ASYNC, which makes "not active" the negation we need. Revisit
+    // this if outputConfigS3Bucket's own condition changes.
+    condition =
+        @TemplateProperty.PropertyCondition(
+            property = "input.outputConfigS3Bucket",
+            isActive = false))
 public class TextractRequest extends AwsBaseRequest {
   @Valid @NotNull private TextractRequestData input;
 
