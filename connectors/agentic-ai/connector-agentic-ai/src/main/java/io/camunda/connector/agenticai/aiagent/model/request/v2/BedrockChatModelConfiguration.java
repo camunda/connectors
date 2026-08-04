@@ -167,7 +167,21 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
                 type = TemplateProperty.PropertyType.Hidden,
                 feel = FeelMode.disabled,
                 optional = true)
-            @Nullable Map<String, Object> requestParameters) {}
+            @Nullable Map<String, Object> requestParameters) {
+
+      @Override
+      public String toString() {
+        return "BedrockModelParameters{promptCaching="
+            + promptCaching
+            + ", maxTokens="
+            + maxTokens
+            + ", temperature="
+            + temperature
+            + ", topP="
+            + topP
+            + ", requestParameters=[REDACTED]}";
+      }
+    }
 
     /**
      * Amazon Bedrock automatic prompt caching. A record rather than a bare boolean so it stays

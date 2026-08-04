@@ -134,6 +134,17 @@ class BedrockChatModelConfigurationTest {
   }
 
   @Test
+  void bedrockModelParametersRedactsRequestParametersInToString() {
+    final var parameters =
+        new BedrockModelParameters(
+            null, null, null, null, Map.of("some-request-param", "some-request-value"));
+
+    assertThat(parameters.toString())
+        .doesNotContain("some-request-value")
+        .contains("requestParameters=[REDACTED]");
+  }
+
+  @Test
   void requiredBedrockFieldsAreEnforced() {
     final var config =
         new BedrockChatModelConfiguration(
