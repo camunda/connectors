@@ -131,6 +131,9 @@
       "name" : "Anthropic",
       "value" : "anthropic"
     }, {
+      "name" : "OpenAI",
+      "value" : "openai"
+    }, {
       "name" : "Custom Implementation (Self-Managed/Hybrid only)",
       "value" : "custom"
     } ]
@@ -477,6 +480,334 @@
     "condition" : {
       "property" : "provider.type",
       "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.api.type",
+    "label" : "API",
+    "description" : "Specify which OpenAI API to use.",
+    "value" : "responses",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.api.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Chat Completions",
+      "value" : "completions"
+    }, {
+      "name" : "Responses",
+      "value" : "responses"
+    } ]
+  }, {
+    "id" : "provider.openai.backend.type",
+    "label" : "Backend",
+    "description" : "Specify how the OpenAI API is reached.",
+    "value" : "openai-api",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "OpenAI API",
+      "value" : "openai-api"
+    }, {
+      "name" : "Custom / compatible endpoint",
+      "value" : "custom"
+    } ]
+  }, {
+    "id" : "provider.openai.backend.openai.apiKey",
+    "label" : "OpenAI API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.openai.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.openai.organizationId",
+    "label" : "Organization ID",
+    "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.openai.organizationId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.openai.projectId",
+    "label" : "Project ID",
+    "description" : "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.openai.projectId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.openai.endpoint",
+    "label" : "API endpoint",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.openai.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.openai.headers",
+    "label" : "Headers",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.openai.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.openai.queryParameters",
+    "label" : "Query parameters",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.openai.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.custom.endpoint",
+    "label" : "API endpoint",
+    "description" : "Base URL of the OpenAI-compatible API; <code>/chat/completions</code> or <code>/responses</code> will be appended depending on the selected API.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "placeholder" : "https://api.openai.com/v1",
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.custom.headers",
+    "label" : "Headers",
+    "description" : "Map of HTTP headers to add to the request.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.custom.queryParameters",
+    "label" : "Query parameters",
+    "description" : "Map of query parameters to add to the request URL.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.custom.authentication.type",
+    "label" : "Authentication",
+    "description" : "Authentication for the compatible API.",
+    "value" : "none",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
+      "name" : "API key",
+      "value" : "apiKey"
+    } ]
+  }, {
+    "id" : "provider.openai.backend.custom.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.custom.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.timeouts.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.timeouts.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
       "type" : "simple"
     },
     "type" : "String"
@@ -871,6 +1202,111 @@
     "tooltip" : "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
     "type" : "Boolean"
   }, {
+    "id" : "provider.openai.api.completions.effort",
+    "label" : "Effort",
+    "description" : "Leave unset to use the model default.",
+    "optional" : true,
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openai.api.completions.effort",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.api.type",
+        "equals" : "completions",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models.<br><br>See the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-reasoning_effort\" target=\"_blank\">Chat Completions API reference</a>.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "minimal",
+      "value" : "minimal"
+    }, {
+      "name" : "low",
+      "value" : "low"
+    }, {
+      "name" : "medium",
+      "value" : "medium"
+    }, {
+      "name" : "high",
+      "value" : "high"
+    }, {
+      "name" : "xhigh",
+      "value" : "xhigh"
+    }, {
+      "name" : "max",
+      "value" : "max"
+    } ]
+  }, {
+    "id" : "provider.openai.api.responses.effort",
+    "label" : "Effort",
+    "description" : "Leave unset to use the model default.",
+    "optional" : true,
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openai.api.responses.effort",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.api.type",
+        "equals" : "responses",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models.<br><br>See the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-reasoning\" target=\"_blank\">Responses API reference</a>.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "minimal",
+      "value" : "minimal"
+    }, {
+      "name" : "low",
+      "value" : "low"
+    }, {
+      "name" : "medium",
+      "value" : "medium"
+    }, {
+      "name" : "high",
+      "value" : "high"
+    }, {
+      "name" : "xhigh",
+      "value" : "xhigh"
+    }, {
+      "name" : "max",
+      "value" : "max"
+    } ]
+  }, {
+    "id" : "provider.openai.model.model",
+    "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openai.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "placeholder" : "gpt-5.5",
+    "type" : "String"
+  }, {
     "id" : "provider.model",
     "label" : "Model",
     "description" : "Identifier of the model to use.",
@@ -958,6 +1394,188 @@
     },
     "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
+  }, {
+    "id" : "provider.openai.api.completions.maxCompletionTokens",
+    "label" : "Max completion tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.openai.api.completions.maxCompletionTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.api.type",
+        "equals" : "completions",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.api.completions.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.openai.api.completions.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.api.type",
+        "equals" : "completions",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.api.completions.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.openai.api.completions.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.api.type",
+        "equals" : "completions",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.api.responses.maxOutputTokens",
+    "label" : "Max output tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.openai.api.responses.maxOutputTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.api.type",
+        "equals" : "responses",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-max_output_tokens\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.api.responses.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.openai.api.responses.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.api.type",
+        "equals" : "responses",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-temperature\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.api.responses.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.openai.api.responses.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.api.type",
+        "equals" : "responses",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-top_p\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.backend.openai.requestParameters",
+    "label" : "Request parameters",
+    "optional" : true,
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.openai.backend.openai.requestParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.custom.requestParameters",
+    "label" : "Request parameters",
+    "description" : "Map of additional parameters to include in the request body.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.requestParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "data.systemPrompt.prompt",
     "label" : "System prompt",
