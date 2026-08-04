@@ -102,7 +102,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
           @TemplateProperty(
                   group = "provider",
                   label = "Headers",
-                  description = "Map of HTTP headers to add to the request.",
+                  tooltip = "Map of HTTP headers to add to the request.",
                   type = TemplateProperty.PropertyType.Hidden,
                   feel = FeelMode.disabled,
                   optional = true)
@@ -111,7 +111,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
               @TemplateProperty(
                   group = "provider",
                   label = "Query parameters",
-                  description = "Map of query parameters to add to the request URL.",
+                  tooltip = "Map of query parameters to add to the request URL.",
                   type = TemplateProperty.PropertyType.Hidden,
                   feel = FeelMode.disabled,
                   optional = true)
@@ -119,7 +119,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
           @TemplateProperty(
                   group = "model-options",
                   label = "Request parameters",
-                  description = "Map of additional parameters to include in the request body.",
+                  tooltip = "Map of additional parameters to include in the request body.",
                   type = TemplateProperty.PropertyType.Hidden,
                   feel = FeelMode.disabled,
                   optional = true)
@@ -168,7 +168,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
           @TemplateProperty(
                   group = "provider",
                   label = "Headers",
-                  description = "Map of HTTP headers to add to the request.",
+                  tooltip = "Map of HTTP headers to add to the request.",
                   feel = FeelMode.required,
                   optional = true)
               @Nullable Map<String, String> headers,
@@ -176,14 +176,14 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
               @TemplateProperty(
                   group = "provider",
                   label = "Query parameters",
-                  description = "Map of query parameters to add to the request URL.",
+                  tooltip = "Map of query parameters to add to the request URL.",
                   feel = FeelMode.required,
                   optional = true)
               @Nullable Map<@NotBlank String, String> queryParameters,
           @TemplateProperty(
                   group = "model-options",
                   label = "Request parameters",
-                  description = "Map of additional parameters to include in the request body.",
+                  tooltip = "Map of additional parameters to include in the request body.",
                   feel = FeelMode.required,
                   optional = true)
               @Nullable Map<String, Object> requestParameters,
