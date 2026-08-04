@@ -377,4 +377,138 @@ class ChatModelHttpProxySupportTest {
       }
     }
   }
+
+  @Nested
+  class CreateGoogleGenAiProxyOptions {
+
+    private static final String REGION = "us-central1";
+    private static final String GLOBAL_REGION = "global";
+
+    @Test
+    void shouldReturnEmptyWhenNoProxyConfigured() {
+      // given
+      when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.empty());
+
+      try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
+        nonProxyHostsMock.when(() -> NonProxyHosts.isNonProxyHost(any())).thenReturn(false);
+
+        // when
+        var result = proxySupport.createGoogleGenAiProxyOptions(HTTPS_ENDPOINT, REGION);
+
+        // then
+        assertThat(result).isEmpty();
+      }
+    }
+
+    @Test
+    void shouldCreateProxyOptionsForCustomEndpoint() {
+      // given
+      var proxyDetails = new ProxyDetails(SCHEME_HTTPS, PROXY_HOST, PROXY_PORT, null, null);
+      when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.of(proxyDetails));
+
+      try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
+        nonProxyHostsMock.when(() -> NonProxyHosts.isNonProxyHost(any())).thenReturn(false);
+
+        // when
+        var result = proxySupport.createGoogleGenAiProxyOptions(HTTPS_ENDPOINT, REGION);
+
+        // then
+        assertThat(result).isPresent();
+        var proxyOptions = result.get();
+        assertThat(proxyOptions.type())
+            .isPresent()
+            .get()
+            .extracting(com.google.genai.types.ProxyType::knownEnum)
+            .isEqualTo(com.google.genai.types.ProxyType.Known.HTTP);
+        assertThat(proxyOptions.host()).contains(PROXY_HOST);
+        assertThat(proxyOptions.port()).contains(PROXY_PORT);
+        assertThat(proxyOptions.username()).isEmpty();
+        nonProxyHostsMock.verify(() -> NonProxyHosts.isNonProxyHost("example.com"));
+      }
+    }
+
+    @Test
+    void shouldCreateProxyOptionsWithCredentials() {
+      // given
+      var proxyDetails =
+          new ProxyDetails(SCHEME_HTTPS, PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASSWORD);
+      when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.of(proxyDetails));
+
+      try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
+        nonProxyHostsMock.when(() -> NonProxyHosts.isNonProxyHost(any())).thenReturn(false);
+
+        // when
+        var result = proxySupport.createGoogleGenAiProxyOptions(HTTPS_ENDPOINT, REGION);
+
+        // then
+        assertThat(result).isPresent();
+        var proxyOptions = result.get();
+        assertThat(proxyOptions.username()).contains(PROXY_USER);
+        assertThat(proxyOptions.password()).contains(PROXY_PASSWORD);
+      }
+    }
+
+    @Test
+    void shouldResolveDefaultRegionalHostWhenEndpointNotConfigured() {
+      // given
+      when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.empty());
+
+      try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
+        nonProxyHostsMock.when(() -> NonProxyHosts.isNonProxyHost(any())).thenReturn(false);
+
+        // when
+        proxySupport.createGoogleGenAiProxyOptions(null, REGION);
+
+        // then
+        nonProxyHostsMock.verify(
+            () -> NonProxyHosts.isNonProxyHost(REGION + "-aiplatform.googleapis.com"));
+      }
+    }
+
+    @Test
+    void shouldResolveDefaultGlobalHostWhenEndpointNotConfiguredAndRegionIsGlobal() {
+      // given
+      when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.empty());
+
+      try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
+        nonProxyHostsMock.when(() -> NonProxyHosts.isNonProxyHost(any())).thenReturn(false);
+
+        // when
+        proxySupport.createGoogleGenAiProxyOptions(null, GLOBAL_REGION);
+
+        // then
+        nonProxyHostsMock.verify(() -> NonProxyHosts.isNonProxyHost("aiplatform.googleapis.com"));
+      }
+    }
+
+    @Test
+    void shouldSkipProxyForNonProxyHostViaCustomEndpoint() {
+      try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
+        nonProxyHostsMock.when(() -> NonProxyHosts.isNonProxyHost("example.com")).thenReturn(true);
+
+        // when
+        var result = proxySupport.createGoogleGenAiProxyOptions(HTTPS_ENDPOINT, REGION);
+
+        // then
+        assertThat(result).isEmpty();
+        verify(proxyConfiguration, Mockito.never()).getProxyDetails(any());
+      }
+    }
+
+    @Test
+    void shouldSkipProxyForNonProxyDefaultHost() {
+      try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
+        nonProxyHostsMock
+            .when(() -> NonProxyHosts.isNonProxyHost(REGION + "-aiplatform.googleapis.com"))
+            .thenReturn(true);
+
+        // when
+        var result = proxySupport.createGoogleGenAiProxyOptions(null, REGION);
+
+        // then
+        assertThat(result).isEmpty();
+        verify(proxyConfiguration, Mockito.never()).getProxyDetails(any());
+      }
+    }
+  }
 }
