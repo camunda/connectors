@@ -161,6 +161,32 @@ class StreamConnectivityTest {
     assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.PARTIALLY_CONNECTED);
   }
 
+  @Test
+  void
+      compute_shouldReturnAllConnected_whenBothBrokersIndependentlySplitJobTypeAcrossMultipleEntries() {
+    // Both brokers hit the split-entry quirk independently: 2 brokers, 2 entries each (4 entries
+    // total) — every broker still has a valid consumer, so this must be ALL_CONNECTED. Under the
+    // old per-entry counting, 4 entries vs. totalBrokerCount=2 would have wrongly produced
+    // PARTIALLY_CONNECTED even though both brokers are fully connected.
+    var broker1Entry1 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_1)));
+    var broker1Entry2 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_2)));
+    var broker2Entry1 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", "stream-ghi-789")));
+    var broker2Entry2 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", "stream-jkl-012")));
+
+    var result =
+        StreamConnectivity.compute(
+            JOB_TYPE,
+            Optional.of(
+                new BrokerStreamsResult(
+                    List.of(
+                        List.of(broker1Entry1, broker1Entry2),
+                        List.of(broker2Entry1, broker2Entry2)))));
+
+    assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.ALL_CONNECTED);
+    assertThat(result.streamIds())
+        .containsExactlyInAnyOrder(STREAM_ID_1, STREAM_ID_2, "stream-ghi-789", "stream-jkl-012");
+  }
+
   // ---------------------------------------------------------------------------
   // compute() — streamIds
   // ---------------------------------------------------------------------------
