@@ -147,7 +147,7 @@ public class HttpOutboundElementTemplateBuilder {
     groups.add(PropertyUtil.parametersPropertyGroup(operations));
     groups.add(PropertyUtil.requestBodyPropertyGroup(operations));
     groups.add(PropertyUtil.urlPropertyGroup());
-    groups.add(PropertyGroup.OUTPUT_GROUP_OUTBOUND.apply(null, null));
+    groups.add(PropertyGroup.outputGroupOutbound(null, null, null));
     groups.add(PropertyGroup.ERROR_GROUP);
     groups.add(PropertyGroup.RETRIES_GROUP);
 

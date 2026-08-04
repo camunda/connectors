@@ -30,7 +30,7 @@ public record HttpCommonResult(
     this(status, headers, body, null, null);
   }
 
-  @DataExample(id = "basic", feel = "= body.order.id")
+  @DataExample(id = "basic", feel = "= { orderId: body.order.id }")
   public static HttpCommonResult exampleResult() {
     Map<String, Object> headers = Map.of("Content-Type", "application/json");
     var body = Map.of("order", Map.of("id", "123", "total", "100.00€"));

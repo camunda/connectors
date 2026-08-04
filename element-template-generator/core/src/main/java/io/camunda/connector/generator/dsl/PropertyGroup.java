@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
 
 @JsonInclude(Include.NON_NULL)
 public record PropertyGroup(
@@ -38,19 +39,24 @@ public record PropertyGroup(
     String tooltip,
     Boolean openByDefault) {
 
-  public static BiFunction<String, String, PropertyGroup> OUTPUT_GROUP_OUTBOUND =
-      (resultVariableValue, resultExpressionValue) ->
-          PropertyGroup.builder()
-              .id("output")
-              .label("Output mapping")
-              .properties(
-                  CommonProperties.resultVariable(resultVariableValue)
-                      .binding(new ZeebeTaskHeader("resultVariable"))
-                      .build(),
-                  CommonProperties.resultExpression(resultExpressionValue)
-                      .binding(new ZeebeTaskHeader("resultExpression"))
-                      .build())
-              .build();
+  public static PropertyGroup outputGroupOutbound(
+      String resultVariableValue,
+      String resultExpressionValue,
+      String resultExpressionExampleTooltip) {
+    return PropertyGroup.builder()
+        .id("output")
+        .label("Output mapping")
+        .properties(
+            CommonProperties.resultVariable(resultVariableValue)
+                .binding(new ZeebeTaskHeader("resultVariable"))
+                .build(),
+            withExampleTooltip(
+                    CommonProperties.resultExpression(resultExpressionValue),
+                    resultExpressionExampleTooltip)
+                .binding(new ZeebeTaskHeader("resultExpression"))
+                .build())
+        .build();
+  }
 
   public static BiFunction<String, Long, PropertyGroup> ADD_CONNECTORS_DETAILS_OUTPUT =
       (id, version) ->
@@ -64,19 +70,24 @@ public record PropertyGroup(
                   CommonProperties.id(id).binding(new ZeebeTaskHeader("elementTemplateId")).build())
               .build();
 
-  public static BiFunction<String, String, PropertyGroup> OUTPUT_GROUP_INBOUND =
-      (resultVariableValue, resultExpressionValue) ->
-          PropertyGroup.builder()
-              .id("output")
-              .label("Output mapping")
-              .properties(
-                  CommonProperties.resultVariable(resultVariableValue)
-                      .binding(new ZeebeProperty("resultVariable"))
-                      .build(),
-                  CommonProperties.resultExpression(resultExpressionValue)
-                      .binding(new ZeebeProperty("resultExpression"))
-                      .build())
-              .build();
+  public static PropertyGroup outputGroupInbound(
+      String resultVariableValue,
+      String resultExpressionValue,
+      String resultExpressionExampleTooltip) {
+    return PropertyGroup.builder()
+        .id("output")
+        .label("Output mapping")
+        .properties(
+            CommonProperties.resultVariable(resultVariableValue)
+                .binding(new ZeebeProperty("resultVariable"))
+                .build(),
+            withExampleTooltip(
+                    CommonProperties.resultExpression(resultExpressionValue),
+                    resultExpressionExampleTooltip)
+                .binding(new ZeebeProperty("resultExpression"))
+                .build())
+        .build();
+  }
 
   public static PropertyGroup ERROR_GROUP =
       PropertyGroup.builder()
@@ -198,6 +209,22 @@ public record PropertyGroup(
               CommonProperties.deduplicationModeManual().build(),
               CommonProperties.deduplicationModeAuto().build())
           .build();
+
+  /**
+   * Merges an auto-generated example tooltip onto a property that may already carry one, instead of
+   * silently overwriting it.
+   */
+  private static PropertyBuilder withExampleTooltip(
+      PropertyBuilder builder, String exampleTooltip) {
+    if (StringUtils.isBlank(exampleTooltip)) {
+      return builder;
+    }
+    var existingTooltip = builder.getTooltip();
+    return builder.tooltip(
+        StringUtils.isNotBlank(existingTooltip)
+            ? existingTooltip + exampleTooltip
+            : exampleTooltip);
+  }
 
   public PropertyGroup {
     if (id == null) {

@@ -56,6 +56,10 @@ public abstract class PropertyBuilder {
     return group;
   }
 
+  public String getTooltip() {
+    return tooltip;
+  }
+
   public PropertyBuilder id(String name) {
     this.id = name;
     return this;

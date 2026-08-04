@@ -19,6 +19,8 @@ package io.camunda.connector.generator.java;
 import static io.camunda.connector.generator.java.util.OperationBasedConnectorUtil.*;
 import static io.camunda.connector.generator.java.util.TemplateGenerationStringUtil.camelCaseToSpaces;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -38,9 +40,11 @@ import io.camunda.connector.util.reflection.ReflectionUtil;
 import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.util.*;
 import java.util.regex.Pattern;
+import org.apache.commons.lang3.StringUtils;
 
 public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Class<?>> {
 
+  private static final ObjectMapper TOOLTIP_JSON_MAPPER = new ObjectMapper();
   private static final Pattern SEM_VER_PATTERN =
       Pattern.compile(
           "^(?:[~^]?(?:0|[1-9]\\d*)\\.(?:\\d+)(?:\\.\\d+)?(?:-[\\da-z.-]+)?(?:\\+[\\da-z.-]+)?|\\*|\\d+\\.\\d+|\\d+)(?:\\s*[-,]\\s*[~^]?(?:0|[1-9]\\d*)\\.(?:\\d+)(?:\\.\\d+)?(?:-[\\da-z.-]+)?(?:\\+[\\da-z.-]+)?)?$");
@@ -295,12 +299,16 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       GeneratorConfiguration configuration,
       ElementTemplate template) {
     var newGroups = new ArrayList<>(groups);
+    var resultExpressionExampleTooltip =
+        buildResultExpressionExampleTooltip(template.outputDataClass());
     if (context instanceof Outbound) {
       newGroups.add(
           PropertyGroup.ADD_CONNECTORS_DETAILS_OUTPUT.apply(template.id(), template.version()));
       newGroups.add(
-          PropertyGroup.OUTPUT_GROUP_OUTBOUND.apply(
-              template.defaultResultVariable(), template.defaultResultExpression()));
+          PropertyGroup.outputGroupOutbound(
+              template.defaultResultVariable(),
+              template.defaultResultExpression(),
+              resultExpressionExampleTooltip));
       newGroups.add(PropertyGroup.ERROR_GROUP);
       newGroups.add(PropertyGroup.RETRIES_GROUP);
     } else {
@@ -332,10 +340,64 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
         newGroups.add(PropertyGroup.DEDUPLICATION_GROUP);
       }
       newGroups.add(
-          PropertyGroup.OUTPUT_GROUP_INBOUND.apply(
-              template.defaultResultVariable(), template.defaultResultExpression()));
+          PropertyGroup.outputGroupInbound(
+              template.defaultResultVariable(),
+              template.defaultResultExpression(),
+              resultExpressionExampleTooltip));
     }
     return newGroups;
+  }
+
+  private static String buildResultExpressionExampleTooltip(Class<?> outputDataClass) {
+    if (Void.class.equals(outputDataClass)) {
+      return null;
+    }
+    return ClassBasedDocsGenerator.resolvePrimaryExampleData(outputDataClass)
+        .map(ClassBasedTemplateGenerator::formatExampleTooltip)
+        .orElse(null);
+  }
+
+  /**
+   * The example FEEL expression is evaluated directly against the returned example object's own
+   * fields (see {@code ClassBasedDocsGenerator#buildDataExampleModel}), so it necessarily omits any
+   * runtime variable-binding prefix (e.g. {@code response.} for outbound connectors, {@code
+   * request.} for webhook-style inbound ones) that the property's own default value may use. Both
+   * forms resolve correctly at runtime; the tooltip illustrates the response's shape, not a
+   * copy-pasteable snippet.
+   */
+  private static String formatExampleTooltip(DataExampleModel example) {
+    var tooltip =
+        new StringBuilder("<div><p>Example response:</p><code>")
+            .append(escapeHtml(compactJson(example.json())))
+            .append("</code>");
+    if (StringUtils.isNotBlank(example.feel())) {
+      tooltip
+          .append("<p>Example FEEL expression: <code>")
+          .append(escapeHtml(example.feel()))
+          .append("</code> -&gt; <code>")
+          .append(escapeHtml(compactJson(example.feelResultJson())))
+          .append("</code></p>");
+    }
+    return tooltip.append("</div>").toString();
+  }
+
+  /**
+   * Re-serializes pretty-printed JSON compactly, rather than collapsing whitespace with a regex — a
+   * regex would also collapse meaningful whitespace inside JSON string values.
+   */
+  private static String compactJson(String json) {
+    if (json == null) {
+      return "";
+    }
+    try {
+      return TOOLTIP_JSON_MAPPER.readTree(json).toString();
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("Failed to compact JSON for tooltip: " + json, e);
+    }
+  }
+
+  private static String escapeHtml(String value) {
+    return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
   }
 
   private static boolean meetsMinimumEngineVersionForConfigurations(String engineVersion) {

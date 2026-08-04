@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.java.example.outbound;
+package io.camunda.connector.generator.java.example.inbound;
 
 import io.camunda.connector.generator.java.annotation.DataExample;
-import java.util.List;
+import java.util.Map;
 
-public record MyConnectorOutput(List<String> myListOutputProperty) {
+public record MyConnectorResult(Map<String, Object> payload) {
 
-  @DataExample(feel = "= { firstItem: myListOutputProperty[1] }")
-  public static MyConnectorOutput example() {
-    return new MyConnectorOutput(List.of("first-item", "second-item"));
+  @DataExample(feel = "= { orderId: payload.orderId }")
+  public static MyConnectorResult example() {
+    return new MyConnectorResult(Map.of("orderId", "123"));
   }
 }

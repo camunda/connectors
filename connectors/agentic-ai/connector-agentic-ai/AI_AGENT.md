@@ -55,11 +55,13 @@ configuration, the result will contain the following fields:
 
 The response text can be accessed via FEEL:
 ```json
-=responseText
+={ responseText: responseText }
 ```
 leading to the following result
 ```json
-"This is a sample response text from the AI agent."
+{
+  "responseText" : "This is a sample response text from the AI agent."
+}
 ```
 
 #### JSON response

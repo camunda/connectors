@@ -56,9 +56,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -87,30 +89,49 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
   }
 
   public static Map<String, DataExampleModel> collectExampleData(Class<?> type) {
-    var methods = findAllDataExampleMethods(type);
-    return methods.stream()
-        .map(
-            pair -> {
-              var method = pair.getLeft();
-              var annotation = pair.getRight();
-              Object result;
-              String json;
-              Object feelResult = null;
-              String feelResultJson = null;
-              try {
-                result = method.invoke(new Arrays[0]);
-                json = OBJECT_WRITER.writeValueAsString(result);
-                if (StringUtils.isNotBlank(annotation.feel())) {
-                  feelResult = feelEngine.evaluate(annotation.feel(), result);
-                  feelResultJson = OBJECT_WRITER.writeValueAsString(feelResult);
-                }
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-              return new DataExampleModel(
-                  annotation.id(), result, json, annotation.feel(), feelResult, feelResultJson);
-            })
+    return findAllDataExampleMethods(type).stream()
+        .map(ClassBasedDocsGenerator::buildDataExampleModel)
         .collect(Collectors.toMap(DataExampleModel::id, v -> v));
+  }
+
+  /**
+   * Resolves the example to show in generated help tooltips: the one explicitly marked with {@link
+   * DataExample#DEFAULT_ID}, or the first one in method-name order if none is marked. Only the
+   * winning example's method is invoked and evaluated; the others are not touched.
+   */
+  public static Optional<DataExampleModel> resolvePrimaryExampleData(Class<?> type) {
+    var candidates = findAllDataExampleMethods(type);
+    return candidates.stream()
+        .filter(pair -> DataExample.DEFAULT_ID.equals(pair.getRight().id()))
+        .findFirst()
+        .or(() -> candidates.stream().findFirst())
+        .map(ClassBasedDocsGenerator::buildDataExampleModel);
+  }
+
+  private static DataExampleModel buildDataExampleModel(Pair<Method, DataExample> pair) {
+    var method = pair.getLeft();
+    var annotation = pair.getRight();
+    Object result;
+    String json;
+    Object feelResult = null;
+    String feelResultJson = null;
+    try {
+      result = method.invoke(new Arrays[0]);
+      json = OBJECT_WRITER.writeValueAsString(result);
+      if (StringUtils.isNotBlank(annotation.feel())) {
+        feelResult = feelEngine.evaluate(annotation.feel(), result);
+        feelResultJson = OBJECT_WRITER.writeValueAsString(feelResult);
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(
+          "Failed to build @DataExample for "
+              + method.getDeclaringClass().getName()
+              + "#"
+              + method.getName(),
+          e);
+    }
+    return new DataExampleModel(
+        annotation.id(), result, json, annotation.feel(), feelResult, feelResultJson);
   }
 
   public static List<Pair<Method, DataExample>> findAllDataExampleMethods(Class<?> type) {
@@ -120,6 +141,7 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
             m ->
                 Arrays.stream(m.getAnnotations())
                     .anyMatch(a -> DataExample.class.equals(a.annotationType())))
+        .sorted(Comparator.comparing(Method::getName))
         .map(m -> Pair.of(m, m.getDeclaredAnnotation(DataExample.class)))
         .toList();
   }

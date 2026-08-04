@@ -295,6 +295,20 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskDefinition");
       assertThat(((ZeebeTaskDefinition) property.getBinding()).property()).isEqualTo("type");
     }
+
+    @Test
+    void resultExpressionProperty_tooltipPopulated_whenOutputDataClassHasExample() {
+      var template = generator.generate(MyConnectorFunction.FullyAnnotated.class).getFirst();
+      var property = getPropertyByLabel("Result expression", template);
+      assertThat(property.getTooltip()).contains("myListOutputProperty").contains("first-item");
+    }
+
+    @Test
+    void resultExpressionProperty_tooltipNull_whenNoOutputDataClass() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      var property = getPropertyByLabel("Result expression", template);
+      assertThat(property.getTooltip()).isNull();
+    }
   }
 
   @Nested
