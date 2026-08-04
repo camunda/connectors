@@ -49,6 +49,54 @@ preserved. `refusal` and `model_context_window_exceeded` never reach this mappin
 assistant message and metrics already built for the turn as the exception's `PartialResult` (see
 [ai-agent.md §12](ai-agent.md#12-framework-abstraction)).
 
+## Bedrock
+
+One wire format (the Bedrock Runtime Converse API), reaching every model family Bedrock hosts (Amazon
+Nova, Anthropic Claude, Llama, Mistral, DeepSeek, Cohere, Gemma, gpt-oss). There is no backend axis:
+`BedrockChatModelConfiguration` carries a region, an `AwsAuthentication` (static credentials, API key,
+or the default credentials chain) and an optional custom endpoint.
+
+### Streaming transport
+
+Every call goes through the async `BedrockRuntimeAsyncClient.converseStream`, streaming or not: the
+synchronous `BedrockRuntimeClient` exposes no `converseStream` operation at all, and a plain `converse`
+call sits silent on the socket for the whole generation (issue #7193). `BedrockConverseStreamAssembler`
+reassembles the AWS EventStream event sequence into a `ConverseResponse`, so the response converter
+sees the same type either way. This is why the module pulls in
+`software.amazon.awssdk:netty-nio-client` and a Netty client builder
+(`ChatModelHttpProxySupport.createAwsAsyncHttpClientBuilder`) alongside the synchronous
+Apache-based builder its other AWS SDK usage keeps.
+
+### Residual capture
+
+AWS SDK v2 generated types are not Jackson-serializable — they implement `SdkPojo`/`SdkField` with a
+`MarshallingType` per field. `BedrockSdkPojoCodec` is a generic bidirectional
+`capture(SdkPojo) → Map<String,Object>` / `replay(Map, Supplier<SdkPojo>) → SdkPojo` codec that walks
+`sdkFields()` reflectively, used both for unmapped `ContentBlock` members (preserved as
+`ProviderContent`) and as the residual-metadata mechanism for the three typed blocks (`text`,
+`toolUse`, `reasoningContent`).
+
+### Document identity
+
+`DocumentBlock.name` is required and must be stable across requests, otherwise no prompt-cache prefix
+containing a document can ever hit. `DocumentHandle.idFor(Document)`
+(`aiagent/model/document/DocumentHandle.java`) derives it deterministically: the Camunda document id
+verbatim, or a SHA-256 prefix of the external URL / inline content.
+
+### Reasoning
+
+No typed reasoning configuration — enabling reasoning happens entirely through the generic
+`requestParameters` escape hatch (`additionalModelRequestFields` on the wire). This is deliberate:
+Converse's reachable model families each enable reasoning through a different, incompatible shape with
+irreconcilable budget-vs-effort semantics and no documented generalized dial, and sniffing the vendor
+out of a model id breaks on custom-model and marketplace ARNs. A generalized dial belongs with the
+capability matrix this module does not have yet.
+
+### Caching
+
+Opt-in per model (`BedrockModelParameters.promptCaching.enabled`, default `false`), expressed as
+Converse `cachePoint` blocks. Converse always reports a distinct cache-write count in `TokenUsage`.
+
 ## OpenAI
 
 Two orthogonal sealed axes: `OpenAiApi` (`completions` | `responses`, default `responses`) and
