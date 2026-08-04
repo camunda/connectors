@@ -134,8 +134,12 @@ class AnthropicChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .extracting(v -> v.getPropertyPath().toString())
-        .contains("anthropic.backend.anthropic.apiKey");
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.anthropic.apiKey");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            });
   }
 
   @Test
@@ -154,8 +158,12 @@ class AnthropicChatModelConfigurationTest {
         validator.validate(config);
 
     assertThat(violations)
-        .extracting(v -> v.getPropertyPath().toString())
-        .contains("anthropic.model.parameters.thinking.budgetTokens");
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.model.parameters.thinking.budgetTokens");
+              assertThat(v.getMessage()).isEqualTo("must be greater than or equal to 1024");
+            });
   }
 
   @Test
@@ -184,8 +192,17 @@ class AnthropicChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .extracting(v -> v.getPropertyPath().toString())
-        .contains(
-            "anthropic.backend.custom.endpoint", "anthropic.backend.custom.authentication.apiKey");
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.custom.endpoint");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.custom.authentication.apiKey");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            });
   }
 }
