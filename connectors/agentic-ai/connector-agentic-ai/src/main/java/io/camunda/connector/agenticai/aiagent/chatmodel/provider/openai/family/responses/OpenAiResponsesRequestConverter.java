@@ -30,8 +30,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -243,47 +241,19 @@ public class OpenAiResponsesRequestConverter {
   private List<ResponseInputItem> toolResultInputItems(ToolCallResultMessage message) {
     final List<ResponseInputItem> items = new ArrayList<>();
     for (final ToolCallResultContent result : message.results()) {
-      final var builder = ResponseInputItem.FunctionCallOutput.builder().callId(result.id());
-      if (containsDocument(result.content())) {
-        // Documents only reach here when the tool-result content actually contains one; emit them
-        // natively (input_image/input_file) via the multimodal item-list shape so the model can
-        // actually read them.
-        builder.outputOfResponseFunctionCallOutputItemList(
-            contentConverter.toToolResultOutputItems(result.content()));
-      } else {
-        builder.output(toTextOutput(result.content()));
-      }
-      items.add(ResponseInputItem.ofFunctionCallOutput(builder.build()));
+      // Always the multimodal item-list shape, never a flattened string (FunctionCallOutput.Output
+      // .ofResponseFunctionCallOutputItemList, never .ofString): OpenAiContentConverter's
+      // toToolResultOutputItems already handles every Content variant (text/object/document), so
+      // there is no text-only shortcut to take here.
+      items.add(
+          ResponseInputItem.ofFunctionCallOutput(
+              ResponseInputItem.FunctionCallOutput.builder()
+                  .callId(result.id())
+                  .outputOfResponseFunctionCallOutputItemList(
+                      contentConverter.toToolResultOutputItems(result.content()))
+                  .build()));
     }
     return items;
-  }
-
-  private static boolean containsDocument(List<Content> content) {
-    return content.stream().anyMatch(DocumentContent.class::isInstance);
-  }
-
-  /**
-   * Flattens a text-only tool result to a single string blob: {@link TextContent} is concatenated
-   * verbatim, {@link ObjectContent} is unwrapped to its raw {@code content()} before being
-   * serialized to JSON (otherwise the polymorphic {@link Content} envelope itself, including its
-   * {@code type} discriminator, would leak onto the wire), anything else (documents) falls back to
-   * serializing the whole content value. Used when the result carries no document content; results
-   * containing documents take the multimodal item-list path instead (see {@link
-   * #toolResultInputItems}).
-   */
-  private String toTextOutput(List<Content> content) {
-    return content.stream()
-        .map(
-            c -> {
-              if (c instanceof TextContent text) {
-                return text.text();
-              } else if (c instanceof ObjectContent obj) {
-                return writeAsJson(obj.content());
-              } else {
-                return writeAsJson(c);
-              }
-            })
-        .collect(Collectors.joining("\n"));
   }
 
   private void applyTools(

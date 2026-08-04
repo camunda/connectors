@@ -172,7 +172,11 @@ class OpenAiResponsesRequestConverterTest {
 
     final var functionCallOutput = items.get(1).functionCallOutput().orElseThrow();
     assertThat(functionCallOutput.callId()).isEqualTo("call_1");
-    assertThat(functionCallOutput.output().asString()).isEqualTo("sunny");
+    // Always the item-list shape, never a flattened string - see
+    // OpenAiResponsesRequestConverter#toolResultInputItems.
+    final var outputItems = functionCallOutput.output().asResponseFunctionCallOutputItemList();
+    assertThat(outputItems).hasSize(1);
+    assertThat(outputItems.get(0).asInputText().text()).isEqualTo("sunny");
   }
 
   @Test
@@ -205,8 +209,10 @@ class OpenAiResponsesRequestConverterTest {
     final var items = params.input().orElseThrow().asResponse();
     final var functionCallOutput = items.get(1).functionCallOutput().orElseThrow();
     // Must be the raw unwrapped value ("24"), not the polymorphic Content envelope
-    // ("{"type":"object","content":24}") - see OpenAiResponsesRequestConverter#toTextOutput.
-    assertThat(functionCallOutput.output().asString()).isEqualTo("24");
+    // ("{"type":"object","content":24}") - see OpenAiContentConverter#toToolResultOutputItems.
+    final var outputItems = functionCallOutput.output().asResponseFunctionCallOutputItemList();
+    assertThat(outputItems).hasSize(1);
+    assertThat(outputItems.get(0).asInputText().text()).isEqualTo("24");
   }
 
   @Test
