@@ -235,21 +235,37 @@ public class ChatModelHttpProxySupport {
         proxyDetails.scheme() + "://" + proxyDetails.host() + ":" + proxyDetails.port());
   }
 
-  Optional<com.google.genai.types.ProxyOptions> createGoogleGenAiProxyOptions(String endpoint) {
-    final var scheme =
+  /**
+   * Unlike the AWS and Azure proxy paths above, {@code com.google.genai.types.ProxyOptions} has no
+   * bypass-list field, so the SDK itself cannot honor {@code CONNECTOR_HTTP_NON_PROXY_HOSTS}/{@code
+   * http.nonProxyHosts}. We resolve the actual target host - the custom {@code endpoint} if
+   * configured, otherwise the default Vertex AI host for the given region - and skip proxying
+   * entirely when it matches a configured non-proxy host pattern.
+   */
+  Optional<com.google.genai.types.ProxyOptions> createGoogleGenAiProxyOptions(
+      String endpoint, String region) {
+    final var targetUri =
         Optional.ofNullable(endpoint)
             .filter(StringUtils::isNotBlank)
             .map(URI::create)
-            .map(URI::getScheme)
-            .orElse(ProxyConfiguration.SCHEME_HTTPS);
+            .orElseGet(() -> URI.create(defaultGoogleGenAiBaseUrl(region)));
+
+    final var scheme =
+        Optional.ofNullable(targetUri.getScheme()).orElse(ProxyConfiguration.SCHEME_HTTPS);
+    final var host = targetUri.getHost();
+
+    if (host != null && NonProxyHosts.isNonProxyHost(host)) {
+      LOG.debug("Skipping proxy for non-proxy host [{}]", host);
+      return Optional.empty();
+    }
 
     return proxyConfiguration
         .getProxyDetails(scheme)
         .map(
             proxyDetails -> {
               LOG.debug(
-                  "Using proxy for target scheme [{}] => [{}://{}:{}]",
-                  scheme,
+                  "Using proxy for target host [{}] => [{}://{}:{}]",
+                  host,
                   proxyDetails.scheme(),
                   proxyDetails.host(),
                   proxyDetails.port());
@@ -266,5 +282,11 @@ public class ChatModelHttpProxySupport {
 
               return proxyOptionsBuilder.build();
             });
+  }
+
+  private static String defaultGoogleGenAiBaseUrl(String region) {
+    return "global".equalsIgnoreCase(region)
+        ? "https://aiplatform.googleapis.com"
+        : "https://%s-aiplatform.googleapis.com".formatted(region);
   }
 }

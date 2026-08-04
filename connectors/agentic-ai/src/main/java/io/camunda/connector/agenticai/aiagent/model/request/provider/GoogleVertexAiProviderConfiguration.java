@@ -61,6 +61,14 @@ public record GoogleVertexAiProviderConfiguration(
       @Valid TimeoutConfiguration timeouts,
       @Valid @NotNull GoogleVertexAiProviderConfiguration.GoogleVertexAiModel model) {
 
+    public GoogleVertexAiConnection(
+        String projectId,
+        String region,
+        GoogleVertexAiAuthentication authentication,
+        GoogleVertexAiProviderConfiguration.GoogleVertexAiModel model) {
+      this(projectId, region, null, authentication, null, model);
+    }
+
     @AssertFalse(message = "Google Vertex AI is not supported on SaaS")
     public boolean isUsedInSaaS() {
       return ConnectorUtils.isSaaS()
