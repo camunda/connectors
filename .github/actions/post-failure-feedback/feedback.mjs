@@ -25,7 +25,9 @@ const ASK = 'https://camunda.slack.com/archives/C0AQ378VBEV'; // #ask-alwaysgree
 const RELIABILITY =
   'https://camunda.slack.com/archives/C0AK0AVKRL0'; // #alwaysgreen-reliability
 
-// Owner→medic Slack subteam map — keep in sync with the streak detectors.
+// Owner→medic Slack subteam map. Each AlwaysGreen repo's streak detector
+// carries these same subteam IDs in its own MEDIC_* env vars, so a changed
+// subteam has to be updated in both places.
 const MEDIC = {
   '@camunda/test-automation-team': '<!subteam^S09UF0EV0HG|test-automation-medic>',
   '@camunda/distribution': '<!subteam^S053K7C7QKU|distribution-medic>',
