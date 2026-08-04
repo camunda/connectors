@@ -257,6 +257,15 @@
       <artifactId>apache-client</artifactId>
       <version>${version.aws-sdk2}</version>
     </dependency>
+    <!--
+      Async HTTP transport for BedrockRuntimeAsyncClient.converseStream: the sync BedrockRuntimeClient
+      has no streaming operation, so the native Bedrock provider requires the Netty client rather than
+      the Apache one used above for the (sync) Anthropic Bedrock backend.
+    -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>netty-nio-client</artifactId>
+    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>http-client-spi</artifactId>

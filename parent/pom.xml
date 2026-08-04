@@ -652,6 +652,11 @@ limitations under the License.</license.inlineheader>
         <artifactId>sts</artifactId>
         <version>${version.aws-sdk2}</version>
       </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>netty-nio-client</artifactId>
+        <version>${version.aws-sdk2}</version>
+      </dependency>
 
       <dependency>
         <groupId>com.google.code.findbugs</groupId>
