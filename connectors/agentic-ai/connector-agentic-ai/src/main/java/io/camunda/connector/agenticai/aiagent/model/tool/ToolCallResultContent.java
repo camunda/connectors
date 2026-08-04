@@ -13,13 +13,11 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.camunda.connector.agenticai.common.util.FeelOffsetDateTimeDeserializer;
 import io.camunda.connector.agenticai.common.util.FeelOffsetDateTimeSerializer;
-import io.camunda.connector.api.document.Document;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -91,7 +89,6 @@ public record ToolCallResultContent(
     return switch (content) {
       case null -> List.of();
       case String s -> s.isBlank() ? List.of() : List.of(TextContent.textContent(s));
-      case Document document -> List.of(DocumentContent.documentContent(document));
       default -> List.of(ObjectContent.objectContent(content));
     };
   }
