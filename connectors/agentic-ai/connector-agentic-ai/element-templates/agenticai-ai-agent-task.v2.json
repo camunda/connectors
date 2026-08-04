@@ -168,7 +168,6 @@
   }, {
     "id" : "provider.anthropic.backend.anthropic.headers",
     "label" : "Headers",
-    "description" : "Map of HTTP headers to add to the request.",
     "optional" : true,
     "group" : "provider",
     "binding" : {
@@ -190,7 +189,6 @@
   }, {
     "id" : "provider.anthropic.backend.anthropic.queryParameters",
     "label" : "Query parameters",
-    "description" : "Map of query parameters to add to the request URL.",
     "optional" : true,
     "group" : "provider",
     "binding" : {
@@ -239,7 +237,6 @@
   }, {
     "id" : "provider.anthropic.backend.custom.headers",
     "label" : "Headers",
-    "description" : "Map of HTTP headers to add to the request.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
@@ -258,11 +255,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Map of HTTP headers to add to the request.",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.backend.custom.queryParameters",
     "label" : "Query parameters",
-    "description" : "Map of query parameters to add to the request URL.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
@@ -281,6 +278,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Map of query parameters to add to the request URL.",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.backend.custom.authentication.type",
@@ -569,7 +567,6 @@
   }, {
     "id" : "provider.anthropic.backend.anthropic.requestParameters",
     "label" : "Request parameters",
-    "description" : "Map of additional parameters to include in the request body.",
     "optional" : true,
     "group" : "model-options",
     "binding" : {
@@ -591,7 +588,6 @@
   }, {
     "id" : "provider.anthropic.backend.custom.requestParameters",
     "label" : "Request parameters",
-    "description" : "Map of additional parameters to include in the request body.",
     "optional" : true,
     "feel" : "required",
     "group" : "model-options",
@@ -610,6 +606,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Map of additional parameters to include in the request body.",
     "type" : "String"
   }, {
     "id" : "provider.anthropic.model.parameters.maxTokens",
