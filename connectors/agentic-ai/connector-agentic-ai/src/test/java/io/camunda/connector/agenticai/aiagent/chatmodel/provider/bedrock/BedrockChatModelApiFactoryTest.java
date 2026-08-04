@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mockStatic;
@@ -15,6 +14,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
@@ -78,8 +79,16 @@ class BedrockChatModelApiFactoryTest {
   private final ChatModelProperties config =
       new ChatModelProperties(new ApiProperties(Duration.ofMinutes(3)));
 
+  private final BedrockConverseContentConverter contentConverter =
+      new BedrockConverseContentConverter(new ObjectMapper());
+  private final BedrockConverseRequestConverter requestConverter =
+      new BedrockConverseRequestConverter(contentConverter, new ObjectMapper());
+  private final BedrockConverseResponseConverter responseConverter =
+      new BedrockConverseResponseConverter();
+
   private final BedrockChatModelApiFactory factory =
-      new BedrockChatModelApiFactory(config, proxySupport);
+      new BedrockChatModelApiFactory(
+          config, proxySupport, requestConverter, responseConverter, new ObjectMapper());
 
   @Captor private ArgumentCaptor<AwsCredentialsProvider> credentialsProviderCaptor;
 
@@ -101,7 +110,7 @@ class BedrockChatModelApiFactoryTest {
   }
 
   @Test
-  void createBuildsClientThenSignalsChatModelNotYetAvailable() {
+  void createBuildsChatModelWrappingConstructedClient() {
     final var clientBuilder = spy(BedrockRuntimeAsyncClient.builder());
     doAnswer(new ResultCaptor<>()).when(clientBuilder).build();
 
@@ -110,8 +119,12 @@ class BedrockChatModelApiFactoryTest {
       clientMock.when(BedrockRuntimeAsyncClient::builder).thenReturn(clientBuilder);
 
       final var bedrockConfig = bedrockConfig(defaultCredentialsAuth(), null);
-      assertThatThrownBy(() -> factory.create(bedrockConfig))
-          .isInstanceOf(UnsupportedOperationException.class);
+      final ChatModel chatModel = factory.create(bedrockConfig);
+      try {
+        assertThat(chatModel).isInstanceOf(BedrockChatModelApi.class);
+      } finally {
+        chatModel.close();
+      }
     }
   }
 
