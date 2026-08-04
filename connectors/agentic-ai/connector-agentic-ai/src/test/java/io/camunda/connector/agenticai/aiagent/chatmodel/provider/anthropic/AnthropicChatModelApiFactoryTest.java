@@ -136,7 +136,7 @@ class AnthropicChatModelApiFactoryTest {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicBedrockBackend(
-                new AnthropicBedrockBackend.Bedrock("eu-central-1", null, authentication)),
+                new AnthropicBedrockBackend.BedrockBackend("eu-central-1", null, authentication)),
             new AnthropicModel(modelId, null),
             null));
   }
