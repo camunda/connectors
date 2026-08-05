@@ -41,10 +41,10 @@ import org.springframework.test.context.ActiveProfiles;
  *
  * <p>Uses {@code gemini-2.5-flash}, the model version supported by the Vertex AI provider
  * implementation currently on {@code main} (the sunset {@code langchain4j-vertex-ai-gemini} SDK).
- * It does not exercise Gemini 3 tool calling or the {@code thoughtSignature} round-trip fixed in
- * PR #8178 (migration to the {@code google-genai} SDK) - that migration lives on {@code
- * stable/8.9} only and has not been forward-ported to {@code main} yet, so the code path it fixes
- * doesn't exist here. See this test's PR description for details.
+ * It does not exercise Gemini 3 tool calling or the {@code thoughtSignature} round-trip fixed in PR
+ * #8178 (migration to the {@code google-genai} SDK) - that migration lives on {@code stable/8.9}
+ * only and has not been forward-ported to {@code main} yet, so the code path it fixes doesn't exist
+ * here. See this test's PR description for details.
  */
 @SpringBootTest(classes = AiAgentE2ETestApplication.class)
 @CamundaSpringProcessTest
