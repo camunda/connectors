@@ -17,21 +17,14 @@
 package io.camunda.connector.e2e.agenticai.e2e;
 
 import static io.camunda.process.test.api.CamundaAssert.assertThatProcessInstance;
-import static io.camunda.process.test.api.CamundaAssert.setAssertionTimeout;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import io.camunda.client.CamundaClient;
-import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -42,53 +35,23 @@ import org.springframework.test.context.ActiveProfiles;
  * <p>Uses {@code gemini-2.5-flash}, the model version supported by the Vertex AI provider
  * implementation currently on {@code main} (the sunset {@code langchain4j-vertex-ai-gemini} SDK).
  * It does not exercise Gemini 3 tool calling or the {@code thoughtSignature} round-trip fixed in PR
- * #8178 (migration to the {@code google-genai} SDK) - that migration lives on {@code stable/8.9}
+ * #8178 (migration to the {@code google-genai} SDK) — that migration lives on {@code stable/8.9}
  * only and has not been forward-ported to {@code main} yet, so the code path it fixes doesn't exist
  * here. See this test's PR description for details.
+ *
+ * <p>The feedback-loop-with-joke and multi-tool-call scenarios from {@link AiAgentE2ETestIT} are
+ * intentionally omitted here to keep real-LLM run cost/time bounded; the shared tools (Jokes_API,
+ * GetDateAndTime) remain available in the BPMN for future coverage.
  */
 @SpringBootTest(classes = AiAgentE2ETestApplication.class)
 @CamundaSpringProcessTest
 @ActiveProfiles("it-real-llm")
 @EnabledIfEnvironmentVariable(named = "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", matches = ".+")
-public class GoogleVertexAiE2ETestIT {
+public class GoogleVertexAiE2ETestIT extends AbstractAiAgentE2ETestIT {
 
   private static final String BPMN_RESOURCE = "ai-agent-e2e-google-vertex-ai.bpmn";
   private static final String FORM_RESOURCE = "ai-agent-chat-user-feedback.form";
   private static final String PROCESS_ID = "ai-agent-e2e-google-vertex-ai";
-  private static final String HTTP_JSON_JOB_TYPE = "io.camunda:http-json:1";
-
-  private static final String JOKE_1 =
-      "Why did the AI cross the road? To process the chicken on the other side.";
-
-  @Autowired private CamundaClient camundaClient;
-  @Autowired private CamundaProcessTestContext processTestContext;
-
-  @BeforeAll
-  static void setUp() {
-    setAssertionTimeout(Duration.ofMinutes(3));
-  }
-
-  @BeforeEach
-  void mockHttpTools() {
-    // Intercept ListUsers and Jokes_API HTTP jobs — the HTTP connector is disabled in the Docker
-    // bundle via CONNECTOR_OUTBOUND_DISABLED so these jobs stay open for the test to complete
-    processTestContext
-        .mockJobWorker(HTTP_JSON_JOB_TYPE)
-        .withHandler(
-            (jobClient, job) -> {
-              var result =
-                  switch (job.getElementId()) {
-                    case "ListUsers" -> knownUsers();
-                    case "Jokes_API" -> JOKE_1;
-                    default -> null;
-                  };
-              var cmd = jobClient.newCompleteCommand(job);
-              if (result != null) {
-                cmd = cmd.variable("toolCallResult", result);
-              }
-              cmd.send().join();
-            });
-  }
 
   @Test
   void shouldCompleteHappyPath() {
@@ -185,17 +148,11 @@ public class GoogleVertexAiE2ETestIT {
                 + " Leanne Graham or Ervin Howell, proving the ListUsers tool was invoked");
   }
 
-  private static List<Map<String, Object>> knownUsers() {
-    return List.of(
-        Map.of("id", 1, "name", "Leanne Graham", "username", "Bret"),
-        Map.of("id", 2, "name", "Ervin Howell", "username", "Antonette"));
-  }
-
   @Test
   void shouldRetainToolResultAcrossFeedbackLoop() {
     // given — forces at least two model-call turns through the real Vertex AI provider, so any
-    // regression in conversation-history round-tripping (tool calls, tool results, or - once the
-    // google-genai migration lands on main - Gemini 3's thoughtSignature) would surface here.
+    // regression in conversation-history round-tripping (tool calls, tool results, or — once the
+    // google-genai migration lands on main — Gemini 3's thoughtSignature) would surface here.
     camundaClient
         .newDeployResourceCommand()
         .addResourceFromClasspath(BPMN_RESOURCE)
