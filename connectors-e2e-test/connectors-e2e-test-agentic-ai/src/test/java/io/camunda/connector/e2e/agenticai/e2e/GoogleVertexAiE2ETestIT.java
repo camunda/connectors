@@ -42,6 +42,17 @@ import org.springframework.test.context.ActiveProfiles;
  * <p>The feedback-loop-with-joke and multi-tool-call scenarios from {@link AiAgentE2ETestIT} are
  * intentionally omitted here to keep real-LLM run cost/time bounded; the shared tools (Jokes_API,
  * GetDateAndTime) remain available in the BPMN for future coverage.
+ *
+ * <p>This class also carries a fourth, Vertex-only scenario, {@link
+ * #shouldInferOrderStatusToolFromNaturalRequest()}, added after a QA engineer reviewing this PR
+ * pointed out that {@link #shouldCompleteWithUserLookupTool()}'s prompt explicitly says "Use your
+ * user lookup tool..." — i.e. it tells the model which tool to invoke rather than letting it infer
+ * that from an ordinary request. That only exercises tool <em>execution</em>, not tool
+ * <em>selection</em>, which is what a real user interaction would exercise. {@code
+ * shouldCompleteWithUserLookupTool} is kept as-is (an explicit-invocation regression test for the
+ * tool-calling/result plumbing itself), and the new test — an unprompted, natural-language,
+ * customer-support-style order status question against the Vertex-only {@code GetOrderStatus} tool
+ * — covers the tool-inference gap instead of replacing it.
  */
 @SpringBootTest(classes = AiAgentE2ETestApplication.class)
 @CamundaSpringProcessTest
@@ -102,7 +113,11 @@ public class GoogleVertexAiE2ETestIT extends AbstractAiAgentE2ETestIT {
 
   @Test
   void shouldCompleteWithUserLookupTool() {
-    // given
+    // given — deliberately an explicit-invocation test: the prompt names the tool outright, so
+    // this exercises tool *execution* (calling ListUsers and using its result) rather than tool
+    // *selection*. See shouldInferOrderStatusToolFromNaturalRequest() below for the complementary
+    // natural-inference scenario a QA reviewer asked for; both are kept since they cover different
+    // failure modes.
     camundaClient
         .newDeployResourceCommand()
         .addResourceFromClasspath(BPMN_RESOURCE)
@@ -146,6 +161,59 @@ public class GoogleVertexAiE2ETestIT extends AbstractAiAgentE2ETestIT {
             "agent",
             "The agent variable contains a responseText field that names one of the known users:"
                 + " Leanne Graham or Ervin Howell, proving the ListUsers tool was invoked");
+  }
+
+  @Test
+  void shouldInferOrderStatusToolFromNaturalRequest() {
+    // given — a natural, customer-support-style request that does not name any tool; the model
+    // has to infer on its own that a lookup tool (GetOrderStatus) is needed, exercising tool
+    // *selection* rather than tool *execution* (see class javadoc)
+    camundaClient
+        .newDeployResourceCommand()
+        .addResourceFromClasspath(BPMN_RESOURCE)
+        .addResourceFromClasspath(FORM_RESOURCE)
+        .send()
+        .join();
+
+    // when
+    var processInstance =
+        camundaClient
+            .newCreateInstanceCommand()
+            .bpmnProcessId(PROCESS_ID)
+            .latestVersion()
+            .variables(
+                Map.of(
+                    "inputText",
+                    "Hi, can you check the status of my order for me? The order ID is"
+                        + " ORD-1001."))
+            .send()
+            .join();
+
+    // then — wait for user task (agent inferred it needed the GetOrderStatus HTTP tool and
+    // responded)
+    assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
+
+    var tasks =
+        camundaClient
+            .newUserTaskSearchRequest()
+            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
+            .send()
+            .join();
+    long taskKey = tasks.items().getFirst().getUserTaskKey();
+
+    camundaClient
+        .newCompleteUserTaskCommand(taskKey)
+        .variables(Map.of("userSatisfied", true))
+        .send()
+        .join();
+
+    assertThatProcessInstance(processInstance).isCompleted();
+    assertThatProcessInstance(processInstance)
+        .hasVariableSatisfiesJudge(
+            "agent",
+            "The agent variable contains a responseText field that references the order status"
+                + " 'shipped' and the tracking number 1Z999AA10123456784 for order ORD-1001,"
+                + " proving the GetOrderStatus tool was invoked");
   }
 
   @Test

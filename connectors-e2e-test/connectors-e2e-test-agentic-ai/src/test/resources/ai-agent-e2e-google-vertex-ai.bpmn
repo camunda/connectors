@@ -151,6 +151,35 @@
           </zeebe:taskHeaders>
         </bpmn:extensionElements>
       </bpmn:serviceTask>
+      <bpmn:serviceTask id="GetOrderStatus" name="Get order status"
+        zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="12"
+        zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
+        <bpmn:documentation>Looks up the current status of a customer order by its order ID,
+          including shipment tracking information. Used to answer customer-support-style
+          questions about where an order is without the user having to name the tool
+          explicitly.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="GET" target="method" />
+            <zeebe:input
+              source="=&#34;https://api.example-shop.internal/orders/&#34; + fromAi(toolCall.orderId, &#34;The order ID to look up, e.g. ORD-1001&#34;, &#34;string&#34;)"
+              target="url" />
+            <zeebe:input source="=false" target="storeResponse" />
+            <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="20" target="readTimeoutInSeconds" />
+            <zeebe:input source="=false" target="ignoreNullValues" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="12" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultExpression"
+              value="={&#10;  toolCallResult: response.body&#10;}" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
     </bpmn:adHocSubProcess>
     <bpmn:sequenceFlow id="Flow_16otfp1" sourceRef="Gateway_0z6ctwk" targetRef="AI_Agent" />
     <bpmn:sequenceFlow id="Flow_0m7etfk" sourceRef="AI_Agent" targetRef="User_Feedback" />
@@ -177,7 +206,7 @@
         <dc:Bounds x="1052" y="192" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_03yngb7_di" bpmnElement="AI_Agent" isExpanded="true">
-        <dc:Bounds x="350" y="170" width="400" height="350" />
+        <dc:Bounds x="350" y="170" width="400" height="450" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1sbkoqq_di" bpmnElement="GetDateAndTime">
@@ -189,6 +218,9 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1l8tp85_di" bpmnElement="Jokes_API">
         <dc:Bounds x="380" y="410" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0go_ordr_di" bpmnElement="GetOrderStatus">
+        <dc:Bounds x="380" y="510" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0pbzrme_di" bpmnElement="Flow_0pbzrme">
         <di:waypoint x="188" y="210" />
