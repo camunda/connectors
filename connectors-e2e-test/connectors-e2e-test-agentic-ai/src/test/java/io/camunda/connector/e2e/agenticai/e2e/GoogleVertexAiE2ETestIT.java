@@ -235,7 +235,8 @@ public class GoogleVertexAiE2ETestIT {
                 "userSatisfied",
                 false,
                 "followUpInput",
-                "Based on the time you just looked up, is it currently daytime or nighttime?"))
+                "Based on the time you just looked up, please restate that exact time back to"
+                    + " me to confirm you remember it."))
         .send()
         .join();
 
@@ -282,6 +283,8 @@ public class GoogleVertexAiE2ETestIT {
     assertThatProcessInstance(processInstance)
         .hasVariableSatisfiesJudge(
             "agent",
-            "The agent variable contains a responseText that says whether it is daytime or nighttime AND includes a specific time value (hours and minutes) from the GetDateAndTime tool, proving conversation context was retained");
+            "The agent variable contains a responseText field that references the specific time"
+                + " value (hours and minutes) returned by the earlier GetDateAndTime tool call,"
+                + " proving the tool result was retained across the conversation turn");
   }
 }
