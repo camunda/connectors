@@ -104,6 +104,35 @@ class ConnectorResultHandlerTest {
   }
 
   @Test
+  void resultExpressionParseFailureNamesTheExpression() {
+    // Regression test: an invalid FEEL expression previously surfaced as a bare
+    // "Failed to evaluate expression '...'" incident with no indication of which header/property
+    // was the culprit.
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () -> connectorResultHandler.createOutputVariables(Map.of(), null, "=", null));
+
+    assertThat(exception).hasMessageContaining("Result expression could not be evaluated");
+  }
+
+  @Test
+  void errorExpressionParseFailureNamesTheExpression() {
+    final Map<String, String> jobHeaders = Map.of(Keywords.ERROR_EXPRESSION_KEYWORD, "=");
+    final ErrorExpressionJobContext jobContext =
+        new ErrorExpressionJobContext(new ErrorExpressionJobContext.ErrorExpressionJob(3));
+
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.examineErrorExpression(
+                    Map.of(), jobHeaders, jobContext, null));
+
+    assertThat(exception).hasMessageContaining("Error expression could not be evaluated");
+  }
+
+  @Test
   void ensureCanNotProduceIntrinsicFunction() {
     final String resultExpression =
         """
