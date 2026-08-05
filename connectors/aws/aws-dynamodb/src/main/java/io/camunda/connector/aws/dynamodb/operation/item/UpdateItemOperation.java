@@ -6,13 +6,17 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.item;
 
-import com.amazonaws.services.dynamodbv2.document.AttributeUpdate;
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import io.camunda.connector.aws.dynamodb.model.UpdateItem;
+import io.camunda.connector.aws.dynamodb.model.UpdateItemResult;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
-import java.util.List;
+import io.camunda.connector.aws.dynamodb.util.AttributeValueConverter;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeAction;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValueUpdate;
+import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse;
 
 public class UpdateItemOperation implements AwsDynamoDbOperation {
 
@@ -23,36 +27,36 @@ public class UpdateItemOperation implements AwsDynamoDbOperation {
   }
 
   @Override
-  public Object invoke(final DynamoDB dynamoDB) {
+  public UpdateItemResult invoke(final DynamoDbClient client) {
+    Map<String, AttributeValueUpdate> attributeUpdates = new LinkedHashMap<>();
+    updateItemModel
+        .keyAttributes()
+        .forEach(
+            (key, value) ->
+                attributeUpdates.put(
+                    key, createAttributeUpdate(value, updateItemModel.attributeAction())));
 
-    List<AttributeUpdate> attributeUpdates =
-        updateItemModel.keyAttributes().entrySet().stream()
-            .map(
-                entry ->
-                    createAttributeUpdate(
-                        entry.getKey(), entry.getValue(), updateItemModel.attributeAction()))
-            .toList();
-
-    return dynamoDB
-        .getTable(updateItemModel.tableName())
-        .updateItem(
-            buildPrimaryKey(updateItemModel.primaryKeyComponents()),
-            attributeUpdates.toArray(AttributeUpdate[]::new));
+    UpdateItemResponse response =
+        client.updateItem(
+            UpdateItemRequest.builder()
+                .tableName(updateItemModel.tableName())
+                .key(
+                    AttributeValueConverter.toAttributeValueMap(
+                        updateItemModel.primaryKeyComponents()))
+                .attributeUpdates(attributeUpdates)
+                .build());
+    return UpdateItemResult.from(response);
   }
 
-  private AttributeUpdate createAttributeUpdate(
-      final String key, final Object value, final String action) {
-    AttributeUpdate update = new AttributeUpdate(key);
+  private AttributeValueUpdate createAttributeUpdate(final Object value, final String action) {
     return switch (action.toLowerCase()) {
-      case "put" -> update.put(value);
-      case "delete" -> update.delete();
+      case "put" ->
+          AttributeValueUpdate.builder()
+              .value(AttributeValueConverter.toAttributeValue(value))
+              .action(AttributeAction.PUT)
+              .build();
+      case "delete" -> AttributeValueUpdate.builder().action(AttributeAction.DELETE).build();
       default -> throw new IllegalArgumentException("Unsupported attribute action: " + action);
     };
-  }
-
-  private PrimaryKey buildPrimaryKey(Map<String, Object> primaryKeyMap) {
-    PrimaryKey primaryKey = new PrimaryKey();
-    primaryKeyMap.forEach(primaryKey::addComponent);
-    return primaryKey;
   }
 }

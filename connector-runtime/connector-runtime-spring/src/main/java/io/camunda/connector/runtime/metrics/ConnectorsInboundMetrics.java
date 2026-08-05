@@ -26,9 +26,13 @@ public class ConnectorsInboundMetrics {
 
   private final MeterRegistry meterRegistry;
   private final Map<String, Counter> activationCounter = new ConcurrentHashMap<>();
+  private final Counter processStateChangePublishFailureCounter;
 
   public ConnectorsInboundMetrics(MeterRegistry meterRegistry) {
     this.meterRegistry = meterRegistry;
+    this.processStateChangePublishFailureCounter =
+        Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_PROCESS_STATE_CHANGE_PUBLISH_FAILURES)
+            .register(meterRegistry);
   }
 
   public void increaseActivation(InboundConnectorElement connectorElement) {
@@ -140,5 +144,10 @@ public class ConnectorsInboundMetrics {
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
+  }
+
+  /** Records a process state change that could not be published and will be retried. */
+  public void increaseProcessStateChangePublishFailure() {
+    processStateChangePublishFailureCounter.increment();
   }
 }
