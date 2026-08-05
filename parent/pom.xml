@@ -12,7 +12,7 @@
 
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-parent</artifactId>
-  <version>8.8.15</version>
+  <version>8.8.16</version>
   <packaging>pom</packaging>
 
   <name>Connectors Parent</name>
@@ -70,7 +70,7 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.8.29</version.camunda>
+    <version.camunda>8.8.33</version.camunda>
     <version.feel-engine>1.22.0</version.feel-engine>
 
     <!-- Third party dependencies -->
@@ -127,6 +127,9 @@ limitations under the License.</license.inlineheader>
     <version.commons-codec>1.16.1</version.commons-codec>
 
     <version.kafka-clients>4.3.1</version.kafka-clients>
+    <!-- CVE-2026-59949: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.1
+         Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-59949 -->
+    <version.lz4-java>1.11.1</version.lz4-java>
 
     <version.microsoft-graph>6.67.0</version.microsoft-graph>
     <version.azure-identity>1.18.4</version.azure-identity>
@@ -565,6 +568,14 @@ limitations under the License.</license.inlineheader>
         <version>${version.kafka-clients}</version>
       </dependency>
 
+      <!-- CVE-2026-59949 (https://nvd.nist.gov/vuln/detail/CVE-2026-59949): override lz4-java transitive
+           version brought in by kafka-clients. Remove once kafka-clients ships lz4-java >= 1.11.1. -->
+      <dependency>
+        <groupId>at.yawk.lz4</groupId>
+        <artifactId>lz4-java</artifactId>
+        <version>${version.lz4-java}</version>
+      </dependency>
+
       <dependency>
         <groupId>com.microsoft.graph</groupId>
         <artifactId>microsoft-graph</artifactId>
@@ -875,6 +886,18 @@ the parsson dependencyManagement entry, and this enforcer rule from parent/pom.x
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-9563
                 </regexMessage>
               </requireProperty>
+              <!-- CVE-2026-59949 guard: fails if kafka-clients is bumped, as a reminder to
+                   check whether the lz4-java override can be removed (see version.lz4-java). -->
+              <requireProperty>
+                <property>version.kafka-clients</property>
+                <regex>^4\.3\.1$</regex>
+                <regexMessage>
+version.kafka-clients was changed! Check if the lz4-java CVE-2026-59949 override can be removed.
+If the new kafka-clients version ships lz4-java &gt;= 1.11.1, remove the version.lz4-java property,
+the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.xml.
+See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
+                </regexMessage>
+              </requireProperty>
             </rules>
           </configuration>
           <executions>
@@ -1111,6 +1134,32 @@ See: https://nvd.nist.gov/vuln/detail/CVE-2026-9563
                 <requireReleaseDeps/>
               </rules>
             </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>flatten-maven-plugin</artifactId>
+            <version>1.6.0</version>
+            <configuration>
+              <flattenMode>ossrh</flattenMode>
+              <updatePomFile>true</updatePomFile>
+              <pomElements>
+                <properties>keep</properties>
+                <dependencyManagement>keep</dependencyManagement>
+                <build>keep</build>
+              </pomElements>
+            </configuration>
+            <executions>
+              <execution>
+                <id>flatten</id>
+                <phase>process-resources</phase>
+                <goals><goal>flatten</goal></goals>
+              </execution>
+              <execution>
+                <id>flatten-clean</id>
+                <phase>clean</phase>
+                <goals><goal>clean</goal></goals>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>
