@@ -1098,7 +1098,7 @@ See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>flatten-maven-plugin</artifactId>
-            <version>1.6.0</version>
+            <version>1.8.0</version>
             <configuration>
               <flattenMode>ossrh</flattenMode>
               <updatePomFile>true</updatePomFile>
