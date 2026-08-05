@@ -563,22 +563,12 @@ Key workflow files in `.github/workflows/`:
 - **Docker images**: Use `DockerImages.get()` utility for Testcontainers, add images to `docker-images.properties`
 - **Integration tests**: Mark with `@SlowTest` to exclude from regular unit test runs
 - **FEEL expressions**: Use `@FEEL` annotation for properties that need runtime evaluation
-- **AWS SDK v1 in aws-sns**: `aws-sns`'s inbound webhook (`SnsWebhookExecutable`/`SnsClientSupplier`)
-  intentionally keeps a narrow AWS SDK v1 dependency (`aws-java-sdk-sns`) for two things. The
-  blocker is `SnsMessageManager`, used to cryptographically verify SNS webhook signatures — v2 has
-  no equivalent (see https://github.com/aws/aws-sdk-java-v2/issues/1302). The second,
-  `SnsSubscriptionConfirmation#confirmSubscription`, is *not* blocked: it performs the SubscribeURL
-  callback as a plain unsigned HTTP GET on the URL in the message body, and it stays on v1 only
-  because the object is already returned by the `SnsMessageManager.parseMessage` call the webhook
-  must make anyway. Migrating it is feasible — parse the envelope's top-level `TopicArn` and
-  `Token` and call v2 `SnsClient#confirmSubscription` with `AnonymousCredentialsProvider`, since
-  `ConfirmSubscription` requires an AWS signature only when `AuthenticateOnUnsubscribe` is true and
-  `SnsWebhookConnectorProperties` carries no credentials to sign with — but it would not remove the
-  v1 dependency while `SnsMessageManager` is still needed. This is the one accepted exception in
-  *runtime* code in the AWS v1→v2 migration; any *new* v1 usage elsewhere is a regression, not
-  precedent. (`aws-base` separately still carries an unused v1 `CredentialsProviderSupport` +
-  `aws-java-sdk-core` dependency with zero callers, pending removal as dead code — not sanctioned
-  precedent either, just not yet cleaned up.)
+- **AWS SDK v1 in aws-sns**: the inbound webhook keeps `aws-java-sdk-sns` (v1) for
+  `SnsMessageManager`, which verifies SNS webhook signatures — v2 has no equivalent
+  (see https://github.com/aws/aws-sdk-java-v2/issues/1302) — and for
+  `SnsSubscriptionConfirmation#confirmSubscription`, called on the object `SnsMessageManager`
+  already returns. This is the one accepted v1 exception in the AWS v1→v2 migration; any other
+  v1 usage is a regression, not precedent.
 - **Investigating `camunda-client-java` / `camunda-spring-boot-starter` behavior**: don't decompile
   the jars (`javap`, unzip + bytecode reading, etc.). If the `camunda/camunda` monorepo is checked
   out locally (often as a sibling of this repo, e.g. `../camunda`), read the actual source instead

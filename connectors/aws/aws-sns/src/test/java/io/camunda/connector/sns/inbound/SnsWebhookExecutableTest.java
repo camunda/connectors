@@ -286,19 +286,13 @@ class SnsWebhookExecutableTest {
 
     // then
     Assertions.assertThat(result.connectorData()).containsEntry("snsEventType", "Notification");
-    // Guards against deleting/short-circuiting the parseMessage() call itself: this happy-path
-    // result is only meaningful if signature verification (the mocked call below) actually ran.
+    // Ensures the happy path actually goes through signature verification, not a mocked no-op.
     verify(messageManager).parseMessage(any());
   }
 
   /**
-   * Guards the actual regression #7974 exists to close: if {@code triggerWebhook} ever wrapped
-   * {@code msgManager.parseMessage(...)} in a try/catch that swallowed the verification failure and
-   * fell back to treating the payload as a plain (unverified) notification, this test would catch
-   * it, because it asserts the connector propagates rather than returning a {@code WebhookResult}.
-   * Proven to actually kill that mutation: temporarily wrapping the production {@code parseMessage}
-   * call in {@code catch (RuntimeException e) { return handleNotification(...); }} was confirmed to
-   * turn this test red before being reverted.
+   * Signature verification failures from parseMessage() must propagate, not resolve to a
+   * WebhookResult (#7974).
    */
   @Test
   void triggerWebhook_SignatureVerificationFails_PropagatesException() throws Exception {
@@ -325,7 +319,7 @@ class SnsWebhookExecutableTest {
     when(messageManager.parseMessage(any()))
         .thenThrow(new RuntimeException("Signature in SNS message was invalid"));
 
-    // when & then: verification failure must propagate, never be swallowed into a WebhookResult.
+    // when & then
     testObject.activate(ctx);
     assertThatThrownBy(() -> testObject.triggerWebhook(payload))
         .isInstanceOf(RuntimeException.class)

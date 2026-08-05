@@ -28,49 +28,19 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Exercises the real (unmocked) AWS SDK v1 {@link SnsMessageManager} that {@link
- * SnsWebhookExecutable} relies on for validating inbound SNS webhook payloads.
+ * SnsWebhookExecutable} relies on to verify inbound SNS webhook signatures. {@link
+ * SnsWebhookExecutableTest} mocks {@link SnsMessageManager}, so it never runs real
+ * signature/cert-URL verification; these tests do, covering: a spoofed {@code SigningCertURL}, a
+ * validly-signed message, a tampered message, and a missing signature.
  *
- * <p>{@link SnsWebhookExecutableTest} covers the connector's business logic (allow-listing, routing
- * by message type) but mocks {@link SnsMessageManager} itself, so none of its tests — including the
- * happy-path ones — invoke real signature/cert-URL verification. The tests below close that gap:
- * they go through the real, unmocked {@link SnsClientSupplier} -&gt; {@link SnsMessageManager}
- * end-to-end, deterministically and fully offline, covering:
+ * <p>The certificate-download step is skipped by seeding {@code SnsMessageManager}'s internal
+ * certificate cache via reflection with a self-generated RSA key, so the crypto check runs fully
+ * offline. The cache's own {@code add} call is also invoked via reflection rather than a direct
+ * import, to avoid a compile-time dependency on {@code aws-java-sdk-core} (where the cache type
+ * lives) that {@code dependency:analyze-only} would flag as declared-but-unused.
  *
- * <ul>
- *   <li>a spoofed {@code SigningCertURL} is rejected before any network call ({@link
- *       #spoofedSigningCertUrl_isRejectedBeforeAnyNetworkCall()});
- *   <li>a genuinely RSA-signed message is accepted by the real cryptographic signature check
- *       ({@link #validSignature_isAccepted()}) — a positive control proving the harness below is
- *       sound;
- *   <li>a message whose body was tampered with after signing is rejected by that same check ({@link
- *       #tamperedMessage_isRejected()});
- *   <li>a message with no {@code Signature} field at all is rejected ({@link
- *       #missingSignature_isRejected()}).
- * </ul>
- *
- * <p>The cryptographic-signature tests work by pre-seeding {@code SnsMessageManager}'s internal
- * certificate cache (a {@code com.amazonaws.internal.FIFOCache<PublicKey>}) via reflection with a
- * self-generated JDK-native RSA public key, keyed by the message's {@code SigningCertURL}. That
- * makes the manager's private {@code fetchPublicKey} cache-hit and skip the network certificate
- * download, while the real {@code SignatureChecker} crypto verification still runs against the
- * (self-signed) key. This needs no new test dependency (pure JDK, no BouncyCastle), no {@code
- * keytool}, and no reflection into any package-private constructor — only {@code setAccessible} on
- * two private fields (in the package-private {@code SignatureVerifier} class): {@code
- * SnsMessageManager.signatureVerifier} and its {@code SignatureVerifier.certificateCache}. The
- * cache's own {@code add} method is public; it is still invoked reflectively here (rather than via
- * a direct import/cast) purely to avoid this test module taking on a compile-time reference to the
- * {@code aws-java-sdk-core} artifact that {@code FIFOCache} lives in — {@code
- * dependency:analyze-only} would otherwise flag it as a non-test-scoped test-only dependency.
- *
- * <p><b>What this class does NOT cover</b>: the actual PEM download/parse, X.509 hostname
- * verification, and certificate-expiry checks inside {@code SignatureVerifier#downloadCert} /
- * {@code #validateCertificate} are bypassed by seeding the cache directly — those code paths still
- * have no test coverage here. What IS covered end-to-end at the connector level — including the
- * specific regression this gap could otherwise hide, e.g. {@code parseMessage} throwing and that
- * exception being silently swallowed instead of propagated — is in {@link
- * SnsWebhookExecutableTest#triggerWebhook_SignatureVerificationFails_PropagatesException()}, which
- * asserts the real production code path never falls back to an unverified payload when the (mocked)
- * manager rejects a message.
+ * <p>Not covered: certificate download/parsing, hostname verification, and expiry checks — those
+ * are bypassed by seeding the cache directly instead of exercising them.
  */
 class SnsWebhookSignatureVerificationTest {
 
@@ -101,9 +71,7 @@ class SnsWebhookSignatureVerificationTest {
                     new ByteArrayInputStream(
                         payloadWithSpoofedCertUrl.getBytes(StandardCharsets.UTF_8))))
         .isInstanceOf(RuntimeException.class)
-        // Common substring of both possible SigningCertUrlVerifier messages ("SigningCertUrl
-        // does not match expected endpoint..." and "SigningCertURL was not using HTTPS:"), so the
-        // assertion doesn't depend on exactly which of the two checks rejects this fixture.
+        // Matches either SigningCertUrlVerifier rejection message (wrong host or non-HTTPS).
         .hasMessageContaining("SigningCert");
   }
 
@@ -184,10 +152,8 @@ class SnsWebhookSignatureVerificationTest {
   }
 
   /**
-   * Reproduces the AWS-documented canonical "string to sign" for a {@code Notification}: the
-   * interesting fields (as SNS itself defines them), sorted alphabetically by key, each rendered as
-   * {@code "Key\nValue\n"}. Only fields actually present are included, matching {@code
-   * SignatureChecker}'s behavior.
+   * AWS's canonical "string to sign" for a Notification: present fields, sorted by key, as
+   * "Key\nValue\n".
    */
   private static String canonicalStringToSign(Map<String, String> fields) {
     String[] keysInSortedOrder = {
@@ -227,17 +193,7 @@ class SnsWebhookSignatureVerificationTest {
     return json.toString();
   }
 
-  /**
-   * Pre-seeds {@code SnsMessageManager}'s certificate cache so {@code fetchPublicKey} cache-hits on
-   * {@link #SIGNING_CERT_URL} instead of downloading a certificate over the network, letting the
-   * real cryptographic signature check run offline against a self-generated key.
-   *
-   * <p>Everything here goes through reflection, including the cache's own public {@code add}
-   * method: the cache's declared type ({@code com.amazonaws.internal.FIFOCache}) lives in {@code
-   * aws-java-sdk-core}, which this module does not otherwise depend on directly, and importing it
-   * just for a cast would make {@code dependency:analyze-only} report it under "Non-test scoped
-   * test only dependencies found".
-   */
+  /** Seeds the certificate cache via reflection so verification runs offline; see class javadoc. */
   private static void seedCertificateCache(SnsMessageManager manager, PublicKey publicKey)
       throws Exception {
     Field signatureVerifierField = SnsMessageManager.class.getDeclaredField("signatureVerifier");
