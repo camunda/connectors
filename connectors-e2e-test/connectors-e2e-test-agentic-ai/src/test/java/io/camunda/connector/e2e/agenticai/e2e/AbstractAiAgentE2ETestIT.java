@@ -44,6 +44,8 @@ abstract class AbstractAiAgentE2ETestIT {
   static final String JOKE_1 =
       "Why did the AI cross the road? To process the chicken on the other side.";
 
+  static final String ORDER_STATUS_TRACKING_NUMBER = "1Z999AA10123456784";
+
   @Autowired protected CamundaClient camundaClient;
   @Autowired protected CamundaProcessTestContext processTestContext;
 
@@ -54,8 +56,13 @@ abstract class AbstractAiAgentE2ETestIT {
 
   @BeforeEach
   void mockHttpTools() {
-    // Intercept ListUsers and Jokes_API HTTP jobs — the HTTP connector is disabled in the Docker
-    // bundle via CONNECTOR_OUTBOUND_DISABLED so these jobs stay open for the test to complete
+    // Intercept ListUsers, Jokes_API and (Vertex-only) GetOrderStatus HTTP jobs — the HTTP
+    // connector is disabled in the Docker bundle via CONNECTOR_OUTBOUND_DISABLED so these jobs
+    // stay open for the test to complete. Matching is done by element id (a single job worker per
+    // job type, dispatching on the element that raised the job) rather than by request content, so
+    // adding the GetOrderStatus case here — for the Vertex-only BPMN — does not touch the
+    // ListUsers/Jokes_API branches used by both providers' tests; the OpenAI BPMN has no
+    // GetOrderStatus element, so that branch is simply never reached there.
     processTestContext
         .mockJobWorker(HTTP_JSON_JOB_TYPE)
         .withHandler(
@@ -64,6 +71,7 @@ abstract class AbstractAiAgentE2ETestIT {
                   switch (job.getElementId()) {
                     case "ListUsers" -> knownUsers();
                     case "Jokes_API" -> JOKE_1;
+                    case "GetOrderStatus" -> orderStatus();
                     default -> null;
                   };
               var cmd = jobClient.newCompleteCommand(job);
@@ -78,5 +86,13 @@ abstract class AbstractAiAgentE2ETestIT {
     return List.of(
         Map.of("id", 1, "name", "Leanne Graham", "username", "Bret"),
         Map.of("id", 2, "name", "Ervin Howell", "username", "Antonette"));
+  }
+
+  static Map<String, Object> orderStatus() {
+    return Map.of(
+        "orderId", "ORD-1001",
+        "status", "shipped",
+        "trackingNumber", ORDER_STATUS_TRACKING_NUMBER,
+        "estimatedDelivery", "2026-08-10");
   }
 }
