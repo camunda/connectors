@@ -14,6 +14,9 @@ camunda:
       CONNECTOR_OUTBOUND_DISABLED: "io.camunda:http-json:1"
     connectors-secrets:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GOOGLE_VERTEX_AI_SERVICE_ACCOUNT: ${GOOGLE_VERTEX_AI_SERVICE_ACCOUNT:}
+      GOOGLE_VERTEX_AI_PROJECT_ID: ${GOOGLE_VERTEX_AI_PROJECT_ID:}
+      GOOGLE_VERTEX_AI_REGION: ${GOOGLE_VERTEX_AI_REGION:}
     judge:
       chat-model:
         provider: openai
