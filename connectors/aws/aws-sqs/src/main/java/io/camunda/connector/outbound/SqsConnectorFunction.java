@@ -32,7 +32,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
     inputVariables = {"authentication", "configuration", "queue", "awsCredential"},
     type = "io.camunda:aws-sqs:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.AWSSQS.v1",
     name = "Send Message to AWS SQS",
     description = "Send messages to Amazon SQS.",
@@ -48,7 +48,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
     },
     inputDataClass = SqsConnectorRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 12,
+    version = 13,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Queue properties"),

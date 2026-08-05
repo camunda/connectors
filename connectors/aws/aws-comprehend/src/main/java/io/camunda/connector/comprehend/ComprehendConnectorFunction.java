@@ -24,7 +24,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     inputVariables = {"authentication", "configuration", "input", "awsCredential"},
     type = "io.camunda:aws-comprehend:1")
 @ElementTemplate(
-    engineVersion = "^8.7",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.AWSCOMPREHEND.v1",
     name = "AWS Comprehend Outbound Connector",
     description = "Execute Comprehend models",
@@ -38,7 +38,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     },
     inputDataClass = ComprehendRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 4,
+    version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

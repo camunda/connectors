@@ -19,10 +19,17 @@ package io.camunda.connector.runtime.outbound.jobstream;
 import java.util.List;
 
 /**
- * Aggregated remote streams from all queried brokers, together with the total number of brokers
- * that were queried.
+ * Remote streams from all queried brokers, grouped by broker of origin. A single broker's response
+ * can list a job type across several {@link RemoteJobStream} entries (e.g. one per distinct
+ * consumer registration) — keeping those entries grouped by broker lets callers tell "multiple
+ * entries from one broker" apart from "multiple brokers", which a flattened list cannot express.
  *
- * @param streams combined list of remote streams from all brokers
- * @param brokerCount total number of brokers that were queried
+ * @param streamsByBroker one entry per queried broker, each holding that broker's remote streams
  */
-public record BrokerStreamsResult(List<RemoteJobStream> streams, int brokerCount) {}
+public record BrokerStreamsResult(List<List<RemoteJobStream>> streamsByBroker) {
+
+  /** Total number of brokers that were queried. */
+  public int brokerCount() {
+    return streamsByBroker.size();
+  }
+}

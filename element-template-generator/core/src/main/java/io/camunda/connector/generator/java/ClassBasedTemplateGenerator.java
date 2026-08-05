@@ -44,6 +44,17 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
   private static final Pattern SEM_VER_PATTERN =
       Pattern.compile(
           "^(?:[~^]?(?:0|[1-9]\\d*)\\.(?:\\d+)(?:\\.\\d+)?(?:-[\\da-z.-]+)?(?:\\+[\\da-z.-]+)?|\\*|\\d+\\.\\d+|\\d+)(?:\\s*[-,]\\s*[~^]?(?:0|[1-9]\\d*)\\.(?:\\d+)(?:\\.\\d+)?(?:-[\\da-z.-]+)?(?:\\+[\\da-z.-]+)?)?$");
+
+  // Configuration (credential) templates rely on modeler/engine support that only ships from
+  // Camunda 8.10 onward; a connector wiring @ElementTemplate.configurations() onto an older
+  // declared engineVersion would silently ship a chooser the target platform can't render.
+  private static final String MIN_ENGINE_VERSION_FOR_CONFIGURATIONS = "8.10";
+  private static final int MIN_ENGINE_MAJOR_FOR_CONFIGURATIONS = 8;
+  private static final int MIN_ENGINE_MINOR_FOR_CONFIGURATIONS = 10;
+  private static final Pattern ENGINE_VERSION_NUMBER_PATTERN =
+      Pattern.compile("^[~^]?(\\d+)\\.(\\d+)");
+  private static final Pattern BARE_MAJOR_VERSION_PATTERN = Pattern.compile("^[~^]?(\\d+)$");
+
   private final ClassLoader classLoader;
 
   public ClassBasedTemplateGenerator(ClassLoader classLoader) {
@@ -203,6 +214,20 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
           template.engineVersion() + " is not a valid semantic version");
     }
 
+    if (template.configurations().length > 0
+        && !meetsMinimumEngineVersionForConfigurations(template.engineVersion())) {
+      String declared =
+          template.engineVersion().isBlank() ? "none" : "\"" + template.engineVersion() + "\"";
+      throw new IllegalArgumentException(
+          "@ElementTemplate.configurations() on "
+              + template.id()
+              + " requires engineVersion >= "
+              + MIN_ENGINE_VERSION_FOR_CONFIGURATIONS
+              + " (Configuration/credential templates aren't supported by older Camunda"
+              + " versions), but engineVersion declared was "
+              + declared);
+    }
+
     var configurationTemplates = buildConfigurationTemplates(template, context);
 
     return context.elementTypes().stream()
@@ -311,6 +336,33 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
               template.defaultResultVariable(), template.defaultResultExpression()));
     }
     return newGroups;
+  }
+
+  private static boolean meetsMinimumEngineVersionForConfigurations(String engineVersion) {
+    if (engineVersion.isBlank()) {
+      // no engineVersion declared at all means no floor is emitted (engines: null) - strictly
+      // worse than an explicit-but-too-low one, since nothing then stops the template from being
+      // used on any engine version.
+      return false;
+    }
+    var majorMinorMatcher = ENGINE_VERSION_NUMBER_PATTERN.matcher(engineVersion);
+    if (majorMinorMatcher.find()) {
+      int major = Integer.parseInt(majorMinorMatcher.group(1));
+      int minor = Integer.parseInt(majorMinorMatcher.group(2));
+      return major > MIN_ENGINE_MAJOR_FOR_CONFIGURATIONS
+          || (major == MIN_ENGINE_MAJOR_FOR_CONFIGURATIONS
+              && minor >= MIN_ENGINE_MINOR_FOR_CONFIGURATIONS);
+    }
+    var bareMajorMatcher = BARE_MAJOR_VERSION_PATTERN.matcher(engineVersion);
+    if (bareMajorMatcher.matches()) {
+      // a bare major (e.g. "8" or "^7") permits any minor within that major, so it only proves
+      // the floor is met when the major itself is already past it - "8" alone still allows 8.0.
+      return Integer.parseInt(bareMajorMatcher.group(1)) > MIN_ENGINE_MAJOR_FOR_CONFIGURATIONS;
+    }
+    // anything else SEM_VER_PATTERN still accepts ("*", an unparsed range lower bound, etc.)
+    // can't be proven to satisfy the floor - reject conservatively rather than let it slip
+    // through as a false pass.
+    return false;
   }
 
   private List<ConfigurationTemplate> buildConfigurationTemplates(
