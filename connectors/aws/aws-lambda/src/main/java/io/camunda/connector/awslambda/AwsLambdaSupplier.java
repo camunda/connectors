@@ -14,14 +14,10 @@ import software.amazon.awssdk.services.lambda.LambdaClient;
 public class AwsLambdaSupplier {
 
   /**
-   * Builds the production client through the shared {@link AwsClientSupport#configureClient}, so
-   * credentials and endpoint-override handling are configured exactly as every other AWS SDK v2
-   * connector (issue #7083). The region is applied explicitly from the already-resolved {@code
-   * region} argument (rather than left to {@code AwsClientSupport}'s config-only lookup) because
-   * the caller ({@link LambdaConnectorFunction}) must first fall back to the deprecated
-   * per-function region and enforce that a region is present; overriding after {@code
-   * configureClient} keeps that resolution authoritative regardless of what {@code
-   * request.getConfiguration()} contains.
+   * Delegates to {@link AwsClientSupport#configureClient} (issue #7083). Region is applied
+   * explicitly from the already-resolved {@code region} argument, since the caller ({@link
+   * LambdaConnectorFunction}) must first fall back to the deprecated per-function region; that
+   * resolution stays authoritative regardless of what {@code request.getConfiguration()} contains.
    */
   public LambdaClient awsLambdaService(final AwsLambdaRequest request, final String region) {
     return AwsClientSupport.configureClient(LambdaClient.builder(), request)

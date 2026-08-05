@@ -13,14 +13,10 @@ import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 public class AwsEventBridgeClientSupplier {
 
   /**
-   * Builds the production client through the shared {@link AwsClientSupport#configureClient}, so
-   * credentials and endpoint-override handling are configured exactly as every other AWS SDK v2
-   * connector (issue #7083). The {@code region} parameter is taken explicitly (rather than left to
-   * {@code AwsClientSupport}'s config-only lookup) purely for symmetry with the lambda/sns
-   * suppliers, which have a genuine per-resource region fallback to apply on top of {@code
-   * configureClient}; this connector has no such fallback, so for {@link EventBridgeFunction} the
-   * override is a no-op re-application of the same value {@code configureClient} already read off
-   * {@code request.getConfiguration()}.
+   * Delegates to {@link AwsClientSupport#configureClient} (issue #7083). {@code region} is taken
+   * explicitly for symmetry with the lambda/sns suppliers, which apply a genuine per-resource
+   * region fallback on top of {@code configureClient}; this connector has none, so here it's a
+   * no-op re-application of the value {@code configureClient} already read from the request.
    */
   public EventBridgeClient getAmazonEventBridgeClient(
       final AwsEventBridgeRequest request, final String region) {

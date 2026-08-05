@@ -14,17 +14,14 @@ import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 public class SageMakeClientSupplier {
 
   /**
-   * Builds the production sync client through the shared {@link AwsClientSupport#createClient}, so
-   * credentials, region, and endpoint-override handling are configured exactly as every other AWS
-   * SDK v2 connector (issue #7083).
+   * Delegates to {@link AwsClientSupport#createClient} (issue #7083).
    *
-   * <p>Note: unlike the previous hand-rolled builder, {@code AwsClientSupport} also applies {@code
-   * configuration.endpoint} if present. That property was already exposed (hidden) on the element
-   * template but was silently ignored by this supplier; it is now honored. Additionally, when
-   * {@code configuration} or {@code configuration.region} is absent, {@code AwsClientSupport}
-   * leaves the region unset (falling back to the SDK's default region provider chain) instead of
-   * the previous caller-side {@code request.getConfiguration().region()} dereference in {@code
-   * SagemakerConnectorFunction}, which threw {@code NullPointerException} when either was absent.
+   * <p>Behavior change: {@code configuration.endpoint} (hidden on the element template) was
+   * previously ignored; it's now honored, so a process definition that already sets it will target
+   * that endpoint instead of the default. A missing region no longer throws {@code
+   * NullPointerException} (the previous caller-side {@code request.getConfiguration().region()}
+   * dereference); it now falls through to the SDK's default region-provider chain, since {@code
+   * AwsClientSupport} has no region validation.
    */
   public SageMakerRuntimeClient getSyncClient(final SageMakerRequest request) {
     return AwsClientSupport.createClient(SageMakerRuntimeClient.builder(), request);

@@ -23,15 +23,11 @@ public class BedrockExecutor {
   }
 
   /**
-   * Builds the production client through the shared {@link AwsClientSupport#createClient}, so
-   * credentials, region, and endpoint are configured exactly as every other AWS SDK v2 connector
-   * (issue #7083).
+   * Delegates client construction to {@link AwsClientSupport#createClient} (issue #7083).
    *
-   * <p>Note: unlike the previous inline builder, {@code AwsClientSupport} also applies {@code
-   * configuration.endpoint} if present. That property is already exposed (hidden) on the element
-   * template but was silently ignored by the previous hand-rolled builder; it is now honored, so
-   * any process definition that already sets it (e.g. via hybrid template or raw XML) will start
-   * talking to that endpoint instead of the default AWS one.
+   * <p>Behavior change: {@code configuration.endpoint} (hidden on the element template) was
+   * previously ignored by the hand-rolled builder; it's now honored, so a process definition that
+   * already sets it will target that endpoint instead of the default AWS one.
    */
   public static BedrockExecutor create(BedrockRequest bedrockRequest) {
     return new BedrockExecutor(

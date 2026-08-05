@@ -43,17 +43,13 @@ public class S3Executor {
   }
 
   /**
-   * Builds the production client through the shared {@link AwsClientSupport#createClient}, so
-   * credentials, region, and endpoint are configured exactly as every other AWS SDK v2 connector
-   * (issue #7083).
+   * Delegates client construction to {@link AwsClientSupport#createClient} (issue #7083).
    *
-   * <p>Note: unlike the previous inline builder, {@code AwsClientSupport} also applies {@code
-   * configuration.endpoint} if present. That property is already exposed (hidden) on the element
-   * template but was silently ignored by the previous hand-rolled builder; it is now honored, so
-   * any process definition that already sets it (e.g. via hybrid template or raw XML) will start
-   * talking to that endpoint instead of the default AWS one. There is no {@code forcePathStyle}
-   * configuration on this connector (old or new), so a custom endpoint uses virtual-host-style
-   * addressing, which will not work against LocalStack/MinIO out of the box.
+   * <p>Behavior change: {@code configuration.endpoint} (hidden on the element template) was
+   * previously ignored; it's now honored, so a process definition that already sets it will target
+   * that endpoint instead of the default. This connector has no {@code forcePathStyle} option, so a
+   * custom endpoint uses virtual-host-style addressing and won't work against LocalStack/MinIO out
+   * of the box.
    */
   public static S3Executor create(
       S3Request s3Request, Function<DocumentCreationRequest, Document> createDocument) {

@@ -10,17 +10,14 @@ import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
 
 /**
- * Client-supplier seam for the AWS SDK v2 {@link SqsClient}, taking the whole {@link
- * AwsBaseRequest} (rather than an already-resolved credentials provider plus plain strings) so the
- * production implementation can delegate credential/endpoint configuration to the shared {@code
- * io.camunda.connector.aws.AwsClientSupport} (issue #7083 centralization), mirroring {@code
- * io.camunda.connector.aws.dynamodb.DynamoDbClientSupplier}. {@link AwsBaseRequest} (not a more
- * specific subtype) because this interface serves both the outbound ({@code SqsConnectorRequest})
- * and inbound ({@code SqsInboundProperties}) request types.
+ * Client-supplier seam for the AWS SDK v2 {@link SqsClient} (issue #7083). Takes the whole {@link
+ * AwsBaseRequest} rather than a resolved credentials provider so the implementation can delegate to
+ * {@code AwsClientSupport}, mirroring {@code DynamoDbClientSupplier}. Uses {@link AwsBaseRequest}
+ * (not a narrower subtype) since this interface serves both the outbound ({@code
+ * SqsConnectorRequest}) and inbound ({@code SqsInboundProperties}) request types.
  *
- * <p>The region is still passed explicitly (rather than left to {@code AwsClientSupport}'s
- * config-only lookup) because both callers must first fall back to the deprecated per-queue region
- * field and enforce that a region is present via {@code AwsUtils.extractRegionOrDefault}.
+ * <p>Region is still passed explicitly because both callers fall back to the deprecated per-queue
+ * region field via {@code AwsUtils.extractRegionOrDefault} before calling this.
  */
 public interface AmazonSQSClientSupplier {
   SqsClient sqsClient(AwsBaseRequest request, String region);

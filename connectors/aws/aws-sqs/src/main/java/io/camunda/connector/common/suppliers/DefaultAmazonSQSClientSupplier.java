@@ -14,20 +14,14 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 public class DefaultAmazonSQSClientSupplier implements AmazonSQSClientSupplier {
 
   /**
-   * Builds the production client through the shared {@link AwsClientSupport#configureClient}, so
-   * credentials and endpoint-override handling are configured exactly as every other AWS SDK v2
-   * connector (issue #7083). The region is applied explicitly from the already-resolved {@code
-   * region} argument (rather than left to {@code AwsClientSupport}'s config-only lookup) because
-   * the caller must first fall back to the deprecated per-queue region and enforce that a region is
-   * present; overriding after {@code configureClient} keeps that resolution authoritative
-   * regardless of what {@code request.getConfiguration()} contains.
+   * Delegates to {@link AwsClientSupport#configureClient} (issue #7083). Region is applied
+   * explicitly since the caller must first fall back to the deprecated per-queue region before
+   * calling this.
    *
-   * <p>Note: unlike the previous hand-rolled builder, {@code AwsClientSupport} ignores a null/blank
-   * endpoint instead of feeding it to {@code endpointOverride(URI.create(...))}. On the outbound
-   * path, a blank (non-null) endpoint previously reached the v1-style builder as {@code
-   * URI.create("")}; that edge case is now a no-op instead of a construction-time error. On the
-   * inbound path, endpoint override was previously unreachable altogether ({@code SqsExecutable}
-   * never called the old 3-arg overload); it is now honored like every other connector.
+   * <p>Behavior changes: a blank (non-null) endpoint is now a no-op instead of failing at
+   * construction time. On the inbound path, endpoint override was previously unreachable at all
+   * ({@code SqsExecutable} never called the old 3-arg overload); it's now honored like every other
+   * connector.
    */
   @Override
   public SqsClient sqsClient(final AwsBaseRequest request, final String region) {
