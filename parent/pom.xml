@@ -1368,6 +1368,11 @@ See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
             <configuration>
               <flattenMode>ossrh</flattenMode>
               <updatePomFile>true</updatePomFile>
+              <pomElements>
+                <properties>keep</properties>
+                <dependencyManagement>keep</dependencyManagement>
+                <build>keep</build>
+              </pomElements>
             </configuration>
             <executions>
               <execution>
