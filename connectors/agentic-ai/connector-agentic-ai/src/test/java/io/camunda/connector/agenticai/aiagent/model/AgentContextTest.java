@@ -39,6 +39,18 @@ class AgentContextTest {
   }
 
   @Test
+  void schemaVersionDefaultsToCurrentAndSerializesAsFirstField() throws JsonProcessingException {
+    final var context = AgentContext.empty();
+    assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+
+    final var serialized = objectMapper.writeValueAsString(context);
+    assertThat(serialized).startsWith("{\"schemaVersion\":" + AgentContext.CURRENT_SCHEMA_VERSION);
+
+    final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
+    assertThat(deserialized.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+  }
+
+  @Test
   void withState() {
     final var initialContext = AgentContext.empty();
     final var updatedContext = initialContext.withState(AgentState.TOOL_DISCOVERY);
@@ -123,6 +135,7 @@ class AgentContextTest {
     assertThatThrownBy(
             () ->
                 new AgentContext(
+                    AgentContext.CURRENT_SCHEMA_VERSION,
                     state,
                     null,
                     metrics,

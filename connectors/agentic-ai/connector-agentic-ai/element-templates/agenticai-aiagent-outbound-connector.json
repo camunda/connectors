@@ -1528,6 +1528,7 @@
   }, {
     "id" : "data.memory.storage.storeType",
     "label" : "Implementation type",
+    "description" : "Identifier for the custom memory storage implementation.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1543,6 +1544,7 @@
       "equals" : "custom",
       "type" : "simple"
     },
+    "tooltip" : "Must match the identifier configured for the custom implementation.",
     "type" : "String"
   }, {
     "id" : "data.memory.storage.parameters",
@@ -1716,6 +1718,7 @@
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
+    "tooltip" : "<div><p>Example response:</p><code>{\"context\":{\"metrics\":{\"modelCalls\":3,\"tokenUsage\":{\"inputTokenCount\":10,\"outputTokenCount\":20},\"toolCalls\":0},\"schemaVersion\":1,\"state\":\"READY\",\"toolDefinitions\":[{\"description\":\"A sample tool for demonstration purposes.\",\"inputSchema\":{\"properties\":{\"input1\":{\"type\":\"string\"},\"input2\":{\"type\":\"number\"}},\"required\":[\"input1\",\"input2\"],\"type\":\"object\"},\"name\":\"sampleTool\"}]},\"responseText\":\"This is a sample response text from the AI agent.\",\"toolCalls\":[]}</code><p>Example FEEL expression: <code>={ responseText: responseText }</code> -&gt; <code>{\"responseText\":\"This is a sample response text from the AI agent.\"}</code></p></div>",
     "type" : "Text"
   }, {
     "id" : "errorExpression",
@@ -1748,6 +1751,17 @@
     "group" : "retries",
     "binding" : {
       "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "optional" : true,
+    "group" : "retries",
+    "binding" : {
+      "key" : "jobTimeout",
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"

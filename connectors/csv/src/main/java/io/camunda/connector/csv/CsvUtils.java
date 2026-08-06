@@ -27,19 +27,16 @@ public class CsvUtils {
       Reader csvReader,
       CsvFormat format,
       ReadCsvRequest.RowType rowType,
-      Function<Map<String, Object>, Object> mapper) {
-    try {
-      var csvFormat = CsvUtils.buildFrom(format, rowType);
-      var csvParser = csvFormat.parse(csvReader);
-      return new ReadCsvResult(
-          csvParser.stream()
-              .map(record -> mapToRowType(record, rowType))
-              .map(row -> mapRecord(row, mapper))
-              .filter(Objects::nonNull)
-              .toList());
-    } catch (Throwable e) {
-      throw new RuntimeException("Error reading CSV data", e);
-    }
+      Function<Map<String, Object>, Object> mapper)
+      throws IOException {
+    var csvFormat = CsvUtils.buildFrom(format, rowType);
+    var csvParser = csvFormat.parse(csvReader);
+    return new ReadCsvResult(
+        csvParser.stream()
+            .map(record -> mapToRowType(record, rowType))
+            .map(row -> mapRecord(row, mapper))
+            .filter(Objects::nonNull)
+            .toList());
   }
 
   private static Object mapToRowType(CSVRecord record, ReadCsvRequest.RowType rowType) {

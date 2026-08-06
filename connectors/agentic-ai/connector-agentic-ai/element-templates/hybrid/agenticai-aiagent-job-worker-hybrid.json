@@ -1531,6 +1531,7 @@
   }, {
     "id" : "data.memory.storage.storeType",
     "label" : "Implementation type",
+    "description" : "Identifier for the custom memory storage implementation.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1546,6 +1547,7 @@
       "equals" : "custom",
       "type" : "simple"
     },
+    "tooltip" : "Must match the identifier configured for the custom implementation.",
     "type" : "String"
   }, {
     "id" : "data.memory.storage.parameters",
@@ -1775,6 +1777,17 @@
     "group" : "retries",
     "binding" : {
       "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "optional" : true,
+    "group" : "retries",
+    "binding" : {
+      "key" : "jobTimeout",
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"

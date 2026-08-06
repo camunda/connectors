@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
@@ -30,6 +31,21 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
 
   private final ConnectorsInboundMetrics connectorsInboundMetrics;
 
+  public MeteredInboundCorrelationHandler(
+      CamundaClient camundaClient,
+      ObjectMapper objectMapper,
+      Duration messageTtl,
+      DocumentFactory documentFactory,
+      ConnectorsInboundMetrics connectorsInboundMetrics) {
+    super(camundaClient, objectMapper, messageTtl, documentFactory);
+    this.connectorsInboundMetrics = connectorsInboundMetrics;
+  }
+
+  /**
+   * Preserves source/binary compatibility for callers compiled against the pre-{@code
+   * createDocument()} four-argument constructor. {@code createDocument()} is unavailable through
+   * this instance (see {@code ConnectorResultHandler(ObjectMapper)}).
+   */
   public MeteredInboundCorrelationHandler(
       CamundaClient camundaClient,
       ObjectMapper objectMapper,

@@ -2,5 +2,7 @@
   "io.camunda.connector.IdpClassificationOutBoundTemplate.v1",
   "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
   "io.camunda.connector.IdpStructuredExtractionOutBoundTemplate.v1",
-  "io.camunda.connector.IdpUnstructuredExtractionOutBoundTemplate.v1"
+  "io.camunda.connector.IdpUnstructuredExtractionOutBoundTemplate.v1",
+  "io.camunda.connectors.agenticai.ai-agent-task.v2",
+  "io.camunda.connectors.agenticai.ai-agent-subprocess.v2"
 ]

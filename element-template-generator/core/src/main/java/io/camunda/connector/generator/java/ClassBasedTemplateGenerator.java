@@ -19,6 +19,8 @@ package io.camunda.connector.generator.java;
 import static io.camunda.connector.generator.java.util.OperationBasedConnectorUtil.*;
 import static io.camunda.connector.generator.java.util.TemplateGenerationStringUtil.camelCaseToSpaces;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -38,12 +40,25 @@ import io.camunda.connector.util.reflection.ReflectionUtil;
 import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.util.*;
 import java.util.regex.Pattern;
+import org.apache.commons.lang3.StringUtils;
 
 public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Class<?>> {
 
+  private static final ObjectMapper TOOLTIP_JSON_MAPPER = new ObjectMapper();
   private static final Pattern SEM_VER_PATTERN =
       Pattern.compile(
           "^(?:[~^]?(?:0|[1-9]\\d*)\\.(?:\\d+)(?:\\.\\d+)?(?:-[\\da-z.-]+)?(?:\\+[\\da-z.-]+)?|\\*|\\d+\\.\\d+|\\d+)(?:\\s*[-,]\\s*[~^]?(?:0|[1-9]\\d*)\\.(?:\\d+)(?:\\.\\d+)?(?:-[\\da-z.-]+)?(?:\\+[\\da-z.-]+)?)?$");
+
+  // Configuration (credential) templates rely on modeler/engine support that only ships from
+  // Camunda 8.10 onward; a connector wiring @ElementTemplate.configurations() onto an older
+  // declared engineVersion would silently ship a chooser the target platform can't render.
+  private static final String MIN_ENGINE_VERSION_FOR_CONFIGURATIONS = "8.10";
+  private static final int MIN_ENGINE_MAJOR_FOR_CONFIGURATIONS = 8;
+  private static final int MIN_ENGINE_MINOR_FOR_CONFIGURATIONS = 10;
+  private static final Pattern ENGINE_VERSION_NUMBER_PATTERN =
+      Pattern.compile("^[~^]?(\\d+)\\.(\\d+)");
+  private static final Pattern BARE_MAJOR_VERSION_PATTERN = Pattern.compile("^[~^]?(\\d+)$");
+
   private final ClassLoader classLoader;
 
   public ClassBasedTemplateGenerator(ClassLoader classLoader) {
@@ -203,6 +218,20 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
           template.engineVersion() + " is not a valid semantic version");
     }
 
+    if (template.configurations().length > 0
+        && !meetsMinimumEngineVersionForConfigurations(template.engineVersion())) {
+      String declared =
+          template.engineVersion().isBlank() ? "none" : "\"" + template.engineVersion() + "\"";
+      throw new IllegalArgumentException(
+          "@ElementTemplate.configurations() on "
+              + template.id()
+              + " requires engineVersion >= "
+              + MIN_ENGINE_VERSION_FOR_CONFIGURATIONS
+              + " (Configuration/credential templates aren't supported by older Camunda"
+              + " versions), but engineVersion declared was "
+              + declared);
+    }
+
     var configurationTemplates = buildConfigurationTemplates(template, context);
 
     return context.elementTypes().stream()
@@ -270,12 +299,16 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       GeneratorConfiguration configuration,
       ElementTemplate template) {
     var newGroups = new ArrayList<>(groups);
+    var resultExpressionExampleTooltip =
+        buildResultExpressionExampleTooltip(template.outputDataClass());
     if (context instanceof Outbound) {
       newGroups.add(
           PropertyGroup.ADD_CONNECTORS_DETAILS_OUTPUT.apply(template.id(), template.version()));
       newGroups.add(
-          PropertyGroup.OUTPUT_GROUP_OUTBOUND.apply(
-              template.defaultResultVariable(), template.defaultResultExpression()));
+          PropertyGroup.outputGroupOutbound(
+              template.defaultResultVariable(),
+              template.defaultResultExpression(),
+              resultExpressionExampleTooltip));
       newGroups.add(PropertyGroup.ERROR_GROUP);
       newGroups.add(PropertyGroup.RETRIES_GROUP);
     } else {
@@ -307,10 +340,91 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
         newGroups.add(PropertyGroup.DEDUPLICATION_GROUP);
       }
       newGroups.add(
-          PropertyGroup.OUTPUT_GROUP_INBOUND.apply(
-              template.defaultResultVariable(), template.defaultResultExpression()));
+          PropertyGroup.outputGroupInbound(
+              template.defaultResultVariable(),
+              template.defaultResultExpression(),
+              resultExpressionExampleTooltip));
     }
     return newGroups;
+  }
+
+  private static String buildResultExpressionExampleTooltip(Class<?> outputDataClass) {
+    if (Void.class.equals(outputDataClass)) {
+      return null;
+    }
+    return ClassBasedDocsGenerator.resolvePrimaryExampleData(outputDataClass)
+        .map(ClassBasedTemplateGenerator::formatExampleTooltip)
+        .orElse(null);
+  }
+
+  /**
+   * The example FEEL expression is evaluated directly against the returned example object's own
+   * fields (see {@code ClassBasedDocsGenerator#buildDataExampleModel}), so it necessarily omits any
+   * runtime variable-binding prefix (e.g. {@code response.} for outbound connectors, {@code
+   * request.} for webhook-style inbound ones) that the property's own default value may use. Both
+   * forms resolve correctly at runtime; the tooltip illustrates the response's shape, not a
+   * copy-pasteable snippet.
+   */
+  private static String formatExampleTooltip(DataExampleModel example) {
+    var tooltip =
+        new StringBuilder("<div><p>Example response:</p><code>")
+            .append(escapeHtml(compactJson(example.json())))
+            .append("</code>");
+    if (StringUtils.isNotBlank(example.feel())) {
+      tooltip
+          .append("<p>Example FEEL expression: <code>")
+          .append(escapeHtml(example.feel()))
+          .append("</code> -&gt; <code>")
+          .append(escapeHtml(compactJson(example.feelResultJson())))
+          .append("</code></p>");
+    }
+    return tooltip.append("</div>").toString();
+  }
+
+  /**
+   * Re-serializes pretty-printed JSON compactly, rather than collapsing whitespace with a regex — a
+   * regex would also collapse meaningful whitespace inside JSON string values.
+   */
+  private static String compactJson(String json) {
+    if (json == null) {
+      return "";
+    }
+    try {
+      return TOOLTIP_JSON_MAPPER.readTree(json).toString();
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("Failed to compact JSON for tooltip: " + json, e);
+    }
+  }
+
+  private static String escapeHtml(String value) {
+    return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+  }
+
+  private static boolean meetsMinimumEngineVersionForConfigurations(String engineVersion) {
+    if (engineVersion.isBlank()) {
+      // no engineVersion declared at all means no floor is emitted (engines: null) - strictly
+      // worse than an explicit-but-too-low one, since nothing then stops the template from being
+      // used on any engine version.
+      return false;
+    }
+    var majorMinorMatcher = ENGINE_VERSION_NUMBER_PATTERN.matcher(engineVersion);
+    if (majorMinorMatcher.find()) {
+      int major = Integer.parseInt(majorMinorMatcher.group(1));
+      int minor = Integer.parseInt(majorMinorMatcher.group(2));
+      return major > MIN_ENGINE_MAJOR_FOR_CONFIGURATIONS
+          || (major == MIN_ENGINE_MAJOR_FOR_CONFIGURATIONS
+              && minor >= MIN_ENGINE_MINOR_FOR_CONFIGURATIONS);
+    }
+    var bareMajorMatcher = BARE_MAJOR_VERSION_PATTERN.matcher(engineVersion);
+    if (bareMajorMatcher.matches()) {
+      // a bare major (e.g. "8" or "^7") permits any minor within that major, so it only proves
+      // the floor is met when the major itself is already past it - "8" alone still allows 8.0.
+      return Integer.parseInt(bareMajorMatcher.group(1)) > MIN_ENGINE_MAJOR_FOR_CONFIGURATIONS;
+    }
+    // anything else SEM_VER_PATTERN still accepts ("*", an unparsed range lower bound, etc.)
+    // can't be proven to satisfy the floor - reject conservatively rather than let it slip
+    // through as a false pass.
+    return false;
   }
 
   private List<ConfigurationTemplate> buildConfigurationTemplates(

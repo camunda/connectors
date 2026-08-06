@@ -1,0 +1,474 @@
+{
+  "state": "READY",
+  "metadata": {
+    "processDefinitionKey": 2251799813691441,
+    "processInstanceKey": 2251799813691485
+  },
+  "metrics": {
+    "modelCalls": 5,
+    "tokenUsage": {
+      "inputTokenCount": 10690,
+      "outputTokenCount": 896
+    }
+  },
+  "toolDefinitions": [
+    {
+      "name": "Jokes_API",
+      "description": "Fetches a random joke from a Jokes REST API",
+      "inputSchema": {
+        "required": [],
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "GetDateAndTime",
+      "description": "Returns the current date and time including the timezone.",
+      "inputSchema": {
+        "required": [],
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "ListUsers",
+      "description": "Lists all available users. More contact details (such as e-mail addresses) can be loaded up by looking up the individual user by ID.",
+      "inputSchema": {
+        "required": [],
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "LoadUserByID",
+      "description": "Loads a user by ID",
+      "inputSchema": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "The user ID"
+          }
+        }
+      }
+    },
+    {
+      "name": "SuperfluxProduct",
+      "description": "Calculates the superflux product (a very complicated method only this tool can do) given two input numbers",
+      "inputSchema": {
+        "required": [
+          "a",
+          "b"
+        ],
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "number",
+            "description": "The first number to be superflux calculated."
+          },
+          "b": {
+            "type": "number",
+            "description": "The second number to be superflux calculated."
+          }
+        }
+      }
+    },
+    {
+      "name": "AskHumanToSendEmail",
+      "description": "Ask a human to send an email for you",
+      "inputSchema": {
+        "required": [
+          "instructions",
+          "recipient_name",
+          "recipient_email",
+          "email_subject",
+          "email_body"
+        ],
+        "type": "object",
+        "properties": {
+          "instructions": {
+            "type": "string",
+            "description": "Instructions for the human to follow when sending the email, including background of the email."
+          },
+          "recipient_name": {
+            "type": "string",
+            "description": "The recipient's full name."
+          },
+          "recipient_email": {
+            "type": "string",
+            "description": "The the recipient's email address."
+          },
+          "email_subject": {
+            "type": "string",
+            "description": "The subject of the email."
+          },
+          "email_body": {
+            "type": "string",
+            "description": "The body of the email."
+          }
+        }
+      }
+    },
+    {
+      "name": "Search_Recipe",
+      "description": "Searches a recipe given a search query",
+      "inputSchema": {
+        "required": [
+          "searchQuery"
+        ],
+        "type": "object",
+        "properties": {
+          "searchQuery": {
+            "type": "string",
+            "description": "The query describing which recipe to search (e.g. a specific dish or the cuisine)."
+          }
+        }
+      }
+    },
+    {
+      "name": "Fetch_URL",
+      "description": "Fetches the contents of a given URL. Only accepts valid RFC 3986/RFC 7230 HTTP(s) URLs.",
+      "inputSchema": {
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL to fetch"
+          }
+        }
+      }
+    }
+  ],
+  "conversation": {
+    "type": "in-process",
+    "conversationId": "fe4ba23d-136b-4fe1-98aa-cffb53e18e15",
+    "messages": [
+      {
+        "role": "system",
+        "content": [
+          {
+            "type": "text",
+            "text": "You are a helpful, generic chat agent which can answer a wide amount of questions based on your knowledge and an optional set of available tools.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nIf you are prompted to interact with a person, never guess contact details, but use available user/person lookup tools instead and return with an error if you're not able to look up appropriate data.\n\nThinking, step by step, before you execute your tools, you think using the template `<thinking><context></context><reflection></reflection></thinking>`"
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "send ervin a joke"
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-07-08T20:36:15.183777+02:00"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "<thinking>\n<context>\nThe user wants me to send a joke to someone named \"Ervin\". To accomplish this, I need to:\n1. Find Ervin's contact details (using ListUsers and potentially LoadUserByID)\n2. Get a joke (using Jokes_API)\n3. Send the joke to Ervin (using AskHumanToSendEmail)\n\nI should not guess any contact details, so I need to look up Ervin first.\n</context>\n\n<reflection>\nI'll start by listing all users to find Ervin, then get a joke, and finally compose an email request with the joke.\n</reflection>\n</thinking>\n\nI'll help you send a joke to Ervin. Let me first look up Ervin's contact information and get a joke."
+          }
+        ],
+        "toolCalls": [
+          {
+            "id": "tooluse_BGnfVKdXKacD4ch4Z1bAle",
+            "name": "ListUsers",
+            "arguments": {}
+          },
+          {
+            "id": "tooluse_bhyw3poAigPRdNEeUUgUzL",
+            "name": "Jokes_API",
+            "arguments": {}
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-07-08T20:36:20.745009+02:00",
+          "framework": {
+            "id": "64e62640-3617-40eb-b34b-b4bf98a86c58",
+            "finishReason": "TOOL_EXECUTION",
+            "tokenUsage": {
+              "inputTokenCount": 1391,
+              "outputTokenCount": 238,
+              "totalTokenCount": 1629,
+              "cacheWriteInputTokens": 0,
+              "cacheReadInputTokens": 0
+            }
+          }
+        }
+      },
+      {
+        "role": "tool_call_result",
+        "results": [
+          {
+            "id": "tooluse_BGnfVKdXKacD4ch4Z1bAle",
+            "name": "ListUsers",
+            "content": [
+              {
+                "id": 1,
+                "name": "Leanne Graham",
+                "username": "Bret"
+              },
+              {
+                "id": 2,
+                "name": "Ervin Howell",
+                "username": "Antonette"
+              },
+              {
+                "id": 3,
+                "name": "Clementine Bauch",
+                "username": "Samantha"
+              },
+              {
+                "id": 4,
+                "name": "Patricia Lebsack",
+                "username": "Karianne"
+              },
+              {
+                "id": 5,
+                "name": "Chelsey Dietrich",
+                "username": "Kamren"
+              },
+              {
+                "id": 6,
+                "name": "Mrs. Dennis Schulist",
+                "username": "Leopoldo_Corkery"
+              },
+              {
+                "id": 7,
+                "name": "Kurtis Weissnat",
+                "username": "Elwyn.Skiles"
+              },
+              {
+                "id": 8,
+                "name": "Nicholas Runolfsdottir V",
+                "username": "Maxime_Nienow"
+              },
+              {
+                "id": 9,
+                "name": "Glenna Reichert",
+                "username": "Delphine"
+              },
+              {
+                "id": 10,
+                "name": "Clementina DuBuque",
+                "username": "Moriah.Stanton"
+              }
+            ]
+          },
+          {
+            "id": "tooluse_bhyw3poAigPRdNEeUUgUzL",
+            "name": "Jokes_API",
+            "content": "Who is Santa's favourite singer?\n\nElf-is Presley!"
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-07-08T20:36:21.263194+02:00"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "Great! I found Ervin Howell (ID: 2). Now let me get their email address and send the joke."
+          }
+        ],
+        "toolCalls": [
+          {
+            "id": "tooluse_ytTwhJnJgcRIAYg0PS894L",
+            "name": "LoadUserByID",
+            "arguments": {
+              "id": 2
+            }
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-07-08T20:36:23.390359+02:00",
+          "framework": {
+            "id": "9c80e4a1-c6c7-4eb7-b4f6-ce84cb290eb8",
+            "finishReason": "TOOL_EXECUTION",
+            "tokenUsage": {
+              "inputTokenCount": 1934,
+              "outputTokenCount": 83,
+              "totalTokenCount": 2017,
+              "cacheWriteInputTokens": 0,
+              "cacheReadInputTokens": 0
+            }
+          }
+        }
+      },
+      {
+        "role": "tool_call_result",
+        "results": [
+          {
+            "id": "tooluse_ytTwhJnJgcRIAYg0PS894L",
+            "name": "LoadUserByID",
+            "content": {
+              "website": "anastasia.net",
+              "name": "Ervin Howell",
+              "email": "Shanna@melissa.tv",
+              "username": "Antonette",
+              "company": {
+                "name": "Deckow-Crist",
+                "catchPhrase": "Proactive didactic contingency",
+                "bs": "synergize scalable supply-chains"
+              },
+              "id": 2,
+              "address": {
+                "geo": {
+                  "lat": "-43.9509",
+                  "lng": "-34.4618"
+                },
+                "street": "Victor Plains",
+                "suite": "Suite 879",
+                "city": "Wisokyburgh",
+                "zipcode": "90566-7771"
+              },
+              "phone": "010-692-6593 x09125"
+            }
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-07-08T20:36:23.975953+02:00"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "Perfect! Now I'll send the joke to Ervin Howell."
+          }
+        ],
+        "toolCalls": [
+          {
+            "id": "tooluse_WEDqYRjcD3EcydHNkRYBv7",
+            "name": "AskHumanToSendEmail",
+            "arguments": {
+              "email_body": "Hi Ervin,\n\nI thought you might enjoy this joke:\n\nWho is Santa's favourite singer?\n\nElf-is Presley!\n\nHope it made you smile!\n\nBest regards",
+              "email_subject": "A joke for you!",
+              "recipient_name": "Ervin Howell",
+              "instructions": "The user requested to send a joke to Ervin. I've fetched a joke from the Jokes API and am sending it to Ervin Howell via email.",
+              "recipient_email": "Shanna@melissa.tv"
+            }
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-07-08T20:36:27.747898+02:00",
+          "framework": {
+            "id": "bdbd13cd-8b39-4cc0-9eb6-e6399cd46515",
+            "finishReason": "TOOL_EXECUTION",
+            "tokenUsage": {
+              "inputTokenCount": 2169,
+              "outputTokenCount": 242,
+              "totalTokenCount": 2411,
+              "cacheWriteInputTokens": 0,
+              "cacheReadInputTokens": 0
+            }
+          }
+        }
+      },
+      {
+        "role": "tool_call_result",
+        "results": [
+          {
+            "id": "tooluse_WEDqYRjcD3EcydHNkRYBv7",
+            "name": "AskHumanToSendEmail",
+            "content": {
+              "operatorFeedback": "The email needs more emojis",
+              "emailOk": false
+            }
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-07-08T20:36:59.69622+02:00"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "Let me add more emojis to the email!"
+          }
+        ],
+        "toolCalls": [
+          {
+            "id": "tooluse_lF6AWhihpPNotZV1gDIe6A",
+            "name": "AskHumanToSendEmail",
+            "arguments": {
+              "email_subject": "A joke for you! 😄🎉",
+              "email_body": "Hi Ervin! 👋\n\nI thought you might enjoy this joke: 😊\n\nWho is Santa's favourite singer? 🎅🎤\n\nElf-is Presley! 🧝‍♂️🎸\n\nHope it made you smile! 😄✨\n\nBest regards 🌟",
+              "recipient_name": "Ervin Howell",
+              "instructions": "The user requested to send a joke to Ervin. I've fetched a joke from the Jokes API and am sending it to Ervin Howell via email.",
+              "recipient_email": "Shanna@melissa.tv"
+            }
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-07-08T20:37:03.378807+02:00",
+          "framework": {
+            "id": "73fac61d-2121-4e22-950b-e370887276ac",
+            "finishReason": "TOOL_EXECUTION",
+            "tokenUsage": {
+              "inputTokenCount": 2443,
+              "outputTokenCount": 278,
+              "totalTokenCount": 2721,
+              "cacheWriteInputTokens": 0,
+              "cacheReadInputTokens": 0
+            }
+          }
+        }
+      },
+      {
+        "role": "tool_call_result",
+        "results": [
+          {
+            "id": "tooluse_lF6AWhihpPNotZV1gDIe6A",
+            "name": "AskHumanToSendEmail",
+            "content": {
+              "operatorFeedback": null,
+              "emailOk": true,
+              "emailSent": true
+            }
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-07-08T20:37:23.825158+02:00"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "Perfect! I've successfully sent the joke to Ervin Howell at Shanna@melissa.tv. The email included a festive joke about Santa's favorite singer being \"Elf-is Presley\"! 🎉"
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-07-08T20:37:26.282756+02:00",
+          "framework": {
+            "id": "1f77bdb0-cc64-4e2f-bf53-efcc18fafb4f",
+            "finishReason": "STOP",
+            "tokenUsage": {
+              "inputTokenCount": 2753,
+              "outputTokenCount": 55,
+              "totalTokenCount": 2808,
+              "cacheWriteInputTokens": 0,
+              "cacheReadInputTokens": 0
+            }
+          }
+        }
+      }
+    ]
+  }
+}

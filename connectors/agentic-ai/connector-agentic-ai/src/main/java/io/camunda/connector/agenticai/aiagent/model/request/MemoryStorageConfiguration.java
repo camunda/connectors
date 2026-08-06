@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -24,6 +24,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -194,6 +196,8 @@ public sealed interface MemoryStorageConfiguration
       @FEEL
           @TemplateProperty(
               label = "Implementation type",
+              description = "Identifier for the custom memory storage implementation.",
+              tooltip = "Must match the identifier configured for the custom implementation.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -206,5 +210,11 @@ public sealed interface MemoryStorageConfiguration
               feel = FeelMode.required,
               optional = true)
           Map<String, Object> parameters)
-      implements MemoryStorageConfiguration {}
+      implements MemoryStorageConfiguration {
+    public CustomMemoryStorageConfiguration(
+        String storeType, @Nullable Map<String, Object> parameters) {
+      this.storeType = storeType;
+      this.parameters = Objects.requireNonNullElse(parameters, Map.of());
+    }
+  }
 }

@@ -15,8 +15,6 @@ import io.a2a.spec.FilePart;
 import io.a2a.spec.FileWithBytes;
 import io.a2a.spec.Part;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentConversionException;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
 import io.camunda.connector.agenticai.common.util.ObjectMapperConstants;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -30,8 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.core5.http.ContentType;
 
 /**
- * Converts a Camunda {@link Document} to an A2A {@link Part} object to be used in messages. This
- * class is very similar to {@link DocumentToContentConverterImpl}
+ * Converts a Camunda {@link Document} to an A2A {@link Part} object to be used in messages.
  *
  * <p>Note: audio and video content types are currently not supported.
  */
@@ -78,7 +75,7 @@ public class A2aDocumentToPartConverterImpl implements A2aDocumentToPartConverte
       return new FilePart(fileWithBytes);
     }
 
-    throw new DocumentConversionException(
+    throw new A2aDocumentConversionException(
         "Unsupported content type '%s' for document with reference '%s'"
             .formatted(contentType, camundaDocument.reference()));
   }
@@ -109,7 +106,7 @@ public class A2aDocumentToPartConverterImpl implements A2aDocumentToPartConverte
         .map(ContentType::parse)
         .orElseThrow(
             () ->
-                new DocumentConversionException(
+                new A2aDocumentConversionException(
                     "Content type is unset for document with reference '%s'"
                         .formatted(camundaDocument.reference())));
   }

@@ -267,10 +267,13 @@ jobs:
 
       # Resolve owning teams to Slack groups; medic is always included as the fallback.
       # Map is built from secrets (full-mention format); an unset secret falls back to medic.
+      # Pinned to @main (not a local ./ path): the checkout above is at inputs.branch (e.g. a
+      # stable/* branch) for CODEOWNERS, but this workflow file itself only lives on main, so the
+      # action must too - a local ref would 404 on branches that never had this action backported.
       - name: Derive Slack mentions from CODEOWNERS
         id: mentions
         continue-on-error: true
-        uses: ./.github/actions/codeowners-slack-mentions
+        uses: camunda/connectors/.github/actions/codeowners-slack-mentions@main
         with:
           paths: ${{ steps.modules.outputs.module_paths }}
           team-slack-map: |

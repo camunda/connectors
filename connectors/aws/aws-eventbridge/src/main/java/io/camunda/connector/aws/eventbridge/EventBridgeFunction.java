@@ -26,7 +26,7 @@ import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
     inputVariables = {"authentication", "configuration", "input", "awsCredential"},
     type = "io.camunda:aws-eventbridge:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.AWSEventBridge.v1",
     name = "Send Event to AWS EventBridge",
     description = "Send events to AWS EventBridge",
@@ -40,7 +40,7 @@ import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
     },
     inputDataClass = AwsEventBridgeRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 7,
+    version = 8,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Queue properties"),

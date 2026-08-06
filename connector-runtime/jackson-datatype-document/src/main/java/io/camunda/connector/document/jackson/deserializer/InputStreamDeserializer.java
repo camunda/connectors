@@ -26,10 +26,12 @@ import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 public class InputStreamDeserializer extends AbstractDeserializer<InputStream> {
 
   private final DocumentFactory documentFactory;
+  private final Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId;
   private final IntrinsicFunctionExecutor operationExecutor;
 
   public InputStreamDeserializer(
@@ -38,16 +40,33 @@ public class InputStreamDeserializer extends AbstractDeserializer<InputStream> {
       DocumentModuleSettings settings) {
     super(settings);
     this.documentFactory = documentFactory;
+    this.documentFactoriesByPhysicalTenantId = null;
     this.operationExecutor = intrinsicFunctionExecutor;
+  }
+
+  /** Physical-tenant-aware variant — see {@link DocumentDeserializer}'s equivalent constructor. */
+  public InputStreamDeserializer(
+      Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId,
+      IntrinsicFunctionExecutor intrinsicFunctionExecutor,
+      DocumentModuleSettings settings) {
+    super(settings);
+    this.documentFactory = null;
+    this.documentFactoriesByPhysicalTenantId = documentFactoriesByPhysicalTenantId;
+    this.operationExecutor = intrinsicFunctionExecutor;
+  }
+
+  private DocumentDeserializer buildDocumentDeserializer() {
+    return documentFactory != null
+        ? new DocumentDeserializer(documentFactory, operationExecutor, settings)
+        : new DocumentDeserializer(
+            documentFactoriesByPhysicalTenantId, operationExecutor, settings);
   }
 
   @Override
   protected InputStream handleJsonNode(JsonNode node, DeserializationContext context)
       throws IOException {
     if (isDocumentReference(node)) {
-      final var document =
-          new DocumentDeserializer(documentFactory, operationExecutor, settings)
-              .handleJsonNode(node, context);
+      final var document = buildDocumentDeserializer().handleJsonNode(node, context);
       return document.asInputStream();
     }
     if (DeserializationUtil.isIntrinsicFunction(node)) {

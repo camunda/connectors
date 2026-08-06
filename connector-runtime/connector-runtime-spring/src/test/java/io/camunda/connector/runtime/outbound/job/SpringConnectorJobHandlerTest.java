@@ -35,12 +35,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.client.api.command.FailJobCommandStep1;
+import io.camunda.client.api.command.UpdateTimeoutJobCommandStep1;
+import io.camunda.client.api.command.UpdateTimeoutJobCommandStep1.UpdateTimeoutJobCommandStep2;
+import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.BackoffSupplier;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.jobhandling.CommandOutcome;
 import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.metrics.MicrometerMetricsRecorder;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.document.RawPayload;
@@ -63,14 +69,18 @@ import io.camunda.connector.runtime.JobBuilder;
 import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import io.grpc.Status;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -124,6 +134,14 @@ class SpringConnectorJobHandlerTest {
 
   private SpringConnectorJobHandler newConnectorJobHandler(
       OutboundConnectorFunction call, SecretProviderAggregator secretProviderAggregator) {
+    return newConnectorJobHandler(
+        call, secretProviderAggregator, mock(CamundaClient.class, RETURNS_DEEP_STUBS));
+  }
+
+  private SpringConnectorJobHandler newConnectorJobHandler(
+      OutboundConnectorFunction call,
+      SecretProviderAggregator secretProviderAggregator,
+      CamundaClient camundaClient) {
     var metricsRecorder = new MicrometerMetricsRecorder(new SimpleMeterRegistry());
     return new SpringConnectorJobHandler(
         metricsRecorder,
@@ -134,7 +152,30 @@ class SpringConnectorJobHandlerTest {
         mock(DocumentFactory.class),
         TestObjectMapperSupplier.INSTANCE,
         call,
-        job -> SecretFilter.allowAll());
+        job -> SecretFilter.allowAll(),
+        camundaClient);
+  }
+
+  private SpringConnectorJobHandler newConnectorJobHandler(
+      OutboundConnectorFunction call, CamundaClient camundaClient) {
+    return newConnectorJobHandler(
+        call, new SecretProviderAggregator(List.of(new FooBarSecretProvider())), camundaClient);
+  }
+
+  private SpringConnectorJobHandler newConnectorJobHandlerWithDocumentFactory(
+      OutboundConnectorFunction call, DocumentFactory documentFactory) {
+    var metricsRecorder = new MicrometerMetricsRecorder(new SimpleMeterRegistry());
+    return new SpringConnectorJobHandler(
+        metricsRecorder,
+        new JobCallbackCommandWrapperFactory(
+            BackoffSupplier.newBackoffBuilder().build(), commandScheduler, metricsRecorder),
+        new SecretProviderAggregator(List.of(new FooBarSecretProvider())),
+        new DefaultValidationProvider(),
+        documentFactory,
+        TestObjectMapperSupplier.INSTANCE,
+        call,
+        job -> SecretFilter.allowAll(),
+        mock(CamundaClient.class, RETURNS_DEEP_STUBS));
   }
 
   private SpringConnectorJobHandler newConnectorJobHandler(
@@ -149,7 +190,24 @@ class SpringConnectorJobHandlerTest {
         mock(DocumentFactory.class),
         TestObjectMapperSupplier.INSTANCE,
         call,
-        job -> SecretFilter.allowAll());
+        job -> SecretFilter.allowAll(),
+        mock(CamundaClient.class, RETURNS_DEEP_STUBS));
+  }
+
+  private SpringConnectorJobHandler newConnectorJobHandler(
+      OutboundConnectorFunction call,
+      CamundaClient camundaClient,
+      JobCallbackCommandWrapperFactory jobCallbackCommandWrapperFactory) {
+    return new SpringConnectorJobHandler(
+        new MicrometerMetricsRecorder(new SimpleMeterRegistry()),
+        jobCallbackCommandWrapperFactory,
+        new SecretProviderAggregator(List.of(new FooBarSecretProvider())),
+        new DefaultValidationProvider(),
+        mock(DocumentFactory.class),
+        TestObjectMapperSupplier.INSTANCE,
+        call,
+        job -> SecretFilter.allowAll(),
+        camundaClient);
   }
 
   @Nested
@@ -865,6 +923,274 @@ class SpringConnectorJobHandlerTest {
       verify(secondStepMock).errorMessage(any());
       verify(secondStepMock, times(0)).retryBackoff(any()); // not set
       verify(secondStepMock).send();
+    }
+  }
+
+  @Nested
+  class JobTimeoutTests {
+
+    private CamundaClient camundaClient;
+    private UpdateTimeoutJobCommandStep1 updateTimeoutStep1;
+    private UpdateTimeoutJobCommandStep2 updateTimeoutStep2;
+
+    @BeforeEach
+    void init() {
+      camundaClient = mock(CamundaClient.class);
+      updateTimeoutStep1 = mock(UpdateTimeoutJobCommandStep1.class);
+      updateTimeoutStep2 = mock(UpdateTimeoutJobCommandStep2.class);
+      when(camundaClient.newUpdateTimeoutCommand(any(ActivatedJob.class)))
+          .thenReturn(updateTimeoutStep1);
+      when(updateTimeoutStep1.timeout(any(Duration.class))).thenReturn(updateTimeoutStep2);
+    }
+
+    @Test
+    void shouldUpdateJobTimeout_WhenHeaderPresent() throws Exception {
+      // given
+      var jobHandler = newConnectorJobHandler(context -> "ok", camundaClient);
+      var jobBuilder =
+          JobBuilder.create().withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
+
+      // when
+      jobBuilder.executeAndCaptureResult(jobHandler);
+
+      // then
+      ArgumentCaptor<Duration> timeoutCaptor = ArgumentCaptor.forClass(Duration.class);
+      verify(updateTimeoutStep1).timeout(timeoutCaptor.capture());
+      assertThat(timeoutCaptor.getValue()).isEqualTo(Duration.ofMinutes(10));
+      verify(updateTimeoutStep2).execute();
+    }
+
+    @Test
+    void shouldNotUpdateJobTimeout_WhenHeaderMissing() throws Exception {
+      // given
+      var jobHandler = newConnectorJobHandler(context -> "ok", camundaClient);
+      var jobBuilder = JobBuilder.create();
+
+      // when
+      jobBuilder.executeAndCaptureResult(jobHandler);
+
+      // then
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
+    void shouldFailJob_WhenHeaderInvalid_ConnectorNotInvoked() throws Exception {
+      // given
+      var connectorFunction = mock(OutboundConnectorFunction.class);
+      var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
+      var jobBuilder =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "not-a-duration"));
+
+      // when
+      var result = jobBuilder.executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getRetries()).isEqualTo(0);
+      verify(connectorFunction, times(0)).execute(any());
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
+    void shouldContinueExecution_WhenUpdateCommandFailsTransiently() throws Exception {
+      // given — a transient transport failure, where the broker's actual outcome is ambiguous
+      when(updateTimeoutStep2.execute())
+          .thenThrow(new ClientStatusException(Status.UNAVAILABLE, new RuntimeException("boom")));
+      var jobHandler = newConnectorJobHandler(context -> "ok", camundaClient);
+      var jobBuilder =
+          JobBuilder.create()
+              // a realistic, still-comfortably-future original deadline — without this, the mock's
+              // default job.getDeadline()==0 would make Math.min(...) always look already expired
+              .withDeadline(System.currentTimeMillis() + Duration.ofMinutes(5).toMillis())
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
+
+      // when
+      var result = jobBuilder.executeAndCaptureResult(jobHandler);
+
+      // then — connector still ran and the job still completed
+      assertThat(result.getVariables()).isNotNull();
+    }
+
+    @Test
+    void shouldNotInvokeConnector_WhenUpdateCommandDefinitivelyRejected() throws Exception {
+      // given — NOT_FOUND means the broker no longer recognizes this job: this worker's lease is
+      // definitively gone, so the connector must not run (risk of duplicate side effects)
+      when(updateTimeoutStep2.execute())
+          .thenThrow(new ClientStatusException(Status.NOT_FOUND, new RuntimeException("boom")));
+      var connectorFunction = mock(OutboundConnectorFunction.class);
+      var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
+      var jobBuilder =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
+
+      // when
+      jobBuilder.executeAndCaptureResult(jobHandler, false);
+
+      // then
+      verify(connectorFunction, times(0)).execute(any());
+    }
+
+    @Test
+    void shouldNotInvokeConnector_WhenDeadlineAlreadyElapsedAfterUpdate() throws Exception {
+      // given — the update command takes long enough that a very short (but valid) jobTimeout has
+      // already elapsed by the time it returns; the broker may already consider this worker's
+      // lease gone, so the connector must not run
+      when(updateTimeoutStep2.execute())
+          .thenAnswer(
+              invocation -> {
+                Thread.sleep(50);
+                return null;
+              });
+      var connectorFunction = mock(OutboundConnectorFunction.class);
+      var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
+      var jobBuilder =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT0.01S"));
+
+      // when
+      jobBuilder.executeAndCaptureResult(jobHandler, false);
+
+      // then
+      verify(connectorFunction, times(0)).execute(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"PT0S", "P0D", "PT-10M", "PT0.000000001S"})
+    void shouldFailJob_WhenHeaderNonPositive_ConnectorNotInvoked(String nonPositiveTimeout)
+        throws Exception {
+      // given
+      var connectorFunction = mock(OutboundConnectorFunction.class);
+      var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
+      var jobBuilder =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, nonPositiveTimeout));
+
+      // when
+      var result = jobBuilder.executeAndCaptureResult(jobHandler, false);
+
+      // then — a zero or negative duration is rejected before the update command is ever issued
+      assertThat(result.getRetries()).isEqualTo(0);
+      assertThat(result.getErrorMessage()).contains("must be a positive duration");
+      verify(connectorFunction, times(0)).execute(any());
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
+    void shouldFailJob_WhenHeaderDurationTooLargeToConvertToMillis_ConnectorNotInvoked()
+        throws Exception {
+      // given — Duration.parse succeeds but Duration#toMillis overflows long
+      var connectorFunction = mock(OutboundConnectorFunction.class);
+      var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
+      var jobBuilder =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT9999999999999999S"));
+
+      // when
+      var result = jobBuilder.executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getRetries()).isEqualTo(0);
+      assertThat(result.getErrorMessage()).contains("too large to represent");
+      verify(connectorFunction, times(0)).execute(any());
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
+    void shouldFailJob_WhenDeadlineAdditionOverflows_ConnectorNotInvoked() throws Exception {
+      // given — Duration#toMillis succeeds (a representable, huge value close to Long.MAX_VALUE),
+      // but adding it to the current epoch millis would overflow
+      var connectorFunction = mock(OutboundConnectorFunction.class);
+      var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
+      var jobBuilder =
+          JobBuilder.create()
+              .withRetries(3)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT9223372036854775S"));
+
+      // when
+      var result = jobBuilder.executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getRetries()).isEqualTo(0);
+      assertThat(result.getErrorMessage()).contains("too large to represent");
+      verify(connectorFunction, times(0)).execute(any());
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
+    void shouldUseUpdatedDeadline_ForFailJobCallback_WhenHeaderPresent() throws Exception {
+      // given — a job with plenty of time left on its current deadline
+      long staleDeadline = System.currentTimeMillis() + Duration.ofMinutes(25).toMillis();
+      var factory = mock(JobCallbackCommandWrapperFactory.class, RETURNS_DEEP_STUBS);
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new RuntimeException("boom");
+              },
+              camundaClient,
+              factory);
+      var jobBuilder =
+          JobBuilder.create()
+              .withDeadline(staleDeadline)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M"));
+
+      // when — the connector function throws, so the job fails via failJob
+      jobBuilder.execute(jobHandler);
+
+      // then — the deadline update command was issued with the requested duration
+      ArgumentCaptor<Duration> timeoutCaptor = ArgumentCaptor.forClass(Duration.class);
+      verify(updateTimeoutStep1).timeout(timeoutCaptor.capture());
+      assertThat(timeoutCaptor.getValue()).isEqualTo(Duration.ofMinutes(10));
+
+      // and — the fail-command callback was scheduled against the NEW deadline (now + 10 minutes),
+      // not the stale one captured at activation
+      ArgumentCaptor<Long> deadlineCaptor = ArgumentCaptor.forClass(Long.class);
+      verify(factory).create(any(), deadlineCaptor.capture(), any(), anyInt());
+      long capturedDeadline = deadlineCaptor.getValue();
+      long expectedDeadline = System.currentTimeMillis() + Duration.ofMinutes(10).toMillis();
+
+      assertThat(capturedDeadline).isNotEqualTo(staleDeadline);
+      assertThat(Math.abs(capturedDeadline - expectedDeadline)).isLessThan(5000L);
+    }
+
+    @Test
+    void shouldUseEarlierDeadline_ForFailJobCallback_WhenUpdateCommandFailsAmbiguously()
+        throws Exception {
+      // given — a job with a long remaining lease, and a jobTimeout header requesting a much
+      // shorter one; the update command fails transiently, but the broker may have applied it
+      // anyway
+      long staleDeadline = System.currentTimeMillis() + Duration.ofMinutes(25).toMillis();
+      when(updateTimeoutStep2.execute())
+          .thenThrow(new ClientStatusException(Status.UNAVAILABLE, new RuntimeException("boom")));
+      var factory = mock(JobCallbackCommandWrapperFactory.class, RETURNS_DEEP_STUBS);
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new RuntimeException("boom");
+              },
+              camundaClient,
+              factory);
+      var jobBuilder =
+          JobBuilder.create()
+              .withDeadline(staleDeadline)
+              .withHeaders(Map.of(Keywords.JOB_TIMEOUT_KEYWORD, "PT1M"));
+
+      // when
+      jobBuilder.execute(jobHandler);
+
+      // then — the callback uses the earlier (requested) deadline, not the later stale one, so
+      // the retry-worthiness check is never overly optimistic about the ambiguous outcome
+      ArgumentCaptor<Long> deadlineCaptor = ArgumentCaptor.forClass(Long.class);
+      verify(factory).create(any(), deadlineCaptor.capture(), any(), anyInt());
+      long capturedDeadline = deadlineCaptor.getValue();
+      long expectedDeadline = System.currentTimeMillis() + Duration.ofMinutes(1).toMillis();
+
+      assertThat(capturedDeadline).isLessThan(staleDeadline);
+      assertThat(Math.abs(capturedDeadline - expectedDeadline)).isLessThan(5000L);
     }
   }
 
@@ -2309,6 +2635,119 @@ class SpringConnectorJobHandlerTest {
           JobCompletionFailure failure) {
         delegate.onJobCompletionFailed(context, response, failure);
       }
+    }
+  }
+
+  @Nested
+  class CreateDocumentTests {
+
+    @Test
+    void resultExpressionCreateDocumentProducesRealDocumentInOutputVariables() throws Exception {
+      // given a connector whose response embeds a base64-encoded file inside its JSON body,
+      // mirroring the shape from https://github.com/camunda/connectors/issues/4715
+      String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+      var jobHandler =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) -> Map.of("body", Map.of("file", base64)),
+              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+
+      // when the result expression extracts just that field via createDocument
+      var result =
+          JobBuilder.create()
+              .withResultExpressionHeader("={myDoc: createDocument(response.body.file)}")
+              .executeAndCaptureResult(jobHandler);
+
+      // then the output variable holds a real document reference, not the raw base64 string.
+      // NOTE (Task 3 correction, verified against InboundCorrelationHandlerTest): with the
+      // production-shaped ObjectMapper used here (TestObjectMapperSupplier.INSTANCE, which
+      // registers the full JacksonModuleDocumentDeserializer stack just like the real
+      // connectorObjectMapper/outboundConnectorObjectMapper beans), the resolved document
+      // reference JSON gets re-hydrated by Jackson's own Object.class deserializer into a real
+      // Document rather than staying a raw reference Map. The Mockito ArgumentCaptor in
+      // JobBuilder captures the in-memory variables Map directly (no JsonMapper round-trip
+      // through a Zeebe client), so that live Document object survives into the captured result.
+      var myDoc = result.getVariables().get("myDoc");
+      assertThat(myDoc).isInstanceOf(Document.class);
+      assertThat(((Document) myDoc).asByteArray())
+          .isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void doesNotResolveAnInjectedSentinelFromConnectorResponseData() throws Exception {
+      // End-to-end injection scenario, through the real SpringConnectorJobHandler pipeline: a
+      // malicious/compromised remote API's response body happens to be shaped exactly like the
+      // createDocument() sentinel, guessing the pre-nonce literal discriminator value
+      // ("createDocument", with no runtime-generated suffix). The result expression here is a
+      // plain pass-through of the response — no createDocument() call anywhere in the expression
+      // itself, exactly what an ordinary connector user would write. This must not create a
+      // document from attacker-controlled bytes: the forged object must survive untouched all the
+      // way through job completion.
+      String attackerBase64 =
+          Base64.getEncoder().encodeToString("attacker payload".getBytes(StandardCharsets.UTF_8));
+      var jobHandler =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) ->
+                  Map.of(
+                      "body",
+                      Map.of("connectorResultFunction", "createDocument", "value", attackerBase64)),
+              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+
+      var result =
+          JobBuilder.create()
+              .withResultExpressionHeader("={result: response.body}")
+              .executeAndCaptureResult(jobHandler);
+
+      @SuppressWarnings("unchecked")
+      Map<String, Object> passedThrough = (Map<String, Object>) result.getVariables().get("result");
+      assertThat(passedThrough)
+          .containsEntry("connectorResultFunction", "createDocument")
+          .containsEntry("value", attackerBase64);
+      assertThat(passedThrough.values()).noneMatch(v -> v instanceof Document);
+    }
+
+    @Test
+    void doesNotResolveASentinelForgedWithAnotherJobsLeakedNonce() throws Exception {
+      // End-to-end version of the cross-tenant nonce-leak scenario: the nonce is scoped per
+      // evaluation (see FeelConnectorFunctionProvider), not a single per-JVM constant, precisely
+      // because a result expression can legitimately project it out via field access
+      // (createDocument(x).connectorResultFunction) — so a real per-JVM secret would be learnable
+      // by whoever authors that expression and reusable against a completely different job.
+      var documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+
+      // Job A: harvests its own evaluation's nonce via a legitimate field projection.
+      var jobHandlerA =
+          newConnectorJobHandlerWithDocumentFactory((context) -> Map.of(), documentFactory);
+      var resultA =
+          JobBuilder.create()
+              .withResultExpressionHeader(
+                  "={leakedNonce: createDocument(\"aA==\").connectorResultFunction}")
+              .executeAndCaptureResult(jobHandlerA);
+      String leakedNonce = (String) resultA.getVariables().get("leakedNonce");
+      assertThat(leakedNonce).startsWith("createDocument:");
+
+      // Job B: a completely independent job whose connector response an attacker has crafted to
+      // look exactly like a sentinel, tagged with Job A's leaked nonce.
+      String attackerBase64 =
+          Base64.getEncoder().encodeToString("attacker payload".getBytes(StandardCharsets.UTF_8));
+      var jobHandlerB =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) ->
+                  Map.of(
+                      "body",
+                      Map.of("connectorResultFunction", leakedNonce, "value", attackerBase64)),
+              documentFactory);
+      var resultB =
+          JobBuilder.create()
+              .withResultExpressionHeader("={result: response.body}")
+              .executeAndCaptureResult(jobHandlerB);
+
+      @SuppressWarnings("unchecked")
+      Map<String, Object> passedThrough =
+          (Map<String, Object>) resultB.getVariables().get("result");
+      assertThat(passedThrough)
+          .containsEntry("connectorResultFunction", leakedNonce)
+          .containsEntry("value", attackerBase64);
+      assertThat(passedThrough.values()).noneMatch(v -> v instanceof Document);
     }
   }
 }

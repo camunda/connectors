@@ -73,8 +73,9 @@ public class InboundConnectorRestController {
   public List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
       @RequestParam(required = false, value = "bpmnProcessId") String bpmnProcessId,
       @RequestParam(required = false, value = "elementId") String elementId,
-      @RequestParam(required = false, value = "type") String type) {
-    return getActiveInboundConnectors(bpmnProcessId, elementId, type, null);
+      @RequestParam(required = false, value = "type") String type,
+      @RequestParam(required = false, value = "physicalTenantIds") List<String> physicalTenantIds) {
+    return getActiveInboundConnectors(bpmnProcessId, elementId, type, null, physicalTenantIds);
   }
 
   @GetMapping("/tenants/{tenantId}/inbound")
@@ -82,8 +83,9 @@ public class InboundConnectorRestController {
       @PathVariable(value = "tenantId") String tenantId,
       @RequestParam(required = false, value = "bpmnProcessId") String bpmnProcessId,
       @RequestParam(required = false, value = "elementId") String elementId,
-      @RequestParam(required = false, value = "type") String type) {
-    return getActiveInboundConnectors(bpmnProcessId, elementId, type, tenantId);
+      @RequestParam(required = false, value = "type") String type,
+      @RequestParam(required = false, value = "physicalTenantIds") List<String> physicalTenantIds) {
+    return getActiveInboundConnectors(bpmnProcessId, elementId, type, tenantId, physicalTenantIds);
   }
 
   @GetMapping("/tenants/{tenantId}/inbound/{bpmnProcessId}/{elementId}/logs")
@@ -91,20 +93,29 @@ public class InboundConnectorRestController {
       @PathVariable(value = "tenantId") String tenantId,
       @PathVariable(value = "bpmnProcessId") String bpmnProcessId,
       @PathVariable(value = "elementId") String elementId,
+      @RequestParam(required = false, value = "physicalTenantIds") List<String> physicalTenantIds,
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor) {
     return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
         request,
         forwardedFor,
-        () -> getActivityLogs(tenantId, bpmnProcessId, elementId, hostname),
+        () -> getActivityLogs(tenantId, bpmnProcessId, elementId, physicalTenantIds, hostname),
         new TypeReference<>() {});
   }
 
   private List<Collection<InstanceAwareModel.InstanceAwareActivity>> getActivityLogs(
-      String tenantId, String bpmnProcessId, String elementId, String hostname) {
+      String tenantId,
+      String bpmnProcessId,
+      String elementId,
+      List<String> physicalTenantIds,
+      String hostname) {
     var result =
         executableRegistry.query(
-            f -> f.bpmnProcessId(bpmnProcessId).elementId(elementId).tenantId(tenantId));
+            f ->
+                f.bpmnProcessId(bpmnProcessId)
+                    .elementId(elementId)
+                    .tenantId(tenantId)
+                    .physicalTenantIds(physicalTenantIds));
     return result.stream()
         .map(ActiveExecutableResponse::logs)
         .filter(Predicate.not(Collection::isEmpty))
@@ -125,10 +136,19 @@ public class InboundConnectorRestController {
   }
 
   private List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
-      String bpmnProcessId, String elementId, String type, String tenantId) {
+      String bpmnProcessId,
+      String elementId,
+      String type,
+      String tenantId,
+      List<String> physicalTenantIds) {
     return executableRegistry
         .query(
-            f -> f.bpmnProcessId(bpmnProcessId).elementId(elementId).type(type).tenantId(tenantId))
+            f ->
+                f.bpmnProcessId(bpmnProcessId)
+                    .elementId(elementId)
+                    .type(type)
+                    .tenantId(tenantId)
+                    .physicalTenantIds(physicalTenantIds))
         .stream()
         .map(connectorDataMapper::createActiveInboundConnectorResponse)
         .collect(Collectors.toList());

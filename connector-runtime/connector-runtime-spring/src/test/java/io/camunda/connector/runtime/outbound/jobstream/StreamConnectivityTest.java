@@ -49,7 +49,7 @@ class StreamConnectivityTest {
   @Test
   void compute_shouldReturnNone_whenBrokerStreamsExplicitlyEmpty() {
     var result =
-        StreamConnectivity.compute(JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(), 0)));
+        StreamConnectivity.compute(JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of())));
 
     assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.NONE);
     assertThat(result.streamIds()).isNull();
@@ -61,7 +61,7 @@ class StreamConnectivityTest {
 
     var result =
         StreamConnectivity.compute(
-            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(emptyBroker), 1)));
+            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(List.of(emptyBroker)))));
 
     assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.NONE);
     assertThat(result.streamIds()).isNull();
@@ -74,7 +74,8 @@ class StreamConnectivityTest {
 
     var result =
         StreamConnectivity.compute(
-            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(brokerWithNullIdConsumer), 1)));
+            JOB_TYPE,
+            Optional.of(new BrokerStreamsResult(List.of(List.of(brokerWithNullIdConsumer)))));
 
     assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.NONE);
     assertThat(result.streamIds()).isNull();
@@ -87,7 +88,8 @@ class StreamConnectivityTest {
 
     var result =
         StreamConnectivity.compute(
-            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(broker1, broker2), 2)));
+            JOB_TYPE,
+            Optional.of(new BrokerStreamsResult(List.of(List.of(broker1), List.of(broker2)))));
 
     assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.ALL_CONNECTED);
     assertThat(result.streamIds()).containsExactly(STREAM_ID_1);
@@ -101,21 +103,88 @@ class StreamConnectivityTest {
     var result =
         StreamConnectivity.compute(
             JOB_TYPE,
-            Optional.of(new BrokerStreamsResult(List.of(connectedBroker, disconnectedBroker), 2)));
+            Optional.of(
+                new BrokerStreamsResult(
+                    List.of(List.of(connectedBroker), List.of(disconnectedBroker)))));
 
     assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.PARTIALLY_CONNECTED);
   }
 
   @Test
   void compute_shouldReturnPartiallyConnected_whenOneOfTwoBrokersDoesNotReportJobType() {
-    // broker2 has no entry for JOB_TYPE at all (absent from streams); totalBrokerCount=2
+    // broker2 has no entry for JOB_TYPE at all (empty sublist); totalBrokerCount=2
     var broker1 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_1)));
 
     var result =
         StreamConnectivity.compute(
-            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(broker1), 2)));
+            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(List.of(broker1), List.of()))));
 
     assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.PARTIALLY_CONNECTED);
+  }
+
+  @Test
+  void
+      compute_shouldReturnAllConnected_whenSingleBrokerSplitsJobTypeAcrossMultipleEntries_insteadOfOneEntryWithMultipleConsumers() {
+    // Reproduces the reported bug: one broker's /actuator/jobstreams reports the SAME jobType as
+    // two separate entries (one consumer each, e.g. due to fetchVariables ordering differences
+    // between gateway registrations), rather than one entry listing both consumers. With only one
+    // broker queried, this must still be ALL_CONNECTED, not PARTIALLY_CONNECTED.
+    var entry1 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_1)));
+    var entry2 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_2)));
+
+    var result =
+        StreamConnectivity.compute(
+            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(List.of(entry1, entry2)))));
+
+    assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.ALL_CONNECTED);
+    // Both consumer ids are real gateway receivers and must still be surfaced.
+    assertThat(result.streamIds()).containsExactlyInAnyOrder(STREAM_ID_1, STREAM_ID_2);
+  }
+
+  @Test
+  void
+      compute_shouldReturnPartiallyConnected_whenOnlyOneOfTwoBrokersSplitsJobTypeAcrossMultipleEntries() {
+    // Same split-entry quirk as above, but now on only one of two brokers — the split must not
+    // make brokersWithValidConsumer (2 entries) exceed totalBrokerCount (2 brokers) and flip to
+    // ALL_CONNECTED; it must correctly report PARTIALLY_CONNECTED since broker2 has no consumer.
+    var broker1Entry1 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_1)));
+    var broker1Entry2 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_2)));
+    var broker2Disconnected = new RemoteJobStream(JOB_TYPE, List.of());
+
+    var result =
+        StreamConnectivity.compute(
+            JOB_TYPE,
+            Optional.of(
+                new BrokerStreamsResult(
+                    List.of(List.of(broker1Entry1, broker1Entry2), List.of(broker2Disconnected)))));
+
+    assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.PARTIALLY_CONNECTED);
+  }
+
+  @Test
+  void
+      compute_shouldReturnAllConnected_whenBothBrokersIndependentlySplitJobTypeAcrossMultipleEntries() {
+    // Both brokers hit the split-entry quirk independently: 2 brokers, 2 entries each (4 entries
+    // total) — every broker still has a valid consumer, so this must be ALL_CONNECTED. Under the
+    // old per-entry counting, 4 entries vs. totalBrokerCount=2 would have wrongly produced
+    // PARTIALLY_CONNECTED even though both brokers are fully connected.
+    var broker1Entry1 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_1)));
+    var broker1Entry2 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_2)));
+    var broker2Entry1 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", "stream-ghi-789")));
+    var broker2Entry2 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", "stream-jkl-012")));
+
+    var result =
+        StreamConnectivity.compute(
+            JOB_TYPE,
+            Optional.of(
+                new BrokerStreamsResult(
+                    List.of(
+                        List.of(broker1Entry1, broker1Entry2),
+                        List.of(broker2Entry1, broker2Entry2)))));
+
+    assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.ALL_CONNECTED);
+    assertThat(result.streamIds())
+        .containsExactlyInAnyOrder(STREAM_ID_1, STREAM_ID_2, "stream-ghi-789", "stream-jkl-012");
   }
 
   // ---------------------------------------------------------------------------
@@ -129,7 +198,8 @@ class StreamConnectivityTest {
 
     var result =
         StreamConnectivity.compute(
-            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(broker1, broker2), 2)));
+            JOB_TYPE,
+            Optional.of(new BrokerStreamsResult(List.of(List.of(broker1), List.of(broker2)))));
 
     assertThat(result.streamIds()).containsExactly(STREAM_ID_1);
   }
@@ -141,7 +211,8 @@ class StreamConnectivityTest {
 
     var result =
         StreamConnectivity.compute(
-            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(broker1, broker2), 2)));
+            JOB_TYPE,
+            Optional.of(new BrokerStreamsResult(List.of(List.of(broker1), List.of(broker2)))));
 
     assertThat(result.streamIds()).containsExactlyInAnyOrder(STREAM_ID_1, STREAM_ID_2);
   }
@@ -152,7 +223,7 @@ class StreamConnectivityTest {
 
     var result =
         StreamConnectivity.compute(
-            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(emptyBroker), 1)));
+            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(List.of(emptyBroker)))));
 
     assertThat(result.streamIds()).isNull();
   }
@@ -167,7 +238,7 @@ class StreamConnectivityTest {
 
     var result =
         StreamConnectivity.compute(
-            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(otherRemote), 1)));
+            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(List.of(otherRemote)))));
 
     // Remote streams exist but none match JOB_TYPE → NONE
     assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.NONE);

@@ -164,6 +164,14 @@ public abstract sealed class Property
     return secret;
   }
 
+  /**
+   * Returns a builder pre-populated with every field of this property, so a copy that changes only
+   * a few fields doesn't have to name (and risk silently dropping) every other one. Compare to
+   * {@link #getFeel()}, which returns {@code null} for {@link FeelMode#disabled} -- copying uses
+   * the raw {@code feel} field so a round trip is lossless.
+   */
+  public abstract PropertyBuilder toBuilder();
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {

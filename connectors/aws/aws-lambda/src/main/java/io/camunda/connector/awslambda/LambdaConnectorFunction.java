@@ -27,7 +27,7 @@ import software.amazon.awssdk.services.lambda.model.InvokeResponse;
     inputVariables = {"authentication", "configuration", "awsFunction", "awsCredential"},
     type = "io.camunda:aws-lambda:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.AWSLAMBDA.v2",
     name = "Invoke AWS Lambda Function",
     description = "Invoke AWS Lambda functions.",
@@ -40,7 +40,7 @@ import software.amazon.awssdk.services.lambda.model.InvokeResponse;
     },
     inputDataClass = AwsLambdaRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 7,
+    version = 8,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

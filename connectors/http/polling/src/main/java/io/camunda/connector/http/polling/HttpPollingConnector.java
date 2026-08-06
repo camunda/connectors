@@ -18,11 +18,11 @@ import io.camunda.connector.http.polling.service.SharedExecutorService;
 import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
 
 @ElementTemplate(
-    engineVersion = "^8.9",
+    engineVersion = "^8.10",
     id = "io.camunda:http-polling:1",
     name = "Polling Connector",
     icon = "icon.svg",
-    version = 7,
+    version = 8,
     inputDataClass = PollingRequest.class,
     configurations = {RestAuthenticationConfiguration.class},
     description = "Polls endpoint at regular intervals",

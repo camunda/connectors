@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.adhoctoolsschema;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;

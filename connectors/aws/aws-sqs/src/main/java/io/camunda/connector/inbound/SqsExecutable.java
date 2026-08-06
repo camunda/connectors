@@ -32,11 +32,11 @@ import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
 
 @InboundConnector(name = "AWS SQS Inbound", type = "io.camunda:aws-sqs-inbound:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.AWSSQS.inbound.v1",
     name = "Amazon SQS Connector",
     icon = "icon.svg",
-    version = 11,
+    version = 12,
     configurations = {AwsCredentialConfiguration.class},
     inputDataClass = SqsInboundProperties.class,
     description = "Receive messages from Amazon SQS.",

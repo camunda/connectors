@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.api.inbound.ElementTemplateDetails;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
@@ -72,9 +73,38 @@ class InboundExecutableQueryServiceTest {
         new ProcessElementWithRuntimeData("processId", 0, 0, "elementId", "tenant"));
   }
 
+  private InboundConnectorElement testElement(String physicalTenantId) {
+    return new InboundConnectorElement(
+        Map.of("inbound.type", "test-type"),
+        new StartEventCorrelationPoint("processId", 0, 0),
+        new ProcessElementWithRuntimeData(
+            "processId",
+            null,
+            null,
+            0,
+            0,
+            "elementId",
+            null,
+            null,
+            "tenant",
+            physicalTenantId,
+            new ElementTemplateDetails("test", "1", "icon"),
+            Map.of()));
+  }
+
   private ValidInboundConnectorDetails testValidDetails(String dedupId) {
     return new ValidInboundConnectorDetails(
         "test-type", "tenant", dedupId, Map.of(), List.of(testElement()), "processId");
+  }
+
+  private ValidInboundConnectorDetails testValidDetails(String dedupId, String physicalTenantId) {
+    return new ValidInboundConnectorDetails(
+        "test-type",
+        "tenant",
+        dedupId,
+        Map.of(),
+        List.of(testElement(physicalTenantId)),
+        "processId");
   }
 
   private InvalidInboundConnectorDetails testInvalidDetails(String dedupId) {
@@ -263,5 +293,63 @@ class InboundExecutableQueryServiceTest {
     assertThat(executableHealth.getLastUpdatedAt())
         .as("lastUpdatedAt should be preserved after enrichment, not reset to query time")
         .isEqualTo(originalTimestamp);
+  }
+
+  private void putActivated(ExecutableId id, String physicalTenantId) {
+    stateStore.put(
+        id,
+        new RegisteredExecutable.FailedToActivate(
+            testValidDetails(id.getId(), physicalTenantId),
+            "n/a",
+            id,
+            Health.down(new RuntimeException("n/a"))));
+  }
+
+  @Test
+  void query_withPhysicalTenantIdsFilter_returnsOnlyMatchingExecutables() {
+    var tenantAId = ExecutableId.fromDeduplicationId("tenant-a-executable");
+    var tenantBId = ExecutableId.fromDeduplicationId("tenant-b-executable");
+    putActivated(tenantAId, "tenant-a");
+    putActivated(tenantBId, "tenant-b");
+
+    var result =
+        queryService.query(new ActiveExecutableQuery().physicalTenantIds(List.of("tenant-a")));
+
+    assertThat(result)
+        .extracting(ActiveExecutableResponse::executableId)
+        .containsExactly(tenantAId);
+  }
+
+  @Test
+  void query_withPhysicalTenantIdsFilterMatchingMultiple_returnsAllMatches() {
+    var tenantAId = ExecutableId.fromDeduplicationId("tenant-a-executable");
+    var tenantBId = ExecutableId.fromDeduplicationId("tenant-b-executable");
+    var tenantCId = ExecutableId.fromDeduplicationId("tenant-c-executable");
+    putActivated(tenantAId, "tenant-a");
+    putActivated(tenantBId, "tenant-b");
+    putActivated(tenantCId, "tenant-c");
+
+    var result =
+        queryService.query(
+            new ActiveExecutableQuery().physicalTenantIds(List.of("tenant-a", "tenant-b")));
+
+    assertThat(result)
+        .extracting(ActiveExecutableResponse::executableId)
+        .containsExactlyInAnyOrder(tenantAId, tenantBId);
+  }
+
+  @Test
+  void query_withNullOrEmptyPhysicalTenantIdsFilter_appliesNoFiltering() {
+    var tenantAId = ExecutableId.fromDeduplicationId("tenant-a-executable");
+    var tenantBId = ExecutableId.fromDeduplicationId("tenant-b-executable");
+    putActivated(tenantAId, "tenant-a");
+    putActivated(tenantBId, "tenant-b");
+
+    assertThat(queryService.query(new ActiveExecutableQuery().physicalTenantIds(null)))
+        .extracting(ActiveExecutableResponse::executableId)
+        .containsExactlyInAnyOrder(tenantAId, tenantBId);
+    assertThat(queryService.query(new ActiveExecutableQuery().physicalTenantIds(List.of())))
+        .extracting(ActiveExecutableResponse::executableId)
+        .containsExactlyInAnyOrder(tenantAId, tenantBId);
   }
 }

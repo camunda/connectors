@@ -18,6 +18,9 @@ package io.camunda.connector.runtime.inbound;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClientImpl;
 import java.util.Map;
@@ -153,5 +156,33 @@ public final class PhysicalTenantIds {
                         ? legacySearchQueryClient
                         : new SearchQueryClientImpl(
                             resolveClient(registry, name, legacyCamundaClient), limit)));
+  }
+
+  /**
+   * Builds one {@link DocumentFactory} per configured physical tenant, each backed by its own
+   * {@link CamundaDocumentStoreImpl}/{@link CamundaClient} — mirrors {@link
+   * #buildSearchQueryClientsByPhysicalTenantId} exactly, including the single-client-only {@code
+   * legacyDocumentFactory} override escape hatch (e.g. a test's {@code @Primary DocumentFactory}
+   * bean, or an in-memory store for tests), so overriding this bean continues to work for existing
+   * single-physical-tenant deployments/tests without silently applying the same override to every
+   * physical tenant in a genuine multi-client setup.
+   */
+  public static Map<String, DocumentFactory> buildDocumentFactoriesByPhysicalTenantId(
+      CamundaClientRegistry registry,
+      CamundaClient legacyCamundaClient,
+      DocumentFactory legacyDocumentFactory) {
+    boolean useOverride = legacyDocumentFactory != null && registry.clientNames().size() <= 1;
+    return registry.clientNames().stream()
+        .collect(
+            toMapByPhysicalTenantId(
+                registry,
+                legacyCamundaClient,
+                name ->
+                    useOverride
+                        ? legacyDocumentFactory
+                        : new DocumentFactoryImpl(
+                            new CamundaDocumentStoreImpl(
+                                resolveClient(registry, name, legacyCamundaClient),
+                                resolvePhysicalTenantId(registry, name, legacyCamundaClient)))));
   }
 }
