@@ -29,6 +29,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
@@ -47,6 +48,18 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
   @Override
   public String model() {
     return anthropic.model().model();
+  }
+
+  /**
+   * Redacts a map's values (which may carry secrets) for logging while keeping its keys visible.
+   */
+  private static @Nullable Map<String, String> redactValues(@Nullable Map<String, ?> map) {
+    if (map == null) {
+      return null;
+    }
+    final var redacted = new LinkedHashMap<String, String>();
+    map.keySet().forEach(key -> redacted.put(key, "[REDACTED]"));
+    return redacted;
   }
 
   /** All Anthropic-specific configuration, nested under the {@code anthropic} wire key. */
@@ -129,7 +142,13 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
         public String toString() {
           return "AnthropicApi{apiKey=[REDACTED], endpoint="
               + endpoint
-              + ", headers=[REDACTED], queryParameters=[REDACTED], requestParameters=[REDACTED]}";
+              + ", headers="
+              + redactValues(headers)
+              + ", queryParameters="
+              + redactValues(queryParameters)
+              + ", requestParameters="
+              + redactValues(requestParameters)
+              + "}";
         }
       }
     }
@@ -187,7 +206,13 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
         public String toString() {
           return "CustomBackend{endpoint="
               + endpoint
-              + ", headers=[REDACTED], queryParameters=[REDACTED], requestParameters=[REDACTED], authentication="
+              + ", headers="
+              + redactValues(headers)
+              + ", queryParameters="
+              + redactValues(queryParameters)
+              + ", requestParameters="
+              + redactValues(requestParameters)
+              + ", authentication="
               + authentication
               + "}";
         }
