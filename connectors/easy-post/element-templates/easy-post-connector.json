@@ -1028,6 +1028,18 @@
       "type": "Hidden"
     },
     {
+      "id": "retryCount",
+      "label": "Retries",
+      "value": "3",
+      "feel": "optional",
+      "group": "retries",
+      "binding": {
+        "property": "retries",
+        "type": "zeebe:taskDefinition"
+      },
+      "type": "String"
+    },
+    {
       "id": "retryBackoff",
       "label": "Retry backoff",
       "description": "ISO-8601 duration to wait between retries",
