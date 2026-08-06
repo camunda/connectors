@@ -211,6 +211,10 @@ jobs:
           status: failure
           evidence: "SM E2E / Helm Integration Tests failed."
           pr: ${{ github.event.merge_group.head_ref }}
+          # merge_group is the only trigger here that supplies a PR, and a
+          # draft cannot enter a merge queue — so state the answer instead of
+          # paying for a lookup that would also need pull-requests: read.
+          pr_is_draft: "false"
           # Shared AlwaysGreen channel (#alwaysgreen-reliability) — consistent
           # across all AlwaysGreen repos. The connectors bot must be a member.
           slack_channel: "C0AK0AVKRL0"

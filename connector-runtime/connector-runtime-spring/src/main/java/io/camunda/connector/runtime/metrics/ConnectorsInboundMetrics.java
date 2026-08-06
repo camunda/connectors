@@ -33,6 +33,7 @@ public class ConnectorsInboundMetrics {
   private final Map<String, AtomicLong> lastTriggeredGauges = new ConcurrentHashMap<>();
   private final Counter processDefinitionCacheHitCounter;
   private final Counter processDefinitionCacheMissCounter;
+  private final Counter processStateChangePublishFailureCounter;
 
   public ConnectorsInboundMetrics(MeterRegistry meterRegistry) {
     this.meterRegistry = meterRegistry;
@@ -43,6 +44,9 @@ public class ConnectorsInboundMetrics {
     this.processDefinitionCacheMissCounter =
         Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_PROCESS_DEFINITION_CACHE_ACCESSES)
             .tag(ConnectorMetrics.Tag.RESULT, ConnectorMetrics.Inbound.RESULT_CACHE_MISS)
+            .register(meterRegistry);
+    this.processStateChangePublishFailureCounter =
+        Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_PROCESS_STATE_CHANGE_PUBLISH_FAILURES)
             .register(meterRegistry);
   }
 
@@ -57,9 +61,10 @@ public class ConnectorsInboundMetrics {
                     .tag(ConnectorMetrics.Tag.TYPE, result.type())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
+                    .tag(ConnectorMetrics.Tag.PHYSICAL_TENANT_ID, result.physicalTenantId())
                     .register(meterRegistry))
         .increment();
-    recordLastActivated(result.type());
+    recordLastActivated(result.type(), result.physicalTenantId());
   }
 
   public void increaseDeactivation(InboundConnectorElement connectorElement) {
@@ -73,6 +78,7 @@ public class ConnectorsInboundMetrics {
                     .tag(ConnectorMetrics.Tag.TYPE, result.type())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
+                    .tag(ConnectorMetrics.Tag.PHYSICAL_TENANT_ID, result.physicalTenantId())
                     .register(meterRegistry))
         .increment();
   }
@@ -90,6 +96,7 @@ public class ConnectorsInboundMetrics {
                     .tag(ConnectorMetrics.Tag.TYPE, result.type())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
+                    .tag(ConnectorMetrics.Tag.PHYSICAL_TENANT_ID, result.physicalTenantId())
                     .register(meterRegistry))
         .increment();
   }
@@ -105,6 +112,7 @@ public class ConnectorsInboundMetrics {
                     .tag(ConnectorMetrics.Tag.TYPE, result.type())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
+                    .tag(ConnectorMetrics.Tag.PHYSICAL_TENANT_ID, result.physicalTenantId())
                     .register(meterRegistry))
         .increment();
   }
@@ -122,6 +130,7 @@ public class ConnectorsInboundMetrics {
                     .tag(ConnectorMetrics.Tag.TYPE, result.type())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
+                    .tag(ConnectorMetrics.Tag.PHYSICAL_TENANT_ID, result.physicalTenantId())
                     .register(meterRegistry))
         .increment();
   }
@@ -137,9 +146,10 @@ public class ConnectorsInboundMetrics {
                     .tag(ConnectorMetrics.Tag.TYPE, result.type())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
+                    .tag(ConnectorMetrics.Tag.PHYSICAL_TENANT_ID, result.physicalTenantId())
                     .register(meterRegistry))
         .increment();
-    recordLastTriggered(result.type());
+    recordLastTriggered(result.type(), result.physicalTenantId());
   }
 
   public void increaseActivationConditionFailure(InboundConnectorElement connectorElement) {
@@ -155,6 +165,7 @@ public class ConnectorsInboundMetrics {
                     .tag(ConnectorMetrics.Tag.TYPE, result.type())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
+                    .tag(ConnectorMetrics.Tag.PHYSICAL_TENANT_ID, result.physicalTenantId())
                     .register(meterRegistry))
         .increment();
   }
@@ -169,30 +180,37 @@ public class ConnectorsInboundMetrics {
     processDefinitionCacheMissCounter.increment();
   }
 
-  private void recordLastActivated(String type) {
+  /** Records a process state change that could not be published and will be retried. */
+  public void increaseProcessStateChangePublishFailure() {
+    processStateChangePublishFailureCounter.increment();
+  }
+
+  private void recordLastActivated(String type, String physicalTenantId) {
     lastActivatedGauges
         .computeIfAbsent(
-            type,
+            type + "_" + physicalTenantId,
             t -> {
               AtomicLong holder = new AtomicLong(0);
               Gauge.builder(
                       ConnectorMetrics.Inbound.METRIC_NAME_LAST_ACTIVATED, holder, AtomicLong::get)
-                  .tag(ConnectorMetrics.Tag.TYPE, t)
+                  .tag(ConnectorMetrics.Tag.TYPE, type)
+                  .tag(ConnectorMetrics.Tag.PHYSICAL_TENANT_ID, physicalTenantId)
                   .register(meterRegistry);
               return holder;
             })
         .set(Instant.now().toEpochMilli());
   }
 
-  private void recordLastTriggered(String type) {
+  private void recordLastTriggered(String type, String physicalTenantId) {
     lastTriggeredGauges
         .computeIfAbsent(
-            type,
+            type + "_" + physicalTenantId,
             t -> {
               AtomicLong holder = new AtomicLong(0);
               Gauge.builder(
                       ConnectorMetrics.Inbound.METRIC_NAME_LAST_TRIGGERED, holder, AtomicLong::get)
-                  .tag(ConnectorMetrics.Tag.TYPE, t)
+                  .tag(ConnectorMetrics.Tag.TYPE, type)
+                  .tag(ConnectorMetrics.Tag.PHYSICAL_TENANT_ID, physicalTenantId)
                   .register(meterRegistry);
               return holder;
             })

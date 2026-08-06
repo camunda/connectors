@@ -61,6 +61,11 @@ public final class NumberProperty extends Property {
     return new NumberPropertyBuilder();
   }
 
+  @Override
+  public NumberPropertyBuilder toBuilder() {
+    return PropertyBuilder.copyBaseFieldsFrom(builder(), this);
+  }
+
   public static class NumberPropertyBuilder extends PropertyBuilder {
 
     private NumberPropertyBuilder() {}

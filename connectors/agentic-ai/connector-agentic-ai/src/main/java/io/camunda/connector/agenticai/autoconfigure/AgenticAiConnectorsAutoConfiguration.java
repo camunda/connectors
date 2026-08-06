@@ -24,27 +24,31 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGen
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolverImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
-import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
-import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
+import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
+import io.camunda.connector.agenticai.aiagent.AgentSubProcessV2Function;
+import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
+import io.camunda.connector.agenticai.aiagent.AgentTaskV2Function;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
-import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultCompletedAtResolver;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceToolMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.CamundaAgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
@@ -71,6 +75,7 @@ import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -82,7 +87,7 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.enabled", matchIfMissing = true)
 @EnableConfigurationProperties(AgenticAiConnectorsConfigurationProperties.class)
 @Import({
-  AgenticAiLangchain4JFrameworkConfiguration.class,
+  AgenticAiLangChain4JFrameworkConfiguration.class,
   McpDiscoveryConfiguration.class,
   McpClientConfiguration.class,
   McpRemoteClientConfiguration.class,
@@ -288,22 +293,28 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public ChatModelRegistry aiAgentChatModelRegistry(List<ChatModelFactory> factories) {
+    return new ChatModelRegistryImpl(factories);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
-  public OutboundConnectorAgentRequestHandler aiAgentOutboundConnectorAgentRequestHandler(
+  public AgentTaskRequestHandler aiAgentTaskRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentConversationTurnInputComposer,
-      AiFrameworkAdapter<?> aiFrameworkAdapter,
+      ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
-    return new OutboundConnectorAgentRequestHandler(
+    return new AgentTaskRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
         agentConversationTurnInputComposer,
-        aiFrameworkAdapter,
+        chatModelRegistry,
         systemPromptComposer,
         responseHandler,
         agentInstanceClient);
@@ -314,10 +325,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
-  public AiAgentFunction aiAgentFunction(
+  public AgentTaskV1Function aiAgentTaskV1Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      OutboundConnectorAgentRequestHandler agentRequestHandler) {
-    return new AiAgentFunction(toolElementsResolver, agentRequestHandler);
+      AgentTaskRequestHandler agentRequestHandler) {
+    return new AgentTaskV1Function(toolElementsResolver, agentRequestHandler);
   }
 
   @Bean
@@ -325,19 +336,19 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
       matchIfMissing = true)
-  public JobWorkerAgentRequestHandler aiAgentJobWorkerAgentRequestHandler(
+  public AgentSubProcessRequestHandler aiAgentSubProcessRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentConversationTurnInputComposer,
-      AiFrameworkAdapter<?> aiFrameworkAdapter,
+      ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
-    return new JobWorkerAgentRequestHandler(
+    return new AgentSubProcessRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
         agentConversationTurnInputComposer,
-        aiFrameworkAdapter,
+        chatModelRegistry,
         systemPromptComposer,
         responseHandler,
         agentInstanceClient);
@@ -348,7 +359,31 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
       matchIfMissing = true)
-  public AiAgentJobWorker aiAgentJobWorker(JobWorkerAgentRequestHandler agentRequestHandler) {
-    return new AiAgentJobWorker(agentRequestHandler);
+  public AgentSubProcessV1Function aiAgentSubProcessV1Function(
+      AgentSubProcessRequestHandler agentRequestHandler) {
+    return new AgentSubProcessV1Function(agentRequestHandler);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBean(AgentTaskRequestHandler.class)
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
+      matchIfMissing = true)
+  public AgentTaskV2Function aiAgentTaskV2Function(
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      AgentTaskRequestHandler agentRequestHandler) {
+    return new AgentTaskV2Function(toolElementsResolver, agentRequestHandler);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBean(AgentSubProcessRequestHandler.class)
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
+      matchIfMissing = true)
+  public AgentSubProcessV2Function aiAgentSubProcessV2Function(
+      AgentSubProcessRequestHandler agentRequestHandler) {
+    return new AgentSubProcessV2Function(agentRequestHandler);
   }
 }

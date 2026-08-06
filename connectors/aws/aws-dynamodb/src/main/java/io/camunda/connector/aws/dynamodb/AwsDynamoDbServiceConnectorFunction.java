@@ -18,10 +18,10 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
     inputVariables = {"authentication", "configuration", "input", "awsCredential"},
     type = "io.camunda:aws-dynamodb:1")
 @ElementTemplate(
-    engineVersion = "^8.6",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.AWSDynamoDB.v1",
     name = "AWS DynamoDB Outbound Connector",
-    version = 10,
+    version = 11,
     description = "Manage tables and items with AWS DynamoDB.",
     keywords = {
       "create table",

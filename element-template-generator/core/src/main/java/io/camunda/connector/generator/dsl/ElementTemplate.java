@@ -25,6 +25,7 @@ import io.camunda.connector.generator.java.annotation.BpmnType;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @JsonPropertyOrder({
@@ -138,20 +139,53 @@ public record ElementTemplate(
   public record ElementTypeWrapper(
       String value, String eventDefinition, @JsonIgnore BpmnType originalType) {
 
-    public static ElementTypeWrapper from(BpmnType value) {
-      var haveEventDefinition =
-          Set.of(
-              BpmnType.INTERMEDIATE_CATCH_EVENT,
-              BpmnType.INTERMEDIATE_THROW_EVENT,
-              BpmnType.MESSAGE_START_EVENT,
-              BpmnType.MESSAGE_END_EVENT,
-              BpmnType.BOUNDARY_EVENT);
-      var messageEventDefinition = "bpmn:MessageEventDefinition";
+    /**
+     * {@link BpmnType}s whose generated {@code eventDefinition} is non-null. Note this is
+     * deliberately not {@link BpmnType#isMessage()}: {@code RECEIVE_TASK.isMessage()} is {@code
+     * true}, but a receive task has no {@code eventDefinition} of its own, so it must be excluded
+     * here too -- {@link #from(BpmnType)} and {@link #resolveType()} both consult this set so they
+     * can never disagree on which types carry one.
+     */
+    private static final Set<BpmnType> TYPES_WITH_EVENT_DEFINITION =
+        Set.of(
+            BpmnType.INTERMEDIATE_CATCH_EVENT,
+            BpmnType.INTERMEDIATE_THROW_EVENT,
+            BpmnType.MESSAGE_START_EVENT,
+            BpmnType.MESSAGE_END_EVENT,
+            BpmnType.BOUNDARY_EVENT);
 
-      return new ElementTypeWrapper(
-          value.getName(),
-          haveEventDefinition.contains(value) ? messageEventDefinition : null,
-          value);
+    private static final String MESSAGE_EVENT_DEFINITION = "bpmn:MessageEventDefinition";
+
+    public static ElementTypeWrapper from(BpmnType value) {
+      return new ElementTypeWrapper(value.getName(), eventDefinitionFor(value), value);
+    }
+
+    private static String eventDefinitionFor(BpmnType candidate) {
+      return TYPES_WITH_EVENT_DEFINITION.contains(candidate) ? MESSAGE_EVENT_DEFINITION : null;
+    }
+
+    /**
+     * Returns the {@link BpmnType} this wrapper was built from. Falls back to reconstructing it
+     * from {@code value} and {@code eventDefinition} when {@code originalType} is unavailable, e.g.
+     * for a wrapper deserialized from JSON, where {@code originalType} is {@code @JsonIgnore}d.
+     *
+     * <p>Matches each candidate's exact expected {@code eventDefinition} value (via the same {@link
+     * #eventDefinitionFor(BpmnType)} used by {@link #from(BpmnType)}), not merely whether one is
+     * present -- so a serialized wrapper carrying an event definition this generator never produces
+     * (e.g. a hand-authored {@code bpmn:TimerEventDefinition} on a start event) is left unresolved
+     * instead of being silently reinterpreted as a message event.
+     */
+    public BpmnType resolveType() {
+      if (originalType != null) {
+        return originalType;
+      }
+      for (var candidate : BpmnType.values()) {
+        if (candidate.getName().equals(value)
+            && Objects.equals(eventDefinitionFor(candidate), eventDefinition)) {
+          return candidate;
+        }
+      }
+      return null;
     }
   }
 }

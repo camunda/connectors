@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
@@ -52,7 +53,11 @@ class MeteredInboundCorrelationHandlerTest {
     camundaClient = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
     handler =
         new MeteredInboundCorrelationHandler(
-            camundaClient, TestObjectMapperSupplier.INSTANCE, DEFAULT_TTL, metrics);
+            camundaClient,
+            TestObjectMapperSupplier.INSTANCE,
+            DEFAULT_TTL,
+            mock(DocumentFactory.class),
+            metrics);
     element = mock(InboundConnectorElement.class);
   }
 

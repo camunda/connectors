@@ -54,7 +54,8 @@ public class ConnectorInstancesListResponseHelper {
         Map.of("dataKey", "dataValue"),
         health,
         activationTimestamp,
-        List.of());
+        List.of(),
+        "physicalTenantId");
   }
 
   public static Stream<Arguments> getConnectorInstancesListsWithExpectedResult() {

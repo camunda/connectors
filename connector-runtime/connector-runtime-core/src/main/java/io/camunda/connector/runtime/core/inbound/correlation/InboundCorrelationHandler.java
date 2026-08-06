@@ -24,6 +24,7 @@ import io.camunda.client.api.response.CorrelateMessageResponse;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.client.api.response.ProcessInstanceResult;
 import io.camunda.client.api.response.PublishMessageResponse;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.InlineSizeGuard;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
@@ -61,6 +62,23 @@ public class InboundCorrelationHandler {
   private final ConnectorResultHandler connectorResultHandler;
   private final ObjectMapper objectMapper;
 
+  public InboundCorrelationHandler(
+      CamundaClient camundaClient,
+      ObjectMapper objectMapper,
+      Duration defaultMessageTtl,
+      DocumentFactory documentFactory) {
+    this.camundaClient = camundaClient;
+    this.objectMapper = objectMapper;
+    this.activationConditionEvaluator = new ActivationConditionEvaluator(feelExpressionEvaluator);
+    this.defaultMessageTtl = defaultMessageTtl;
+    this.connectorResultHandler = new ConnectorResultHandler(objectMapper, documentFactory);
+  }
+
+  /**
+   * Preserves source/binary compatibility for callers compiled against the pre-{@code
+   * createDocument()} three-argument constructor. {@code createDocument()} is unavailable through
+   * this instance (see {@code ConnectorResultHandler(ObjectMapper)}).
+   */
   public InboundCorrelationHandler(
       CamundaClient camundaClient, ObjectMapper objectMapper, Duration defaultMessageTtl) {
     this.camundaClient = camundaClient;
@@ -375,7 +393,10 @@ public class InboundCorrelationHandler {
 
   protected Object extractVariables(Object rawVariables, InboundConnectorElement definition) {
     return connectorResultHandler.createOutputVariables(
-        rawVariables, definition.resultVariable(), definition.resultExpression());
+        rawVariables,
+        definition.resultVariable(),
+        definition.resultExpression(),
+        definition.physicalTenantId());
   }
 
   private void checkVariablesSize(Object variables) {

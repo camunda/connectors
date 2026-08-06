@@ -8,8 +8,6 @@
 
 /* pre-build script will write imports here */
 
-const allConnectors = [
-  /* pre-build script will write array content here */
-];
+const allConnectors = [/* pre-build script will write array content here */];
 
 export default allConnectors;

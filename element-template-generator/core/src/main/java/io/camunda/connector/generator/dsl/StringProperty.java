@@ -63,6 +63,11 @@ public final class StringProperty extends Property {
     return new StringPropertyBuilder();
   }
 
+  @Override
+  public StringPropertyBuilder toBuilder() {
+    return PropertyBuilder.copyBaseFieldsFrom(builder(), this);
+  }
+
   public static class StringPropertyBuilder extends PropertyBuilder {
 
     private StringPropertyBuilder() {}

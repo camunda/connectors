@@ -53,8 +53,8 @@ public class ConnectorsFinder {
 
       this.connectors =
           files
+              .filter(path -> Files.isDirectory(path) && !Files.isSymbolicLink(path))
               .map(path -> new File(path.toUri()))
-              .filter(File::isDirectory)
               .filter(this::containsElementTemplates)
               .map(this::getElementTemplateDirectory)
               .flatMap(this::findVersionedConnectors)
@@ -70,6 +70,7 @@ public class ConnectorsFinder {
 
   private File getElementTemplateDirectory(File file) {
     return Arrays.stream(Objects.requireNonNull(file.listFiles()))
+        .filter(file1 -> !isSymlink(file1))
         .filter(file1 -> file1.getName().endsWith(ELEMENT_TEMPLATES))
         .findFirst()
         .orElseThrow();
@@ -114,7 +115,12 @@ public class ConnectorsFinder {
       return false;
     }
     return Arrays.stream(Objects.requireNonNull(directory.listFiles()))
+        .filter(file -> !isSymlink(file))
         .anyMatch(file -> file.getName().endsWith(ELEMENT_TEMPLATES));
+  }
+
+  private static boolean isSymlink(File file) {
+    return Files.isSymbolicLink(file.toPath());
   }
 
   public List<Connector> getAllConnectors() {

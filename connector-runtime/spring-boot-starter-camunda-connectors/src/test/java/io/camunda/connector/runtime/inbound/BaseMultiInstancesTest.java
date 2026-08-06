@@ -348,6 +348,11 @@ abstract class BaseMultiInstancesTest {
     if (query.tenantId() != null && !query.tenantId().equals(firstElement.tenantId())) {
       return false;
     }
+    if (query.physicalTenantIds() != null
+        && !query.physicalTenantIds().isEmpty()
+        && !query.physicalTenantIds().contains(firstElement.physicalTenantId())) {
+      return false;
+    }
     if (query.bpmnProcessId() != null
         && !query.bpmnProcessId().equals(firstElement.element().bpmnProcessId())) {
       return false;

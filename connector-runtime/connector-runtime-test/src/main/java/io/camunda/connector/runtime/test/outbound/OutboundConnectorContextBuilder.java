@@ -18,11 +18,15 @@ package io.camunda.connector.runtime.test.outbound;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.api.document.DocumentReturnChoice;
+import io.camunda.connector.api.document.DocumentReturnFormat;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -42,6 +46,7 @@ import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.connector.test.MapSecretProvider;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /** Test helper class for creating a {@link OutboundConnectorContext} with a fluent API. */
 public class OutboundConnectorContextBuilder {
@@ -241,6 +246,29 @@ public class OutboundConnectorContextBuilder {
     @Override
     public JobContext getJobContext() {
       return jobContext;
+    }
+
+    @Override
+    public Optional<DocumentReturnFormat> readDocumentReturnFormat() {
+      Object rawFormat = variables == null ? null : variables.get("documentReturnFormat");
+      if (rawFormat == null) {
+        return Optional.empty();
+      }
+      JsonNode formatNode = objectMapper.valueToTree(rawFormat);
+      String choiceText = formatNode.path("choice").asText(null);
+      if (choiceText == null || choiceText.isBlank()) {
+        return Optional.empty();
+      }
+      try {
+        return Optional.of(
+            new DocumentReturnFormat(
+                DocumentReturnChoice.valueOf(choiceText),
+                formatNode.path("encoding").asText(null)));
+      } catch (IllegalArgumentException e) {
+        throw new ConnectorInputException(
+            "documentReturnFormat.choice must be one of DOCUMENT, TEXT, JSON. Got: " + choiceText,
+            e);
+      }
     }
 
     @Override

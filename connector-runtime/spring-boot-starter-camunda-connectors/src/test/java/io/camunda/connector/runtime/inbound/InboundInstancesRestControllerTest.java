@@ -249,6 +249,58 @@ class InboundInstancesRestControllerTest {
   }
 
   @Test
+  public void shouldReturnConnectorInstances_whenPhysicalTenantIdsFilterMatches() throws Exception {
+    var response =
+        mockMvc
+            .perform(
+                get("/inbound-instances")
+                    .param(
+                        "physicalTenantIds",
+                        ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<ConnectorInstances> instance =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+    assertEquals(2, instance.size());
+  }
+
+  @Test
+  public void shouldReturnNoConnectorInstances_whenPhysicalTenantIdsFilterDoesNotMatch()
+      throws Exception {
+    var response =
+        mockMvc
+            .perform(get("/inbound-instances").param("physicalTenantIds", "nonexistent-tenant"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<ConnectorInstances> instance =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+    assertTrue(instance.isEmpty());
+  }
+
+  @Test
+  public void shouldReturnPhysicalTenantIdOnEachInstance() throws Exception {
+    var response =
+        mockMvc
+            .perform(get("/inbound-instances/" + TYPE_1))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    ConnectorInstances instance =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, ConnectorInstances.class);
+    assertEquals(
+        ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+        instance.instances().get(0).physicalTenantId());
+  }
+
+  @Test
   public void shouldReturn404_whenUnknownConnectorType() throws Exception {
     mockMvc
         .perform(get("/inbound-instances/UNKNOWN-ID"))
@@ -494,6 +546,11 @@ class InboundInstancesRestControllerTest {
       return false;
     }
     if (query.tenantId() != null && !query.tenantId().equals(firstElement.tenantId())) {
+      return false;
+    }
+    if (query.physicalTenantIds() != null
+        && !query.physicalTenantIds().isEmpty()
+        && !query.physicalTenantIds().contains(firstElement.physicalTenantId())) {
       return false;
     }
     if (query.bpmnProcessId() != null

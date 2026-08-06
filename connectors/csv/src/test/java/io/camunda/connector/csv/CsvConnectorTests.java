@@ -10,10 +10,15 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReturn;
+import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.csv.model.*;
 import io.camunda.connector.csv.model.ReadCsvRequest.RowType;
+import io.camunda.connector.runtime.test.document.TestDocument;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -35,7 +40,8 @@ public class CsvConnectorTests {
 
   @Test
   public void testReadCsv() {
-    var request = new ReadCsvRequest(csv, new CsvFormat(",", true, null), RowType.Object);
+    var request =
+        new ReadCsvRequest(null, doc(csv), new CsvFormat(",", true, null), RowType.Object);
     ReadCsvResult result = connector.readCsv(request, null);
 
     var records = toList(result);
@@ -58,7 +64,8 @@ public class CsvConnectorTests {
 
   @Test
   public void testReadCsvWithMapper() {
-    var request = new ReadCsvRequest(productsCsv, new CsvFormat(",", true, null), RowType.Object);
+    var request =
+        new ReadCsvRequest(null, doc(productsCsv), new CsvFormat(",", true, null), RowType.Object);
     var mapper =
         (Function<Map<String, Object>, Object>)
             context -> {
@@ -78,7 +85,8 @@ public class CsvConnectorTests {
 
   @Test
   public void testReadCsvWithFilteringMapper() {
-    var request = new ReadCsvRequest(productsCsv, new CsvFormat(",", true, null), RowType.Object);
+    var request =
+        new ReadCsvRequest(null, doc(productsCsv), new CsvFormat(",", true, null), RowType.Object);
     var mapper =
         (Function<Map<String, Object>, Object>)
             context -> {
@@ -101,7 +109,7 @@ public class CsvConnectorTests {
 
   @Test
   public void testReadCsvWithArrayType() {
-    var request = new ReadCsvRequest(csv, new CsvFormat(",", true, null), RowType.Array);
+    var request = new ReadCsvRequest(null, doc(csv), new CsvFormat(",", true, null), RowType.Array);
     ReadCsvResult result = connector.readCsv(request, null);
 
     var records = result.records();
@@ -115,7 +123,8 @@ public class CsvConnectorTests {
 
   @Test
   public void testReadCsvWithObjectsType() {
-    var request = new ReadCsvRequest(csv, new CsvFormat(",", true, null), RowType.Object);
+    var request =
+        new ReadCsvRequest(null, doc(csv), new CsvFormat(",", true, null), RowType.Object);
     ReadCsvResult result = connector.readCsv(request, null);
 
     var records = toList(result);
@@ -129,7 +138,10 @@ public class CsvConnectorTests {
   public void testReadCsvWithObjectsTypeAndHeaders() {
     var request =
         new ReadCsvRequest(
-            csv, new CsvFormat(",", true, List.of("the_name", "the_role")), RowType.Object);
+            null,
+            doc(csv),
+            new CsvFormat(",", true, List.of("the_name", "the_role")),
+            RowType.Object);
     ReadCsvResult result = connector.readCsv(request, null);
 
     var records = toList(result);
@@ -146,7 +158,8 @@ public class CsvConnectorTests {
 
   @Test
   public void testReadCSVWithoutHeadersAndSkipHeaderRecord() {
-    var request = new ReadCsvRequest(csv, new CsvFormat(",", false, null), RowType.Object);
+    var request =
+        new ReadCsvRequest(null, doc(csv), new CsvFormat(",", false, null), RowType.Object);
     assertThatRuntimeException().isThrownBy(() -> connector.readCsv(request, null));
   }
 
@@ -218,6 +231,89 @@ public class CsvConnectorTests {
     assertThatThrownBy(() -> connector.writeCsv(emptyHeaders, context))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("Headers must be defined");
+  }
+
+  @Test
+  public void testWriteCsvAsDocumentReturn() {
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(Map.of("documentReturnFormat", Map.of("choice", "DOCUMENT")))
+            .build();
+    var request =
+        new WriteCsvRequest(
+            asList(asList("name", "role"), asList("Simon", "Engineering Manager")),
+            false,
+            new CsvFormat(",", true, asList("name", "role")));
+
+    var documentReturn = (DocumentReturn<?>) connector.writeCsv(request, context);
+
+    // The runtime performs the actual conversion; here we assert the raw payload and the wrap.
+    assertEquals("text/csv", documentReturn.payload().contentType());
+    var wrapped = documentReturn.wrap().apply(doc("ignored"), DocumentReturnChoice.DOCUMENT);
+    assertThat(wrapped).isInstanceOf(WriteCsvResult.Document.class);
+  }
+
+  @Test
+  public void testWriteCsvAsTextReturn() {
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(Map.of("documentReturnFormat", Map.of("choice", "TEXT")))
+            .build();
+    var request =
+        new WriteCsvRequest(
+            asList(asList("name", "role"), asList("Simon", "Engineering Manager")),
+            false,
+            new CsvFormat(",", true, asList("name", "role")));
+
+    var documentReturn = (DocumentReturn<?>) connector.writeCsv(request, context);
+    var wrapped =
+        (WriteCsvResult.Value)
+            documentReturn.wrap().apply("name,role\r\n", DocumentReturnChoice.TEXT);
+    assertEquals("name,role\r\n", wrapped.content());
+  }
+
+  @Test
+  public void testReadCsvLegacyRawText() {
+    // element-template <= v2 bound raw CSV text to `data`; new runtime must still accept it
+    var request = new ReadCsvRequest(csv, null, new CsvFormat(",", true, null), RowType.Object);
+    ReadCsvResult result = connector.readCsv(request, null);
+
+    var records = toList(result);
+    assertEquals(4, records.size());
+    assertThat(records).contains(Map.of("name", "Simon", "role", "Engineering Manager"));
+  }
+
+  @Test
+  public void testReadCsvLegacyDocument() {
+    // element-template <= v2 bound a document reference to `data`; still supported
+    var request =
+        new ReadCsvRequest(doc(csv), null, new CsvFormat(",", true, null), RowType.Object);
+    ReadCsvResult result = connector.readCsv(request, null);
+
+    assertEquals(4, toList(result).size());
+  }
+
+  @Test
+  public void testReadCsvDocumentTakesPrecedenceOverLegacyData() {
+    // when both are present, the new `document` input wins
+    var request =
+        new ReadCsvRequest(
+            "ignored,legacy", doc(csv), new CsvFormat(",", true, null), RowType.Object);
+    ReadCsvResult result = connector.readCsv(request, null);
+
+    assertEquals(4, toList(result).size());
+  }
+
+  @Test
+  public void testReadCsvNoDataThrows() {
+    var request = new ReadCsvRequest(null, null, new CsvFormat(",", true, null), RowType.Object);
+    assertThatThrownBy(() -> connector.readCsv(request, null))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("No CSV data provided");
+  }
+
+  private static Document doc(String content) {
+    return new TestDocument(content.getBytes(StandardCharsets.UTF_8), null, null, null);
   }
 
   private static List<Map<String, Object>> toList(ReadCsvResult result) {
