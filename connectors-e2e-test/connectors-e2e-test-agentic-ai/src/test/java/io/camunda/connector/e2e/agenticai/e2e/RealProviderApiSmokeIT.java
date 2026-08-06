@@ -155,6 +155,7 @@ class RealProviderApiSmokeIT {
   record Provider(
       String label,
       String requiredEnvVar,
+      boolean enabled,
       Map<String, String> properties,
       Map<Capability, Map<String, String>> capabilityProperties,
       // Whether this row's reasoning config forces reasoning tokens (e.g. Anthropic "enabled"), so
@@ -162,9 +163,7 @@ class RealProviderApiSmokeIT {
       boolean forcesReasoningTokens,
       // Whether this row reports a distinct cache-creation (write) token count in addition to
       // cache-read; gates the cache-creation assertion in the prompt-caching scenario.
-      boolean reportsCacheCreationTokens,
-      // Manual on/off switch (independent of the env-var gate) for muting a row while iterating.
-      boolean enabled) {
+      boolean reportsCacheCreationTokens) {
 
     Provider(
         String label,
@@ -176,22 +175,22 @@ class RealProviderApiSmokeIT {
       this(
           label,
           requiredEnvVar,
+          true,
           properties,
           capabilityProperties,
           forcesReasoningTokens,
-          reportsCacheCreationTokens,
-          true);
+          reportsCacheCreationTokens);
     }
 
     Provider disabled() {
       return new Provider(
           label,
           requiredEnvVar,
+          false,
           properties,
           capabilityProperties,
           forcesReasoningTokens,
-          reportsCacheCreationTokens,
-          false);
+          reportsCacheCreationTokens);
     }
 
     boolean isEnabled() {
@@ -268,6 +267,26 @@ class RealProviderApiSmokeIT {
         .filter(Provider::isEnabled);
   }
 
+  static Stream<Provider> providersWithStructuredOutput() {
+    return providers().filter(p -> p.supports(Capability.STRUCTURED_OUTPUT));
+  }
+
+  static Stream<Provider> providersWithReasoning() {
+    return providers().filter(p -> p.supports(Capability.REASONING));
+  }
+
+  static Stream<Provider> providersWithPromptCaching() {
+    return providers().filter(p -> p.supports(Capability.PROMPT_CACHING));
+  }
+
+  static Stream<Provider> providersWithMultimodalUserMessage() {
+    return providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE));
+  }
+
+  static Stream<Provider> providersWithMultimodalToolResult() {
+    return providers().filter(p -> p.supports(Capability.MULTIMODAL_TOOL_RESULT));
+  }
+
   private static String envOrPlaceholder(String envVar) {
     return System.getenv().getOrDefault(envVar, "NOT_SET");
   }
@@ -312,10 +331,6 @@ class RealProviderApiSmokeIT {
                     text -> Assertions.assertThat(text).contains(NONCE_CODE_NAME)));
   }
 
-  static Stream<Provider> providersWithStructuredOutput() {
-    return providers().filter(p -> p.supports(Capability.STRUCTURED_OUTPUT));
-  }
-
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithStructuredOutput")
   void structuredOutputReturnsSchemaConformingJson(Provider provider) {
@@ -357,10 +372,6 @@ class RealProviderApiSmokeIT {
                     }));
   }
 
-  static Stream<Provider> providersWithReasoning() {
-    return providers().filter(p -> p.supports(Capability.REASONING));
-  }
-
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithReasoning")
   void reasoningEnabledProducesReasoningTokens(Provider provider) {
@@ -370,9 +381,6 @@ class RealProviderApiSmokeIT {
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
             "You are a careful reasoner. Think step by step before answering.",
-            // Reasoning enablement is model-specific (sonnet-4-6 uses "enabled"+budget, sonnet-5
-            // uses "adaptive"+effort) and comes from the provider row, so this scenario stays
-            // provider-agnostic.
             template -> provider.propertiesFor(Capability.REASONING).forEach(template::property));
 
     var instance =
@@ -400,15 +408,9 @@ class RealProviderApiSmokeIT {
         });
   }
 
-  static Stream<Provider> providersWithPromptCaching() {
-    return providers().filter(p -> p.supports(Capability.PROMPT_CACHING));
-  }
-
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithPromptCaching")
   void promptCachingReportsCacheReadAndWriteTokens(Provider provider) {
-    // Passed as a process VARIABLE via FEEL rather than baked into the element template (baking it
-    // produced a deploy-time ConnectionClosedException).
     var model =
         buildModel(
             provider,
@@ -452,14 +454,6 @@ class RealProviderApiSmokeIT {
               .hasResponseTextSatisfying(
                   text -> Assertions.assertThat(text).contains(NONCE_CODE_NAME));
         });
-  }
-
-  static Stream<Provider> providersWithMultimodalUserMessage() {
-    return providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE));
-  }
-
-  static Stream<Provider> providersWithMultimodalToolResult() {
-    return providers().filter(p -> p.supports(Capability.MULTIMODAL_TOOL_RESULT));
   }
 
   @ParameterizedTest(name = "{0}")
