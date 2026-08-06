@@ -116,7 +116,7 @@ class AnthropicChatModelConfigurationTest {
   }
 
   @Test
-  void anthropicApiBackendRedactsApiKeyHeadersAndParametersInToString() {
+  void anthropicApiBackendRedactsApiKeyHeadersAndBodyPropertiesInToString() {
     final var backend =
         new AnthropicApiBackend(
             new AnthropicApiBackend.AnthropicApi(
@@ -133,11 +133,11 @@ class AnthropicChatModelConfigurationTest {
             "apiKey=[REDACTED]",
             "headers={Authorization=[REDACTED]}",
             "queryParameters={api-version=[REDACTED]}",
-            "requestParameters={large_field=[REDACTED]}");
+            "bodyProperties={large_field=[REDACTED]}");
   }
 
   @Test
-  void customBackendRedactsHeadersAndParametersInToString() {
+  void customBackendRedactsHeadersAndBodyPropertiesInToString() {
     final var backend =
         new AnthropicCustomBackend(
             new AnthropicCustomBackend.CustomBackend(
@@ -153,7 +153,7 @@ class AnthropicChatModelConfigurationTest {
         .contains(
             "headers={Authorization=[REDACTED]}",
             "queryParameters={api-version=[REDACTED]}",
-            "requestParameters={large_field=[REDACTED]}",
+            "bodyProperties={large_field=[REDACTED]}",
             "apiKey=[REDACTED]");
   }
 
@@ -164,13 +164,13 @@ class AnthropicChatModelConfigurationTest {
             new AnthropicApiBackend.AnthropicApi(
                 "sk-ant-super-secret", null, Map.of(), Map.of(), Map.of()));
     assertThat(backendWithEmptyMaps.toString())
-        .contains("headers={}", "queryParameters={}", "requestParameters={}");
+        .contains("headers={}", "queryParameters={}", "bodyProperties={}");
 
     final var backendWithNullMaps =
         new AnthropicApiBackend(
             new AnthropicApiBackend.AnthropicApi("sk-ant-super-secret", null, null, null, null));
     assertThat(backendWithNullMaps.toString())
-        .contains("headers=null", "queryParameters=null", "requestParameters=null");
+        .contains("headers=null", "queryParameters=null", "bodyProperties=null");
   }
 
   @Test

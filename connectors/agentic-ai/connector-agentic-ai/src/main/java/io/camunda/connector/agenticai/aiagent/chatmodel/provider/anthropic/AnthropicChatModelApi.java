@@ -21,7 +21,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.util.JsonPayloadLogging;
+import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Optional;
@@ -84,7 +84,7 @@ public class AnthropicChatModelApi implements ChatModel {
             request.snapshot());
     if (LOG.isTraceEnabled()) {
       LOG.trace(
-          "Anthropic Messages API request: {}", JsonPayloadLogging.toJson(MAPPER, params._body()));
+          "Anthropic Messages API request: {}", LoggingSupport.toJson(MAPPER, params._body()));
     }
 
     final long startNanos = System.nanoTime();
@@ -95,8 +95,7 @@ public class AnthropicChatModelApi implements ChatModel {
         message = streamAssembler.assemble(stream);
       }
       if (LOG.isTraceEnabled()) {
-        LOG.trace(
-            "Anthropic Messages API response: {}", JsonPayloadLogging.toJson(MAPPER, message));
+        LOG.trace("Anthropic Messages API response: {}", LoggingSupport.toJson(MAPPER, message));
       }
       final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
       return responseConverter.toResult(message, executionTime);
