@@ -560,6 +560,9 @@ jobs:
   # This job waits for the FOSSA scan (triggered by CHECK_LICENSES.yml) to complete,
   # then creates releases in FOSSA and generates attribution/SBOM reports.
   # Runs on all releases (including RC and alpha) after successful completion of all release jobs.
+  # Intentionally does NOT depend on helm-deploy: FOSSA scanning/reporting has no hard dependency
+  # on the helm integration tests, so attestation reports must still be generated even when the
+  # helm tests fail or are skipped (see camunda/connectors#6023).
   fossa_release:
     name: Create FOSSA releases and generate attribution/SBOM reports
     needs:
@@ -567,7 +570,6 @@ jobs:
       - maven-release
       - docker-release
       - bundle-and-build-changelog
-      - helm-deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -576,8 +578,7 @@ jobs:
       needs.setup.result == 'success' &&
       (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
       (needs.docker-release.result == 'success' || needs.docker-release.result == 'skipped') &&
-      needs.bundle-and-build-changelog.result == 'success' &&
-      (needs.helm-deploy.result == 'success' || needs.helm-deploy.result == 'skipped')
+      needs.bundle-and-build-changelog.result == 'success'
 
     steps:
       - uses: actions/checkout@v5
