@@ -18,7 +18,6 @@ package io.camunda.connector.generator.java.util;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
-import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition;
@@ -32,6 +31,8 @@ import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationProcessor;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -120,6 +121,7 @@ final class DocumentPropertyHandler {
     result.add(
         composerProperty(
             targetPath,
+            targetParent,
             singleDocComposerExpression(fields),
             parentCondition,
             group,
@@ -167,6 +169,7 @@ final class DocumentPropertyHandler {
     result.add(
         composerProperty(
             targetPath,
+            targetParent,
             optionalSingleDocComposerExpression(modeId, fields),
             parentCondition,
             group,
@@ -239,11 +242,11 @@ final class DocumentPropertyHandler {
     result.add(modeDropdown);
     result.addAll(modeDependants);
 
-    String composerExpression = listDocComposerExpression(modeId, single, multipleExpressionId);
     result.add(
         composerProperty(
             targetPath,
-            composerExpression,
+            targetParent,
+            listDocComposerExpression(modeId, single, multipleExpressionId),
             parentCondition,
             group,
             resolveComposerId(annotation, targetPath)));
@@ -387,17 +390,15 @@ final class DocumentPropertyHandler {
 
   private static PropertyBuilder composerProperty(
       String targetPath,
-      String feelExpression,
+      String targetParent,
+      Function<UnaryOperator<String>, String> feelExpression,
       PropertyCondition condition,
       String group,
       String composerId) {
-    var composer = HiddenProperty.builder();
-    composer
-        .id(composerId)
-        .value("=" + feelExpression)
-        .binding(new ZeebeInput(targetPath))
-        .group(group)
-        .condition(condition);
+    // The expression is rendered by the builder, which re-renders it whenever the enclosing record
+    // nests this property, so helper references always match the paths their bindings create.
+    var composer = new DocumentComposerPropertyBuilder(targetParent, feelExpression);
+    composer.id(composerId).binding(new ZeebeInput(targetPath)).group(group).condition(condition);
     return composer;
   }
 
@@ -406,60 +407,68 @@ final class DocumentPropertyHandler {
     return custom != null ? custom : targetPath + "__composer";
   }
 
-  private static String singleDocComposerExpression(SingleDocFields fields) {
-    return """
+  private static Function<UnaryOperator<String>, String> singleDocComposerExpression(
+      SingleDocFields fields) {
+    return qualify ->
+        """
         if %1$s = "camunda" then %2$s \
         else if %1$s = "inline" then %3$s \
         else if %1$s = "external" then %4$s \
         else null"""
-        .formatted(
-            fields.sourceId,
-            fields.camundaRefId,
-            inlineObjectLiteral(fields),
-            externalObjectLiteral(fields));
+            .formatted(
+                qualify.apply(fields.sourceId),
+                qualify.apply(fields.camundaRefId),
+                inlineObjectLiteral(fields, qualify),
+                externalObjectLiteral(fields, qualify));
   }
 
-  private static String optionalSingleDocComposerExpression(String modeId, SingleDocFields fields) {
-    return """
+  private static Function<UnaryOperator<String>, String> optionalSingleDocComposerExpression(
+      String modeId, SingleDocFields fields) {
+    return qualify ->
+        """
         if %1$s = "yes" then (%2$s) \
         else null"""
-        .formatted(modeId, singleDocComposerExpression(fields));
+            .formatted(qualify.apply(modeId), singleDocComposerExpression(fields).apply(qualify));
   }
 
-  private static String listDocComposerExpression(
+  private static Function<UnaryOperator<String>, String> listDocComposerExpression(
       String modeId, SingleDocFields single, String multipleExpressionId) {
-    return """
+    return qualify ->
+        """
         if %1$s = "multiple" then %2$s \
         else if %1$s = "single" then (if %3$s = "camunda" then [%4$s] \
         else if %3$s = "inline" then [%5$s] \
         else if %3$s = "external" then [%6$s] \
         else null) \
         else null"""
-        .formatted(
-            modeId,
-            multipleExpressionId,
-            single.sourceId,
-            single.camundaRefId,
-            inlineObjectLiteral(single),
-            externalObjectLiteral(single));
+            .formatted(
+                qualify.apply(modeId),
+                qualify.apply(multipleExpressionId),
+                qualify.apply(single.sourceId),
+                qualify.apply(single.camundaRefId),
+                inlineObjectLiteral(single, qualify),
+                externalObjectLiteral(single, qualify));
   }
 
-  private static String inlineObjectLiteral(SingleDocFields f) {
+  private static String inlineObjectLiteral(SingleDocFields f, UnaryOperator<String> qualify) {
     return """
         { "%s": "%s", content: %s, name: %s, contentType: %s }"""
         .formatted(
             DOCUMENT_TYPE_KEY,
             DOCUMENT_TYPE_INLINE,
-            f.inlineContentId,
-            f.inlineFileNameId,
-            f.inlineContentTypeId);
+            qualify.apply(f.inlineContentId),
+            qualify.apply(f.inlineFileNameId),
+            qualify.apply(f.inlineContentTypeId));
   }
 
-  private static String externalObjectLiteral(SingleDocFields f) {
+  private static String externalObjectLiteral(SingleDocFields f, UnaryOperator<String> qualify) {
     return """
         { "%s": "%s", url: %s, name: %s }"""
         .formatted(
-            DOCUMENT_TYPE_KEY, DOCUMENT_TYPE_EXTERNAL, f.externalUrlId, f.externalFileNameId);
+            DOCUMENT_TYPE_KEY,
+            DOCUMENT_TYPE_EXTERNAL,
+            qualify.apply(f.externalUrlId),
+            qualify.apply(f.externalFileNameId));
   }
 
   private static SingleDocFields singleDocFields(String prefix) {
