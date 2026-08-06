@@ -154,7 +154,7 @@ class RealProviderApiSmokeIT {
    */
   record Provider(
       String label,
-      String requiredEnvVar,
+      List<String> requiredEnvVars,
       boolean enabled,
       Map<String, String> properties,
       Map<Capability, Map<String, String>> capabilityProperties,
@@ -167,14 +167,14 @@ class RealProviderApiSmokeIT {
 
     Provider(
         String label,
-        String requiredEnvVar,
+        List<String> requiredEnvVars,
         Map<String, String> properties,
         Map<Capability, Map<String, String>> capabilityProperties,
         boolean forcesReasoningTokens,
         boolean reportsCacheCreationTokens) {
       this(
           label,
-          requiredEnvVar,
+          requiredEnvVars,
           true,
           properties,
           capabilityProperties,
@@ -185,7 +185,7 @@ class RealProviderApiSmokeIT {
     Provider disabled() {
       return new Provider(
           label,
-          requiredEnvVar,
+          requiredEnvVars,
           false,
           properties,
           capabilityProperties,
@@ -194,7 +194,8 @@ class RealProviderApiSmokeIT {
     }
 
     boolean isEnabled() {
-      return enabled && System.getenv(requiredEnvVar) != null;
+      // requiredEnvVars is empty for local providers that need no API key, just a URL.
+      return enabled && requiredEnvVars.stream().allMatch(v -> System.getenv(v) != null);
     }
 
     boolean supports(Capability capability) {
@@ -217,7 +218,7 @@ class RealProviderApiSmokeIT {
       boolean forcesReasoningTokens) {
     return new Provider(
         "anthropic-api/" + model,
-        "ANTHROPIC_API_KEY",
+        List.of("ANTHROPIC_API_KEY"),
         Map.of(
             "provider.type",
             "anthropic",
