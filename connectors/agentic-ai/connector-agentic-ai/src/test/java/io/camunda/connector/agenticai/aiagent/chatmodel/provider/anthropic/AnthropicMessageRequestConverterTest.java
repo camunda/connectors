@@ -248,48 +248,6 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void replaysTextCitationsCapturedInContentMetadata() {
-    final var textWithCitation =
-        new TextContent(
-            "Paris is the capital of France.",
-            Map.of(
-                "anthropic",
-                Map.of(
-                    "citations",
-                    List.of(
-                        Map.of(
-                            "type",
-                            "char_location",
-                            "cited_text",
-                            "Paris is the capital",
-                            "document_index",
-                            0,
-                            "document_title",
-                            "Geography",
-                            "start_char_index",
-                            0,
-                            "end_char_index",
-                            21)))));
-
-    final var snapshot =
-        new ConversationSnapshot(
-            List.of(AssistantMessage.builder().content(List.of(textWithCitation)).build()),
-            List.of());
-
-    final var params = converter.toMessageCreateParams(model(null), null, snapshot);
-
-    final var textBlock = params.messages().get(0).content().asBlockParams().get(0).text().get();
-    final var citations = textBlock.citations().orElseThrow();
-    assertThat(citations).hasSize(1);
-    final var charLocation = citations.get(0).charLocation().orElseThrow();
-    assertThat(charLocation.citedText()).isEqualTo("Paris is the capital");
-    assertThat(charLocation.documentIndex()).isEqualTo(0L);
-    assertThat(charLocation.documentTitle()).contains("Geography");
-    assertThat(charLocation.startCharIndex()).isEqualTo(0L);
-    assertThat(charLocation.endCharIndex()).isEqualTo(21L);
-  }
-
-  @Test
   void roundTripsProviderContentBackToServerToolBlockParams() {
     // Same fixture shape used to prove the request-side round-trip of server-tool content blocks
     // captured by the response converter (Task 3): a code-execution server_tool_use block followed

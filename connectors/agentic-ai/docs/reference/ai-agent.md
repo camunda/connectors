@@ -337,19 +337,6 @@ The sealed `Content` model gained two additive members alongside the existing `T
 Neither is produced or consumed by the LangChain4j path yet; they exist so the structured shape is
 ready for chat model implementations that need them.
 
-**Provider metadata capture for mapped content types.** `TextContent` and `ToolCall` both carry an
-optional `metadata` map alongside their mapped fields, for provider-specific content that has a
-domain field for the common case but can carry extra data outside it — e.g. Anthropic text blocks
-with citations. Rather than special-casing each such field, the Anthropic response converter
-captures anything left over after removing the mapped fields from the raw block (`residualMetadata`)
-under a provider-namespaced metadata key; the request converter reverses this on replay, restoring
-named fields it knows a builder setter for and dropping anything else back onto the block as an
-opaque additional property. This keeps the common case (no citations) metadata-free while still
-round-tripping byte-identically once a provider feature populates those fields — without either side
-needing to special-case each new field the vendor SDK might add. `ToolCall.metadata()` exists for the
-same purpose (e.g. a server-tool `caller`) but the Anthropic converters don't populate or replay it
-yet — deferred until server-side tool calling is built.
-
 **Backward compatibility (Camunda 8.9):** before `ToolCallResultContent` existed, a persisted tool
 call result was the flat `ToolCallResult` shape — `content` was a raw scalar/object/array and any
 additional framework-internal properties were flattened as top-level fields. Old state is migrated on
