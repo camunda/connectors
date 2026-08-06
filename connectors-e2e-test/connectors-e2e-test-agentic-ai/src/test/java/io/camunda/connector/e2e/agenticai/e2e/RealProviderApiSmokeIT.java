@@ -189,7 +189,9 @@ class RealProviderApiSmokeIT {
 
     boolean isEnabled() {
       // requiredEnvVars is empty for local providers that need no API key, just a URL.
-      return enabled && requiredEnvVars.stream().allMatch(v -> System.getenv(v) != null);
+      return enabled
+          && (requiredEnvVars.isEmpty()
+              || requiredEnvVars.stream().allMatch(v -> System.getenv(v) != null));
     }
 
     boolean supports(Capability capability) {
