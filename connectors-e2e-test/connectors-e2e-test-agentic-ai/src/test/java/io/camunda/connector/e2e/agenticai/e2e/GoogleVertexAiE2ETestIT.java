@@ -38,39 +38,22 @@ import org.springframework.test.context.ActiveProfiles;
  * It does not exercise Gemini 3 tool calling or the {@code thoughtSignature} round-trip fixed in PR
  * #8178 (migration to the {@code google-genai} SDK) — that migration lives on {@code stable/8.9}
  * only and has not been forward-ported to {@code main} yet, so the code path it fixes doesn't exist
- * here. See this test's PR description for details.
+ * here.
  *
  * <p>The feedback-loop-with-joke and multi-tool-call scenarios from {@link AiAgentE2ETestIT} are
  * intentionally omitted here to keep real-LLM run cost/time bounded; the shared tools (Jokes_API,
  * GetDateAndTime) remain available in the BPMN for future coverage.
  *
- * <p>This class also carries a fourth, Vertex-only scenario, {@link
- * #shouldInferOrderStatusToolFromNaturalRequest()}, added after a QA engineer reviewing this PR
- * pointed out that {@link #shouldCompleteWithUserLookupTool()}'s prompt explicitly says "Use your
- * user lookup tool..." — i.e. it tells the model which tool to invoke rather than letting it infer
- * that from an ordinary request. That only exercises tool <em>execution</em>, not tool
- * <em>selection</em>, which is what a real user interaction would exercise. {@code
- * shouldCompleteWithUserLookupTool} is kept as-is (an explicit-invocation regression test for the
- * tool-calling/result plumbing itself), and the new test — an unprompted, natural-language,
- * customer-support-style order status question against the Vertex-only {@code GetOrderStatus} tool
- * — covers the tool-inference gap instead of replacing it.
+ * <p>{@link #shouldCompleteWithUserLookupTool()} and {@link
+ * #shouldInferOrderStatusToolFromNaturalRequest()} are complementary rather than redundant: the
+ * former names the tool explicitly and so only exercises tool <em>execution</em>, while the latter
+ * sends an unprompted natural-language request against the Vertex-only {@code GetOrderStatus} tool
+ * and so exercises tool <em>selection</em> — the model has to infer on its own that a tool call is
+ * needed.
  *
- * <p>A fifth scenario, {@link #shouldRetainThoughtSignatureAcrossMultiTurnGemini3ToolCall()}, is
- * the regression guard for PR #8178: with Gemini 3 models, the model requires its {@code
- * thoughtSignature} echoed back on the next request, and the shared LangChain4j message converter
- * on {@code main} doesn't round-trip it through conversation history, so the second model call in
- * any tool-calling turn 400s. That fix lives on {@code stable/8.9} only (bundled with the {@code
- * google-genai} SDK migration) and has not been forward-ported to {@code main}, so the test is
- * written against a Gemini 3 model ({@code gemini-3.5-flash-lite}, the identifier PR #8178's own
- * manual acceptance test uses) but kept {@code @Disabled} — on {@code main} it fails with a 400 on
- * the second model call by construction. It is otherwise a fully wired, structurally valid test
- * (own BPMN resource, own process id, real tool-calling/feedback-loop flow, real judge assertion)
- * so it can be un-skipped with no further changes once #8178 (or its main-branch equivalent) lands.
- * Unlike the migration itself, the provider configuration schema needed for this scenario (project
- * id, region, service-account auth, {@code model.model}) already exists on {@code main} unchanged —
- * see {@link
- * io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration}; the
- * gap is purely in the SDK/converter, not the BPMN-facing config surface.
+ * <p>A fifth scenario, {@link #shouldRetainThoughtSignatureAcrossMultiTurnGemini3ToolCall()}, is a
+ * {@code @Disabled} regression guard for PR #8178's Gemini 3 {@code thoughtSignature} fix — see
+ * that method's {@code @Disabled} reason and javadoc for details on why it's currently skipped.
  */
 @SpringBootTest(classes = AiAgentE2ETestApplication.class)
 @CamundaSpringProcessTest
@@ -139,9 +122,7 @@ public class GoogleVertexAiE2ETestIT extends AbstractAiAgentE2ETestIT {
   void shouldCompleteWithUserLookupTool() {
     // given — deliberately an explicit-invocation test: the prompt names the tool outright, so
     // this exercises tool *execution* (calling ListUsers and using its result) rather than tool
-    // *selection*. See shouldInferOrderStatusToolFromNaturalRequest() below for the complementary
-    // natural-inference scenario a QA reviewer asked for; both are kept since they cover different
-    // failure modes.
+    // *selection* (see shouldInferOrderStatusToolFromNaturalRequest() below).
     camundaClient
         .newDeployResourceCommand()
         .addResourceFromClasspath(BPMN_RESOURCE)
@@ -245,10 +226,6 @@ public class GoogleVertexAiE2ETestIT extends AbstractAiAgentE2ETestIT {
     // given — forces at least two model-call turns through the real Vertex AI provider, so any
     // regression in conversation-history round-tripping (tool calls, tool results, or — once the
     // google-genai migration lands on main — Gemini 3's thoughtSignature) would surface here.
-    // GetDateAndTime stays available and callable more than once for the whole conversation, so the
-    // assertion at the end of this test additionally proves the tool only actually executed once —
-    // otherwise the model calling it again on the second turn could satisfy the judge below even
-    // with broken context retention (see review discussion on PR #8226).
     camundaClient
         .newDeployResourceCommand()
         .addResourceFromClasspath(BPMN_RESOURCE)
@@ -358,14 +335,9 @@ public class GoogleVertexAiE2ETestIT extends AbstractAiAgentE2ETestIT {
           + " merges.")
   @Test
   void shouldRetainThoughtSignatureAcrossMultiTurnGemini3ToolCall() {
-    // given — regression guard for PR #8178: with Gemini 3 models, the model requires its
-    // thoughtSignature echoed back on the next request. langchain4j carries this on
-    // AiMessage.attributes() keyed by tool-call ID, but the legacy SDK/converter on main doesn't
-    // round-trip it through conversation history, so the *second* model call in any tool-calling
-    // turn 400s. This mirrors shouldRetainToolResultAcrossFeedbackLoop's two-turn structure (own
-    // BPMN resource/process id so the model can be gemini-3.5-flash-lite — the identifier PR
-    // #8178's own manual acceptance test, GoogleVertexAiRealModelManualTests, uses for its
-    // Gemini-3-family coverage — without touching every other scenario's gemini-2.5-flash config).
+    // given — langchain4j carries the Gemini 3 thoughtSignature on AiMessage.attributes() keyed by
+    // tool-call ID (see class javadoc). Own BPMN resource/process id so the model can be
+    // gemini-3.5-flash-lite without touching every other scenario's gemini-2.5-flash config.
     camundaClient
         .newDeployResourceCommand()
         .addResourceFromClasspath(GEMINI_3_BPMN_RESOURCE)
