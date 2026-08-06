@@ -293,3 +293,5 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 
 > `CLAUDE.md` in this directory imports this file via `@AGENTS.md`, giving a single source of truth.
 > Edit `AGENTS.md`; never add content directly to `CLAUDE.md`.
+<!-- scratch: trip dorny/paths-filter to exercise AI_AGENT_CPT_PR.yml on PR #8242, revert before merge -->
+
