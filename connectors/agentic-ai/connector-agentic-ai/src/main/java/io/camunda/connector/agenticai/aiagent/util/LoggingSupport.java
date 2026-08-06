@@ -7,21 +7,21 @@
 package io.camunda.connector.agenticai.aiagent.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
-/**
- * Serializes an arbitrary payload (e.g. request params, assembled responses) to JSON for DEBUG
- * logging, with a safe fallback if serialization fails. Callers supply the {@link ObjectMapper} to
- * use, e.g. a vendor SDK's own mapper when that is the only mapper that renders the SDK's internal
- * wrapper types faithfully.
- */
-public final class JsonPayloadLogging {
+/** Helpers for rendering values safely for logging/toString purposes. */
+public final class LoggingSupport {
 
-  private JsonPayloadLogging() {}
+  private LoggingSupport() {}
 
   /**
    * Serializes {@code payload} with {@code mapper} for logging purposes. Never throws: a
    * serialization failure yields a safe fallback string describing the failure instead of
-   * propagating, so logging can never break the underlying model call.
+   * propagating, so logging can never break the underlying model call. Callers supply the {@link
+   * ObjectMapper} to use, e.g. a vendor SDK's own mapper when that is the only mapper that renders
+   * the SDK's internal wrapper types faithfully.
    */
   public static String toJson(ObjectMapper mapper, Object payload) {
     try {
@@ -30,5 +30,17 @@ public final class JsonPayloadLogging {
       return "<unserializable %s: %s>"
           .formatted(payload.getClass().getSimpleName(), e.getMessage());
     }
+  }
+
+  /**
+   * Redacts a map's values (which may carry secrets) for logging while keeping its keys visible.
+   */
+  public static @Nullable Map<String, String> redactValues(@Nullable Map<String, ?> map) {
+    if (map == null) {
+      return null;
+    }
+    final var redacted = new LinkedHashMap<String, String>();
+    map.keySet().forEach(key -> redacted.put(key, "[REDACTED]"));
+    return redacted;
   }
 }

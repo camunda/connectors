@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.v2;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend.ANTHROPIC_API_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend.CUSTOM_ID;
+import static io.camunda.connector.agenticai.aiagent.util.LoggingSupport.redactValues;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -29,7 +30,6 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
@@ -48,18 +48,6 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
   @Override
   public String model() {
     return anthropic.model().model();
-  }
-
-  /**
-   * Redacts a map's values (which may carry secrets) for logging while keeping its keys visible.
-   */
-  private static @Nullable Map<String, String> redactValues(@Nullable Map<String, ?> map) {
-    if (map == null) {
-      return null;
-    }
-    final var redacted = new LinkedHashMap<String, String>();
-    map.keySet().forEach(key -> redacted.put(key, "[REDACTED]"));
-    return redacted;
   }
 
   /** All Anthropic-specific configuration, nested under the {@code anthropic} wire key. */
@@ -113,30 +101,30 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   optional = true)
               @Nullable String endpoint,
           @TemplateProperty(
-                  group = "provider",
-                  label = "Headers",
-                  tooltip = "Map of HTTP headers to add to the request.",
+                  group = "advanced-provider-options",
+                  label = "HTTP headers",
+                  description = "Map of HTTP headers to add to the request.",
                   type = TemplateProperty.PropertyType.Hidden,
                   feel = FeelMode.disabled,
                   optional = true)
               @Nullable Map<String, String> headers,
           @Valid
               @TemplateProperty(
-                  group = "provider",
+                  group = "advanced-provider-options",
                   label = "Query parameters",
-                  tooltip = "Map of query parameters to add to the request URL.",
+                  description = "Map of query parameters to add to the request URL.",
                   type = TemplateProperty.PropertyType.Hidden,
                   feel = FeelMode.disabled,
                   optional = true)
               @Nullable Map<@NotBlank String, String> queryParameters,
           @TemplateProperty(
-                  group = "model-options",
-                  label = "Request parameters",
-                  tooltip = "Map of additional parameters to include in the request body.",
+                  group = "advanced-provider-options",
+                  label = "Body properties",
+                  description = "Map of additional properties to include in the request body.",
                   type = TemplateProperty.PropertyType.Hidden,
                   feel = FeelMode.disabled,
                   optional = true)
-              @Nullable Map<String, Object> requestParameters) {
+              @Nullable Map<String, Object> bodyProperties) {
 
         @Override
         public String toString() {
@@ -146,8 +134,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
               + redactValues(headers)
               + ", queryParameters="
               + redactValues(queryParameters)
-              + ", requestParameters="
-              + redactValues(requestParameters)
+              + ", bodyProperties="
+              + redactValues(bodyProperties)
               + "}";
         }
       }
@@ -179,27 +167,27 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
               String endpoint,
           @TemplateProperty(
-                  group = "provider",
-                  label = "Headers",
-                  tooltip = "Map of HTTP headers to add to the request.",
+                  group = "advanced-provider-options",
+                  label = "HTTP headers",
+                  description = "Map of HTTP headers to add to the request.",
                   feel = FeelMode.required,
                   optional = true)
               @Nullable Map<String, String> headers,
           @Valid
               @TemplateProperty(
-                  group = "provider",
+                  group = "advanced-provider-options",
                   label = "Query parameters",
-                  tooltip = "Map of query parameters to add to the request URL.",
+                  description = "Map of query parameters to add to the request URL.",
                   feel = FeelMode.required,
                   optional = true)
               @Nullable Map<@NotBlank String, String> queryParameters,
           @TemplateProperty(
-                  group = "model-options",
-                  label = "Request parameters",
-                  tooltip = "Map of additional parameters to include in the request body.",
+                  group = "advanced-provider-options",
+                  label = "Body properties",
+                  description = "Map of additional properties to include in the request body.",
                   feel = FeelMode.required,
                   optional = true)
-              @Nullable Map<String, Object> requestParameters,
+              @Nullable Map<String, Object> bodyProperties,
           @Valid @NotNull CustomEndpointAuthentication authentication) {
 
         @Override
@@ -210,8 +198,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
               + redactValues(headers)
               + ", queryParameters="
               + redactValues(queryParameters)
-              + ", requestParameters="
-              + redactValues(requestParameters)
+              + ", bodyProperties="
+              + redactValues(bodyProperties)
               + ", authentication="
               + authentication
               + "}";

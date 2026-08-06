@@ -86,7 +86,7 @@ public class AnthropicMessageRequestConverter {
     applyTools(builder, snapshot.toolDefinitions());
     applyOutputConfig(builder, params, response);
     applyPromptCaching(builder, params);
-    applyBackendExtensions(builder, connection);
+    applyRequestCustomizations(builder, connection);
 
     return builder.build();
   }
@@ -207,46 +207,46 @@ public class AnthropicMessageRequestConverter {
   }
 
   /**
-   * Merges the backend's headers, query parameters, and raw body parameters onto the request. The
+   * Merges the backend's headers, query parameters, and body properties onto the request. The
    * {@code custom} backend exposes these as regular properties; the {@code anthropic-api} backend
    * exposes the same extension points as hidden properties for special scenarios not covered by the
    * modeler UI (e.g. routing through an intermediary that requires extra headers).
    */
-  private void applyBackendExtensions(
+  private void applyRequestCustomizations(
       MessageCreateParams.Builder builder, AnthropicConnection connection) {
-    final BackendExtensions extensions = backendExtensions(connection.backend());
-    if (extensions.headers() != null) {
-      extensions.headers().forEach(builder::putAdditionalHeader);
+    final RequestCustomizations customizations = requestCustomizations(connection.backend());
+    if (customizations.headers() != null) {
+      customizations.headers().forEach(builder::putAdditionalHeader);
     }
-    if (extensions.queryParameters() != null) {
-      extensions.queryParameters().forEach(builder::putAdditionalQueryParam);
+    if (customizations.queryParameters() != null) {
+      customizations.queryParameters().forEach(builder::putAdditionalQueryParam);
     }
-    if (extensions.requestParameters() != null) {
-      extensions
-          .requestParameters()
+    if (customizations.bodyProperties() != null) {
+      customizations
+          .bodyProperties()
           .forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));
     }
   }
 
-  private BackendExtensions backendExtensions(AnthropicBackend backend) {
+  private RequestCustomizations requestCustomizations(AnthropicBackend backend) {
     return switch (backend) {
       case AnthropicApiBackend apiBackend ->
-          new BackendExtensions(
+          new RequestCustomizations(
               apiBackend.anthropic().headers(),
               apiBackend.anthropic().queryParameters(),
-              apiBackend.anthropic().requestParameters());
+              apiBackend.anthropic().bodyProperties());
       case AnthropicCustomBackend custom ->
-          new BackendExtensions(
+          new RequestCustomizations(
               custom.custom().headers(),
               custom.custom().queryParameters(),
-              custom.custom().requestParameters());
+              custom.custom().bodyProperties());
     };
   }
 
-  private record BackendExtensions(
+  private record RequestCustomizations(
       @Nullable Map<String, String> headers,
       @Nullable Map<String, String> queryParameters,
-      @Nullable Map<String, Object> requestParameters) {}
+      @Nullable Map<String, Object> bodyProperties) {}
 
   private void applyMessages(MessageCreateParams.Builder builder, List<Message> messages) {
     // Seed an empty list so build() doesn't throw for an all-system/empty snapshot

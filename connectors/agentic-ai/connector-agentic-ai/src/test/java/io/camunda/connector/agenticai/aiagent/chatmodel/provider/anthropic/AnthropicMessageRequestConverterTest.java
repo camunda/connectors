@@ -84,35 +84,35 @@ class AnthropicMessageRequestConverterTest {
 
   /** Builds a model on the {@code custom} backend with the given additional body params. */
   private static AnthropicChatModelConfiguration customModel(
-      @Nullable Map<String, Object> requestParameters) {
-    return customModel(null, null, requestParameters);
+      @Nullable Map<String, Object> bodyProperties) {
+    return customModel(null, null, bodyProperties);
   }
 
   /**
    * Builds a model on the {@code anthropic-api} backend with the given hidden headers, query
-   * parameters, and additional body params.
+   * parameters, and additional body properties.
    */
   private static AnthropicChatModelConfiguration apiModel(
       @Nullable Map<String, String> headers,
       @Nullable Map<String, String> queryParameters,
-      @Nullable Map<String, Object> requestParameters) {
+      @Nullable Map<String, Object> bodyProperties) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicApiBackend(
                 new AnthropicApiBackend.AnthropicApi(
-                    "sk-ant-test", null, headers, queryParameters, requestParameters)),
+                    "sk-ant-test", null, headers, queryParameters, bodyProperties)),
             new AnthropicModel("claude-sonnet-4-6", null),
             null));
   }
 
   /**
    * Builds a model on the {@code custom} backend with the given headers, query parameters, and
-   * additional body params.
+   * additional body properties.
    */
   private static AnthropicChatModelConfiguration customModel(
       @Nullable Map<String, String> headers,
       @Nullable Map<String, String> queryParameters,
-      @Nullable Map<String, Object> requestParameters) {
+      @Nullable Map<String, Object> bodyProperties) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicCustomBackend(
@@ -120,7 +120,7 @@ class AnthropicMessageRequestConverterTest {
                     "https://example.com",
                     headers,
                     queryParameters,
-                    requestParameters,
+                    bodyProperties,
                     new NoAuthentication())),
             new AnthropicModel("claude-sonnet-4-6", null),
             null));
@@ -795,7 +795,7 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void customBackendRequestParametersAreMergedAsAdditionalBodyProperties() {
+  void customBackendBodyPropertiesAreMergedIntoRequestBody() {
     final var params =
         converter.toMessageCreateParams(
             customModel(Map.of("custom_field", "custom_value")),
@@ -816,7 +816,7 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void customBackendWithNoRequestParametersAddsNothing() {
+  void customBackendWithNoBodyPropertiesAddsNothing() {
     final var params =
         converter.toMessageCreateParams(
             customModel(null), null, new ConversationSnapshot(List.of(), List.of()));
@@ -824,7 +824,7 @@ class AnthropicMessageRequestConverterTest {
     assertThat(requestBodyAsJson(params).has("custom_field")).isFalse();
   }
 
-  // --- Anthropic API backend: hidden headers, query parameters, and request parameters ----------
+  // --- Anthropic API backend: hidden headers, query parameters, and body properties -------------
 
   @Test
   void apiBackendHiddenHeadersAreMergedAsAdditionalHeaders() {
@@ -850,7 +850,7 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void apiBackendHiddenRequestParametersAreMergedAsAdditionalBodyProperties() {
+  void apiBackendHiddenBodyPropertiesAreMergedIntoRequestBody() {
     final var params =
         converter.toMessageCreateParams(
             apiModel(null, null, Map.of("hidden_field", "hidden_value")),
