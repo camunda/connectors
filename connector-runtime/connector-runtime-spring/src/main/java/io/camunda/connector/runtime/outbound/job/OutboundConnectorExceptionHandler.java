@@ -259,8 +259,12 @@ public class OutboundConnectorExceptionHandler {
         "Exception while processing job: {} for tenant: {}, message: {}",
         job.getKey(),
         job.getTenantId(),
-        ex.getMessage());
+        newException.getMessage(),
+        ex);
+    // Retry with the job's normal remaining retries rather than forcing an immediate incident:
+    // a crash while evaluating the (optional) error/result expression can be transient (e.g. tied
+    // to a runtime shutdown mid-flight) and often succeeds on the next attempt.
     return new ConnectorResult.ErrorResult(
-        Map.of("error", exceptionToMap(newException, secrets)), newException, 0);
+        Map.of("error", exceptionToMap(newException, secrets)), newException, job.getRetries() - 1);
   }
 }
