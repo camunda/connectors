@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
@@ -58,12 +59,12 @@ public class AgentSubProcessResponseAssert
     return this;
   }
 
-  public AgentSubProcessResponseAssert hasReasoningTokens() {
-    return metricsSatisfy(
-        metrics ->
-            Assertions.assertThat(metrics.tokenUsage().reasoningTokenCount())
-                .as("reasoning token count")
-                .isPositive());
+  public AgentSubProcessResponseAssert hasReasoningContent() {
+    return hasResponseMessageSatisfying(
+        message ->
+            Assertions.assertThat(message.content())
+                .as("reasoning content")
+                .anyMatch(ReasoningContent.class::isInstance));
   }
 
   public AgentSubProcessResponseAssert hasNoResponseMessage() {

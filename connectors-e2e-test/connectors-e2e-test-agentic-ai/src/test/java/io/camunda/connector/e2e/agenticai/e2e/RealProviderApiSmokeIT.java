@@ -158,9 +158,6 @@ class RealProviderApiSmokeIT {
       boolean enabled,
       Map<String, String> properties,
       Map<Capability, Map<String, String>> capabilityProperties,
-      // Whether this row's reasoning config forces reasoning tokens (e.g. Anthropic "enabled"), so
-      // the reasoning scenario can additionally assert reasoningTokenCount > 0.
-      boolean forcesReasoningTokens,
       // Whether this row reports a distinct cache-creation (write) token count in addition to
       // cache-read; gates the cache-creation assertion in the prompt-caching scenario.
       boolean reportsCacheCreationTokens) {
@@ -170,7 +167,6 @@ class RealProviderApiSmokeIT {
         List<String> requiredEnvVars,
         Map<String, String> properties,
         Map<Capability, Map<String, String>> capabilityProperties,
-        boolean forcesReasoningTokens,
         boolean reportsCacheCreationTokens) {
       this(
           label,
@@ -178,7 +174,6 @@ class RealProviderApiSmokeIT {
           true,
           properties,
           capabilityProperties,
-          forcesReasoningTokens,
           reportsCacheCreationTokens);
     }
 
@@ -189,7 +184,6 @@ class RealProviderApiSmokeIT {
           false,
           properties,
           capabilityProperties,
-          forcesReasoningTokens,
           reportsCacheCreationTokens);
     }
 
@@ -213,9 +207,7 @@ class RealProviderApiSmokeIT {
   }
 
   static Provider anthropicApi(
-      String model,
-      Map<Capability, Map<String, String>> capabilityProperties,
-      boolean forcesReasoningTokens) {
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new Provider(
         "anthropic-api/" + model,
         List.of("ANTHROPIC_API_KEY"),
@@ -229,14 +221,13 @@ class RealProviderApiSmokeIT {
             "provider.anthropic.model.model",
             model),
         capabilityProperties,
-        forcesReasoningTokens,
         true);
   }
 
   static Stream<Provider> providers() {
     return Stream.of(
-            // claude-sonnet-4-6 supports thinking mode "enabled" (explicit budget) — forced
-            // thinking, so reasoning tokens are guaranteed.
+            // claude-sonnet-4-6 only supports thinking mode "enabled" (explicit budget) — the model
+            // always emits a thinking block regardless of prompt difficulty.
             anthropicApi(
                 "claude-sonnet-4-6",
                 Map.of(
@@ -248,10 +239,10 @@ class RealProviderApiSmokeIT {
                     Capability.REASONING,
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "enabled",
-                            "provider.anthropic.model.parameters.thinking.budgetTokens", "2048")),
-                true),
-            // claude-sonnet-5 does NOT accept "enabled"; it allows "adaptive" (the model decides
-            // whether to think), so reasoning tokens are not guaranteed.
+                            "provider.anthropic.model.parameters.thinking.budgetTokens", "2048"))),
+            // claude-sonnet-5 does NOT accept "enabled"; it only allows "adaptive" (the model
+            // decides whether to think). At effort "high" it reliably thinks on a genuinely
+            // multi-step prompt, but this is model choice, not an API-level guarantee.
             anthropicApi(
                 "claude-sonnet-5",
                 Map.of(
@@ -263,8 +254,7 @@ class RealProviderApiSmokeIT {
                     Capability.REASONING,
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",
-                            "provider.anthropic.model.parameters.effort", "high")),
-                false))
+                            "provider.anthropic.model.parameters.effort", "high"))))
         .filter(Provider::isEnabled);
   }
 
@@ -375,7 +365,7 @@ class RealProviderApiSmokeIT {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithReasoning")
-  void reasoningEnabledProducesReasoningTokens(Provider provider) {
+  void reasoningEnabledProducesReasoningContent(Provider provider) {
     var model =
         buildModel(
             provider,
@@ -391,22 +381,16 @@ class RealProviderApiSmokeIT {
             "You are a careful reasoner. Think step by step before answering.",
             Map.of(
                 "userPrompt",
-                "If it takes 5 machines 5 minutes to make 5 widgets, how many minutes do 100 "
-                    + "machines take to make 100 widgets? Reply with just the number of minutes."));
+                "A farmer has chickens and rabbits. Together they have 35 heads and 94 legs. How "
+                    + "many chickens are there? Reply with just the number."));
 
     assertAgentResponse(
         instance,
-        response -> {
-          var responseAssert = AgentSubProcessResponseAssert.assertThat(response).isReady();
-          // Only rows with a forcing thinking mode guarantee reasoning tokens; for adaptive/effort
-          // modes the model may answer without billable thinking, so completion + a correct answer
-          // is the universal bar (it also proves the reasoning config was accepted by the API).
-          if (provider.forcesReasoningTokens()) {
-            responseAssert.hasReasoningTokens();
-          }
-          responseAssert.hasResponseTextSatisfying(
-              text -> Assertions.assertThat(text).contains("5"));
-        });
+        response ->
+            AgentSubProcessResponseAssert.assertThat(response)
+                .isReady()
+                .hasReasoningContent()
+                .hasResponseTextSatisfying(text -> Assertions.assertThat(text).contains("23")));
   }
 
   @ParameterizedTest(name = "{0}")
