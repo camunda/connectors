@@ -39,8 +39,14 @@ public class EnvironmentSecretProvider implements SecretProvider {
   @PostConstruct
   public void init() {
     if (!StringUtils.hasText(prefix)) {
-      LOG.info(
-          "No prefix has been configured, all environment variables are available as connector secrets");
+      LOG.warn(
+          """
+                You are using connector environment secrets in unsafe mode. \
+                All environment variables are accessible as connector secrets. \
+                Please configure a meaningful secret prefix using \
+                `camunda.connector.secretprovider.environment.prefix` \
+                or `CAMUNDA_CONNECTOR_SECRETPROVIDER_ENVIRONMENT_PREFIX`.
+                """);
     } else {
       LOG.debug(
           "Prefix '{}' has been configured, only environment variables with this prefix are available as connector secrets",
@@ -50,31 +56,48 @@ public class EnvironmentSecretProvider implements SecretProvider {
 
   @Override
   public String getSecret(String name, SecretContext context) {
-    String secretName =
-        tenantAware ? composeSecretNameTenantAware(name, context) : composeSecretName(name);
+    String secretName = composeSecretNameWithPrefix(name, context, prefix);
     LOG.debug("Getting secret value for name '{}'", secretName);
-    return environment.getProperty(secretName);
+
+    String secretValue = environment.getProperty(secretName);
+    if (secretValue != null) {
+      return secretValue;
+    }
+
+    // If prefix is configured and value was not found, check whether the unprefixed key exists.
+    // If so, log a warning explaining that the secret was rejected because it is missing the
+    // configured prefix.
+    if (StringUtils.hasText(prefix)) {
+      String unprefixedName = composeSecretNameWithPrefix(name, context, "");
+      if (environment.containsProperty(unprefixedName)) {
+        LOG.warn(
+            "Rejected connector secret '{}': environment variable '{}' exists but does not match "
+                + "the configured prefix '{}'. Rename it to '{}' to make it available as a "
+                + "connector secret.",
+            name,
+            unprefixedName,
+            prefix,
+            secretName);
+      }
+    }
+
+    return null;
   }
 
   /**
-   * returns the secret name in format ${prefix}${name}
-   *
-   * @param name the secrets' name to find the value for
-   * @return the final secret name
-   */
-  private String composeSecretName(String name) {
-    return String.format("%s%s", StringUtils.hasText(prefix) ? prefix : "", name);
-  }
-
-  /**
-   * returns the secret name in format ${prefix}${tenantId}_${name}
+   * Composes the full secret name in format {@code ${prefix}${name}}, or {@code
+   * ${prefix}${tenantId}_${name}} when tenant-aware.
    *
    * @param name the secrets' name to find the value for
    * @param context the context of where the secret is originated
+   * @param effectivePrefix the prefix to prepend (may be empty for unprefixed lookup)
    * @return the final secret name
    */
-  private String composeSecretNameTenantAware(String name, SecretContext context) {
-    return String.format(
-        "%s%s_%s", StringUtils.hasText(prefix) ? prefix : "", context.tenantId(), name);
+  private String composeSecretNameWithPrefix(
+      String name, SecretContext context, String effectivePrefix) {
+    String resolvedPrefix = StringUtils.hasText(effectivePrefix) ? effectivePrefix : "";
+    return tenantAware
+        ? String.format("%s%s_%s", resolvedPrefix, context.tenantId(), name)
+        : String.format("%s%s", resolvedPrefix, name);
   }
 }

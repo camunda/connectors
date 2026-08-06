@@ -62,4 +62,14 @@ public class EnvironmentSecretProviderTest {
         secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant"));
     assertThat(myTotalSecret).isEqualTo("beebop");
   }
+
+  @Test
+  void shouldRejectSecretWithoutConfiguredPrefix() {
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("my-total-secret", "beebop");
+    EnvironmentSecretProvider secretProvider =
+        new EnvironmentSecretProvider(env, "secrets.", false);
+    String myTotalSecret = secretProvider.getSecret("my-total-secret", null);
+    assertThat(myTotalSecret).isNull();
+  }
 }
