@@ -56,6 +56,17 @@ public @interface TemplateDocumentProperty {
   /** Tooltip for the property. */
   String tooltip() default "";
 
+  /**
+   * Sources offered in the generated dropdown, in canonical order regardless of the order given
+   * here. Restrict this when a source cannot work for the connector — e.g. AWS Textract only
+   * accepts PDF/PNG/JPEG/TIFF, so {@link DocumentSource#INLINE} (which produces UTF-8 text bytes)
+   * is left out. Sub-fields and the composer expression are generated only for the listed sources,
+   * and the dropdown defaults to the first of them.
+   */
+  DocumentSource[] sources() default {
+    DocumentSource.CAMUNDA, DocumentSource.INLINE, DocumentSource.EXTERNAL
+  };
+
   /** Visibility of the {@code fileName} sub-property. Applies to inline and external sources. */
   FieldVisibility fileName() default FieldVisibility.OPTIONAL;
 
