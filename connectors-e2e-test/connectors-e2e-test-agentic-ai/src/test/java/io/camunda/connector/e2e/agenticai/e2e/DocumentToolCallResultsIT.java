@@ -68,6 +68,8 @@ import org.springframework.core.io.ResourceLoader;
  * <ul>
  *   <li>{@code OPENAI_API_KEY} - OpenAI API key
  *   <li>{@code ANTHROPIC_API_KEY} - Anthropic API key
+ *   <li>{@code ANTHROPIC_BEDROCK_API_KEY} / {@code ANTHROPIC_BEDROCK_REGION} - Anthropic's native
+ *       AWS Bedrock Mantle backend credentials (region defaults to eu-central-1)
  *   <li>{@code AWS_BEDROCK_ACCESS_KEY} / {@code AWS_BEDROCK_SECRET_KEY} - AWS Bedrock credentials
  *       (also used for the judge LLM)
  *   <li>{@code DOCKER_MODEL_RUNNER_URL} - OpenAI-compatible endpoint (default:
@@ -241,6 +243,9 @@ class DocumentToolCallResultsIT {
             // Anthropic (v2)
             anthropicV2("claude-sonnet-4-6"),
             anthropicV2("claude-haiku-4-5-20251001"),
+            // Anthropic (v2), native AWS Bedrock Mantle backend
+            anthropicBedrockV2("claude-sonnet-4-6"),
+            anthropicBedrockV2("claude-haiku-4-5-20251001"),
             // AWS Bedrock (Anthropic models via cross-region inference)
             bedrockV1("eu.anthropic.claude-sonnet-4-20250514-v1:0"),
             bedrockV1("global.anthropic.claude-sonnet-4-6"),
@@ -301,6 +306,31 @@ class DocumentToolCallResultsIT {
             "anthropic-api",
             "provider.anthropic.backend.anthropic.apiKey",
             envOrPlaceholder("ANTHROPIC_API_KEY"),
+            "provider.anthropic.model.model",
+            model));
+  }
+
+  /**
+   * Anthropic, v2 (native), via the AWS Bedrock Mantle backend: the same Messages API wire format
+   * as anthropicV2, just SigV4-signed and sent to a Bedrock Mantle endpoint instead of
+   * api.anthropic.com.
+   */
+  static ProviderConfig anthropicBedrockV2(String model) {
+    return new ProviderConfig(
+        "anthropic-bedrock-v2/" + model,
+        List.of("ANTHROPIC_BEDROCK_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "anthropic",
+            "provider.anthropic.backend.type",
+            "bedrock",
+            "provider.anthropic.backend.bedrock.region",
+            envOrDefault("ANTHROPIC_BEDROCK_REGION", "eu-central-1"),
+            "provider.anthropic.backend.bedrock.authentication.type",
+            "apiKey",
+            "provider.anthropic.backend.bedrock.authentication.apiKey",
+            envOrPlaceholder("ANTHROPIC_BEDROCK_API_KEY"),
             "provider.anthropic.model.model",
             model));
   }
@@ -420,6 +450,10 @@ class DocumentToolCallResultsIT {
 
   private static String envOrPlaceholder(String envVar) {
     return System.getenv().getOrDefault(envVar, "NOT_SET");
+  }
+
+  private static String envOrDefault(String envVar, String defaultValue) {
+    return System.getenv().getOrDefault(envVar, defaultValue);
   }
 
   // ---------------------------------------------------------------------------
