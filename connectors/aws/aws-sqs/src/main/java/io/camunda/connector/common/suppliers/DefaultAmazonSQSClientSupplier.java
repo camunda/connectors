@@ -13,16 +13,8 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 
 public class DefaultAmazonSQSClientSupplier implements AmazonSQSClientSupplier {
 
-  /**
-   * Delegates to {@link AwsClientSupport#configureClient} (issue #7083). Region is applied
-   * explicitly since the caller must first fall back to the deprecated per-queue region before
-   * calling this.
-   *
-   * <p>Behavior changes: a blank (non-null) endpoint is now a no-op instead of failing at
-   * construction time. On the inbound path, endpoint override was previously unreachable at all
-   * ({@code SqsExecutable} never called the old 3-arg overload); it's now honored like every other
-   * connector.
-   */
+  // Delegates to AwsClientSupport (issue #7083). A blank endpoint is now a no-op instead of
+  // failing, and the inbound path now honors a custom endpoint (previously unreachable).
   @Override
   public SqsClient sqsClient(final AwsBaseRequest request, final String region) {
     return AwsClientSupport.configureClient(SqsClient.builder(), request)

@@ -42,15 +42,8 @@ public class S3Executor {
     this.createDocument = createDocument;
   }
 
-  /**
-   * Delegates client construction to {@link AwsClientSupport#createClient} (issue #7083).
-   *
-   * <p>Behavior change: {@code configuration.endpoint} (hidden on the element template) was
-   * previously ignored; it's now honored, so a process definition that already sets it will target
-   * that endpoint instead of the default. This connector has no {@code forcePathStyle} option, so a
-   * custom endpoint uses virtual-host-style addressing and won't work against LocalStack/MinIO out
-   * of the box.
-   */
+  // Delegates to AwsClientSupport (issue #7083); endpoint override is now honored, not ignored.
+  // No forcePathStyle option here, so a custom endpoint won't work against LocalStack/MinIO.
   public static S3Executor create(
       S3Request s3Request, Function<DocumentCreationRequest, Document> createDocument) {
     return new S3Executor(

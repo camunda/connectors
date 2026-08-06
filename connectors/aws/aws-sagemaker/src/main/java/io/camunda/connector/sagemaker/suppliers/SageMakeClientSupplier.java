@@ -13,21 +13,13 @@ import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 
 public class SageMakeClientSupplier {
 
-  /**
-   * Delegates to {@link AwsClientSupport#createClient} (issue #7083).
-   *
-   * <p>Behavior change: {@code configuration.endpoint} (hidden on the element template) was
-   * previously ignored; it's now honored, so a process definition that already sets it will target
-   * that endpoint instead of the default. A missing region no longer throws {@code
-   * NullPointerException} (the previous caller-side {@code request.getConfiguration().region()}
-   * dereference); it now falls through to the SDK's default region-provider chain, since {@code
-   * AwsClientSupport} has no region validation.
-   */
+  // Delegates to AwsClientSupport (issue #7083); endpoint override is now honored, and a missing
+  // region falls through to the SDK's default chain instead of throwing NullPointerException.
   public SageMakerRuntimeClient getSyncClient(final SageMakerRequest request) {
     return AwsClientSupport.createClient(SageMakerRuntimeClient.builder(), request);
   }
 
-  /** Async counterpart of {@link #getSyncClient(SageMakerRequest)}; see that method's Javadoc. */
+  // Async counterpart of getSyncClient; same behavior notes apply.
   public SageMakerRuntimeAsyncClient getAsyncClient(final SageMakerRequest request) {
     return AwsClientSupport.createClient(SageMakerRuntimeAsyncClient.builder(), request);
   }

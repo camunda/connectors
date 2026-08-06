@@ -12,12 +12,8 @@ import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 
 public class AwsEventBridgeClientSupplier {
 
-  /**
-   * Delegates to {@link AwsClientSupport#configureClient} (issue #7083). {@code region} is taken
-   * explicitly for symmetry with the lambda/sns suppliers, which apply a genuine per-resource
-   * region fallback on top of {@code configureClient}; this connector has none, so here it's a
-   * no-op re-application of the value {@code configureClient} already read from the request.
-   */
+  // Delegates to AwsClientSupport (issue #7083); region param kept only for signature symmetry
+  // with lambda/sns, which do have a real per-resource fallback to apply.
   public EventBridgeClient getAmazonEventBridgeClient(
       final AwsEventBridgeRequest request, final String region) {
     return AwsClientSupport.configureClient(EventBridgeClient.builder(), request)

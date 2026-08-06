@@ -22,13 +22,7 @@ public class BedrockExecutor {
     this.requestData = requestData;
   }
 
-  /**
-   * Delegates client construction to {@link AwsClientSupport#createClient} (issue #7083).
-   *
-   * <p>Behavior change: {@code configuration.endpoint} (hidden on the element template) was
-   * previously ignored by the hand-rolled builder; it's now honored, so a process definition that
-   * already sets it will target that endpoint instead of the default AWS one.
-   */
+  // Delegates to AwsClientSupport (issue #7083); endpoint override is now honored, not ignored.
   public static BedrockExecutor create(BedrockRequest bedrockRequest) {
     return new BedrockExecutor(
         AwsClientSupport.createClient(BedrockRuntimeClient.builder(), bedrockRequest),

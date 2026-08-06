@@ -9,16 +9,9 @@ package io.camunda.connector.common.suppliers;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
 
-/**
- * Client-supplier seam for the AWS SDK v2 {@link SqsClient} (issue #7083). Takes the whole {@link
- * AwsBaseRequest} rather than a resolved credentials provider so the implementation can delegate to
- * {@code AwsClientSupport}, mirroring {@code DynamoDbClientSupplier}. Uses {@link AwsBaseRequest}
- * (not a narrower subtype) since this interface serves both the outbound ({@code
- * SqsConnectorRequest}) and inbound ({@code SqsInboundProperties}) request types.
- *
- * <p>Region is still passed explicitly because both callers fall back to the deprecated per-queue
- * region field via {@code AwsUtils.extractRegionOrDefault} before calling this.
- */
+// Client-supplier seam for the AWS SDK v2 SqsClient (issue #7083), mirroring
+// DynamoDbClientSupplier. Takes the whole AwsBaseRequest (serves both outbound and inbound
+// request types) so the implementation can delegate to AwsClientSupport.
 public interface AmazonSQSClientSupplier {
   SqsClient sqsClient(AwsBaseRequest request, String region);
 }

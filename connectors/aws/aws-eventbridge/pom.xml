@@ -63,10 +63,8 @@
 
   <build>
     <plugins>
-      <!-- The AwsClientSupport migration (issue #7083) moved the old .endpointOverride(...) call
-           out of AwsEventBridgeClientSupplier into aws-base, removing this module's only
-           main-code bytecode reference to sdk-core. It stays declared: javac needs it to resolve
-           the SdkRequest/SdkPojo/SdkClient supertypes used throughout this module. -->
+      <!-- sdk-core kept declared (issue #7083 removed its last bytecode reference here): javac
+           still needs it for SdkRequest/SdkPojo/SdkClient supertypes used in this module. -->
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <configuration>

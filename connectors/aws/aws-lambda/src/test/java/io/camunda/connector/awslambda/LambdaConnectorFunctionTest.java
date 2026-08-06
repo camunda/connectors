@@ -60,11 +60,7 @@ class LambdaConnectorFunctionTest extends BaseTest {
     AwsLambdaResult result = (AwsLambdaResult) execute;
     assertThat(result.getStatusCode()).isEqualTo(200);
     assertThat(result.getPayload()).isEqualTo(ACTUAL_PAYLOAD);
-    // Then the region actually passed to the client supplier must be the one
-    // LambdaConnectorFunction resolves (configuration.region, falling back to the deprecated
-    // awsFunction.region) - several success cases omit configuration.region entirely and rely on
-    // that fallback, so this pins the resolution itself rather than letting an untyped any()
-    // swallow a wrong-source or swapped-argument regression.
+    // Then the captured region must match what LambdaConnectorFunction resolves, not just any()
     var request = context.bindVariables(AwsLambdaRequest.class);
     assertThat(regionCaptor.getValue()).isEqualTo(LambdaConnectorFunction.resolveRegion(request));
   }

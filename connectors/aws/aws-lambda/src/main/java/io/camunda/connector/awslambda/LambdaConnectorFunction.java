@@ -92,7 +92,8 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
     }
   }
 
-  /** Falls back to the deprecated per-function region if {@code configuration.region} is unset. */
+  // Deprecation bridge: honors the legacy per-function region for existing process definitions.
+  @SuppressWarnings("deprecation")
   static String resolveRegion(AwsLambdaRequest request) {
     return AwsUtils.extractRegionOrDefault(
         request.getConfiguration(), request.getAwsFunction().getRegion());

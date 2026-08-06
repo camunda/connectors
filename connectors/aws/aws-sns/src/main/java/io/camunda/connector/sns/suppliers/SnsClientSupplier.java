@@ -14,16 +14,9 @@ import software.amazon.awssdk.services.sns.SnsClient;
 
 public class SnsClientSupplier {
 
-  /**
-   * Delegates to {@link AwsClientSupport#configureClient} (issue #7083). Region is applied
-   * explicitly from the already-resolved {@code region} argument, since the caller ({@link
-   * io.camunda.connector.sns.outbound.SnsConnectorFunction}) must first fall back to the deprecated
-   * per-topic region; that resolution stays authoritative regardless of what {@code
-   * request.getConfiguration()} contains.
-   *
-   * <p>Behavior change: a blank (non-null) endpoint is now a no-op instead of failing at
-   * construction time via {@code endpointOverride(URI.create(""))}.
-   */
+  // Delegates to AwsClientSupport (issue #7083); region is passed explicitly since the caller
+  // resolves the deprecated per-topic fallback itself. A blank endpoint is now a no-op instead
+  // of failing at construction time.
   public SnsClient getSnsClient(final SnsConnectorRequest request, final String region) {
     return AwsClientSupport.configureClient(SnsClient.builder(), request)
         .region(Region.of(region))

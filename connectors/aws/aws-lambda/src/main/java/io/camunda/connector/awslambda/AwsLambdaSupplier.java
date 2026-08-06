@@ -13,12 +13,8 @@ import software.amazon.awssdk.services.lambda.LambdaClient;
 
 public class AwsLambdaSupplier {
 
-  /**
-   * Delegates to {@link AwsClientSupport#configureClient} (issue #7083). Region is applied
-   * explicitly from the already-resolved {@code region} argument, since the caller ({@link
-   * LambdaConnectorFunction}) must first fall back to the deprecated per-function region; that
-   * resolution stays authoritative regardless of what {@code request.getConfiguration()} contains.
-   */
+  // Delegates to AwsClientSupport (issue #7083); region is passed explicitly since the caller
+  // resolves the deprecated per-function fallback itself.
   public LambdaClient awsLambdaService(final AwsLambdaRequest request, final String region) {
     return AwsClientSupport.configureClient(LambdaClient.builder(), request)
         .region(Region.of(region))
