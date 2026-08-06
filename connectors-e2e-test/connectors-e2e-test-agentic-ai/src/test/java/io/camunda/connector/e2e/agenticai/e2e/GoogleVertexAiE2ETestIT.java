@@ -23,6 +23,7 @@ import static org.awaitility.Awaitility.await;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.time.Duration;
 import java.util.Map;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -53,6 +54,23 @@ import org.springframework.test.context.ActiveProfiles;
  * tool-calling/result plumbing itself), and the new test — an unprompted, natural-language,
  * customer-support-style order status question against the Vertex-only {@code GetOrderStatus} tool
  * — covers the tool-inference gap instead of replacing it.
+ *
+ * <p>A fifth scenario, {@link #shouldRetainThoughtSignatureAcrossMultiTurnGemini3ToolCall()}, is
+ * the regression guard for PR #8178: with Gemini 3 models, the model requires its {@code
+ * thoughtSignature} echoed back on the next request, and the shared LangChain4j message converter
+ * on {@code main} doesn't round-trip it through conversation history, so the second model call in
+ * any tool-calling turn 400s. That fix lives on {@code stable/8.9} only (bundled with the {@code
+ * google-genai} SDK migration) and has not been forward-ported to {@code main}, so the test is
+ * written against a Gemini 3 model ({@code gemini-3.5-flash-lite}, the identifier PR #8178's own
+ * manual acceptance test uses) but kept {@code @Disabled} — on {@code main} it fails with a 400 on
+ * the second model call by construction. It is otherwise a fully wired, structurally valid test
+ * (own BPMN resource, own process id, real tool-calling/feedback-loop flow, real judge assertion)
+ * so it can be un-skipped with no further changes once #8178 (or its main-branch equivalent) lands.
+ * Unlike the migration itself, the provider configuration schema needed for this scenario (project
+ * id, region, service-account auth, {@code model.model}) already exists on {@code main} unchanged —
+ * see {@link
+ * io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration}; the
+ * gap is purely in the SDK/converter, not the BPMN-facing config surface.
  */
 @SpringBootTest(classes = AiAgentE2ETestApplication.class)
 @CamundaSpringProcessTest
@@ -63,6 +81,12 @@ public class GoogleVertexAiE2ETestIT extends AbstractAiAgentE2ETestIT {
   private static final String BPMN_RESOURCE = "ai-agent-e2e-google-vertex-ai.bpmn";
   private static final String FORM_RESOURCE = "ai-agent-chat-user-feedback.form";
   private static final String PROCESS_ID = "ai-agent-e2e-google-vertex-ai";
+
+  // Gemini 3 regression scenario (PR #8178) — separate BPMN resource so the model can be
+  // gemini-3.5-flash-lite without touching the gemini-2.5-flash config used by every other
+  // scenario in this class.
+  private static final String GEMINI_3_BPMN_RESOURCE = "ai-agent-e2e-google-vertex-ai-gemini3.bpmn";
+  private static final String GEMINI_3_PROCESS_ID = "ai-agent-e2e-google-vertex-ai-gemini3";
 
   @Test
   void shouldCompleteHappyPath() {
@@ -324,5 +348,123 @@ public class GoogleVertexAiE2ETestIT extends AbstractAiAgentE2ETestIT {
             "The agent variable contains a responseText field that references the specific time"
                 + " value (hours and minutes) returned by the earlier GetDateAndTime tool call,"
                 + " proving the tool result was retained across the conversation turn");
+  }
+
+  @Disabled(
+      "Blocked on PR #8178 (google-genai SDK migration for Gemini 3 support) landing on main —"
+          + " the legacy Vertex AI SDK on main does not round-trip thoughtSignature through"
+          + " conversation history, so this test will fail with a 400 on the second model call"
+          + " until that migration lands. Un-skip once #8178 (or its main-branch equivalent)"
+          + " merges.")
+  @Test
+  void shouldRetainThoughtSignatureAcrossMultiTurnGemini3ToolCall() {
+    // given — regression guard for PR #8178: with Gemini 3 models, the model requires its
+    // thoughtSignature echoed back on the next request. langchain4j carries this on
+    // AiMessage.attributes() keyed by tool-call ID, but the legacy SDK/converter on main doesn't
+    // round-trip it through conversation history, so the *second* model call in any tool-calling
+    // turn 400s. This mirrors shouldRetainToolResultAcrossFeedbackLoop's two-turn structure (own
+    // BPMN resource/process id so the model can be gemini-3.5-flash-lite — the identifier PR
+    // #8178's own manual acceptance test, GoogleVertexAiRealModelManualTests, uses for its
+    // Gemini-3-family coverage — without touching every other scenario's gemini-2.5-flash config).
+    camundaClient
+        .newDeployResourceCommand()
+        .addResourceFromClasspath(GEMINI_3_BPMN_RESOURCE)
+        .addResourceFromClasspath(FORM_RESOURCE)
+        .send()
+        .join();
+
+    // when — first turn: ask for the current time (forces GetDateAndTime tool, i.e. a tool-calling
+    // turn: model call -> tool call -> second model call, the exact call that 400s pre-fix)
+    var processInstance =
+        camundaClient
+            .newCreateInstanceCommand()
+            .bpmnProcessId(GEMINI_3_PROCESS_ID)
+            .latestVersion()
+            .variables(
+                Map.of(
+                    "inputText",
+                    "Use your date and time tool to tell me the exact current date and time"))
+            .send()
+            .join();
+
+    assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
+
+    var firstTasks =
+        camundaClient
+            .newUserTaskSearchRequest()
+            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
+            .send()
+            .join();
+    long firstTaskKey = firstTasks.items().getFirst().getUserTaskKey();
+
+    // follow-up explicitly references the previously retrieved time — forces a second model call
+    // over conversation history containing the first turn's tool call/result, so a dropped
+    // thoughtSignature on that first turn would surface as a 400 here even before the model
+    // reaches the judge-checked answer
+    camundaClient
+        .newCompleteUserTaskCommand(firstTaskKey)
+        .variables(
+            Map.of(
+                "userSatisfied",
+                false,
+                "followUpInput",
+                "Based on the time you just looked up, please restate that exact time back to"
+                    + " me to confirm you remember it."))
+        .send()
+        .join();
+
+    // wait for second user task
+    await()
+        .atMost(Duration.ofMinutes(3))
+        .pollInterval(Duration.ofSeconds(5))
+        .untilAsserted(
+            () -> {
+              var tasks =
+                  camundaClient
+                      .newUserTaskSearchRequest()
+                      .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
+                      .send()
+                      .join();
+              assertThat(
+                      tasks.items().stream()
+                          .filter(t -> t.getUserTaskKey() != firstTaskKey)
+                          .toList())
+                  .isNotEmpty();
+            });
+
+    long secondTaskKey =
+        camundaClient
+            .newUserTaskSearchRequest()
+            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
+            .send()
+            .join()
+            .items()
+            .stream()
+            .filter(t -> t.getUserTaskKey() != firstTaskKey)
+            .findFirst()
+            .orElseThrow()
+            .getUserTaskKey();
+
+    camundaClient
+        .newCompleteUserTaskCommand(secondTaskKey)
+        .variables(Map.of("userSatisfied", true))
+        .send()
+        .join();
+
+    // then — the actual regression guard: pre-fix, the second model call of the first turn 400s
+    // and the job fails/retries, so simply completing at all proves thoughtSignature round-tripped
+    assertThatProcessInstance(processInstance).isCompleted();
+
+    // same rigor as shouldRetainToolResultAcrossFeedbackLoop: prove the follow-up answer came from
+    // the retained first-turn tool result rather than the model just re-invoking the tool
+    assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
+
+    assertThatProcessInstance(processInstance)
+        .hasVariableSatisfiesJudge(
+            "agent",
+            "The agent variable contains a responseText field that references the specific time"
+                + " value (hours and minutes) returned by the earlier GetDateAndTime tool call,"
+                + " proving the tool result — and its thoughtSignature — were retained across the"
+                + " conversation turn");
   }
 }
