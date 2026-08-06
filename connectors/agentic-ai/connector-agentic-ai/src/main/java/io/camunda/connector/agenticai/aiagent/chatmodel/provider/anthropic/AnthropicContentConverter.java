@@ -66,18 +66,47 @@ public class AnthropicContentConverter {
     for (final Content c : content) {
       switch (c) {
         case TextContent text -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(text)));
-        case DocumentContent doc -> blocks.add(documentBlock(doc));
-        case ObjectContent obj ->
-            blocks.add(
-                ContentBlockParam.ofText(
-                    TextBlockParam.builder().text(writeAsJson(obj.content())).build()));
+        case DocumentContent doc -> blocks.add(toDocumentBlockParam(doc));
+        case ObjectContent obj -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(obj)));
         case ReasoningContent rc -> blocks.add(toReasoningContentBlockParam(rc));
-        case ProviderContent pc ->
-            blocks.add(
-                ObjectMappers.jsonMapper().convertValue(pc.payload(), ContentBlockParam.class));
+        case ProviderContent pc -> blocks.add(toProviderContentBlockParam(pc));
       }
     }
     return blocks;
+  }
+
+  private TextBlockParam toTextBlockParam(TextContent text) {
+    return TextBlockParam.builder().text(text.text()).build();
+  }
+
+  private TextBlockParam toTextBlockParam(ObjectContent obj) {
+    return TextBlockParam.builder().text(writeAsJson(obj.content())).build();
+  }
+
+  private ContentBlockParam toDocumentBlockParam(DocumentContent doc) {
+    final var contentType = contentType(doc.document());
+    return switch (classify(contentType)) {
+      case IMAGE ->
+          ContentBlockParam.ofImage(
+              ImageBlockParam.builder()
+                  .source(
+                      Base64ImageSource.builder()
+                          .data(doc.document().asBase64())
+                          .mediaType(Base64ImageSource.MediaType.of(contentType))
+                          .build())
+                  .build());
+      case PDF ->
+          ContentBlockParam.ofDocument(
+              DocumentBlockParam.builder().base64Source(doc.document().asBase64()).build());
+      case TEXT ->
+          ContentBlockParam.ofDocument(
+              DocumentBlockParam.builder().textSource(decodeUtf8(doc.document())).build());
+      case UNSUPPORTED ->
+          throw new ConnectorException(
+              ERROR_CODE_FAILED_MODEL_CALL,
+              "Unsupported content type '%s' for document with reference '%s'"
+                  .formatted(contentType, doc.document().reference()));
+    };
   }
 
   /**
@@ -105,8 +134,8 @@ public class AnthropicContentConverter {
     return ObjectMappers.jsonMapper().convertValue(payload, ContentBlockParam.class);
   }
 
-  private TextBlockParam toTextBlockParam(TextContent text) {
-    return TextBlockParam.builder().text(text.text()).build();
+  private ContentBlockParam toProviderContentBlockParam(ProviderContent pc) {
+    return ObjectMappers.jsonMapper().convertValue(pc.payload(), ContentBlockParam.class);
   }
 
   public List<ToolResultBlockParam.Content.Block> toToolResultBlocks(List<Content> content) {
@@ -114,11 +143,9 @@ public class AnthropicContentConverter {
     for (final Content c : content) {
       switch (c) {
         case TextContent text ->
-            blocks.add(
-                ToolResultBlockParam.Content.Block.ofText(
-                    TextBlockParam.builder().text(text.text()).build()));
+            blocks.add(ToolResultBlockParam.Content.Block.ofText(toTextBlockParam(text)));
         case DocumentContent doc -> {
-          final ContentBlockParam block = documentBlock(doc);
+          final ContentBlockParam block = toDocumentBlockParam(doc);
           block.image().ifPresent(i -> blocks.add(ToolResultBlockParam.Content.Block.ofImage(i)));
           block
               .document()
@@ -126,9 +153,7 @@ public class AnthropicContentConverter {
           block.text().ifPresent(t -> blocks.add(ToolResultBlockParam.Content.Block.ofText(t)));
         }
         case ObjectContent obj ->
-            blocks.add(
-                ToolResultBlockParam.Content.Block.ofText(
-                    TextBlockParam.builder().text(writeAsJson(obj.content())).build()));
+            blocks.add(ToolResultBlockParam.Content.Block.ofText(toTextBlockParam(obj)));
         default ->
             blocks.add(
                 ToolResultBlockParam.Content.Block.ofText(
@@ -136,32 +161,6 @@ public class AnthropicContentConverter {
       }
     }
     return blocks;
-  }
-
-  private ContentBlockParam documentBlock(DocumentContent doc) {
-    final var contentType = contentType(doc.document());
-    return switch (classify(contentType)) {
-      case IMAGE ->
-          ContentBlockParam.ofImage(
-              ImageBlockParam.builder()
-                  .source(
-                      Base64ImageSource.builder()
-                          .data(doc.document().asBase64())
-                          .mediaType(Base64ImageSource.MediaType.of(contentType))
-                          .build())
-                  .build());
-      case PDF ->
-          ContentBlockParam.ofDocument(
-              DocumentBlockParam.builder().base64Source(doc.document().asBase64()).build());
-      case TEXT ->
-          ContentBlockParam.ofDocument(
-              DocumentBlockParam.builder().textSource(decodeUtf8(doc.document())).build());
-      case UNSUPPORTED ->
-          throw new ConnectorException(
-              ERROR_CODE_FAILED_MODEL_CALL,
-              "Unsupported content type '%s' for document with reference '%s'"
-                  .formatted(contentType, doc.document().reference()));
-    };
   }
 
   private static String contentType(Document document) {
@@ -183,7 +182,7 @@ public class AnthropicContentConverter {
   }
 
   /**
-   * Coarse content-type buckets driving {@link #documentBlock(DocumentContent)}'s choice of
+   * Coarse content-type buckets driving {@link #toDocumentBlockParam(DocumentContent)}'s choice of
    * Anthropic block shape. Unknown/blank/unparseable types map conservatively to {@link
    * #UNSUPPORTED}, which fails the request.
    */
