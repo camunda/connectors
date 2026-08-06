@@ -369,12 +369,6 @@ public class TemplatePropertiesUtil {
       builder.binding(createBinding(path + "." + ((ZeebeProperty) binding).name(), context));
     }
 
-    if (builder instanceof DocumentComposerPropertyBuilder composerBuilder) {
-      // The composer's FEEL expression reads the helper sub-fields, whose bindings were just
-      // prefixed with the same path; re-render it so the references resolve at runtime.
-      composerBuilder.addHelperPathPrefix(path);
-    }
-
     if (builder instanceof DiscriminatorPropertyBuilder discriminatorPropertyBuilder) {
       discriminatorPropertyBuilder
           .getDependantProperties()

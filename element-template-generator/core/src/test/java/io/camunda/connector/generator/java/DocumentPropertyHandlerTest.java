@@ -58,16 +58,6 @@ public class DocumentPropertyHandlerTest extends BaseTest {
 
   record NestedDocRecord(@TemplateDocumentProperty Document doc) {}
 
-  record NestedListDocInput(NestedListDocRecord nested) {}
-
-  record NestedListDocRecord(@TemplateDocumentProperty List<Document> docs) {}
-
-  record BoundPathDocInput(
-      @TemplateDocumentProperty(
-              id = "boundComposer",
-              binding = @TemplateProperty.PropertyBinding(name = "action.document"))
-          Document doc) {}
-
   record VisibilityHiddenInput(
       @TemplateDocumentProperty(
               fileName = FieldVisibility.HIDDEN,
@@ -174,32 +164,6 @@ public class DocumentPropertyHandlerTest extends BaseTest {
       name = "Doc Test",
       inputDataClass = NestedDocInput.class)
   static class WithNestedDoc implements OutboundConnectorFunction {
-    @Override
-    public Object execute(OutboundConnectorContext context) {
-      return null;
-    }
-  }
-
-  @OutboundConnector(name = "doc-test", type = "doc-test-type")
-  @ElementTemplate(
-      engineVersion = "^8.7",
-      id = "doc-test",
-      name = "Doc Test",
-      inputDataClass = NestedListDocInput.class)
-  static class WithNestedListDoc implements OutboundConnectorFunction {
-    @Override
-    public Object execute(OutboundConnectorContext context) {
-      return null;
-    }
-  }
-
-  @OutboundConnector(name = "doc-test", type = "doc-test-type")
-  @ElementTemplate(
-      engineVersion = "^8.7",
-      id = "doc-test",
-      name = "Doc Test",
-      inputDataClass = BoundPathDocInput.class)
-  static class WithBoundPathDoc implements OutboundConnectorFunction {
     @Override
     public Object execute(OutboundConnectorContext context) {
       return null;
@@ -529,11 +493,11 @@ public class DocumentPropertyHandlerTest extends BaseTest {
 
   /**
    * Guards the load-bearing invariant that the composer and every helper sub-field share a common
-   * parent path in their {@code ZeebeInput} bindings. {@code
-   * DocumentPropertyHandler.helperTargetParent} is the single place that derives this parent; these
-   * tests pin its output for both top-level and nested-record cases. See {@link
-   * ComposerQualification} for the companion invariant that the composer's FEEL expression reads
-   * those helpers by the same nesting path.
+   * parent path in their {@code ZeebeInput} bindings. The composer's FEEL expression resolves
+   * helper variables by bare name, which requires them to be siblings in the Zeebe input-mapping
+   * context tree at evaluation time. {@code DocumentPropertyHandler.helperTargetParent} is the
+   * single place that derives this parent; these tests pin its output for both top-level and
+   * nested-record cases.
    */
   @Nested
   class BindingPathInvariant {
@@ -585,73 +549,6 @@ public class DocumentPropertyHandlerTest extends BaseTest {
       var externalUrl = getPropertyById("nested.doc_external_url", template);
       assertThat(externalUrl.getCondition())
           .isEqualTo(new Equals("nested.doc_documentSource", "external"));
-    }
-  }
-
-  /**
-   * A helper bound to {@code nested.doc_documentSource} becomes a <em>nested</em> local variable
-   * ({@code nested: {doc_documentSource: ...}}) once the engine applies the input mapping, so the
-   * composer must read it by that full path — a bare {@code doc_documentSource} resolves to null
-   * and the composer silently yields no document. Proven against a real 8.10 engine (see project
-   * memory); these tests pin the fix at the generator level.
-   */
-  @Nested
-  class ComposerQualification {
-
-    @Test
-    void nestedField_composerQualifiesHelperReferencesWithTheNestingPath() {
-      var template = generator.generate(WithNestedDoc.class).getFirst();
-
-      var composer = (HiddenProperty) getPropertyById("nested.doc__composer", template);
-      var value = (String) composer.getValue();
-
-      assertThat(value)
-          .contains("nested.doc_documentSource")
-          .contains("nested.doc_camundaReference")
-          .contains("nested.doc_inline_content")
-          .contains("nested.doc_external_url");
-      assertThat(value).doesNotContain("if doc_documentSource", " doc_camundaReference");
-    }
-
-    /** Same requirement when the nesting comes from the annotation's own binding path. */
-    @Test
-    void bindingPathField_composerQualifiesHelperReferencesWithTheBindingParent() {
-      var template = generator.generate(WithBoundPathDoc.class).getFirst();
-
-      var composer = (HiddenProperty) getPropertyById("boundComposer", template);
-      assertThat(composer.getBinding()).isEqualTo(new ZeebeInput("action.document"));
-
-      // Helpers are bound to action.action_document_*, so that is how they must be read.
-      assertThat(getPropertyById("action_document_documentSource", template).getBinding())
-          .isEqualTo(new ZeebeInput("action.action_document_documentSource"));
-      assertThat((String) composer.getValue())
-          .contains("action.action_document_documentSource")
-          .contains("action.action_document_camundaReference");
-    }
-
-    /** The list variant's mode and multi-expression helpers need the same qualification. */
-    @Test
-    void nestedListField_composerQualifiesModeAndMultipleHelpers() {
-      var template = generator.generate(WithNestedListDoc.class).getFirst();
-
-      var composer = (HiddenProperty) getPropertyById("nested.docs__composer", template);
-      assertThat(composer.getBinding()).isEqualTo(new ZeebeInput("nested.docs"));
-      assertThat((String) composer.getValue())
-          .contains("nested.docs_documentMode")
-          .contains("nested.docs_multiple_expression")
-          .contains("nested.docs_single_documentSource")
-          .contains("nested.docs_single_camundaReference");
-    }
-
-    /** Root-level list: no nesting exists, so bare names are correct as-is. */
-    @Test
-    void rootLevelListField_composerStaysUnqualified() {
-      var template = generator.generate(WithListDoc.class).getFirst();
-      var composer = (HiddenProperty) getPropertyById("docs__composer", template);
-
-      assertThat((String) composer.getValue())
-          .contains("docs_documentMode")
-          .contains("docs_multiple_expression");
     }
   }
 

@@ -66,7 +66,7 @@ public final class HiddenProperty extends Property {
 
   public static class HiddenPropertyBuilder extends PropertyBuilder {
 
-    protected HiddenPropertyBuilder() {}
+    private HiddenPropertyBuilder() {}
 
     @Override
     public HiddenProperty build() {

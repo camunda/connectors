@@ -358,7 +358,7 @@
     "type" : "String"
   }, {
     "id" : "operation.uploadFileDocument",
-    "value" : "=if operation.document_documentSource = \"camunda\" then operation.document_camundaReference else if operation.document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: operation.document_inline_content, name: operation.document_inline_fileName, contentType: operation.document_inline_contentType } else if operation.document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: operation.document_external_url, name: operation.document_external_fileName } else null",
+    "value" : "=if document_documentSource = \"camunda\" then document_camundaReference else if document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: document_inline_content, name: document_inline_fileName, contentType: document_inline_contentType } else if document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: document_external_url, name: document_external_fileName } else null",
     "group" : "operation",
     "binding" : {
       "name" : "operation.document",

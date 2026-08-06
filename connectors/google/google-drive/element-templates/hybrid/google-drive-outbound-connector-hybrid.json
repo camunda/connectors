@@ -475,7 +475,7 @@
     "type" : "String"
   }, {
     "id" : "resource.uploadData.document__composer",
-    "value" : "=if resource.uploadData.document_documentSource = \"camunda\" then resource.uploadData.document_camundaReference else if resource.uploadData.document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: resource.uploadData.document_inline_content, name: resource.uploadData.document_inline_fileName, contentType: resource.uploadData.document_inline_contentType } else if resource.uploadData.document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: resource.uploadData.document_external_url, name: resource.uploadData.document_external_fileName } else null",
+    "value" : "=if document_documentSource = \"camunda\" then document_camundaReference else if document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: document_inline_content, name: document_inline_fileName, contentType: document_inline_contentType } else if document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: document_external_url, name: document_external_fileName } else null",
     "group" : "operationDetails",
     "binding" : {
       "name" : "resource.uploadData.document",

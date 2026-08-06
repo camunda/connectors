@@ -18,6 +18,7 @@ package io.camunda.connector.generator.java.util;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
+import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition;
@@ -38,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -310,14 +310,13 @@ final class DocumentPropertyHandler {
       PropertyBuilder discriminator,
       List<PropertyBuilder> dependants,
       DocumentContext context,
-      Function<UnaryOperator<String>, String> composerExpression) {
+      String composerExpression) {
     var result = new ArrayList<PropertyBuilder>();
     result.add(discriminator);
     result.addAll(dependants);
     result.add(
         composerProperty(
             context.targetPath(),
-            context.targetParent(),
             composerExpression,
             context.parentCondition(),
             context.group(),
@@ -409,15 +408,17 @@ final class DocumentPropertyHandler {
 
   private static PropertyBuilder composerProperty(
       String targetPath,
-      String targetParent,
-      Function<UnaryOperator<String>, String> feelExpression,
+      String feelExpression,
       PropertyCondition condition,
       String group,
       String composerId) {
-    // The expression is rendered by the builder, which re-renders it whenever the enclosing record
-    // nests this property, so helper references always match the paths their bindings create.
-    var composer = new DocumentComposerPropertyBuilder(targetParent, feelExpression);
-    composer.id(composerId).binding(new ZeebeInput(targetPath)).group(group).condition(condition);
+    var composer = HiddenProperty.builder();
+    composer
+        .id(composerId)
+        .value("=" + feelExpression)
+        .binding(new ZeebeInput(targetPath))
+        .group(group)
+        .condition(condition);
     return composer;
   }
 
@@ -442,58 +443,49 @@ final class DocumentPropertyHandler {
     return custom != null ? custom : targetPath + "__composer";
   }
 
-  private static Function<UnaryOperator<String>, String> singleDocComposerExpression(
+  private static String singleDocComposerExpression(
       SingleDocFields fields, Set<DocumentSource> sources) {
-    return qualify -> sourceBranches(fields, sources, false, qualify);
+    return sourceBranches(fields, sources, false);
   }
 
-  private static Function<UnaryOperator<String>, String> optionalSingleDocComposerExpression(
+  private static String optionalSingleDocComposerExpression(
       String modeId, SingleDocFields fields, Set<DocumentSource> sources) {
-    return qualify ->
-        """
+    return """
         if %1$s = "yes" then (%2$s) \
         else null"""
-            .formatted(qualify.apply(modeId), sourceBranches(fields, sources, false, qualify));
+        .formatted(modeId, sourceBranches(fields, sources, false));
   }
 
-  private static Function<UnaryOperator<String>, String> listDocComposerExpression(
+  private static String listDocComposerExpression(
       String modeId,
       SingleDocFields single,
       String multipleExpressionId,
       Set<DocumentSource> sources) {
-    return qualify ->
-        """
+    return """
         if %1$s = "multiple" then %2$s \
         else if %1$s = "single" then (%3$s) \
         else null"""
-            .formatted(
-                qualify.apply(modeId),
-                qualify.apply(multipleExpressionId),
-                sourceBranches(single, sources, true, qualify));
+        .formatted(modeId, multipleExpressionId, sourceBranches(single, sources, true));
   }
 
   /**
    * Builds the {@code if source = "..." then ... else ...} chain, emitting a branch only for the
    * enabled {@code sources} so the expression never references helper variables that were not
-   * generated. Every helper reference goes through {@code qualify}, which prepends the nesting path
-   * the helpers' input mappings actually create.
+   * generated.
    */
   private static String sourceBranches(
-      SingleDocFields fields,
-      Set<DocumentSource> sources,
-      boolean wrapInList,
-      UnaryOperator<String> qualify) {
+      SingleDocFields fields, Set<DocumentSource> sources, boolean wrapInList) {
     var branches = new StringBuilder();
     for (DocumentSource source : sources) {
       String value =
           switch (source) {
-            case CAMUNDA -> qualify.apply(fields.camundaRefId);
-            case INLINE -> inlineObjectLiteral(fields, qualify);
-            case EXTERNAL -> externalObjectLiteral(fields, qualify);
+            case CAMUNDA -> fields.camundaRefId;
+            case INLINE -> inlineObjectLiteral(fields);
+            case EXTERNAL -> externalObjectLiteral(fields);
           };
       branches
           .append("if ")
-          .append(qualify.apply(fields.sourceId))
+          .append(fields.sourceId)
           .append(" = \"")
           .append(source.getValue())
           .append("\" then ")
@@ -503,25 +495,22 @@ final class DocumentPropertyHandler {
     return branches.append("null").toString();
   }
 
-  private static String inlineObjectLiteral(SingleDocFields f, UnaryOperator<String> qualify) {
+  private static String inlineObjectLiteral(SingleDocFields f) {
     return """
         { "%s": "%s", content: %s, name: %s, contentType: %s }"""
         .formatted(
             DOCUMENT_TYPE_KEY,
             DOCUMENT_TYPE_INLINE,
-            qualify.apply(f.inlineContentId),
-            qualify.apply(f.inlineFileNameId),
-            qualify.apply(f.inlineContentTypeId));
+            f.inlineContentId,
+            f.inlineFileNameId,
+            f.inlineContentTypeId);
   }
 
-  private static String externalObjectLiteral(SingleDocFields f, UnaryOperator<String> qualify) {
+  private static String externalObjectLiteral(SingleDocFields f) {
     return """
         { "%s": "%s", url: %s, name: %s }"""
         .formatted(
-            DOCUMENT_TYPE_KEY,
-            DOCUMENT_TYPE_EXTERNAL,
-            qualify.apply(f.externalUrlId),
-            qualify.apply(f.externalFileNameId));
+            DOCUMENT_TYPE_KEY, DOCUMENT_TYPE_EXTERNAL, f.externalUrlId, f.externalFileNameId);
   }
 
   private static SingleDocFields singleDocFields(String prefix) {
