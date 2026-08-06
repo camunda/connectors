@@ -25,8 +25,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /**
- * Verifies that when no prefix is explicitly configured, the environment secret provider falls
- * back to the {@code SECRET_} default rather than exposing all environment variables.
+ * Verifies that when no prefix is explicitly configured, the environment secret provider falls back
+ * to the {@code SECRET_} default rather than exposing all environment variables.
  */
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
