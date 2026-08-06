@@ -127,14 +127,13 @@ class AnthropicChatModelConfigurationTest {
                 Map.of("large_field", "large_value")));
 
     final String toString = backend.toString();
-    assertThat(toString)
-        .doesNotContain("sk-ant-super-secret", "Authorization", "Bearer secret", "large_field");
+    assertThat(toString).doesNotContain("sk-ant-super-secret", "Bearer secret", "large_value");
     assertThat(toString)
         .contains(
             "apiKey=[REDACTED]",
-            "headers=[REDACTED]",
-            "queryParameters=[REDACTED]",
-            "requestParameters=[REDACTED]");
+            "headers={Authorization=[REDACTED]}",
+            "queryParameters={api-version=[REDACTED]}",
+            "requestParameters={large_field=[REDACTED]}");
   }
 
   @Test
@@ -149,14 +148,29 @@ class AnthropicChatModelConfigurationTest {
                 new ApiKeyAuthentication("sk-custom-super-secret")));
 
     final String toString = backend.toString();
-    assertThat(toString)
-        .doesNotContain("sk-custom-super-secret", "Authorization", "Bearer secret", "large_field");
+    assertThat(toString).doesNotContain("sk-custom-super-secret", "Bearer secret", "large_value");
     assertThat(toString)
         .contains(
-            "headers=[REDACTED]",
-            "queryParameters=[REDACTED]",
-            "requestParameters=[REDACTED]",
+            "headers={Authorization=[REDACTED]}",
+            "queryParameters={api-version=[REDACTED]}",
+            "requestParameters={large_field=[REDACTED]}",
             "apiKey=[REDACTED]");
+  }
+
+  @Test
+  void redactsEmptyAndNullHeadersDistinctlyInToString() {
+    final var backendWithEmptyMaps =
+        new AnthropicApiBackend(
+            new AnthropicApiBackend.AnthropicApi(
+                "sk-ant-super-secret", null, Map.of(), Map.of(), Map.of()));
+    assertThat(backendWithEmptyMaps.toString())
+        .contains("headers={}", "queryParameters={}", "requestParameters={}");
+
+    final var backendWithNullMaps =
+        new AnthropicApiBackend(
+            new AnthropicApiBackend.AnthropicApi("sk-ant-super-secret", null, null, null, null));
+    assertThat(backendWithNullMaps.toString())
+        .contains("headers=null", "queryParameters=null", "requestParameters=null");
   }
 
   @Test
