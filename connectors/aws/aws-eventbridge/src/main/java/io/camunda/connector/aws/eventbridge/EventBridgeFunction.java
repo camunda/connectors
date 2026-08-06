@@ -13,11 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.ObjectMapperSupplier;
-import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import java.util.Optional;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsRequest;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
@@ -71,20 +68,9 @@ public class EventBridgeFunction implements OutboundConnectorFunction {
   }
 
   private EventBridgeClient createEventBridgeClient(final AwsEventBridgeRequest request) {
-    Optional<String> endpoint =
-        Optional.ofNullable(request.getConfiguration()).map(AwsBaseConfiguration::endpoint);
-    var credentialsProvider = CredentialsProviderSupportV2.credentialsProvider(request);
     var region =
         extractRegionOrDefault(request.getConfiguration(), request.getConfiguration().region());
-    return endpoint
-        .map(
-            ep ->
-                awsEventBridgeClientSupplier.getAmazonEventBridgeClient(
-                    credentialsProvider, region, ep))
-        .orElseGet(
-            () ->
-                awsEventBridgeClientSupplier.getAmazonEventBridgeClient(
-                    credentialsProvider, region));
+    return awsEventBridgeClientSupplier.getAmazonEventBridgeClient(request, region);
   }
 
   public PutEventsResponse putEvents(

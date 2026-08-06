@@ -9,7 +9,7 @@ package io.camunda.connector.aws.s3.core;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
+import io.camunda.connector.aws.AwsClientSupport;
 import io.camunda.connector.aws.s3.model.request.*;
 import io.camunda.connector.aws.s3.model.response.DeleteResponse;
 import io.camunda.connector.aws.s3.model.response.DownloadResponse;
@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -42,14 +41,12 @@ public class S3Executor {
     this.createDocument = createDocument;
   }
 
+  // Delegates to AwsClientSupport (issue #7083); endpoint override is now honored, not ignored.
+  // No forcePathStyle option here, so a custom endpoint won't work against LocalStack/MinIO.
   public static S3Executor create(
       S3Request s3Request, Function<DocumentCreationRequest, Document> createDocument) {
     return new S3Executor(
-        S3Client.builder()
-            .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(s3Request))
-            .region(Region.of(s3Request.getConfiguration().region()))
-            .build(),
-        createDocument);
+        AwsClientSupport.createClient(S3Client.builder(), s3Request), createDocument);
   }
 
   public Object execute(S3Action s3Action) {

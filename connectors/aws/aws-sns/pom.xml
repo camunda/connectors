@@ -54,10 +54,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
-      <artifactId>auth</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
       <artifactId>sdk-core</artifactId>
     </dependency>
     <!-- v1 SDK kept for SnsMessageManager used in inbound webhook (no v2 equivalent).
@@ -71,6 +67,16 @@ except in compliance with the proprietary license.</license.inlineheader>
 
   <build>
     <plugins>
+      <!-- sdk-core kept declared (issue #7083 removed its last bytecode reference here): javac
+           needs it for SdkRequest/SdkPojo/SdkClient supertypes, and tests assert its SdkException. -->
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+          <ignoredNonTestScopedDependencies combine.children="append">
+            <dependency>software.amazon.awssdk:sdk-core</dependency>
+          </ignoredNonTestScopedDependencies>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
