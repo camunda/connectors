@@ -226,11 +226,14 @@ class RealProviderApiSmokeIT {
         true);
   }
 
-  // Bedrock Mantle is a pure Messages-API pass-through (no body/path/response adaptation), so it
-  // shares the anthropic-api row's model IDs and capability surface exactly.
-  static Provider bedrock(String model, Map<Capability, Map<String, String>> capabilityProperties) {
+  // Bedrock Mantle is Anthropic's own Messages API (the same wire format as anthropic-api),
+  // hosted on/by AWS: requests are SigV4-signed and sent to a Bedrock Mantle endpoint instead of
+  // api.anthropic.com, but the connector performs no body/path/response translation between the
+  // two.
+  static Provider anthropicBedrock(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new Provider(
-        "bedrock/" + model,
+        "anthropic-bedrock/" + model,
         List.of("ANTHROPIC_BEDROCK_API_KEY"),
         Map.of(
             "provider.type",
@@ -238,7 +241,7 @@ class RealProviderApiSmokeIT {
             "provider.anthropic.backend.type",
             "bedrock",
             "provider.anthropic.backend.bedrock.region",
-            envOrDefault("ANTHROPIC_BEDROCK_REGION", "us-east-1"),
+            envOrDefault("ANTHROPIC_BEDROCK_REGION", "eu-central-1"),
             "provider.anthropic.backend.bedrock.authentication.type",
             "apiKey",
             "provider.anthropic.backend.bedrock.authentication.apiKey",
@@ -280,9 +283,10 @@ class RealProviderApiSmokeIT {
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",
                             "provider.anthropic.model.parameters.effort", "high"))),
-            // Same model/capability surface as the anthropic-api claude-sonnet-4-6 row above — only
-            // the backend/transport differs, proving Bedrock Mantle's pass-through end-to-end.
-            bedrock(
+            // Same model and capability configuration as the anthropic-api claude-sonnet-4-6 row
+            // above, to prove Bedrock Mantle's pass-through end-to-end with only the
+            // backend/transport differing.
+            anthropicBedrock(
                 "claude-sonnet-4-6",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
