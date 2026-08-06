@@ -303,7 +303,7 @@
     "type" : "String"
   }, {
     "id" : "input.document__composer",
-    "value" : "=if document_documentSource = \"camunda\" then document_camundaReference else if document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: document_external_url, name: document_external_fileName } else null",
+    "value" : "=if input.document_documentSource = \"camunda\" then input.document_camundaReference else if input.document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: input.document_external_url, name: input.document_external_fileName } else null",
     "group" : "document",
     "binding" : {
       "name" : "input.document",
