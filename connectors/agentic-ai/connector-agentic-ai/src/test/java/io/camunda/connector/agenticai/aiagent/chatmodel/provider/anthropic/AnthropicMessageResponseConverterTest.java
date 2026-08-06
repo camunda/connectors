@@ -157,6 +157,38 @@ class AnthropicMessageResponseConverterTest {
   }
 
   @Test
+  void mapsThinkingWithEmptyTextToReasoningContentWithoutLiftingIt() {
+    // Anthropic can return an empty `thinking` string; nothing to lift, same as redacted thinking.
+    final var message =
+        message(
+            """
+            {
+              "id": "msg_empty_thinking",
+              "model": "claude-sonnet-4-6",
+              "role": "assistant",
+              "type": "message",
+              "content": [
+                {"type": "thinking", "thinking": "", "signature": "sig-123"},
+                {"type": "text", "text": "the answer"}
+              ],
+              "stop_reason": "end_turn",
+              "usage": {"input_tokens": 1, "output_tokens": 1}
+            }
+            """);
+
+    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+
+    assertThat(assistantMessage.content())
+        .containsExactly(
+            new ReasoningContent(
+                "anthropic",
+                Map.of("type", "thinking", "thinking", "", "signature", "sig-123"),
+                null,
+                null),
+            TextContent.textContent("the answer"));
+  }
+
+  @Test
   void mapsRedactedThinkingToReasoningContentWithRawBlockPayload() {
     final var message =
         message(

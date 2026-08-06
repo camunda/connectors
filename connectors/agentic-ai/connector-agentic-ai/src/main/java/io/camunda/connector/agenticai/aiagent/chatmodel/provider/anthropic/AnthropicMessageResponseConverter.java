@@ -87,8 +87,12 @@ public class AnthropicMessageResponseConverter {
                 ObjectMappers.jsonMapper()
                     .convertValue(block, new TypeReference<Map<String, Object>>() {}));
         final String text = block.thinking().orElseThrow().thinking();
-        raw.remove("thinking");
-        content.add(new ReasoningContent(ANTHROPIC_ID, raw, text, null));
+        if (text.isEmpty()) {
+          content.add(new ReasoningContent(ANTHROPIC_ID, raw, null, null));
+        } else {
+          raw.remove("thinking");
+          content.add(new ReasoningContent(ANTHROPIC_ID, raw, text, null));
+        }
       } else if (block.isRedactedThinking()) {
         // Redacted thinking blocks carry no readable text (the `data` field is encrypted), so
         // there is nothing to lift out of the payload.
