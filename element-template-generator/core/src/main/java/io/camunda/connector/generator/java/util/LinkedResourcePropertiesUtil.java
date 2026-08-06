@@ -82,12 +82,33 @@ public class LinkedResourcePropertiesUtil {
                 + linkedResource.linkName()
                 + "'. Each linked resource on the same class must have a unique linkName.");
       }
+      if (linkedResource.conditionProperty().isBlank()
+          != linkedResource.conditionEquals().isBlank()) {
+        throw new IllegalArgumentException(
+            "@TemplateLinkedResource(linkName='"
+                + linkedResource.linkName()
+                + "') must set both conditionProperty and conditionEquals, or neither.");
+      }
     }
 
     List<PropertyBuilder> result = new ArrayList<>();
     for (TemplateLinkedResource linkedResource : annotations) {
       String group = linkedResource.group().isBlank() ? defaultGroup : linkedResource.group();
       String bindingTypeId = idPrefix + linkedResource.linkName() + SUFFIX_BINDING_TYPE;
+
+      // Conditions every linked-resource property inherits: the operation scope (null for
+      // class-based connectors, which have none) and, when declared, the conditionProperty gate.
+      // idPrefix is "<operationId>:" for operation-based connectors and "" for class-based ones,
+      // matching how the referenced property's own ID is prefixed.
+      List<PropertyCondition> baseConditions = new ArrayList<>();
+      if (baseCondition != null) {
+        baseConditions.add(baseCondition);
+      }
+      if (!linkedResource.conditionProperty().isBlank()) {
+        baseConditions.add(
+            new PropertyCondition.Equals(
+                idPrefix + linkedResource.conditionProperty(), linkedResource.conditionEquals()));
+      }
 
       // When optional=true, prepend a Yes/No toggle (zeebe:taskHeader). All linked-resource
       // properties are then conditioned on the toggle so no linkedResource block is written when
@@ -113,19 +134,17 @@ public class LinkedResourcePropertiesUtil {
                     new PropertyBinding.ZeebeTaskHeader(
                         idPrefix + linkedResource.linkName() + SUFFIX_INCLUDE))
                 .condition(
-                    baseCondition == null
+                    baseConditions.isEmpty()
                         ? null
-                        : new PropertyCondition.AllMatch(List.of(baseCondition))));
+                        : new PropertyCondition.AllMatch(List.copyOf(baseConditions))));
 
-        PropertyCondition.Equals toggleEquals = new PropertyCondition.Equals(toggleId, "true");
-        propertyCondition =
-            baseCondition == null
-                ? new PropertyCondition.AllMatch(List.of(toggleEquals))
-                : new PropertyCondition.AllMatch(List.of(baseCondition, toggleEquals));
+        List<PropertyCondition> withToggle = new ArrayList<>(baseConditions);
+        withToggle.add(new PropertyCondition.Equals(toggleId, "true"));
+        propertyCondition = new PropertyCondition.AllMatch(withToggle);
       } else {
-        // baseCondition == null for class-based (no operation scope); non-null for operation-based.
+        // baseConditions is empty for class-based connectors with no conditionProperty declared.
         propertyCondition =
-            baseCondition == null ? null : new PropertyCondition.AllMatch(List.of(baseCondition));
+            baseConditions.isEmpty() ? null : new PropertyCondition.AllMatch(baseConditions);
       }
 
       result.add(

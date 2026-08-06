@@ -35,6 +35,13 @@ import java.lang.annotation.Target;
  * being {@code "true"}, so when the user leaves it at the default {@code "false"} no {@code
  * zeebe:linkedResource} block is written to the BPMN and Zeebe accepts the process without a form.
  *
+ * <p>When {@link #conditionProperty} is set, all linked-resource properties (including the optional
+ * toggle, if any) are additionally gated on that property equalling {@link #conditionEquals}. Since
+ * a property whose condition does not hold is not written to the BPMN either, this is an
+ * alternative to {@link #optional} for resources already gated by a discriminator: pointing {@code
+ * conditionProperty} at the discriminator makes the linked resource one of its mutually exclusive
+ * options, with no separate Yes/No toggle.
+ *
  * <p>Supported on both operation-based connectors ({@code OutboundConnectorProvider} with
  * {@code @Operation}-annotated methods) and class-based connectors ({@code
  * OutboundConnectorFunction} implementations). Not supported on inbound connectors — {@code
@@ -79,4 +86,18 @@ public @interface TemplateLinkedResource {
    * {@code "Include <linkName>?"} if blank.
    */
   String toggleLabel() default "";
+
+  /**
+   * ID of another property that must equal {@link #conditionEquals} for this linked resource to be
+   * rendered and written to the BPMN. Specify the ID as declared on the request model, without the
+   * operation prefix — e.g. {@code "content.type"} for a discriminator on a {@code content} field;
+   * the operation prefix is added by the generator. Blank (the default) means no extra condition.
+   */
+  String conditionProperty() default "";
+
+  /**
+   * Value {@link #conditionProperty} must equal. Must be set if and only if {@link
+   * #conditionProperty} is set.
+   */
+  String conditionEquals() default "";
 }
