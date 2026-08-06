@@ -7,9 +7,8 @@
 package io.camunda.connector.appintegrations.model;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import jakarta.validation.Valid;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -17,7 +16,6 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 public record CreateChannelRequest(
-    @NotNull @Valid AppIntegrationsConfiguration configuration,
     @NotEmpty
         @TemplateProperty(
             group = "channel",
@@ -44,20 +42,26 @@ public record CreateChannelRequest(
             label = "Channel type",
             description =
                 "Membership type: standard (visible to all), private (invite-only), or shared.",
+            // Without an explicit Dropdown type the generator keeps a String field and silently
+            // drops the choices, since membershipType is not an enum.
+            type = PropertyType.Dropdown,
             choices = {
               @TemplateProperty.DropdownPropertyChoice(label = "Standard", value = "standard"),
               @TemplateProperty.DropdownPropertyChoice(label = "Private", value = "private"),
               @TemplateProperty.DropdownPropertyChoice(label = "Shared", value = "shared")
             },
-            defaultValue = "standard")
+            defaultValue = DEFAULT_MEMBERSHIP_TYPE)
         String membershipType) {
+
+  @TemplateProperty(ignore = true)
+  public static final String DEFAULT_MEMBERSHIP_TYPE = "standard";
 
   public CreateChannelRequest {
     teamId = extractGroupId(teamId);
     // Single runtime source of the channel-type default; the template's defaultValue only pre-fills
     // the editor dropdown and is not guaranteed to be present for non-template callers.
     if (membershipType == null || membershipType.isBlank()) {
-      membershipType = "standard";
+      membershipType = DEFAULT_MEMBERSHIP_TYPE;
     }
   }
 

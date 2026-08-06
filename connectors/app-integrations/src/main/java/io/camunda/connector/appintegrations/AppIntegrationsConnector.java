@@ -17,6 +17,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.appintegrations.model.CreateChannelRequest;
 import io.camunda.connector.appintegrations.model.CreateChannelResult;
 import io.camunda.connector.appintegrations.model.LinkedResource;
+import io.camunda.connector.appintegrations.model.MessageContent;
 import io.camunda.connector.appintegrations.model.SendMessageRequest;
 import io.camunda.connector.appintegrations.model.SendMessageResult;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -48,16 +49,8 @@ import org.slf4j.LoggerFactory;
     engineVersion = "^8.9",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
-      @ElementTemplate.PropertyGroup(
-          id = "configuration",
-          label = "Configuration",
-          openByDefault = false),
-      @ElementTemplate.PropertyGroup(
-          id = "authentication",
-          label = "Authentication",
-          openByDefault = false),
+      @ElementTemplate.PropertyGroup(id = "recipient", label = "Recipient"),
       @ElementTemplate.PropertyGroup(id = "message", label = "Message"),
-      @ElementTemplate.PropertyGroup(id = "form", label = "Form"),
       @ElementTemplate.PropertyGroup(id = "channel", label = "Channel")
     })
 public class AppIntegrationsConnector implements OutboundConnectorProvider {
@@ -71,36 +64,52 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
     this(ConnectorsObjectMapperSupplier.getCopy(), new CustomApacheHttpClient(), System::getenv);
   }
 
-  AppIntegrationsConnector(ObjectMapper objectMapper, HttpClient httpClient) {
-    this(objectMapper, httpClient, System::getenv);
-  }
-
+  /**
+   * All configuration comes from the environment, so tests must inject their own {@code getenv}
+   * rather than inheriting the real process environment.
+   */
   AppIntegrationsConnector(
       ObjectMapper objectMapper, HttpClient httpClient, UnaryOperator<String> getenv) {
     this.objectMapper = objectMapper;
     this.executor = new AppIntegrationsExecutor(objectMapper, httpClient, getenv);
   }
 
-  @Operation(id = "sendMessage", name = "Send Message")
+  @Operation(
+      id = "sendMessage",
+      name = "Send Message",
+      description = "Send a text message, adaptive card, or Camunda form to a user or channel",
+      keywords = {
+        "send message",
+        "post message",
+        "notify user",
+        "send adaptive card",
+        "send form",
+        "teams notification"
+      })
   public SendMessageResult sendMessage(
       @Variable SendMessageRequest request, OutboundConnectorContext context) {
     LOGGER.debug("Sending message via App Integrations connector");
-    var formResourceKey = formResourceKey(context.getJobContext().getCustomHeaders());
 
-    boolean hasContent =
-        (request.message() != null && !request.message().isBlank())
-            || (request.adaptiveCardJson() != null && !request.adaptiveCardJson().isBlank())
-            || formResourceKey != null;
-    if (!hasContent) {
-      throw new ConnectorException(
-          "VALIDATION_ERROR",
-          "One of 'message', 'adaptiveCardJson', or a linked form must be provided");
+    // The sealed content hierarchy already guarantees exactly one kind of content. What it cannot
+    // guarantee is that a form actually reached the job: the form is a linked resource, not a
+    // variable. A linkedResources header present for any other content type is ignored.
+    String formResourceKey = null;
+    if (request.content() instanceof MessageContent.FormContent) {
+      formResourceKey = formResourceKey(context.getJobContext().getCustomHeaders());
+      if (formResourceKey == null) {
+        throw new ConnectorException(
+            "VALIDATION_ERROR", "Message type is 'form' but no linked form was found on the job");
+      }
     }
 
     return executor.sendMessage(request, formResourceKey);
   }
 
-  @Operation(id = "createChannel", name = "Create Channel")
+  @Operation(
+      id = "createChannel",
+      name = "Create Channel",
+      description = "Create a Microsoft Teams channel in a given team",
+      keywords = {"create channel", "new channel", "add channel", "teams channel", "open channel"})
   public CreateChannelResult createChannel(@Variable CreateChannelRequest request) {
     LOGGER.debug("Creating Teams channel via App Integrations connector");
     return executor.createChannel(request);
