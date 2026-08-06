@@ -80,8 +80,8 @@ import org.springframework.core.io.ResourceLoader;
 class RealProviderApiSmokeIT {
 
   static final String BPMN_RESOURCE = "classpath:real-provider-api-smoke.bpmn";
-  static final String PROCESS_ID = "native_provider_acceptance";
-  static final String TOOL_JOB_TYPE = "native-acceptance-tool";
+  static final String PROCESS_ID = "real_provider_api_smoke";
+  static final String TOOL_JOB_TYPE = "lookup-classified-fact";
   static final Duration PROCESS_TIMEOUT = Duration.ofMinutes(3);
 
   // Fabricated nonce facts — cannot originate from model training, so their presence in the answer
