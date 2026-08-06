@@ -35,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicBedrockBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicEffort;
@@ -208,7 +209,8 @@ public class AnthropicMessageRequestConverter {
    * Merges the backend's headers, query parameters, and body properties onto the request. The
    * {@code custom} backend exposes these as regular properties; the {@code anthropic-api} backend
    * exposes the same extension points as hidden properties for special scenarios not covered by the
-   * modeler UI (e.g. routing through an intermediary that requires extra headers).
+   * modeler UI (e.g. routing through an intermediary that requires extra headers); the {@code
+   * bedrock} backend has no such extension points.
    */
   private void applyRequestCustomizations(
       MessageCreateParams.Builder builder, AnthropicConnection connection) {
@@ -238,6 +240,7 @@ public class AnthropicMessageRequestConverter {
               custom.custom().headers(),
               custom.custom().queryParameters(),
               custom.custom().bodyProperties());
+      case AnthropicBedrockBackend ignored -> new RequestCustomizations(null, null, null);
     };
   }
 
