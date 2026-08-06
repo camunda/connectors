@@ -20,6 +20,9 @@ import static java.util.Objects.requireNonNullElse;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.ClientHttpException;
+import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.client.api.command.JobCallbackFinalCommandStep;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.response.CompleteJobResponse;
@@ -28,6 +31,7 @@ import io.camunda.client.api.response.ThrowErrorResponse;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.api.worker.JobHandler;
 import io.camunda.client.jobhandling.CommandOutcome;
+import io.camunda.client.jobhandling.JobCallbackCommandWrapper;
 import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.metrics.MetricsRecorder.CounterMetricsContext;
@@ -56,6 +60,7 @@ import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.error.IgnoreError;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
+import io.camunda.connector.runtime.core.error.InvalidJobTimeoutException;
 import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
@@ -67,6 +72,7 @@ import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.ConnectorOutboundMetrics;
+import io.grpc.StatusRuntimeException;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -98,6 +104,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private final ObjectMapper objectMapper;
   private final SecretFilterFactory secretFilterFactory;
   private final DocumentReturnProcessor documentReturnProcessor;
+  private final CamundaClient camundaClient;
 
   public SpringConnectorJobHandler(
       MetricsRecorder outboundMetrics,
@@ -107,7 +114,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      CamundaClient camundaClient) {
     this(
         new ConnectorOutboundMetrics(outboundMetrics, null),
         jobCallbackCommandWrapperFactory,
@@ -116,7 +124,8 @@ public class SpringConnectorJobHandler implements JobHandler {
         documentFactory,
         objectMapper,
         connectorFunction,
-        secretFilterFactory);
+        secretFilterFactory,
+        camundaClient);
   }
 
   public SpringConnectorJobHandler(
@@ -127,7 +136,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      CamundaClient camundaClient) {
     this.call = connectorFunction;
     this.secretProvider = secretProviderAggregator;
     this.validationProvider = validationProvider;
@@ -137,9 +147,10 @@ public class SpringConnectorJobHandler implements JobHandler {
     this.documentReturnProcessor = new DocumentReturnProcessor(documentFactory, objectMapper);
     this.outboundConnectorExceptionHandler =
         new OutboundConnectorExceptionHandler(getSecretProvider());
-    this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
+    this.connectorResultHandler = new ConnectorResultHandler(objectMapper, documentFactory);
     this.jobCallbackCommandWrapperFactory = jobCallbackCommandWrapperFactory;
     this.connectorsOutboundMetrics = outboundMetrics;
+    this.camundaClient = camundaClient;
   }
 
   private SecretProvider getSecretProvider() {
@@ -195,37 +206,185 @@ public class SpringConnectorJobHandler implements JobHandler {
             documentFactory,
             objectMapper,
             secretFilter);
-    ConnectorResult result = getConnectorResult(job, context, secretFilter);
-    processFinalResult(client, job, context, result, counterMetricsContext, secretFilter);
+    ResultWithDeadline resultWithDeadline = getConnectorResult(job, context, secretFilter);
+    processFinalResult(
+        client,
+        job,
+        context,
+        resultWithDeadline.result(),
+        counterMetricsContext,
+        secretFilter,
+        resultWithDeadline.deadline());
   }
 
-  private ConnectorResult getConnectorResult(
+  /**
+   * Pairs a {@link ConnectorResult} with the deadline that should be used for the completion
+   * command that follows it — the job's original activation deadline, or an updated one if {@link
+   * #updateJobTimeoutIfPresent} applied a {@code jobTimeout} header. The updated deadline is not
+   * necessarily later: a short {@code jobTimeout} can move it earlier than the original.
+   */
+  private record ResultWithDeadline(ConnectorResult result, long deadline) {}
+
+  private ResultWithDeadline getConnectorResult(
       ActivatedJob job, OutboundConnectorContext context, SecretFilter secretFilter) {
     Duration retryBackoff = null;
+    long deadline = job.getDeadline();
     try {
       retryBackoff = getBackoffDuration(job);
+      Long updatedDeadline = updateJobTimeoutIfPresent(job);
+      if (updatedDeadline != null) {
+        deadline = updatedDeadline;
+        if (deadline <= System.currentTimeMillis()) {
+          // A short but valid jobTimeout can already have elapsed by the time the synchronous
+          // update command returns (network latency). The broker may already consider this
+          // worker's lease gone, so the connector must not run — doing so risks duplicating side
+          // effects if the job gets reassigned. Propagate rather than continue, mirroring the
+          // definitive-rejection case above.
+          throw new IllegalStateException(
+              "Job timeout deadline already elapsed by the time the update was applied for job: "
+                  + job.getKey());
+        }
+      }
 
       var connectorResponse = getConnectorResponse(context);
 
       if (connectorResponse instanceof AdHocSubProcessConnectorResponse ahsp) {
         InlineSizeGuard.check(objectMapper.writeValueAsBytes(ahsp.variables()).length);
         // AHSP responses provide their own variables; skip result expression evaluation
-        return new ConnectorResult.SuccessResult(connectorResponse, Map.of());
+        return new ResultWithDeadline(
+            new ConnectorResult.SuccessResult(connectorResponse, Map.of()), deadline);
       }
 
       var responseVariables =
           connectorResultHandler.createOutputVariables(
               connectorResponse.responseValue(),
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
-              job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
+              job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD),
+              job.getPhysicalTenantId());
       if (!responseVariables.isEmpty()) {
         InlineSizeGuard.check(objectMapper.writeValueAsBytes(responseVariables).length);
       }
-      return new ConnectorResult.SuccessResult(connectorResponse, responseVariables);
+      return new ResultWithDeadline(
+          new ConnectorResult.SuccessResult(connectorResponse, responseVariables), deadline);
     } catch (Exception e) {
-      return outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-          e, job, retryBackoff, secretFilter);
+      return new ResultWithDeadline(
+          outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
+              e, job, retryBackoff, secretFilter),
+          deadline);
     }
+  }
+
+  /**
+   * Reads the {@link Keywords#JOB_TIMEOUT_KEYWORD} header and, if present, sets the job's Zeebe
+   * activation deadline to {@code now + duration} via {@code UpdateJobTimeoutCommand} before the
+   * connector function runs. Returns {@code null} only if there was no header to apply
+   * (missing/blank) — the caller then keeps the job's original deadline. A malformed or
+   * non-positive duration is a configuration error and is not swallowed — it propagates so the job
+   * fails immediately, mirroring {@link #getBackoffDuration}.
+   *
+   * <p>The returned deadline is computed from a timestamp captured <em>before</em> the update
+   * command is sent, not after it returns — Zeebe applies {@code now + duration} when it processes
+   * the command on the broker, which happens before the client sees the response, so using a
+   * post-call timestamp would make the locally tracked deadline later than the broker's actual one.
+   *
+   * <p>If the update command fails with a transient transport error (logged as a {@code WARN},
+   * connector execution continues regardless), the outcome is ambiguous: the broker may have
+   * applied the change before the client lost or timed out on the response. Rather than assume the
+   * update never took effect, this returns the <em>earlier</em> of the job's original deadline and
+   * the requested one, so a later completion-command retry check is never overly optimistic about
+   * how much time remains.
+   *
+   * <p>If the update command fails with anything else — a definitive broker rejection (e.g. {@code
+   * NOT_FOUND}, meaning this worker's lease on the job is already gone) or an unrecognized failure
+   * — the exception propagates instead of being swallowed, so the connector function is never
+   * invoked without a lease this worker can still be confident it holds.
+   */
+  private Long updateJobTimeoutIfPresent(ActivatedJob job) {
+    String timeoutHeader = job.getCustomHeaders().get(Keywords.JOB_TIMEOUT_KEYWORD);
+    if (timeoutHeader == null || timeoutHeader.isBlank()) {
+      return null;
+    }
+    Duration timeout;
+    try {
+      timeout = Duration.parse(timeoutHeader);
+    } catch (DateTimeParseException e) {
+      throw new InvalidJobTimeoutException(
+          "Failed to parse job timeout header. Expected ISO-8601 duration, e.g. PT10M, got: "
+              + timeoutHeader,
+          e);
+    }
+    long timeoutMillis;
+    try {
+      // Zeebe's UpdateJobTimeoutCommand truncates to milliseconds (Duration#toMillis), so a
+      // sub-millisecond-but-technically-positive Duration (e.g. PT0.000000001S) would otherwise
+      // slip past an isZero()/isNegative() check and still be sent to the broker as 0. toMillis()
+      // itself throws ArithmeticException for a Duration too large to represent in millis.
+      timeoutMillis = timeout.toMillis();
+    } catch (ArithmeticException e) {
+      throw new InvalidJobTimeoutException(
+          "Job timeout is too large to represent, got: " + timeoutHeader, e);
+    }
+    if (timeoutMillis <= 0) {
+      throw new InvalidJobTimeoutException(
+          "Job timeout must be a positive duration, got: " + timeoutHeader, null);
+    }
+    long requestTime = System.currentTimeMillis();
+    long deadline;
+    try {
+      // A representable-but-huge duration (e.g. close to Long.MAX_VALUE millis) would otherwise
+      // silently wrap around to a garbage, already-expired deadline via plain long addition.
+      deadline = Math.addExact(requestTime, timeoutMillis);
+    } catch (ArithmeticException e) {
+      throw new InvalidJobTimeoutException(
+          "Job timeout is too large to represent as a deadline, got: " + timeoutHeader, e);
+    }
+    try {
+      camundaClient.newUpdateTimeoutCommand(job).timeout(timeout).execute();
+    } catch (Exception e) {
+      if (!isTransientTransportFailure(e)) {
+        // A definitive rejection (e.g. NOT_FOUND: the job no longer exists on the broker, so this
+        // worker's lease on it is already gone) or an unrecognized failure — propagate instead of
+        // continuing, so the connector function is never invoked without a lease this worker can
+        // still be confident it holds. The subsequent job-handling failure path may itself hit the
+        // same rejection when it tries to fail the job, which is a harmless no-op there.
+        throw e;
+      }
+      LOGGER.warn(
+          "Failed to update timeout for job: {} of type: {}, continuing with existing deadline",
+          job.getKey(),
+          job.getType(),
+          e);
+      // Ambiguous outcome: the broker may have applied the update despite the client not
+      // observing success. Assume the worst case for the callback-retry check by taking the
+      // earlier of the two possible deadlines, not just the job's original one.
+      return Math.min(job.getDeadline(), deadline);
+    }
+    return deadline;
+  }
+
+  /**
+   * Distinguishes a transient transport-level failure (network hiccup, broker overload, request
+   * timeout) — where the update command's outcome is genuinely ambiguous — from a definitive
+   * rejection or any other unrecognized failure, using the same status-code classification {@link
+   * JobCallbackCommandWrapper} already applies to job completion commands.
+   */
+  private static boolean isTransientTransportFailure(Exception e) {
+    // CamundaFuture#join() (invoked by execute()) converts a gRPC StatusRuntimeException into a
+    // ClientStatusException before it ever reaches a caller, so that's the type actually observed
+    // here in practice. The raw StatusRuntimeException check is kept for defense in depth in case
+    // some other invocation path ever surfaces one directly.
+    if (e instanceof ClientStatusException clientStatusException) {
+      return JobCallbackCommandWrapper.RETRIABLE_CODES.contains(
+          clientStatusException.getStatusCode());
+    }
+    if (e instanceof StatusRuntimeException statusRuntimeException) {
+      return JobCallbackCommandWrapper.RETRIABLE_CODES.contains(
+          statusRuntimeException.getStatus().getCode());
+    }
+    if (e instanceof ClientHttpException clientHttpException) {
+      return JobCallbackCommandWrapper.REST_RETRYABLE_CODES.contains(clientHttpException.code());
+    }
+    return false;
   }
 
   private ConnectorResponse getConnectorResponse(OutboundConnectorContext context)
@@ -262,18 +421,23 @@ public class SpringConnectorJobHandler implements JobHandler {
       OutboundConnectorContext context,
       ConnectorResult finalResult,
       CounterMetricsContext counterMetricsContext,
-      SecretFilter secretFilter) {
+      SecretFilter secretFilter,
+      long deadline) {
     try {
       Optional<ConnectorError> optionalConnectorError =
           connectorResultHandler.examineErrorExpression(
               finalResult.responseValue(),
               job.getCustomHeaders(),
               new ErrorExpressionJobContext(
-                  new ErrorExpressionJobContext.ErrorExpressionJob(job.getRetries())));
+                  new ErrorExpressionJobContext.ErrorExpressionJob(job.getRetries())),
+              job.getPhysicalTenantId());
       optionalConnectorError.ifPresentOrElse(
           error ->
-              handleConnectorError(client, job, context, finalResult, error, counterMetricsContext),
-          () -> handleFinalResult(client, job, context, finalResult, counterMetricsContext));
+              handleConnectorError(
+                  client, job, context, finalResult, error, counterMetricsContext, deadline),
+          () ->
+              handleFinalResult(
+                  client, job, context, finalResult, counterMetricsContext, deadline));
     } catch (Exception ex) {
       if (Thread.currentThread().isInterrupted()) {
         // the job-handling thread was interrupted (e.g. runtime shutdown) while evaluating the
@@ -299,7 +463,8 @@ public class SpringConnectorJobHandler implements JobHandler {
               job,
               this.outboundConnectorExceptionHandler.handleFinalResultException(
                   ex, job, secretFilter),
-              counterMetricsContext);
+              counterMetricsContext,
+              deadline);
       notifyFailureOnCommandOutcome(
           failJobRequest,
           context,
@@ -313,10 +478,11 @@ public class SpringConnectorJobHandler implements JobHandler {
       ActivatedJob job,
       OutboundConnectorContext context,
       ConnectorResult finalResult,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      long deadline) {
     if (finalResult instanceof ConnectorResult.SuccessResult successResult) {
       LOGGER.info("Completing job: {} for tenant: {}", job.getKey(), job.getTenantId());
-      completeJob(jobClient, job, context, successResult, counterMetricsContext);
+      completeJob(jobClient, job, context, successResult, counterMetricsContext, deadline);
     } else if (finalResult instanceof ConnectorResult.ErrorResult errorResult) {
       // Handle Java error, e.g. ConnectorException
       // these errors won't be handled ConnectorHelper.examineErrorExpression
@@ -329,7 +495,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       // pre-response failure path: function threw before returning a response, so notify with a
       // null response (subscribers to JobCompletionListener can still react)
       CompletableFuture<CommandOutcome> failJobRequest =
-          failJob(jobClient, job, errorResult, counterMetricsContext);
+          failJob(jobClient, job, errorResult, counterMetricsContext, deadline);
       notifyFailureOnCommandOutcome(
           failJobRequest,
           context,
@@ -344,7 +510,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       OutboundConnectorContext context,
       ConnectorResult finalResult,
       ConnectorError error,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      long deadline) {
     var response = connectorResponseOrNull(finalResult);
 
     switch (error) {
@@ -353,7 +520,7 @@ public class SpringConnectorJobHandler implements JobHandler {
         LOGGER.debug(
             "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
         CompletableFuture<CommandOutcome> throwBpmnErrorRequest =
-            throwBpmnError(client, job, bpmnError, counterMetricsContext);
+            throwBpmnError(client, job, bpmnError, counterMetricsContext, deadline);
         notifyFailureOnCommandOutcome(
             throwBpmnErrorRequest,
             context,
@@ -377,7 +544,8 @@ public class SpringConnectorJobHandler implements JobHandler {
                     new RuntimeException(jobError.errorMessage()),
                     jobError.retries(),
                     jobError.retryBackoff()),
-                counterMetricsContext);
+                counterMetricsContext,
+                deadline);
         notifyFailureOnCommandOutcome(
             failJobRequest,
             context,
@@ -390,7 +558,14 @@ public class SpringConnectorJobHandler implements JobHandler {
       }
       case IgnoreError ignoreError ->
           handleIgnoreError(
-              client, job, context, finalResult, response, ignoreError, counterMetricsContext);
+              client,
+              job,
+              context,
+              finalResult,
+              response,
+              ignoreError,
+              counterMetricsContext,
+              deadline);
     }
   }
 
@@ -401,7 +576,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       ConnectorResult finalResult,
       ConnectorResponse response,
       IgnoreError ignoreError,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      long deadline) {
     if (finalResult instanceof ConnectorResult.SuccessResult successResult
         && successResult.connectorResponse() instanceof AdHocSubProcessConnectorResponse) {
       LOGGER.debug(
@@ -413,7 +589,8 @@ public class SpringConnectorJobHandler implements JobHandler {
               client,
               job,
               new ConnectorResult.ErrorResult(ignoreError.variables(), cause, 0, null),
-              counterMetricsContext);
+              counterMetricsContext,
+              deadline);
 
       notifyFailureOnCommandOutcome(
           failJobRequest,
@@ -429,7 +606,8 @@ public class SpringConnectorJobHandler implements JobHandler {
           context,
           new ConnectorResult.SuccessResult(
               StandardConnectorResponse.of(null), ignoreError.variables()),
-          counterMetricsContext);
+          counterMetricsContext,
+          deadline);
     }
   }
 
@@ -453,11 +631,12 @@ public class SpringConnectorJobHandler implements JobHandler {
       JobClient client,
       ActivatedJob job,
       ConnectorResult.ErrorResult result,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      long deadline) {
     connectorsOutboundMetrics.recordFailed(job.getType());
     final var command = prepareFailJobCommand(client, job, result);
     return jobCallbackCommandWrapperFactory
-        .create(command, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
+        .create(command, deadline, counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
         .executeAsync();
   }
 
@@ -487,10 +666,11 @@ public class SpringConnectorJobHandler implements JobHandler {
       JobClient client,
       ActivatedJob job,
       BpmnError value,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      long deadline) {
     final var command = prepareThrowBpmnErrorCommand(client, job, value);
     return jobCallbackCommandWrapperFactory
-        .create(command, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
+        .create(command, deadline, counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
         .executeAsync();
   }
 
@@ -510,7 +690,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       ActivatedJob job,
       OutboundConnectorContext context,
       ConnectorResult.SuccessResult result,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      long deadline) {
     ConnectorResponse connectorResponse = result.connectorResponse();
 
     final var command =
@@ -522,7 +703,7 @@ public class SpringConnectorJobHandler implements JobHandler {
 
     CompletableFuture<CommandOutcome> completeJobRequest =
         jobCallbackCommandWrapperFactory
-            .create(command, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
+            .create(command, deadline, counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
             .executeAsync();
 
     completeJobRequest.whenComplete(

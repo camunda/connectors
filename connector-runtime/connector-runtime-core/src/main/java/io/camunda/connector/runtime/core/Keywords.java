@@ -111,6 +111,18 @@ public class Keywords {
   public static final String RETRY_BACKOFF_KEYWORD = "retryBackoff";
 
   /**
+   * The keyword that identifies the source of `job timeout` property of an outbound Connector. Job
+   * timeout is an ISO8601 duration used to set the Zeebe job's activation deadline to {@code now +
+   * duration} via an {@code UpdateJobTimeoutCommand}, issued once when the job handler starts
+   * processing the job. Note that this is not necessarily an extension: if the duration is shorter
+   * than the time remaining on the job's current deadline, the new deadline will be earlier than
+   * the current one.
+   *
+   * <p>This value only exists for outbound Connectors and comes from the job headers.
+   */
+  public static final String JOB_TIMEOUT_KEYWORD = "jobTimeout";
+
+  /**
    * ID of the boolean flag that indicates whether the deduplication mode is manual or automatic.
    *
    * <p>This value only exists for inbound Connectors and comes from the extension properties of a

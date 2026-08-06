@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.ElementInstance;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -82,6 +83,9 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
       T mappedObject =
           FeelContextAwareObjectReader.of(objectMapper)
               .withEvaluator(evaluator)
+              .withAttribute(
+                  DocumentFactory.PHYSICAL_TENANT_ID_ATTRIBUTE,
+                  context.getDefinition().physicalTenantId())
               .readValue(processDefinitionProperties, cls);
       validationProvider.validate(mappedObject);
       return mappedObject;

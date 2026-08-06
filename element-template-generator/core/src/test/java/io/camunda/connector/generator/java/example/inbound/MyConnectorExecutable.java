@@ -78,4 +78,14 @@ public class MyConnectorExecutable implements InboundConnectorExecutable<Inbound
       icon = "my-connector-icon.png",
       defaultResultExpression = "={ myResponse: request }")
   public static class MinimallyAnnotatedWithResultExpression extends MyConnectorExecutable {}
+
+  @InboundConnector(name = "my-inbound-connector", type = "my-inbound-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorExecutable.ID,
+      name = MyConnectorExecutable.NAME,
+      inputDataClass = MyConnectorProperties.class,
+      icon = "my-connector-icon.png",
+      outputDataClass = MyConnectorResult.class)
+  public static class MinimallyAnnotatedWithOutputDataClass extends MyConnectorExecutable {}
 }

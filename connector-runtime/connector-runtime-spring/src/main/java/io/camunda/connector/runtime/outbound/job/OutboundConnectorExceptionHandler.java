@@ -25,6 +25,7 @@ import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
+import io.camunda.connector.runtime.core.error.InvalidJobTimeoutException;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
@@ -37,13 +38,18 @@ public class OutboundConnectorExceptionHandler {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(OutboundConnectorExceptionHandler.class);
+
+  /** Stands in for a container that (transitively) contains itself, so masking cannot loop. */
+  private static final String CIRCULAR_REFERENCE = "[circular reference]";
+
   private final SecretProvider secretProvider;
 
   public OutboundConnectorExceptionHandler(SecretProvider secretProvider) {
     this.secretProvider = secretProvider;
   }
 
-  private static Map<String, Object> exceptionToMap(Exception wrappedException) {
+  private static Map<String, Object> exceptionToMap(
+      Exception wrappedException, List<String> secrets) {
     Map<String, Object> result = new HashMap<>();
     Throwable originalCause = wrappedException.getCause();
     result.put("type", originalCause.getClass().getName());
@@ -57,14 +63,70 @@ public class OutboundConnectorExceptionHandler {
       var variables = connectorException.getErrorVariables();
 
       if (code != null) {
+        // deliberately not masked: BPMN error boundary events match on this value, so altering it
+        // would stop the error from being caught
         result.put("code", code);
       }
 
       if (variables != null) {
-        result.put("variables", variables);
+        result.put("variables", maskSecrets(variables, secrets));
       }
     }
     return Map.copyOf(result);
+  }
+
+  /**
+   * Masks every secret occurrence in {@code value}, recursing through maps and collections.
+   *
+   * <p>The error message is masked by the callers, but the error variables are copied straight off
+   * the original exception, and for HTTP connectors they carry the full response body and headers
+   * (see {@code ConnectorExceptionMapper}). An API that echoes a rejected credential back would
+   * otherwise put the resolved secret into process variables, which are visible to anyone who can
+   * see the process instance.
+   *
+   * <p>Only strings are rewritten; numbers, booleans and other scalars keep their type, since
+   * processes may branch on them. Values of types other than {@link Map}/{@link Collection}/{@link
+   * String} are passed through untouched — a secret held in a field of a custom object is not
+   * reached.
+   */
+  private static Object maskSecrets(Object value, List<String> secrets) {
+    return maskSecrets(value, secrets, Collections.newSetFromMap(new IdentityHashMap<>()));
+  }
+
+  private static Object maskSecrets(Object value, List<String> secrets, Set<Object> enclosing) {
+    return switch (value) {
+      case null -> null;
+      case String string -> hideSecretsFromMessage(string, secrets);
+      case Map<?, ?> map -> {
+        // error variables are user-supplied, so a container may contain itself
+        if (!enclosing.add(map)) {
+          yield CIRCULAR_REFERENCE;
+        }
+        try {
+          // keys are masked too, and collapsed keys simply overwrite rather than fail
+          var masked = new LinkedHashMap<String, Object>();
+          map.forEach(
+              (key, entry) ->
+                  masked.put(
+                      hideSecretsFromMessage(String.valueOf(key), secrets),
+                      maskSecrets(entry, secrets, enclosing)));
+          yield masked;
+        } finally {
+          enclosing.remove(map);
+        }
+      }
+      case Collection<?> collection -> {
+        if (!enclosing.add(collection)) {
+          yield CIRCULAR_REFERENCE;
+        }
+        try {
+          yield collection.stream().map(item -> maskSecrets(item, secrets, enclosing)).toList();
+        } finally {
+          enclosing.remove(collection);
+        }
+      }
+      default -> value;
+    };
   }
 
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
@@ -77,7 +139,9 @@ public class OutboundConnectorExceptionHandler {
               .toList();
       secrets =
           this.secretProvider.fetchAll(
-              allowedKeys, new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
+              allowedKeys,
+              new SecretContext(
+                  job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId()));
     } catch (Exception ex) {
       LOGGER.error(
           "Initial error for job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",
@@ -90,13 +154,16 @@ public class OutboundConnectorExceptionHandler {
                   + ex.getMessage(),
               ex);
       return new ConnectorResult.ErrorResult(
-          Map.of("error", exceptionToMap(wrappedException)),
+          // secrets could not be fetched, so there is nothing to mask with
+          Map.of("error", exceptionToMap(wrappedException, List.of())),
           wrappedException,
           job.getRetries() - 1);
     }
     return switch (e) {
       case InvalidBackOffDurationException invalidBackOffDurationException ->
           handleBackOffException(invalidBackOffDurationException, secrets);
+      case InvalidJobTimeoutException invalidJobTimeoutException ->
+          handleBackOffException(invalidJobTimeoutException, secrets);
       case ConnectorRetryException connectorRetryException ->
           handleConnectorRetryException(
               job, connectorRetryException, secrets, retryBackoffDuration);
@@ -105,7 +172,7 @@ public class OutboundConnectorExceptionHandler {
     };
   }
 
-  private String hideSecretsFromMessage(String message, List<String> secrets) {
+  private static String hideSecretsFromMessage(String message, List<String> secrets) {
     if (!Objects.isNull(message))
       return secrets.stream()
           .reduce(message, (newMessage, nextSecret) -> newMessage.replace(nextSecret, "***"));
@@ -115,7 +182,7 @@ public class OutboundConnectorExceptionHandler {
   private ConnectorResult.ErrorResult handleBackOffException(Exception e, List<String> secrets) {
     Exception newException = new Exception(hideSecretsFromMessage(e.getMessage(), secrets), e);
     return new ConnectorResult.ErrorResult(
-        Map.of("error", exceptionToMap(newException)), newException, 0);
+        Map.of("error", exceptionToMap(newException, secrets)), newException, 0);
   }
 
   private ConnectorResult.ErrorResult handleConnectorRetryException(
@@ -132,11 +199,17 @@ public class OutboundConnectorExceptionHandler {
         newException,
         Optional.ofNullable(ex.getRetries()).orElse(job.getRetries() - 1),
         errorCode,
-        Optional.ofNullable(ex.getBackoffDuration()).orElse(retryBackoff));
+        Optional.ofNullable(ex.getBackoffDuration()).orElse(retryBackoff),
+        secrets);
   }
 
   private ConnectorResult.ErrorResult handleSDKException(
-      ActivatedJob job, Exception ex, Integer retries, String errorCode, Duration backoffDuration) {
+      ActivatedJob job,
+      Exception ex,
+      Integer retries,
+      String errorCode,
+      Duration backoffDuration,
+      List<String> secrets) {
     LOGGER.debug(
         "Failing job with retry config => job: {} for tenant: {} with error code: {}, retries: {} and remaining backoffDuration: {}",
         job.getKey(),
@@ -146,7 +219,7 @@ public class OutboundConnectorExceptionHandler {
         backoffDuration);
 
     return new ConnectorResult.ErrorResult(
-        Map.of("error", exceptionToMap(ex)), ex, retries, backoffDuration);
+        Map.of("error", exceptionToMap(ex, secrets)), ex, retries, backoffDuration);
   }
 
   private ConnectorResult.ErrorResult handleGenericException(
@@ -167,7 +240,7 @@ public class OutboundConnectorExceptionHandler {
     if (ex instanceof ConnectorInputException || ex.getCause() instanceof ConnectorInputException) {
       retries = 0;
     }
-    return handleSDKException(job, newException, retries, errorCode, retryBackoff);
+    return handleSDKException(job, newException, retries, errorCode, retryBackoff, secrets);
   }
 
   public ConnectorResult.ErrorResult handleFinalResultException(
@@ -178,7 +251,9 @@ public class OutboundConnectorExceptionHandler {
             .toList();
     List<String> secrets =
         this.secretProvider.fetchAll(
-            allowedKeys, new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
+            allowedKeys,
+            new SecretContext(
+                job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId()));
     Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.error(
         "Exception while processing job: {} for tenant: {}, message: {}",
@@ -186,6 +261,6 @@ public class OutboundConnectorExceptionHandler {
         job.getTenantId(),
         ex.getMessage());
     return new ConnectorResult.ErrorResult(
-        Map.of("error", exceptionToMap(newException)), newException, 0);
+        Map.of("error", exceptionToMap(newException, secrets)), newException, 0);
   }
 }

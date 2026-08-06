@@ -31,14 +31,14 @@ import software.amazon.awssdk.services.sns.model.PublishResponse;
     inputVariables = {"authentication", "configuration", "topic", "awsCredential"},
     type = "io.camunda:aws-sns:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.AWSSNS.v1",
     name = "Publish Message to AWS SNS",
     description = "Send messages to Amazon SNS.",
     keywords = {"send message", "publish message", "notification", "publish to topic", "FIFO"},
     inputDataClass = SnsConnectorRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 9,
+    version = 10,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Topic properties"),

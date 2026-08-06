@@ -94,12 +94,20 @@ public class InboundConnectorRuntimeConfiguration {
       SecretProviderAggregator secretProviderAggregator,
       @Autowired(required = false) ValidationProvider validationProvider,
       Map<String, ProcessInstanceClient> processInstanceClientsByPhysicalTenantId,
-      DocumentFactory documentFactory,
+      @Autowired(required = false) DocumentFactory legacyDocumentFactory,
       CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient) {
+    Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId =
+        PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
+            registry, legacyCamundaClient, legacyDocumentFactory);
     Map<String, InboundCorrelationHandler> correlationHandlersByPhysicalTenantId =
         InboundCorrelationConfiguration.buildCorrelationHandlersByPhysicalTenantId(
-            registry, legacyCamundaClient, mapper, messageTtl, connectorsInboundMetrics);
+            registry,
+            legacyCamundaClient,
+            mapper,
+            messageTtl,
+            documentFactoriesByPhysicalTenantId,
+            connectorsInboundMetrics);
     Map<String, InboundConnectorContextFactory> delegatesByPhysicalTenantId =
         registry.clientNames().stream()
             .collect(
@@ -116,7 +124,7 @@ public class InboundConnectorRuntimeConfiguration {
                           secretProviderAggregator,
                           validationProvider,
                           processInstanceClientsByPhysicalTenantId.get(physicalTenantId),
-                          documentFactory,
+                          documentFactoriesByPhysicalTenantId.get(physicalTenantId),
                           PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient));
                     }));
     return new PhysicalTenantIdRoutingInboundConnectorContextFactory(delegatesByPhysicalTenantId);
@@ -224,7 +232,9 @@ public class InboundConnectorRuntimeConfiguration {
   public ProcessStateManager processStateManager(
       InboundExecutableRegistry registry,
       ProcessDefinitionInspector inspector,
-      ProcessStateContainer processStateContainer) {
-    return new ProcessStateManagerImpl(processStateContainer, inspector, registry);
+      ProcessStateContainer processStateContainer,
+      ConnectorsInboundMetrics connectorsInboundMetrics) {
+    return new ProcessStateManagerImpl(
+        processStateContainer, inspector, registry, connectorsInboundMetrics);
   }
 }

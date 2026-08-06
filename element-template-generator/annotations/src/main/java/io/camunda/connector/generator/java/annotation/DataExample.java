@@ -26,7 +26,17 @@ import java.lang.annotation.Target;
 public @interface DataExample {
 
   /**
-   * @return ID of the example which can be used when generating documentation.
+   * Id an example can be explicitly marked with to designate it as the canonical one (e.g. for
+   * generated help tooltips), when a class declares more than one {@code @DataExample}. Opt-in
+   * only: {@link #id()}'s own default stays {@code ""} for backward compatibility with existing
+   * consumers of this annotation that key their own documentation lookups by id.
+   */
+  String DEFAULT_ID = "default";
+
+  /**
+   * @return ID of the example which can be used when generating documentation. Connectors with
+   *     multiple examples should give each a distinct, stable id; mark one {@link #DEFAULT_ID} to
+   *     designate it as canonical.
    */
   String id() default "";
 

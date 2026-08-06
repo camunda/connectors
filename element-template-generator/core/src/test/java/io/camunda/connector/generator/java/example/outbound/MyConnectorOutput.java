@@ -16,6 +16,13 @@
  */
 package io.camunda.connector.generator.java.example.outbound;
 
+import io.camunda.connector.generator.java.annotation.DataExample;
 import java.util.List;
 
-public record MyConnectorOutput(List<String> myListOutputProperty) {}
+public record MyConnectorOutput(List<String> myListOutputProperty) {
+
+  @DataExample(feel = "= { firstItem: myListOutputProperty[1] }")
+  public static MyConnectorOutput example() {
+    return new MyConnectorOutput(List.of("first-item", "second-item"));
+  }
+}

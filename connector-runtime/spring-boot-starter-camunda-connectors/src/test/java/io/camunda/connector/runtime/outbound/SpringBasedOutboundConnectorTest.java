@@ -42,7 +42,13 @@ public class SpringBasedOutboundConnectorTest {
             .get();
     assertThat(connectorConfig).isNotNull();
     var connectorFromFactory = outboundConnectorFactory.getInstance(connectorConfig.type());
-    assertThat(connectorFromFactory).isEqualTo(connector);
+    // #6961: the factory now creates a fresh, autowired instance per call (via
+    // AutowireCapableBeanFactory#createBean) rather than resolving the container-managed
+    // singleton bean, so isolation does not depend on connector authors opting into prototype
+    // scope. The autowired dependency (Environment) is still correctly injected though, as
+    // verified by the successful execute() call below.
+    assertThat(connectorFromFactory).isInstanceOf(TestSpringBasedOutboundConnector.class);
+    assertThat(connectorFromFactory).isNotSameAs(connector);
     var result = connectorFromFactory.execute(null);
     assertThat(result).isNotNull();
   }

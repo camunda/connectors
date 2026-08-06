@@ -881,6 +881,17 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
+  }, {
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "optional" : true,
+    "group" : "retries",
+    "binding" : {
+      "key" : "jobTimeout",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cGF0aCBkPSJNMiAxLjVoMTJhMSAxIDAgMCAxIDEgMXY4YTEgMSAwIDAgMS0xIDFINi41TDQuNSAxNC41di0zSDJhMSAxIDAgMCAxLTEtMXYtOGExIDEgMCAwIDEgMS0xeiIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxjaXJjbGUgY3g9IjgiIGN5PSI1LjUiIHI9IjEuNCIgZmlsbD0iIzAwMDAwMCIvPgogIDxwYXRoIGQ9Ik01LjUgOS41YzAtMi4yIDUtMi4yIDUgMHoiIGZpbGw9IiMwMDAwMDAiLz4KPC9zdmc+Cg=="

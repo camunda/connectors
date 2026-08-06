@@ -17,7 +17,10 @@ public class CredentialsProviderSupportV2 {
   private static final Logger LOGGER = LoggerFactory.getLogger(CredentialsProviderSupportV2.class);
 
   public static AwsCredentialsProvider credentialsProvider(AwsBaseRequest request) {
-    AwsAuthentication authentication = request.getAuthentication();
+    return credentialsProvider(request.getAuthentication());
+  }
+
+  public static AwsCredentialsProvider credentialsProvider(AwsAuthentication authentication) {
     if (authentication instanceof AwsAuthentication.AwsStaticCredentialsAuthentication sca) {
       LOGGER.debug("Using StaticCredentialsProvider for AWS authentication (using aws sdk v2)");
       return StaticCredentialsProvider.create(

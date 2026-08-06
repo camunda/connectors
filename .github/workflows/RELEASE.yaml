@@ -118,6 +118,52 @@ jobs:
       - name: Install element templates CLI
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
+      # Credentials and ~/.m2/settings.xml must be in place before the first Maven
+      # invocation below, otherwise Maven resolves the POM anonymously and 401s on
+      # any artifact that is not publicly available on Maven Central.
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+            secret/data/products/connectors/ci/artifactory USER | ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
+
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          # Two mirrors, because the HeroDevs NES repo is not served by the CI Nexus cache:
+          # - camunda-nexus: mirrors herodevs-nes to the internal Artifactory virtual repo.
+          #   Required on stable/8.7 and stable/8.8, whose parent/pom.xml pins an NES-only
+          #   Spring Boot patch. Inert on main (no herodevs-nes repository declared).
+          #   Mirror credentials are keyed on the *mirror* id, so camunda-nexus carries the
+          #   Artifactory creds. See the HeroDevs NES PSA in #prj-spring-boot-35-end-of-oss-support.
+          # - nexus-mirror: CI Nexus creds for the pull-through cache at repository.nexus.camunda.cloud
+          #   for everything else. herodevs-nes is excluded so the wildcard cannot swallow it —
+          #   Maven picks the first matching mirror by declaration order, not by specificity.
+          servers: |
+            [{
+              "id": "nexus-mirror",
+              "username": "${{ steps.vault-secrets.outputs.CI_NEXUS_USR }}",
+              "password": "${{ steps.vault-secrets.outputs.CI_NEXUS_PSW }}"
+             },
+             {
+               "id": "camunda-nexus",
+               "username": "${{ steps.vault-secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.vault-secrets.outputs.ARTIFACTORY_PSW }}"
+             }]
+          mirrors: '[{"url": "https://artifacts.camunda.com/artifactory/internal", "id": "camunda-nexus", "mirrorOf": "herodevs-nes", "name": "camunda Nexus"}, {"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth,!herodevs-nes", "name": "camunda Nexus"}]'
+
         # Maven build & version bump
       - name: Set Connectors release version
         run: ./mvnw -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
@@ -141,18 +187,6 @@ jobs:
       - name: Generate sbom reports
         run: |
           ./mvnw cyclonedx:makeAggregateBom -pl bundle/default-bundle
-
-      - name: Import Secrets
-        id: vault-secrets
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          secrets: |
-            secret/data/products/connectors/ci/common GITHUB_APP_ID;
-            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
 
       - name: Generate a GitHub App token
         id: app-token

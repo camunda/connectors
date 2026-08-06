@@ -104,6 +104,64 @@ public class JobRetriesIntegrationTest {
   }
 
   @Test
+  void validJobTimeoutProvided_connectorInvokedNormally() {
+    // given
+    var function = (CountingConnectorFunction) factory.getInstance(testConnectorType);
+    camundaClient
+        .newDeployResourceCommand()
+        .addProcessModel(
+            Bpmn.createExecutableProcess(bpmnProcessId)
+                .startEvent()
+                .serviceTask()
+                .zeebeJobType(testConnectorType)
+                .zeebeJobRetries("1")
+                .zeebeTaskHeader(Keywords.JOB_TIMEOUT_KEYWORD, "PT10M")
+                .endEvent()
+                .done(),
+            bpmnProcessId + ".bpmn")
+        .send()
+        .join();
+
+    // when
+    createProcessInstance();
+
+    // then — the connector still runs to completion with a valid jobTimeout header
+    await()
+        .during(1, SECONDS)
+        .atMost(5, SECONDS)
+        .failFast(() -> function.counter > 1)
+        .until(() -> function.counter == 1);
+  }
+
+  @Test
+  void invalidJobTimeoutProvided_connectorNotExecuted() {
+    // given
+    var function = (CountingConnectorFunction) factory.getInstance(testConnectorType);
+    camundaClient
+        .newDeployResourceCommand()
+        .addProcessModel(
+            Bpmn.createExecutableProcess(bpmnProcessId)
+                .startEvent()
+                .serviceTask()
+                .zeebeJobType(testConnectorType)
+                .zeebeTaskHeader(Keywords.JOB_TIMEOUT_KEYWORD, "NOT_A_VALID_DURATION")
+                .endEvent()
+                .done(),
+            bpmnProcessId + ".bpmn")
+        .send()
+        .join();
+
+    // when
+    createProcessInstance();
+
+    // then — malformed jobTimeout header fails the job before the connector ever runs
+    await()
+        .during(3, SECONDS)
+        .failFast(() -> function.counter > 0)
+        .until(() -> function.counter == 0);
+  }
+
+  @Test
   void noRetriesProvided_connectorIsInvoked3times() {
     var function = (CountingConnectorFunction) factory.getInstance(testConnectorType);
     camundaClient

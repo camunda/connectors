@@ -21,6 +21,9 @@ import org.jspecify.annotations.Nullable;
 public record AssistantMessage(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCall> toolCalls,
+    @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable String modelId,
+    @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable String messageId,
+    @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable StopReason stopReason,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
     implements AssistantMessageBuilder.With, Message, ContentMessage {
 

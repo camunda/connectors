@@ -747,6 +747,7 @@
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
+    "tooltip" : "<div><p>Example response:</p><code>{\"body\":{\"order\":{\"id\":\"123\",\"total\":\"100.00€\"}},\"headers\":{\"Content-Type\":\"application/json\"},\"status\":200}</code><p>Example FEEL expression: <code>= { orderId: body.order.id }</code> -&gt; <code>{\"orderId\":\"123\"}</code></p></div>",
     "type" : "Text"
   }, {
     "id" : "errorExpression",
@@ -779,6 +780,17 @@
     "group" : "retries",
     "binding" : {
       "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "optional" : true,
+    "group" : "retries",
+    "binding" : {
+      "key" : "jobTimeout",
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"

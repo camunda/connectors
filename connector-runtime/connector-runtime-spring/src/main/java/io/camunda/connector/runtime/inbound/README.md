@@ -81,6 +81,15 @@ ImportSchedulers:
 These results are merged into the process state store. If the relevant versions for a process
 change, the runtime publishes a `ProcessStateChanged` event.
 
+A given state transition is only ever reported once: the state store commits it before the event is
+published, so a subsequent import of unchanged data yields no diff. Publishing can fail — it fetches
+the BPMN model from the Orchestration Cluster, which may be briefly unreachable during a rolling
+update — so `ProcessStateManagerImpl` queues any process whose event it could not publish and retries
+it on the next poll, re-reading the active versions from the state store rather than reusing the ones
+it failed with. Without that retry the process would be recorded as active while its connectors were
+never activated, and nothing would ever notice. Failures are counted by
+`camunda.connector.inbound.process-state-change.publish-failures`.
+
 Then the executable store is updated from those events:
 
 ```text
@@ -115,6 +124,7 @@ flowchart TD
     T --> importSchedulers
     S1 & S2 --> OC --> PS
     PS -->|versions changed| EV --> registry
+    EV -->|publish failed, retry next poll| PS
 ```
 
 ### When the listener receives an event, e.g. a new email in the inbox

@@ -24,19 +24,24 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.api.document.DocumentReturnFormat;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClass;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClassString;
+import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -46,6 +51,7 @@ class JobHandlerContextTest {
   @Mock private ActivatedJob activatedJob;
   @Mock private SecretProvider secretProvider;
   @Mock private ValidationProvider validationProvider;
+  @Mock private DocumentFactory documentFactory;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private JobHandlerContext jobHandlerContext;
@@ -126,6 +132,79 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("1");
     assertThat(jobHandlerContext.bindVariables(TestClass.class).integer).isEqualTo(1);
+  }
+
+  @Test
+  void bindVariables_secretContextCarriesTheJobsPhysicalTenantId() {
+    when(activatedJob.getVariables()).thenReturn("{ \"integer\": {{secrets.FOO}} }");
+    when(activatedJob.getTenantId()).thenReturn("my-tenant");
+    when(activatedJob.getBpmnProcessId()).thenReturn("my-process");
+    when(activatedJob.getPhysicalTenantId()).thenReturn("engine-1");
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("1");
+
+    jobHandlerContext.bindVariables(TestClass.class);
+
+    var secretContext = ArgumentCaptor.forClass(SecretContext.class);
+    verify(secretProvider).getSecret(eq("FOO"), secretContext.capture());
+    assertThat(secretContext.getValue())
+        .isEqualTo(new SecretContext("my-tenant", "my-process", "engine-1"));
+  }
+
+  @Test
+  void bindVariables_secretContextHasNoPhysicalTenantIdWhenTheJobReportsNone() {
+    // clusters that predate multi-engine support report an empty physical tenant
+    when(activatedJob.getVariables()).thenReturn("{ \"integer\": {{secrets.FOO}} }");
+    when(activatedJob.getPhysicalTenantId()).thenReturn("");
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("1");
+
+    jobHandlerContext.bindVariables(TestClass.class);
+
+    var secretContext = ArgumentCaptor.forClass(SecretContext.class);
+    verify(secretProvider).getSecret(eq("FOO"), secretContext.capture());
+    assertThat(secretContext.getValue().physicalTenantId()).isNull();
+  }
+
+  @Test
+  void create_stampsTheJobsPhysicalTenantIdWhenRequestHasNone() {
+    when(activatedJob.getPhysicalTenantId()).thenReturn("tenant-a");
+    var contextWithDocumentFactory =
+        new JobHandlerContext(
+            activatedJob,
+            secretProvider,
+            validationProvider,
+            documentFactory,
+            objectMapper,
+            SecretFilter.allowAll());
+    var request =
+        DocumentCreationRequest.from(new ByteArrayInputStream("hello".getBytes())).build();
+
+    contextWithDocumentFactory.create(request);
+
+    var captor = ArgumentCaptor.forClass(DocumentCreationRequest.class);
+    verify(documentFactory).create(captor.capture());
+    assertThat(captor.getValue().physicalTenantId()).isEqualTo("tenant-a");
+  }
+
+  @Test
+  void create_neverOverridesAnExplicitlySetPhysicalTenantId() {
+    var contextWithDocumentFactory =
+        new JobHandlerContext(
+            activatedJob,
+            secretProvider,
+            validationProvider,
+            documentFactory,
+            objectMapper,
+            SecretFilter.allowAll());
+    var request =
+        DocumentCreationRequest.from(new ByteArrayInputStream("hello".getBytes()))
+            .physicalTenantId("explicit-tenant")
+            .build();
+
+    contextWithDocumentFactory.create(request);
+
+    var captor = ArgumentCaptor.forClass(DocumentCreationRequest.class);
+    verify(documentFactory).create(captor.capture());
+    assertThat(captor.getValue().physicalTenantId()).isEqualTo("explicit-tenant");
   }
 
   @Test

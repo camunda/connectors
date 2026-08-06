@@ -7,47 +7,56 @@
 package io.camunda.connector.aws.dynamodb.operation.table;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.DescribeTable;
+import io.camunda.connector.aws.dynamodb.model.TableDescriptionResult;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableResponse;
+import software.amazon.awssdk.services.dynamodb.model.TableDescription;
 
 class DescribeTableOperationTest extends BaseDynamoDbOperationTest {
 
   @Test
   public void invoke_shouldReturnDescribeTableResult() {
     // Given
+    TableDescription tableDescription =
+        TableDescription.builder().tableName(TestDynamoDBData.ActualValue.TABLE_NAME).build();
+    when(dynamoDbClient.describeTable(any(DescribeTableRequest.class)))
+        .thenReturn(DescribeTableResponse.builder().table(tableDescription).build());
     DescribeTable describeTable = new DescribeTable(TestDynamoDBData.ActualValue.TABLE_NAME);
     DescribeTableOperation operation = new DescribeTableOperation(describeTable);
     // When
-    Object invoke = operation.invoke(dynamoDB);
+    Object invoke = operation.invoke(dynamoDbClient);
     // Then
     assertThat(invoke).isNotNull();
-    TableDescription result = (TableDescription) invoke;
-    assertThat(result.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    TableDescriptionResult result = (TableDescriptionResult) invoke;
+    assertThat(result.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
   }
 
   /**
    * Golden-JSON shape test: pins the exact JSON the v1 describeTable operation writes to process
    * variables today, so the AWS SDK v2 migration must reproduce it unchanged (migration contract
    * for #7973). Shares the same {@link TableDescription} shape as createTable (see
-   * CreateTableOperationTest) -- both operations return the identical v1 type.
+   * CreateTableOperationTest) -- both operations return the identical v2 type.
    */
   @Test
   public void describeTable_serializesToDocumentedV1JsonShape() throws Exception {
     TableDescription realDescription =
         buildRealisticTableDescription(TestDynamoDBData.ActualValue.TABLE_NAME);
-    when(table.describe()).thenReturn(realDescription);
+    when(dynamoDbClient.describeTable(any(DescribeTableRequest.class)))
+        .thenReturn(DescribeTableResponse.builder().table(realDescription).build());
     DescribeTable describeTable = new DescribeTable(TestDynamoDBData.ActualValue.TABLE_NAME);
     DescribeTableOperation operation = new DescribeTableOperation(describeTable);
 
-    Object result = operation.invoke(dynamoDB);
+    Object result = operation.invoke(dynamoDbClient);
 
     JsonNode actual = objectMapper.readTree(objectMapper.writeValueAsString(result));
     String expectedJson =
@@ -91,12 +100,12 @@ class DescribeTableOperationTest extends BaseDynamoDbOperationTest {
           "tableClassSummary": null,
           "deletionProtectionEnabled": null,
           "onDemandThroughput": null,
-          "ssedescription": null
+          "ssedescription": null,
+          "warmThroughput": null
         }
         """;
     JsonNode expected = objectMapper.readTree(expectedJson);
     assertThat(actual).isEqualTo(expected);
-    // Deliberately no exact writeValueAsString() pin: see CreateTableOperationTest for why.
   }
 
   @Test

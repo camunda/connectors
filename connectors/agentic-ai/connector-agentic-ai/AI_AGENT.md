@@ -29,6 +29,7 @@ configuration, the result will contain the following fields:
       },
       "toolCalls" : 0
     },
+    "schemaVersion" : 1,
     "state" : "READY",
     "toolDefinitions" : [ {
       "description" : "A sample tool for demonstration purposes.",
@@ -54,11 +55,13 @@ configuration, the result will contain the following fields:
 
 The response text can be accessed via FEEL:
 ```json
-=responseText
+={ responseText: responseText }
 ```
 leading to the following result
 ```json
-"This is a sample response text from the AI agent."
+{
+  "responseText" : "This is a sample response text from the AI agent."
+}
 ```
 
 #### JSON response
@@ -74,6 +77,7 @@ leading to the following result
       },
       "toolCalls" : 0
     },
+    "schemaVersion" : 1,
     "state" : "READY",
     "toolDefinitions" : [ {
       "description" : "A sample tool for demonstration purposes.",
@@ -123,6 +127,7 @@ leading to the following result
       },
       "toolCalls" : 0
     },
+    "schemaVersion" : 1,
     "state" : "READY",
     "toolDefinitions" : [ {
       "description" : "A sample tool for demonstration purposes.",
@@ -185,6 +190,7 @@ leading to the following result
       },
       "toolCalls" : 0
     },
+    "schemaVersion" : 1,
     "state" : "READY",
     "toolDefinitions" : [ {
       "description" : "A sample tool for demonstration purposes.",

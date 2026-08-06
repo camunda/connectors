@@ -115,6 +115,16 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
+    void resultExpressionProperty_tooltipPopulated_whenOutputDataClassHasExample() {
+      var templates =
+          generator.generate(MyConnectorExecutable.MinimallyAnnotatedWithOutputDataClass.class);
+      for (var template : templates) {
+        var property = getPropertyByLabel("Result expression", template);
+        assertThat(property.getTooltip()).contains("orderId").contains("123");
+      }
+    }
+
+    @Test
     void activationConditionProperty() {
       var templates = generator.generate(MyConnectorExecutable.MinimallyAnnotated.class);
       for (var template : templates) {

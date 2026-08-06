@@ -19,6 +19,9 @@ package io.camunda.connector.runtime.outbound.secret;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
@@ -33,6 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cache.Cache;
+import org.springframework.cache.concurrent.ConcurrentMapCache;
 
 @ExtendWith(MockitoExtension.class)
 class ProcessDefinitionSecretKeyCacheTest {
@@ -47,9 +51,14 @@ class ProcessDefinitionSecretKeyCacheTest {
 
   @BeforeEach
   void setUp() throws Exception {
-    secretKeyCache = new ProcessDefinitionSecretKeyCache(camundaClient, cache);
-    when(camundaClient.newProcessDefinitionGetXmlRequest(anyLong())).thenReturn(xmlRequest);
-    when(cache.get(anyLong(), any(Callable.class)))
+    secretKeyCache = new ProcessDefinitionSecretKeyCache("tenant", camundaClient, cache);
+    // lenient: the cross-tenant collision test below builds its own separate clients/caches and
+    // doesn't exercise these shared fields
+    lenient()
+        .when(camundaClient.newProcessDefinitionGetXmlRequest(anyLong()))
+        .thenReturn(xmlRequest);
+    lenient()
+        .when(cache.get(any(), any(Callable.class)))
         .thenAnswer(
             invocation -> {
               Callable<?> loader = invocation.getArgument(1);
@@ -107,6 +116,37 @@ class ProcessDefinitionSecretKeyCacheTest {
         secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "nonexistent-task"));
 
     assertThat(keys).isEmpty();
+  }
+
+  @Test
+  void getSecretKeys_collidingProcessDefinitionKeyAcrossPhysicalTenants_doesNotLeakBetweenTenants()
+      throws IOException {
+    // a real (unmocked) shared cache, proving the compound key actually disambiguates rather than
+    // relying on a mock that never really stores anything
+    Cache sharedCache = new ConcurrentMapCache("secret-keys");
+    var clientA = mock(CamundaClient.class);
+    var clientB = mock(CamundaClient.class);
+    var xmlRequestA = mock(ProcessDefinitionGetXmlRequest.class);
+    var xmlRequestB = mock(ProcessDefinitionGetXmlRequest.class);
+    when(clientA.newProcessDefinitionGetXmlRequest(PROCESS_DEF_KEY)).thenReturn(xmlRequestA);
+    when(clientB.newProcessDefinitionGetXmlRequest(PROCESS_DEF_KEY)).thenReturn(xmlRequestB);
+    when(xmlRequestA.execute()).thenReturn(loadBpmn("outbound-with-secrets.bpmn"));
+    when(xmlRequestB.execute()).thenReturn(loadBpmn("outbound-no-secrets.bpmn"));
+
+    var cacheForTenantA = new ProcessDefinitionSecretKeyCache("tenant-a", clientA, sharedCache);
+    var cacheForTenantB = new ProcessDefinitionSecretKeyCache("tenant-b", clientB, sharedCache);
+
+    var keysA =
+        cacheForTenantA.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+    var keysB =
+        cacheForTenantB.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "no-secrets-task"));
+
+    assertThat(keysA).containsExactlyInAnyOrder("API_KEY", "MY_TOKEN");
+    assertThat(keysB).isEmpty();
+    // each tenant's own client was queried exactly once, proving neither served the other's cache
+    // entry despite the identical processDefinitionKey
+    verify(clientA).newProcessDefinitionGetXmlRequest(PROCESS_DEF_KEY);
+    verify(clientB).newProcessDefinitionGetXmlRequest(PROCESS_DEF_KEY);
   }
 
   private String loadBpmn(String fileName) throws IOException {

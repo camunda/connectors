@@ -1,0 +1,68 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.model.request.v2;
+
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration.CUSTOM_ID;
+
+import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.constraints.NotBlank;
+import java.util.Map;
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * User-supplied chat model provider. The {@link #providerType()} discriminator is dispatched to a
+ * {@code ChatModelFactory} bean the user implements and registers themselves (see {@code
+ * ChatModelRegistry}); {@link #parameters()} is opaque configuration only that factory understands.
+ */
+@TemplateSubType(id = CUSTOM_ID, label = "Custom Implementation (Self-Managed/Hybrid only)")
+public record CustomProviderConfiguration(
+    @TemplateProperty(
+            group = "provider",
+            label = "Provider type",
+            description = "Identifier for the custom chat model provider.",
+            tooltip = "Must match the identifier configured for the custom implementation.",
+            type = TemplateProperty.PropertyType.String,
+            feel = FeelMode.optional,
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+        @NotBlank
+        String providerType,
+    @TemplateProperty(
+            group = "model",
+            label = "Model",
+            description = "Identifier of the model to use.",
+            type = TemplateProperty.PropertyType.String,
+            feel = FeelMode.optional,
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+        @NotBlank
+        String model,
+    @TemplateProperty(
+            group = "provider",
+            label = "Provider parameters",
+            description = "Parameters for the custom chat model provider implementation.",
+            feel = FeelMode.required,
+            optional = true)
+        Map<String, Object> parameters)
+    implements ProviderConfiguration {
+
+  @TemplateProperty(ignore = true)
+  public static final String CUSTOM_ID = "custom";
+
+  public CustomProviderConfiguration(
+      String providerType, String model, @Nullable Map<String, Object> parameters) {
+    this.providerType = providerType;
+    this.model = model;
+    this.parameters = Objects.requireNonNullElse(parameters, Map.of());
+  }
+
+  @Override
+  public String provider() {
+    return providerType;
+  }
+}

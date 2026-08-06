@@ -23,8 +23,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpCommonResult;
+import io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
-import io.camunda.connector.http.rest.model.RestAuthenticationConfiguration;
 
 @OutboundConnector(
     name = "HTTP REST",
