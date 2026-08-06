@@ -221,6 +221,10 @@ public class GoogleVertexAiE2ETestIT extends AbstractAiAgentE2ETestIT {
     // given — forces at least two model-call turns through the real Vertex AI provider, so any
     // regression in conversation-history round-tripping (tool calls, tool results, or — once the
     // google-genai migration lands on main — Gemini 3's thoughtSignature) would surface here.
+    // GetDateAndTime stays available and callable more than once for the whole conversation, so the
+    // assertion at the end of this test additionally proves the tool only actually executed once —
+    // otherwise the model calling it again on the second turn could satisfy the judge below even
+    // with broken context retention (see review discussion on PR #8226).
     camundaClient
         .newDeployResourceCommand()
         .addResourceFromClasspath(BPMN_RESOURCE)
@@ -305,6 +309,15 @@ public class GoogleVertexAiE2ETestIT extends AbstractAiAgentE2ETestIT {
 
     // then — agent answered the follow-up using the tool result retained in conversation context
     assertThatProcessInstance(processInstance).isCompleted();
+
+    // GetDateAndTime is a real script task (FEEL now()) and the system prompt allows calling the
+    // same tool again, so nothing but conversation-history retention stops the model from just
+    // re-invoking it on the second turn and satisfying the judge below with a fresh, near-identical
+    // timestamp even if round-tripping is broken. Asserting it only ever completed once across the
+    // whole process instance (both turns combined) rules that out: the follow-up's time reference
+    // can only have come from the retained first-turn tool result.
+    assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
+
     assertThatProcessInstance(processInstance)
         .hasVariableSatisfiesJudge(
             "agent",
