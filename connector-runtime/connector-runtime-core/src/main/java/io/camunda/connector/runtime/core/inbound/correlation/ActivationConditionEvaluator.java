@@ -94,7 +94,7 @@ public class ActivationConditionEvaluator {
       return Boolean.TRUE.equals(shouldActivate);
     } catch (FeelEngineWrapperException e) {
       throw new ConnectorInputException(
-          "Activation condition could not be evaluated: %s".formatted(e.getReason()), e);
+          "Activation condition could not be evaluated: %s".formatted(e.getMessage()), e);
     }
   }
 

@@ -204,7 +204,7 @@ public class ConnectorResultHandler {
       return feelExpressionEvaluator.evaluateToJson(expression, variables);
     } catch (FeelEngineWrapperException e) {
       throw new ConnectorInputException(
-          "%s could not be evaluated: %s".formatted(expressionNameForError, e.getReason()), e);
+          "%s could not be evaluated: %s".formatted(expressionNameForError, e.getMessage()), e);
     }
   }
 
