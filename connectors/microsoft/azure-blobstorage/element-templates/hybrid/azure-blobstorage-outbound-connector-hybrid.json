@@ -5,7 +5,7 @@
   "description" : "Upload and download files from Azure Blob Storage.",
   "keywords" : [ "download file from azure blob storage", "upload file to azure blob storage", "download blob", "upload blob", "download file", "upload file", "blob storage", "file storage", "cloud storage" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -531,7 +531,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

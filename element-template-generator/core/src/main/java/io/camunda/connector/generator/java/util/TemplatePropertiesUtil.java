@@ -370,8 +370,7 @@ public class TemplatePropertiesUtil {
     }
 
     if (builder instanceof DocumentComposerPropertyBuilder composerBuilder) {
-      // The composer's FEEL expression reads the helper sub-fields, whose bindings were just
-      // prefixed with the same path; re-render it so the references resolve at runtime.
+      // Re-render so the composer's helper references match their just-prefixed bindings.
       composerBuilder.addHelperPathPrefix(path);
     }
 

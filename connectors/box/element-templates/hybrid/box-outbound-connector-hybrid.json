@@ -5,7 +5,7 @@
   "description" : "Interact with the Box Document API",
   "keywords" : [ "create folder", "delete folder", "upload file", "download file", "move file", "delete file", "search files", "file storage", "document management" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/box/",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -774,7 +774,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

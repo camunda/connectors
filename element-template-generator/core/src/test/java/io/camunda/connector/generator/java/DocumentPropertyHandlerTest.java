@@ -444,14 +444,7 @@ public class DocumentPropertyHandlerTest extends BaseTest {
     }
   }
 
-  /**
-   * Guards the load-bearing invariant that the composer and every helper sub-field share a common
-   * parent path in their {@code ZeebeInput} bindings. {@code
-   * DocumentPropertyHandler.helperTargetParent} is the single place that derives this parent; these
-   * tests pin its output for both top-level and nested-record cases. See {@link
-   * ComposerQualification} for the companion invariant that the composer's FEEL expression reads
-   * those helpers by the same nesting path.
-   */
+  // Pins helperTargetParent's binding-path output; see ComposerQualification for the composer side.
   @Nested
   class BindingPathInvariant {
 
@@ -505,13 +498,8 @@ public class DocumentPropertyHandlerTest extends BaseTest {
     }
   }
 
-  /**
-   * A helper bound to {@code nested.doc_documentSource} becomes a <em>nested</em> local variable
-   * ({@code nested: {doc_documentSource: ...}}) once the engine applies the input mapping, so the
-   * composer must read it by that full path — a bare {@code doc_documentSource} resolves to null
-   * and the composer silently yields no document. Proven against a real 8.10 engine (see project
-   * memory); these tests pin the fix at the generator level.
-   */
+  // A nested helper is a separate local variable from its bare leaf name; verified on a real
+  // engine.
   @Nested
   class ComposerQualification {
 

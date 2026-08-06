@@ -395,8 +395,7 @@ final class DocumentPropertyHandler {
       PropertyCondition condition,
       String group,
       String composerId) {
-    // The expression is rendered by the builder, which re-renders it whenever the enclosing record
-    // nests this property, so helper references always match the paths their bindings create.
+    // The builder re-renders the expression whenever this property gets nested further.
     var composer = new DocumentComposerPropertyBuilder(targetParent, feelExpression);
     composer.id(composerId).binding(new ZeebeInput(targetPath)).group(group).condition(condition);
     return composer;
