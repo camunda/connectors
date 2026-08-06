@@ -1,0 +1,182 @@
+name: AI Agent CPT Tests (PR)
+
+# Runs the real-LLM AI Agent CPT suite (OpenAI + Google Vertex AI, see #8234) on a PR before it
+# reaches the merge queue, gated by the `ai-agent-cpt` label so it isn't triggered accidentally.
+#
+# Deliberately a standalone workflow rather than adding `pull_request` to MERGE_QUEUE_HELM_TEST.yaml:
+# that file's build-image job also feeds trigger-sm-e2e/trigger-saas-e2e, which gate only on
+# build-image producing a version - reusing it here would arm both on every labeled PR.
+#
+# Build and test share a single job: the bundle image is built with `load: true` (never pushed),
+# so it's only ever available to this job's own Docker daemon - no push/pull round trip, no Harbor
+# credentials in this workflow's blast radius, and no orphan tags left behind in the registry.
+on:
+  pull_request:
+    types: [ labeled, synchronize ]
+
+# Scoped to the PR number only (no label name in the key): removing-then-re-adding the label
+# cancels an in-flight run instead of racing a duplicate - the actual guard against label-flapping
+# cost abuse, since every run here spends real LLM API quota.
+concurrency:
+  group: ai-agent-cpt-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  run-ai-agent-cpt:
+    name: AI Agent E2E Tests (CPT)
+    runs-on: gcp-core-8-default
+    timeout-minutes: 30
+    # Fork PRs get no secrets from `pull_request` by design (never widen this to
+    # pull_request_target - that would hand Vault + a real OPENAI_API_KEY/Vertex service
+    # account to unvetted fork code before review). Mirrors BUILD_PR_DOCKER_IMAGES.yml's gate,
+    # not NIGHTLY_E2E.yml's - that one has an operator-precedence bug where the fork check
+    # doesn't apply on `synchronize` (see #8234).
+    if: |
+      github.event.pull_request.state != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository && (
+        github.event.label.name == 'ai-agent-cpt' ||
+        (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'ai-agent-cpt'))
+      )
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # build the PR's actual code, not the synthetic merge ref
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      # First real step after checkout: everything below must be gated on this, including the
+      # image build - unlike run-ai-agent-cpt in MERGE_QUEUE_HELM_TEST.yaml (which gets its image
+      # for free from a separate build-image job), build and test are merged into this one job, so
+      # a labeled PR touching no agentic-ai files must not pay for a bundle build at all.
+      - name: Check for agentic-ai changes
+        id: changes
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            ai:
+              - 'connectors/agentic-ai/**'
+              - 'connectors-e2e-test/connectors-e2e-test-agentic-ai/**'
+
+      - name: Import Secrets
+        if: steps.changes.outputs.ai == 'true'
+        id: secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
+            secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite OPENAI_API_KEY;
+
+      - uses: actions/setup-java@v5
+        if: steps.changes.outputs.ai == 'true'
+        with:
+          distribution: temurin
+          java-version: "21.0.9"
+
+      - name: Create settings.xml
+        if: steps.changes.outputs.ai == 'true'
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.CI_LDAP_USER }}",
+               "password": "${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
+
+      - name: Restore Maven cache
+        if: steps.changes.outputs.ai == 'true'
+        uses: actions/cache@v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - uses: actions/setup-node@v7.0.0
+        if: steps.changes.outputs.ai == 'true'
+        with:
+          node-version: '24'
+
+      # Pinned via .github/workflows/package.json, matching run-ai-agent-cpt in
+      # MERGE_QUEUE_HELM_TEST.yaml - not BUILD_PR_DOCKER_IMAGES.yml's unpinned
+      # `npm install --global element-templates-cli`.
+      - name: Install element templates CLI
+        if: steps.changes.outputs.ai == 'true'
+        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
+
+      # `install`, not `package`: this must put every SNAPSHOT jar both the bundle AND the e2e
+      # test module need into ~/.m2, once, for the union of their --also-make dependency sets -
+      # connectors-e2e-test-agentic-ai depends on connectors-e2e-test-base, which is NOT pulled
+      # in by building bundle/default-bundle alone. Doing it this way (mirroring E2E_BRANCH_RUN.yml's
+      # own "install once, then verify -pl <module> without -am" pattern) means the later `verify`
+      # step can skip -am entirely and read already-installed deps from .m2 - avoiding building
+      # the shared modules (e.g. connector-agentic-ai) twice in one job.
+      - name: Install reactor deps for bundle + e2e test module (skip tests & checks)
+        if: steps.changes.outputs.ai == 'true'
+        run: |
+          ./mvnw --batch-mode install -DskipTests -DskipChecks \
+            --projects "connector-runtime/connector-runtime-application,bundle/default-bundle,connectors-e2e-test/connectors-e2e-test-agentic-ai" \
+            --also-make
+
+      - name: Compute image tag
+        if: steps.changes.outputs.ai == 'true'
+        id: tag
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          BASE_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
+          BASE_VERSION="${BASE_VERSION%-SNAPSHOT}"
+          TAG="${BASE_VERSION}-pr${PR_NUMBER}-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+          echo "::notice::Local image tag: ${TAG}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Build
+        if: steps.changes.outputs.ai == 'true'
+        uses: docker/setup-buildx-action@v4
+
+      # Needed to pull default-bundle's own base image (reg.mini.dev/1212/openjre-base) during
+      # the build below, even though the built image is never pushed anywhere.
+      - name: Login to Minimus
+        if: steps.changes.outputs.ai == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: reg.mini.dev
+          username: minimus
+          password: ${{ steps.secrets.outputs.REGISTRY_MINIMUS_PSW }}
+
+      # load: true (not push) keeps the image local to this runner's Docker daemon for
+      # testcontainers to use directly - no registry round trip, no Harbor credentials needed
+      # here, and no orphan PR-tagged images left behind anywhere.
+      - name: Build default-bundle image
+        if: steps.changes.outputs.ai == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: bundle/default-bundle/
+          load: true
+          tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ steps.tag.outputs.tag }}
+          platforms: linux/amd64
+          provenance: false
+
+      - name: Run AI Agent E2E tests
+        if: steps.changes.outputs.ai == 'true'
+        env:
+          CONNECTORS_IMAGE_NAME: registry.camunda.cloud/team-connectors/connectors-bundle
+          CONNECTORS_IMAGE_VERSION: ${{ steps.tag.outputs.tag }}
+          OPENAI_API_KEY: ${{ steps.secrets.outputs.OPENAI_API_KEY }}
+        run: |
+          ./mvnw verify \
+            -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+            -Pit-real-llm \
+            --batch-mode
