@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.aws.ObjectMapperSupplier;
+import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
@@ -43,7 +44,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
@@ -101,7 +101,7 @@ class SqsExecutableTest {
             .receiptHandle("receiptHandle")
             .build();
     Message message1 = spy(message);
-    when(supplier.sqsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
+    when(supplier.sqsClient(any(AwsBaseRequest.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
         .thenReturn(ReceiveMessageResponse.builder().messages(message1).build());
@@ -130,7 +130,7 @@ class SqsExecutableTest {
   public void deactivateTest() {
     // Given
     when(sqsClient.getQueueAttributes(any(GetQueueAttributesRequest.class))).thenReturn(null);
-    when(supplier.sqsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
+    when(supplier.sqsClient(any(AwsBaseRequest.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
     Map<String, Object> properties =
         Map.of(
@@ -160,7 +160,7 @@ class SqsExecutableTest {
     // Given
     when(sqsClient.getQueueAttributes(any(GetQueueAttributesRequest.class)))
         .thenThrow(QueueDoesNotExistException.builder().message("").build());
-    when(supplier.sqsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
+    when(supplier.sqsClient(any(AwsBaseRequest.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
     Map<String, Object> properties =
         Map.of(

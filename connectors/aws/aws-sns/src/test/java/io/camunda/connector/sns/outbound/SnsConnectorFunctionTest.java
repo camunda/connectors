@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.any;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
 import io.camunda.connector.sns.outbound.model.SnsConnectorResult;
 import io.camunda.connector.sns.suppliers.SnsClientSupplier;
 import org.assertj.core.api.Assertions;
@@ -24,7 +25,6 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
@@ -71,7 +71,7 @@ public class SnsConnectorFunctionTest extends BaseTest {
     SnsClientSupplier snsClientSupplier = Mockito.mock(SnsClientSupplier.class);
     Mockito.when(
             snsClientSupplier.getSnsClient(
-                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
+                any(SnsConnectorRequest.class), ArgumentMatchers.anyString()))
         .thenReturn(snsClient);
     connector = new SnsConnectorFunction(snsClientSupplier, objectMapper);
 
@@ -93,7 +93,7 @@ public class SnsConnectorFunctionTest extends BaseTest {
     SnsClientSupplier snsClientSupplier = Mockito.mock(SnsClientSupplier.class);
     Mockito.when(
             snsClientSupplier.getSnsClient(
-                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
+                any(SnsConnectorRequest.class), ArgumentMatchers.anyString()))
         .thenReturn(snsClient);
     connector = new SnsConnectorFunction(snsClientSupplier, objectMapper);
     context =
@@ -119,7 +119,7 @@ public class SnsConnectorFunctionTest extends BaseTest {
     SnsClientSupplier snsClientSupplier = Mockito.mock(SnsClientSupplier.class);
     Mockito.when(
             snsClientSupplier.getSnsClient(
-                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
+                any(SnsConnectorRequest.class), ArgumentMatchers.anyString()))
         .thenReturn(snsClient);
     connector = new SnsConnectorFunction(snsClientSupplier, objectMapper);
     context =
