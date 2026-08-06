@@ -83,7 +83,10 @@ public class FeelEngineWrapperUtil {
       ObjectMapper objectMapper, Object o) {
     try {
       return Optional.of(objectMapper.convertValue(o, MAP_TYPE_REFERENCE));
-    } catch (IllegalArgumentException ex) {
+    } catch (RuntimeException ex) {
+      // A single variable failing to convert (e.g. its serialization is interrupted mid-flight
+      // during a runtime shutdown) must not take down the whole FEEL evaluation - drop it from
+      // the context instead.
       LOG.warn(ex.getMessage(), ex);
       return Optional.empty();
     }
