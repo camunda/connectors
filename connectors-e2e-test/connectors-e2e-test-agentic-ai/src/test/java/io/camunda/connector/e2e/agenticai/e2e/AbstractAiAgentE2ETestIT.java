@@ -59,10 +59,7 @@ abstract class AbstractAiAgentE2ETestIT {
     // Intercept ListUsers, Jokes_API and (Vertex-only) GetOrderStatus HTTP jobs — the HTTP
     // connector is disabled in the Docker bundle via CONNECTOR_OUTBOUND_DISABLED so these jobs
     // stay open for the test to complete. Matching is done by element id (a single job worker per
-    // job type, dispatching on the element that raised the job) rather than by request content, so
-    // adding the GetOrderStatus case here — for the Vertex-only BPMN — does not touch the
-    // ListUsers/Jokes_API branches used by both providers' tests; the OpenAI BPMN has no
-    // GetOrderStatus element, so that branch is simply never reached there.
+    // job type, dispatching on the element that raised the job) rather than by request content.
     processTestContext
         .mockJobWorker(HTTP_JSON_JOB_TYPE)
         .withHandler(
