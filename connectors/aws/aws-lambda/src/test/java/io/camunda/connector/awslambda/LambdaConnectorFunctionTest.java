@@ -14,7 +14,6 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -61,16 +60,13 @@ class LambdaConnectorFunctionTest extends BaseTest {
     AwsLambdaResult result = (AwsLambdaResult) execute;
     assertThat(result.getStatusCode()).isEqualTo(200);
     assertThat(result.getPayload()).isEqualTo(ACTUAL_PAYLOAD);
-    // Then the region actually passed to the client supplier must be the one AwsUtils computes
-    // from the bound request (configuration.region, falling back to the deprecated
+    // Then the region actually passed to the client supplier must be the one
+    // LambdaConnectorFunction resolves (configuration.region, falling back to the deprecated
     // awsFunction.region) - several success cases omit configuration.region entirely and rely on
-    // that fallback, so this pins LambdaConnectorFunction's own region-resolution call rather than
-    // letting an untyped any() swallow a wrong-source or swapped-argument regression.
+    // that fallback, so this pins the resolution itself rather than letting an untyped any()
+    // swallow a wrong-source or swapped-argument regression.
     var request = context.bindVariables(AwsLambdaRequest.class);
-    var expectedRegion =
-        AwsUtils.extractRegionOrDefault(
-            request.getConfiguration(), request.getAwsFunction().getRegion());
-    assertThat(regionCaptor.getValue()).isEqualTo(expectedRegion);
+    assertThat(regionCaptor.getValue()).isEqualTo(LambdaConnectorFunction.resolveRegion(request));
   }
 
   @ParameterizedTest(name = "execute connector with invalid data # {index}")

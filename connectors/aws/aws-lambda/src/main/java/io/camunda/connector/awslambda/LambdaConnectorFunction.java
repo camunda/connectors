@@ -72,9 +72,7 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
   }
 
   private InvokeResponse invokeLambdaFunction(AwsLambdaRequest request) {
-    var region =
-        AwsUtils.extractRegionOrDefault(
-            request.getConfiguration(), request.getAwsFunction().getRegion());
+    var region = resolveRegion(request);
     LambdaClient lambdaClient = awsLambdaSupplier.awsLambdaService(request, region);
     try {
       final InvokeRequest invokeRequest =
@@ -92,5 +90,11 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
         lambdaClient.close();
       }
     }
+  }
+
+  /** Falls back to the deprecated per-function region if {@code configuration.region} is unset. */
+  static String resolveRegion(AwsLambdaRequest request) {
+    return AwsUtils.extractRegionOrDefault(
+        request.getConfiguration(), request.getAwsFunction().getRegion());
   }
 }
