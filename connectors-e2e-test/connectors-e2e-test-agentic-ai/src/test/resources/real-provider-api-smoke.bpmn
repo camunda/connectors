@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" id="Definitions_NativeAcceptance" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.42.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0">
-  <bpmn:process id="native_provider_acceptance" name="Native Provider Acceptance" isExecutable="true">
+  <bpmn:process id="real_provider_api_smoke" name="Real Provider API Smoke" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1">
       <bpmn:outgoing>Flow_Start_To_Agent</bpmn:outgoing>
     </bpmn:startEvent>
     <bpmn:sequenceFlow id="Flow_Start_To_Agent" sourceRef="StartEvent_1" targetRef="AI_Agent" />
     <bpmn:adHocSubProcess id="AI_Agent" name="AI Agent">
-      <bpmn:documentation>Native provider acceptance agent</bpmn:documentation>
+      <bpmn:documentation>Real provider API smoke test agent</bpmn:documentation>
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="dummy" retries="0" />
       </bpmn:extensionElements>
@@ -15,7 +15,7 @@
       <bpmn:serviceTask id="Lookup_Classified_Fact" name="Lookup Classified Fact">
         <bpmn:documentation>Looks up the classified internal fact sheet and returns the secret project code name and clearance level. Call this whenever the user asks for the internal/classified code name.</bpmn:documentation>
         <bpmn:extensionElements>
-          <zeebe:taskDefinition type="native-acceptance-tool" retries="0" />
+          <zeebe:taskDefinition type="lookup-classified-fact" retries="0" />
         </bpmn:extensionElements>
       </bpmn:serviceTask>
     </bpmn:adHocSubProcess>
@@ -25,7 +25,7 @@
     </bpmn:endEvent>
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="native_provider_acceptance">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="real_provider_api_smoke">
       <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
         <dc:Bounds x="152" y="182" width="36" height="36" />
       </bpmndi:BPMNShape>
