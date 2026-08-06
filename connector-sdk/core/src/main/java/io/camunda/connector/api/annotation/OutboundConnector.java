@@ -34,4 +34,10 @@ public @interface OutboundConnector {
 
   /** Job / task type the connector registers for */
   String type();
+
+  /**
+   * Whether to activate jobs for this connector with a lease, fencing complete/fail/throw-error
+   * commands against a stale, superseded activation of the same job.
+   */
+  boolean withLease() default false;
 }
