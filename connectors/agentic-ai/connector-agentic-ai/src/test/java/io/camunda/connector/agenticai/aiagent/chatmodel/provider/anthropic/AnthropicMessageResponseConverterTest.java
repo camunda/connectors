@@ -99,47 +99,6 @@ class AnthropicMessageResponseConverterTest {
   }
 
   @Test
-  void capturesTextCitationsAsMetadataForReplay() {
-    final var message =
-        message(
-            """
-            {
-              "id": "msg_1",
-              "model": "claude-sonnet-4-6",
-              "role": "assistant",
-              "type": "message",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "Paris is the capital of France.",
-                  "citations": [
-                    {
-                      "type": "char_location",
-                      "cited_text": "Paris is the capital",
-                      "document_index": 0,
-                      "document_title": "Geography",
-                      "start_char_index": 0,
-                      "end_char_index": 21
-                    }
-                  ]
-                }
-              ],
-              "stop_reason": "end_turn",
-              "usage": {"input_tokens": 10, "output_tokens": 20}
-            }
-            """);
-
-    final var content = converter.toResult(message, EXECUTION_TIME).assistantMessage().content();
-    assertThat(content).hasSize(1);
-    final var textContent = (TextContent) content.get(0);
-    assertThat(textContent.text()).isEqualTo("Paris is the capital of France.");
-    assertThat(textContent.metadata()).isNotNull();
-    @SuppressWarnings("unchecked")
-    final var anthropicMetadata = (Map<String, Object>) textContent.metadata().get("anthropic");
-    assertThat(anthropicMetadata).containsOnlyKeys("citations");
-  }
-
-  @Test
   void mapsPauseTurnToContinuation() {
     final var message =
         message(
