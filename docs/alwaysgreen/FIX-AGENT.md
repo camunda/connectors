@@ -57,8 +57,9 @@ error it looks like a stale selector. The screenshot showed **Keycloak's own err
 > We are sorry… Unexpected error when handling authentication request to identity provider.
 
 The assertion was correct. Keycloak was broken. The fix belonged in the Helm/Keycloak
-configuration, and raising the timeout would have turned the pipeline green while hiding a
-genuinely broken login.
+configuration — which you cannot push to, so the right outcome there is a precise
+escalation, not a change. Raising the timeout would have turned the pipeline green while
+hiding a genuinely broken login.
 
 So: establish *what the application did* before deciding the test is wrong.
 
@@ -154,9 +155,18 @@ block.
 |                       Diagnosis                       |           Repository           |                  Path                   |
 |-------------------------------------------------------|--------------------------------|-----------------------------------------|
 | stale selector, wrong wait, bad assertion             | `c8-cross-component-e2e-tests` | `tests/SM-8.x/`, `tests/8.x/`, `pages/` |
-| chart values, Keycloak/Identity wiring, deploy config | `camunda-platform-helm`        | `charts/camunda-platform-8.x/`          |
 | connectors regression                                 | `connectors`                   | the owning module                       |
 | pipeline plumbing                                     | `connectors`                   | `.github/`                              |
+| chart values, Keycloak/Identity wiring, deploy config | **nowhere — escalate**         | see below                               |
+
+`camunda-platform-helm` and `camunda-docs` are in your workspace to be **read**, not
+changed: the token this agent runs with covers `connectors` and
+`c8-cross-component-e2e-tests` only, so a chart PR cannot be pushed even if you write
+one. That is deliberate — chart failures (`helm-install`, `helm-cleanup`) are not
+dispatched to you at all, and a chart root cause behind a *test* failure is worth more
+as a precise report than as a change this pipeline cannot verify. Write it to
+`/tmp/fix-meta.json` as `not-determined` with the evidence. Do not reach for a test-side
+workaround instead: that masks the defect.
 
 `connectors` is the one repository in the workspace checked out at the branch that
 failed. Read `## Opening a PR in connectors` below before opening a PR there — several of
@@ -231,9 +241,9 @@ stable-to-main delta, and merging it would push stable-only code onto `main`. Th
 workflow re-checks the base afterwards and retargets a wrong one, but it warns when it
 has to.
 
-This applies to `connectors` only. `c8-cross-component-e2e-tests` and
-`camunda-platform-helm` have no per-version branches — their PRs take their own default
-branch, and the version lives in the path (`tests/SM-8.9/`, `charts/camunda-platform-8.9/`).
+This applies to `connectors` only. `c8-cross-component-e2e-tests` has no per-version
+branches — its PRs take its own default branch, and the version lives in the path
+(`tests/SM-8.9/`).
 
 ## The PR coverage block — mandatory
 

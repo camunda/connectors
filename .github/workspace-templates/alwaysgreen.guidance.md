@@ -7,8 +7,8 @@ of them:
 |--------------------------------|---------------------------------------------------------------------------------------------|
 | `connectors`                   | connector, runtime, or bundle code — the image the failing run built and deployed           |
 | `c8-cross-component-e2e-tests` | the Playwright specs and page objects that ran (`tests/SM-8.x/`, `tests/8.x/`)              |
-| `camunda-platform-helm`        | chart values, templates, deploy config — including Keycloak/Identity wiring                 |
-| `camunda-docs`                 | the authority on intended product behaviour; read before changing what an assertion expects |
+| `camunda-platform-helm`        | **read-only** — chart values and Keycloak/Identity wiring, to diagnose a deploy-side cause  |
+| `camunda-docs`                 | **read-only** — the authority on intended behaviour; read before changing an assertion      |
 
 The SM specs execute from the published `@camunda/e2e-test-suite` npm package, so a
 report's `file` is a compiled basename. The source lives in

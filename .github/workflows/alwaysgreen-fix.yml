@@ -253,9 +253,30 @@ jobs:
           GOTOOLCHAIN: auto
           GH_PAT: ${{ steps.secrets.outputs.GH_PAT }}
         run: |
+          set -euo pipefail
+          # The PAT is broader and longer-lived than the App token, and it is needed
+          # only to fetch this one private module. Confining the credential rewrite to
+          # a throwaway config for the duration of this step keeps it out of
+          # ~/.gitconfig, which the Claude step later reads with a shell over
+          # attacker-influenceable evidence. GIT_CONFIG_GLOBAL is not exported past the
+          # step, so the file and the variable both go away with it.
+          #
+          # Seeded from the real ~/.gitconfig so the App-token rewrite still covers this
+          # module's dependencies; git picks the longest matching insteadOf, so the PAT
+          # wins for workspace-cli itself.
+          GIT_CONFIG_GLOBAL="$(mktemp)"
+          export GIT_CONFIG_GLOBAL
+          cp "$HOME/.gitconfig" "$GIT_CONFIG_GLOBAL" 2>/dev/null || true
+          trap 'rm -f "$GIT_CONFIG_GLOBAL"' EXIT
+
           git config --global url."https://x-access-token:${GH_PAT}@github.com/camunda/workspace-cli".insteadOf "https://github.com/camunda/workspace-cli"
           go install github.com/camunda/workspace-cli/cmd/workspace@latest
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+          if grep -q "${GH_PAT}" "$HOME/.gitconfig" 2>/dev/null; then
+            echo "::error::the PAT leaked into ~/.gitconfig"
+            exit 1
+          fi
 
       - name: Install Claude Code CLI
         run: |
@@ -394,10 +415,13 @@ jobs:
           contract, and the constraints. Do not skip it.
 
           Failing surface: ${SURFACE}   Branch to fix against: ${BASE_REF}   Version: ${VERSION}
-          Edit only these version directories:
+          Edit only this version directory:
             c8-cross-component-e2e-tests: tests/${SUITE}/ and pages/${SUITE}/
-            camunda-platform-helm:        charts/${CHART}/
           A sibling version directory that is passing must not be touched.
+          camunda-platform-helm (charts/${CHART}/) and camunda-docs are READ-ONLY: this
+          token cannot push to them. A chart-side root cause is a legitimate finding —
+          report it in /tmp/fix-meta.json with the evidence rather than editing the
+          chart, and never substitute a test-side workaround for it.
           Failing AlwaysGreen run: ${FAILING_RUN_URL}
           Triage run: ${TRIAGE_RUN_URL}
           Breaking change: PR #${BLAME_PR} by ${BLAME_AUTHOR}

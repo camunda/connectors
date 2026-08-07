@@ -184,6 +184,12 @@ jobs:
             echo "::error::run_id must be numeric, got '$run_id'"
             exit 1
           fi
+          # base_ref is free-form on workflow_dispatch and flows into shell, jq and the
+          # dispatch key. Restrict it to what a git ref can contain before any of that.
+          if [[ ! "$INPUT_BASE_REF" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]]; then
+            echo "::error::base_ref contains unsupported characters"
+            exit 1
+          fi
           {
             echo "run_id=${run_id}"
             echo "base_ref=${INPUT_BASE_REF}"
@@ -228,13 +234,16 @@ jobs:
 
       - name: Write job summary
         if: ${{ always() && steps.mode.outputs.active == 'true' }}
+        env:
+          RUN_ID: ${{ steps.target.outputs.run_id }}
+          BASE_REF: ${{ steps.target.outputs.base_ref }}
         run: |
           set -euo pipefail
           [ -f /tmp/alwaysgreen-plan.json ] || exit 0
           {
             echo "## AlwaysGreen Triage"
             echo ""
-            echo "- run: ${{ steps.target.outputs.run_id }} (\`${{ steps.target.outputs.base_ref }}\`)"
+            echo "- run: ${RUN_ID} (\`${BASE_REF}\`)"
             echo "- mode: ${{ steps.mode.outputs.mode }} (dispatch=${{ steps.mode.outputs.dispatch }})"
             echo ""
             candidates=$(jq '.dispatches | length' /tmp/alwaysgreen-plan.json)
@@ -287,22 +296,22 @@ jobs:
           PARENT_CHANNEL: ${{ inputs.parent_slack_channel }}
           PLAN_OUTCOME: ${{ steps.plan.outcome }}
           DISPATCHED: ${{ steps.mode.outputs.dispatch }}
+          BASE_REF: ${{ steps.target.outputs.base_ref }}
         run: |
           set -euo pipefail
-          base_ref='${{ steps.target.outputs.base_ref }}'
           [ -f /tmp/alwaysgreen-plan.json ] || echo '{"dispatches":[],"suppressed":[],"noise":[],"blame":{}}' > /tmp/alwaysgreen-plan.json
           count=$(jq '.dispatches | length' /tmp/alwaysgreen-plan.json)
           failing_url=$(jq -r '.run_url // ""' /tmp/alwaysgreen-plan.json)
           surfaces=$(jq -r '[.dispatches[].surface] | join(", ")' /tmp/alwaysgreen-plan.json)
 
           if [ "${PLAN_OUTCOME}" != "success" ]; then
-            text=":warning: *AlwaysGreen triage failed* on \`${base_ref}\` — no agent dispatched"$'\n'"<${RUN_URL}|Triage run ↗>"
+            text=":warning: *AlwaysGreen triage failed* on \`${BASE_REF}\` — no agent dispatched"$'\n'"<${RUN_URL}|Triage run ↗>"
           elif [ "${count}" != "0" ] && [ "${DISPATCHED}" = "true" ]; then
-            text=":robot_face: *AlwaysGreen fix agent dispatched* on \`${base_ref}\`"$'\n'"${count} agent(s): ${surfaces}"$'\n'"<${failing_url}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
+            text=":robot_face: *AlwaysGreen fix agent dispatched* on \`${BASE_REF}\`"$'\n'"${count} agent(s): ${surfaces}"$'\n'"<${failing_url}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
           elif [ "${count}" != "0" ]; then
             # Candidates found but the gate is closed. Say so plainly: an announced
             # dispatch that never happened is worse than no message at all.
-            text=":mag: *AlwaysGreen: would dispatch — withheld* on \`${base_ref}\`"$'\n'"${count} agent(s) held back: ${surfaces}"$'\n'"Fix-agent dispatch is off for this run."$'\n'"<${failing_url}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
+            text=":mag: *AlwaysGreen: would dispatch — withheld* on \`${BASE_REF}\`"$'\n'"${count} agent(s) held back: ${surfaces}"$'\n'"Fix-agent dispatch is off for this run."$'\n'"<${failing_url}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
           else
             # Nothing actionable. Name the reasons so the thread explains itself without
             # anyone opening the run.
@@ -311,7 +320,7 @@ jobs:
               | if length == 0 then "no failing job mapped to a known surface"
                 else (group_by(.) | map("\(.[0]) x\(length)") | join(", ")) end' \
               /tmp/alwaysgreen-plan.json 2>/dev/null || echo "unknown")
-            text=":information_source: *AlwaysGreen triage: nothing to dispatch* on \`${base_ref}\`"$'\n'"${reasons}"$'\n'"<${RUN_URL}|Triage run ↗>"
+            text=":information_source: *AlwaysGreen triage: nothing to dispatch* on \`${BASE_REF}\`"$'\n'"${reasons}"$'\n'"<${RUN_URL}|Triage run ↗>"
           fi
 
           # Kept so the post-dispatch step can append agent links via chat.update
