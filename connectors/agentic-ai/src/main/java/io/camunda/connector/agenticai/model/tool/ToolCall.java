@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.model.tool;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
@@ -13,7 +14,11 @@ import java.util.Map;
 
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolCall.ToolCallJacksonProxyBuilder.class)
-public record ToolCall(String id, String name, Map<String, Object> arguments)
+public record ToolCall(
+    String id,
+    String name,
+    Map<String, Object> arguments,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements ToolCallBuilder.With {
 
   public static ToolCallBuilder builder() {

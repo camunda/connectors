@@ -17,6 +17,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.AssistantMessageBuilder;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
@@ -24,6 +25,7 @@ import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
+import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
@@ -39,6 +41,8 @@ import org.springframework.util.CollectionUtils;
 public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ChatMessageConverterImpl.class);
+
+  private static final String FRAMEWORK_METADATA_KEY = "framework";
 
   private final ContentConverter contentConverter;
   private final ToolCallConverter toolCallConverter;
@@ -93,12 +97,12 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   @Override
   public dev.langchain4j.data.message.AiMessage fromAssistantMessage(
-      AssistantMessage assistantMessage) {
-    return fromAssistantMessageBuilder(assistantMessage).build();
+      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
+    return fromAssistantMessageBuilder(assistantMessage, providerConfiguration).build();
   }
 
   protected dev.langchain4j.data.message.AiMessage.Builder fromAssistantMessageBuilder(
-      AssistantMessage assistantMessage) {
+      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
     final var builder = AiMessage.builder();
 
     if (!CollectionUtils.isEmpty(assistantMessage.content())) {
@@ -121,35 +125,85 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       builder.toolExecutionRequests(toolExecutionRequests);
     }
 
+    final var attributes = toolCallAttributes(assistantMessage, providerConfiguration);
+    if (!attributes.isEmpty()) {
+      builder.attributes(attributes);
+    }
+
     return builder;
   }
 
-  @Override
-  public AssistantMessage toAssistantMessage(ChatResponse chatResponse) {
-    return toAssistantMessageBuilder(chatResponse).build();
-  }
-
-  protected AssistantMessageBuilder toAssistantMessageBuilder(ChatResponse chatResponse) {
-    final var builder = AssistantMessage.builder();
-
-    if (chatResponse.metadata() != null) {
-      builder.metadata(
-          Map.of(
-              "timestamp", ZonedDateTime.now(),
-              "framework", serializedChatResponseMetadata(chatResponse.metadata())));
+  /**
+   * Provider tool call metadata carries data the provider requires us to echo back verbatim on the
+   * next request, e.g. Gemini 3 thought signatures. This is provider-specific data, kept separate
+   * from {@link #serializedChatResponseMetadata}. What is safe to restore is provider-specific -
+   * see {@link ToolCallMetadataDecorator}.
+   */
+  protected Map<String, Object> toolCallAttributes(
+      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
+    if (CollectionUtils.isEmpty(assistantMessage.toolCalls())) {
+      return Map.of();
     }
 
+    final var attributes = new LinkedHashMap<String, Object>();
+    for (final var toolCall : assistantMessage.toolCalls()) {
+      if (CollectionUtils.isEmpty(toolCall.metadata())) {
+        continue;
+      }
+
+      attributes.putAll(
+          ToolCallMetadataDecorator.decorateOnRead(
+              providerConfiguration, toolCall.id(), toolCall.metadata()));
+    }
+
+    return attributes;
+  }
+
+  @Override
+  public AssistantMessage toAssistantMessage(
+      ChatResponse chatResponse, ProviderConfiguration providerConfiguration) {
+    return toAssistantMessageBuilder(chatResponse, providerConfiguration).build();
+  }
+
+  protected AssistantMessageBuilder toAssistantMessageBuilder(
+      ChatResponse chatResponse, ProviderConfiguration providerConfiguration) {
+    final var builder = AssistantMessage.builder();
     final var aiMessage = chatResponse.aiMessage();
+
+    if (chatResponse.metadata() != null) {
+      final var metadata = new LinkedHashMap<String, Object>();
+      metadata.put("timestamp", ZonedDateTime.now());
+      metadata.put(FRAMEWORK_METADATA_KEY, serializedChatResponseMetadata(chatResponse.metadata()));
+
+      builder.metadata(metadata);
+    }
+
     if (StringUtils.isNotBlank(aiMessage.text())) {
       builder.content(List.of(TextContent.textContent(aiMessage.text())));
     }
 
     final var toolCalls =
-        aiMessage.toolExecutionRequests().stream().map(toolCallConverter::asToolCall).toList();
+        aiMessage.toolExecutionRequests().stream()
+            .map(toolCallConverter::asToolCall)
+            .map(toolCall -> decorateToolCallMetadata(toolCall, aiMessage, providerConfiguration))
+            .toList();
 
     builder.toolCalls(toolCalls);
 
     return builder;
+  }
+
+  private ToolCall decorateToolCallMetadata(
+      ToolCall toolCall, AiMessage aiMessage, ProviderConfiguration providerConfiguration) {
+    if (CollectionUtils.isEmpty(aiMessage.attributes())) {
+      return toolCall;
+    }
+
+    final var metadata =
+        ToolCallMetadataDecorator.decorateOnWrite(
+            providerConfiguration, toolCall.id(), aiMessage.attributes());
+
+    return metadata.isEmpty() ? toolCall : toolCall.withMetadata(metadata);
   }
 
   protected Map<String, Object> serializedChatResponseMetadata(

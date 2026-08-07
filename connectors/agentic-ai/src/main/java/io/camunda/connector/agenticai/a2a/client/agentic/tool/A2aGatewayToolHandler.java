@@ -83,7 +83,8 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
                     new ToolCall(
                         A2A_TOOLS_DISCOVERY_PREFIX + gatewayToolDefinition.name(),
                         gatewayToolDefinition.name(),
-                        fetchAgentCardOperation))
+                        fetchAgentCardOperation,
+                        Map.of()))
             .toList();
 
     return new GatewayToolDiscoveryInitiationResult(updatedAgentContext, discoveryToolCalls);
@@ -181,7 +182,8 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
                         A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration
                             .SEND_MESSAGE_ID,
                         "params",
-                        toolCall.arguments()));
+                        toolCall.arguments()),
+                    Map.of());
               }
 
               return toolCall;

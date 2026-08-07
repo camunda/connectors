@@ -300,22 +300,76 @@ class ProviderConfigurationTest {
       assertThat(validator.validate(connection)).isEmpty();
     }
 
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#validHttpUrls")
+    @NullSource
+    void shouldAcceptValidEndpoint(String endpoint) {
+      assertThat(validator.validate(createConnection(endpoint, TIMEOUT))).isEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#invalidHttpUrls")
+    void shouldRejectInvalidEndpoint(String endpoint) {
+      assertThat(validator.validate(createConnection(endpoint, TIMEOUT)))
+          .extracting(ConstraintViolation::getMessage)
+          .contains(HTTP_URL_VALIDATION_MESSAGE);
+    }
+
+    @Test
+    void shouldAcceptNullTimeouts() {
+      assertThat(validator.validate(createConnection(null, null))).isEmpty();
+    }
+
+    /**
+     * The four-argument constructor predates {@code endpoint} and {@code timeouts} being added to
+     * this record. Existing callers compiled against it must keep working, so it must remain as a
+     * delegating overload rather than disappearing when new components are added.
+     */
+    @Test
+    void legacyFourArgumentConstructorDelegatesWithNullEndpointAndTimeouts() {
+      final var authentication = new ApplicationDefaultCredentialsAuthentication();
+      final var model =
+          new GoogleVertexAiModel(
+              "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null));
+
+      final var connection =
+          new GoogleVertexAiConnection("my-project-id", "us-central1", authentication, model);
+
+      assertThat(connection.projectId()).isEqualTo("my-project-id");
+      assertThat(connection.region()).isEqualTo("us-central1");
+      assertThat(connection.endpoint()).isNull();
+      assertThat(connection.authentication()).isEqualTo(authentication);
+      assertThat(connection.timeouts()).isNull();
+      assertThat(connection.model()).isEqualTo(model);
+    }
+
+    private static GoogleVertexAiConnection createConnection(
+        String endpoint, TimeoutConfiguration timeouts) {
+      return new GoogleVertexAiConnection(
+          "my-project-id",
+          "us-central1",
+          endpoint,
+          new ServiceAccountCredentialsAuthentication("{}"),
+          timeouts,
+          new GoogleVertexAiModel(
+              "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null)));
+    }
+
     private static GoogleVertexAiConnection createConnectionWithApplicationDefaultCredentials() {
       return new GoogleVertexAiConnection(
           "my-project-id",
           "us-central1",
+          null,
           new ApplicationDefaultCredentialsAuthentication(),
+          null,
           new GoogleVertexAiModel(
               "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null)));
     }
 
     private static GoogleVertexAiConnection createConnectionWithServiceAccountCredentials() {
-      return new GoogleVertexAiConnection(
-          "my-project-id",
-          "us-central1",
-          new ServiceAccountCredentialsAuthentication("{}"),
-          new GoogleVertexAiModel(
-              "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null)));
+      return createConnection(null, null);
     }
   }
 
