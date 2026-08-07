@@ -12,7 +12,6 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.aws.AwsUtils;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
 import io.camunda.connector.generator.java.annotation.BpmnType;
@@ -116,9 +115,7 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
     var region =
         AwsUtils.extractRegionOrDefault(
             properties.getConfiguration(), properties.getQueue().region());
-    sqsClient =
-        sqsClientSupplier.sqsClient(
-            CredentialsProviderSupportV2.credentialsProvider(properties), region);
+    sqsClient = sqsClientSupplier.sqsClient(properties, region);
 
     try {
       sqsClient.getQueueAttributes(

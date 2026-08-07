@@ -6,26 +6,21 @@
  */
 package io.camunda.connector.sagemaker.suppliers;
 
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
+import io.camunda.connector.aws.AwsClientSupport;
+import io.camunda.connector.sagemaker.model.SageMakerRequest;
 import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeAsyncClient;
 import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 
 public class SageMakeClientSupplier {
 
-  public SageMakerRuntimeClient getSyncClient(
-      final AwsCredentialsProvider credentialsProvider, final String region) {
-    return SageMakerRuntimeClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(region))
-        .build();
+  // Delegates to AwsClientSupport (issue #7083); endpoint override is now honored, and a missing
+  // region falls through to the SDK's default chain instead of throwing NullPointerException.
+  public SageMakerRuntimeClient getSyncClient(final SageMakerRequest request) {
+    return AwsClientSupport.createClient(SageMakerRuntimeClient.builder(), request);
   }
 
-  public SageMakerRuntimeAsyncClient getAsyncClient(
-      final AwsCredentialsProvider credentialsProvider, final String region) {
-    return SageMakerRuntimeAsyncClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(region))
-        .build();
+  // Async counterpart of getSyncClient; same behavior notes apply.
+  public SageMakerRuntimeAsyncClient getAsyncClient(final SageMakerRequest request) {
+    return AwsClientSupport.createClient(SageMakerRuntimeAsyncClient.builder(), request);
   }
 }

@@ -12,16 +12,13 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.AwsUtils;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.ObjectMapperSupplier;
-import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.outbound.model.QueueRequestData;
 import io.camunda.connector.outbound.model.SqsConnectorRequest;
 import io.camunda.connector.outbound.model.SqsConnectorResult;
-import java.util.Optional;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
@@ -78,12 +75,7 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
   private SqsClient createAwsSqsClient(SqsConnectorRequest request) {
     var region =
         AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getQueue().getRegion());
-    Optional<String> endpoint =
-        Optional.ofNullable(request.getConfiguration()).map(AwsBaseConfiguration::endpoint);
-    var credentialsProvider = CredentialsProviderSupportV2.credentialsProvider(request);
-    return endpoint
-        .map(ep -> sqsClientSupplier.sqsClient(credentialsProvider, region, ep))
-        .orElseGet(() -> sqsClientSupplier.sqsClient(credentialsProvider, region));
+    return sqsClientSupplier.sqsClient(request, region);
   }
 
   private SendMessageResponse sendMsgToSqs(
