@@ -40,12 +40,12 @@ FIX_LABEL = os.environ.get("ALWAYSGREEN_FIX_LABEL", "alwaysgreen-fix")
 SOURCE = REPO.split("/")[-1]
 #: Prefix of the per-dispatch-key label the fix workflow stamps on every PR it opens.
 KEY_LABEL_PREFIX = planning.KEY_LABEL_PREFIX
-#: Repos a fix PR can land in, mirroring the fix workflow's own label list.
-FIX_PR_REPOS = [
-    REPO,
-    E2E_REPO,
-    os.environ.get("ALWAYSGREEN_HELM_REPO", "camunda/camunda-platform-helm"),
-]
+#: Repos a fix PR can land in, mirroring the fix workflow's own label list and the App
+#: token's scope. camunda-platform-helm is deliberately absent: the agent may read the
+#: charts but never push to them, so no fix PR can exist there to find — and because the
+#: two lookups below fail closed, a repository the token cannot reach would wedge every
+#: dispatch shut rather than merely returning nothing.
+FIX_PR_REPOS = [REPO, E2E_REPO]
 
 
 def log(message: str) -> None:

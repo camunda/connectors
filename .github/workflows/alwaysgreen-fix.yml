@@ -387,11 +387,15 @@ jobs:
           echo "evidence files: $(wc -l < /tmp/evidence-files.txt) (first 40 shown)"
           head -40 /tmp/evidence-files.txt
 
+      # No GH_PAT here on purpose. It is the broad, long-lived credential and the agent
+      # has no use for it — every gh and git operation it performs goes through the
+      # repository-scoped App token in GH_TOKEN. Handing it to a step that runs a shell
+      # over downloaded evidence would undo the care taken to keep it out of
+      # ~/.gitconfig two steps earlier.
       - name: Run Claude Code fix agent
         env:
           ANTHROPIC_API_KEY: ${{ steps.secrets.outputs.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ steps.github-token.outputs.token }}
-          GH_PAT: ${{ steps.secrets.outputs.GH_PAT }}
           WORKSPACE_NAME: ${{ steps.ws.outputs.name }}
           BASE_REF: ${{ inputs.base_ref }}
           SURFACE: ${{ inputs.surface }}
