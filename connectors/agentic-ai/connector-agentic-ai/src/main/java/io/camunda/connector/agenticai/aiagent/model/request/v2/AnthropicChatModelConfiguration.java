@@ -159,8 +159,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
               @TemplateProperty(
                   group = "provider",
                   label = "API endpoint",
-                  description =
-                      "Base URL of the Anthropic-compatible API; <code>/v1/messages</code> will be appended.",
+                  description = "Base URL of the Anthropic-compatible API.",
+                  tooltip = "<code>/v1/messages</code> is appended automatically.",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
                   placeholder = "https://api.anthropic.com",

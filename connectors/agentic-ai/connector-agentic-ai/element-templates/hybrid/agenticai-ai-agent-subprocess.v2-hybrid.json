@@ -206,7 +206,7 @@
   }, {
     "id" : "provider.anthropic.backend.custom.endpoint",
     "label" : "API endpoint",
-    "description" : "Base URL of the Anthropic-compatible API; <code>/v1/messages</code> will be appended.",
+    "description" : "Base URL of the Anthropic-compatible API.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -228,6 +228,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "<code>/v1/messages</code> is appended automatically.",
     "placeholder" : "https://api.anthropic.com",
     "type" : "String"
   }, {
