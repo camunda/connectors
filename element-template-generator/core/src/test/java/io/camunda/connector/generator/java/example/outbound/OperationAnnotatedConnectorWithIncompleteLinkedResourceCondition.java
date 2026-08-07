@@ -25,10 +25,7 @@ import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;
 
-/**
- * Declares {@code conditionProperty} without the matching {@code conditionEquals}, which the
- * generator must reject.
- */
+/** Declares a condition with an {@code equals} but no {@code property}, which is rejected. */
 @OutboundConnector(
     name = OperationAnnotatedConnectorWithIncompleteLinkedResourceCondition.NAME,
     type = OperationAnnotatedConnectorWithIncompleteLinkedResourceCondition.TYPE)
@@ -49,7 +46,7 @@ public class OperationAnnotatedConnectorWithIncompleteLinkedResourceCondition
       linkName = "formDefinition",
       resourceType = "form",
       group = "form",
-      conditions = @NestedPropertyCondition(property = "content.type"))
+      conditions = @NestedPropertyCondition(property = "", equals = "form"))
   record RequestWithIncompleteCondition(
       @TemplateProperty(group = "form", label = "Message") String message) {}
 
