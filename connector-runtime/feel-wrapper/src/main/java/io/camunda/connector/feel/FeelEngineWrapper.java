@@ -144,7 +144,29 @@ public class FeelEngineWrapper {
     try {
       return (T) evaluateInternal(expression, variables);
     } catch (Exception e) {
-      throw new FeelEngineWrapperException(e.getMessage(), expression, variables, e);
+      throw wrapEvaluationException(e, expression, variables);
+    }
+  }
+
+  private FeelEngineWrapperException wrapEvaluationException(
+      final Exception e, final String expression, final Object[] variables) {
+    if (e instanceof InterruptedException) {
+      Thread.currentThread().interrupt();
+      return new FeelEngineWrapperException(
+          "the evaluating thread was interrupted, likely because the connector runtime is shutting down",
+          expression,
+          describeContext(variables),
+          e);
+    }
+    return new FeelEngineWrapperException(
+        e.getMessage(), expression, describeContext(variables), e);
+  }
+
+  private Object describeContext(final Object[] variables) {
+    try {
+      return mergeMapVariables(variables);
+    } catch (Exception ex) {
+      return variables;
     }
   }
 
@@ -247,7 +269,10 @@ public class FeelEngineWrapper {
       }
     } catch (Exception e) {
       throw new FeelEngineWrapperException(
-          "Failed to convert FEEL evaluation result to the target type", expression, variables, e);
+          "Failed to convert FEEL evaluation result to the target type",
+          expression,
+          describeContext(variables),
+          e);
     }
   }
 
@@ -267,7 +292,7 @@ public class FeelEngineWrapper {
         return resultToJson(result);
       } else return null;
     } catch (Exception e) {
-      throw new FeelEngineWrapperException(e.getMessage(), expression, variables, e);
+      throw wrapEvaluationException(e, expression, variables);
     }
   }
 
