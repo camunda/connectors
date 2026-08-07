@@ -230,10 +230,10 @@ class RealProviderApiSmokeIT {
   // hosted on/by AWS: requests are SigV4-signed and sent to a Bedrock Mantle endpoint instead of
   // api.anthropic.com, but the connector performs no body/path/response translation between the
   // two.
-  static Provider anthropicBedrock(
+  static Provider anthropicBedrockMantle(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new Provider(
-        "anthropic-bedrock/" + model,
+        "anthropic-bedrock-mantle/" + model,
         List.of("ANTHROPIC_BEDROCK_API_KEY"),
         Map.of(
             "provider.type",
@@ -287,7 +287,7 @@ class RealProviderApiSmokeIT {
             // structured output: Bedrock Mantle rejects output_config.format with a 400. AWS docs
             // confirm this endpoint doesn't support it:
             // https://docs.aws.amazon.com/bedrock/latest/userguide/claude-messages-structured-outputs.html
-            anthropicBedrock(
+            anthropicBedrockMantle(
                 "claude-sonnet-5",
                 Map.of(
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),

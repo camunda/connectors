@@ -154,7 +154,7 @@
       "name" : "Anthropic API",
       "value" : "anthropic-api"
     }, {
-      "name" : "AWS Bedrock",
+      "name" : "AWS Bedrock (Mantle)",
       "value" : "bedrock"
     }, {
       "name" : "Custom / compatible endpoint",

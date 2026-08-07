@@ -145,7 +145,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       }
     }
 
-    @TemplateSubType(id = BEDROCK_ID, label = "AWS Bedrock")
+    @TemplateSubType(id = BEDROCK_ID, label = "AWS Bedrock (Mantle)")
     record AnthropicBedrockBackend(@Valid @NotNull BedrockBackend bedrock)
         implements AnthropicBackend {
 

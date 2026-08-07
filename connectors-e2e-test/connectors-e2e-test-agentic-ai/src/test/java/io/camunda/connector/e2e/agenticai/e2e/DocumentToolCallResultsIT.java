@@ -244,8 +244,8 @@ class DocumentToolCallResultsIT {
             anthropicV2("claude-sonnet-4-6"),
             anthropicV2("claude-haiku-4-5-20251001"),
             // Anthropic (v2), native AWS Bedrock Mantle backend
-            anthropicBedrockV2("claude-sonnet-5"),
-            anthropicBedrockV2("claude-haiku-4-5"),
+            anthropicBedrockMantleV2("claude-sonnet-5"),
+            anthropicBedrockMantleV2("claude-haiku-4-5"),
             // AWS Bedrock (Anthropic models via cross-region inference)
             bedrockV1("eu.anthropic.claude-sonnet-4-20250514-v1:0"),
             bedrockV1("global.anthropic.claude-sonnet-4-6"),
@@ -315,9 +315,9 @@ class DocumentToolCallResultsIT {
    * as anthropicV2, just SigV4-signed and sent to a Bedrock Mantle endpoint instead of
    * api.anthropic.com.
    */
-  static ProviderConfig anthropicBedrockV2(String model) {
+  static ProviderConfig anthropicBedrockMantleV2(String model) {
     return new ProviderConfig(
-        "anthropic-bedrock-v2/" + model,
+        "anthropic-bedrock-mantle-v2/" + model,
         List.of("ANTHROPIC_BEDROCK_API_KEY"),
         AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
         Map.of(
