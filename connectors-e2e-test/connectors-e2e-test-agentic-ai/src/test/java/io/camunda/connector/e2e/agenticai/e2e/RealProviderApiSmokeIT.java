@@ -226,6 +226,32 @@ class RealProviderApiSmokeIT {
         true);
   }
 
+  // Bedrock Mantle is Anthropic's own Messages API (the same wire format as anthropic-api),
+  // hosted on/by AWS: requests are SigV4-signed and sent to a Bedrock Mantle endpoint instead of
+  // api.anthropic.com, but the connector performs no body/path/response translation between the
+  // two.
+  static Provider anthropicBedrockMantle(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new Provider(
+        "anthropic-bedrock-mantle/" + model,
+        List.of("ANTHROPIC_BEDROCK_API_KEY"),
+        Map.of(
+            "provider.type",
+            "anthropic",
+            "provider.anthropic.backend.type",
+            "aws-bedrock-mantle",
+            "provider.anthropic.backend.awsBedrockMantle.region",
+            envOrDefault("ANTHROPIC_BEDROCK_REGION", "us-east-1"),
+            "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+            "apiKey",
+            "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
+            envOrPlaceholder("ANTHROPIC_BEDROCK_API_KEY"),
+            "provider.anthropic.model.model",
+            "anthropic." + model),
+        capabilityProperties,
+        true);
+  }
+
   static Stream<Provider> providers() {
     return Stream.of(
             // claude-sonnet-4-6 only supports thinking mode "enabled" (explicit budget) — the model
@@ -249,6 +275,21 @@ class RealProviderApiSmokeIT {
                 "claude-sonnet-5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
+                    Capability.PROMPT_CACHING,
+                        Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
+                    Capability.REASONING,
+                        Map.of(
+                            "provider.anthropic.model.parameters.thinking.mode", "adaptive",
+                            "provider.anthropic.model.parameters.effort", "high"))),
+            // Same model/capability config as the anthropic-api claude-sonnet-5 row above, minus
+            // structured output: Bedrock Mantle rejects output_config.format with a 400. AWS docs
+            // confirm this endpoint doesn't support it:
+            // https://docs.aws.amazon.com/bedrock/latest/userguide/claude-messages-structured-outputs.html
+            anthropicBedrockMantle(
+                "claude-sonnet-5",
+                Map.of(
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING,
@@ -282,6 +323,10 @@ class RealProviderApiSmokeIT {
 
   private static String envOrPlaceholder(String envVar) {
     return System.getenv().getOrDefault(envVar, "NOT_SET");
+  }
+
+  private static String envOrDefault(String envVar, String defaultValue) {
+    return System.getenv().getOrDefault(envVar, defaultValue);
   }
 
   @BeforeEach

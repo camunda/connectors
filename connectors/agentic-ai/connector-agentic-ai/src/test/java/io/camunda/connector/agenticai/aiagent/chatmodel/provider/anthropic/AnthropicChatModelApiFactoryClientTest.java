@@ -8,11 +8,13 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -32,7 +34,9 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.ApiKeyAuthentication;
@@ -103,7 +107,7 @@ class AnthropicChatModelApiFactoryClientTest {
   void setUp() {
     when(httpProxySupport.okHttpProxy(anyString())).thenReturn(Optional.empty());
     stubFor(
-        post(urlPathEqualTo("/v1/messages"))
+        post(urlPathMatching(".*/v1/messages"))
             .willReturn(
                 aResponse()
                     .withStatus(200)
@@ -166,6 +170,39 @@ class AnthropicChatModelApiFactoryClientTest {
                 wireMock.getHttpBaseUrl(), null, null, null, new NoAuthentication())));
 
     verify(postRequestedFor(urlPathEqualTo("/v1/messages")).withoutHeader("x-api-key"));
+  }
+
+  @Test
+  void bedrockBackendWithStaticCredentialsSignsRequestWithSigV4(WireMockRuntimeInfo wireMock) {
+    executeAgainstBedrock(
+        wireMock,
+        new AwsAuthentication.AwsStaticCredentialsAuthentication(
+            "AKIAEXAMPLE", "secretExampleKey"));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
+            .withHeader("Authorization", matching("AWS4-HMAC-SHA256.*")));
+  }
+
+  @Test
+  void bedrockBackendWithApiKeyAuthenticationSendsBearerToken(WireMockRuntimeInfo wireMock) {
+    executeAgainstBedrock(
+        wireMock, new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key"));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
+            .withHeader("Authorization", equalTo("Bearer bedrock-secret-key")));
+  }
+
+  private void executeAgainstBedrock(
+      WireMockRuntimeInfo wireMock, AwsAuthentication authentication) {
+    // the endpoint override must be the full Bedrock Mantle base URL, including the /anthropic
+    // path segment BedrockMantleBackend's own default derivation appends (see
+    // AnthropicChatModelApiFactory#applyAwsBedrockMantleBackend).
+    executeAgainst(
+        new AnthropicAwsBedrockMantleBackend(
+            new AnthropicAwsBedrockMantleBackend.AwsBedrockMantleBackend(
+                "eu-central-1", wireMock.getHttpBaseUrl() + "/anthropic", authentication)));
   }
 
   @Test
