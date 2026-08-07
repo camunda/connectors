@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicBedrockBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
@@ -325,8 +325,8 @@ class AnthropicChatModelConfigurationTest {
           "type": "anthropic",
           "anthropic": {
             "backend": {
-              "type": "bedrock",
-              "bedrock": {
+              "type": "aws-bedrock-mantle",
+              "awsBedrockMantle": {
                 "region": "eu-central-1",
                 "authentication": { "type": "credentials", "accessKey": "AKIA123", "secretKey": "secret123" }
               }
@@ -339,12 +339,12 @@ class AnthropicChatModelConfigurationTest {
     final AnthropicChatModelConfiguration parsed =
         (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
-    assertThat(parsed.anthropic().backend()).isInstanceOf(AnthropicBedrockBackend.class);
-    final AnthropicBedrockBackend bedrockBackend =
-        (AnthropicBedrockBackend) parsed.anthropic().backend();
-    assertThat(bedrockBackend.bedrock().region()).isEqualTo("eu-central-1");
-    assertThat(bedrockBackend.bedrock().endpoint()).isNull();
-    assertThat(bedrockBackend.bedrock().authentication())
+    assertThat(parsed.anthropic().backend()).isInstanceOf(AnthropicAwsBedrockMantleBackend.class);
+    final AnthropicAwsBedrockMantleBackend bedrockBackend =
+        (AnthropicAwsBedrockMantleBackend) parsed.anthropic().backend();
+    assertThat(bedrockBackend.awsBedrockMantle().region()).isEqualTo("eu-central-1");
+    assertThat(bedrockBackend.awsBedrockMantle().endpoint()).isNull();
+    assertThat(bedrockBackend.awsBedrockMantle().authentication())
         .isEqualTo(
             new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA123", "secret123"));
 
@@ -360,8 +360,8 @@ class AnthropicChatModelConfigurationTest {
           "type": "anthropic",
           "anthropic": {
             "backend": {
-              "type": "bedrock",
-              "bedrock": {
+              "type": "aws-bedrock-mantle",
+              "awsBedrockMantle": {
                 "region": "eu-central-1",
                 "endpoint": "https://vpce-example.vpce.amazonaws.com/anthropic",
                 "authentication": { "type": "apiKey", "apiKey": "bedrock-secret-key" }
@@ -375,11 +375,11 @@ class AnthropicChatModelConfigurationTest {
     final AnthropicChatModelConfiguration parsed =
         (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
-    final AnthropicBedrockBackend bedrockBackend =
-        (AnthropicBedrockBackend) parsed.anthropic().backend();
-    assertThat(bedrockBackend.bedrock().endpoint())
+    final AnthropicAwsBedrockMantleBackend bedrockBackend =
+        (AnthropicAwsBedrockMantleBackend) parsed.anthropic().backend();
+    assertThat(bedrockBackend.awsBedrockMantle().endpoint())
         .isEqualTo("https://vpce-example.vpce.amazonaws.com/anthropic");
-    assertThat(bedrockBackend.bedrock().authentication())
+    assertThat(bedrockBackend.awsBedrockMantle().authentication())
         .isEqualTo(new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key"));
 
     final String reserialised = mapper.writeValueAsString(parsed);
@@ -409,8 +409,8 @@ class AnthropicChatModelConfigurationTest {
     final var config =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
-                new AnthropicBedrockBackend(
-                    new AnthropicBedrockBackend.BedrockBackend(
+                new AnthropicAwsBedrockMantleBackend(
+                    new AnthropicAwsBedrockMantleBackend.AwsBedrockMantleBackend(
                         "",
                         null,
                         new AwsAuthentication.AwsStaticCredentialsAuthentication("", ""))),
@@ -423,19 +423,19 @@ class AnthropicChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.bedrock.region");
+                  .isEqualTo("anthropic.backend.awsBedrockMantle.region");
               assertThat(v.getMessage()).isEqualTo("must not be blank");
             })
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.bedrock.authentication.accessKey");
+                  .isEqualTo("anthropic.backend.awsBedrockMantle.authentication.accessKey");
               assertThat(v.getMessage()).isEqualTo("must not be blank");
             })
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.bedrock.authentication.secretKey");
+                  .isEqualTo("anthropic.backend.awsBedrockMantle.authentication.secretKey");
               assertThat(v.getMessage()).isEqualTo("must not be blank");
             });
   }
@@ -446,14 +446,15 @@ class AnthropicChatModelConfigurationTest {
     final var config =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
-                new AnthropicBedrockBackend(null),
+                new AnthropicAwsBedrockMantleBackend(null),
                 new AnthropicModel("claude-sonnet-4-6", null),
                 null));
 
     assertThat(validator.validate(config))
         .anySatisfy(
             v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("anthropic.backend.bedrock");
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("anthropic.backend.awsBedrockMantle");
               assertThat(v.getMessage()).isEqualTo("must not be null");
             });
   }
@@ -480,8 +481,9 @@ class AnthropicChatModelConfigurationTest {
   private static AnthropicChatModelConfiguration bedrockConfig(AwsAuthentication authentication) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
-            new AnthropicBedrockBackend(
-                new AnthropicBedrockBackend.BedrockBackend("eu-central-1", null, authentication)),
+            new AnthropicAwsBedrockMantleBackend(
+                new AnthropicAwsBedrockMantleBackend.AwsBedrockMantleBackend(
+                    "eu-central-1", null, authentication)),
             new AnthropicModel("claude-sonnet-4-6", null),
             null));
   }
