@@ -87,7 +87,7 @@
     "id" : "provider.type",
     "label" : "Provider",
     "description" : "Specify the LLM provider to use.",
-    "value" : "custom",
+    "value" : "anthropic",
     "group" : "provider",
     "binding" : {
       "name" : "provider.type",
