@@ -369,6 +369,11 @@ public class TemplatePropertiesUtil {
       builder.binding(createBinding(path + "." + ((ZeebeProperty) binding).name(), context));
     }
 
+    if (builder instanceof DocumentComposerPropertyBuilder composerBuilder) {
+      // Re-render so the composer's helper references match their just-prefixed bindings.
+      composerBuilder.addHelperPathPrefix(path);
+    }
+
     if (builder instanceof DiscriminatorPropertyBuilder discriminatorPropertyBuilder) {
       discriminatorPropertyBuilder
           .getDependantProperties()

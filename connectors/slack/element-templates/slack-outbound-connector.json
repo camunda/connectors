@@ -5,7 +5,7 @@
   "description" : "Create a channel or send a message to a channel or user",
   "keywords" : [ "post message", "create channel", "invite to channel", "add reaction", "pin message", "unpin message", "send message", "channel", "messaging", "chat", "notification" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=outbound",
-  "version" : 11,
+  "version" : 12,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -427,7 +427,7 @@
     "type" : "String"
   }, {
     "id" : "data.documents",
-    "value" : "=if data_documents_documentMode = \"multiple\" then data_documents_multiple_expression else if data_documents_documentMode = \"single\" then (if data_documents_single_documentSource = \"camunda\" then [data_documents_single_camundaReference] else if data_documents_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data_documents_single_inline_content, name: data_documents_single_inline_fileName, contentType: data_documents_single_inline_contentType }] else if data_documents_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data_documents_single_external_url, name: data_documents_single_external_fileName }] else null) else null",
+    "value" : "=if data.data_documents_documentMode = \"multiple\" then data.data_documents_multiple_expression else if data.data_documents_documentMode = \"single\" then (if data.data_documents_single_documentSource = \"camunda\" then [data.data_documents_single_camundaReference] else if data.data_documents_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data.data_documents_single_inline_content, name: data.data_documents_single_inline_fileName, contentType: data.data_documents_single_inline_contentType }] else if data.data_documents_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data.data_documents_single_external_url, name: data.data_documents_single_external_fileName }] else null) else null",
     "group" : "message",
     "binding" : {
       "name" : "data.documents",
@@ -775,7 +775,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "11",
+    "value" : "12",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

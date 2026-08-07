@@ -42,7 +42,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
       "inbox"
     },
     inputDataClass = EmailRequest.class,
-    version = 6,
+    version = 7,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

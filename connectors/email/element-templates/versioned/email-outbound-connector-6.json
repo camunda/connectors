@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Email Connector",
-  "id" : "io.camunda.connectors.email.v1-hybrid",
+  "name" : "Email Connector",
+  "id" : "io.camunda.connectors.email.v1",
   "description" : "Execute email requests",
   "keywords" : [ "send emails", "list emails", "search emails", "delete emails", "read emails", "move emails", "send email", "delete email", "read email", "move email", "IMAP", "SMTP", "POP3", "inbox" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/",
-  "version" : 7,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,9 +18,6 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "operation",
     "label" : "Operation"
   }, {
@@ -73,14 +70,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:email:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "protocol",
     "label" : "Email Protocol",
@@ -751,7 +746,7 @@
     "type" : "String"
   }, {
     "id" : "attachmentsSmtp",
-    "value" : "=if data.smtpAction.data_smtpAction_attachments_documentMode = \"multiple\" then data.smtpAction.data_smtpAction_attachments_multiple_expression else if data.smtpAction.data_smtpAction_attachments_documentMode = \"single\" then (if data.smtpAction.data_smtpAction_attachments_single_documentSource = \"camunda\" then [data.smtpAction.data_smtpAction_attachments_single_camundaReference] else if data.smtpAction.data_smtpAction_attachments_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data.smtpAction.data_smtpAction_attachments_single_inline_content, name: data.smtpAction.data_smtpAction_attachments_single_inline_fileName, contentType: data.smtpAction.data_smtpAction_attachments_single_inline_contentType }] else if data.smtpAction.data_smtpAction_attachments_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data.smtpAction.data_smtpAction_attachments_single_external_url, name: data.smtpAction.data_smtpAction_attachments_single_external_fileName }] else null) else null",
+    "value" : "=if data_smtpAction_attachments_documentMode = \"multiple\" then data_smtpAction_attachments_multiple_expression else if data_smtpAction_attachments_documentMode = \"single\" then (if data_smtpAction_attachments_single_documentSource = \"camunda\" then [data_smtpAction_attachments_single_camundaReference] else if data_smtpAction_attachments_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data_smtpAction_attachments_single_inline_content, name: data_smtpAction_attachments_single_inline_fileName, contentType: data_smtpAction_attachments_single_inline_contentType }] else if data_smtpAction_attachments_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data_smtpAction_attachments_single_external_url, name: data_smtpAction_attachments_single_external_fileName }] else null) else null",
     "group" : "sendEmailSmtp",
     "binding" : {
       "name" : "data.smtpAction.attachments",
@@ -1497,7 +1492,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "7",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
