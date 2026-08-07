@@ -151,10 +151,10 @@ class AppIntegrationsExecutor {
           adaptiveCard = requireJsonObject(card.adaptiveCard(), "adaptiveCard");
       case AdditionalContent.BlockKit blockKit ->
           blocks = requireJsonArray(blockKit.blocks(), "blocks");
-      case AdditionalContent.Form ignored -> {
+      case AdditionalContent.Form() -> {
         // The form travels as formResourceKey, resolved from the job's linked resources.
       }
-      case AdditionalContent.None ignored -> {
+      case AdditionalContent.None() -> {
         // Plain message only.
       }
       default ->

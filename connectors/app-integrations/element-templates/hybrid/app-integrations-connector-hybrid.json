@@ -2,8 +2,8 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid App Integrations Connector",
   "id" : "io.camunda.connectors.AppIntegrations.v1-hybrid",
-  "description" : "Send notifications and manage channels via Microsoft Teams",
-  "keywords" : [ "teams", "microsoft teams", "send message", "notification", "channel", "adaptive card" ],
+  "description" : "Send notifications and manage channels via Microsoft Teams and Slack",
+  "keywords" : [ "teams", "microsoft teams", "slack", "send message", "notification", "channel", "adaptive card", "block kit", "form" ],
   "version" : 2,
   "category" : {
     "id" : "connectors",
@@ -469,6 +469,10 @@
         "equals" : "sendMessage",
         "type" : "simple"
       }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "camunda",
+        "type" : "simple"
+      }, {
         "property" : "sendMessage:recipient.camundaExtra.type",
         "equals" : "form",
         "type" : "simple"
@@ -489,6 +493,10 @@
       "allMatch" : [ {
         "property" : "operation",
         "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "camunda",
         "type" : "simple"
       }, {
         "property" : "sendMessage:recipient.camundaExtra.type",
@@ -524,6 +532,10 @@
         "equals" : "sendMessage",
         "type" : "simple"
       }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "camunda",
+        "type" : "simple"
+      }, {
         "property" : "sendMessage:recipient.camundaExtra.type",
         "equals" : "form",
         "type" : "simple"
@@ -543,6 +555,10 @@
       "allMatch" : [ {
         "property" : "operation",
         "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "camunda",
         "type" : "simple"
       }, {
         "property" : "sendMessage:recipient.camundaExtra.type",
@@ -569,6 +585,10 @@
         "equals" : "sendMessage",
         "type" : "simple"
       }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      }, {
         "property" : "sendMessage:recipient.teamsExtra.type",
         "equals" : "form",
         "type" : "simple"
@@ -589,6 +609,10 @@
       "allMatch" : [ {
         "property" : "operation",
         "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
         "type" : "simple"
       }, {
         "property" : "sendMessage:recipient.teamsExtra.type",
@@ -624,6 +648,10 @@
         "equals" : "sendMessage",
         "type" : "simple"
       }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      }, {
         "property" : "sendMessage:recipient.teamsExtra.type",
         "equals" : "form",
         "type" : "simple"
@@ -643,6 +671,10 @@
       "allMatch" : [ {
         "property" : "operation",
         "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
         "type" : "simple"
       }, {
         "property" : "sendMessage:recipient.teamsExtra.type",
@@ -669,6 +701,10 @@
         "equals" : "sendMessage",
         "type" : "simple"
       }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
+        "type" : "simple"
+      }, {
         "property" : "sendMessage:recipient.slackExtra.type",
         "equals" : "form",
         "type" : "simple"
@@ -689,6 +725,10 @@
       "allMatch" : [ {
         "property" : "operation",
         "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
         "type" : "simple"
       }, {
         "property" : "sendMessage:recipient.slackExtra.type",
@@ -724,6 +764,10 @@
         "equals" : "sendMessage",
         "type" : "simple"
       }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
+        "type" : "simple"
+      }, {
         "property" : "sendMessage:recipient.slackExtra.type",
         "equals" : "form",
         "type" : "simple"
@@ -743,6 +787,10 @@
       "allMatch" : [ {
         "property" : "operation",
         "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
         "type" : "simple"
       }, {
         "property" : "sendMessage:recipient.slackExtra.type",

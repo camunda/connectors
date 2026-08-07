@@ -12,7 +12,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
@@ -40,7 +40,7 @@ public sealed interface ChannelPlatform {
 
   @TemplateSubType(id = "teams", label = "Microsoft Teams")
   record TeamsChannelPlatform(
-      @NotEmpty
+      @NotBlank
           @TemplateProperty(
               group = "channel",
               label = "Team ID",

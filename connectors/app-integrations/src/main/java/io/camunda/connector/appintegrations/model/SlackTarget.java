@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 
 /**
  * Who a Slack message goes to. The two subtypes deliberately name their field differently ({@code
@@ -33,7 +33,7 @@ public sealed interface SlackTarget {
 
   @TemplateSubType(id = "channel", label = "Channel")
   record SlackChannelTarget(
-      @NotEmpty
+      @NotBlank
           @TemplateProperty(
               group = "recipient",
               label = "Channel ID",
@@ -43,7 +43,7 @@ public sealed interface SlackTarget {
 
   @TemplateSubType(id = "user", label = "User")
   record SlackUserTarget(
-      @NotEmpty
+      @NotBlank
           @TemplateProperty(
               group = "recipient",
               label = "User",

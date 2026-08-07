@@ -82,12 +82,13 @@ public class LinkedResourcePropertiesUtil {
                 + linkedResource.linkName()
                 + "'. Each linked resource on the same class must have a unique linkName.");
       }
-      if (linkedResource.conditionProperty().isBlank()
-          != linkedResource.conditionEquals().isBlank()) {
-        throw new IllegalArgumentException(
-            "@TemplateLinkedResource(linkName='"
-                + linkedResource.linkName()
-                + "') must set both conditionProperty and conditionEquals, or neither.");
+      for (var condition : linkedResource.conditions()) {
+        if (condition.property().isBlank() || condition.equals().isBlank()) {
+          throw new IllegalArgumentException(
+              "@TemplateLinkedResource(linkName='"
+                  + linkedResource.linkName()
+                  + "') declares a condition with a blank property or equals value. Both are required.");
+        }
       }
     }
 
@@ -97,17 +98,16 @@ public class LinkedResourcePropertiesUtil {
       String bindingTypeId = idPrefix + linkedResource.linkName() + SUFFIX_BINDING_TYPE;
 
       // Conditions every linked-resource property inherits: the operation scope (null for
-      // class-based connectors, which have none) and, when declared, the conditionProperty gate.
+      // class-based connectors, which have none) plus any declared gates.
       // idPrefix is "<operationId>:" for operation-based connectors and "" for class-based ones,
       // matching how the referenced property's own ID is prefixed.
       List<PropertyCondition> baseConditions = new ArrayList<>();
       if (baseCondition != null) {
         baseConditions.add(baseCondition);
       }
-      if (!linkedResource.conditionProperty().isBlank()) {
+      for (var condition : linkedResource.conditions()) {
         baseConditions.add(
-            new PropertyCondition.Equals(
-                idPrefix + linkedResource.conditionProperty(), linkedResource.conditionEquals()));
+            new PropertyCondition.Equals(idPrefix + condition.property(), condition.equals()));
       }
 
       // When optional=true, prepend a Yes/No toggle (zeebe:taskHeader). All linked-resource

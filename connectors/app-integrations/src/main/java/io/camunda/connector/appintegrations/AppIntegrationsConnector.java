@@ -36,14 +36,17 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.AppIntegrations.v1",
     name = "App Integrations Connector",
     version = 2,
-    description = "Send notifications and manage channels via Microsoft Teams",
+    description = "Send notifications and manage channels via Microsoft Teams and Slack",
     keywords = {
       "teams",
       "microsoft teams",
+      "slack",
       "send message",
       "notification",
       "channel",
-      "adaptive card"
+      "adaptive card",
+      "block kit",
+      "form"
     },
     icon = "icon.svg",
     engineVersion = "^8.10",

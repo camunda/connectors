@@ -70,6 +70,6 @@ public class OperationAnnotatedConnectorWithNestedDiscriminators
   @Operation(id = "op1", name = "Operation 1")
   @SuppressWarnings("unused")
   public String op1(@Variable RequestWithNestedDiscriminators request) {
-    return null;
+    return request.toString();
   }
 }
