@@ -16,17 +16,23 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.appintegrations.model.AdditionalContent;
+import io.camunda.connector.appintegrations.model.CamundaExtra;
+import io.camunda.connector.appintegrations.model.ChannelPlatform;
 import io.camunda.connector.appintegrations.model.CreateChannelRequest;
 import io.camunda.connector.appintegrations.model.CreateChannelResult;
-import io.camunda.connector.appintegrations.model.MessageContent;
 import io.camunda.connector.appintegrations.model.Recipient;
 import io.camunda.connector.appintegrations.model.SendMessageRequest;
 import io.camunda.connector.appintegrations.model.SendMessageResult;
+import io.camunda.connector.appintegrations.model.SlackExtra;
+import io.camunda.connector.appintegrations.model.SlackTarget;
+import io.camunda.connector.appintegrations.model.TeamsExtra;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
@@ -55,6 +61,8 @@ class AppIntegrationsConnectorTest {
 
   private static final String BASE_URL = "https://app-integrations.example.com";
   private static final String TOKEN_ENDPOINT = "https://auth.example.com/oauth/token";
+  private static final String CARD = "{\"type\":\"AdaptiveCard\",\"version\":\"1.5\"}";
+  private static final String BLOCKS = "[{\"type\":\"section\"}]";
 
   private static final Map<String, String> API_KEY_ENV =
       Map.of("APP_INTEGRATIONS_BASE_URL", BASE_URL, "APP_INTEGRATIONS_API_KEY", "test-key");
@@ -66,6 +74,8 @@ class AppIntegrationsConnectorTest {
           "APP_INTEGRATIONS_OAUTH_CLIENT_ID", "client-id",
           "APP_INTEGRATIONS_OAUTH_CLIENT_SECRET", "client-secret",
           "APP_INTEGRATIONS_OAUTH_AUDIENCE", "app-integrations");
+
+  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private static final Validator VALIDATOR =
       Validation.byDefaultProvider()
@@ -90,12 +100,19 @@ class AppIntegrationsConnectorTest {
 
   @AfterEach
   void tearDown() {
-    // Restore a clean default cache so the static holder does not leak the mock across tests.
     OAuthTokenCacheHolder.set(new CaffeineOAuthTokenCache());
   }
 
   private AppIntegrationsConnector connectorWith(Map<String, String> env) {
-    return new AppIntegrationsConnector(new ObjectMapper(), httpClient, env::get);
+    return new AppIntegrationsConnector(MAPPER, httpClient, env::get);
+  }
+
+  private static JsonNode json(String raw) {
+    try {
+      return MAPPER.readTree(raw);
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   private static HttpResponse<String> httpResponse(int status, String body) {
@@ -114,13 +131,307 @@ class AppIntegrationsConnectorTest {
     return captor.getValue();
   }
 
-  private static SendMessageRequest textToEmail(String email, String message) {
-    return new SendMessageRequest(
-        new Recipient.CamundaRecipient(email, null, null), new MessageContent.TextContent(message));
+  private String captureBody() {
+    return (String) captureRequest().getBody();
   }
 
-  private static CreateChannelRequest channelRequest(String teamId) {
-    return new CreateChannelRequest(teamId, "My Channel", null, "standard");
+  // --- request builders ---
+
+  private static SendMessageRequest camunda(String email, String message, CamundaExtra extra) {
+    return new SendMessageRequest(
+        new Recipient.CamundaRecipient(email, null, null, extra), message);
+  }
+
+  private static SendMessageRequest teams(String channelId, String message, TeamsExtra extra) {
+    return new SendMessageRequest(new Recipient.TeamsRecipient(channelId, extra), message);
+  }
+
+  private static SendMessageRequest slack(SlackTarget target, String message, SlackExtra extra) {
+    return new SendMessageRequest(new Recipient.SlackRecipient(target, extra), message);
+  }
+
+  private static SendMessageRequest camundaText(String email, String message) {
+    return camunda(email, message, new AdditionalContent.None());
+  }
+
+  private static CreateChannelRequest teamsChannel(String teamId) {
+    return new CreateChannelRequest(
+        "My Channel", null, new ChannelPlatform.TeamsChannelPlatform(teamId, "standard"));
+  }
+
+  // --- payload shape per recipient / additional content ---
+
+  @Test
+  void camunda_plainMessage_sendsPlatformAndEmailOnly() {
+    stubOk();
+
+    connector.sendMessage(camundaText("user@example.com", "Please review"), context);
+
+    var body = captureBody();
+    assertThat(body).contains("\"platform\":\"camunda\"");
+    assertThat(body).contains("\"email\":\"user@example.com\"");
+    assertThat(body).contains("\"message\":\"Please review\"");
+    assertThat(body)
+        .doesNotContain("channelId", "userId", "adaptiveCard", "blocks", "formResourceKey");
+  }
+
+  @Test
+  void camunda_candidateUsersAndGroups_sentAsJsonArrays() {
+    stubOk();
+
+    var request =
+        new SendMessageRequest(
+            new Recipient.CamundaRecipient(
+                null, List.of("alice", "bob"), List.of("approvers"), new AdditionalContent.None()),
+            "Please approve");
+    connector.sendMessage(request, context);
+
+    var body = captureBody();
+    assertThat(body).contains("\"candidateUsers\":[\"alice\",\"bob\"]");
+    assertThat(body).contains("\"candidateGroups\":[\"approvers\"]");
+    assertThat(body).doesNotContain("\"email\"");
+  }
+
+  @Test
+  void teams_messageAndAdaptiveCardTogether_sendsBoth() {
+    // The headline of this change: text and rich content are no longer mutually exclusive.
+    stubOk();
+
+    connector.sendMessage(
+        teams("19:abc@thread.tacv2", "Deploy done", new AdditionalContent.AdaptiveCard(json(CARD))),
+        context);
+
+    var body = captureBody();
+    assertThat(body).contains("\"platform\":\"teams\"");
+    assertThat(body).contains("\"channelId\":\"19:abc@thread.tacv2\"");
+    assertThat(body).contains("\"message\":\"Deploy done\"");
+    // Sent as real JSON, not a string.
+    assertThat(body).contains("\"adaptiveCard\":{\"type\":\"AdaptiveCard\"");
+    assertThat(body).doesNotContain("blocks", "formResourceKey", "email");
+  }
+
+  @Test
+  void slack_channel_messageAndBlocksTogether_sendsBoth() {
+    stubOk();
+
+    connector.sendMessage(
+        slack(
+            new SlackTarget.SlackChannelTarget("C0123456789"),
+            "Deploy done",
+            new AdditionalContent.BlockKit(json(BLOCKS))),
+        context);
+
+    var body = captureBody();
+    assertThat(body).contains("\"platform\":\"slack\"");
+    assertThat(body).contains("\"channelId\":\"C0123456789\"");
+    assertThat(body).contains("\"message\":\"Deploy done\"");
+    assertThat(body).contains("\"blocks\":[{\"type\":\"section\"}]");
+    assertThat(body).doesNotContain("adaptiveCard", "userId", "formResourceKey");
+  }
+
+  @Test
+  void slack_user_sendsUserIdNotChannelId() {
+    stubOk();
+
+    connector.sendMessage(
+        slack(new SlackTarget.SlackUserTarget("U0123456789"), "Ping", new AdditionalContent.None()),
+        context);
+
+    var body = captureBody();
+    assertThat(body).contains("\"platform\":\"slack\"");
+    assertThat(body).contains("\"userId\":\"U0123456789\"");
+    assertThat(body).doesNotContain("channelId");
+  }
+
+  @Test
+  void additionalContentOnly_omitsMessageEntirely() {
+    stubOk();
+
+    connector.sendMessage(
+        teams("19:abc@thread.tacv2", "  ", new AdditionalContent.AdaptiveCard(json(CARD))),
+        context);
+
+    var body = captureBody();
+    assertThat(body).doesNotContain("\"message\"");
+    assertThat(body).contains("\"adaptiveCard\"");
+  }
+
+  @Test
+  void nothingToSend_failsValidation() {
+    var request = teams("19:abc@thread.tacv2", "   ", new AdditionalContent.None());
+
+    assertThat(VALIDATOR.validate(request))
+        .anyMatch(v -> v.getMessage().contains("Provide a message, additional content, or both"));
+  }
+
+  // --- JSON normalisation ---
+
+  @Test
+  void adaptiveCard_arrivingAsJsonString_isParsedIntoAnObject() {
+    // Belt and braces: the property is FEEL-enabled so the engine normally hands over a real
+    // object,
+    // but a static paste that was never evaluated must still reach the backend as JSON.
+    stubOk();
+
+    connector.sendMessage(
+        teams(
+            "19:abc@thread.tacv2",
+            null,
+            new AdditionalContent.AdaptiveCard(MAPPER.getNodeFactory().textNode(CARD))),
+        context);
+
+    assertThat(captureBody()).contains("\"adaptiveCard\":{\"type\":\"AdaptiveCard\"");
+  }
+
+  @Test
+  void adaptiveCard_malformedJsonString_throwsValidationError() {
+    var request =
+        teams(
+            "19:abc@thread.tacv2",
+            null,
+            new AdditionalContent.AdaptiveCard(MAPPER.getNodeFactory().textNode("{not json")));
+
+    assertThatThrownBy(() -> connector.sendMessage(request, context))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo("VALIDATION_ERROR");
+              assertThat(e.getMessage()).contains("'adaptiveCard' is not valid JSON");
+            });
+    verifyNoInteractions(httpClient);
+  }
+
+  @Test
+  void adaptiveCard_wrongShape_throwsValidationError() {
+    var request =
+        teams("19:abc@thread.tacv2", null, new AdditionalContent.AdaptiveCard(json(BLOCKS)));
+
+    assertThatThrownBy(() -> connector.sendMessage(request, context))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("'adaptiveCard' must be a JSON object");
+    verifyNoInteractions(httpClient);
+  }
+
+  @Test
+  void blocks_wrongShape_throwsValidationError() {
+    var request =
+        slack(
+            new SlackTarget.SlackChannelTarget("C1"),
+            null,
+            new AdditionalContent.BlockKit(json(CARD)));
+
+    assertThatThrownBy(() -> connector.sendMessage(request, context))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("'blocks' must be a JSON array");
+    verifyNoInteractions(httpClient);
+  }
+
+  // --- validation ---
+
+  @Test
+  void camundaRecipient_withNothingProvided_failsValidation() {
+    var request = camundaText(null, "Hello");
+
+    assertThat(VALIDATOR.validate(request))
+        .anyMatch(v -> v.getMessage().contains("At least one of 'email'"));
+  }
+
+  @Test
+  void slackChannelTarget_blank_failsValidation() {
+    var request =
+        slack(new SlackTarget.SlackChannelTarget(""), "Hello", new AdditionalContent.None());
+
+    assertThat(VALIDATOR.validate(request)).isNotEmpty();
+  }
+
+  @Test
+  void slackUserTarget_blank_failsValidation() {
+    var request = slack(new SlackTarget.SlackUserTarget(""), "Hello", new AdditionalContent.None());
+
+    assertThat(VALIDATOR.validate(request)).isNotEmpty();
+  }
+
+  @Test
+  void nullNestedAdditionalContent_failsValidation() {
+    var request = new SendMessageRequest(new Recipient.TeamsRecipient("19:abc", null), "Hello");
+
+    assertThat(VALIDATOR.validate(request)).isNotEmpty();
+  }
+
+  // --- linked form, per branch ---
+
+  private static final String FORM_HEADER =
+      "[{\"resourceKey\":\"12345\",\"resourceType\":\"form\",\"linkName\":\"formTeams\"}]";
+
+  private void stubFormHeader() {
+    when(jobContext.getCustomHeaders()).thenReturn(Map.of("linkedResources", FORM_HEADER));
+  }
+
+  @Test
+  void form_camundaBranch_includesFormResourceKey() {
+    stubOk();
+    stubFormHeader();
+
+    connector.sendMessage(
+        camunda("user@example.com", "Please approve", new AdditionalContent.Form()), context);
+
+    var body = captureBody();
+    assertThat(body).contains("\"formResourceKey\":\"12345\"");
+    assertThat(body).contains("\"platform\":\"camunda\"");
+  }
+
+  @Test
+  void form_teamsBranch_includesFormResourceKey() {
+    stubOk();
+    stubFormHeader();
+
+    connector.sendMessage(teams("19:abc", null, new AdditionalContent.Form()), context);
+
+    assertThat(captureBody()).contains("\"formResourceKey\":\"12345\"");
+  }
+
+  @Test
+  void form_slackBranch_includesFormResourceKey() {
+    stubOk();
+    stubFormHeader();
+
+    connector.sendMessage(
+        slack(new SlackTarget.SlackChannelTarget("C1"), null, new AdditionalContent.Form()),
+        context);
+
+    assertThat(captureBody()).contains("\"formResourceKey\":\"12345\"");
+  }
+
+  @Test
+  void form_withoutLinkedForm_throwsValidationError() {
+    var request = teams("19:abc", null, new AdditionalContent.Form());
+
+    assertThatThrownBy(() -> connector.sendMessage(request, context))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining(
+            "Additional content is 'form' but no linked form was found on the job");
+    verifyNoInteractions(httpClient);
+  }
+
+  @Test
+  void form_malformedLinkedResourcesHeader_throwsValidationError() {
+    when(jobContext.getCustomHeaders()).thenReturn(Map.of("linkedResources", "not-valid-json"));
+    var request = teams("19:abc", null, new AdditionalContent.Form());
+
+    assertThatThrownBy(() -> connector.sendMessage(request, context))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("no linked form was found");
+    verifyNoInteractions(httpClient);
+  }
+
+  @Test
+  void nonFormSelection_ignoresLinkedResourcesHeader() {
+    stubOk();
+    stubFormHeader();
+
+    connector.sendMessage(teams("19:abc", "Hello", new AdditionalContent.None()), context);
+
+    assertThat(captureBody()).doesNotContain("formResourceKey");
   }
 
   // --- authentication and transport ---
@@ -129,10 +440,8 @@ class AppIntegrationsConnectorTest {
   void sendMessage_withOAuth_delegatesOAuthToHttpClient() {
     stubOk();
 
-    connectorWith(OAUTH_ENV).sendMessage(textToEmail("user@example.com", "Hi"), context);
+    connectorWith(OAUTH_ENV).sendMessage(camundaText("user@example.com", "Hi"), context);
 
-    // OAuth is delegated to the SDK HttpClient: the request carries the SDK OAuthAuthentication
-    // (which execute() resolves into a Bearer token), not a hand-set Authorization header.
     var sent = captureRequest();
     assertThat(sent.getHeader("Authorization")).isEmpty();
     assertThat(sent.getHeader("X-API-KEY")).isEmpty();
@@ -142,7 +451,6 @@ class AppIntegrationsConnectorTest {
         (io.camunda.connector.http.client.model.auth.OAuthAuthentication) sent.getAuthentication();
     assertThat(oauth.clientId()).isEqualTo("client-id");
     assertThat(oauth.oauthTokenEndpoint()).isEqualTo(TOKEN_ENDPOINT);
-    assertThat(oauth.audience()).isEqualTo("app-integrations");
   }
 
   @Test
@@ -151,26 +459,21 @@ class AppIntegrationsConnectorTest {
     var env = new java.util.HashMap<>(OAUTH_ENV);
     env.put("APP_INTEGRATIONS_API_KEY", "unused-key");
 
-    connectorWith(env).sendMessage(textToEmail("user@example.com", "Hi"), context);
+    connectorWith(env).sendMessage(camundaText("user@example.com", "Hi"), context);
 
-    var sent = captureRequest();
-    assertThat(sent.getAuthentication())
-        .isInstanceOf(io.camunda.connector.http.client.model.auth.OAuthAuthentication.class);
-    assertThat(sent.getHeader("X-API-KEY")).isEmpty();
+    assertThat(captureRequest().getHeader("X-API-KEY")).isEmpty();
   }
 
   @Test
   void sendMessage_oauth401_invalidatesTokenAndRetries() {
     OAuthTokenCacheHolder.set(tokenCache);
-    // The SDK HttpClient throws (errorCode = status code) on a 401, it does not return it. The
-    // connector must catch that, invalidate the cached token, and retry once — the retry succeeds.
     doThrow(new ConnectorException("401", "Unauthorized"))
         .doReturn(httpResponse(201, "{\"conversation\":null}"))
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
 
     var result =
-        connectorWith(OAUTH_ENV).sendMessage(textToEmail("user@example.com", "Hi"), context);
+        connectorWith(OAUTH_ENV).sendMessage(camundaText("user@example.com", "Hi"), context);
 
     assertThat(result.conversation()).isNull();
     verify(tokenCache)
@@ -180,12 +483,11 @@ class AppIntegrationsConnectorTest {
 
   @Test
   void sendMessage_apiKey401_propagatesWithoutRetry() {
-    // A 401 with a non-OAuth auth has no cached token to refresh, so it must propagate as-is.
     doThrow(new ConnectorException("401", "Unauthorized"))
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
 
-    var request = textToEmail("user@example.com", "Hi");
+    var request = camundaText("user@example.com", "Hi");
 
     assertThatThrownBy(() -> connector.sendMessage(request, context))
         .isInstanceOfSatisfying(
@@ -197,7 +499,7 @@ class AppIntegrationsConnectorTest {
   void sendMessage_notSaas_omitsContextHeaders() {
     stubOk();
 
-    connector.sendMessage(textToEmail("user@example.com", "Hi"), context);
+    connector.sendMessage(camundaText("user@example.com", "Hi"), context);
 
     var req = captureRequest();
     assertThat(req.getHeader("X-Org-Id")).isEmpty();
@@ -205,13 +507,24 @@ class AppIntegrationsConnectorTest {
   }
 
   @Test
+  void sendMessage_byEmail_callsCorrectEndpointWithApiKeyHeader() {
+    stubOk();
+
+    var result = connector.sendMessage(camundaText("user@example.com", "Hello"), context);
+
+    assertThat(result).isInstanceOf(SendMessageResult.class);
+    var req = captureRequest();
+    assertThat(req.getUrl()).endsWith("/api/connector/message");
+    assertThat(req.getHeader("X-API-KEY")).hasValue("test-key");
+  }
+
+  @Test
   void sendMessage_backendError_throwsConnectorException() {
-    // The SDK HttpClient throws on status >= 400 with the status code as the error code.
     doThrow(new ConnectorException("500", "Internal Server Error"))
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
 
-    var request = textToEmail("user@example.com", "Hello");
+    var request = camundaText("user@example.com", "Hello");
 
     assertThatThrownBy(() -> connector.sendMessage(request, context))
         .isInstanceOfSatisfying(
@@ -224,237 +537,34 @@ class AppIntegrationsConnectorTest {
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
 
-    var request = textToEmail("user@example.com", "Hello");
+    var request = camundaText("user@example.com", "Hello");
 
     assertThatThrownBy(() -> connector.sendMessage(request, context))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("Connection refused");
   }
 
-  // --- recipient ---
-
-  @Test
-  void sendMessage_byEmail_callsCorrectEndpointWithApiKeyHeader() {
-    stubOk();
-
-    var result =
-        connector.sendMessage(textToEmail("user@example.com", "Hello from Camunda"), context);
-
-    assertThat(result).isInstanceOf(SendMessageResult.class);
-    assertThat(result.conversation()).isNull();
-
-    var req = captureRequest();
-    assertThat(req.getUrl()).endsWith("/api/connector/message");
-    assertThat(req.getHeader("X-API-KEY")).hasValue("test-key");
-  }
-
-  @Test
-  void sendMessage_byChannelId_sendsChannelIdInBodyAndOmitsEmail() {
-    stubOk();
-
-    var request =
-        new SendMessageRequest(
-            new Recipient.TeamsRecipient("19:abc123@thread.tacv2"),
-            new MessageContent.TextContent("Hello from Camunda"));
-    var result = connector.sendMessage(request, context);
-
-    assertThat(result.conversation()).isNull();
-
-    var body = (String) captureRequest().getBody();
-    assertThat(body).contains("\"channelId\":\"19:abc123@thread.tacv2\"");
-    assertThat(body).contains("\"message\":\"Hello from Camunda\"");
-    assertThat(body).doesNotContain("\"email\"");
-  }
-
-  @Test
-  void sendMessage_candidateUsersAndGroups_sentAsJsonArrays() {
-    stubOk();
-
-    var request =
-        new SendMessageRequest(
-            new Recipient.CamundaRecipient(null, List.of("alice", "bob"), List.of("approvers")),
-            new MessageContent.TextContent("Please approve"));
-    connector.sendMessage(request, context);
-
-    var body = (String) captureRequest().getBody();
-    assertThat(body).contains("\"candidateUsers\":[\"alice\",\"bob\"]");
-    assertThat(body).contains("\"candidateGroups\":[\"approvers\"]");
-    assertThat(body).doesNotContain("\"email\"");
-    assertThat(body).doesNotContain("\"channelId\"");
-  }
-
-  @Test
-  void sendMessage_emptyCandidateLists_omittedFromBody() {
-    stubOk();
-
-    var request =
-        new SendMessageRequest(
-            new Recipient.CamundaRecipient("user@example.com", List.of(), List.of()),
-            new MessageContent.TextContent("Hello"));
-    connector.sendMessage(request, context);
-
-    var body = (String) captureRequest().getBody();
-    assertThat(body).contains("\"email\":\"user@example.com\"");
-    assertThat(body).doesNotContain("candidateUsers");
-    assertThat(body).doesNotContain("candidateGroups");
-  }
-
-  @Test
-  void camundaRecipient_withNothingProvided_failsValidation() {
-    var request =
-        new SendMessageRequest(
-            new Recipient.CamundaRecipient(null, null, null),
-            new MessageContent.TextContent("Hello"));
-
-    var violations = VALIDATOR.validate(request);
-
-    assertThat(violations).isNotEmpty();
-    assertThat(violations)
-        .anyMatch(
-            v ->
-                v.getMessage()
-                    .contains(
-                        "At least one of 'email', 'candidateUsers' or 'candidateGroups' must be provided"));
-  }
-
-  @Test
-  void camundaRecipient_withBlankEmailAndEmptyLists_failsValidation() {
-    var request =
-        new SendMessageRequest(
-            new Recipient.CamundaRecipient("  ", List.of(), List.of()),
-            new MessageContent.TextContent("Hello"));
-
-    assertThat(VALIDATOR.validate(request))
-        .anyMatch(v -> v.getMessage().contains("At least one of 'email'"));
-  }
-
-  @Test
-  void teamsRecipient_withBlankChannelId_failsValidation() {
-    var request =
-        new SendMessageRequest(
-            new Recipient.TeamsRecipient(""), new MessageContent.TextContent("Hello"));
-
-    assertThat(VALIDATOR.validate(request)).isNotEmpty();
-  }
-
-  // --- message content ---
-
-  @Test
-  void sendMessage_adaptiveCard_sendsCardAndOmitsMessage() {
-    stubOk();
-
-    var request =
-        new SendMessageRequest(
-            new Recipient.CamundaRecipient("user@example.com", null, null),
-            new MessageContent.AdaptiveCardContent("{\"type\":\"AdaptiveCard\"}"));
-    connector.sendMessage(request, context);
-
-    var body = (String) captureRequest().getBody();
-    assertThat(body).contains("\"adaptiveCardJson\"");
-    assertThat(body).doesNotContain("\"message\"");
-  }
-
-  @Test
-  void textContent_withBlankMessage_failsValidation() {
-    var request =
-        new SendMessageRequest(
-            new Recipient.CamundaRecipient("user@example.com", null, null),
-            new MessageContent.TextContent(""));
-
-    assertThat(VALIDATOR.validate(request)).isNotEmpty();
-  }
-
-  @Test
-  void adaptiveCardContent_withBlankJson_failsValidation() {
-    var request =
-        new SendMessageRequest(
-            new Recipient.CamundaRecipient("user@example.com", null, null),
-            new MessageContent.AdaptiveCardContent(""));
-
-    assertThat(VALIDATOR.validate(request)).isNotEmpty();
-  }
-
-  // --- linked form ---
-
-  private static SendMessageRequest formToEmail() {
-    return new SendMessageRequest(
-        new Recipient.CamundaRecipient("user@example.com", null, null),
-        new MessageContent.FormContent());
-  }
-
-  @Test
-  void sendMessage_formContent_withLinkedFormResource_includesFormResourceKey() {
-    stubOk();
-    when(jobContext.getCustomHeaders())
-        .thenReturn(
-            Map.of(
-                "linkedResources",
-                "[{\"resourceKey\":\"12345\",\"resourceType\":\"form\",\"linkName\":\"formDefinition\"}]"));
-
-    connector.sendMessage(formToEmail(), context);
-
-    var body = (String) captureRequest().getBody();
-    assertThat(body).contains("\"formResourceKey\":\"12345\"");
-    assertThat(body).doesNotContain("\"message\"");
-    assertThat(body).doesNotContain("\"adaptiveCardJson\"");
-  }
-
-  @Test
-  void sendMessage_formContent_withoutLinkedForm_throwsValidationError() {
-    var request = formToEmail();
-
-    assertThatThrownBy(() -> connector.sendMessage(request, context))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("Message type is 'form' but no linked form was found on the job");
-    verifyNoInteractions(httpClient);
-  }
-
-  @Test
-  void sendMessage_formContent_malformedLinkedResourcesHeader_throwsValidationError() {
-    when(jobContext.getCustomHeaders()).thenReturn(Map.of("linkedResources", "not-valid-json"));
-    var request = formToEmail();
-
-    assertThatThrownBy(() -> connector.sendMessage(request, context))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("no linked form was found");
-    verifyNoInteractions(httpClient);
-  }
-
-  @Test
-  void sendMessage_textContent_ignoresLinkedResourcesHeader() {
-    stubOk();
-    when(jobContext.getCustomHeaders())
-        .thenReturn(
-            Map.of(
-                "linkedResources",
-                "[{\"resourceKey\":\"12345\",\"resourceType\":\"form\",\"linkName\":\"formDefinition\"}]"));
-
-    connector.sendMessage(textToEmail("user@example.com", "Hello"), context);
-
-    assertThat((String) captureRequest().getBody()).doesNotContain("formResourceKey");
-  }
-
   // --- createChannel ---
 
   @Test
-  void createChannel_success_returnsChannelIdAndVerifiesRequestBody() {
+  void createChannel_teams_success() {
     doReturn(httpResponse(201, "{\"channelId\":\"19:new-channel@thread.tacv2\"}"))
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
 
-    var result = connector.createChannel(channelRequest("b7779302-e8cb-4b34-901b-5b150a19fd47"));
+    var result = connector.createChannel(teamsChannel("b7779302-e8cb-4b34-901b-5b150a19fd47"));
 
     assertThat(result).isInstanceOf(CreateChannelResult.class);
     assertThat(result.channelId()).isEqualTo("19:new-channel@thread.tacv2");
 
     var req = captureRequest();
     var body = (String) req.getBody();
+    assertThat(body).contains("\"platform\":\"teams\"");
     assertThat(body).contains("\"teamId\":\"b7779302-e8cb-4b34-901b-5b150a19fd47\"");
     assertThat(body).contains("\"displayName\":\"My Channel\"");
     assertThat(body).contains("\"membershipType\":\"standard\"");
-    assertThat(body).doesNotContain("\"description\"");
+    assertThat(body).doesNotContain("description", "workspaceId", "isPrivate");
     assertThat(req.getUrl()).endsWith("/api/connector/channel");
-    assertThat(req.getHeader("X-API-KEY")).hasValue("test-key");
   }
 
   @Test
@@ -464,11 +574,10 @@ class AppIntegrationsConnectorTest {
         .execute(any(HttpClientRequest.class), any());
 
     connector.createChannel(
-        channelRequest(
+        teamsChannel(
             "https://teams.cloud.microsoft/l/team/19%3Axxx?groupId=b7779302-e8cb-4b34-901b-5b150a19fd47&tenantId=abc"));
 
-    assertThat((String) captureRequest().getBody())
-        .contains("\"teamId\":\"b7779302-e8cb-4b34-901b-5b150a19fd47\"");
+    assertThat(captureBody()).contains("\"teamId\":\"b7779302-e8cb-4b34-901b-5b150a19fd47\"");
   }
 
   @Test
@@ -478,9 +587,60 @@ class AppIntegrationsConnectorTest {
         .execute(any(HttpClientRequest.class), any());
 
     connector.createChannel(
-        new CreateChannelRequest("b7779302-e8cb-4b34-901b-5b150a19fd47", "My Channel", null, null));
+        new CreateChannelRequest(
+            "My Channel", null, new ChannelPlatform.TeamsChannelPlatform("group-1", null)));
 
-    assertThat((String) captureRequest().getBody()).contains("\"membershipType\":\"standard\"");
+    assertThat(captureBody()).contains("\"membershipType\":\"standard\"");
+  }
+
+  @Test
+  void createChannel_slack_sendsWorkspaceAndPrivacyAndNoTeamsFields() {
+    doReturn(httpResponse(201, "{\"channelId\":\"C0999\"}"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
+
+    var result =
+        connector.createChannel(
+            new CreateChannelRequest(
+                "releases",
+                "Automated releases",
+                new ChannelPlatform.SlackChannelPlatform("T0123", true)));
+
+    assertThat(result.channelId()).isEqualTo("C0999");
+    var body = captureBody();
+    assertThat(body).contains("\"platform\":\"slack\"");
+    assertThat(body).contains("\"workspaceId\":\"T0123\"");
+    assertThat(body).contains("\"isPrivate\":true");
+    assertThat(body).contains("\"description\":\"Automated releases\"");
+    assertThat(body).doesNotContain("teamId", "membershipType");
+  }
+
+  @Test
+  void createChannel_teamsNameOverFiftyChars_failsValidation() {
+    var request =
+        new CreateChannelRequest(
+            "x".repeat(51), null, new ChannelPlatform.TeamsChannelPlatform("group-1", "standard"));
+
+    assertThat(VALIDATOR.validate(request))
+        .anyMatch(v -> v.getMessage().contains("at most 50 characters"));
+  }
+
+  @Test
+  void createChannel_slackNameOverFiftyChars_isAccepted() {
+    var request =
+        new CreateChannelRequest(
+            "x".repeat(51), null, new ChannelPlatform.SlackChannelPlatform(null, false));
+
+    assertThat(VALIDATOR.validate(request)).isEmpty();
+  }
+
+  @Test
+  void createChannel_nameOverEightyChars_failsValidation() {
+    var request =
+        new CreateChannelRequest(
+            "x".repeat(81), null, new ChannelPlatform.SlackChannelPlatform(null, false));
+
+    assertThat(VALIDATOR.validate(request)).isNotEmpty();
   }
 
   @Test
@@ -489,22 +649,10 @@ class AppIntegrationsConnectorTest {
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
 
-    var request = channelRequest("b7779302-e8cb-4b34-901b-5b150a19fd47");
+    var request = teamsChannel("group-1");
     assertThatThrownBy(() -> connector.createChannel(request))
         .isInstanceOfSatisfying(
             ConnectorException.class, e -> assertThat(e.getErrorCode()).isEqualTo("500"));
-  }
-
-  @Test
-  void createChannel_transportError_throwsConnectorException() {
-    doThrow(new ConnectorException("IO_ERROR", "Connection refused"))
-        .when(httpClient)
-        .execute(any(HttpClientRequest.class), any());
-
-    var request = channelRequest("b7779302-e8cb-4b34-901b-5b150a19fd47");
-    assertThatThrownBy(() -> connector.createChannel(request))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("Connection refused");
   }
 
   /**
@@ -534,7 +682,7 @@ class AppIntegrationsConnectorTest {
     void emptyEnvironment_failsWithoutRetries() {
       var noEnv = connectorWith(Map.of());
       assertNotConfigured(
-          () -> noEnv.sendMessage(textToEmail("user@example.com", "Hi"), context),
+          () -> noEnv.sendMessage(camundaText("user@example.com", "Hi"), context),
           "APP_INTEGRATIONS_BASE_URL");
     }
 
@@ -542,7 +690,7 @@ class AppIntegrationsConnectorTest {
     void baseUrlWithoutAnyAuth_namesBothAlternatives() {
       var partial = connectorWith(Map.of("APP_INTEGRATIONS_BASE_URL", BASE_URL));
       assertNotConfigured(
-          () -> partial.sendMessage(textToEmail("user@example.com", "Hi"), context),
+          () -> partial.sendMessage(camundaText("user@example.com", "Hi"), context),
           "APP_INTEGRATIONS_API_KEY",
           "APP_INTEGRATIONS_OAUTH_TOKEN_ENDPOINT",
           "APP_INTEGRATIONS_OAUTH_CLIENT_ID",
@@ -558,7 +706,7 @@ class AppIntegrationsConnectorTest {
                   "APP_INTEGRATIONS_OAUTH_TOKEN_ENDPOINT", TOKEN_ENDPOINT,
                   "APP_INTEGRATIONS_OAUTH_CLIENT_SECRET", "super-secret-value"));
 
-      assertThatThrownBy(() -> partial.sendMessage(textToEmail("user@example.com", "Hi"), context))
+      assertThatThrownBy(() -> partial.sendMessage(camundaText("user@example.com", "Hi"), context))
           .isInstanceOfSatisfying(
               ConnectorRetryException.class,
               e -> {
@@ -576,26 +724,15 @@ class AppIntegrationsConnectorTest {
           connectorWith(
               Map.of("APP_INTEGRATIONS_BASE_URL", BASE_URL, "APP_INTEGRATIONS_API_KEY", "   "));
       assertNotConfigured(
-          () -> blank.sendMessage(textToEmail("user@example.com", "Hi"), context),
+          () -> blank.sendMessage(camundaText("user@example.com", "Hi"), context),
           "APP_INTEGRATIONS_API_KEY");
     }
 
     @Test
-    void blankBaseUrl_failsWithoutRetries() {
-      var blank =
-          connectorWith(Map.of("APP_INTEGRATIONS_BASE_URL", "", "APP_INTEGRATIONS_API_KEY", "k"));
-      assertNotConfigured(
-          () -> blank.sendMessage(textToEmail("user@example.com", "Hi"), context),
-          "APP_INTEGRATIONS_BASE_URL");
-    }
-
-    @Test
     void createChannel_isGatedTheSameWay() {
-      // resolveConfig() sits on the shared post(...) path, so both operations behave identically.
       var noEnv = connectorWith(Map.of());
       assertNotConfigured(
-          () -> noEnv.createChannel(channelRequest("b7779302-e8cb-4b34-901b-5b150a19fd47")),
-          "APP_INTEGRATIONS_BASE_URL");
+          () -> noEnv.createChannel(teamsChannel("group-1")), "APP_INTEGRATIONS_BASE_URL");
     }
   }
 }

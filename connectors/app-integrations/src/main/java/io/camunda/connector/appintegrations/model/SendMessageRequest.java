@@ -7,23 +7,66 @@
 package io.camunda.connector.appintegrations.model;
 
 import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * The form's linked-resource properties are gated on the message-type discriminator rather than on
- * a separate Yes/No toggle, so "Form" behaves as one of the three mutually exclusive message types:
- * no {@code zeebe:linkedResource} block is written to the BPMN unless it is the selected type.
+ * The plain-text {@code message} lives here rather than on each recipient because it is
+ * platform-independent and always available; only the rich "additional content" varies by platform,
+ * so that hangs off {@link Recipient}'s subtypes.
+ *
+ * <p>A form is a {@code zeebe:linkedResource}, not a variable, and its properties can only be gated
+ * on one property at a time. Since "Form" is an option on all three per-platform switches, three
+ * linked resources are declared — one per switch, each gated on its own discriminator. The
+ * conditions are mutually exclusive, so at most one {@code zeebe:linkedResource} block is ever
+ * written to the BPMN, and {@code AppIntegrationsConnector.formResourceKey} picks it up by resource
+ * type without caring which link name it arrived under.
  */
 @TemplateLinkedResource(
-    linkName = "formDefinition",
+    linkName = "formCamunda",
     resourceType = "form",
     group = "message",
     resourceIdLabel = "Form ID",
-    resourceIdDescription =
-        "ID of the Camunda form to render as an adaptive card in the Teams message.",
+    resourceIdDescription = "ID of the Camunda form to render alongside the message.",
     bindingTypeLabel = "Form binding",
-    conditionProperty = "content.type",
-    conditionEquals = MessageContent.FormContent.TYPE)
+    conditionProperty = "recipient.camundaExtra.type",
+    conditionEquals = "form")
+@TemplateLinkedResource(
+    linkName = "formTeams",
+    resourceType = "form",
+    group = "message",
+    resourceIdLabel = "Form ID",
+    resourceIdDescription = "ID of the Camunda form to render as an Adaptive Card.",
+    bindingTypeLabel = "Form binding",
+    conditionProperty = "recipient.teamsExtra.type",
+    conditionEquals = "form")
+@TemplateLinkedResource(
+    linkName = "formSlack",
+    resourceType = "form",
+    group = "message",
+    resourceIdLabel = "Form ID",
+    resourceIdDescription = "ID of the Camunda form to render as Block Kit.",
+    bindingTypeLabel = "Form binding",
+    conditionProperty = "recipient.slackExtra.type",
+    conditionEquals = "form")
 public record SendMessageRequest(
-    @NotNull @Valid Recipient recipient, @NotNull @Valid MessageContent content) {}
+    @NotNull @Valid Recipient recipient,
+    @TemplateProperty(
+            group = "message",
+            label = "Message",
+            description =
+                "Plain text to send. Optional — leave it empty to send only the additional content below.",
+            type = PropertyType.Text,
+            optional = true)
+        String message) {
+
+  @AssertTrue(message = "Provide a message, additional content, or both")
+  public boolean isSomethingToSend() {
+    return (message != null && !message.isBlank())
+        || (recipient != null
+            && !(recipient.additionalContent() instanceof AdditionalContent.None));
+  }
+}

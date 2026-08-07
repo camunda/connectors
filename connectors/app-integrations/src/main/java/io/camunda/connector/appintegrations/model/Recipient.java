@@ -12,28 +12,47 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
-/** Who the message is sent to: a Camunda-side identity, or a Microsoft Teams channel. */
+/**
+ * Who the message is sent to: a Camunda-side identity, a Microsoft Teams channel, or Slack.
+ *
+ * <p>Each subtype also carries its own "Additional content" switch, because the rich-content
+ * formats a platform accepts differ (Teams takes an Adaptive Card, Slack takes Block Kit, Camunda
+ * neither) and an element-template dropdown's choices are static — the options can only vary by
+ * having one dropdown per recipient, conditioned on this discriminator.
+ *
+ * <p>The three fields holding those switches are named distinctly ({@code camundaExtra}, {@code
+ * teamsExtra}, {@code slackExtra}) rather than all being called e.g. {@code additionalContent}:
+ * subtype fields inherit the path of the sealed field they hang off with no subtype segment added,
+ * so identical names would all generate {@code recipient.additionalContent.type} and collide. The
+ * Modeler label is the same on all three, so this is invisible to modelers.
+ */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(value = Recipient.CamundaRecipient.class, name = "camunda"),
-  @JsonSubTypes.Type(value = Recipient.TeamsRecipient.class, name = "teams")
+  @JsonSubTypes.Type(value = Recipient.TeamsRecipient.class, name = "teams"),
+  @JsonSubTypes.Type(value = Recipient.SlackRecipient.class, name = "slack")
 })
 @TemplateDiscriminatorProperty(
     name = "type",
     group = "recipient",
     label = "Recipient source",
     description =
-        "Choose whether the recipient comes from Camunda or is a Microsoft Teams channel directly",
+        "Choose whether the recipient comes from Camunda, or is a Microsoft Teams or Slack destination",
     defaultValue = "camunda")
 public sealed interface Recipient {
 
+  /** The additional content selected on this recipient's own platform-specific switch. */
+  AdditionalContent additionalContent();
+
   /**
    * A Camunda-side recipient. Any combination of the three fields may be given; the backend
-   * resolves each to the corresponding Teams users.
+   * resolves each to the corresponding platform users.
    */
   @TemplateSubType(id = CamundaRecipient.TYPE, label = "Camunda")
   record CamundaRecipient(
@@ -58,11 +77,17 @@ public sealed interface Recipient {
               description = "List of candidate group names, e.g. <code>= [\"approvers\"]</code>.",
               feel = FeelMode.required,
               optional = true)
-          List<String> candidateGroups)
+          List<String> candidateGroups,
+      @NotNull @Valid CamundaExtra camundaExtra)
       implements Recipient {
 
     @TemplateProperty(ignore = true)
     public static final String TYPE = "camunda";
+
+    @Override
+    public AdditionalContent additionalContent() {
+      return camundaExtra;
+    }
 
     @AssertTrue(
         message = "At least one of 'email', 'candidateUsers' or 'candidateGroups' must be provided")
@@ -82,10 +107,31 @@ public sealed interface Recipient {
               label = "Channel ID",
               description =
                   "Microsoft Teams channel ID to send to, e.g. 19:xxx@thread.tacv2. Use when sending to a channel rather than a user.")
-          String channelId)
+          String channelId,
+      @NotNull @Valid TeamsExtra teamsExtra)
       implements Recipient {
 
     @TemplateProperty(ignore = true)
     public static final String TYPE = "teams";
+
+    @Override
+    public AdditionalContent additionalContent() {
+      return teamsExtra;
+    }
+  }
+
+  /** A Slack destination — either a channel or a person, see {@link SlackTarget}. */
+  @TemplateSubType(id = SlackRecipient.TYPE, label = "Slack")
+  record SlackRecipient(
+      @NotNull @Valid SlackTarget slackTarget, @NotNull @Valid SlackExtra slackExtra)
+      implements Recipient {
+
+    @TemplateProperty(ignore = true)
+    public static final String TYPE = "slack";
+
+    @Override
+    public AdditionalContent additionalContent() {
+      return slackExtra;
+    }
   }
 }
