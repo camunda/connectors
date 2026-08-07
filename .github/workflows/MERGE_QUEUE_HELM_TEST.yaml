@@ -444,6 +444,9 @@ jobs:
             secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
             secret/data/products/qa/ci/cross-component-e2e-test-suite OPENAI_API_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_SERVICE_ACCOUNT;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION;
 
       - uses: actions/setup-java@v5
         if: steps.changes.outputs.ai == 'true'
@@ -496,6 +499,9 @@ jobs:
           CONNECTORS_IMAGE_NAME: registry.camunda.cloud/team-connectors/connectors-bundle
           CONNECTORS_IMAGE_VERSION: ${{ needs.build-image.outputs.connectors-version }}
           OPENAI_API_KEY: ${{ steps.secrets.outputs.OPENAI_API_KEY }}
+          GOOGLE_VERTEX_AI_SERVICE_ACCOUNT: ${{ steps.secrets.outputs.IDP_GCP_SERVICE_ACCOUNT }}
+          GOOGLE_VERTEX_AI_PROJECT_ID: ${{ steps.secrets.outputs.IDP_GCP_VERTEX_PROJECT_ID }}
+          GOOGLE_VERTEX_AI_REGION: ${{ steps.secrets.outputs.IDP_GCP_VERTEX_REGION }}
         run: |
           ./mvnw verify \
             -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
