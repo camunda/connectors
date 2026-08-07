@@ -156,7 +156,7 @@ class AppIntegrationsConnectorTest {
 
   private static CreateChannelRequest teamsChannel(String teamId) {
     return new CreateChannelRequest(
-        "My Channel", null, new ChannelPlatform.TeamsChannelPlatform(teamId, "standard"));
+        new ChannelPlatform.TeamsChannelPlatform("My Channel", teamId, "standard"), null);
   }
 
   // --- payload shape per recipient / additional content ---
@@ -329,6 +329,39 @@ class AppIntegrationsConnectorTest {
   // --- validation ---
 
   @Test
+  void camundaRecipient_withOnlyBlankCandidates_failsValidation() {
+    // An element-level @NotBlank plus blank filtering: a list of blanks identifies nobody, so it
+    // must
+    // neither pass validation nor be sent as a recipient.
+    var request =
+        new SendMessageRequest(
+            new Recipient.CamundaRecipient(
+                null, List.of("", "  "), null, new AdditionalContent.None()),
+            "Hello");
+
+    assertThat(VALIDATOR.validate(request)).isNotEmpty();
+  }
+
+  @Test
+  void camundaRecipient_blankCandidateEntriesAreFilteredOut() {
+    stubOk();
+
+    var request =
+        new SendMessageRequest(
+            new Recipient.CamundaRecipient(
+                "user@example.com",
+                List.of("alice", "  "),
+                List.of("  "),
+                new AdditionalContent.None()),
+            "Hello");
+    connector.sendMessage(request, context);
+
+    var body = captureBody();
+    assertThat(body).contains("\"candidateUsers\":[\"alice\"]");
+    assertThat(body).doesNotContain("candidateGroups");
+  }
+
+  @Test
   void camundaRecipient_withNothingProvided_failsValidation() {
     var request = camundaText(null, "Hello");
 
@@ -361,14 +394,13 @@ class AppIntegrationsConnectorTest {
     assertThat(
             VALIDATOR.validate(
                 new CreateChannelRequest(
-                    "  ", null, new ChannelPlatform.TeamsChannelPlatform("g-1", "standard"))))
+                    new ChannelPlatform.TeamsChannelPlatform("  ", "g-1", "standard"), null)))
         .isNotEmpty();
     assertThat(
             VALIDATOR.validate(
                 new CreateChannelRequest(
-                    "My Channel",
-                    null,
-                    new ChannelPlatform.TeamsChannelPlatform("  ", "standard"))))
+                    new ChannelPlatform.TeamsChannelPlatform("My Channel", "  ", "standard"),
+                    null)))
         .isNotEmpty();
   }
 
@@ -624,7 +656,7 @@ class AppIntegrationsConnectorTest {
 
     connector.createChannel(
         new CreateChannelRequest(
-            "My Channel", null, new ChannelPlatform.TeamsChannelPlatform("group-1", null)));
+            new ChannelPlatform.TeamsChannelPlatform("My Channel", "group-1", null), null));
 
     assertThat(captureBody()).contains("\"membershipType\":\"standard\"");
   }
@@ -638,9 +670,8 @@ class AppIntegrationsConnectorTest {
     var result =
         connector.createChannel(
             new CreateChannelRequest(
-                "releases",
-                "Automated releases",
-                new ChannelPlatform.SlackChannelPlatform("T0123", true)));
+                new ChannelPlatform.SlackChannelPlatform("releases", "T0123", true),
+                "Automated releases"));
 
     assertThat(result.channelId()).isEqualTo("C0999");
     var body = captureBody();
@@ -653,30 +684,41 @@ class AppIntegrationsConnectorTest {
 
   @Test
   void createChannel_teamsNameOverFiftyChars_failsValidation() {
+    // The limits are per platform, and each is declared on its own subtype so Modeler shows the
+    // right maxLength rather than advertising the laxer one to both.
     var request =
         new CreateChannelRequest(
-            "x".repeat(51), null, new ChannelPlatform.TeamsChannelPlatform("group-1", "standard"));
+            new ChannelPlatform.TeamsChannelPlatform("x".repeat(51), "group-1", "standard"), null);
 
-    assertThat(VALIDATOR.validate(request))
-        .anyMatch(v -> v.getMessage().contains("at most 50 characters"));
+    assertThat(VALIDATOR.validate(request)).isNotEmpty();
   }
 
   @Test
-  void createChannel_slackNameOverFiftyChars_isAccepted() {
+  void createChannel_slackNameOfFiftyOneChars_isAccepted() {
     var request =
         new CreateChannelRequest(
-            "x".repeat(51), null, new ChannelPlatform.SlackChannelPlatform(null, false));
+            new ChannelPlatform.SlackChannelPlatform("x".repeat(51), null, false), null);
 
     assertThat(VALIDATOR.validate(request)).isEmpty();
   }
 
   @Test
-  void createChannel_nameOverEightyChars_failsValidation() {
+  void createChannel_slackNameOverEightyChars_failsValidation() {
     var request =
         new CreateChannelRequest(
-            "x".repeat(81), null, new ChannelPlatform.SlackChannelPlatform(null, false));
+            new ChannelPlatform.SlackChannelPlatform("x".repeat(81), null, false), null);
 
     assertThat(VALIDATOR.validate(request)).isNotEmpty();
+  }
+
+  @Test
+  void createChannel_slackNameWithSpacesOrUppercase_failsValidation() {
+    // Slack rejects these server-side; catching it here keeps the incident actionable.
+    assertThat(
+            VALIDATOR.validate(
+                new CreateChannelRequest(
+                    new ChannelPlatform.SlackChannelPlatform("My Channel", null, false), null)))
+        .anyMatch(v -> v.getMessage().contains("lowercase letters"));
   }
 
   @Test
