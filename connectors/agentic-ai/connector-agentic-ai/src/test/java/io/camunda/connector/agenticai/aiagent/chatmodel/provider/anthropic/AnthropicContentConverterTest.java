@@ -69,6 +69,18 @@ class AnthropicContentConverterTest {
     }
 
     @Test
+    void mapsImageDocumentWithContentTypeParametersToBase64ImageBlock() {
+      final var doc = mockDocument("image/png; charset=UTF-8", "QUJD");
+
+      final var blocks = converter.toContentBlockParams(List.of(new DocumentContent(doc, null)));
+
+      assertThat(blocks).hasSize(1);
+      final var image = blocks.get(0).image().orElseThrow();
+      assertThat(image.source().base64().orElseThrow().mediaType())
+          .isEqualTo(Base64ImageSource.MediaType.IMAGE_PNG);
+    }
+
+    @Test
     void mapsPdfDocumentToDocumentBlock() {
       final var doc = mockDocument("application/pdf", "UERGQ09OVEVOVA==");
 
