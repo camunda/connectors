@@ -219,7 +219,7 @@ def test_missing_artifacts_is_infra():
 
 
 def test_suite_recovered_from_rootdir():
-    root = "/__w/camunda/camunda/charts/camunda-platform-8.10/test/e2e/node_modules/@camunda/e2e-test-suite/dist/tests/SM-8.10"
+    root = "/__w/connectors/connectors/charts/camunda-platform-8.10/test/e2e/node_modules/@camunda/e2e-test-suite/dist/tests/SM-8.10"
     assert classify.suite_from_rootdir(root) == "SM-8.10"
 
 

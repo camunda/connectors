@@ -214,9 +214,8 @@ jobs:
           RUN_ID: ${{ steps.target.outputs.run_id }}
           BASE_REF: ${{ steps.target.outputs.base_ref }}
           MAX_DISPATCHES: ${{ inputs.max_dispatches || '2' }}
-          # The failing run always belongs to the caller, even when the tooling and the
-          # fix agent live elsewhere. Without this the classifier inspects camunda/camunda
-          # for the caller's run id and silently finds a different run.
+          # Explicit rather than relying on the script default, so a replay dispatched
+          # from a fork or a rename still reads the repository it is actually running in.
           ALWAYSGREEN_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail

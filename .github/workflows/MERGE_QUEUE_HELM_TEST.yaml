@@ -179,6 +179,11 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
+    outputs:
+      # Triage replies in this message's thread rather than opening a second
+      # top-level alert for the same failure.
+      slack_ts: ${{ steps.feedback.outputs.slack_ts }}
+      slack_channel: ${{ steps.feedback.outputs.slack_channel }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7.0.0
@@ -201,6 +206,7 @@ jobs:
       # Standardised AlwaysGreen feedback → job summary + PR comment (+ Slack once
       # the channel is set below and the bot is invited to it). Best-effort.
       - name: Post AlwaysGreen failure feedback
+        id: feedback
         continue-on-error: true
         uses: ./.github/actions/post-failure-feedback
         with:
@@ -395,6 +401,34 @@ jobs:
             echo "No downstream workflow run URL found." >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      # AlwaysGreen triage runs in this repository but the SaaS evidence lives on the
+      # downstream run in c8-cross-component-e2e-tests, and a job summary is not
+      # machine-readable. This artifact is the only channel that carries the link
+      # across; without it triage classifies every SaaS failure as saas-infra and
+      # dispatches nothing. Deliberately just the link: triage recomputes the
+      # category from the downstream report itself.
+      - name: Write SaaS downstream context for AlwaysGreen triage
+        id: saas-context
+        if: always() && steps.wait-downstream.outputs.downstream_run_url != ''
+        env:
+          DOWNSTREAM_RUN_URL: ${{ steps.wait-downstream.outputs.downstream_run_url }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg stage "${{ github.job }}" \
+            --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --arg downstream_run_url "${DOWNSTREAM_RUN_URL}" \
+            '{stage: $stage, run_url: $run_url, downstream_run_url: $downstream_run_url}' \
+            > "${RUNNER_TEMP}/alwaysgreen-saas-category.json"
+
+      - name: Upload SaaS downstream context artifact
+        if: always() && steps.saas-context.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: alwaysgreen-saas-category
+          path: ${{ runner.temp }}/alwaysgreen-saas-category.json
+          retention-days: 14
+
       - name: Add debugging guidance on failure
         if: steps.wait-downstream.outcome == 'failure'
         run: |
@@ -410,6 +444,61 @@ jobs:
             fi
             echo "**Full guide:** [CI Debugging Cookbook — SaaS E2E section](${COOKBOOK_URL}#failure-type-5--saas-e2e-tests)"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # Mirror of sm-e2e-debug-summary. Until this existed a SaaS failure produced no
+  # Slack message and no PR comment at all — only the streak detector's aggregate,
+  # which fires at three consecutive failures and says nothing about a single one.
+  saas-e2e-debug-summary:
+    name: AlwaysGreen failure feedback (SaaS E2E)
+    needs: trigger-saas-e2e
+    if: always() && needs.trigger-saas-e2e.result == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: ${{ github.event_name == 'merge_group' }}
+    permissions:
+      pull-requests: write
+      contents: read
+    outputs:
+      slack_ts: ${{ steps.feedback.outputs.slack_ts }}
+      slack_channel: ${{ steps.feedback.outputs.slack_channel }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: "24"
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: connectors
+      - name: Post AlwaysGreen failure feedback
+        id: feedback
+        continue-on-error: true
+        uses: ./.github/actions/post-failure-feedback
+        with:
+          failure_category: unknown
+          stage: saas-e2e
+          owner_team: "@camunda/connectors"
+          run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          status: failure
+          evidence: "SaaS E2E tests failed. The downstream run in c8-cross-component-e2e-tests is linked from the Trigger SaaS E2E tests job summary."
+          pr: ${{ github.event.merge_group.head_ref }}
+          # merge_group is the only trigger here that supplies a PR, and a
+          # draft cannot enter a merge queue — so state the answer instead of
+          # paying for a lookup that would also need pull-requests: read.
+          pr_is_draft: "false"
+          slack_channel: "C0AK0AVKRL0"
+          slack_bot_token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
 
   run-ai-agent-cpt:
     name: AI Agent E2E Tests (CPT)
@@ -513,3 +602,45 @@ jobs:
           secret_vault_address: ${{ secrets.VAULT_ADDR }}
           secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
+
+  # Final job: hand a failed run to AlwaysGreen triage, which classifies the failure
+  # and dispatches the fix agent. github.run_id here is this run, so the SM Playwright
+  # report and the SaaS downstream-context artifact are both readable from it.
+  #
+  # tooling_ref pins the scripts to main. A reusable workflow's checkout follows the
+  # CALLER's ref, so without it a stable/8.x run would need the whole
+  # .github/scripts/alwaysgreen tree backported alongside this file.
+  #
+  # push only, for now. Half the failing jobs come from merge_group, but those belong
+  # to the PR under test — its author is already looking at it, and a fix PR in the
+  # e2e repository would not unblock that queue entry. Same gate as
+  # connectors-streak-detector.yml.
+  alwaysgreen-triage:
+    name: AlwaysGreen triage and fix dispatch
+    # run-ai-agent-cpt is deliberately absent: it exists only on main, and a `needs`
+    # entry naming a job the stable branches do not have makes the whole workflow
+    # invalid there — so this list stays backport-safe. Nothing is lost, because that
+    # surface is classified but never dispatched, and the streak detector already
+    # pages its owner.
+    needs:
+      - build-image
+      - trigger-sm-e2e
+      - sm-e2e-debug-summary
+      - trigger-saas-e2e
+      - saas-e2e-debug-summary
+    if: >-
+      always() && github.event_name == 'push' &&
+      contains(needs.*.result, 'failure')
+    permissions:
+      contents: read
+      actions: write
+      pull-requests: read
+    uses: ./.github/workflows/alwaysgreen-triage.yml
+    secrets: inherit
+    with:
+      base_ref: ${{ github.ref_name }}
+      tooling_ref: main
+      # Reply in whichever feedback message was posted, so one failure stays one
+      # Slack thread. Empty when neither stage failed or Slack was unavailable.
+      parent_slack_ts: ${{ needs.sm-e2e-debug-summary.outputs.slack_ts || needs.saas-e2e-debug-summary.outputs.slack_ts }}
+      parent_slack_channel: ${{ needs.sm-e2e-debug-summary.outputs.slack_channel || needs.saas-e2e-debug-summary.outputs.slack_channel }}
