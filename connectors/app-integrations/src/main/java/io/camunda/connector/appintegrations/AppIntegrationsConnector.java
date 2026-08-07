@@ -14,6 +14,7 @@ import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
+import io.camunda.connector.appintegrations.model.AdditionalContent;
 import io.camunda.connector.appintegrations.model.CreateChannelRequest;
 import io.camunda.connector.appintegrations.model.CreateChannelResult;
 import io.camunda.connector.appintegrations.model.LinkedResource;
@@ -34,30 +35,25 @@ import org.slf4j.LoggerFactory;
 @ElementTemplate(
     id = "io.camunda.connectors.AppIntegrations.v1",
     name = "App Integrations Connector",
-    version = 1,
-    description = "Send notifications and manage channels via Microsoft Teams",
+    version = 2,
+    description = "Send notifications and manage channels via Microsoft Teams and Slack",
     keywords = {
       "teams",
       "microsoft teams",
+      "slack",
       "send message",
       "notification",
       "channel",
-      "adaptive card"
+      "adaptive card",
+      "block kit",
+      "form"
     },
     icon = "icon.svg",
-    engineVersion = "^8.9",
+    engineVersion = "^8.10",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
-      @ElementTemplate.PropertyGroup(
-          id = "configuration",
-          label = "Configuration",
-          openByDefault = false),
-      @ElementTemplate.PropertyGroup(
-          id = "authentication",
-          label = "Authentication",
-          openByDefault = false),
+      @ElementTemplate.PropertyGroup(id = "recipient", label = "Recipient"),
       @ElementTemplate.PropertyGroup(id = "message", label = "Message"),
-      @ElementTemplate.PropertyGroup(id = "form", label = "Form"),
       @ElementTemplate.PropertyGroup(id = "channel", label = "Channel")
     })
 public class AppIntegrationsConnector implements OutboundConnectorProvider {
@@ -71,38 +67,69 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
     this(ConnectorsObjectMapperSupplier.getCopy(), new CustomApacheHttpClient(), System::getenv);
   }
 
-  AppIntegrationsConnector(ObjectMapper objectMapper, HttpClient httpClient) {
-    this(objectMapper, httpClient, System::getenv);
-  }
-
+  /**
+   * All configuration comes from the environment, so tests must inject their own {@code getenv}
+   * rather than inheriting the real process environment.
+   */
   AppIntegrationsConnector(
       ObjectMapper objectMapper, HttpClient httpClient, UnaryOperator<String> getenv) {
     this.objectMapper = objectMapper;
     this.executor = new AppIntegrationsExecutor(objectMapper, httpClient, getenv);
   }
 
-  @Operation(id = "sendMessage", name = "Send Message")
+  @Operation(
+      id = "sendMessage",
+      name = "Send Message",
+      // The description must name the connector: OperationDescriptionConnectorNameRule requires a
+      // significant word from the template name ("App Integrations") to appear in every leaf step.
+      description =
+          "Send an App Integrations message to Microsoft Teams, Slack, or a Camunda recipient —"
+              + " plain text plus an optional adaptive card, Block Kit payload, or form",
+      keywords = {
+        "send message",
+        "post message",
+        "notify user",
+        "send adaptive card",
+        "send block kit",
+        "send form",
+        "teams notification",
+        "slack notification"
+      })
   public SendMessageResult sendMessage(
       @Variable SendMessageRequest request, OutboundConnectorContext context) {
     LOGGER.debug("Sending message via App Integrations connector");
-    var formResourceKey = formResourceKey(context.getJobContext().getCustomHeaders());
 
-    boolean hasContent =
-        (request.message() != null && !request.message().isBlank())
-            || (request.adaptiveCardJson() != null && !request.adaptiveCardJson().isBlank())
-            || formResourceKey != null;
-    if (!hasContent) {
-      throw new ConnectorException(
-          "VALIDATION_ERROR",
-          "One of 'message', 'adaptiveCardJson', or a linked form must be provided");
+    // The per-platform sealed hierarchies already guarantee at most one kind of additional content.
+    // What they cannot guarantee is that a form actually reached the job: the form is a linked
+    // resource, not a variable. A linkedResources header present for any other selection is
+    // ignored.
+    String formResourceKey = null;
+    if (request.recipient().additionalContent() instanceof AdditionalContent.Form) {
+      formResourceKey = formResourceKey(context.getJobContext().getCustomHeaders());
+      if (formResourceKey == null) {
+        throw new ConnectorException(
+            "VALIDATION_ERROR",
+            "Additional content is 'form' but no linked form was found on the job");
+      }
     }
 
     return executor.sendMessage(request, formResourceKey);
   }
 
-  @Operation(id = "createChannel", name = "Create Channel")
+  @Operation(
+      id = "createChannel",
+      name = "Create Channel",
+      description = "Create an App Integrations channel in Microsoft Teams or Slack",
+      keywords = {
+        "create channel",
+        "new channel",
+        "add channel",
+        "teams channel",
+        "slack channel",
+        "open channel"
+      })
   public CreateChannelResult createChannel(@Variable CreateChannelRequest request) {
-    LOGGER.debug("Creating Teams channel via App Integrations connector");
+    LOGGER.debug("Creating {} channel via App Integrations connector", request.platform());
     return executor.createChannel(request);
   }
 

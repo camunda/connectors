@@ -71,7 +71,6 @@ public final class OperationMetadataIgnoreList {
   private static final Set<String> CONNECTORS_SKIPPING_NATIVE_OPERATIONS_FEATURE =
       Set.of(
           "agentic-ai",
-          "app-integrations",
           "http", // operations are HTTP methods bound to the shared HttpMethod enum
           "idp-extraction",
           "operate", // deprecated
