@@ -57,6 +57,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.example.outbound.ClassBasedConnectorWithConditionedLinkedResource;
 import io.camunda.connector.generator.java.example.outbound.ClassBasedConnectorWithLinkedResource;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
@@ -1509,6 +1510,21 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               new DropdownProperty.DropdownChoice("Latest", "latest"),
               new DropdownProperty.DropdownChoice("Deployment", "deployment"),
               new DropdownProperty.DropdownChoice("Version tag", "versionTag"));
+    }
+
+    @Test
+    void classBased_conditionedResource_usesUnprefixedPropertyId() {
+      // Class-based connectors have no operation scope, so the condition must NOT be prefixed. This
+      // is
+      // the withIdPrefix early-return path that the operation-based fixtures never reach.
+      var template =
+          generator.generate(ClassBasedConnectorWithConditionedLinkedResource.class).getFirst();
+      var resourceId = getPropertyById("formDefinition.resourceId", template);
+
+      assertThat(resourceId.getCondition())
+          .isEqualTo(
+              new PropertyCondition.AllMatch(
+                  List.of(new PropertyCondition.Equals("contentType", "form"))));
     }
 
     @Test

@@ -129,7 +129,7 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
         "open channel"
       })
   public CreateChannelResult createChannel(@Variable CreateChannelRequest request) {
-    LOGGER.debug("Creating Teams channel via App Integrations connector");
+    LOGGER.debug("Creating {} channel via App Integrations connector", request.platform());
     return executor.createChannel(request);
   }
 

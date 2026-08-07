@@ -13,13 +13,20 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Where a channel is created. The shared name and description live on {@link CreateChannelRequest}.
+ * Where a channel is created, and everything that differs by platform — including the channel name,
+ * whose rules are not shared: Microsoft caps names at 50 characters, Slack at 80 and additionally
+ * requires lowercase without spaces. An element template cannot express a per-branch {@code
+ * maxLength}, so a single shared field would advertise the laxer limit to both and only reject the
+ * tighter one at job execution. Declaring it per subtype makes each constraint visible in Modeler
+ * where it applies.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -34,12 +41,24 @@ import java.nio.charset.StandardCharsets;
     defaultValue = "teams")
 public sealed interface ChannelPlatform {
 
-  /** Microsoft Teams channel name limit; Slack allows more, so it cannot be a shared constraint. */
-  @TemplateProperty(ignore = true)
-  int TEAMS_MAX_DISPLAY_NAME_LENGTH = 50;
+  /** The channel name, whose constraints differ per platform. */
+  String displayName();
 
   @TemplateSubType(id = "teams", label = "Microsoft Teams")
   record TeamsChannelPlatform(
+      @NotBlank
+          @Size(max = 50)
+          @TemplateProperty(
+              // Distinct template IDs, one binding: subtype fields inherit the sealed field's path
+              // with no subtype segment, so two components both named displayName would generate
+              // the
+              // same property ID. The zeebe:input name stays platform.displayName for both
+              // platforms.
+              id = "teamsChannelName",
+              group = "channel",
+              label = "Channel name",
+              description = "Display name for the new channel (max 50 characters).")
+          String displayName,
       @NotBlank
           @TemplateProperty(
               group = "channel",
@@ -106,6 +125,19 @@ public sealed interface ChannelPlatform {
 
   @TemplateSubType(id = "slack", label = "Slack")
   record SlackChannelPlatform(
+      @NotBlank
+          @Size(max = 80)
+          @Pattern(
+              regexp = "^[a-z0-9-_]+$",
+              message =
+                  "A Slack channel name may contain only lowercase letters, digits, hyphens and underscores")
+          @TemplateProperty(
+              id = "slackChannelName",
+              group = "channel",
+              label = "Channel name",
+              description =
+                  "Display name for the new channel: lowercase letters, digits, hyphens and underscores only (max 80 characters).")
+          String displayName,
       @TemplateProperty(
               group = "channel",
               label = "Workspace ID",

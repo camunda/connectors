@@ -114,10 +114,9 @@ class AppIntegrationsConnectorWireMockTest {
 
   private static CreateChannelRequest channelRequest() {
     return new CreateChannelRequest(
-        "My Channel",
-        null,
         new ChannelPlatform.TeamsChannelPlatform(
-            "b7779302-e8cb-4b34-901b-5b150a19fd47", "standard"));
+            "My Channel", "b7779302-e8cb-4b34-901b-5b150a19fd47", "standard"),
+        null);
   }
 
   private static void stubToken() {

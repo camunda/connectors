@@ -157,11 +157,7 @@ class AppIntegrationsExecutor {
       case AdditionalContent.None() -> {
         // Plain message only.
       }
-      default ->
-          throw new ConnectorException(
-              "VALIDATION_ERROR",
-              "Unsupported additional content: "
-                  + request.recipient().additionalContent().getClass().getSimpleName());
+        // No default: AdditionalContent is sealed, so a new content type breaks the build here.
     }
 
     return new MessagePayload(
@@ -182,7 +178,7 @@ class AppIntegrationsExecutor {
       case ChannelPlatform.TeamsChannelPlatform teams ->
           new CreateChannelPayload(
               PLATFORM_TEAMS,
-              request.displayName(),
+              teams.displayName(),
               blankToNull(request.description()),
               teams.teamId(),
               teams.membershipType(),
@@ -191,7 +187,7 @@ class AppIntegrationsExecutor {
       case ChannelPlatform.SlackChannelPlatform slack ->
           new CreateChannelPayload(
               PLATFORM_SLACK,
-              request.displayName(),
+              slack.displayName(),
               blankToNull(request.description()),
               null,
               null,
@@ -244,8 +240,16 @@ class AppIntegrationsExecutor {
     return value == null || value.isBlank() ? null : value;
   }
 
+  /**
+   * Drops blank entries and collapses an empty result to null, so a list the modeler left as {@code
+   * ["", " "]} is omitted rather than sent as a recipient the backend cannot resolve.
+   */
   private static List<String> emptyToNull(List<String> value) {
-    return value == null || value.isEmpty() ? null : value;
+    if (value == null) {
+      return null;
+    }
+    var kept = value.stream().filter(v -> v != null && !v.isBlank()).toList();
+    return kept.isEmpty() ? null : kept;
   }
 
   /**

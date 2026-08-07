@@ -18,13 +18,17 @@ import jakarta.validation.constraints.NotNull;
  * optional. Exactly one kind may be chosen, which is what makes an adaptive card / Block Kit
  * payload and a linked form mutually exclusive without any cross-field validation.
  *
- * <p>Marker interface only. Which of these leaves a modeler may pick depends on the recipient's
- * platform, and an element-template dropdown's choices are static — so the choice sets live in
- * three separate sealed interfaces ({@link CamundaExtra}, {@link TeamsExtra}, {@link SlackExtra}),
- * each generating its own conditioned "Additional content" dropdown. The leaves are shared between
- * them wherever the options overlap.
+ * <p>Sealed through the three per-platform interfaces, so a switch over the four leaves is checked
+ * for exhaustiveness: adding a fifth content type is a compile error at every point that handles
+ * content, rather than a runtime surprise.
+ *
+ * <p>Which of these leaves a modeler may pick depends on the recipient's platform, and an
+ * element-template dropdown's choices are static — so the choice sets live in three separate sealed
+ * interfaces ({@link CamundaExtra}, {@link TeamsExtra}, {@link SlackExtra}), each generating its
+ * own conditioned "Additional content" dropdown. The leaves are shared between them wherever the
+ * options overlap.
  */
-public interface AdditionalContent {
+public sealed interface AdditionalContent permits CamundaExtra, TeamsExtra, SlackExtra {
 
   /** Plain message only — no rich content and no form. */
   @TemplateSubType(id = "none", label = "None")

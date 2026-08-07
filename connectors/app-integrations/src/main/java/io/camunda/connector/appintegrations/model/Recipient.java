@@ -70,14 +70,14 @@ public sealed interface Recipient {
                   "List of candidate usernames, e.g. <code>= [\"alice\", \"bob\"]</code>.",
               feel = FeelMode.required,
               optional = true)
-          List<String> candidateUsers,
+          List<@NotBlank String> candidateUsers,
       @TemplateProperty(
               group = "recipient",
               label = "Candidate groups",
               description = "List of candidate group names, e.g. <code>= [\"approvers\"]</code>.",
               feel = FeelMode.required,
               optional = true)
-          List<String> candidateGroups,
+          List<@NotBlank String> candidateGroups,
       @NotNull @Valid CamundaExtra camundaExtra)
       implements Recipient {
 
@@ -92,9 +92,14 @@ public sealed interface Recipient {
     @AssertTrue(
         message = "At least one of 'email', 'candidateUsers' or 'candidateGroups' must be provided")
     public boolean isRecipientProvided() {
+      // A list of nothing but blanks identifies no one, so it must not satisfy this either.
       return (email != null && !email.isBlank())
-          || (candidateUsers != null && !candidateUsers.isEmpty())
-          || (candidateGroups != null && !candidateGroups.isEmpty());
+          || hasNonBlank(candidateUsers)
+          || hasNonBlank(candidateGroups);
+    }
+
+    private static boolean hasNonBlank(List<String> values) {
+      return values != null && values.stream().anyMatch(v -> v != null && !v.isBlank());
     }
   }
 

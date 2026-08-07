@@ -799,49 +799,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "createChannel:displayName",
-    "label" : "Channel name",
-    "description" : "Display name for the new channel (max 50 characters for Microsoft Teams, 80 for Slack).",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true,
-      "minLength" : 0,
-      "maxLength" : 80
-    },
-    "feel" : "optional",
-    "group" : "channel",
-    "binding" : {
-      "name" : "displayName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "createChannel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "createChannel:description",
-    "label" : "Description",
-    "description" : "Optional description for the channel.",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "channel",
-    "binding" : {
-      "name" : "description",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "createChannel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
     "id" : "createChannel:platform.type",
     "label" : "Platform",
     "description" : "Where to create the channel",
@@ -866,6 +823,34 @@
       "name" : "Slack",
       "value" : "slack"
     } ]
+  }, {
+    "id" : "createChannel:platform.teamsChannelName",
+    "label" : "Channel name",
+    "description" : "Display name for the new channel (max 50 characters).",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "minLength" : 0,
+      "maxLength" : 50
+    },
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "platform.displayName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:platform.type",
+        "equals" : "teams",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "createChannel:platform.teamId",
     "label" : "Team ID",
@@ -926,6 +911,38 @@
       "value" : "shared"
     } ]
   }, {
+    "id" : "createChannel:platform.slackChannelName",
+    "label" : "Channel name",
+    "description" : "Display name for the new channel: lowercase letters, digits, hyphens and underscores only (max 80 characters).",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "minLength" : 0,
+      "maxLength" : 80,
+      "pattern" : {
+        "value" : "^[a-z0-9-_]+$",
+        "message" : "A Slack channel name may contain only lowercase letters, digits, hyphens and underscores"
+      }
+    },
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "platform.displayName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:platform.type",
+        "equals" : "slack",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
     "id" : "createChannel:platform.workspaceId",
     "label" : "Workspace ID",
     "description" : "Slack workspace (team) ID. Leave empty to use the workspace the backend is configured for.",
@@ -971,6 +988,25 @@
       } ]
     },
     "type" : "Boolean"
+  }, {
+    "id" : "createChannel:description",
+    "label" : "Description",
+    "description" : "Optional description for the channel.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "description",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "version",
     "label" : "Version",

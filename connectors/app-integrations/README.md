@@ -96,16 +96,19 @@ header is ignored for any other selection.
 
 ### Create Channel
 
-**Platform** switches between Microsoft Teams and Slack. Name and description are shared:
+**Platform** switches between Microsoft Teams and Slack. Only `Description` is shared:
 
-- **Microsoft Teams** — `Team ID` accepts either a raw `groupId` or a full Teams URL (the `groupId`
-  query parameter is extracted automatically), plus `Channel type` (`standard`, `private`, `shared`;
-  defaults to `standard`).
-- **Slack** — an optional `Workspace ID` (falls back to the backend's configured workspace) and a
-  `Private channel` flag.
+- **Microsoft Teams** — `Channel name` (max 50 characters), `Team ID` (a raw `groupId` or a full Teams
+  URL, whose `groupId` query parameter is extracted automatically), and `Channel type` (`standard`,
+  `private`, `shared`; defaults to `standard`).
+- **Slack** — `Channel name` (max 80 characters, lowercase letters/digits/hyphens/underscores only),
+  an optional `Workspace ID` (falls back to the backend's configured workspace), and a `Private
+  channel` flag.
 
-Channel names are capped at 80 characters (Slack's limit); Microsoft Teams additionally rejects names
-over 50, which is validated only for the Teams platform.
+`Channel name` is declared per platform because the rules differ — 50 characters for Microsoft, 80
+plus a character restriction for Slack — and an element template cannot express a per-branch
+`maxLength`. Both bind to the same `platform.displayName` variable, so only the template property IDs
+differ.
 
 ## API
 
@@ -145,7 +148,7 @@ Both operations return the backend's JSON response (e.g. the created channel for
 `null` for an acknowledged call with no body. Any response with status `>= 400` is surfaced as a
 `ConnectorException` whose error code is the HTTP status.
 
-## Element Template
+## Regenerating the element template
 
 The element template is generated from the connector annotations by the
 `element-template-generator-maven-plugin` and committed to
