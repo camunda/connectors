@@ -151,8 +151,7 @@ class InboundWebhookRestControllerTest {
             correlationHandler,
             e -> {},
             ConnectorsObjectMapperSupplier.getCopy(),
-            new ActivityLogRegistry(),
-            mock(CamundaClient.class));
+            new ActivityLogRegistry());
 
     var registry = new WebhookConnectorRegistry();
     registry.register(
