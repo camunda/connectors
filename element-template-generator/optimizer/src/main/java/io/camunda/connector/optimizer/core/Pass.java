@@ -14,22 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.cli;
+package io.camunda.connector.optimizer.core;
 
-public enum ReturnCodes {
-  SUCCESS(0),
-  GENERATION_FAILED(1),
-  INPUT_PREPARATION_FAILED(2),
-  JSON_SCHEMA_VALIDATION_FAILED(3),
-  OPTIMIZATION_FAILED(4);
+import io.camunda.connector.generator.dsl.ElementTemplate;
 
-  private final int code;
+/**
+ * An optimization pass that transforms an element template into a semantically equivalent but more
+ * compact form.
+ *
+ * <p>Each pass takes a template and returns the optimized version. Passes are pure functions of
+ * their input and must not mutate it.
+ */
+public interface Pass {
 
-  ReturnCodes(int code) {
-    this.code = code;
-  }
+  /** Stable identifier used in CLI flags ({@code --skip-passes}) and logs. */
+  String id();
 
-  public int getCode() {
-    return code;
-  }
+  /** Apply the optimization pass to the given template. */
+  ElementTemplate apply(ElementTemplate template);
+
+  /** Human-readable description used by the {@code list-passes} command. */
+  String description();
 }

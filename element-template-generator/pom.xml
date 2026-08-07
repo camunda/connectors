@@ -24,6 +24,7 @@
     <module>maven-plugin</module>
     <module>http-dsl</module>
     <module>openapi-parser</module>
+    <module>optimizer</module>
     <module>postman-collections-parser</module>
     <module>uniquet</module>
     <module>validator</module>

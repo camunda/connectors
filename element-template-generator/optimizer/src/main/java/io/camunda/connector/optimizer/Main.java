@@ -14,22 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.cli;
+package io.camunda.connector.optimizer;
 
-public enum ReturnCodes {
-  SUCCESS(0),
-  GENERATION_FAILED(1),
-  INPUT_PREPARATION_FAILED(2),
-  JSON_SCHEMA_VALIDATION_FAILED(3),
-  OPTIMIZATION_FAILED(4);
+import io.camunda.connector.optimizer.command.OptimizerCommand;
+import picocli.CommandLine;
 
-  private final int code;
-
-  ReturnCodes(int code) {
-    this.code = code;
-  }
-
-  public int getCode() {
-    return code;
+public class Main {
+  public static void main(String[] args) {
+    int exitCode = new CommandLine(new OptimizerCommand()).execute(args);
+    System.exit(exitCode);
   }
 }
