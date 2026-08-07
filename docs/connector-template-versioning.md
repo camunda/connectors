@@ -29,7 +29,7 @@ This includes adding new properties, changing the template icon, or changing def
 ## File schema for released templates
 
 Element templates are versioned. The latest version of an element template is in the root of the element-templates directory. Older versions have adjusted names and are inside the `versioned` subfolder.
-For releasing the template with the [bundle](../bundle) / integrating it into the SaaS Web Modeler (see [Release a Connector Template](./release-connector-template.md))
+For releasing the template with the [bundle](../apps/bundle) / integrating it into the SaaS Web Modeler (see [Release a Connector Template](./release-connector-template.md))
 we explicitly encode the template version in the name:
 
 ```

@@ -94,7 +94,7 @@ jobs:
       # Skip tests AND checks: we just need runnable images, not verification
       - name: Package Connectors (skip tests & checks)
         env:
-          PROJECTS: connector-runtime/connector-runtime-application,bundle/default-bundle,bundle/camunda-saas-bundle
+          PROJECTS: apps/connector-runtime-application,apps/bundle/default-bundle,apps/bundle/camunda-saas-bundle
         run: ./mvnw -B compile generate-sources package -DskipTests -DskipChecks --projects "${PROJECTS}" --also-make
 
       - name: Compute image tag
@@ -134,7 +134,7 @@ jobs:
       - name: Build and Push Docker Image - connector-runtime
         uses: docker/build-push-action@v7
         with:
-          context: connector-runtime/connector-runtime-application/
+          context: apps/connector-runtime-application/
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors:${{ steps.tag.outputs.tag }}
           platforms: linux/amd64,linux/arm64
@@ -143,7 +143,7 @@ jobs:
       - name: Build and Push Docker Image - bundle-default
         uses: docker/build-push-action@v7
         with:
-          context: bundle/default-bundle/
+          context: apps/bundle/default-bundle/
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ steps.tag.outputs.tag }}
           platforms: linux/amd64,linux/arm64
@@ -152,7 +152,7 @@ jobs:
       - name: Build and Push Docker Image - bundle-saas
         uses: docker/build-push-action@v7
         with:
-          context: bundle/camunda-saas-bundle/
+          context: apps/bundle/camunda-saas-bundle/
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ steps.tag.outputs.tag }}
           platforms: linux/amd64,linux/arm64

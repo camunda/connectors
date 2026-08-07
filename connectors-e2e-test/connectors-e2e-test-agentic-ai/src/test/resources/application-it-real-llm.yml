@@ -6,7 +6,7 @@ camunda:
     connectors-enabled: true
     connectors-docker-image-name: ${CONNECTORS_IMAGE_NAME:registry.camunda.cloud/team-connectors/connectors-bundle}
     # In CI, CONNECTORS_IMAGE_VERSION is set from the build-image job output.
-    # To test locally, build the image first (mvn package -pl bundle/default-bundle -DskipTests),
+    # To test locally, build the image first (mvn package -pl apps/bundle/default-bundle -DskipTests),
     # then export CONNECTORS_IMAGE_NAME and CONNECTORS_IMAGE_VERSION before running.
     connectors-docker-image-version: ${CONNECTORS_IMAGE_VERSION:SNAPSHOT}
     # Disable the HTTP connector in the Docker bundle so test mocks intercept tool calls instead
