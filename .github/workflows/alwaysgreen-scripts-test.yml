@@ -1,0 +1,43 @@
+# description: Unit tests for the AlwaysGreen classifier and dispatch planner. They are
+# pure functions with no network and no cluster, so they run in seconds — but nothing
+# else in CI executes them, and a silent break there means mis-triaged failures or
+# duplicate fix PRs rather than a red build.
+# type: CI
+# owner: @camunda/test-automation-team
+---
+name: AlwaysGreen scripts test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/scripts/alwaysgreen/**'
+      - '.github/workflows/alwaysgreen-scripts-test.yml'
+  pull_request:
+    paths:
+      - '.github/scripts/alwaysgreen/**'
+      - '.github/workflows/alwaysgreen-scripts-test.yml'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install pytest
+        run: pip install --quiet pytest
+      - name: Run tests
+        run: pytest --verbose --color=yes --tb=short .github/scripts/alwaysgreen
