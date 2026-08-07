@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend.ANTHROPIC_API_ID;
-import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicBedrockBackend.BEDROCK_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend.AWS_BEDROCK_MANTLE_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend.CUSTOM_ID;
 import static io.camunda.connector.agenticai.aiagent.util.LoggingSupport.redactValues;
 
@@ -62,7 +62,9 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
     @JsonSubTypes.Type(value = AnthropicBackend.AnthropicApiBackend.class, name = ANTHROPIC_API_ID),
-    @JsonSubTypes.Type(value = AnthropicBackend.AnthropicBedrockBackend.class, name = BEDROCK_ID),
+    @JsonSubTypes.Type(
+        value = AnthropicBackend.AnthropicAwsBedrockMantleBackend.class,
+        name = AWS_BEDROCK_MANTLE_ID),
     @JsonSubTypes.Type(value = AnthropicBackend.AnthropicCustomBackend.class, name = CUSTOM_ID)
   })
   @TemplateDiscriminatorProperty(
@@ -145,19 +147,19 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       }
     }
 
-    @TemplateSubType(id = BEDROCK_ID, label = "AWS Bedrock (Mantle)")
-    record AnthropicBedrockBackend(@Valid @NotNull BedrockBackend bedrock)
-        implements AnthropicBackend {
+    @TemplateSubType(id = AWS_BEDROCK_MANTLE_ID, label = "AWS Bedrock Mantle")
+    record AnthropicAwsBedrockMantleBackend(
+        @Valid @NotNull AwsBedrockMantleBackend awsBedrockMantle) implements AnthropicBackend {
 
       @TemplateProperty(ignore = true)
-      public static final String BEDROCK_ID = "bedrock";
+      public static final String AWS_BEDROCK_MANTLE_ID = "aws-bedrock-mantle";
 
       @Override
       public String type() {
-        return BEDROCK_ID;
+        return AWS_BEDROCK_MANTLE_ID;
       }
 
-      public record BedrockBackend(
+      public record AwsBedrockMantleBackend(
           @NotBlank
               @TemplateProperty(
                   group = "provider",

@@ -15,7 +15,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicBedrockBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
@@ -135,8 +135,9 @@ class AnthropicChatModelApiFactoryTest {
       String modelId, AwsAuthentication authentication) {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
-            new AnthropicBedrockBackend(
-                new AnthropicBedrockBackend.BedrockBackend("eu-central-1", null, authentication)),
+            new AnthropicAwsBedrockMantleBackend(
+                new AnthropicAwsBedrockMantleBackend.AwsBedrockMantleBackend(
+                    "eu-central-1", null, authentication)),
             new AnthropicModel(modelId, null),
             null));
   }

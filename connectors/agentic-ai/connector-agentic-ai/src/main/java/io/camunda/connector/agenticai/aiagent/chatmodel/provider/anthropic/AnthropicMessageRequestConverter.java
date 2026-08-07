@@ -35,7 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicBedrockBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicEffort;
@@ -240,7 +240,7 @@ public class AnthropicMessageRequestConverter {
               custom.custom().headers(),
               custom.custom().queryParameters(),
               custom.custom().bodyProperties());
-      case AnthropicBedrockBackend ignored -> new RequestCustomizations(null, null, null);
+      case AnthropicAwsBedrockMantleBackend ignored -> new RequestCustomizations(null, null, null);
     };
   }
 

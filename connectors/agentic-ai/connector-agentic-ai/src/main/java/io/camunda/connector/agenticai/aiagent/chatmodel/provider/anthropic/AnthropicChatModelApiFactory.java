@@ -16,7 +16,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicBedrockBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.ApiKeyAuthentication;
@@ -67,7 +67,8 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
 
     switch (backend) {
       case AnthropicApiBackend apiBackend -> applyApiBackend(builder, apiBackend);
-      case AnthropicBedrockBackend bedrockBackend -> applyBedrockBackend(builder, bedrockBackend);
+      case AnthropicAwsBedrockMantleBackend awsBedrockMantleBackend ->
+          applyAwsBedrockMantleBackend(builder, awsBedrockMantleBackend);
       case AnthropicCustomBackend custom -> applyCustomBackend(builder, custom);
     }
 
@@ -107,19 +108,21 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
     }
   }
 
-  private static void applyBedrockBackend(
-      AnthropicOkHttpClient.Builder builder, AnthropicBedrockBackend bedrockBackend) {
-    final var bedrock = bedrockBackend.bedrock();
-    final var backendBuilder = BedrockMantleBackend.builder().region(Region.of(bedrock.region()));
+  private static void applyAwsBedrockMantleBackend(
+      AnthropicOkHttpClient.Builder builder,
+      AnthropicAwsBedrockMantleBackend awsBedrockMantleBackend) {
+    final var awsBedrockMantle = awsBedrockMantleBackend.awsBedrockMantle();
+    final var backendBuilder =
+        BedrockMantleBackend.builder().region(Region.of(awsBedrockMantle.region()));
 
-    if (bedrock.endpoint() != null) {
+    if (awsBedrockMantle.endpoint() != null) {
       // passed through verbatim: BedrockMantleBackend.baseUrl() otherwise defaults to
       // https://bedrock-mantle.<region>.api.aws/anthropic, so an override must include the
       // /anthropic path segment itself (documented on the endpoint field).
-      backendBuilder.baseUrl(bedrock.endpoint());
+      backendBuilder.baseUrl(awsBedrockMantle.endpoint());
     }
 
-    switch (bedrock.authentication()) {
+    switch (awsBedrockMantle.authentication()) {
       case AwsAuthentication.AwsStaticCredentialsAuthentication staticAuth ->
           backendBuilder
               .awsAccessKey(staticAuth.accessKey())
@@ -135,15 +138,15 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
 
   /**
    * The base URL actually configured for this backend, if any: the {@code custom} backend's
-   * endpoint is always set, the {@code bedrock} backend's endpoint override is optional (VPC/
-   * PrivateLink deployments only), and the {@code anthropic-api} backend's hidden endpoint override
-   * is usually unset (the SDK then defaults to the production Anthropic API).
+   * endpoint is always set, the {@code aws-bedrock-mantle} backend's endpoint override is optional
+   * (VPC/PrivateLink deployments only), and the {@code anthropic-api} backend's hidden endpoint
+   * override is usually unset (the SDK then defaults to the production Anthropic API).
    */
   private static Optional<String> configuredEndpoint(AnthropicBackend backend) {
     return switch (backend) {
       case AnthropicApiBackend apiBackend -> Optional.ofNullable(apiBackend.anthropic().endpoint());
-      case AnthropicBedrockBackend bedrockBackend ->
-          Optional.ofNullable(bedrockBackend.bedrock().endpoint());
+      case AnthropicAwsBedrockMantleBackend awsBedrockMantleBackend ->
+          Optional.ofNullable(awsBedrockMantleBackend.awsBedrockMantle().endpoint());
       case AnthropicCustomBackend custom -> Optional.of(custom.custom().endpoint());
     };
   }
