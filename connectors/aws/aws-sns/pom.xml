@@ -60,12 +60,29 @@ except in compliance with the proprietary license.</license.inlineheader>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sdk-core</artifactId>
     </dependency>
-    <!-- v1 SDK kept for SnsMessageManager used in inbound webhook (no v2 equivalent).
-         See: https://github.com/aws/aws-sdk-java-v2/issues/1302 -->
+    <!-- v1 SDK kept for the inbound webhook: SnsMessageManager verifies SNS webhook signatures,
+         no v2 equivalent (https://github.com/aws/aws-sdk-java-v2/issues/1302). Production code
+         also calls SnsSubscriptionConfirmation#confirmSubscription on the object SnsMessageManager
+         already returns; that's a coupling, not a separate blocker, but SnsMessageManager alone
+         still requires v1.
+         Excludes aws-java-sdk-sqs and jmespath-java: unused transitive deps, confirmed by a
+         bytecode scan of aws-java-sdk-sns (only com.amazonaws.services.sns.util.Topics references
+         SQS, and this connector never calls it; jmespath is referenced by nothing). Re-check by
+         bytecode scan, not just a green test suite, when version.aws-java-sdk is bumped. -->
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-sns</artifactId>
       <version>${version.aws-java-sdk}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.amazonaws</groupId>
+          <artifactId>aws-java-sdk-sqs</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.amazonaws</groupId>
+          <artifactId>jmespath-java</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 
