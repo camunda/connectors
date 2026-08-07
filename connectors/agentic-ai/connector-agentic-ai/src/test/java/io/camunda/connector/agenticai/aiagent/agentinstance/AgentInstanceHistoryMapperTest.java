@@ -133,7 +133,8 @@ class AgentInstanceHistoryMapperTest {
   @Test
   void reasoningContentMapsToAnObjectHistoryBlockOfTheReasoningContentItself() {
     final var reasoningContent =
-        new ReasoningContent("anthropic", Map.of("signature", "abc123"), Map.of("foo", "bar"));
+        new ReasoningContent(
+            "anthropic", Map.of("signature", "abc123"), null, Map.of("foo", "bar"));
     final var assistantMessage =
         AssistantMessage.builder().content(List.of(reasoningContent)).build();
 

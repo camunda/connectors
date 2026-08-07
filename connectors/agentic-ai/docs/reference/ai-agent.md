@@ -322,9 +322,17 @@ for future provider-specific chat models that emit structured content directly.
 
 The sealed `Content` model gained two additive members alongside the existing `TextContent` /
 `DocumentContent` / `ObjectContent`:
-- **`ReasoningContent`** — an opaque provider reasoning payload (`providerPayload`), carried verbatim.
-- **`ProviderContent`** — a provider-native content block preserved verbatim (`provider`, `blockType`,
-  `payload`).
+- **`ReasoningContent`** — an opaque provider reasoning payload (`provider`, `payload`, `text`,
+  `metadata`). `payload` is carried verbatim except for the human-readable reasoning text, which is
+  lifted into the dedicated `text` field and stripped out of `payload` so it isn't persisted twice.
+  Provider-specific request converters merge `text` back into a copy of `payload` before replaying
+  the block on the next request, so the round trip is still byte-identical (required for signature
+  verification on blocks that have one, and for prompt-caching prefix matching). `text` is `null`
+  when a provider has nothing human-readable to extract (e.g. Anthropic's `redacted_thinking`
+  blocks).
+- **`ProviderContent`** — a provider-native content block preserved verbatim (`provider`, `payload`,
+  `metadata`); each payload self-describes its own block shape (e.g. via an internal `type` field), so
+  there is no separate discriminator field.
 
 Neither is produced or consumed by the LangChain4j path yet; they exist so the structured shape is
 ready for chat model implementations that need them.
@@ -932,9 +940,9 @@ own configuration through the SPI rather than being confined to the module's bui
 The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockProviderConfiguration`,
 etc.) is the concrete implementation contributed by this module. Today the v1 request supplies
 configurations through this sealed union only; request-side binding for a custom/native
-`ChatModelConfiguration` is delivered incrementally by the v2 request types
-(`ProviderConfiguration`), which so far offers `CustomProviderConfiguration`, a genuinely runnable
-path for user-supplied factories (see [§25.1](#251-add-an-llm-provider)).
+`ChatModelConfiguration` is delivered incrementally by the v2 request types (`ProviderConfiguration`
+in `model/request/v2`), which is the extension point for both built-in native providers and
+user-supplied factories via `CustomProviderConfiguration` (see [§25.1](#251-add-an-llm-provider)).
 `ChatModelRegistryImpl` asks every registered `ChatModelFactory` whether it `supports` the
 configuration and routes to the single match; a configuration matched by zero factories throws
 `IllegalArgumentException`, and one matched by more than one throws `IllegalStateException` — fail
@@ -1251,6 +1259,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `ChatMessageConverterImpl` → Message conversion chain
 - `ToolSpecificationConverterImpl` → Tool definition conversion
 - `AnthropicChatModelFactory`, `BedrockChatModelFactory`, `OpenAiChatModelFactory`, `OpenAiCompatibleChatModelFactory`, `AzureOpenAiChatModelFactory`, `GoogleVertexAiChatModelFactory` → Provider-specific `ChatModel` creation (`LangChain4JChatModelFactory` subclasses)
+- `AnthropicChatModelApiFactory` → Native (non-LangChain4J) Anthropic `ChatModel` creation for `AnthropicChatModelConfiguration` (v2, `aiagent/chatmodel/provider/anthropic/**`); `AnthropicChatModelApi.execute()` drives the Anthropic Java SDK's stable Messages client directly
 
 ### Configuration
 - `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
@@ -1824,7 +1833,47 @@ base class). Reference implementation: `AnthropicChatModelFactory` with
 `AnthropicProviderConfiguration`. The LangChain4j provider package
 (`aiagent/chatmodel/provider/langchain4j/**`) is the only place that may touch `dev.langchain4j`
 (invariant I1); a fully native provider implements `ChatModel`/`ChatModelFactory` directly with its own
-`ChatModelConfiguration` and stays out of that package.
+`ChatModelConfiguration` and stays out of that package. Reference implementation for a fully native
+provider: `AnthropicChatModelApiFactory` (`aiagent/chatmodel/provider/anthropic/**`) with
+`AnthropicChatModelConfiguration` (`model/request/v2`) — drives the Anthropic Java SDK's stable
+Messages client directly (no LangChain4J), covering the request/response converter chain, transport,
+reasoning/effort/prompt-caching, and Spring registration end to end.
+
+**Backend-subtype wrapping convention (v2, mandatory for every new backend).** A v2 provider's
+backend is a sealed interface with one `@TemplateSubType` per backend variant, discriminated by a
+`type` property (see `AnthropicChatModelConfiguration.AnthropicBackend`). The element template
+generator flat-validates that every generated property id is globally unique across the whole
+template — it has no awareness that sibling discriminator subtypes are mutually exclusive, so two
+subtypes with a same-named field (e.g. both an `apiKey`, both an `endpoint`) collide even though only
+one is ever active at a time. The fix, applied uniformly to every subtype including the default: each
+subtype wraps **all** of its own fields inside a single container field, uniquely named for that
+subtype (e.g. `anthropic` for `AnthropicApiBackend`, `custom` for `AnthropicCustomBackend`) — since the
+generator derives a container's id-path prefix purely from the Java field name, this makes every
+subtype's whole subtree collision-proof regardless of what its siblings look like, with no per-leaf
+`id=` overrides needed. The wrapper field name does not need to match the subtype's `@TemplateSubType`
+id verbatim (ids may contain characters, such as `-`, invalid in a Java identifier) — it only needs to
+be distinct from every sibling's wrapper field name. Extract each subtype's discriminator string (the
+`@TemplateSubType` id / `@JsonSubTypes.Type` name / `type()` return value — all the same string) into a
+`public static final String` constant on that subtype's own record, and reference the constant from
+all three places plus the discriminator's `defaultValue`, so the string is defined once. Apply this
+convention to every new v2 provider backend (OpenAI, Gemini, Bedrock, etc.), not just Anthropic's.
+
+**Provider-namespaced metadata convention.** Any provider-specific data a converter attaches outside
+a domain object's mapped fields — whether on a content block (`TextContent`/`ToolCall`'s `metadata`,
+see [§5](#5-data-model-agent-context)) or on the message itself (`AssistantMessage#metadata()`, e.g.
+the raw vendor stop reason) — must be nested under a single provider-namespaced key (`"anthropic"`
+for the Anthropic converters), never written as top-level metadata entries. This keeps metadata from
+different providers (and future cross-provider fields) from colliding, and keeps the common,
+nothing-extra-to-preserve case metadata-free. Apply this to every new provider's converters.
+
+**Stamping `AssistantMessage#metadata()`.** Every response converter must build the assistant
+message's `metadata` map through `AssistantMessageMetadata.withDefaults(providerMetadata)`
+(`aiagent/util`), passing only its own provider-namespaced entries (or `Map.of()` if it has none) as
+`providerMetadata`. The util adds the common `timestamp` entry (when the model responded) so it can't
+be forgotten by a new provider and stays identically shaped across all of them; never call
+`AssistantMessage.builder().metadata(...)` with a raw `Map.of(...)` directly. Reference
+implementations: `AnthropicMessageResponseConverter` (native) and `ChatMessageConverterImpl`
+(LangChain4j).
 
 The v2 request's `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/
 Hybrid only) is the connector-facing entry point for this SPI: it carries a user-chosen `providerType`

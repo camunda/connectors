@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
@@ -50,6 +51,20 @@ public class AgentSubProcessResponseAssert
     isNotNull();
     Assertions.assertThat(actual.context().metrics()).isEqualTo(expectedMetrics);
     return this;
+  }
+
+  public AgentSubProcessResponseAssert metricsSatisfy(ThrowingConsumer<AgentMetrics> assertions) {
+    isNotNull();
+    Assertions.assertThat(actual.context().metrics()).satisfies(assertions);
+    return this;
+  }
+
+  public AgentSubProcessResponseAssert hasReasoningContent() {
+    return hasResponseMessageSatisfying(
+        message ->
+            Assertions.assertThat(message.content())
+                .as("reasoning content")
+                .anyMatch(ReasoningContent.class::isInstance));
   }
 
   public AgentSubProcessResponseAssert hasNoResponseMessage() {
@@ -86,7 +101,7 @@ public class AgentSubProcessResponseAssert
     return this;
   }
 
-  public AgentSubProcessResponseAssert hasResponseTestSatisfying(
+  public AgentSubProcessResponseAssert hasResponseTextSatisfying(
       ThrowingConsumer<String> assertions) {
     isNotNull();
     Assertions.assertThat(actual.responseText()).isNotNull().satisfies(assertions);
