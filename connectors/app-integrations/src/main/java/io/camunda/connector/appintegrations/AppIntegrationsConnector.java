@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 @ElementTemplate(
     id = "io.camunda.connectors.AppIntegrations.v1",
     name = "App Integrations Connector",
-    version = 1,
+    version = 2,
     description = "Send notifications and manage channels via Microsoft Teams",
     keywords = {
       "teams",
@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
       "adaptive card"
     },
     icon = "icon.svg",
-    engineVersion = "^8.9",
+    engineVersion = "^8.10",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "recipient", label = "Recipient"),
