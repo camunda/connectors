@@ -107,6 +107,17 @@ public class OperationAnnotatedConnectorWithLinkedResource implements OutboundCo
   record RequestWithConditionedOptionalLinkedResource(
       @TemplateProperty(group = "form", label = "Content type", id = "content.type") String type) {}
 
+  @TemplateLinkedResource(
+      linkName = "formDefinition",
+      resourceType = "form",
+      group = "form",
+      conditions =
+          @NestedPropertyCondition(
+              property = "content.type",
+              oneOf = {"form", "template"}))
+  record RequestWithOneOfConditionedLinkedResource(
+      @TemplateProperty(group = "form", label = "Content type", id = "content.type") String type) {}
+
   @Operation(id = "op1", name = "Operation 1")
   @SuppressWarnings("unused")
   public String op1(@Variable RequestWithLinkedResource request) {
@@ -146,6 +157,12 @@ public class OperationAnnotatedConnectorWithLinkedResource implements OutboundCo
   @Operation(id = "op7", name = "Operation 7")
   @SuppressWarnings("unused")
   public String op7(@Variable RequestWithConditionedOptionalLinkedResource request) {
+    return request.toString();
+  }
+
+  @Operation(id = "op8", name = "Operation 8")
+  @SuppressWarnings("unused")
+  public String op8(@Variable RequestWithOneOfConditionedLinkedResource request) {
     return request.toString();
   }
 }

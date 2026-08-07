@@ -1437,13 +1437,27 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
-    void condition_withoutEqualsValue_throws() {
+    void conditionSupportsOneOf_notJustEquals() {
+      // conditions take the full NestedPropertyCondition contract, so oneOf/equalsBoolean/isActive
+      // work too - not only string equality.
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+      var resourceId = getPropertyById("op8:formDefinition.resourceId", template);
+
+      assertThat(((PropertyCondition.AllMatch) resourceId.getCondition()).allMatch())
+          .contains(
+              new PropertyCondition.Equals("operation", "op8"),
+              new PropertyCondition.OneOf("op8:content.type", List.of("form", "template")));
+    }
+
+    @Test
+    void condition_withoutProperty_throws() {
       assertThatThrownBy(
               () ->
                   generator.generate(
                       OperationAnnotatedConnectorWithIncompleteLinkedResourceCondition.class))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("declares a condition with a blank property or equals value");
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("must have " + "'property' set");
     }
   }
 
