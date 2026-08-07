@@ -70,7 +70,8 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   it configures `JavaTimeModule`, case-insensitive enums, and lenient array/unknown-property handling.
 - **Errors**: throw `ConnectorException` (fatal) or `ConnectorRetryException` (transient, configurable
   retries/backoff); throw `BpmnError` only when a boundary event should catch it.
-- **Secrets**: read via `context.getSecretStore().getSecret(...)`; SDK dependencies stay
+- **Secrets**: reference them as `{{secrets.NAME}}` in connector inputs; `bindVariables(...)` and
+  `bindProperties(...)` resolve them through registered `SecretProvider`s. SDK dependencies stay
   `<scope>provided</scope>` in connector modules.
 - **Service registration**: connectors are discovered via `ServiceLoader` —
   `META-INF/services/io.camunda.connector.api.{outbound,inbound}.*` files are required, easy to forget.
