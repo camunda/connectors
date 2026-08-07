@@ -7,29 +7,27 @@
 package io.camunda.connector.appintegrations.model;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 
+/**
+ * The name and description are shared; everything platform-specific lives in {@link
+ * ChannelPlatform}.
+ *
+ * <p>The shared name cap is Slack's 80. Microsoft's limit is 50, so that tighter bound is asserted
+ * only for the Teams platform rather than being imposed on Slack (or, worse, silently dropped).
+ */
 public record CreateChannelRequest(
     @NotEmpty
-        @TemplateProperty(
-            group = "channel",
-            label = "Team ID",
-            description =
-                "ID of the Microsoft Teams team, or a full Teams URL"
-                    + " (the groupId query parameter will be extracted automatically).")
-        String teamId,
-    @NotEmpty
-        @Size(max = 50)
+        @Size(max = 80)
         @TemplateProperty(
             group = "channel",
             label = "Channel name",
-            description = "Display name for the new channel (max 50 characters).")
+            description =
+                "Display name for the new channel (max 50 characters for Microsoft Teams, 80 for Slack).")
         String displayName,
     @TemplateProperty(
             group = "channel",
@@ -37,55 +35,14 @@ public record CreateChannelRequest(
             description = "Optional description for the channel.",
             optional = true)
         String description,
-    @TemplateProperty(
-            group = "channel",
-            label = "Channel type",
-            description =
-                "Membership type: standard (visible to all), private (invite-only), or shared.",
-            // Without an explicit Dropdown type the generator keeps a String field and silently
-            // drops the choices, since membershipType is not an enum.
-            type = PropertyType.Dropdown,
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(label = "Standard", value = "standard"),
-              @TemplateProperty.DropdownPropertyChoice(label = "Private", value = "private"),
-              @TemplateProperty.DropdownPropertyChoice(label = "Shared", value = "shared")
-            },
-            defaultValue = DEFAULT_MEMBERSHIP_TYPE)
-        String membershipType) {
+    @NotNull @Valid ChannelPlatform platform) {
 
-  @TemplateProperty(ignore = true)
-  public static final String DEFAULT_MEMBERSHIP_TYPE = "standard";
-
-  public CreateChannelRequest {
-    teamId = extractGroupId(teamId);
-    // Single runtime source of the channel-type default; the template's defaultValue only pre-fills
-    // the editor dropdown and is not guaranteed to be present for non-template callers.
-    if (membershipType == null || membershipType.isBlank()) {
-      membershipType = DEFAULT_MEMBERSHIP_TYPE;
+  @AssertTrue(message = "A Microsoft Teams channel name must be at most 50 characters")
+  public boolean isDisplayNameValidForPlatform() {
+    if (!(platform instanceof ChannelPlatform.TeamsChannelPlatform)) {
+      return true;
     }
-  }
-
-  /**
-   * Accepts either a raw groupId or a full Microsoft Teams URL. For a URL, the {@code groupId}
-   * query parameter is extracted and percent-decoded; if the input is not a URL or carries no such
-   * parameter it is returned unchanged.
-   */
-  private static String extractGroupId(String input) {
-    if (input == null || !input.startsWith("http")) {
-      return input;
-    }
-    try {
-      var query = new URI(input).getRawQuery();
-      if (query != null) {
-        for (var param : query.split("&")) {
-          if (param.startsWith("groupId=")) {
-            return URLDecoder.decode(param.substring("groupId=".length()), StandardCharsets.UTF_8);
-          }
-        }
-      }
-    } catch (URISyntaxException | IllegalArgumentException e) {
-      // Not a parseable URI or malformed percent-encoding — fall back to the input verbatim.
-    }
-    return input;
+    return displayName == null
+        || displayName.length() <= ChannelPlatform.TEAMS_MAX_DISPLAY_NAME_LENGTH;
   }
 }

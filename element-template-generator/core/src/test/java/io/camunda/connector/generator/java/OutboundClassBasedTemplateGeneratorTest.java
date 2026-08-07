@@ -62,6 +62,7 @@ import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithIncompleteLinkedResourceCondition;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithLinkedResource;
+import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithNestedDiscriminators;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithPrimitiveTypes;
 import io.camunda.connector.generator.java.example.outbound.SingleOperationAnnotatedConnector;
 import java.io.File;
@@ -1416,6 +1417,23 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       var resourceId = getPropertyById("op7:formDefinition.resourceId", template);
       assertThat(((PropertyCondition.AllMatch) resourceId.getCondition()).allMatch())
           .containsExactly(expectedOperation, expectedGate, expectedToggle);
+    }
+
+    @Test
+    void nestedDiscriminators_onOperationConnector_mergeBothConditionsWithTheOperation() {
+      // Regression: merging the operation condition into an existing AllMatch used to mutate an
+      // immutable list and throw UnsupportedOperationException. Only reachable with two levels of
+      // nested discriminators on an @Operation connector, which no connector had until now.
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithNestedDiscriminators.class).getFirst();
+
+      var deep = getPropertyById("op1:outer.nested.deep", template);
+      assertThat(deep.getCondition()).isInstanceOf(PropertyCondition.AllMatch.class);
+      assertThat(((PropertyCondition.AllMatch) deep.getCondition()).allMatch())
+          .contains(
+              new PropertyCondition.Equals("operation", "op1"),
+              new PropertyCondition.Equals("op1:outer.type", "outerA"),
+              new PropertyCondition.Equals("op1:outer.nested.type", "innerA"));
     }
 
     @Test

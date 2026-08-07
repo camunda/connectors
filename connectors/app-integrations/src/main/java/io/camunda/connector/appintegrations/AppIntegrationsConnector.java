@@ -14,10 +14,10 @@ import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
+import io.camunda.connector.appintegrations.model.AdditionalContent;
 import io.camunda.connector.appintegrations.model.CreateChannelRequest;
 import io.camunda.connector.appintegrations.model.CreateChannelResult;
 import io.camunda.connector.appintegrations.model.LinkedResource;
-import io.camunda.connector.appintegrations.model.MessageContent;
 import io.camunda.connector.appintegrations.model.SendMessageRequest;
 import io.camunda.connector.appintegrations.model.SendMessageResult;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -77,28 +77,36 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
   @Operation(
       id = "sendMessage",
       name = "Send Message",
-      description = "Send a text message, adaptive card, or Camunda form to a user or channel",
+      // The description must name the connector: OperationDescriptionConnectorNameRule requires a
+      // significant word from the template name ("App Integrations") to appear in every leaf step.
+      description =
+          "Send an App Integrations message to Microsoft Teams, Slack, or a Camunda recipient —"
+              + " plain text plus an optional adaptive card, Block Kit payload, or form",
       keywords = {
         "send message",
         "post message",
         "notify user",
         "send adaptive card",
+        "send block kit",
         "send form",
-        "teams notification"
+        "teams notification",
+        "slack notification"
       })
   public SendMessageResult sendMessage(
       @Variable SendMessageRequest request, OutboundConnectorContext context) {
     LOGGER.debug("Sending message via App Integrations connector");
 
-    // The sealed content hierarchy already guarantees exactly one kind of content. What it cannot
-    // guarantee is that a form actually reached the job: the form is a linked resource, not a
-    // variable. A linkedResources header present for any other content type is ignored.
+    // The per-platform sealed hierarchies already guarantee at most one kind of additional content.
+    // What they cannot guarantee is that a form actually reached the job: the form is a linked
+    // resource, not a variable. A linkedResources header present for any other selection is
+    // ignored.
     String formResourceKey = null;
-    if (request.content() instanceof MessageContent.FormContent) {
+    if (request.recipient().additionalContent() instanceof AdditionalContent.Form) {
       formResourceKey = formResourceKey(context.getJobContext().getCustomHeaders());
       if (formResourceKey == null) {
         throw new ConnectorException(
-            "VALIDATION_ERROR", "Message type is 'form' but no linked form was found on the job");
+            "VALIDATION_ERROR",
+            "Additional content is 'form' but no linked form was found on the job");
       }
     }
 
@@ -108,8 +116,15 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
   @Operation(
       id = "createChannel",
       name = "Create Channel",
-      description = "Create a Microsoft Teams channel in a given team",
-      keywords = {"create channel", "new channel", "add channel", "teams channel", "open channel"})
+      description = "Create an App Integrations channel in Microsoft Teams or Slack",
+      keywords = {
+        "create channel",
+        "new channel",
+        "add channel",
+        "teams channel",
+        "slack channel",
+        "open channel"
+      })
   public CreateChannelResult createChannel(@Variable CreateChannelRequest request) {
     LOGGER.debug("Creating Teams channel via App Integrations connector");
     return executor.createChannel(request);

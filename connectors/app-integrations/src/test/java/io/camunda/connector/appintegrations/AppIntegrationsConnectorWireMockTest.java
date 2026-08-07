@@ -28,10 +28,12 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.appintegrations.model.AdditionalContent;
+import io.camunda.connector.appintegrations.model.ChannelPlatform;
 import io.camunda.connector.appintegrations.model.CreateChannelRequest;
-import io.camunda.connector.appintegrations.model.MessageContent;
 import io.camunda.connector.appintegrations.model.Recipient;
 import io.camunda.connector.appintegrations.model.SendMessageRequest;
+import io.camunda.connector.appintegrations.model.SlackTarget;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
@@ -112,7 +114,10 @@ class AppIntegrationsConnectorWireMockTest {
 
   private static CreateChannelRequest channelRequest() {
     return new CreateChannelRequest(
-        "b7779302-e8cb-4b34-901b-5b150a19fd47", "My Channel", null, "standard");
+        "My Channel",
+        null,
+        new ChannelPlatform.TeamsChannelPlatform(
+            "b7779302-e8cb-4b34-901b-5b150a19fd47", "standard"));
   }
 
   private static void stubToken() {
@@ -183,8 +188,11 @@ class AppIntegrationsConnectorWireMockTest {
     var request =
         new SendMessageRequest(
             new Recipient.CamundaRecipient(
-                "user@example.com", List.of("alice", "bob"), List.of("approvers")),
-            new MessageContent.TextContent("Please approve"));
+                "user@example.com",
+                List.of("alice", "bob"),
+                List.of("approvers"),
+                new AdditionalContent.None()),
+            "Please approve");
 
     var result = apiKeyConnector(wm).sendMessage(request, context);
 
@@ -196,10 +204,46 @@ class AppIntegrationsConnectorWireMockTest {
                 equalToJson(
                     """
                     {
+                      "platform": "camunda",
                       "email": "user@example.com",
                       "candidateUsers": ["alice", "bob"],
                       "candidateGroups": ["approvers"],
                       "message": "Please approve"
+                    }
+                    """)));
+  }
+
+  @Test
+  void sendMessage_realClient_slackMessageAndBlocks_sentAsRealJson(WireMockRuntimeInfo wm)
+      throws Exception {
+    stubFor(
+        post(urlPathEqualTo(MESSAGE_PATH))
+            .willReturn(okJson("{\"conversation\":\"conv-2\"}").withStatus(201)));
+
+    var blocks =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readTree("[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"hi\"}}]");
+    var request =
+        new SendMessageRequest(
+            new Recipient.SlackRecipient(
+                new SlackTarget.SlackChannelTarget("C0123456789"),
+                new AdditionalContent.BlockKit(blocks)),
+            "Deploy done");
+
+    var result = apiKeyConnector(wm).sendMessage(request, context);
+
+    assertThat(result.conversation()).isEqualTo("conv-2");
+    // blocks must arrive as a real JSON array, not a string containing JSON.
+    verify(
+        postRequestedFor(urlPathEqualTo(MESSAGE_PATH))
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {
+                      "platform": "slack",
+                      "channelId": "C0123456789",
+                      "message": "Deploy done",
+                      "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "hi"}}]
                     }
                     """)));
   }

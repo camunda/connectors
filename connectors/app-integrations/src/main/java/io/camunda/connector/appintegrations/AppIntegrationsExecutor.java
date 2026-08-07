@@ -9,15 +9,18 @@ package io.camunda.connector.appintegrations;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
+import io.camunda.connector.appintegrations.model.AdditionalContent;
+import io.camunda.connector.appintegrations.model.ChannelPlatform;
 import io.camunda.connector.appintegrations.model.CreateChannelRequest;
 import io.camunda.connector.appintegrations.model.CreateChannelResult;
-import io.camunda.connector.appintegrations.model.MessageContent;
 import io.camunda.connector.appintegrations.model.Recipient;
 import io.camunda.connector.appintegrations.model.SendMessageRequest;
 import io.camunda.connector.appintegrations.model.SendMessageResult;
+import io.camunda.connector.appintegrations.model.SlackTarget;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.client.HttpClient;
@@ -79,6 +82,12 @@ class AppIntegrationsExecutor {
 
   static final String NOT_CONFIGURED_ERROR_CODE = "APP_INTEGRATIONS_NOT_CONFIGURED";
 
+  // Sent as an explicit discriminator: Teams and Slack both address a "channel", so the field shape
+  // alone does not tell the backend which platform to target.
+  private static final String PLATFORM_CAMUNDA = "camunda";
+  private static final String PLATFORM_TEAMS = "teams";
+  private static final String PLATFORM_SLACK = "slack";
+
   private final ObjectMapper objectMapper;
   private final HttpClient httpClient;
   private final UnaryOperator<String> getenv;
@@ -96,52 +105,139 @@ class AppIntegrationsExecutor {
   }
 
   CreateChannelResult createChannel(CreateChannelRequest request) {
-    var payload =
-        new CreateChannelPayload(
-            request.teamId(),
-            request.displayName(),
-            request.description(),
-            request.membershipType());
-    return post(CREATE_CHANNEL_PATH, payload, CreateChannelResult.class);
+    return post(CREATE_CHANNEL_PATH, createChannelPayload(request), CreateChannelResult.class);
   }
 
   /**
-   * Flattens the switchable recipient and content onto the backend's flat wire contract. Absent
-   * fields stay null so {@code @JsonInclude(NON_NULL)} omits them; empty candidate lists are
+   * Flattens the switchable recipient and additional content onto the backend's flat wire contract.
+   * Absent fields stay null so {@code @JsonInclude(NON_NULL)} omits them; empty candidate lists are
    * normalised to null rather than sent as empty arrays.
+   *
+   * <p>{@code message} is independent of the additional content — the backend accepts both at once,
+   * so a text message and a card can be sent together.
    */
   private MessagePayload messagePayload(SendMessageRequest request, String formResourceKey) {
+    String platform;
     String email = null;
     List<String> candidateUsers = null;
     List<String> candidateGroups = null;
     String channelId = null;
+    String userId = null;
     switch (request.recipient()) {
       case Recipient.CamundaRecipient camunda -> {
+        platform = PLATFORM_CAMUNDA;
         email = blankToNull(camunda.email());
         candidateUsers = emptyToNull(camunda.candidateUsers());
         candidateGroups = emptyToNull(camunda.candidateGroups());
       }
-      case Recipient.TeamsRecipient teams -> channelId = blankToNull(teams.channelId());
-    }
-
-    String message = null;
-    String adaptiveCardJson = null;
-    switch (request.content()) {
-      case MessageContent.TextContent text -> message = text.message();
-      case MessageContent.AdaptiveCardContent card -> adaptiveCardJson = card.adaptiveCardJson();
-      case MessageContent.FormContent ignored -> {
-        // The form travels as formResourceKey, resolved from the job's linked resources.
+      case Recipient.TeamsRecipient teams -> {
+        platform = PLATFORM_TEAMS;
+        channelId = blankToNull(teams.channelId());
+      }
+      case Recipient.SlackRecipient slack -> {
+        platform = PLATFORM_SLACK;
+        switch (slack.slackTarget()) {
+          case SlackTarget.SlackChannelTarget channel ->
+              channelId = blankToNull(channel.channelId());
+          case SlackTarget.SlackUserTarget user -> userId = blankToNull(user.user());
+        }
       }
     }
 
+    JsonNode adaptiveCard = null;
+    JsonNode blocks = null;
+    switch (request.recipient().additionalContent()) {
+      case AdditionalContent.AdaptiveCard card ->
+          adaptiveCard = requireJsonObject(card.adaptiveCard(), "adaptiveCard");
+      case AdditionalContent.BlockKit blockKit ->
+          blocks = requireJsonArray(blockKit.blocks(), "blocks");
+      case AdditionalContent.Form ignored -> {
+        // The form travels as formResourceKey, resolved from the job's linked resources.
+      }
+      case AdditionalContent.None ignored -> {
+        // Plain message only.
+      }
+      default ->
+          throw new ConnectorException(
+              "VALIDATION_ERROR",
+              "Unsupported additional content: "
+                  + request.recipient().additionalContent().getClass().getSimpleName());
+    }
+
     return new MessagePayload(
+        platform,
         email,
-        channelId,
         candidateUsers,
         candidateGroups,
-        message,
-        adaptiveCardJson,
+        channelId,
+        userId,
+        blankToNull(request.message()),
+        adaptiveCard,
+        blocks,
         formResourceKey);
+  }
+
+  private CreateChannelPayload createChannelPayload(CreateChannelRequest request) {
+    return switch (request.platform()) {
+      case ChannelPlatform.TeamsChannelPlatform teams ->
+          new CreateChannelPayload(
+              PLATFORM_TEAMS,
+              request.displayName(),
+              blankToNull(request.description()),
+              teams.teamId(),
+              teams.membershipType(),
+              null,
+              null);
+      case ChannelPlatform.SlackChannelPlatform slack ->
+          new CreateChannelPayload(
+              PLATFORM_SLACK,
+              request.displayName(),
+              blankToNull(request.description()),
+              null,
+              null,
+              blankToNull(slack.workspaceId()),
+              slack.isPrivate());
+    };
+  }
+
+  /**
+   * The card / Block Kit properties are FEEL-enabled, so the engine normally hands the connector an
+   * already-parsed object. A value that arrives as a string (a static paste that was not evaluated)
+   * is parsed here so the wire always carries real JSON, as the backend expects.
+   */
+  private JsonNode normaliseJson(JsonNode value, String field) {
+    if (value == null || value.isNull()) {
+      return null;
+    }
+    if (!value.isTextual()) {
+      return value;
+    }
+    var text = value.asText();
+    if (text.isBlank()) {
+      return null;
+    }
+    try {
+      return objectMapper.readTree(text);
+    } catch (JsonProcessingException e) {
+      throw new ConnectorException(
+          "VALIDATION_ERROR", "'" + field + "' is not valid JSON: " + e.getOriginalMessage(), e);
+    }
+  }
+
+  private JsonNode requireJsonObject(JsonNode value, String field) {
+    var parsed = normaliseJson(value, field);
+    if (parsed == null || !parsed.isObject()) {
+      throw new ConnectorException("VALIDATION_ERROR", "'" + field + "' must be a JSON object");
+    }
+    return parsed;
+  }
+
+  private JsonNode requireJsonArray(JsonNode value, String field) {
+    var parsed = normaliseJson(value, field);
+    if (parsed == null || !parsed.isArray()) {
+      throw new ConnectorException("VALIDATION_ERROR", "'" + field + "' must be a JSON array");
+    }
+    return parsed;
   }
 
   private static String blankToNull(String value) {
@@ -339,15 +435,24 @@ class AppIntegrationsExecutor {
 
   @JsonInclude(Include.NON_NULL)
   private record MessagePayload(
+      String platform,
       String email,
-      String channelId,
       List<String> candidateUsers,
       List<String> candidateGroups,
+      String channelId,
+      String userId,
       String message,
-      String adaptiveCardJson,
+      JsonNode adaptiveCard,
+      JsonNode blocks,
       String formResourceKey) {}
 
   @JsonInclude(Include.NON_NULL)
   private record CreateChannelPayload(
-      String teamId, String displayName, String description, String membershipType) {}
+      String platform,
+      String displayName,
+      String description,
+      String teamId,
+      String membershipType,
+      String workspaceId,
+      Boolean isPrivate) {}
 }
