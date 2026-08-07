@@ -346,8 +346,8 @@ class A2aGatewayToolHandlerTest {
       var agentContext = AgentContext.empty();
       var toolCalls =
           List.of(
-              new ToolCall("call1", "A2A_a2a1", Map.of("message", "hello")),
-              new ToolCall("call2", "regular_tool", Map.of("arg", "value")));
+              new ToolCall("call1", "A2A_a2a1", Map.of("message", "hello"), Map.of()),
+              new ToolCall("call2", "regular_tool", Map.of("arg", "value"), Map.of()));
 
       var result = handler.transformToolCalls(agentContext, toolCalls);
 
@@ -374,8 +374,8 @@ class A2aGatewayToolHandlerTest {
       var agentContext = AgentContext.empty();
       var toolCalls =
           List.of(
-              new ToolCall("call1", "regular_tool1", Map.of("arg1", "value1")),
-              new ToolCall("call2", "regular_tool2", Map.of("arg2", "value2")));
+              new ToolCall("call1", "regular_tool1", Map.of("arg1", "value1"), Map.of()),
+              new ToolCall("call2", "regular_tool2", Map.of("arg2", "value2"), Map.of()));
 
       var result = handler.transformToolCalls(agentContext, toolCalls);
 

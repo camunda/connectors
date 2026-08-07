@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
+import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
@@ -42,7 +43,6 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
   private static final Logger LOGGER = LoggerFactory.getLogger(ChatMessageConverterImpl.class);
 
   private static final String FRAMEWORK_METADATA_KEY = "framework";
-  private static final String PROVIDER_METADATA_KEY = "provider";
 
   private final ContentConverter contentConverter;
   private final ToolCallConverter toolCallConverter;
@@ -125,7 +125,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       builder.toolExecutionRequests(toolExecutionRequests);
     }
 
-    final var attributes = providerAttributes(assistantMessage, providerConfiguration);
+    final var attributes = toolCallAttributes(assistantMessage, providerConfiguration);
     if (!attributes.isEmpty()) {
       builder.attributes(attributes);
     }
@@ -134,22 +134,29 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
   }
 
   /**
-   * Provider attributes carry data the provider requires us to echo back verbatim on the next
-   * request. This is provider-specific data, kept separate from {@link
-   * #serializedChatResponseMetadata}. What is safe to restore is provider-specific - see {@link
-   * AssistantMessageMetadataDecorator}.
+   * Provider tool call metadata carries data the provider requires us to echo back verbatim on the
+   * next request, e.g. Gemini 3 thought signatures. This is provider-specific data, kept separate
+   * from {@link #serializedChatResponseMetadata}. What is safe to restore is provider-specific -
+   * see {@link ToolCallMetadataDecorator}.
    */
-  protected Map<String, Object> providerAttributes(
+  protected Map<String, Object> toolCallAttributes(
       AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
-    if (CollectionUtils.isEmpty(assistantMessage.metadata())) {
+    if (CollectionUtils.isEmpty(assistantMessage.toolCalls())) {
       return Map.of();
     }
 
-    if (!(assistantMessage.metadata().get(PROVIDER_METADATA_KEY) instanceof Map<?, ?> attributes)) {
-      return Map.of();
+    final var attributes = new LinkedHashMap<String, Object>();
+    for (final var toolCall : assistantMessage.toolCalls()) {
+      if (CollectionUtils.isEmpty(toolCall.metadata())) {
+        continue;
+      }
+
+      attributes.putAll(
+          ToolCallMetadataDecorator.decorateOnRead(
+              providerConfiguration, toolCall.id(), toolCall.metadata()));
     }
 
-    return AssistantMessageMetadataDecorator.decorateOnRead(providerConfiguration, attributes);
+    return attributes;
   }
 
   @Override
@@ -163,20 +170,10 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     final var builder = AssistantMessage.builder();
     final var aiMessage = chatResponse.aiMessage();
 
-    final var decoratedAttributes =
-        CollectionUtils.isEmpty(aiMessage.attributes())
-            ? Map.<String, Object>of()
-            : AssistantMessageMetadataDecorator.decorateOnWrite(
-                providerConfiguration, aiMessage.attributes());
-
-    if (chatResponse.metadata() != null || !decoratedAttributes.isEmpty()) {
+    if (chatResponse.metadata() != null) {
       final var metadata = new LinkedHashMap<String, Object>();
       metadata.put("timestamp", ZonedDateTime.now());
       metadata.put(FRAMEWORK_METADATA_KEY, serializedChatResponseMetadata(chatResponse.metadata()));
-
-      if (!decoratedAttributes.isEmpty()) {
-        metadata.put(PROVIDER_METADATA_KEY, decoratedAttributes);
-      }
 
       builder.metadata(metadata);
     }
@@ -186,11 +183,27 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     }
 
     final var toolCalls =
-        aiMessage.toolExecutionRequests().stream().map(toolCallConverter::asToolCall).toList();
+        aiMessage.toolExecutionRequests().stream()
+            .map(toolCallConverter::asToolCall)
+            .map(toolCall -> decorateToolCallMetadata(toolCall, aiMessage, providerConfiguration))
+            .toList();
 
     builder.toolCalls(toolCalls);
 
     return builder;
+  }
+
+  private ToolCall decorateToolCallMetadata(
+      ToolCall toolCall, AiMessage aiMessage, ProviderConfiguration providerConfiguration) {
+    if (CollectionUtils.isEmpty(aiMessage.attributes())) {
+      return toolCall;
+    }
+
+    final var metadata =
+        ToolCallMetadataDecorator.decorateOnWrite(
+            providerConfiguration, toolCall.id(), aiMessage.attributes());
+
+    return metadata.isEmpty() ? toolCall : toolCall.withMetadata(metadata);
   }
 
   protected Map<String, Object> serializedChatResponseMetadata(

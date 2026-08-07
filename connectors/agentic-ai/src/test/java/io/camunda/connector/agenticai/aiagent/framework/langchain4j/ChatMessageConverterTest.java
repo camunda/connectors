@@ -222,80 +222,138 @@ class ChatMessageConverterTest {
   }
 
   /**
-   * Provider message attributes carry data the provider requires us to echo back verbatim on the
+   * Provider tool call metadata carries data the provider requires us to echo back verbatim on the
    * next request - most notably Gemini 3 thought signatures, without which a follow-up request
-   * containing function calls is rejected with a 400. They must survive the round trip through the
-   * conversation history. Only the {@code thought_signature_*} entries survive - a decoy key proves
-   * the Google Vertex AI decorator narrows the dump, it does not pass it through unfiltered.
+   * containing function calls is rejected with a 400. It must survive the round trip through the
+   * conversation history, attached to the specific tool call it belongs to. Only the {@code
+   * thought_signature_*} entry for this tool call survives - a decoy key and an unrelated tool
+   * call's signature prove the Google Vertex AI decorator narrows the dump to this one tool call,
+   * it does not pass everything through unfiltered.
    */
   @Test
-  void assistantMessageRoundTrip_preservesProviderAttributes() {
+  void assistantMessageRoundTrip_preservesToolCallThoughtSignature() {
+    final var toolExecutionRequest =
+        ToolExecutionRequest.builder().id("toolCallId").name("toolName").build();
     final var attributes =
         Map.<String, Object>of(
             "thought_signature_toolCallId",
             "c2lnbmF0dXJl",
+            "thought_signature_someOtherToolCallId",
+            "unrelated-signature",
             "raw_http_response",
             "should-be-dropped");
-    final var expectedAttributes =
-        Map.<String, Object>of("thought_signature_toolCallId", "c2lnbmF0dXJl");
-    final var aiMessage = AiMessage.builder().text("AI response").attributes(attributes).build();
+    final var aiMessage =
+        AiMessage.builder()
+            .text("AI response")
+            .toolExecutionRequests(List.of(toolExecutionRequest))
+            .attributes(attributes)
+            .build();
     final var chatResponse =
         new ChatResponse.Builder()
             .aiMessage(aiMessage)
             .metadata(ChatResponseMetadata.builder().finishReason(FinishReason.STOP).build())
             .build();
 
+    final var toolCall = ToolCall.builder().id("toolCallId").name("toolName").build();
+    when(toolCallConverter.asToolCall(toolExecutionRequest)).thenReturn(toolCall);
+
     final var assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse, VERTEX_AI);
 
-    assertThat(assistantMessage.metadata())
-        .containsEntry(
-            "provider",
-            Map.of(GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID, expectedAttributes));
+    assertThat(assistantMessage.metadata()).doesNotContainKey("provider");
+    assertThat(assistantMessage.toolCalls()).hasSize(1);
+
+    final var decoratedToolCall = assistantMessage.toolCalls().getFirst();
+    assertThat(decoratedToolCall.id()).isEqualTo("toolCallId");
+    assertThat(decoratedToolCall.metadata())
+        .containsExactly(
+            entry(
+                GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
+                Map.of("thoughtSignature", "c2lnbmF0dXJl")));
+
+    when(toolCallConverter.asToolExecutionRequest(decoratedToolCall))
+        .thenReturn(toolExecutionRequest);
 
     assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage, VERTEX_AI).attributes())
-        .isEqualTo(expectedAttributes);
+        .isEqualTo(Map.of("thought_signature_toolCallId", "c2lnbmF0dXJl"));
   }
 
   @Test
-  void toAssistantMessage_withoutAttributes_doesNotAddProviderMetadata() {
+  void toAssistantMessage_toolCallWithoutMatchingThoughtSignature_hasNoMetadata() {
+    final var toolExecutionRequest =
+        ToolExecutionRequest.builder().id("toolCallId").name("toolName").build();
+    final var aiMessage =
+        AiMessage.builder()
+            .text("AI response")
+            .toolExecutionRequests(List.of(toolExecutionRequest))
+            .build();
     final var chatResponse =
         new ChatResponse.Builder()
-            .aiMessage(AiMessage.builder().text("AI response").build())
+            .aiMessage(aiMessage)
             .metadata(ChatResponseMetadata.builder().finishReason(FinishReason.STOP).build())
             .build();
 
-    assertThat(chatMessageConverter.toAssistantMessage(chatResponse, VERTEX_AI).metadata())
-        .doesNotContainKey("provider");
+    final var toolCall = ToolCall.builder().id("toolCallId").name("toolName").build();
+    when(toolCallConverter.asToolCall(toolExecutionRequest)).thenReturn(toolCall);
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse, VERTEX_AI);
+
+    assertThat(result.metadata()).doesNotContainKey("provider");
+    assertThat(result.toolCalls()).hasSize(1);
+    assertThat(result.toolCalls().getFirst().metadata()).isEmpty();
   }
 
   @ParameterizedTest
   @MethodSource("nonVertexAiProviders")
-  void toAssistantMessage_forNonVertexAiProvider_neverPersistsAttributes(
+  void toAssistantMessage_forNonVertexAiProvider_neverAddsToolCallMetadata(
       ProviderConfiguration providerConfiguration) {
+    final var toolExecutionRequest =
+        ToolExecutionRequest.builder().id("toolCallId").name("toolName").build();
     final var attributes =
         Map.<String, Object>of(
             "thought_signature_toolCallId", "c2lnbmF0dXJl", "raw_http_response", "leak-risk");
+    final var aiMessage =
+        AiMessage.builder()
+            .text("AI response")
+            .toolExecutionRequests(List.of(toolExecutionRequest))
+            .attributes(attributes)
+            .build();
     final var chatResponse =
         new ChatResponse.Builder()
-            .aiMessage(AiMessage.builder().text("AI response").attributes(attributes).build())
+            .aiMessage(aiMessage)
             .metadata(ChatResponseMetadata.builder().finishReason(FinishReason.STOP).build())
             .build();
+
+    final var toolCall = ToolCall.builder().id("toolCallId").name("toolName").build();
+    when(toolCallConverter.asToolCall(toolExecutionRequest)).thenReturn(toolCall);
 
     final var assistantMessage =
         chatMessageConverter.toAssistantMessage(chatResponse, providerConfiguration);
 
-    assertThat(assistantMessage.metadata()).doesNotContainKey("provider");
+    assertThat(assistantMessage.toolCalls()).hasSize(1);
+    assertThat(assistantMessage.toolCalls().getFirst().metadata()).isEmpty();
   }
 
   @ParameterizedTest
   @MethodSource("nonVertexAiProviders")
   void fromAssistantMessage_forNonVertexAiProvider_neverRestoresAttributes(
       ProviderConfiguration providerConfiguration) {
+    final var toolCall =
+        ToolCall.builder()
+            .id("toolCallId")
+            .name("toolName")
+            .metadata(
+                Map.of(
+                    GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
+                    Map.of("thoughtSignature", "c2lnbmF0dXJl")))
+            .build();
     final var assistantMessage =
         AssistantMessage.builder()
             .content(List.of(textContent("Test message")))
-            .metadata(Map.of("provider", Map.of("thought_signature_toolCallId", "c2lnbmF0dXJl")))
+            .toolCalls(List.of(toolCall))
             .build();
+
+    when(toolCallConverter.asToolExecutionRequest(toolCall))
+        .thenReturn(mock(ToolExecutionRequest.class));
 
     assertThat(
             chatMessageConverter
@@ -305,52 +363,71 @@ class ChatMessageConverterTest {
   }
 
   /**
-   * Conversations persisted before provider attributes were supported must keep working - a process
-   * already in flight has no "provider" key, and older ones may have no metadata at all. The
-   * conversation lives in a process variable, so the shapes here are neither type-safe nor beyond
-   * tampering.
+   * The persisted tool call metadata lives in a process variable, so its shape is neither type-safe
+   * nor beyond tampering.
    */
   @ParameterizedTest
   @NullSource
-  @MethodSource("metadataWithoutUsableAttributes")
-  void fromAssistantMessage_withoutUsableProviderAttributes_returnsEmptyAttributes(
-      Map<String, Object> metadata) {
+  @MethodSource("toolCallMetadataWithoutUsableThoughtSignature")
+  void fromAssistantMessage_withoutUsableToolCallMetadata_returnsEmptyAttributes(
+      Map<String, Object> toolCallMetadata) {
+    final var toolCall =
+        ToolCall.builder().id("toolCallId").name("toolName").metadata(toolCallMetadata).build();
     final var assistantMessage =
         AssistantMessage.builder()
             .content(List.of(textContent("Test message")))
-            .metadata(metadata)
+            .toolCalls(List.of(toolCall))
             .build();
+
+    when(toolCallConverter.asToolExecutionRequest(toolCall))
+        .thenReturn(mock(ToolExecutionRequest.class));
 
     assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage, VERTEX_AI).attributes())
         .isEmpty();
   }
 
-  static Stream<Map<String, Object>> metadataWithoutUsableAttributes() {
+  static Stream<Map<String, Object>> toolCallMetadataWithoutUsableThoughtSignature() {
     return Stream.of(
         Map.of(),
-        // the shape persisted by any process started before this change
-        Map.of("timestamp", ZonedDateTime.now(), "framework", Map.of("finishReason", "STOP")),
-        // no provider key at all
-        Map.of("timestamp", ZonedDateTime.now()),
-        // provider present but not a map
-        Map.of("provider", "not-a-map"));
+        // no matching provider key
+        Map.of("some-other-provider", Map.of("thoughtSignature", "c2ln")),
+        // provider key present but not a map
+        Map.of(GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID, "not-a-map"));
   }
 
   @Test
-  void fromAssistantMessage_withNonStringAttributeValues_dropsUnusableEntries() {
+  void fromAssistantMessage_withMultipleToolCalls_reconstructsFlatAttributesPerToolCallId() {
+    final var validToolCall =
+        ToolCall.builder()
+            .id("toolCallA")
+            .name("toolName")
+            .metadata(
+                Map.of(
+                    GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
+                    Map.of("thoughtSignature", "c2ln")))
+            .build();
+    final var invalidToolCall =
+        ToolCall.builder()
+            .id("toolCallB")
+            .name("toolName")
+            .metadata(
+                Map.of(
+                    GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
+                    Map.of("thoughtSignature", 42)))
+            .build();
     final var assistantMessage =
         AssistantMessage.builder()
             .content(List.of(textContent("Test message")))
-            .metadata(
-                Map.of(
-                    "provider",
-                    Map.of(
-                        GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
-                        Map.of("thought_signature_a", "c2ln", "thought_signature_b", 42))))
+            .toolCalls(List.of(validToolCall, invalidToolCall))
             .build();
 
+    when(toolCallConverter.asToolExecutionRequest(validToolCall))
+        .thenReturn(mock(ToolExecutionRequest.class));
+    when(toolCallConverter.asToolExecutionRequest(invalidToolCall))
+        .thenReturn(mock(ToolExecutionRequest.class));
+
     assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage, VERTEX_AI).attributes())
-        .containsExactly(entry("thought_signature_a", "c2ln"));
+        .containsExactly(entry("thought_signature_toolCallA", "c2ln"));
   }
 
   @Test

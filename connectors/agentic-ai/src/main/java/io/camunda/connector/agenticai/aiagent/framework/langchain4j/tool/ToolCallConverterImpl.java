@@ -63,7 +63,7 @@ public class ToolCallConverterImpl implements ToolCallConverter {
     try {
       Map<String, Object> arguments =
           objectMapper.readValue(inputJson, STRING_OBJECT_MAP_TYPE_REFERENCE);
-      return new ToolCall(id, name, arguments);
+      return new ToolCall(id, name, arguments, Map.of());
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
           "Failed to deserialize tool call results for tool '%s': %s"
