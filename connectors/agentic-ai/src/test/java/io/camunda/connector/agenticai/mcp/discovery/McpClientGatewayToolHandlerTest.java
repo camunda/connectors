@@ -322,8 +322,8 @@ class McpClientGatewayToolHandlerTest {
       var agentContext = AgentContext.empty();
       var toolCalls =
           List.of(
-              new ToolCall("call1", "MCP_mcp1___tool1", Map.of("arg1", "value1")),
-              new ToolCall("call2", "regular_tool", Map.of("arg2", "value2")));
+              new ToolCall("call1", "MCP_mcp1___tool1", Map.of("arg1", "value1"), Map.of()),
+              new ToolCall("call2", "regular_tool", Map.of("arg2", "value2"), Map.of()));
 
       var result = handler.transformToolCalls(agentContext, toolCalls);
 
@@ -350,8 +350,8 @@ class McpClientGatewayToolHandlerTest {
       var agentContext = AgentContext.empty();
       var toolCalls =
           List.of(
-              new ToolCall("call1", "regular_tool1", Map.of("arg1", "value1")),
-              new ToolCall("call2", "regular_tool2", Map.of("arg2", "value2")));
+              new ToolCall("call1", "regular_tool1", Map.of("arg1", "value1"), Map.of()),
+              new ToolCall("call2", "regular_tool2", Map.of("arg2", "value2"), Map.of()));
 
       var result = handler.transformToolCalls(agentContext, toolCalls);
 
