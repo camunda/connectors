@@ -92,7 +92,8 @@ public class AnthropicContentConverter {
                   .source(
                       Base64ImageSource.builder()
                           .data(doc.document().asBase64())
-                          .mediaType(Base64ImageSource.MediaType.of(contentType))
+                          .mediaType(
+                              Base64ImageSource.MediaType.of(normalizedMimeType(contentType)))
                           .build())
                   .build());
       case PDF ->
@@ -229,5 +230,15 @@ public class AnthropicContentConverter {
   private static boolean isCompatibleWithAnyOf(
       ContentType contentType, List<ContentType> contentTypes) {
     return contentTypes.stream().anyMatch(contentType::isSameMimeType);
+  }
+
+  /**
+   * Strips parameters (e.g. {@code ; charset=UTF-8}) from a content type, matching the
+   * normalization {@link #classify(String)} already applies before comparing MIME types.
+   * Anthropic's image media type is a closed enum of exact values, so a parameterized content type
+   * has to be normalized before being sent on the wire, not just before classification.
+   */
+  private static String normalizedMimeType(String contentType) {
+    return ContentType.parse(contentType.trim().toLowerCase(Locale.ROOT)).getMimeType();
   }
 }
