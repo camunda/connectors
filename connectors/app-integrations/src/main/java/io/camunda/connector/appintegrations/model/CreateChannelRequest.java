@@ -9,7 +9,7 @@ package io.camunda.connector.appintegrations.model;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -21,7 +21,7 @@ import jakarta.validation.constraints.Size;
  * only for the Teams platform rather than being imposed on Slack (or, worse, silently dropped).
  */
 public record CreateChannelRequest(
-    @NotEmpty
+    @NotBlank
         @Size(max = 80)
         @TemplateProperty(
             group = "channel",

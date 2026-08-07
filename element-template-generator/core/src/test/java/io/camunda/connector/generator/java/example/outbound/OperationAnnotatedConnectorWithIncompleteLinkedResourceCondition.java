@@ -23,6 +23,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;
 
 /**
  * Declares {@code conditionProperty} without the matching {@code conditionEquals}, which the
@@ -48,13 +49,13 @@ public class OperationAnnotatedConnectorWithIncompleteLinkedResourceCondition
       linkName = "formDefinition",
       resourceType = "form",
       group = "form",
-      conditionProperty = "content.type")
+      conditions = @NestedPropertyCondition(property = "content.type"))
   record RequestWithIncompleteCondition(
       @TemplateProperty(group = "form", label = "Message") String message) {}
 
   @Operation(id = "op1", name = "Operation 1")
   @SuppressWarnings("unused")
   public String op1(@Variable RequestWithIncompleteCondition request) {
-    return null;
+    return request.toString();
   }
 }

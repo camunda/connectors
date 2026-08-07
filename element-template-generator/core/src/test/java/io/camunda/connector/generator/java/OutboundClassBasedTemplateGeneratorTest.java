@@ -1437,13 +1437,13 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
-    void conditionProperty_withoutConditionEquals_throws() {
+    void condition_withoutEqualsValue_throws() {
       assertThatThrownBy(
               () ->
                   generator.generate(
                       OperationAnnotatedConnectorWithIncompleteLinkedResourceCondition.class))
           .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("must set both conditionProperty and conditionEquals");
+          .hasMessageContaining("declares a condition with a blank property or equals value");
     }
   }
 

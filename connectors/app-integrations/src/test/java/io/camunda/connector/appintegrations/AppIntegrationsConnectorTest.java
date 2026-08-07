@@ -337,6 +337,42 @@ class AppIntegrationsConnectorTest {
   }
 
   @Test
+  void whitespaceOnlyRecipients_failValidation() {
+    // @NotEmpty would accept these; the executor then normalises them to null and the payload would
+    // carry no recipient identifier at all. @NotBlank is what actually stops that.
+    assertThat(VALIDATOR.validate(teams("   ", "Hello", new AdditionalContent.None())))
+        .isNotEmpty();
+    assertThat(
+            VALIDATOR.validate(
+                slack(
+                    new SlackTarget.SlackChannelTarget("  "),
+                    "Hello",
+                    new AdditionalContent.None())))
+        .isNotEmpty();
+    assertThat(
+            VALIDATOR.validate(
+                slack(
+                    new SlackTarget.SlackUserTarget("\t"), "Hello", new AdditionalContent.None())))
+        .isNotEmpty();
+  }
+
+  @Test
+  void whitespaceOnlyChannelFields_failValidation() {
+    assertThat(
+            VALIDATOR.validate(
+                new CreateChannelRequest(
+                    "  ", null, new ChannelPlatform.TeamsChannelPlatform("g-1", "standard"))))
+        .isNotEmpty();
+    assertThat(
+            VALIDATOR.validate(
+                new CreateChannelRequest(
+                    "My Channel",
+                    null,
+                    new ChannelPlatform.TeamsChannelPlatform("  ", "standard"))))
+        .isNotEmpty();
+  }
+
+  @Test
   void slackChannelTarget_blank_failsValidation() {
     var request =
         slack(new SlackTarget.SlackChannelTarget(""), "Hello", new AdditionalContent.None());

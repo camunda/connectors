@@ -31,7 +31,7 @@ template. Nothing about the connection is part of the process model.
 | `APP_INTEGRATIONS_OAUTH_CLIENT_SECRET` | for OAuth | |
 | `APP_INTEGRATIONS_OAUTH_AUDIENCE` | no | Target API identifier. |
 | `APP_INTEGRATIONS_OAUTH_SCOPES` | no | |
-| `APP_INTEGRATIONS_OAUTH_CLIENT_AUTHENTICATION` | no | `credentials-body` (default) or `basic-auth-header`. |
+| `APP_INTEGRATIONS_OAUTH_CLIENT_AUTHENTICATION` | no | `credentialsBody` (default) or `basicAuthHeader` — the literals `OAuthService` switches on. |
 
 The mechanism is selected per runtime, not per element:
 

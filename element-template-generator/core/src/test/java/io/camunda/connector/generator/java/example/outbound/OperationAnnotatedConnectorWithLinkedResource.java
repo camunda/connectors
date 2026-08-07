@@ -23,6 +23,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;
 
 @OutboundConnector(
     name = OperationAnnotatedConnectorWithLinkedResource.NAME,
@@ -92,8 +93,7 @@ public class OperationAnnotatedConnectorWithLinkedResource implements OutboundCo
       group = "form",
       resourceIdLabel = "Form ID",
       bindingTypeLabel = "Form binding",
-      conditionProperty = "content.type",
-      conditionEquals = "form")
+      conditions = @NestedPropertyCondition(property = "content.type", equals = "form"))
   record RequestWithConditionedLinkedResource(
       @TemplateProperty(group = "form", label = "Content type", id = "content.type") String type) {}
 
@@ -103,50 +103,49 @@ public class OperationAnnotatedConnectorWithLinkedResource implements OutboundCo
       group = "form",
       optional = true,
       toggleLabel = "Include form?",
-      conditionProperty = "content.type",
-      conditionEquals = "form")
+      conditions = @NestedPropertyCondition(property = "content.type", equals = "form"))
   record RequestWithConditionedOptionalLinkedResource(
       @TemplateProperty(group = "form", label = "Content type", id = "content.type") String type) {}
 
   @Operation(id = "op1", name = "Operation 1")
   @SuppressWarnings("unused")
   public String op1(@Variable RequestWithLinkedResource request) {
-    return null;
+    return request.toString();
   }
 
   @Operation(id = "op2", name = "Operation 2")
   @SuppressWarnings("unused")
   public String op2(@Variable RequestWithMultipleLinkedResources request) {
-    return null;
+    return request.toString();
   }
 
   @Operation(id = "op3", name = "Operation 3")
   @SuppressWarnings("unused")
   public String op3(@Variable RequestWithDefaultLabels request) {
-    return null;
+    return request.toString();
   }
 
   @Operation(id = "op4", name = "Operation 4")
   @SuppressWarnings("unused")
   public String op4(@Variable RequestWithOptionalLinkedResource request) {
-    return null;
+    return request.toString();
   }
 
   @Operation(id = "op5", name = "Operation 5")
   @SuppressWarnings("unused")
   public String op5(@Variable RequestWithOptionalDefaultLabels request) {
-    return null;
+    return request.toString();
   }
 
   @Operation(id = "op6", name = "Operation 6")
   @SuppressWarnings("unused")
   public String op6(@Variable RequestWithConditionedLinkedResource request) {
-    return null;
+    return request.toString();
   }
 
   @Operation(id = "op7", name = "Operation 7")
   @SuppressWarnings("unused")
   public String op7(@Variable RequestWithConditionedOptionalLinkedResource request) {
-    return null;
+    return request.toString();
   }
 }

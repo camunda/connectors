@@ -14,7 +14,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
@@ -101,7 +101,7 @@ public sealed interface Recipient {
   /** A Microsoft Teams channel, addressed by its channel ID. */
   @TemplateSubType(id = TeamsRecipient.TYPE, label = "Microsoft Teams")
   record TeamsRecipient(
-      @NotEmpty
+      @NotBlank
           @TemplateProperty(
               group = "recipient",
               label = "Channel ID",
