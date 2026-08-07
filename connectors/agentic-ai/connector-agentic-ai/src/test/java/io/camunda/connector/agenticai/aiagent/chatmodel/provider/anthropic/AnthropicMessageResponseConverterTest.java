@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -88,7 +89,8 @@ class AnthropicMessageResponseConverterTest {
     assertThat(assistantMessage.modelId()).isEqualTo("claude-sonnet-4-6");
     assertThat(assistantMessage.stopReason()).isEqualTo(StopReason.TOOL_USE);
     assertThat(assistantMessage.metadata())
-        .containsEntry("anthropic", Map.of("stopReason", "tool_use"));
+        .containsEntry("anthropic", Map.of("stopReason", "tool_use"))
+        .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY);
 
     final var metrics = result.metrics();
     assertThat(metrics.modelCalls()).isEqualTo(1);
@@ -96,6 +98,27 @@ class AnthropicMessageResponseConverterTest {
     assertThat(metrics.tokenUsage().inputTokenCount()).isEqualTo(10);
     assertThat(metrics.tokenUsage().outputTokenCount()).isEqualTo(20);
     assertThat(metrics.executionTime()).isEqualTo(EXECUTION_TIME);
+  }
+
+  @Test
+  void stampsTimestampMetadataEvenWithoutAStopReason() {
+    final var message =
+        message(
+            """
+            {
+              "id": "msg_no_stop_reason",
+              "model": "claude-sonnet-4-6",
+              "role": "assistant",
+              "type": "message",
+              "content": [{"type": "text", "text": "partial answer"}],
+              "usage": {"input_tokens": 5, "output_tokens": 5}
+            }
+            """);
+
+    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+
+    assertThat(assistantMessage.metadata())
+        .containsOnlyKeys(AssistantMessageMetadata.TIMESTAMP_KEY);
   }
 
   @Test

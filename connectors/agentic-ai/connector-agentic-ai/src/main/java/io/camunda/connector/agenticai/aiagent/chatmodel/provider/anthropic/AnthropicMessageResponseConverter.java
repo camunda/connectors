@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -46,7 +47,8 @@ import org.jspecify.annotations.Nullable;
  * <p>The {@code pause_turn} stop reason surfaces as a {@link ChatResult.Continuation}; every other
  * stop reason surfaces as {@link ChatResult.Completed}. The raw vendor stop reason string is always
  * preserved under the {@code anthropic} provider-id key in {@link AssistantMessage#metadata()},
- * independent of how it normalizes to the domain {@code StopReason}.
+ * independent of how it normalizes to the domain {@code StopReason}; see {@link
+ * AssistantMessageMetadata} for the {@code timestamp} entry every provider adds alongside it.
  */
 public class AnthropicMessageResponseConverter {
 
@@ -110,18 +112,21 @@ public class AnthropicMessageResponseConverter {
       }
     }
 
-    final var builder =
-        AssistantMessage.builder()
-            .content(content)
-            .toolCalls(toolCalls)
-            .messageId(message.id())
-            .modelId(message.model().asString())
-            .stopReason(mapStopReason(message.stopReason().orElse(null)));
-    message
-        .stopReason()
-        .ifPresent(
-            sr -> builder.metadata(Map.of(ANTHROPIC_ID, Map.of("stopReason", sr.asString()))));
-    return builder.build();
+    final Map<String, Object> anthropicMetadata =
+        message
+            .stopReason()
+            .<Map<String, Object>>map(
+                sr -> Map.of(ANTHROPIC_ID, Map.of("stopReason", sr.asString())))
+            .orElse(Map.of());
+
+    return AssistantMessage.builder()
+        .content(content)
+        .toolCalls(toolCalls)
+        .messageId(message.id())
+        .modelId(message.model().asString())
+        .stopReason(mapStopReason(message.stopReason().orElse(null)))
+        .metadata(AssistantMessageMetadata.withDefaults(anthropicMetadata))
+        .build();
   }
 
   private Map<String, Object> toolUseArguments(ToolUseBlock toolUse) {
