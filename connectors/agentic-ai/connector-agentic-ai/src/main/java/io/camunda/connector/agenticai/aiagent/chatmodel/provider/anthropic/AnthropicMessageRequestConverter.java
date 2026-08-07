@@ -60,8 +60,6 @@ import org.jspecify.annotations.Nullable;
  */
 public class AnthropicMessageRequestConverter {
 
-  static final long DEFAULT_MAX_TOKENS = 4096L;
-
   private final AnthropicContentConverter contentConverter;
 
   public AnthropicMessageRequestConverter(AnthropicContentConverter contentConverter) {
@@ -95,7 +93,7 @@ public class AnthropicMessageRequestConverter {
     if (params != null && params.maxTokens() != null) {
       return params.maxTokens().longValue();
     }
-    return DEFAULT_MAX_TOKENS;
+    return AnthropicModelParameters.DEFAULT_MAX_TOKENS;
   }
 
   // temperature()/topP()/topK() are deprecated in the Anthropic SDK: models released after Claude
