@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
+import io.camunda.connector.generator.dsl.ConfigurationProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.HiddenProperty;
@@ -45,6 +46,17 @@ public class PropertyUtil {
   static final String OPERATION_DISCRIMINATOR_PROPERTY_ID = "operationId";
   static final String AUTH_DISCRIMINATOR_PROPERTY_ID = "authType";
   static final String OPERATION_PATH_INPUT_NAME = "operationPath";
+
+  /**
+   * The {@code @Configuration} id of {@code
+   * io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration}. Kept as a literal
+   * here (rather than read via reflection) to avoid a new compile-time dependency from this module
+   * onto the annotation's defining module; {@link HttpOutboundElementTemplateBuilder} embeds the
+   * actual configuration template via {@code ConfigurationTemplateUtil.fromAnnotatedClass}, which
+   * reads the same id from the annotation, so the two are guaranteed to agree.
+   */
+  static final String REST_AUTHENTICATION_CONFIGURATION_TEMPLATE_ID =
+      "io.camunda.connectors:rest-authentication:1";
 
   /**
    * Create a pre-configured property builder for the auth type discriminator. The caller is
@@ -162,6 +174,16 @@ public class PropertyUtil {
    */
   record AuthGroupResult(PropertyGroup group, boolean unconditional) {}
 
+  /**
+   * The legacy inline authentication path: one or more conditional {@code authentication.*} {@code
+   * zeebe:input} properties per declared/effective auth type, discriminated by an {@code authType}
+   * dropdown (see {@link #authDiscriminatorPropertyPrefab}).
+   *
+   * <p>Retained behind {@code GenerationFeature.LEGACY_INLINE_AUTHENTICATION} for callers that
+   * cannot yet consume configuration-template credentials. Default generation now uses {@link
+   * #authConfigurationPropertyGroup} instead. This method and the flag guarding it are slated for
+   * removal; see https://github.com/camunda/connectors/issues/8113.
+   */
   static AuthGroupResult authPropertyGroup(
       Collection<HttpAuthentication> authentications, Collection<HttpOperation> operations) {
     Collection<HttpAuthentication> configuredAuthentications =
@@ -267,6 +289,124 @@ public class PropertyUtil {
             .properties(properties)
             .build();
     return new AuthGroupResult(group, unconditional);
+  }
+
+  /**
+   * The default (credential-only) authentication path: a single {@code Configuration} property
+   * ("Authentication credential") that lets the user pick a reusable {@code
+   * io.camunda.connectors:rest-authentication:1} configuration, mirroring the chooser on the
+   * hand-authored REST element template. Unlike {@link #authPropertyGroup}, this never emits
+   * per-scheme {@code authentication.*} properties: the spec-derived detail that would otherwise be
+   * discarded (declared scheme(s), OAuth token endpoint/scopes, API key name/location) is folded
+   * into the property's {@code tooltip} instead.
+   *
+   * <p>The chooser is required (no empty value allowed) when every operation's effective auth
+   * requirement excludes {@link HttpAuthentication.NoAuth}; otherwise it is optional. See {@link
+   * #isAuthenticationRequired} for the exact rule.
+   */
+  static PropertyGroup authConfigurationPropertyGroup(
+      Collection<HttpAuthentication> authentications, Collection<HttpOperation> operations) {
+    Collection<HttpAuthentication> configuredAuthentications =
+        authentications == null ? List.of() : authentications;
+
+    boolean required = isAuthenticationRequired(configuredAuthentications, operations);
+
+    PropertyBuilder chooser =
+        ConfigurationProperty.builder()
+            .configurationTemplate(REST_AUTHENTICATION_CONFIGURATION_TEMPLATE_ID)
+            .id("authenticationConfiguration")
+            .label("Authentication credential")
+            .group("authentication")
+            .description(
+                "Choose a reusable REST authentication credential. When set, it is bound as a"
+                    + " whole to the connector's 'authenticationConfiguration' input.")
+            .tooltip(authenticationTooltip(configuredAuthentications))
+            .binding(new ZeebeInput("authenticationConfiguration"))
+            .optional(!required);
+
+    if (required) {
+      chooser.constraints(PropertyConstraints.builder().notEmpty(true).build());
+    }
+
+    return PropertyGroup.builder()
+        .id("authentication")
+        .label("Authentication")
+        .properties(chooser)
+        .build();
+  }
+
+  /**
+   * The chooser is required iff no operation's effective auth requirement permits skipping
+   * authentication. An operation's effective auth is its {@link
+   * HttpOperation#authenticationOverride()} when non-empty, else the connector-wide {@code
+   * authentications}, exactly as computed by {@link #authPropertyGroup}. An empty effective list
+   * (nothing declared at all) is treated the same as an explicit {@link HttpAuthentication.NoAuth}
+   * — both mean "this operation does not require authentication" — so the chooser stays optional
+   * rather than being spuriously required by the absence of information.
+   */
+  private static boolean isAuthenticationRequired(
+      Collection<HttpAuthentication> authentications, Collection<HttpOperation> operations) {
+    for (var operation : operations) {
+      List<HttpAuthentication> effectiveAuth =
+          (operation.authenticationOverride() != null
+                  && !operation.authenticationOverride().isEmpty())
+              ? operation.authenticationOverride()
+              : new ArrayList<>(authentications);
+
+      boolean operationPermitsNoAuth =
+          effectiveAuth.isEmpty()
+              || effectiveAuth.stream().anyMatch(a -> a instanceof HttpAuthentication.NoAuth);
+      if (operationPermitsNoAuth) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Folds the spec-derived detail that the credential-only chooser otherwise discards (declared
+   * scheme(s), OAuth token endpoint/scopes, API key name/location) into a short tooltip. Returns
+   * {@code null} when there is nothing beyond "no authentication" to report, so the tooltip is
+   * omitted from the generated template.
+   */
+  private static String authenticationTooltip(Collection<HttpAuthentication> authentications) {
+    var schemeDescriptions =
+        authentications.stream()
+            .filter(a -> !(a instanceof HttpAuthentication.NoAuth))
+            .map(PropertyUtil::describeAuthenticationScheme)
+            .toList();
+    if (schemeDescriptions.isEmpty()) {
+      return null;
+    }
+    return "The source declares: "
+        + String.join("; ", schemeDescriptions)
+        + ". Configure a matching REST Authentication credential.";
+  }
+
+  private static String describeAuthenticationScheme(HttpAuthentication authentication) {
+    return switch (authentication) {
+      case HttpAuthentication.BasicAuth ignored -> "Basic";
+      case HttpAuthentication.BearerAuth ignored -> "Bearer token";
+      case HttpAuthentication.ApiKey apiKey ->
+          "API key (name: "
+              + (isBlank(apiKey.key()) ? "as declared by the API" : apiKey.key())
+              + ", location: "
+              + (isBlank(apiKey.in()) ? "headers" : apiKey.in())
+              + ")";
+      case HttpAuthentication.OAuth2 oauth2 ->
+          "OAuth 2.0 (token endpoint: "
+              + oauth2.tokenUrl()
+              + ", scopes: "
+              + (oauth2.scopes() == null || oauth2.scopes().isEmpty()
+                  ? "none"
+                  : String.join(" ", oauth2.scopes()))
+              + ")";
+      default -> authentication.label();
+    };
+  }
+
+  private static boolean isBlank(String value) {
+    return value == null || value.isBlank();
   }
 
   private record AuthFingerprint(String id, List<String> details) {

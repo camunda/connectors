@@ -22,10 +22,14 @@ import io.camunda.connector.generator.dsl.ElementTemplateBuilder;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
+import io.camunda.connector.generator.java.util.ConfigurationTemplateUtil;
+import io.camunda.connector.generator.java.util.TemplateGenerationContext;
+import io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 public class HttpOutboundElementTemplateBuilder {
 
@@ -36,6 +40,15 @@ public class HttpOutboundElementTemplateBuilder {
   private Collection<HttpServerData> servers;
   private Collection<HttpOperation> operations;
   private List<HttpAuthentication> authentication = List.of(NoAuth.INSTANCE);
+
+  /**
+   * When {@code true}, {@link #build()} emits the legacy inline {@code authentication.*} {@code
+   * zeebe:input} properties (see {@link PropertyUtil#authPropertyGroup}) instead of the default
+   * credential-only "Authentication credential" chooser (see {@link
+   * PropertyUtil#authConfigurationPropertyGroup}). Defaults to {@code false}, i.e. the new
+   * credential-only behavior; see {@code GenerationFeature.LEGACY_INLINE_AUTHENTICATION}.
+   */
+  private boolean legacyInlineAuthentication = false;
 
   private HttpOutboundElementTemplateBuilder(boolean configurable) {
     builder =
@@ -118,6 +131,12 @@ public class HttpOutboundElementTemplateBuilder {
     return this;
   }
 
+  public HttpOutboundElementTemplateBuilder legacyInlineAuthentication(
+      boolean legacyInlineAuthentication) {
+    this.legacyInlineAuthentication = legacyInlineAuthentication;
+    return this;
+  }
+
   public HttpOutboundElementTemplateBuilder elementType(ConnectorElementType elementType) {
     builder.elementType(elementType.elementType());
     builder.appliesTo(elementType.appliesTo());
@@ -131,19 +150,34 @@ public class HttpOutboundElementTemplateBuilder {
 
     var serverGroup = PropertyUtil.serverDiscriminatorPropertyGroup(servers);
     var operationGroup = PropertyUtil.operationDiscriminatorPropertyGroup(operations);
-    var authResult = PropertyUtil.authPropertyGroup(authentication, operations);
 
-    // If all auth properties are unconditional, auth can be placed before the operation dropdown
-    // (the modeler resolves conditions top-to-bottom, so conditional auth must follow operation).
     List<PropertyGroup> groups = new ArrayList<>();
     groups.add(serverGroup);
-    if (authResult.unconditional()) {
-      groups.add(authResult.group());
-      groups.add(operationGroup);
+
+    if (legacyInlineAuthentication) {
+      var authResult = PropertyUtil.authPropertyGroup(authentication, operations);
+      // If all auth properties are unconditional, auth can be placed before the operation
+      // dropdown (the modeler resolves conditions top-to-bottom, so conditional auth must follow
+      // operation).
+      if (authResult.unconditional()) {
+        groups.add(authResult.group());
+        groups.add(operationGroup);
+      } else {
+        groups.add(operationGroup);
+        groups.add(authResult.group());
+      }
     } else {
+      // Credential-only (default): a single unconditional chooser, so it can always precede the
+      // operation dropdown.
+      groups.add(PropertyUtil.authConfigurationPropertyGroup(authentication, operations));
       groups.add(operationGroup);
-      groups.add(authResult.group());
+      builder.configurationTemplates(
+          List.of(
+              ConfigurationTemplateUtil.fromAnnotatedClass(
+                  RestAuthenticationConfiguration.class,
+                  new TemplateGenerationContext.Outbound(CONNECTOR_TYPE, Set.of()))));
     }
+
     groups.add(PropertyUtil.parametersPropertyGroup(operations));
     groups.add(PropertyUtil.requestBodyPropertyGroup(operations));
     groups.add(PropertyUtil.urlPropertyGroup());

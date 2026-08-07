@@ -18,7 +18,12 @@ package io.camunda.connector.generator.dsl.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
+import io.camunda.connector.generator.dsl.ConfigurationProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate;
@@ -26,14 +31,17 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
+import io.camunda.connector.generator.dsl.http.HttpAuthentication.ApiKey;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.BasicAuth;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.BearerAuth;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.OAuth2;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
+import io.camunda.connector.generator.java.ClassBasedTemplateGenerator;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.http.base.model.HttpMethod;
+import io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -243,8 +251,14 @@ public class HttpOutboundElementTemplateBuilderTest {
     }
   }
 
+  /**
+   * Regression guard for the legacy inline authentication path, retained behind {@code
+   * legacyInlineAuthentication(true)}. These tests are unchanged from before #8113 other than the
+   * explicit opt-in: they assert the inline {@code authentication.*} output is byte-for-byte the
+   * same as it always was.
+   */
   @Nested
-  class Authentication {
+  class LegacyInlineAuthentication {
 
     @Test
     void multipleAuths_dropdown() {
@@ -252,7 +266,7 @@ public class HttpOutboundElementTemplateBuilderTest {
       var auths = List.of(NoAuth.INSTANCE, BasicAuth.of("test"));
 
       // when
-      var template = buildTemplate(List.of(), auths, List.of());
+      var template = buildTemplate(List.of(), auths, List.of(), true);
       var properties = template.properties();
 
       // then
@@ -265,6 +279,7 @@ public class HttpOutboundElementTemplateBuilderTest {
           .containsExactly(
               new DropdownChoice("None", "noAuth"),
               new DropdownChoice("Basic (test)", "basic.test"));
+      assertThat(template.configurationTemplates()).isEmpty();
     }
 
     @Test
@@ -273,7 +288,7 @@ public class HttpOutboundElementTemplateBuilderTest {
       List<HttpAuthentication> auths = List.of(NoAuth.INSTANCE);
 
       // when
-      var template = buildTemplate(List.of(), auths, List.of());
+      var template = buildTemplate(List.of(), auths, List.of(), true);
       var properties = template.properties();
 
       // then
@@ -281,6 +296,7 @@ public class HttpOutboundElementTemplateBuilderTest {
       assertThat(authProperty.getType()).isEqualTo("Hidden");
       assertThat(authProperty.getBinding()).isInstanceOf(ZeebeInput.class);
       assertThat(authProperty.getValue()).isEqualTo("noAuth");
+      assertThat(template.configurationTemplates()).isEmpty();
     }
 
     @Test
@@ -292,7 +308,7 @@ public class HttpOutboundElementTemplateBuilderTest {
       List<HttpAuthentication> auths = List.of(new OAuth2("https://my-token-endpoint", scopes));
 
       // when
-      var template = buildTemplate(List.of(), auths, List.of());
+      var template = buildTemplate(List.of(), auths, List.of(), true);
       var properties = template.properties();
 
       // then
@@ -326,7 +342,7 @@ public class HttpOutboundElementTemplateBuilderTest {
       List<HttpAuthentication> auths = List.of(BasicAuth.of("test"));
 
       // when
-      var template = buildTemplate(List.of(), auths, List.of());
+      var template = buildTemplate(List.of(), auths, List.of(), true);
       var properties = template.properties();
 
       // then
@@ -350,7 +366,7 @@ public class HttpOutboundElementTemplateBuilderTest {
       List<HttpAuthentication> auths = List.of(BearerAuth.INSTANCE);
 
       // when
-      var template = buildTemplate(List.of(), auths, List.of());
+      var template = buildTemplate(List.of(), auths, List.of(), true);
       var properties = template.properties();
 
       // then
@@ -365,27 +381,283 @@ public class HttpOutboundElementTemplateBuilderTest {
     }
   }
 
+  /** Default (credential-only) authentication chooser, see #8113. */
+  @Nested
+  class CredentialOnlyAuthentication {
+
+    @Test
+    void default_singleConfigurationChooser_noInlineProperties() {
+      // given
+      List<HttpAuthentication> auths = List.of(BearerAuth.INSTANCE);
+
+      // when (flag absent -- default build(), no legacyInlineAuthentication(...) call at all)
+      var template =
+          HttpOutboundElementTemplateBuilder.create()
+              .id("testTemplate")
+              .name("Test template")
+              .version(1)
+              .servers(List.of())
+              .authentication(auths)
+              .operations(singleGetOperation())
+              .elementType(
+                  new ConnectorElementType(
+                      Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null))
+              .build();
+      var properties = template.properties();
+
+      // then: exactly one Configuration property, no authentication.* zeebe:input properties
+      var authenticationGroupProperties =
+          properties.stream().filter(p -> "authentication".equals(p.getGroup())).toList();
+      assertThat(authenticationGroupProperties).hasSize(1);
+      var chooser = authenticationGroupProperties.getFirst();
+      assertThat(chooser).isInstanceOf(ConfigurationProperty.class);
+      assertThat(chooser.getType()).isEqualTo("Configuration");
+      assertThat(chooser.getId()).isEqualTo("authenticationConfiguration");
+      assertThat(chooser.getBinding()).isEqualTo(new ZeebeInput("authenticationConfiguration"));
+      assertThat(((ConfigurationProperty) chooser).getConfigurationTemplate())
+          .isEqualTo("io.camunda.connectors:rest-authentication:1");
+      assertThat(chooser.getDescription())
+          .isEqualTo(
+              "Choose a reusable REST authentication credential. When set, it is bound as a"
+                  + " whole to the connector's 'authenticationConfiguration' input.");
+
+      assertThat(
+              properties.stream()
+                  .filter(
+                      p ->
+                          p.getBinding() instanceof ZeebeInput zeebeInput
+                              && zeebeInput.name().startsWith("authentication.")))
+          .isEmpty();
+
+      // and: the configuration template is embedded exactly once
+      assertThat(template.configurationTemplates()).hasSize(1);
+      assertThat(template.configurationTemplates().getFirst().id())
+          .isEqualTo("io.camunda.connectors:rest-authentication:1");
+    }
+
+    @Test
+    void hybridMode_alsoGetsChooserAndConfigurationTemplate() {
+      // given
+      var template =
+          HttpOutboundElementTemplateBuilder.create(true)
+              .id("testTemplate")
+              .name("Test template")
+              .version(1)
+              .servers(List.of())
+              .authentication(List.of(BearerAuth.INSTANCE))
+              .operations(singleGetOperation())
+              .elementType(
+                  new ConnectorElementType(
+                      Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null))
+              .build();
+
+      // then
+      var chooser = findById("authenticationConfiguration", template.properties());
+      assertThat(chooser).isInstanceOf(ConfigurationProperty.class);
+      assertThat(template.configurationTemplates()).hasSize(1);
+    }
+
+    @Test
+    void tooltip_carriesSpecDerivedDetail_oauth2() {
+      // given
+      Set<String> scopes = new LinkedHashSet<>();
+      scopes.add("read:contacts");
+      scopes.add("write:contacts");
+      List<HttpAuthentication> auths = List.of(new OAuth2("https://my-token-endpoint", scopes));
+
+      // when
+      var template = buildTemplate(List.of(), auths, List.of());
+      var chooser = findById("authenticationConfiguration", template.properties());
+
+      // then
+      assertThat(chooser.getTooltip())
+          .contains("OAuth 2.0")
+          .contains("https://my-token-endpoint")
+          .contains("read:contacts")
+          .contains("write:contacts");
+    }
+
+    @Test
+    void tooltip_carriesSpecDerivedDetail_apiKey() {
+      // given
+      List<HttpAuthentication> auths = List.of(new ApiKey("query", "X-Api-Key", ""));
+
+      // when
+      var template = buildTemplate(List.of(), auths, List.of());
+      var chooser = findById("authenticationConfiguration", template.properties());
+
+      // then
+      assertThat(chooser.getTooltip()).contains("API key").contains("X-Api-Key").contains("query");
+    }
+
+    @Test
+    void tooltip_absentWhenOnlyNoAuthDeclared() {
+      // given
+      List<HttpAuthentication> auths = List.of(NoAuth.INSTANCE);
+
+      // when
+      var template = buildTemplate(List.of(), auths, List.of());
+      var chooser = findById("authenticationConfiguration", template.properties());
+
+      // then
+      assertThat(chooser.getTooltip()).isNull();
+    }
+
+    @Test
+    void equivalence_embeddedConfigurationTemplate_matchesClassBasedTemplateGenerator() {
+      // given: the http-dsl path (via authConfigurationPropertyGroup + build())
+      var template = buildTemplate(List.of(), List.of(BearerAuth.INSTANCE), List.of());
+      var embedded = template.configurationTemplates().getFirst();
+
+      // and: the annotation-driven path, for a dummy connector referencing the same
+      // @Configuration class
+      var annotationDriven =
+          new ClassBasedTemplateGenerator()
+              .generate(RestAuthHolderConnector.class, GeneratorConfiguration.DEFAULT)
+              .getFirst()
+              .configurationTemplates()
+              .getFirst();
+
+      // then: both paths produce a structurally identical ConfigurationTemplate
+      assertThat(embedded).isEqualTo(annotationDriven);
+    }
+
+    @OutboundConnector(name = "RestAuthHolder", type = "test:rest-auth-holder")
+    @io.camunda.connector.generator.java.annotation.ElementTemplate(
+        id = "test-rest-auth-holder",
+        name = "REST Auth Holder",
+        version = 1,
+        configurations = {RestAuthenticationConfiguration.class})
+    static class RestAuthHolderConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+  }
+
+  /**
+   * The chooser's optionality: required (no empty value allowed) iff no operation's effective auth
+   * requirement permits skipping authentication (i.e. no effective list contains {@link NoAuth}).
+   * See {@code PropertyUtil#isAuthenticationRequired}.
+   */
+  @Nested
+  class ChooserOptionality {
+
+    @Test
+    void onlyNonNoAuthSchemeDeclared_required() {
+      // given: spec declares only bearer -- no NoAuth anywhere
+      var template = buildTemplate(List.of(), List.of(BearerAuth.INSTANCE), List.of());
+
+      // then
+      var chooser = findById("authenticationConfiguration", template.properties());
+      assertThat(chooser.getOptional()).isFalse();
+      assertThat(chooser.getConstraints()).isNotNull();
+      assertThat(chooser.getConstraints().notEmpty()).isTrue();
+    }
+
+    @Test
+    void noSchemesDeclared_defaultSecuritySet_optional() {
+      // given: mirrors SecurityUtil.parseAuthentication's default when nothing is declared
+      List<HttpAuthentication> auths =
+          List.of(
+              NoAuth.INSTANCE,
+              BasicAuth.of(""),
+              BearerAuth.INSTANCE,
+              new OAuth2("", Set.of("")),
+              new ApiKey("", "", ""));
+
+      // when
+      var template = buildTemplate(List.of(), auths, List.of());
+
+      // then
+      var chooser = findById("authenticationConfiguration", template.properties());
+      assertThat(chooser.getOptional()).isTrue();
+      assertThat(chooser.getConstraints()).isNull();
+    }
+
+    @Test
+    void authGenuinelyOptional_noAuthAlongsideScheme_optional() {
+      // given: e.g. `security: [{}, {bearer: []}]` -- SecurityUtil adds NoAuth.INSTANCE
+      List<HttpAuthentication> auths = List.of(NoAuth.INSTANCE, BearerAuth.INSTANCE);
+
+      // when
+      var template = buildTemplate(List.of(), auths, List.of());
+
+      // then
+      var chooser = findById("authenticationConfiguration", template.properties());
+      assertThat(chooser.getOptional()).isTrue();
+    }
+
+    @Test
+    void operationOverridePermitsNoAuth_optionalDespiteRequiredGlobalAuth() {
+      // given: connector-wide auth is mandatory (bearer only), but one operation's override
+      // explicitly permits no auth -- requiring the chooser globally would misreport that
+      // operation
+      var permissiveOperation =
+          HttpOperation.builder()
+              .id("publicOperation")
+              .label("Public operation")
+              .method(HttpMethod.GET)
+              .pathFeelExpression(HttpFeelBuilder.string().part("/public"))
+              .authenticationOverride(List.of(NoAuth.INSTANCE))
+              .build();
+
+      // when
+      var template =
+          buildTemplate(List.of(), List.of(BearerAuth.INSTANCE), List.of(permissiveOperation));
+
+      // then
+      var chooser = findById("authenticationConfiguration", template.properties());
+      assertThat(chooser.getOptional()).isTrue();
+    }
+
+    @Test
+    void emptyAuthenticationList_treatedAsNoAuthEquivalent_optional() {
+      // given: nothing declared at all (defensive case; real generators always pass at least
+      // NoAuth via their builder defaults / SecurityUtil fallbacks) -- deliberate extension
+      // beyond the plan's four worked cases: an empty list means "no requirement", not
+      // "everything is required".
+      var template = buildTemplate(List.of(), List.of(), List.of());
+
+      // then
+      var chooser = findById("authenticationConfiguration", template.properties());
+      assertThat(chooser.getOptional()).isTrue();
+      assertThat(chooser.getConstraints()).isNull();
+    }
+  }
+
+  private static List<HttpOperation> singleGetOperation() {
+    return List.of(
+        HttpOperation.builder()
+            .id("someGetRequest")
+            .label("Some GET request")
+            .method(HttpMethod.GET)
+            .pathFeelExpression(HttpFeelBuilder.string().part("/examples/").property("exampleId"))
+            .properties(
+                HttpOperationProperty.createStringProperty(
+                    "exampleId", Target.PATH, "Example ID", true, "42"),
+                HttpOperationProperty.createStringProperty(
+                    "exampleName", Target.QUERY, "Example name", false, "foo"),
+                HttpOperationProperty.createStringProperty(
+                    "exampleDescription", Target.HEADER, "Example description", false, "bar"))
+            .build());
+  }
+
   ElementTemplate buildTemplate(
       List<HttpServerData> servers,
       List<HttpAuthentication> authentications,
       List<HttpOperation> operations) {
+    return buildTemplate(servers, authentications, operations, false);
+  }
+
+  ElementTemplate buildTemplate(
+      List<HttpServerData> servers,
+      List<HttpAuthentication> authentications,
+      List<HttpOperation> operations,
+      boolean legacyInlineAuthentication) {
     if (operations.isEmpty()) {
-      operations =
-          List.of(
-              HttpOperation.builder()
-                  .id("someGetRequest")
-                  .label("Some GET request")
-                  .method(HttpMethod.GET)
-                  .pathFeelExpression(
-                      HttpFeelBuilder.string().part("/examples/").property("exampleId"))
-                  .properties(
-                      HttpOperationProperty.createStringProperty(
-                          "exampleId", Target.PATH, "Example ID", true, "42"),
-                      HttpOperationProperty.createStringProperty(
-                          "exampleName", Target.QUERY, "Example name", false, "foo"),
-                      HttpOperationProperty.createStringProperty(
-                          "exampleDescription", Target.HEADER, "Example description", false, "bar"))
-                  .build());
+      operations = singleGetOperation();
     }
 
     return HttpOutboundElementTemplateBuilder.create()
@@ -396,6 +668,7 @@ public class HttpOutboundElementTemplateBuilderTest {
         .version(42)
         .servers(servers)
         .authentication(authentications)
+        .legacyInlineAuthentication(legacyInlineAuthentication)
         .operations(operations)
         .elementType(
             new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null))

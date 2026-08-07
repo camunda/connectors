@@ -51,7 +51,22 @@ public record GeneratorConfiguration(
      * Supports both synchronous process instance creation with result (start events) and
      * synchronous message correlation (message events).
      */
-    SYNCHRONOUS_RESPONSE
+    SYNCHRONOUS_RESPONSE,
+
+    /**
+     * When enabled, the HTTP-family generators (OpenAPI, Postman) fall back to the legacy inline
+     * {@code authentication.*} {@code zeebe:input} properties instead of the default
+     * credential-only "Authentication credential" chooser that references the shared {@code
+     * io.camunda.connectors:rest-authentication:1} configuration template.
+     *
+     * <p>Absent (the default) means {@code false}, i.e. the new credential-only behavior. This
+     * flag, and the legacy inline path it guards, are retained only for callers that cannot yet
+     * consume configuration-template credentials (e.g. an older Modeler/Hub) and are slated for
+     * removal once that support is generally available.
+     *
+     * @see <a href="https://github.com/camunda/connectors/issues/8113">#8113</a>
+     */
+    LEGACY_INLINE_AUTHENTICATION
   }
 
   public static final GeneratorConfiguration DEFAULT =
