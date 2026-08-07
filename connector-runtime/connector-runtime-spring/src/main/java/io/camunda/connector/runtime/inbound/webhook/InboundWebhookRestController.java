@@ -56,6 +56,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import org.slf4j.Logger;
@@ -67,7 +68,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.HtmlUtils;
 
@@ -147,11 +147,15 @@ public class InboundWebhookRestController {
   public ResponseEntity<?> inbound(
       @PathVariable(value = "context") String context,
       @RequestHeader Map<String, String> headers,
-      @RequestParam(required = false) Map<String, String> params,
       HttpServletRequest httpServletRequest)
       throws IOException {
     LOG.trace("Received inbound hook on {}", context);
+    // Body must be read before any call that triggers form-parameter parsing (e.g.
+    // getParameterMap).
+    // For application/x-www-form-urlencoded requests, Tomcat consumes the input stream when
+    // getParameterMap() is invoked, which would leave rawBody empty and break HMAC verification.
     byte[] bodyAsByteArray = httpServletRequest.getInputStream().readAllBytes();
+    Map<String, String> params = extractQueryParams(httpServletRequest.getQueryString());
 
     return webhookConnectorRegistry
         .getActiveWebhook(context)
@@ -477,6 +481,21 @@ public class InboundWebhookRestController {
     }
 
     return sb.toString();
+  }
+
+  private static Map<String, String> extractQueryParams(String queryString) {
+    if (queryString == null || queryString.isBlank()) {
+      return emptyMap();
+    }
+    return Arrays.stream(queryString.split("&"))
+        .map(pair -> pair.split("=", 2))
+        .filter(parts -> parts.length > 0 && !parts[0].isBlank())
+        .collect(
+            toMap(
+                parts -> URLDecoder.decode(parts[0], StandardCharsets.UTF_8),
+                parts ->
+                    parts.length > 1 ? URLDecoder.decode(parts[1], StandardCharsets.UTF_8) : "",
+                (a, b) -> a));
   }
 
   private static boolean isMultipartRequest(WebhookProcessingPayload payload) {
