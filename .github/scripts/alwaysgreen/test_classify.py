@@ -542,16 +542,19 @@ def _report(name):
     return json.loads(path.read_text())
 
 
-def test_real_connectors_sm_report_resolves_its_suite():
-    # The SM suite runs from the published npm package, so rootDir ends in
-    # dist/tests/SM-8.10 rather than a checkout path.
-    report = _report("connectors-sm-playwright-results.json")
-    assert classify.suite_from_rootdir(report["config"]["rootDir"]) == "SM-8.10"
-
-
-def test_real_connectors_sm_report_maps_compiled_specs_to_source_paths():
+def test_sm_npm_package_rootdir_resolves_to_a_source_path():
+    # Verbatim from connectors run 31185184501. The SM suite executes from the
+    # published npm package, so rootDir looks nothing like a checkout — misreading it
+    # sends the fix PR to the wrong version directory, or to none at all.
+    root_dir = (
+        "/__w/connectors/connectors/charts/camunda-platform-8.10/test/e2e"
+        "/node_modules/@camunda/e2e-test-suite/dist/tests/SM-8.10"
+    )
+    suite = classify.suite_from_rootdir(root_dir)
+    assert suite == "SM-8.10"
+    # The package ships compiled .js; the fix lands on the .ts source.
     assert (
-        classify.source_spec_path("smoke-tests.spec.js", suite="SM-8.10")
+        classify.source_spec_path("smoke-tests.spec.js", suite=suite)
         == "tests/SM-8.10/smoke-tests.spec.ts"
     )
 
