@@ -1866,6 +1866,15 @@ for the Anthropic converters), never written as top-level metadata entries. This
 different providers (and future cross-provider fields) from colliding, and keeps the common,
 nothing-extra-to-preserve case metadata-free. Apply this to every new provider's converters.
 
+**Stamping `AssistantMessage#metadata()`.** Every response converter must build the assistant
+message's `metadata` map through `AssistantMessageMetadata.withDefaults(providerMetadata)`
+(`aiagent/util`), passing only its own provider-namespaced entries (or `Map.of()` if it has none) as
+`providerMetadata`. The util adds the common `timestamp` entry (when the model responded) so it can't
+be forgotten by a new provider and stays identically shaped across all of them; never call
+`AssistantMessage.builder().metadata(...)` with a raw `Map.of(...)` directly. Reference
+implementations: `AnthropicMessageResponseConverter` (native) and `ChatMessageConverterImpl`
+(LangChain4j).
+
 The v2 request's `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/
 Hybrid only) is the connector-facing entry point for this SPI: it carries a user-chosen `providerType`
 (dispatch discriminator), a dedicated `model` field (so agent-instance history/reporting works without
