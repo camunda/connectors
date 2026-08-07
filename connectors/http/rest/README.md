@@ -209,16 +209,16 @@ used in the result expression.
 
 ```json
 {
+  "status" : 200,
+  "headers" : {
+    "Content-Type" : "application/json"
+  },
   "body" : {
     "order" : {
       "id" : "123",
       "total" : "100.00€"
     }
-  },
-  "headers" : {
-    "Content-Type" : "application/json"
-  },
-  "status" : 200
+  }
 }
 ```
 

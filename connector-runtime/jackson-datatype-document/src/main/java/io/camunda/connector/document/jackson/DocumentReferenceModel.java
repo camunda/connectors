@@ -23,7 +23,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
@@ -32,6 +31,7 @@ import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocume
 import io.camunda.connector.document.jackson.deserializer.InlineContentDeserializer;
 import java.time.OffsetDateTime;
 import java.util.Map;
+import tools.jackson.databind.annotation.JsonDeserialize;
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,

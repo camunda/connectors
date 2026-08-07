@@ -16,9 +16,6 @@
  */
 package io.camunda.connector.runtime.test.inbound;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -29,7 +26,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.document.jackson.v3.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
@@ -40,6 +37,7 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementConte
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.intrinsic.MutableObjectMapperSupplier;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
@@ -53,6 +51,8 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /** Test helper class for creating an {@link InboundConnectorContext} with a fluent API. */
 public class InboundConnectorContextBuilder {
@@ -71,27 +71,25 @@ public class InboundConnectorContextBuilder {
   protected ObjectMapper objectMapper = createObjectMapper();
 
   private ObjectMapper createObjectMapper() {
-    var copy = ConnectorsObjectMapperSupplier.getCopy();
-    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
-    var jacksonModuleDocumentDeserializer =
-        new JacksonModuleDocumentDeserializer(
-            documentFactory, functionExecutor, DocumentModuleSettings.create());
-    return copy.registerModules(
-        jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(),
-        new JacksonModuleDocumentSerializer());
+    return createObjectMapper(documentFactory);
   }
 
   private ObjectMapper createObjectMapper(DocumentFactory documentFactory) {
     var copy = ConnectorsObjectMapperSupplier.getCopy();
-    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var mapperHolder = new MutableObjectMapperSupplier();
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(mapperHolder);
     var jacksonModuleDocumentDeserializer =
         new JacksonModuleDocumentDeserializer(
             documentFactory, functionExecutor, DocumentModuleSettings.create());
-    return copy.registerModules(
-        jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(),
-        new JacksonModuleDocumentSerializer());
+    var finalMapper =
+        copy.rebuild()
+            .addModules(
+                jacksonModuleDocumentDeserializer,
+                new JacksonModuleFeelFunction(),
+                new JacksonModuleDocumentSerializer())
+            .build();
+    mapperHolder.set(finalMapper);
+    return finalMapper;
   }
 
   public static InboundConnectorContextBuilder create() {
@@ -257,12 +255,8 @@ public class InboundConnectorContextBuilder {
       super(secretProvider, SecretFilter.allowAll(), validationProvider);
       this.result = result;
       this.activationTimestamp = System.currentTimeMillis();
-      try {
-        propertiesWithSecrets =
-            getSecretHandler().replaceSecrets(objectMapper.writeValueAsString(properties), null);
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
-      }
+      propertiesWithSecrets =
+          getSecretHandler().replaceSecrets(objectMapper.writeValueAsString(properties), null);
     }
 
     protected void correlate(Object variables) {
@@ -300,24 +294,16 @@ public class InboundConnectorContextBuilder {
 
     @Override
     public Map<String, Object> getProperties() {
-      try {
-        return objectMapper.readValue(propertiesWithSecrets, new TypeReference<>() {});
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
-      }
+      return objectMapper.readValue(propertiesWithSecrets, new TypeReference<>() {});
     }
 
     @Override
     public <T> T bindProperties(Class<T> cls) {
-      try {
-        var mappedObject = objectMapper.readValue(propertiesWithSecrets, cls);
-        if (validationProvider != null) {
-          getValidationProvider().validate(mappedObject);
-        }
-        return mappedObject;
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
+      var mappedObject = objectMapper.readValue(propertiesWithSecrets, cls);
+      if (validationProvider != null) {
+        getValidationProvider().validate(mappedObject);
       }
+      return mappedObject;
     }
 
     @Override

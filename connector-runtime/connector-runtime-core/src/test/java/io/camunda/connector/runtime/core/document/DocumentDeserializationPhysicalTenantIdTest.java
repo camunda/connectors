@@ -21,18 +21,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
-import java.io.IOException;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Exercises the {@code Map<String, DocumentFactory>}-based {@link
@@ -51,26 +50,27 @@ class DocumentDeserializationPhysicalTenantIdTest {
   private final IntrinsicFunctionExecutor operationExecutor = mock(IntrinsicFunctionExecutor.class);
 
   private ObjectMapper mapperFor(Map<String, DocumentFactory> factoriesByPhysicalTenantId) {
-    return new ObjectMapper()
-        .registerModule(
+    return JsonMapper.builder()
+        .addModule(
             new JacksonModuleDocumentDeserializer(
                 factoriesByPhysicalTenantId,
                 operationExecutor,
                 JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()))
-        .registerModule(new Jdk8Module());
+        .build();
   }
 
   @Test
-  void resolvesTheFactoryMatchingTheReaderAttribute() throws IOException {
+  void resolvesTheFactoryMatchingTheReaderAttribute() {
     var objectMapper = mapperFor(Map.of("tenant-a", factoryA, "tenant-b", factoryB));
     var ref = createDocumentMock("Hello from tenant B", null, storeB);
     var payload = Map.of("document", ref);
 
-    var result =
+    TargetTypeDocument result =
         objectMapper
             .reader()
             .withAttribute(DocumentFactory.PHYSICAL_TENANT_ID_ATTRIBUTE, "tenant-b")
-            .readValue(objectMapper.valueToTree(payload).toString(), TargetTypeDocument.class);
+            .forType(TargetTypeDocument.class)
+            .readValue(objectMapper.valueToTree(payload).toString());
 
     assertThat(result.document().reference()).isEqualTo(ref);
   }
@@ -109,8 +109,8 @@ class DocumentDeserializationPhysicalTenantIdTest {
                 objectMapper
                     .reader()
                     .withAttribute(DocumentFactory.PHYSICAL_TENANT_ID_ATTRIBUTE, "tenant-unknown")
-                    .readValue(
-                        objectMapper.valueToTree(payload).toString(), TargetTypeDocument.class))
+                    .forType(TargetTypeDocument.class)
+                    .readValue(objectMapper.valueToTree(payload).toString()))
         .hasCauseInstanceOf(IllegalStateException.class)
         .cause()
         .hasMessageContaining("No DocumentFactory configured for physical tenant 'tenant-unknown'");

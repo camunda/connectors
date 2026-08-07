@@ -19,7 +19,6 @@ package io.camunda.connector.runtime.core.configuration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretContext;
@@ -34,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 class ConfigurationValidationServiceTest {
 

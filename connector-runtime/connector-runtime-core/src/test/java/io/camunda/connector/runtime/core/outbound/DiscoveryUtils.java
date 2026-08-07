@@ -16,18 +16,18 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import java.util.Arrays;
 import java.util.List;
+import tools.jackson.databind.json.JsonMapper;
 
 public class DiscoveryUtils {
   private DiscoveryUtils() {}
 
   static OutboundConnectorFactory getFactory(OutboundConnectorFunction... functions) {
     return new DefaultOutboundConnectorFactory(
-        new ObjectMapper(),
+        JsonMapper.builder().build(),
         ValidationUtil.discoverDefaultValidationProviderImplementation(),
         Arrays.asList(functions),
         List.of(),

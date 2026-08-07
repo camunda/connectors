@@ -16,11 +16,6 @@
  */
 package io.camunda.connector.generator;
 
-import com.fasterxml.jackson.core.util.DefaultIndenter;
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
@@ -58,6 +53,13 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.util.DefaultIndenter;
+import tools.jackson.core.util.DefaultPrettyPrinter;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectWriter;
+import tools.jackson.databind.json.JsonMapper;
 
 @Mojo(
     name = "generate-templates",
@@ -66,11 +68,13 @@ import org.apache.maven.project.MavenProject;
 public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
   private static final ObjectMapper objectMapper =
-      new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+      JsonMapper.builder().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
   private static final ObjectWriter objectWriter =
-      new ObjectMapper()
-          .registerModule(new ElementTemplateModule())
-          .writer(
+      JsonMapper.builder()
+          .addModule(new ElementTemplateModule())
+          .build()
+          .writer()
+          .with(
               new DefaultPrettyPrinter()
                   .withObjectIndenter(new DefaultIndenter().withLinefeed("\n")));
   private static final String COMPILED_CLASSES_DIR = "target" + File.separator + "classes";
@@ -99,7 +103,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   private Optional<VersionedElementTemplate> getBasicElementTemplate(File file) {
     try {
       return Optional.of(objectMapper.readValue(file, VersionedElementTemplate.class));
-    } catch (IOException e) {
+    } catch (JacksonException e) {
       // Skip templates that cannot be parsed (e.g., templates from other tools with incompatible
       // formats)
       getLog()

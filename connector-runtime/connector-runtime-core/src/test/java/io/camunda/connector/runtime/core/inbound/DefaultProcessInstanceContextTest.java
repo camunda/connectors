@@ -25,8 +25,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.EvaluateExpressionCommandStep1.EvaluateExpressionCommandStep2;
 import io.camunda.client.api.response.EvaluateExpressionResponse;
@@ -44,6 +42,8 @@ import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 class DefaultProcessInstanceContextTest {
 
@@ -125,13 +125,13 @@ class DefaultProcessInstanceContextTest {
     var factoryA = new DocumentFactoryImpl(storeA);
     var factoryB = new DocumentFactoryImpl(storeB);
     var multiTenantMapper =
-        new ObjectMapper()
-            .registerModule(
+        JsonMapper.builder()
+            .addModule(
                 new JacksonModuleDocumentDeserializer(
                     Map.of("tenant-a", factoryA, "tenant-b", factoryB),
                     Mockito.mock(IntrinsicFunctionExecutor.class),
                     JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()))
-            .registerModule(new Jdk8Module());
+            .build();
 
     var ref = DocumentDeserializationTest.createDocumentMock("hello from tenant b", null, storeB);
 

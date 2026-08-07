@@ -32,6 +32,11 @@
     </dependency>
 
     <dependency>
+      <groupId>tools.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <!-- Jackson 2: OpenApiGenerationSource uses jackson-dataformat-yaml (Jackson 2-only) directly. -->
+    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>

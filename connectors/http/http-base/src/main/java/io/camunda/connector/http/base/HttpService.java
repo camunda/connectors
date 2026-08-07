@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.http.base;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReturn;
@@ -24,6 +23,7 @@ import io.camunda.connector.http.client.utils.HttpStatusHelper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.Optional;
 import org.apache.hc.core5.http.HttpHeaders;
+import tools.jackson.databind.ObjectMapper;
 
 public class HttpService {
 

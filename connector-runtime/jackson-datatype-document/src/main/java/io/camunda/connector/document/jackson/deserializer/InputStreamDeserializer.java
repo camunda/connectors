@@ -18,15 +18,14 @@ package io.camunda.connector.document.jackson.deserializer;
 
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
 
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
 
 public class InputStreamDeserializer extends AbstractDeserializer<InputStream> {
 
@@ -63,8 +62,7 @@ public class InputStreamDeserializer extends AbstractDeserializer<InputStream> {
   }
 
   @Override
-  protected InputStream handleJsonNode(JsonNode node, DeserializationContext context)
-      throws IOException {
+  protected InputStream handleJsonNode(JsonNode node, DeserializationContext context) {
     if (isDocumentReference(node)) {
       final var document = buildDocumentDeserializer().handleJsonNode(node, context);
       return document.asInputStream();

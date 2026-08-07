@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.runtime.secret.console;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.secret.console.TokenResponseMapper.JacksonTokenResponseMapper;
 import java.io.IOException;
@@ -28,6 +26,8 @@ import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 public class ConsoleSecretApiClient {
 

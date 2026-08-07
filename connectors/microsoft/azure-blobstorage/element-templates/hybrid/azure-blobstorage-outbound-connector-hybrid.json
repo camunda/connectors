@@ -43,40 +43,32 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
-    "value" : "io.camunda:azure-blobstorage:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "group" : "taskDefinitionType",
+    "id" : "taskDefinitionType",
+    "type" : "String",
+    "value" : "io.camunda:azure-blobstorage:1"
   }, {
-    "id" : "operationDiscriminator",
-    "label" : "Operation",
-    "value" : "uploadBlob",
-    "group" : "operation",
     "binding" : {
       "name" : "operationDiscriminator",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Download blob",
       "value" : "downloadBlob"
     }, {
       "name" : "Upload blob",
       "value" : "uploadBlob"
-    } ]
-  }, {
-    "id" : "downloadOperationContainer",
-    "label" : "Blob Storage container",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    } ],
     "group" : "operation",
+    "id" : "operationDiscriminator",
+    "label" : "Operation",
+    "type" : "Dropdown",
+    "value" : "uploadBlob"
+  }, {
     "binding" : {
       "name" : "operation.container",
       "type" : "zeebe:input"
@@ -86,17 +78,17 @@
       "equals" : "downloadBlob",
       "type" : "simple"
     },
-    "tooltip" : "A container acts as a directory that organizes a set of blobs.",
-    "type" : "String"
-  }, {
-    "id" : "downloadOperationFileName",
-    "label" : "File name",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "downloadOperationContainer",
+    "label" : "Blob Storage container",
+    "optional" : false,
+    "tooltip" : "A container acts as a directory that organizes a set of blobs.",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.fileName",
       "type" : "zeebe:input"
@@ -106,24 +98,21 @@
       "equals" : "downloadBlob",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "id" : "downloadOperationFileName",
+    "label" : "File name",
+    "optional" : false,
     "tooltip" : "Specify the name of the document to be downloaded.",
     "type" : "String"
   }, {
-    "id" : "documentReturnFormat",
-    "label" : "Response format",
-    "value" : "DOCUMENT",
-    "group" : "operation",
     "binding" : {
       "name" : "documentReturnFormat.choice",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "operationDiscriminator",
-      "equals" : "downloadBlob",
-      "type" : "simple"
-    },
-    "tooltip" : "How the downloaded payload should be returned. Document reference uploads the payload to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Document reference",
       "value" : "DOCUMENT"
@@ -133,14 +122,19 @@
     }, {
       "name" : "as JSON",
       "value" : "JSON"
-    } ]
-  }, {
-    "id" : "documentReturnFormatEncoding",
-    "label" : "Encoding",
-    "description" : "Character set used to decode the response. Default UTF-8.",
-    "value" : "UTF-8",
-    "feel" : "optional",
+    } ],
+    "condition" : {
+      "property" : "operationDiscriminator",
+      "equals" : "downloadBlob",
+      "type" : "simple"
+    },
     "group" : "operation",
+    "id" : "documentReturnFormat",
+    "label" : "Response format",
+    "tooltip" : "How the downloaded payload should be returned. Document reference uploads the payload to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
+    "type" : "Dropdown",
+    "value" : "DOCUMENT"
+  }, {
     "binding" : {
       "name" : "documentReturnFormat.encoding",
       "type" : "zeebe:input"
@@ -156,16 +150,14 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "container",
-    "label" : "Blob Storage container",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
+    "description" : "Character set used to decode the response. Default UTF-8.",
     "feel" : "optional",
     "group" : "operation",
+    "id" : "documentReturnFormatEncoding",
+    "label" : "Encoding",
+    "type" : "String",
+    "value" : "UTF-8"
+  }, {
     "binding" : {
       "name" : "operation.container",
       "type" : "zeebe:input"
@@ -175,24 +167,21 @@
       "equals" : "uploadBlob",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "id" : "container",
+    "label" : "Blob Storage container",
+    "optional" : false,
     "tooltip" : "A container acts as a directory that organizes a set of blobs.",
     "type" : "String"
   }, {
-    "id" : "operation_document_documentSource",
-    "label" : "Document source",
-    "value" : "camunda",
-    "group" : "operation",
     "binding" : {
       "name" : "operation.operation_document_documentSource",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "operationDiscriminator",
-      "equals" : "uploadBlob",
-      "type" : "simple"
-    },
-    "tooltip" : "Document to be uploaded to Azure Blob Storage.",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Camunda Document",
       "value" : "camunda"
@@ -202,15 +191,19 @@
     }, {
       "name" : "From URL",
       "value" : "external"
-    } ]
-  }, {
-    "id" : "operation_document_camundaReference",
-    "label" : "Camunda document",
-    "constraints" : {
-      "notEmpty" : true
+    } ],
+    "condition" : {
+      "property" : "operationDiscriminator",
+      "equals" : "uploadBlob",
+      "type" : "simple"
     },
-    "feel" : "required",
     "group" : "operation",
+    "id" : "operation_document_documentSource",
+    "label" : "Document source",
+    "tooltip" : "Document to be uploaded to Azure Blob Storage.",
+    "type" : "Dropdown",
+    "value" : "camunda"
+  }, {
     "binding" : {
       "name" : "operation.operation_document_camundaReference",
       "type" : "zeebe:input"
@@ -226,15 +219,15 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "operation_document_inline_content",
-    "label" : "Content",
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "operation",
+    "id" : "operation_document_camundaReference",
+    "label" : "Camunda document",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.operation_document_inline_content",
       "type" : "zeebe:input"
@@ -250,12 +243,15 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "operation_document_inline_fileName",
-    "label" : "File name",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation_document_inline_content",
+    "label" : "Content",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.operation_document_inline_fileName",
       "type" : "zeebe:input"
@@ -271,12 +267,12 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "operation_document_inline_contentType",
-    "label" : "Content type",
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation_document_inline_fileName",
+    "label" : "File name",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.operation_document_inline_contentType",
       "type" : "zeebe:input"
@@ -292,15 +288,12 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "operation_document_external_url",
-    "label" : "URL",
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation_document_inline_contentType",
+    "label" : "Content type",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.operation_document_external_url",
       "type" : "zeebe:input"
@@ -316,12 +309,15 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "operation_document_external_fileName",
-    "label" : "File name",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation_document_external_url",
+    "label" : "URL",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.operation_document_external_fileName",
       "type" : "zeebe:input"
@@ -337,11 +333,12 @@
         "type" : "simple"
       } ]
     },
+    "feel" : "optional",
+    "group" : "operation",
+    "id" : "operation_document_external_fileName",
+    "label" : "File name",
     "type" : "String"
   }, {
-    "id" : "uploadOperationDocument",
-    "value" : "=if operation_document_documentSource = \"camunda\" then operation_document_camundaReference else if operation_document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: operation_document_inline_content, name: operation_document_inline_fileName, contentType: operation_document_inline_contentType } else if operation_document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: operation_document_external_url, name: operation_document_external_fileName } else null",
-    "group" : "operation",
     "binding" : {
       "name" : "operation.document",
       "type" : "zeebe:input"
@@ -351,34 +348,29 @@
       "equals" : "uploadBlob",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "group" : "operation",
+    "id" : "uploadOperationDocument",
+    "type" : "Hidden",
+    "value" : "=if operation_document_documentSource = \"camunda\" then operation_document_camundaReference else if operation_document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: operation_document_inline_content, name: operation_document_inline_fileName, contentType: operation_document_inline_contentType } else if operation_document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: operation_document_external_url, name: operation_document_external_fileName } else null"
   }, {
-    "id" : "authentication.type",
-    "label" : "Type",
-    "description" : "Choose the authentication type.",
-    "value" : "SAS",
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.type",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "SAS token",
       "value" : "SAS"
     }, {
       "name" : "OAuth 2.0 (Microsoft Entra ID)",
       "value" : "oAuth-client-credentials-flow"
-    } ]
-  }, {
-    "id" : "authentication.SASToken",
-    "label" : "SAS token",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    } ],
+    "description" : "Choose the authentication type.",
     "group" : "authentication",
+    "id" : "authentication.type",
+    "label" : "Type",
+    "type" : "Dropdown",
+    "value" : "SAS"
+  }, {
     "binding" : {
       "name" : "authentication.SASToken",
       "type" : "zeebe:input"
@@ -388,17 +380,17 @@
       "equals" : "SAS",
       "type" : "simple"
     },
-    "tooltip" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
-    "type" : "String"
-  }, {
-    "id" : "authentication.SASUrl",
-    "label" : "SAS URL",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.SASToken",
+    "label" : "SAS token",
+    "optional" : false,
+    "tooltip" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.SASUrl",
       "type" : "zeebe:input"
@@ -408,17 +400,17 @@
       "equals" : "SAS",
       "type" : "simple"
     },
-    "tooltip" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
-    "type" : "String"
-  }, {
-    "id" : "authentication.tenantId",
-    "label" : "Tenant id",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.SASUrl",
+    "label" : "SAS URL",
+    "optional" : false,
+    "tooltip" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.tenantId",
       "type" : "zeebe:input"
@@ -428,17 +420,17 @@
       "equals" : "oAuth-client-credentials-flow",
       "type" : "simple"
     },
-    "tooltip" : "ID of the Microsoft Entra ID tenant that owns the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
-    "type" : "String"
-  }, {
-    "id" : "authentication.clientId",
-    "label" : "Client id",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.tenantId",
+    "label" : "Tenant id",
+    "optional" : false,
+    "tooltip" : "ID of the Microsoft Entra ID tenant that owns the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.clientId",
       "type" : "zeebe:input"
@@ -448,17 +440,17 @@
       "equals" : "oAuth-client-credentials-flow",
       "type" : "simple"
     },
-    "tooltip" : "Application (client) ID of the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
-    "type" : "String"
-  }, {
-    "id" : "authentication.clientSecret",
-    "label" : "Client secret",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.clientId",
+    "label" : "Client id",
+    "optional" : false,
+    "tooltip" : "Application (client) ID of the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.clientSecret",
       "type" : "zeebe:input"
@@ -468,17 +460,17 @@
       "equals" : "oAuth-client-credentials-flow",
       "type" : "simple"
     },
-    "tooltip" : "Client secret generated for the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
-    "type" : "String"
-  }, {
-    "id" : "authentication.accountUrl",
-    "label" : "Account url",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.clientSecret",
+    "label" : "Client secret",
+    "optional" : false,
+    "tooltip" : "Client secret generated for the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.accountUrl",
       "type" : "zeebe:input"
@@ -488,14 +480,17 @@
       "equals" : "oAuth-client-credentials-flow",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "id" : "authentication.accountUrl",
+    "label" : "Account url",
+    "optional" : false,
     "tooltip" : "URL of the Azure Blob Storage account to connect to. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
     "type" : "String"
   }, {
-    "id" : "uploadOperationFileName",
-    "label" : "Document file name",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "additionalProperties",
     "binding" : {
       "name" : "operation.fileName",
       "type" : "zeebe:input"
@@ -505,18 +500,14 @@
       "equals" : "uploadBlob",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "additionalProperties",
+    "id" : "uploadOperationFileName",
+    "label" : "Document file name",
+    "optional" : true,
     "tooltip" : "By default, the file's metadata name is used unless a custom name is specified.",
     "type" : "String"
   }, {
-    "id" : "timeout",
-    "label" : "Timeout (in seconds)",
-    "optional" : false,
-    "value" : 30,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "static",
-    "group" : "additionalProperties",
     "binding" : {
       "name" : "operation.timeout",
       "type" : "zeebe:input"
@@ -526,94 +517,103 @@
       "equals" : "uploadBlob",
       "type" : "simple"
     },
-    "type" : "Number"
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "static",
+    "group" : "additionalProperties",
+    "id" : "timeout",
+    "label" : "Timeout (in seconds)",
+    "optional" : false,
+    "type" : "Number",
+    "value" : 30
   }, {
-    "id" : "version",
-    "label" : "Version",
-    "description" : "Version of the element template",
-    "value" : "5",
-    "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
-  }, {
-    "id" : "id",
-    "label" : "ID",
-    "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.azure.blobstorage.v1",
+    "description" : "Version of the element template",
     "group" : "connector",
+    "id" : "version",
+    "label" : "Version",
+    "type" : "Hidden",
+    "value" : "5"
+  }, {
     "binding" : {
       "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
+    "description" : "ID of the element template",
+    "group" : "connector",
+    "id" : "id",
+    "label" : "ID",
+    "type" : "Hidden",
+    "value" : "io.camunda.connectors.azure.blobstorage.v1"
   }, {
-    "id" : "resultVariable",
-    "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
-    "group" : "output",
     "binding" : {
       "key" : "resultVariable",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "group" : "output",
+    "id" : "resultVariable",
+    "label" : "Result variable",
     "type" : "String"
   }, {
-    "id" : "resultExpression",
-    "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "output",
     "binding" : {
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "id" : "resultExpression",
+    "label" : "Result expression",
     "type" : "Text"
   }, {
-    "id" : "errorExpression",
-    "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "error",
     "binding" : {
       "key" : "errorExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "id" : "errorExpression",
+    "label" : "Error expression",
     "type" : "Text"
   }, {
-    "id" : "retryCount",
-    "label" : "Retries",
-    "description" : "Number of retries",
-    "value" : "3",
-    "feel" : "optional",
-    "group" : "retries",
     "binding" : {
       "property" : "retries",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
-  }, {
-    "id" : "retryBackoff",
-    "label" : "Retry backoff",
-    "description" : "ISO-8601 duration to wait between retries",
-    "value" : "PT30S",
+    "description" : "Number of retries",
+    "feel" : "optional",
     "group" : "retries",
+    "id" : "retryCount",
+    "label" : "Retries",
+    "type" : "String",
+    "value" : "3"
+  }, {
     "binding" : {
       "key" : "retryBackoff",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "String"
-  }, {
-    "id" : "jobTimeout",
-    "label" : "Job timeout",
-    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
-    "optional" : true,
+    "description" : "ISO-8601 duration to wait between retries",
     "group" : "retries",
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "type" : "String",
+    "value" : "PT30S"
+  }, {
     "binding" : {
       "key" : "jobTimeout",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "group" : "retries",
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "optional" : true,
     "type" : "String"
   } ],
   "steps" : [ {

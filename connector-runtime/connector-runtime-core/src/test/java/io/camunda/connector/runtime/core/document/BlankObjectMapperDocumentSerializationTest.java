@@ -18,7 +18,6 @@ package io.camunda.connector.runtime.core.document;
 
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
@@ -26,6 +25,8 @@ import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Regression test for GitHub issue #6946.
@@ -59,7 +60,7 @@ class BlankObjectMapperDocumentSerializationTest {
 
   @Test
   void feelEvaluationWithDocumentInContextDoesNotThrow() {
-    ObjectMapper mapper = new ObjectMapper().registerModule(new JacksonModuleFeelFunction());
+    ObjectMapper mapper = JsonMapper.builder().addModule(new JacksonModuleFeelFunction()).build();
 
     var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null, null, null);
     var reference = new CamundaDocumentReferenceModel("store-1", "doc-1", "hash-1", metadata);
@@ -81,6 +82,7 @@ class BlankObjectMapperDocumentSerializationTest {
             () ->
                 FeelContextAwareObjectReader.of(mapper)
                     .withStaticContext(feelContext)
-                    .readValue(json, TargetType.class));
+                    .forType(TargetType.class)
+                    .readValue(json));
   }
 }

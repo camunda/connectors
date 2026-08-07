@@ -16,21 +16,16 @@
  */
 package io.camunda.connector.runtime.test.example.outbound;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
 import java.util.Collections;
+import tools.jackson.databind.ObjectMapper;
 
 public class ExampleTestData {
 
   static final ObjectMapper objectMapper = new ObjectMapper();
 
   static String toJson(Object value) {
-    try {
-      return objectMapper.writeValueAsString(value);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
+    return objectMapper.writeValueAsString(value);
   }
 
   public static final String Object = toJson(new ExampleOutboundInput("FOO", null));

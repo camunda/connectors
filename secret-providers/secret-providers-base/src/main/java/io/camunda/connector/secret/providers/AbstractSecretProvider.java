@@ -16,15 +16,10 @@
  */
 package io.camunda.connector.secret.providers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -35,6 +30,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 public abstract class AbstractSecretProvider implements SecretProvider, AutoCloseable {
 
@@ -48,11 +47,10 @@ public abstract class AbstractSecretProvider implements SecretProvider, AutoClos
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractSecretProvider.class);
   private static final ObjectMapper DEFAULT_MAPPER =
-      new ObjectMapper()
-          .registerModule(new Jdk8Module())
-          .registerModule(new JavaTimeModule())
+      JsonMapper.builder()
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+          .build();
   private static final String CACHE_KEY = "SECRETS";
   private final String clusterId;
   private final String secretsProjectId;
@@ -90,7 +88,7 @@ public abstract class AbstractSecretProvider implements SecretProvider, AutoClos
     CacheLoader<String, Map<String, String>> loader =
         new CacheLoader<>() {
           @Override
-          public Map<String, String> load(String key) throws JsonProcessingException {
+          public Map<String, String> load(String key) {
             return unwrapSecrets(
                 loadSecrets(clusterId, secretsProjectId, secretsNamePrefix, logger));
           }
@@ -103,8 +101,7 @@ public abstract class AbstractSecretProvider implements SecretProvider, AutoClos
         CacheBuilder.newBuilder().refreshAfterWrite(millis, TimeUnit.MILLISECONDS).build(loader);
   }
 
-  protected Map<String, String> unwrapSecrets(final String secretsAsJson)
-      throws JsonProcessingException {
+  protected Map<String, String> unwrapSecrets(final String secretsAsJson) {
     return mapper.readValue(secretsAsJson, Map.class);
   }
 
@@ -115,7 +112,9 @@ public abstract class AbstractSecretProvider implements SecretProvider, AutoClos
   public String getSecret(String name, SecretContext context) {
     try {
       return secretsCache.get(CACHE_KEY).get(name);
-    } catch (ExecutionException e) {
+    } catch (ExecutionException | UncheckedExecutionException e) {
+      // Jackson 3 exceptions are unchecked, so Guava wraps them as UncheckedExecutionException
+      // rather than ExecutionException when they escape the CacheLoader.
       throw new ConnectorException("Could not resolve secrets: " + e.getMessage(), e);
     }
   }

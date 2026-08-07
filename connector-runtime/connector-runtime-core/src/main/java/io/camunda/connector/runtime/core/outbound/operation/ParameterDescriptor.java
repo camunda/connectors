@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.runtime.core.outbound.operation;
 
-import com.fasterxml.jackson.core.JsonPointer;
 import java.lang.reflect.Type;
+import tools.jackson.core.JsonPointer;
 
 public sealed interface ParameterDescriptor {
 

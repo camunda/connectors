@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.inbound;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -30,6 +29,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Per-physical-tenant {@link InboundCorrelationHandler} beans, split out of {@link

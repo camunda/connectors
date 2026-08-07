@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.runtime.core.inbound.correlation;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.client.api.response.CorrelateMessageResponse;
@@ -46,6 +44,8 @@ import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 /** Component responsible for calling Zeebe to report an inbound event */
 public class InboundCorrelationHandler {
@@ -403,7 +403,7 @@ public class InboundCorrelationHandler {
     if (variables == null) return;
     try {
       InlineSizeGuard.check(objectMapper.writeValueAsBytes(variables).length);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new RuntimeException("Failed to serialize variables for size check", e);
     }
   }

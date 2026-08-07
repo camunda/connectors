@@ -16,17 +16,15 @@
  */
 package io.camunda.connector.generator.java.json;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
 import io.camunda.connector.generator.java.annotation.FeelMode;
-import java.io.IOException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueSerializer;
 
-public class FeelModelSerializer extends JsonSerializer<FeelMode> {
+public class FeelModelSerializer extends ValueSerializer<FeelMode> {
   @Override
   public void serialize(
-      FeelMode feelMode, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
-      throws IOException {
+      FeelMode feelMode, JsonGenerator jsonGenerator, SerializationContext serializationContext) {
     if (feelMode == FeelMode.staticFeel) {
       // The Element Template specification expects "static" instead of "staticFeel" for the static
       // FEEL mode.

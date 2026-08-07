@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.document.jackson;
 
-import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.deserializer.ByteArrayDeserializer;
@@ -27,6 +25,8 @@ import io.camunda.connector.document.jackson.deserializer.ObjectDeserializer;
 import io.camunda.connector.document.jackson.deserializer.StringDeserializer;
 import java.io.InputStream;
 import java.util.Map;
+import tools.jackson.core.Version;
+import tools.jackson.databind.module.SimpleModule;
 
 public class JacksonModuleDocumentDeserializer extends SimpleModule {
 

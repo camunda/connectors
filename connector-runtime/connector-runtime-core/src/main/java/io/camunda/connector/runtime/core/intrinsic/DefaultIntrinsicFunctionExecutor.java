@@ -16,10 +16,11 @@
  */
 package io.camunda.connector.runtime.core.intrinsic;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.IntrinsicFunctionParams;
 import java.util.Arrays;
+import java.util.function.Supplier;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * An implementation of {@link IntrinsicFunctionExecutor} that discovers operations via the service
@@ -30,7 +31,11 @@ public class DefaultIntrinsicFunctionExecutor implements IntrinsicFunctionExecut
   private final IntrinsicFunctionParameterBinder parameterBinder;
   private final IntrinsicFunctionRegistry registry;
 
-  public DefaultIntrinsicFunctionExecutor(ObjectMapper mapper) {
+  /**
+   * @param mapper resolved lazily: callers typically construct this executor before the final,
+   *     fully-configured {@link ObjectMapper} exists (see {@link MutableObjectMapperSupplier}).
+   */
+  public DefaultIntrinsicFunctionExecutor(Supplier<ObjectMapper> mapper) {
     this.parameterBinder = new IntrinsicFunctionParameterBinder(mapper);
     this.registry = new ServiceLoaderIntrinsicFunctionRegistry();
   }

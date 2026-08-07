@@ -18,7 +18,6 @@ package io.camunda.connector.runtime.core.outbound.operation;
 
 import static io.camunda.connector.util.reflection.ReflectionUtil.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.Variable;
@@ -32,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import tools.jackson.databind.ObjectMapper;
 
 public record ConnectorOperations(Object connector, Map<String, OperationInvoker> operations) {
 

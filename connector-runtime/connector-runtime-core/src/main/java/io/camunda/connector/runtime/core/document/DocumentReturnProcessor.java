@@ -16,9 +16,6 @@
  */
 package io.camunda.connector.runtime.core.document;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReturn;
@@ -34,6 +31,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Converts a {@link DocumentReturn} value produced by a connector into the connector's final
@@ -114,7 +114,7 @@ public class DocumentReturnProcessor {
     }
   }
 
-  private Object parseJson(byte[] bytes) throws IOException {
+  private Object parseJson(byte[] bytes) {
     try {
       JsonNode node = objectMapper.readTree(bytes);
       if (node == null || node.isMissingNode()) {
@@ -122,7 +122,7 @@ public class DocumentReturnProcessor {
             "JSON response format selected but payload was empty or could not be parsed.");
       }
       return objectMapper.treeToValue(node, Object.class);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new ConnectorException(
           null,
           "JSON response format selected but payload is not valid JSON: " + e.getMessage(),

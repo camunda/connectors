@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.core.configuration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -31,6 +30,7 @@ import io.camunda.connector.runtime.core.secret.SecretHandler;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Resolves a stored configuration referenced by a validation request, applies bean validation, and

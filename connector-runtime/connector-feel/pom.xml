@@ -28,10 +28,6 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-object-mapper</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.camunda.feel</groupId>
       <artifactId>feel-engine</artifactId>
     </dependency>

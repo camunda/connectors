@@ -19,8 +19,6 @@ package io.camunda.connector.http.client.authentication;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
@@ -30,6 +28,7 @@ import java.io.ByteArrayInputStream;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 public class OAuthServiceTest {
 
@@ -116,8 +115,7 @@ public class OAuthServiceTest {
     }
 
     @Test
-    public void shouldReturnToken_whenExtractingTokenFromValidJson()
-        throws JsonProcessingException {
+    public void shouldReturnToken_whenExtractingTokenFromValidJson() {
       // Given
       var body =
           Map.of(

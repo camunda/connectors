@@ -43,28 +43,19 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
-    "value" : "io.camunda:connector-jdbc:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "group" : "taskDefinitionType",
+    "id" : "taskDefinitionType",
+    "type" : "String",
+    "value" : "io.camunda:connector-jdbc:1"
   }, {
-    "id" : "database",
-    "label" : "Select a database",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "database",
     "binding" : {
       "name" : "database",
       "type" : "zeebe:input"
     },
-    "tooltip" : "If you choose Oracle, make sure the Oracle JDBC driver is included. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/sql/#database\">Oracle JDBC driver setup</a>.",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "MariaDB",
       "value" : "MARIADB"
@@ -80,37 +71,34 @@
     }, {
       "name" : "Oracle",
       "value" : "ORACLE"
-    } ]
+    } ],
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "database",
+    "id" : "database",
+    "label" : "Select a database",
+    "optional" : false,
+    "tooltip" : "If you choose Oracle, make sure the Oracle JDBC driver is included. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/sql/#database\">Oracle JDBC driver setup</a>.",
+    "type" : "Dropdown"
   }, {
-    "id" : "connection.authType",
-    "label" : "Connection type",
-    "value" : "uri",
-    "group" : "connection",
     "binding" : {
       "name" : "connection.authType",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "URI",
       "value" : "uri"
     }, {
       "name" : "Detailed",
       "value" : "detailed"
-    } ]
-  }, {
-    "id" : "connection.uri",
-    "label" : "URI",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^(=|(jdbc:|secrets|\\{\\{).*$)",
-        "message" : "Must start with 'jdbc:' or contain a secret reference"
-      }
-    },
-    "feel" : "optional",
+    } ],
     "group" : "connection",
+    "id" : "connection.authType",
+    "label" : "Connection type",
+    "type" : "Dropdown",
+    "value" : "uri"
+  }, {
     "binding" : {
       "name" : "connection.uri",
       "type" : "zeebe:input"
@@ -120,14 +108,21 @@
       "equals" : "uri",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|(jdbc:|secrets|\\{\\{).*$)",
+        "message" : "Must start with 'jdbc:' or contain a secret reference"
+      }
+    },
+    "feel" : "optional",
+    "group" : "connection",
+    "id" : "connection.uri",
+    "label" : "URI",
+    "optional" : false,
     "tooltip" : "URI should contain JDBC driver, host name, and port number. See the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#uri-connection\" target=\"_blank\">URI connection</a> reference.",
     "type" : "String"
   }, {
-    "id" : "connection.uriProperties",
-    "label" : "Properties",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "connection",
     "binding" : {
       "name" : "connection.uriProperties",
       "type" : "zeebe:input"
@@ -137,17 +132,14 @@
       "equals" : "uri",
       "type" : "simple"
     },
+    "feel" : "required",
+    "group" : "connection",
+    "id" : "connection.uriProperties",
+    "label" : "Properties",
+    "optional" : true,
     "tooltip" : "Additional properties for the connection ('user' and 'password' for instance). See the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">SQL connection properties</a> reference.",
     "type" : "String"
   }, {
-    "id" : "connection.host",
-    "label" : "Host",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "connection",
     "binding" : {
       "name" : "connection.host",
       "type" : "zeebe:input"
@@ -157,16 +149,16 @@
       "equals" : "detailed",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "connection.port",
-    "label" : "Port",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "connection",
+    "id" : "connection.host",
+    "label" : "Host",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "connection.port",
       "type" : "zeebe:input"
@@ -176,13 +168,16 @@
       "equals" : "detailed",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "connection.username",
-    "label" : "Username",
-    "optional" : true,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "connection",
+    "id" : "connection.port",
+    "label" : "Port",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "connection.username",
       "type" : "zeebe:input"
@@ -192,13 +187,13 @@
       "equals" : "detailed",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "connection.password",
-    "label" : "Password",
-    "optional" : true,
     "feel" : "optional",
     "group" : "connection",
+    "id" : "connection.username",
+    "label" : "Username",
+    "optional" : true,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "connection.password",
       "type" : "zeebe:input"
@@ -208,13 +203,13 @@
       "equals" : "detailed",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "connection.databaseName",
-    "label" : "Database name",
-    "optional" : true,
     "feel" : "optional",
     "group" : "connection",
+    "id" : "connection.password",
+    "label" : "Password",
+    "optional" : true,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "connection.databaseName",
       "type" : "zeebe:input"
@@ -224,13 +219,13 @@
       "equals" : "detailed",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "connection",
+    "id" : "connection.databaseName",
+    "label" : "Database name",
+    "optional" : true,
     "type" : "String"
   }, {
-    "id" : "connection.properties",
-    "label" : "Properties",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "connection",
     "binding" : {
       "name" : "connection.properties",
       "type" : "zeebe:input"
@@ -240,147 +235,152 @@
       "equals" : "detailed",
       "type" : "simple"
     },
+    "feel" : "required",
+    "group" : "connection",
+    "id" : "connection.properties",
+    "label" : "Properties",
+    "optional" : true,
     "tooltip" : "Additional properties for the connection. See the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">SQL connection properties</a> reference.",
     "type" : "String"
   }, {
-    "id" : "connectionConfiguration",
-    "label" : "Connection credential",
-    "description" : "Choose a reusable JDBC connection credential. When set, it is bound as a whole to the connector's 'configuration' input.",
-    "optional" : true,
-    "group" : "connection",
     "binding" : {
       "name" : "configuration",
       "type" : "zeebe:input"
     },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:jdbc-connection:1"
+    "configurationTemplate" : "io.camunda.connectors:jdbc-connection:1",
+    "description" : "Choose a reusable JDBC connection credential. When set, it is bound as a whole to the connector's 'configuration' input.",
+    "group" : "connection",
+    "id" : "connectionConfiguration",
+    "label" : "Connection credential",
+    "optional" : true,
+    "type" : "Configuration"
   }, {
-    "id" : "data.returnResults",
-    "label" : "Return results",
-    "optional" : false,
-    "value" : false,
-    "feel" : "static",
-    "group" : "query",
     "binding" : {
       "name" : "data.returnResults",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Check this box if the SQL statement returns results, e.g. a SELECT or any statement with a RETURNING clause",
-    "type" : "Boolean"
-  }, {
-    "id" : "data.query",
-    "label" : "SQL Query to execute",
+    "feel" : "static",
+    "group" : "query",
+    "id" : "data.returnResults",
+    "label" : "Return results",
     "optional" : false,
+    "tooltip" : "Check this box if the SQL statement returns results, e.g. a SELECT or any statement with a RETURNING clause",
+    "type" : "Boolean",
+    "value" : false
+  }, {
+    "binding" : {
+      "name" : "data.query",
+      "type" : "zeebe:input"
+    },
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "query",
-    "binding" : {
-      "name" : "data.query",
-      "type" : "zeebe:input"
-    },
+    "id" : "data.query",
+    "label" : "SQL Query to execute",
+    "optional" : false,
     "tooltip" : "You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>",
     "type" : "String"
   }, {
-    "id" : "data.variables",
-    "label" : "SQL Query variables",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "query",
     "binding" : {
       "name" : "data.variables",
       "type" : "zeebe:input"
     },
+    "feel" : "required",
+    "group" : "query",
+    "id" : "data.variables",
+    "label" : "SQL Query variables",
+    "optional" : true,
     "tooltip" : "The <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">variables</a> to use in the SQL query.",
     "type" : "String"
   }, {
-    "id" : "version",
-    "label" : "Version",
-    "description" : "Version of the element template",
-    "value" : "5",
-    "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
-  }, {
-    "id" : "id",
-    "label" : "ID",
-    "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.Jdbc.v1",
+    "description" : "Version of the element template",
     "group" : "connector",
+    "id" : "version",
+    "label" : "Version",
+    "type" : "Hidden",
+    "value" : "5"
+  }, {
     "binding" : {
       "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
+    "description" : "ID of the element template",
+    "group" : "connector",
+    "id" : "id",
+    "label" : "ID",
+    "type" : "Hidden",
+    "value" : "io.camunda.connectors.Jdbc.v1"
   }, {
-    "id" : "resultVariable",
-    "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
-    "group" : "output",
     "binding" : {
       "key" : "resultVariable",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "group" : "output",
+    "id" : "resultVariable",
+    "label" : "Result variable",
     "type" : "String"
   }, {
-    "id" : "resultExpression",
-    "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "output",
     "binding" : {
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "id" : "resultExpression",
+    "label" : "Result expression",
     "type" : "Text"
   }, {
-    "id" : "errorExpression",
-    "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "error",
     "binding" : {
       "key" : "errorExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "id" : "errorExpression",
+    "label" : "Error expression",
     "type" : "Text"
   }, {
-    "id" : "retryCount",
-    "label" : "Retries",
-    "description" : "Number of retries",
-    "value" : "3",
-    "feel" : "optional",
-    "group" : "retries",
     "binding" : {
       "property" : "retries",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
-  }, {
-    "id" : "retryBackoff",
-    "label" : "Retry backoff",
-    "description" : "ISO-8601 duration to wait between retries",
-    "value" : "PT30S",
+    "description" : "Number of retries",
+    "feel" : "optional",
     "group" : "retries",
+    "id" : "retryCount",
+    "label" : "Retries",
+    "type" : "String",
+    "value" : "3"
+  }, {
     "binding" : {
       "key" : "retryBackoff",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "String"
-  }, {
-    "id" : "jobTimeout",
-    "label" : "Job timeout",
-    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
-    "optional" : true,
+    "description" : "ISO-8601 duration to wait between retries",
     "group" : "retries",
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "type" : "String",
+    "value" : "PT30S"
+  }, {
     "binding" : {
       "key" : "jobTimeout",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "group" : "retries",
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "optional" : true,
     "type" : "String"
   } ],
   "configurationTemplates" : [ {
@@ -389,58 +389,58 @@
     "version" : 1,
     "name" : "JDBC Connection",
     "properties" : [ {
-      "id" : "host",
-      "label" : "Host",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "group" : "connection",
       "binding" : {
         "name" : "host",
         "type" : "property"
       },
-      "type" : "String"
-    }, {
-      "id" : "port",
-      "label" : "Port",
       "constraints" : {
         "notEmpty" : true
       },
       "group" : "connection",
+      "id" : "host",
+      "label" : "Host",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "port",
         "type" : "property"
       },
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "connection",
+      "id" : "port",
+      "label" : "Port",
       "type" : "String"
     }, {
-      "id" : "databaseName",
-      "label" : "Database name",
-      "group" : "connection",
       "binding" : {
         "name" : "databaseName",
         "type" : "property"
       },
+      "group" : "connection",
+      "id" : "databaseName",
+      "label" : "Database name",
       "type" : "String"
     }, {
-      "id" : "username",
-      "label" : "Username",
-      "group" : "authentication",
       "binding" : {
         "name" : "username",
         "type" : "property"
       },
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "password",
-      "label" : "Password",
       "group" : "authentication",
+      "id" : "username",
+      "label" : "Username",
+      "secret" : true,
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "password",
         "type" : "property"
       },
-      "type" : "String",
-      "secret" : true
+      "group" : "authentication",
+      "id" : "password",
+      "label" : "Password",
+      "secret" : true,
+      "type" : "String"
     } ]
   } ],
   "icon" : {

@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.impl.CamundaObjectMapper;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
@@ -26,7 +25,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.document.jackson.v3.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
@@ -39,6 +38,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.intrinsic.MutableObjectMapperSupplier;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
@@ -71,6 +71,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.Scheduled;
+import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration
 @AutoConfigureBefore({
@@ -214,13 +215,39 @@ public class ConnectorsAutoConfiguration {
     return new ConsoleSecretApiClient(consoleSecretsApiEndpoint, jwtCredential);
   }
 
+  /**
+   * camunda-client-java's {@code CamundaObjectMapper} only has a Jackson 2 constructor (no Jackson
+   * 3 overload exists yet), so this bean is built from a standalone Jackson 2 mapper — mirroring
+   * {@code ConnectorsObjectMapperSupplier}'s configuration, which is Jackson 3-only — plus the
+   * Jackson 2 counterparts of the FEEL and Document modules.
+   */
   @Bean(name = "camundaJsonMapper")
   @ConditionalOnMissingBean
   public CamundaObjectMapper jsonMapper() {
-    return new CamundaObjectMapper(
-        ConnectorsObjectMapperSupplier.getCopy()
-            .registerModules(
-                new JacksonModuleFeelFunction(), new JacksonModuleDocumentSerializer()));
+    com.fasterxml.jackson.databind.ObjectMapper mapper =
+        com.fasterxml.jackson.databind.json.JsonMapper.builder()
+            .addModules(
+                new com.fasterxml.jackson.datatype.jdk8.Jdk8Module(),
+                new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+            .disable(com.fasterxml.jackson.databind.SerializationFeature.FAIL_ON_EMPTY_BEANS)
+            .disable(
+                com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .enable(com.fasterxml.jackson.databind.MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS)
+            .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .disable(
+                com.fasterxml.jackson.databind.SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
+            .enable(
+                com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+            .enable(
+                com.fasterxml.jackson.databind.DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS)
+            .enable(
+                com.fasterxml.jackson.databind.DeserializationFeature
+                    .READ_UNKNOWN_ENUM_VALUES_USING_DEFAULT_VALUE)
+            .addModules(
+                new io.camunda.connector.feel.jackson.v2.JacksonModuleFeelFunction(),
+                new io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer())
+            .build();
+    return new CamundaObjectMapper(mapper);
   }
 
   @Bean(defaultCandidate = false)
@@ -232,11 +259,13 @@ public class ConnectorsAutoConfiguration {
       DocumentFactory legacyDocumentFactory,
       FeelExpressionEvaluator feelExpressionEvaluator) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
-    // default intrinsic function contains a pointer of the copy
-    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    // default intrinsic function resolves the final mapper lazily, since it doesn't exist yet:
+    // ObjectMapper is immutable in Jackson 3, so the module below can't be added in place.
+    var mapperHolder = new MutableObjectMapperSupplier();
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(mapperHolder);
 
-    // The deserializer module contains the function executor, which contains the pointer of the
-    // object mapper
+    // The deserializer module contains the function executor, which resolves the object mapper
+    // through mapperHolder
     var documentFactoriesByPhysicalTenantId =
         PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
             registry, legacyCamundaClient, legacyDocumentFactory);
@@ -248,11 +277,16 @@ public class ConnectorsAutoConfiguration {
 
     // Function/Supplier always use local evaluation to avoid serializing runtime objects
     // (e.g., Documents) to the cluster. The injected evaluator is used for @FEEL-annotated fields.
-    return copy.registerModules(
-        jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(
-            true, feelExpressionEvaluator, FeelExpressionEvaluatorBuilder.local().build()),
-        new JacksonModuleDocumentSerializer());
+    var finalMapper =
+        copy.rebuild()
+            .addModules(
+                jacksonModuleDocumentDeserializer,
+                new JacksonModuleFeelFunction(
+                    true, feelExpressionEvaluator, FeelExpressionEvaluatorBuilder.local().build()),
+                new JacksonModuleDocumentSerializer())
+            .build();
+    mapperHolder.set(finalMapper);
+    return finalMapper;
   }
 
   /**
@@ -271,7 +305,8 @@ public class ConnectorsAutoConfiguration {
 
   private static ObjectMapper buildOutboundConnectorObjectMapper(DocumentFactory documentFactory) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
-    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var mapperHolder = new MutableObjectMapperSupplier();
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(mapperHolder);
 
     var jacksonModuleDocumentDeserializer =
         new JacksonModuleDocumentDeserializer(
@@ -279,12 +314,18 @@ public class ConnectorsAutoConfiguration {
             functionExecutor,
             JacksonModuleDocumentDeserializer.DocumentModuleSettings.create());
 
-    return copy.registerModules(
-        jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(
-            false,
-            FeelExpressionEvaluatorBuilder.local().build()), // FEEL annotation processing disabled
-        new JacksonModuleDocumentSerializer());
+    var finalMapper =
+        copy.rebuild()
+            .addModules(
+                jacksonModuleDocumentDeserializer,
+                new JacksonModuleFeelFunction(
+                    false,
+                    FeelExpressionEvaluatorBuilder.local()
+                        .build()), // FEEL annotation processing disabled
+                new JacksonModuleDocumentSerializer())
+            .build();
+    mapperHolder.set(finalMapper);
+    return finalMapper;
   }
 
   @Scheduled(fixedRate = 60_000, initialDelay = 60_000)

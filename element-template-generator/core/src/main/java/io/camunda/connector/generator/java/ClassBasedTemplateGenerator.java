@@ -19,8 +19,6 @@ package io.camunda.connector.generator.java;
 import static io.camunda.connector.generator.java.util.OperationBasedConnectorUtil.*;
 import static io.camunda.connector.generator.java.util.TemplateGenerationStringUtil.camelCaseToSpaces;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -41,6 +39,7 @@ import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.util.*;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
+import tools.jackson.databind.ObjectMapper;
 
 public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Class<?>> {
 
@@ -389,11 +388,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     if (json == null) {
       return "";
     }
-    try {
-      return TOOLTIP_JSON_MAPPER.readTree(json).toString();
-    } catch (JsonProcessingException e) {
-      throw new IllegalStateException("Failed to compact JSON for tooltip: " + json, e);
-    }
+    return TOOLTIP_JSON_MAPPER.readTree(json).toString();
   }
 
   private static String escapeHtml(String value) {

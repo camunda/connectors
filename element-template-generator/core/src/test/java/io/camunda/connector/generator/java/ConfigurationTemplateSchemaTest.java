@@ -18,8 +18,12 @@ package io.camunda.connector.generator.java;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion.VersionFlag;
@@ -29,8 +33,9 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.json.ElementTemplateModule;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -58,8 +63,24 @@ public class ConfigurationTemplateSchemaTest {
           + SCHEMA_VERSION
           + "/resources/schema.json";
 
+  // The generator's own ElementTemplateModule is Jackson 3 (see ClassBasedDocsGenerator), but
+  // com.networknt:json-schema-validator here is still Jackson 2-only, so this test needs its own
+  // Jackson 2 FeelMode serializer to keep enum rendering ("static" instead of "staticFeel")
+  // consistent with what the generator actually produces.
   private static final ObjectMapper MAPPER =
-      new ObjectMapper().registerModule(new ElementTemplateModule());
+      new ObjectMapper()
+          .registerModule(
+              new SimpleModule()
+                  .addSerializer(
+                      FeelMode.class,
+                      new JsonSerializer<>() {
+                        @Override
+                        public void serialize(
+                            FeelMode value, JsonGenerator gen, SerializerProvider serializers)
+                            throws IOException {
+                          gen.writeString(value == FeelMode.staticFeel ? "static" : value.name());
+                        }
+                      }));
 
   private final ClassBasedTemplateGenerator generator = new ClassBasedTemplateGenerator();
 

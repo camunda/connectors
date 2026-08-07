@@ -49,22 +49,17 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "value" : "io.camunda:aws-s3:1",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "Hidden"
+    "type" : "Hidden",
+    "value" : "io.camunda:aws-s3:1"
   }, {
-    "id" : "actionDiscriminator",
-    "label" : "Action",
-    "value" : "uploadObject",
-    "group" : "operation",
     "binding" : {
       "name" : "actionDiscriminator",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Delete object",
       "value" : "deleteObject"
@@ -74,34 +69,31 @@
     }, {
       "name" : "Upload object",
       "value" : "uploadObject"
-    } ]
+    } ],
+    "group" : "operation",
+    "id" : "actionDiscriminator",
+    "label" : "Action",
+    "type" : "Dropdown",
+    "value" : "uploadObject"
   }, {
-    "id" : "authentication.type",
-    "label" : "Authentication",
-    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
-    "value" : "credentials",
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.type",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
       "value" : "defaultCredentialsChain"
     }, {
       "name" : "Credentials",
       "value" : "credentials"
-    } ]
-  }, {
-    "id" : "authentication.accessKey",
-    "label" : "Access key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    } ],
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
     "group" : "authentication",
+    "id" : "authentication.type",
+    "label" : "Authentication",
+    "type" : "Dropdown",
+    "value" : "credentials"
+  }, {
     "binding" : {
       "name" : "authentication.accessKey",
       "type" : "zeebe:input"
@@ -111,18 +103,18 @@
       "equals" : "credentials",
       "type" : "simple"
     },
-    "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "authentication.secretKey",
-    "label" : "Secret key",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.accessKey",
+    "label" : "Access key",
+    "optional" : false,
+    "secret" : true,
+    "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.secretKey",
       "type" : "zeebe:input"
@@ -132,75 +124,75 @@
       "equals" : "credentials",
       "type" : "simple"
     },
-    "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "awsCredential",
-    "label" : "AWS credential",
-    "description" : "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's 'awsCredential' input.",
-    "optional" : true,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.secretKey",
+    "label" : "Secret key",
+    "optional" : false,
+    "secret" : true,
+    "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "awsCredential",
       "type" : "zeebe:input"
     },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda:aws-credential:1"
+    "configurationTemplate" : "io.camunda:aws-credential:1",
+    "description" : "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's 'awsCredential' input.",
+    "group" : "authentication",
+    "id" : "awsCredential",
+    "label" : "AWS credential",
+    "optional" : true,
+    "type" : "Configuration"
   }, {
-    "id" : "configuration.region",
-    "label" : "Region",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "configuration",
     "binding" : {
       "name" : "configuration.region",
       "type" : "zeebe:input"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "id" : "configuration.region",
+    "label" : "Region",
+    "optional" : false,
     "type" : "String"
   }, {
-    "id" : "configuration.endpoint",
-    "label" : "Endpoint",
-    "description" : "Specify endpoint if need to use custom endpoint",
-    "optional" : true,
-    "group" : "configuration",
     "binding" : {
       "name" : "configuration.endpoint",
       "type" : "zeebe:input"
     },
+    "description" : "Specify endpoint if need to use custom endpoint",
+    "group" : "configuration",
+    "id" : "configuration.endpoint",
+    "label" : "Endpoint",
+    "optional" : true,
     "type" : "Hidden"
   }, {
+    "binding" : {
+      "name" : "action.bucket",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "actionDiscriminator",
+      "equals" : "deleteObject",
+      "type" : "simple"
+    },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "deleteObject",
     "id" : "deleteActionBucket",
     "label" : "AWS bucket",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "deleteObject",
-    "binding" : {
-      "name" : "action.bucket",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "actionDiscriminator",
-      "equals" : "deleteObject",
-      "type" : "simple"
-    },
     "tooltip" : "Bucket from where an object should be deleted",
     "type" : "String"
   }, {
-    "id" : "deleteActionKey",
-    "label" : "AWS key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "deleteObject",
     "binding" : {
       "name" : "action.key",
       "type" : "zeebe:input"
@@ -210,17 +202,17 @@
       "equals" : "deleteObject",
       "type" : "simple"
     },
-    "tooltip" : "Key of the object which should be deleted",
-    "type" : "String"
-  }, {
-    "id" : "uploadActionBucket",
-    "label" : "AWS bucket",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "uploadObject",
+    "group" : "deleteObject",
+    "id" : "deleteActionKey",
+    "label" : "AWS key",
+    "optional" : false,
+    "tooltip" : "Key of the object which should be deleted",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "action.bucket",
       "type" : "zeebe:input"
@@ -230,14 +222,17 @@
       "equals" : "uploadObject",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "uploadObject",
+    "id" : "uploadActionBucket",
+    "label" : "AWS bucket",
+    "optional" : false,
     "tooltip" : "Bucket from where an object should be uploaded",
     "type" : "String"
   }, {
-    "id" : "uploadActionKey",
-    "label" : "AWS key",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "uploadObject",
     "binding" : {
       "name" : "action.key",
       "type" : "zeebe:input"
@@ -247,24 +242,18 @@
       "equals" : "uploadObject",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "uploadObject",
+    "id" : "uploadActionKey",
+    "label" : "AWS key",
+    "optional" : true,
     "tooltip" : "Key of the uploaded object, if not given. The file name from the document metadata will be used",
     "type" : "String"
   }, {
-    "id" : "action_document_documentSource",
-    "label" : "Document source",
-    "value" : "camunda",
-    "group" : "uploadObject",
     "binding" : {
       "name" : "action.action_document_documentSource",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "actionDiscriminator",
-      "equals" : "uploadObject",
-      "type" : "simple"
-    },
-    "tooltip" : "Document to be uploaded on AWS S3",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Camunda Document",
       "value" : "camunda"
@@ -274,15 +263,19 @@
     }, {
       "name" : "From URL",
       "value" : "external"
-    } ]
-  }, {
-    "id" : "action_document_camundaReference",
-    "label" : "Camunda document",
-    "constraints" : {
-      "notEmpty" : true
+    } ],
+    "condition" : {
+      "property" : "actionDiscriminator",
+      "equals" : "uploadObject",
+      "type" : "simple"
     },
-    "feel" : "required",
     "group" : "uploadObject",
+    "id" : "action_document_documentSource",
+    "label" : "Document source",
+    "tooltip" : "Document to be uploaded on AWS S3",
+    "type" : "Dropdown",
+    "value" : "camunda"
+  }, {
     "binding" : {
       "name" : "action.action_document_camundaReference",
       "type" : "zeebe:input"
@@ -298,15 +291,15 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "action_document_inline_content",
-    "label" : "Content",
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "uploadObject",
+    "id" : "action_document_camundaReference",
+    "label" : "Camunda document",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "action.action_document_inline_content",
       "type" : "zeebe:input"
@@ -322,12 +315,15 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "action_document_inline_fileName",
-    "label" : "File name",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "uploadObject",
+    "id" : "action_document_inline_content",
+    "label" : "Content",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "action.action_document_inline_fileName",
       "type" : "zeebe:input"
@@ -343,12 +339,12 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "action_document_inline_contentType",
-    "label" : "Content type",
     "feel" : "optional",
     "group" : "uploadObject",
+    "id" : "action_document_inline_fileName",
+    "label" : "File name",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "action.action_document_inline_contentType",
       "type" : "zeebe:input"
@@ -364,15 +360,12 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "action_document_external_url",
-    "label" : "URL",
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "uploadObject",
+    "id" : "action_document_inline_contentType",
+    "label" : "Content type",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "action.action_document_external_url",
       "type" : "zeebe:input"
@@ -388,12 +381,15 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "action_document_external_fileName",
-    "label" : "File name",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "uploadObject",
+    "id" : "action_document_external_url",
+    "label" : "URL",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "action.action_document_external_fileName",
       "type" : "zeebe:input"
@@ -409,11 +405,12 @@
         "type" : "simple"
       } ]
     },
+    "feel" : "optional",
+    "group" : "uploadObject",
+    "id" : "action_document_external_fileName",
+    "label" : "File name",
     "type" : "String"
   }, {
-    "id" : "uploadActionDocument",
-    "value" : "=if action_document_documentSource = \"camunda\" then action_document_camundaReference else if action_document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: action_document_inline_content, name: action_document_inline_fileName, contentType: action_document_inline_contentType } else if action_document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: action_document_external_url, name: action_document_external_fileName } else null",
-    "group" : "uploadObject",
     "binding" : {
       "name" : "action.document",
       "type" : "zeebe:input"
@@ -423,16 +420,11 @@
       "equals" : "uploadObject",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "group" : "uploadObject",
+    "id" : "uploadActionDocument",
+    "type" : "Hidden",
+    "value" : "=if action_document_documentSource = \"camunda\" then action_document_camundaReference else if action_document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: action_document_inline_content, name: action_document_inline_fileName, contentType: action_document_inline_contentType } else if action_document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: action_document_external_url, name: action_document_external_fileName } else null"
   }, {
-    "id" : "downloadActionBucket",
-    "label" : "AWS bucket",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "downloadObject",
     "binding" : {
       "name" : "action.bucket",
       "type" : "zeebe:input"
@@ -442,17 +434,17 @@
       "equals" : "downloadObject",
       "type" : "simple"
     },
-    "tooltip" : "Bucket from where an object should be downloaded",
-    "type" : "String"
-  }, {
-    "id" : "downloadActionKey",
-    "label" : "AWS key",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "downloadObject",
+    "id" : "downloadActionBucket",
+    "label" : "AWS bucket",
+    "optional" : false,
+    "tooltip" : "Bucket from where an object should be downloaded",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "action.key",
       "type" : "zeebe:input"
@@ -462,24 +454,21 @@
       "equals" : "downloadObject",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "downloadObject",
+    "id" : "downloadActionKey",
+    "label" : "AWS key",
+    "optional" : false,
     "tooltip" : "Key of the object which should be downloaded",
     "type" : "String"
   }, {
-    "id" : "documentReturnFormat",
-    "label" : "Response format",
-    "value" : "DOCUMENT",
-    "group" : "downloadObject",
     "binding" : {
       "name" : "documentReturnFormat.choice",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "actionDiscriminator",
-      "equals" : "downloadObject",
-      "type" : "simple"
-    },
-    "tooltip" : "How the downloaded payload should be returned. Document reference uploads the payload to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Document reference",
       "value" : "DOCUMENT"
@@ -489,14 +478,19 @@
     }, {
       "name" : "as JSON",
       "value" : "JSON"
-    } ]
-  }, {
-    "id" : "documentReturnFormatEncoding",
-    "label" : "Encoding",
-    "description" : "Character set used to decode the response. Default UTF-8.",
-    "value" : "UTF-8",
-    "feel" : "optional",
+    } ],
+    "condition" : {
+      "property" : "actionDiscriminator",
+      "equals" : "downloadObject",
+      "type" : "simple"
+    },
     "group" : "downloadObject",
+    "id" : "documentReturnFormat",
+    "label" : "Response format",
+    "tooltip" : "How the downloaded payload should be returned. Document reference uploads the payload to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
+    "type" : "Dropdown",
+    "value" : "DOCUMENT"
+  }, {
     "binding" : {
       "name" : "documentReturnFormat.encoding",
       "type" : "zeebe:input"
@@ -512,94 +506,100 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "description" : "Character set used to decode the response. Default UTF-8.",
+    "feel" : "optional",
+    "group" : "downloadObject",
+    "id" : "documentReturnFormatEncoding",
+    "label" : "Encoding",
+    "type" : "String",
+    "value" : "UTF-8"
   }, {
-    "id" : "version",
-    "label" : "Version",
-    "description" : "Version of the element template",
-    "value" : "6",
-    "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
-  }, {
-    "id" : "id",
-    "label" : "ID",
-    "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.aws.s3.v1",
+    "description" : "Version of the element template",
     "group" : "connector",
+    "id" : "version",
+    "label" : "Version",
+    "type" : "Hidden",
+    "value" : "6"
+  }, {
     "binding" : {
       "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
+    "description" : "ID of the element template",
+    "group" : "connector",
+    "id" : "id",
+    "label" : "ID",
+    "type" : "Hidden",
+    "value" : "io.camunda.connectors.aws.s3.v1"
   }, {
-    "id" : "resultVariable",
-    "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
-    "group" : "output",
     "binding" : {
       "key" : "resultVariable",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "group" : "output",
+    "id" : "resultVariable",
+    "label" : "Result variable",
     "type" : "String"
   }, {
-    "id" : "resultExpression",
-    "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "output",
     "binding" : {
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "id" : "resultExpression",
+    "label" : "Result expression",
     "type" : "Text"
   }, {
-    "id" : "errorExpression",
-    "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "error",
     "binding" : {
       "key" : "errorExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "id" : "errorExpression",
+    "label" : "Error expression",
     "type" : "Text"
   }, {
-    "id" : "retryCount",
-    "label" : "Retries",
-    "description" : "Number of retries",
-    "value" : "3",
-    "feel" : "optional",
-    "group" : "retries",
     "binding" : {
       "property" : "retries",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
-  }, {
-    "id" : "retryBackoff",
-    "label" : "Retry backoff",
-    "description" : "ISO-8601 duration to wait between retries",
-    "value" : "PT30S",
+    "description" : "Number of retries",
+    "feel" : "optional",
     "group" : "retries",
+    "id" : "retryCount",
+    "label" : "Retries",
+    "type" : "String",
+    "value" : "3"
+  }, {
     "binding" : {
       "key" : "retryBackoff",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "String"
-  }, {
-    "id" : "jobTimeout",
-    "label" : "Job timeout",
-    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
-    "optional" : true,
+    "description" : "ISO-8601 duration to wait between retries",
     "group" : "retries",
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "type" : "String",
+    "value" : "PT30S"
+  }, {
     "binding" : {
       "key" : "jobTimeout",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "group" : "retries",
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "optional" : true,
     "type" : "String"
   } ],
   "steps" : [ {
@@ -640,30 +640,24 @@
     "version" : 1,
     "name" : "AWS Credential",
     "properties" : [ {
-      "id" : "authentication.type",
-      "label" : "Authentication",
-      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
-      "value" : "credentials",
-      "group" : "authentication",
       "binding" : {
         "name" : "authentication.type",
         "type" : "property"
       },
-      "type" : "Dropdown",
       "choices" : [ {
         "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
         "value" : "defaultCredentialsChain"
       }, {
         "name" : "Credentials",
         "value" : "credentials"
-      } ]
-    }, {
-      "id" : "authentication.accessKey",
-      "label" : "Access key",
-      "constraints" : {
-        "notEmpty" : true
-      },
+      } ],
+      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
       "group" : "authentication",
+      "id" : "authentication.type",
+      "label" : "Authentication",
+      "type" : "Dropdown",
+      "value" : "credentials"
+    }, {
       "binding" : {
         "name" : "authentication.accessKey",
         "type" : "property"
@@ -673,16 +667,16 @@
         "equals" : "credentials",
         "type" : "simple"
       },
-      "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "authentication.secretKey",
-      "label" : "Secret key",
       "constraints" : {
         "notEmpty" : true
       },
       "group" : "authentication",
+      "id" : "authentication.accessKey",
+      "label" : "Access key",
+      "secret" : true,
+      "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.secretKey",
         "type" : "property"
@@ -692,20 +686,26 @@
         "equals" : "credentials",
         "type" : "simple"
       },
-      "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "region",
-      "label" : "Region",
       "constraints" : {
         "notEmpty" : true
       },
-      "group" : "configuration",
+      "group" : "authentication",
+      "id" : "authentication.secretKey",
+      "label" : "Secret key",
+      "secret" : true,
+      "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "region",
         "type" : "property"
       },
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "configuration",
+      "id" : "region",
+      "label" : "Region",
       "type" : "String"
     } ]
   } ],

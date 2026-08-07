@@ -23,7 +23,6 @@ import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.http.InstanceForwardingHttpClient;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
@@ -61,11 +60,15 @@ abstract class BaseMultiInstancesTest {
   final int port1 = 18080;
   final int port2 = 18081;
 
+  // InstanceForwardingHttpClient is still Jackson 2-only (not yet migrated as part of #5910), so
+  // this uses a standalone Jackson 2 mapper rather than the (Jackson 3)
+  // ConnectorsObjectMapperSupplier.
   final InstanceForwardingHttpClient instanceForwardingHttpClient =
       new InstanceForwardingHttpClient(
           HttpClient.newHttpClient(),
           (path) -> List.of("http://localhost:" + port1 + path, "http://localhost:" + port2 + path),
-          ConnectorsObjectMapperSupplier.getCopy());
+          new com.fasterxml.jackson.databind.ObjectMapper()
+              .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule()));
 
   static final ExecutableId UNKNOWN_ID = ExecutableId.fromHashedId("abcdef");
   static final ExecutableId RANDOM_ID_1 = ExecutableId.fromDeduplicationId("theid1");

@@ -21,8 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
@@ -43,6 +41,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @ExtendWith(MockitoExtension.class)
 public class DocumentDeserializationTest {
@@ -56,9 +56,9 @@ public class DocumentDeserializationTest {
   @BeforeEach
   public void initialize() {
     objectMapper =
-        new ObjectMapper()
-            .registerModule(new JacksonModuleDocumentDeserializer(factory, operationExecutor))
-            .registerModule(new Jdk8Module());
+        JsonMapper.builder()
+            .addModule(new JacksonModuleDocumentDeserializer(factory, operationExecutor))
+            .build();
   }
 
   @Test

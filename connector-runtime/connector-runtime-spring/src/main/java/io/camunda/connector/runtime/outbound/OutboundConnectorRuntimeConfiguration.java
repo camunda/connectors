@@ -21,7 +21,6 @@ import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.resolveC
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.resolvePhysicalTenantId;
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.toMapByPhysicalTenantId;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
@@ -34,7 +33,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.document.jackson.v3.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
@@ -44,6 +43,7 @@ import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.intrinsic.MutableObjectMapperSupplier;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
@@ -80,6 +80,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
+import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 @Import({OutboundConnectorsRestController.class, InstanceForwardingConfiguration.class})
@@ -577,7 +578,8 @@ public class OutboundConnectorRuntimeConfiguration {
 
   private static ObjectMapper buildOutboundConnectorObjectMapper(DocumentFactory documentFactory) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
-    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var mapperHolder = new MutableObjectMapperSupplier();
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(mapperHolder);
 
     var jacksonModuleDocumentDeserializer =
         new JacksonModuleDocumentDeserializer(
@@ -585,11 +587,17 @@ public class OutboundConnectorRuntimeConfiguration {
             functionExecutor,
             JacksonModuleDocumentDeserializer.DocumentModuleSettings.create());
 
-    return copy.registerModules(
-        jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(
-            false,
-            FeelExpressionEvaluatorBuilder.local().build()), // FEEL annotation processing disabled
-        new JacksonModuleDocumentSerializer());
+    var finalMapper =
+        copy.rebuild()
+            .addModules(
+                jacksonModuleDocumentDeserializer,
+                new JacksonModuleFeelFunction(
+                    false,
+                    FeelExpressionEvaluatorBuilder.local()
+                        .build()), // FEEL annotation processing disabled
+                new JacksonModuleDocumentSerializer())
+            .build();
+    mapperHolder.set(finalMapper);
+    return finalMapper;
   }
 }

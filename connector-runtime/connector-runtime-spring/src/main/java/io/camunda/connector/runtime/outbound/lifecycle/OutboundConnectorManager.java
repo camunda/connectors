@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.outbound.lifecycle;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.annotation.value.JobWorkerValue;
 import io.camunda.client.annotation.value.SourceAware;
@@ -45,6 +44,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.ObjectMapper;
 
 public class OutboundConnectorManager implements CamundaClientLifecycleAware {
 

@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.generator.openapi.util;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
@@ -182,13 +181,9 @@ public class ParameterUtil {
     } else if (data instanceof Boolean || data instanceof Number) {
       return data.toString();
     }
-    try {
-      return ConnectorsObjectMapperSupplier.getCopy()
-          .writerWithDefaultPrettyPrinter()
-          .writeValueAsString(data);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
+    return ConnectorsObjectMapperSupplier.getCopy()
+        .writerWithDefaultPrettyPrinter()
+        .writeValueAsString(data);
   }
 
   private static Object generateFakeDataFromSchema(Schema<?> schema, Components components) {

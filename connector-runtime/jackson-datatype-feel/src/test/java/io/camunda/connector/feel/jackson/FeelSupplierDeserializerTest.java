@@ -18,25 +18,21 @@ package io.camunda.connector.feel.jackson;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 public class FeelSupplierDeserializerTest {
 
   private final ObjectMapper mapper =
-      new ObjectMapper()
-          .registerModule(new JacksonModuleFeelFunction())
-          .registerModule(new JavaTimeModule());
+      JsonMapper.builder().addModule(new JacksonModuleFeelFunction()).build();
 
   @Test
-  void feelSupplierDeserialization_objectResult() throws JsonProcessingException {
+  void feelSupplierDeserialization_objectResult() {
     // given
     String json =
         """
@@ -53,7 +49,7 @@ public class FeelSupplierDeserializerTest {
   }
 
   @Test
-  void feelSupplierDeserialization_stringResult() throws JsonProcessingException {
+  void feelSupplierDeserialization_stringResult() {
     // given
     String json =
         """
@@ -69,7 +65,7 @@ public class FeelSupplierDeserializerTest {
   }
 
   @Test
-  void feelSupplierDeserialization_booleanResult() throws JsonProcessingException {
+  void feelSupplierDeserialization_booleanResult() {
     // given
     String json =
         """
@@ -85,7 +81,7 @@ public class FeelSupplierDeserializerTest {
   }
 
   @Test
-  void feelSupplierDeserialization_integerResult() throws JsonProcessingException {
+  void feelSupplierDeserialization_integerResult() {
     // given
     String json =
         """
@@ -101,7 +97,7 @@ public class FeelSupplierDeserializerTest {
   }
 
   @Test
-  void feelSupplierDeserialization_nullResult() throws JsonProcessingException {
+  void feelSupplierDeserialization_nullResult() {
     // given
     String json =
         """
@@ -117,7 +113,7 @@ public class FeelSupplierDeserializerTest {
   }
 
   @Test
-  void feelSupplierDeserialization_listResult() throws JsonProcessingException {
+  void feelSupplierDeserialization_listResult() {
     // given
     String json =
         """
@@ -133,7 +129,7 @@ public class FeelSupplierDeserializerTest {
   }
 
   @Test
-  void feelSupplierDeserialization_mapResult() throws JsonProcessingException {
+  void feelSupplierDeserialization_mapResult() {
     // given
     String json =
         """
@@ -163,7 +159,7 @@ public class FeelSupplierDeserializerTest {
   }
 
   @Test
-  void feelSupplierDeserialization_contextProvided() throws IOException {
+  void feelSupplierDeserialization_contextProvided() {
     // given
     var json =
         """
@@ -175,7 +171,8 @@ public class FeelSupplierDeserializerTest {
     TargetTypeString targetType =
         FeelContextAwareObjectReader.of(mapper)
             .withStaticContext(context)
-            .readValue(json, TargetTypeString.class);
+            .forType(TargetTypeString.class)
+            .readValue(json);
 
     // then
     String result = targetType.supplier().get();
@@ -183,7 +180,7 @@ public class FeelSupplierDeserializerTest {
   }
 
   @Test
-  void feelSupplierDeserialization_java8Time() throws IOException {
+  void feelSupplierDeserialization_java8Time() {
     // given
     var json =
         """

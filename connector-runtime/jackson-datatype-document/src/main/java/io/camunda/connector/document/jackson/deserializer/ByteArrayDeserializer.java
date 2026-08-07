@@ -18,21 +18,15 @@ package io.camunda.connector.document.jackson.deserializer;
 
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
 
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.deser.std.PrimitiveArrayDeserializers;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import java.io.IOException;
 import java.util.Map;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
 
 public class ByteArrayDeserializer extends AbstractDeserializer<byte[]> {
-
-  private final JsonDeserializer<?> fallbackDeserializer =
-      PrimitiveArrayDeserializers.forType(byte.class);
 
   private final DocumentDeserializer documentDeserializer;
   private final IntrinsicFunctionObjectResultDeserializer intrinsicFunctionDeserializer;
@@ -62,8 +56,7 @@ public class ByteArrayDeserializer extends AbstractDeserializer<byte[]> {
   }
 
   @Override
-  protected byte[] handleJsonNode(JsonNode node, DeserializationContext context)
-      throws IOException {
+  protected byte[] handleJsonNode(JsonNode node, DeserializationContext context) {
 
     if (isDocumentReference(node)) {
       final var document = documentDeserializer.handleJsonNode(node, context);
@@ -79,9 +72,7 @@ public class ByteArrayDeserializer extends AbstractDeserializer<byte[]> {
           "Unsupported operation result, expected a document, got: " + functionResult);
     }
 
-    // if not document or operation, fallback to default deserialization
-    var parser = node.traverse(context.getParser().getCodec());
-    parser.nextToken();
-    return (byte[]) fallbackDeserializer.deserialize(parser, context);
+    // if not document or operation, fall back to base64-decoding the node's binary/text content
+    return node.binaryValue();
   }
 }

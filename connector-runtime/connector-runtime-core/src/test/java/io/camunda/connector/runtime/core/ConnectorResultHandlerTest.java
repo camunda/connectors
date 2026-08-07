@@ -19,13 +19,12 @@ package io.camunda.connector.runtime.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.document.jackson.v3.JacksonModuleDocumentSerializer;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.TestDocumentFactory;
 import io.camunda.connector.runtime.core.error.BpmnError;
@@ -40,12 +39,16 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 class ConnectorResultHandlerTest {
 
   private final ObjectMapper objectMapper =
       ConnectorsObjectMapperSupplier.getCopy()
-          .registerModule(new JacksonModuleDocumentSerializer());
+          .rebuild()
+          .addModule(new JacksonModuleDocumentSerializer())
+          .build();
   private final TestDocumentFactory documentFactory = new TestDocumentFactory();
   private final ConnectorResultHandler connectorResultHandler =
       new ConnectorResultHandler(objectMapper, documentFactory);
@@ -478,12 +481,13 @@ class ConnectorResultHandlerTest {
     var expectedDocument = Mockito.mock(Document.class);
     Mockito.when(factoryB.resolve(Mockito.any())).thenReturn(expectedDocument);
     var multiTenantMapper =
-        new ObjectMapper()
-            .registerModule(
+        JsonMapper.builder()
+            .addModule(
                 new JacksonModuleDocumentDeserializer(
                     Map.of("tenant-a", factoryA, "tenant-b", factoryB),
                     Mockito.mock(IntrinsicFunctionExecutor.class),
-                    JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()));
+                    JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()))
+            .build();
     var handler =
         new ConnectorResultHandler(multiTenantMapper, Mockito.mock(DocumentFactory.class));
 

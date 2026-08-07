@@ -36,90 +36,85 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
-    "value" : "io.camunda:sendMessage:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "group" : "taskDefinitionType",
+    "id" : "taskDefinitionType",
+    "type" : "String",
+    "value" : "io.camunda:sendMessage:1"
   }, {
-    "id" : "messageName",
-    "label" : "Message name",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
     "binding" : {
       "name" : "messageName",
       "type" : "zeebe:input"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "id" : "messageName",
+    "label" : "Message name",
     "type" : "String"
   }, {
-    "id" : "correlationKey",
-    "label" : "Correlation key",
-    "optional" : true,
-    "feel" : "optional",
     "binding" : {
       "name" : "correlationKey",
       "type" : "zeebe:input"
     },
+    "feel" : "optional",
+    "id" : "correlationKey",
+    "label" : "Correlation key",
+    "optional" : true,
     "type" : "String"
   }, {
-    "id" : "variables",
-    "label" : "Payload",
-    "optional" : true,
-    "feel" : "optional",
     "binding" : {
       "name" : "variables",
       "type" : "zeebe:input"
     },
+    "feel" : "optional",
+    "id" : "variables",
+    "label" : "Payload",
+    "optional" : true,
     "type" : "String"
   }, {
-    "id" : "tenantId",
-    "label" : "Tenant id",
-    "optional" : true,
-    "feel" : "optional",
     "binding" : {
       "name" : "tenantId",
       "type" : "zeebe:input"
     },
+    "feel" : "optional",
+    "id" : "tenantId",
+    "label" : "Tenant id",
+    "optional" : true,
     "type" : "String"
   }, {
-    "id" : "requestTimeout",
-    "label" : "Request timeout",
-    "optional" : true,
-    "feel" : "optional",
     "binding" : {
       "name" : "requestTimeout",
       "type" : "zeebe:input"
     },
+    "feel" : "optional",
+    "id" : "requestTimeout",
+    "label" : "Request timeout",
+    "optional" : true,
     "type" : "String"
   }, {
-    "id" : "correlationType.type",
-    "label" : "Correlation mode",
-    "description" : "Send message with <a href='https://docs.camunda.io/docs/components/concepts/messages/#message-buffering' target='_blank'>buffer (publish)</a> or with <a href='https://docs.camunda.io/docs/components/concepts/messages/#message-response' target='_blank'>result (correlate)</a>",
-    "value" : "publish",
-    "group" : "operation",
     "binding" : {
       "name" : "correlationType.type",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Correlate message (with result)",
       "value" : "correlate"
     }, {
       "name" : "Publish message (with buffer)",
       "value" : "publish"
-    } ]
-  }, {
-    "id" : "correlationType.timeToLive",
-    "label" : "Time to live (as ISO 8601)",
-    "optional" : true,
-    "feel" : "optional",
+    } ],
+    "description" : "Send message with <a href='https://docs.camunda.io/docs/components/concepts/messages/#message-buffering' target='_blank'>buffer (publish)</a> or with <a href='https://docs.camunda.io/docs/components/concepts/messages/#message-response' target='_blank'>result (correlate)</a>",
     "group" : "operation",
+    "id" : "correlationType.type",
+    "label" : "Correlation mode",
+    "type" : "Dropdown",
+    "value" : "publish"
+  }, {
     "binding" : {
       "name" : "correlationType.timeToLive",
       "type" : "zeebe:input"
@@ -129,14 +124,14 @@
       "equals" : "publish",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "operation",
+    "id" : "correlationType.timeToLive",
+    "label" : "Time to live (as ISO 8601)",
+    "optional" : true,
     "tooltip" : "Duration for which the message remains buffered",
     "type" : "String"
   }, {
-    "id" : "correlationType.messageId",
-    "label" : "Message id (optional)",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "operation",
     "binding" : {
       "name" : "correlationType.messageId",
       "type" : "zeebe:input"
@@ -146,94 +141,99 @@
       "equals" : "publish",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "operation",
+    "id" : "correlationType.messageId",
+    "label" : "Message id (optional)",
+    "optional" : true,
     "type" : "String"
   }, {
-    "id" : "version",
-    "label" : "Version",
-    "description" : "Version of the element template",
-    "value" : "1",
-    "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
-  }, {
-    "id" : "id",
-    "label" : "ID",
-    "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.message.v1",
+    "description" : "Version of the element template",
     "group" : "connector",
+    "id" : "version",
+    "label" : "Version",
+    "type" : "Hidden",
+    "value" : "1"
+  }, {
     "binding" : {
       "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
+    "description" : "ID of the element template",
+    "group" : "connector",
+    "id" : "id",
+    "label" : "ID",
+    "type" : "Hidden",
+    "value" : "io.camunda.connectors.message.v1"
   }, {
-    "id" : "resultVariable",
-    "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
-    "group" : "output",
     "binding" : {
       "key" : "resultVariable",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "group" : "output",
+    "id" : "resultVariable",
+    "label" : "Result variable",
     "type" : "String"
   }, {
-    "id" : "resultExpression",
-    "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "output",
     "binding" : {
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "id" : "resultExpression",
+    "label" : "Result expression",
     "type" : "Text"
   }, {
-    "id" : "errorExpression",
-    "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "error",
     "binding" : {
       "key" : "errorExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "id" : "errorExpression",
+    "label" : "Error expression",
     "type" : "Text"
   }, {
-    "id" : "retryCount",
-    "label" : "Retries",
-    "description" : "Number of retries",
-    "value" : "3",
-    "feel" : "optional",
-    "group" : "retries",
     "binding" : {
       "property" : "retries",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
-  }, {
-    "id" : "retryBackoff",
-    "label" : "Retry backoff",
-    "description" : "ISO-8601 duration to wait between retries",
-    "value" : "PT30S",
+    "description" : "Number of retries",
+    "feel" : "optional",
     "group" : "retries",
+    "id" : "retryCount",
+    "label" : "Retries",
+    "type" : "String",
+    "value" : "3"
+  }, {
     "binding" : {
       "key" : "retryBackoff",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "String"
-  }, {
-    "id" : "jobTimeout",
-    "label" : "Job timeout",
-    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
-    "optional" : true,
+    "description" : "ISO-8601 duration to wait between retries",
     "group" : "retries",
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "type" : "String",
+    "value" : "PT30S"
+  }, {
     "binding" : {
       "key" : "jobTimeout",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "group" : "retries",
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "optional" : true,
     "type" : "String"
   } ],
   "steps" : [ {

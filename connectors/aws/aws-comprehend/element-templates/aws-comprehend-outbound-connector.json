@@ -43,55 +43,47 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "value" : "io.camunda:aws-comprehend:1",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "Hidden"
+    "type" : "Hidden",
+    "value" : "io.camunda:aws-comprehend:1"
   }, {
-    "id" : "input.type",
-    "label" : "Execution type",
-    "group" : "operation",
     "binding" : {
       "name" : "input.type",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Sync",
       "value" : "sync"
     }, {
       "name" : "Async",
       "value" : "async"
-    } ]
+    } ],
+    "group" : "operation",
+    "id" : "input.type",
+    "label" : "Execution type",
+    "type" : "Dropdown"
   }, {
-    "id" : "authentication.type",
-    "label" : "Authentication",
-    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
-    "value" : "credentials",
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.type",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
       "value" : "defaultCredentialsChain"
     }, {
       "name" : "Credentials",
       "value" : "credentials"
-    } ]
-  }, {
-    "id" : "authentication.accessKey",
-    "label" : "Access key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    } ],
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
     "group" : "authentication",
+    "id" : "authentication.type",
+    "label" : "Authentication",
+    "type" : "Dropdown",
+    "value" : "credentials"
+  }, {
     "binding" : {
       "name" : "authentication.accessKey",
       "type" : "zeebe:input"
@@ -101,18 +93,18 @@
       "equals" : "credentials",
       "type" : "simple"
     },
-    "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "authentication.secretKey",
-    "label" : "Secret key",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.accessKey",
+    "label" : "Access key",
+    "optional" : false,
+    "secret" : true,
+    "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.secretKey",
       "type" : "zeebe:input"
@@ -122,55 +114,55 @@
       "equals" : "credentials",
       "type" : "simple"
     },
-    "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "awsCredential",
-    "label" : "AWS credential",
-    "description" : "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's 'awsCredential' input.",
-    "optional" : true,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.secretKey",
+    "label" : "Secret key",
+    "optional" : false,
+    "secret" : true,
+    "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "awsCredential",
       "type" : "zeebe:input"
     },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda:aws-credential:1"
+    "configurationTemplate" : "io.camunda:aws-credential:1",
+    "description" : "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's 'awsCredential' input.",
+    "group" : "authentication",
+    "id" : "awsCredential",
+    "label" : "AWS credential",
+    "optional" : true,
+    "type" : "Configuration"
   }, {
-    "id" : "configuration.region",
-    "label" : "Region",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "configuration",
     "binding" : {
       "name" : "configuration.region",
       "type" : "zeebe:input"
     },
-    "type" : "String"
-  }, {
-    "id" : "configuration.endpoint",
-    "label" : "Endpoint",
-    "description" : "Specify endpoint if need to use custom endpoint",
-    "optional" : true,
-    "group" : "configuration",
-    "binding" : {
-      "name" : "configuration.endpoint",
-      "type" : "zeebe:input"
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "input.text",
-    "label" : "Text",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "input",
+    "group" : "configuration",
+    "id" : "configuration.region",
+    "label" : "Region",
+    "optional" : false,
+    "type" : "String"
+  }, {
+    "binding" : {
+      "name" : "configuration.endpoint",
+      "type" : "zeebe:input"
+    },
+    "description" : "Specify endpoint if need to use custom endpoint",
+    "group" : "configuration",
+    "id" : "configuration.endpoint",
+    "label" : "Endpoint",
+    "optional" : true,
+    "type" : "Hidden"
+  }, {
     "binding" : {
       "name" : "input.text",
       "type" : "zeebe:input"
@@ -180,17 +172,17 @@
       "equals" : "sync",
       "type" : "simple"
     },
-    "tooltip" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_ClassifyDocument.html#comprehend-ClassifyDocument-request-Text\">Text</a> to be analyzed.",
-    "type" : "String"
-  }, {
-    "id" : "input.endpointArn",
-    "label" : "Endpoint's ARN",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "input",
+    "id" : "input.text",
+    "label" : "Text",
+    "optional" : false,
+    "tooltip" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_ClassifyDocument.html#comprehend-ClassifyDocument-request-Text\">Text</a> to be analyzed.",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "input.endpointArn",
       "type" : "zeebe:input"
@@ -200,28 +192,21 @@
       "equals" : "sync",
       "type" : "simple"
     },
-    "tooltip" : "ARN of the custom model <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_ClassifyDocument.html#comprehend-ClassifyDocument-request-EndpointArn\">endpoint</a> used to run the classification.",
-    "type" : "String"
-  }, {
-    "id" : "input.async.documentReadMode",
-    "label" : "Document read mode",
-    "optional" : false,
-    "value" : "SERVICE_DEFAULT",
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "input",
+    "id" : "input.endpointArn",
+    "label" : "Endpoint's ARN",
+    "optional" : false,
+    "tooltip" : "ARN of the custom model <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_ClassifyDocument.html#comprehend-ClassifyDocument-request-EndpointArn\">endpoint</a> used to run the classification.",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "input.documentReadMode",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "input.type",
-      "equals" : "async",
-      "type" : "simple"
-    },
-    "tooltip" : "Determines <a href=\"https://docs.aws.amazon.com/comprehend/latest/dg/idp-set-textract-options.html\">text extraction actions</a> for PDF files.",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Service default",
       "value" : "SERVICE_DEFAULT"
@@ -231,27 +216,27 @@
     }, {
       "name" : "None",
       "value" : "NO_DATA"
-    } ]
-  }, {
-    "id" : "input.async.documentReadAction",
-    "label" : "Document read action",
-    "optional" : false,
-    "value" : "TEXTRACT_DETECT_DOCUMENT_TEXT",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "input",
-    "binding" : {
-      "name" : "input.documentReadAction",
-      "type" : "zeebe:input"
-    },
+    } ],
     "condition" : {
       "property" : "input.type",
       "equals" : "async",
       "type" : "simple"
     },
-    "tooltip" : "The Amazon Textract API operation that Amazon Comprehend uses to extract text from PDF files and image files.",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "id" : "input.async.documentReadMode",
+    "label" : "Document read mode",
+    "optional" : false,
+    "tooltip" : "Determines <a href=\"https://docs.aws.amazon.com/comprehend/latest/dg/idp-set-textract-options.html\">text extraction actions</a> for PDF files.",
     "type" : "Dropdown",
+    "value" : "SERVICE_DEFAULT"
+  }, {
+    "binding" : {
+      "name" : "input.documentReadAction",
+      "type" : "zeebe:input"
+    },
     "choices" : [ {
       "name" : "Detect document text",
       "value" : "TEXTRACT_DETECT_DOCUMENT_TEXT"
@@ -261,14 +246,23 @@
     }, {
       "name" : "None",
       "value" : "NO_DATA"
-    } ]
-  }, {
-    "id" : "input.async.featureTypeTables",
-    "label" : "Analyze tables",
-    "optional" : false,
-    "value" : false,
-    "feel" : "static",
+    } ],
+    "condition" : {
+      "property" : "input.type",
+      "equals" : "async",
+      "type" : "simple"
+    },
+    "constraints" : {
+      "notEmpty" : true
+    },
     "group" : "input",
+    "id" : "input.async.documentReadAction",
+    "label" : "Document read action",
+    "optional" : false,
+    "tooltip" : "The Amazon Textract API operation that Amazon Comprehend uses to extract text from PDF files and image files.",
+    "type" : "Dropdown",
+    "value" : "TEXTRACT_DETECT_DOCUMENT_TEXT"
+  }, {
     "binding" : {
       "name" : "input.featureTypeTables",
       "type" : "zeebe:input"
@@ -284,14 +278,14 @@
         "type" : "simple"
       } ]
     },
-    "type" : "Boolean"
-  }, {
-    "id" : "input.async.featureTypeForms",
-    "label" : "Analyze forms",
-    "optional" : false,
-    "value" : false,
     "feel" : "static",
     "group" : "input",
+    "id" : "input.async.featureTypeTables",
+    "label" : "Analyze tables",
+    "optional" : false,
+    "type" : "Boolean",
+    "value" : false
+  }, {
     "binding" : {
       "name" : "input.featureTypeForms",
       "type" : "zeebe:input"
@@ -307,16 +301,14 @@
         "type" : "simple"
       } ]
     },
-    "type" : "Boolean"
-  }, {
-    "id" : "input.inputS3Uri",
-    "label" : "Inputs' S3 URI",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "input",
+    "id" : "input.async.featureTypeForms",
+    "label" : "Analyze forms",
+    "optional" : false,
+    "type" : "Boolean",
+    "value" : false
+  }, {
     "binding" : {
       "name" : "input.inputS3Uri",
       "type" : "zeebe:input"
@@ -326,25 +318,21 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "id" : "input.inputS3Uri",
+    "label" : "Inputs' S3 URI",
+    "optional" : false,
     "tooltip" : "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_InputDataConfig.html#comprehend-Type-InputDataConfig-S3Uri\">S3Uri</a> for input data.",
     "type" : "String"
   }, {
-    "id" : "input.comprehendInputFormat",
-    "label" : "Input file processing mode",
-    "optional" : false,
-    "value" : "ONE_DOC_PER_FILE",
-    "group" : "input",
     "binding" : {
       "name" : "input.comprehendInputFormat",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "input.type",
-      "equals" : "async",
-      "type" : "simple"
-    },
-    "tooltip" : "Specifies how to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_InputDataConfig.html#comprehend-Type-InputDataConfig-InputFormat\">process input data</a>.",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Each file is considered a separate document",
       "value" : "ONE_DOC_PER_FILE"
@@ -354,13 +342,20 @@
     }, {
       "name" : "None",
       "value" : "NO_DATA"
-    } ]
-  }, {
-    "id" : "input.clientRequestToken",
-    "label" : "Client request token",
-    "optional" : true,
-    "feel" : "optional",
+    } ],
+    "condition" : {
+      "property" : "input.type",
+      "equals" : "async",
+      "type" : "simple"
+    },
     "group" : "input",
+    "id" : "input.comprehendInputFormat",
+    "label" : "Input file processing mode",
+    "optional" : false,
+    "tooltip" : "Specifies how to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_InputDataConfig.html#comprehend-Type-InputDataConfig-InputFormat\">process input data</a>.",
+    "type" : "Dropdown",
+    "value" : "ONE_DOC_PER_FILE"
+  }, {
     "binding" : {
       "name" : "input.clientRequestToken",
       "type" : "zeebe:input"
@@ -370,17 +365,14 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "input",
+    "id" : "input.clientRequestToken",
+    "label" : "Client request token",
+    "optional" : true,
     "tooltip" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-ClientRequestToken\">Unique identifier</a> for the processing.",
     "type" : "String"
   }, {
-    "id" : "input.dataAccessRoleArn",
-    "label" : "Data Access Role's ARN",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "input",
     "binding" : {
       "name" : "input.dataAccessRoleArn",
       "type" : "zeebe:input"
@@ -390,17 +382,17 @@
       "equals" : "async",
       "type" : "simple"
     },
-    "tooltip" : "ARN of IAM role that grants <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-DataAccessRoleArn\">Amazon Comprehend read access</a> to input data.",
-    "type" : "String"
-  }, {
-    "id" : "input.documentClassifierArn",
-    "label" : "Document Classifier's ARN",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "input",
+    "id" : "input.dataAccessRoleArn",
+    "label" : "Data Access Role's ARN",
+    "optional" : false,
+    "tooltip" : "ARN of IAM role that grants <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-DataAccessRoleArn\">Amazon Comprehend read access</a> to input data.",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "input.documentClassifierArn",
       "type" : "zeebe:input"
@@ -410,14 +402,17 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "id" : "input.documentClassifierArn",
+    "label" : "Document Classifier's ARN",
+    "optional" : false,
     "tooltip" : "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-DocumentClassifierArn\">ARN of document classifier</a> to process input data.",
     "type" : "String"
   }, {
-    "id" : "input.flywheelArn",
-    "label" : "Flywheel's ARN",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "input",
     "binding" : {
       "name" : "input.flywheelArn",
       "type" : "zeebe:input"
@@ -427,14 +422,14 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "input",
+    "id" : "input.flywheelArn",
+    "label" : "Flywheel's ARN",
+    "optional" : true,
     "tooltip" : "ARN of the <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-FlywheelArn\">flywheel</a> that orchestrates training and versioning of the classification model.",
     "type" : "String"
   }, {
-    "id" : "input.jobName",
-    "label" : "Job name",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "input",
     "binding" : {
       "name" : "input.jobName",
       "type" : "zeebe:input"
@@ -444,16 +439,13 @@
       "equals" : "async",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "input.outputS3Uri",
-    "label" : "Output's S3 URI",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "input",
+    "id" : "input.jobName",
+    "label" : "Job name",
+    "optional" : true,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "input.outputS3Uri",
       "type" : "zeebe:input"
@@ -463,14 +455,17 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "id" : "input.outputS3Uri",
+    "label" : "Output's S3 URI",
+    "optional" : false,
     "tooltip" : "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_InputDataConfig.html#comprehend-Type-OutputDataConfig-S3Uri\">S3Uri</a> for output data.",
     "type" : "String"
   }, {
-    "id" : "input.outputKmsKeyId",
-    "label" : "Outputs KMS Key Id",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "input",
     "binding" : {
       "name" : "input.outputKmsKeyId",
       "type" : "zeebe:input"
@@ -480,14 +475,14 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "input",
+    "id" : "input.outputKmsKeyId",
+    "label" : "Outputs KMS Key Id",
+    "optional" : true,
     "tooltip" : "KMS' key Id used to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_OutputDataConfig.html#comprehend-Type-OutputDataConfig-KmsKeyId\">encrypt output data</a>.",
     "type" : "String"
   }, {
-    "id" : "input.tags",
-    "label" : "Tags",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "input",
     "binding" : {
       "name" : "input.tags",
       "type" : "zeebe:input"
@@ -497,14 +492,14 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "feel" : "required",
+    "group" : "input",
+    "id" : "input.tags",
+    "label" : "Tags",
+    "optional" : true,
     "tooltip" : "Tags to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-Tags\">associate with the document classification job</a>.",
     "type" : "String"
   }, {
-    "id" : "input.volumeKmsKeyId",
-    "label" : "VolumeKmsKeyId",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "input",
     "binding" : {
       "name" : "input.volumeKmsKeyId",
       "type" : "zeebe:input"
@@ -514,14 +509,14 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "input",
+    "id" : "input.volumeKmsKeyId",
+    "label" : "VolumeKmsKeyId",
+    "optional" : true,
     "tooltip" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-VolumeKmsKeyId\">KMS to encrypt data on storage</a> attached to compute instance.",
     "type" : "String"
   }, {
-    "id" : "input.securityGroupIds",
-    "label" : "Security group Ids",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "input",
     "binding" : {
       "name" : "input.securityGroupIds",
       "type" : "zeebe:input"
@@ -531,14 +526,14 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "feel" : "required",
+    "group" : "input",
+    "id" : "input.securityGroupIds",
+    "label" : "Security group Ids",
+    "optional" : true,
     "tooltip" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_VpcConfig.html#comprehend-Type-VpcConfig-SecurityGroupIds\">ID for security group</a> on instance of private VPC.",
     "type" : "String"
   }, {
-    "id" : "input.subnets",
-    "label" : "Subnets",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "input",
     "binding" : {
       "name" : "input.subnets",
       "type" : "zeebe:input"
@@ -548,95 +543,100 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "feel" : "required",
+    "group" : "input",
+    "id" : "input.subnets",
+    "label" : "Subnets",
+    "optional" : true,
     "tooltip" : "ID for each <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_VpcConfig.html#comprehend-Type-VpcConfig-Subnets\">subnet used in VPC</a>.",
     "type" : "String"
   }, {
-    "id" : "version",
-    "label" : "Version",
-    "description" : "Version of the element template",
-    "value" : "5",
-    "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
-  }, {
-    "id" : "id",
-    "label" : "ID",
-    "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.AWSCOMPREHEND.v1",
+    "description" : "Version of the element template",
     "group" : "connector",
+    "id" : "version",
+    "label" : "Version",
+    "type" : "Hidden",
+    "value" : "5"
+  }, {
     "binding" : {
       "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
+    "description" : "ID of the element template",
+    "group" : "connector",
+    "id" : "id",
+    "label" : "ID",
+    "type" : "Hidden",
+    "value" : "io.camunda.connectors.AWSCOMPREHEND.v1"
   }, {
-    "id" : "resultVariable",
-    "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
-    "group" : "output",
     "binding" : {
       "key" : "resultVariable",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "group" : "output",
+    "id" : "resultVariable",
+    "label" : "Result variable",
     "type" : "String"
   }, {
-    "id" : "resultExpression",
-    "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "output",
     "binding" : {
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "id" : "resultExpression",
+    "label" : "Result expression",
     "type" : "Text"
   }, {
-    "id" : "errorExpression",
-    "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "error",
     "binding" : {
       "key" : "errorExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "id" : "errorExpression",
+    "label" : "Error expression",
     "type" : "Text"
   }, {
-    "id" : "retryCount",
-    "label" : "Retries",
-    "description" : "Number of retries",
-    "value" : "3",
-    "feel" : "optional",
-    "group" : "retries",
     "binding" : {
       "property" : "retries",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
-  }, {
-    "id" : "retryBackoff",
-    "label" : "Retry backoff",
-    "description" : "ISO-8601 duration to wait between retries",
-    "value" : "PT30S",
+    "description" : "Number of retries",
+    "feel" : "optional",
     "group" : "retries",
+    "id" : "retryCount",
+    "label" : "Retries",
+    "type" : "String",
+    "value" : "3"
+  }, {
     "binding" : {
       "key" : "retryBackoff",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "String"
-  }, {
-    "id" : "jobTimeout",
-    "label" : "Job timeout",
-    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
-    "optional" : true,
+    "description" : "ISO-8601 duration to wait between retries",
     "group" : "retries",
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "type" : "String",
+    "value" : "PT30S"
+  }, {
     "binding" : {
       "key" : "jobTimeout",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "group" : "retries",
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "optional" : true,
     "type" : "String"
   } ],
   "steps" : [ {
@@ -667,30 +667,24 @@
     "version" : 1,
     "name" : "AWS Credential",
     "properties" : [ {
-      "id" : "authentication.type",
-      "label" : "Authentication",
-      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
-      "value" : "credentials",
-      "group" : "authentication",
       "binding" : {
         "name" : "authentication.type",
         "type" : "property"
       },
-      "type" : "Dropdown",
       "choices" : [ {
         "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
         "value" : "defaultCredentialsChain"
       }, {
         "name" : "Credentials",
         "value" : "credentials"
-      } ]
-    }, {
-      "id" : "authentication.accessKey",
-      "label" : "Access key",
-      "constraints" : {
-        "notEmpty" : true
-      },
+      } ],
+      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
       "group" : "authentication",
+      "id" : "authentication.type",
+      "label" : "Authentication",
+      "type" : "Dropdown",
+      "value" : "credentials"
+    }, {
       "binding" : {
         "name" : "authentication.accessKey",
         "type" : "property"
@@ -700,16 +694,16 @@
         "equals" : "credentials",
         "type" : "simple"
       },
-      "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "authentication.secretKey",
-      "label" : "Secret key",
       "constraints" : {
         "notEmpty" : true
       },
       "group" : "authentication",
+      "id" : "authentication.accessKey",
+      "label" : "Access key",
+      "secret" : true,
+      "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.secretKey",
         "type" : "property"
@@ -719,20 +713,26 @@
         "equals" : "credentials",
         "type" : "simple"
       },
-      "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "region",
-      "label" : "Region",
       "constraints" : {
         "notEmpty" : true
       },
-      "group" : "configuration",
+      "group" : "authentication",
+      "id" : "authentication.secretKey",
+      "label" : "Secret key",
+      "secret" : true,
+      "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "region",
         "type" : "property"
       },
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "configuration",
+      "id" : "region",
+      "label" : "Region",
       "type" : "String"
     } ]
   } ],

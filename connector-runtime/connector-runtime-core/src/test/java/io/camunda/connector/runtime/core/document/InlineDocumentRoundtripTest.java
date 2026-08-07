@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
@@ -29,17 +28,24 @@ import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Verifies the JSON → factory → {@code Document.reference()} → JSON path for inline documents,
  * including the intentional asymmetry where a missing {@code name} on input becomes a generated
  * UUID on output (because the factory mints a UUID at construction time).
+ *
+ * <p>{@code modelMapper} (read side) is Jackson 3, matching {@link InlineDocumentReferenceModel}'s
+ * {@code @JsonDeserialize} annotation. {@code serializingMapper} (write side) is deliberately
+ * Jackson 2, using the legacy {@link JacksonModuleDocumentSerializer} — see that class' javadoc.
+ * The two ends of the round-trip don't need to share a Jackson major version.
  */
 class InlineDocumentRoundtripTest {
 
-  private final ObjectMapper modelMapper = new ObjectMapper();
-  private final ObjectMapper serializingMapper =
-      new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
+  private final tools.jackson.databind.ObjectMapper modelMapper = JsonMapper.builder().build();
+  private final com.fasterxml.jackson.databind.ObjectMapper serializingMapper =
+      new com.fasterxml.jackson.databind.ObjectMapper()
+          .registerModule(new JacksonModuleDocumentSerializer());
   private final DocumentFactoryImpl factory =
       new DocumentFactoryImpl(mock(CamundaDocumentStore.class));
 

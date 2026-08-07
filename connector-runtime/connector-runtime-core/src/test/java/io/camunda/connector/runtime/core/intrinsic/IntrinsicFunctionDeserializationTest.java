@@ -22,15 +22,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.document.jackson.v3.JacksonModuleDocumentSerializer;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import java.nio.charset.StandardCharsets;
@@ -39,30 +35,39 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DatabindException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @ExtendWith(MockitoExtension.class)
 public class IntrinsicFunctionDeserializationTest {
 
   private final CamundaDocumentStore documentStore = mock(CamundaDocumentStore.class);
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper;
 
   public IntrinsicFunctionDeserializationTest() {
     /*
      * Order of initialization is important here. The operationExecutor is created first and then
      * the objectMapper is created with the operationExecutor. This is because the operationExecutor
-     * needs an objectMapper configured with the same modules.
+     * needs an objectMapper configured with the same modules. ObjectMapper is immutable in Jackson
+     * 3, so a MutableObjectMapperSupplier bridges the executor to the final, fully-built mapper.
      */
+    var mapperHolder = new MutableObjectMapperSupplier();
     IntrinsicFunctionExecutor operationExecutor =
-        spy(new DefaultIntrinsicFunctionExecutor(objectMapper));
+        spy(new DefaultIntrinsicFunctionExecutor(mapperHolder));
 
     final var settings = DocumentModuleSettings.create();
     settings.setMaxIntrinsicFunctions(2);
     final DocumentFactory factory = new DocumentFactoryImpl(documentStore);
-    objectMapper
-        .registerModule(new JacksonModuleDocumentDeserializer(factory, operationExecutor, settings))
-        .registerModule(new JacksonModuleDocumentSerializer())
-        .registerModule(new Jdk8Module());
+    objectMapper =
+        JsonMapper.builder()
+            .addModules(
+                new JacksonModuleDocumentDeserializer(factory, operationExecutor, settings),
+                new JacksonModuleDocumentSerializer())
+            .build();
+    mapperHolder.set(objectMapper);
   }
 
   private record StringResultModel(String result) {}
@@ -90,9 +95,10 @@ public class IntrinsicFunctionDeserializationTest {
         Map.of("result", Map.of("camunda.function.type", "wrong", "params", List.of(ref)));
     final var e =
         assertThrows(
-            IllegalArgumentException.class,
+            DatabindException.class,
             () -> objectMapper.convertValue(payload, StringResultModel.class));
 
+    assertThat(e).hasCauseInstanceOf(IllegalArgumentException.class);
     assertThat(e).hasMessageContaining("No intrinsic function found with name: wrong");
   }
 
@@ -148,7 +154,7 @@ public class IntrinsicFunctionDeserializationTest {
   }
 
   @Test
-  void operationWithObjectParameter_acceptsString() throws JsonProcessingException {
+  void operationWithObjectParameter_acceptsString() throws JacksonException {
     var string = "Hello World";
 
     final var payload =
@@ -161,7 +167,7 @@ public class IntrinsicFunctionDeserializationTest {
   }
 
   @Test
-  void operationWithObjectParameter_nestedOperation() throws JsonProcessingException {
+  void operationWithObjectParameter_nestedOperation() throws JacksonException {
     var contentString = " World";
     var ref = createDocumentMock(contentString, null, documentStore);
 
@@ -203,7 +209,7 @@ public class IntrinsicFunctionDeserializationTest {
             """;
 
     var exception =
-        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(payload, Map.class));
+        assertThrows(DatabindException.class, () -> objectMapper.readValue(payload, Map.class));
 
     assertThat(exception).hasMessageContaining("Intrinsic function limit exceeded");
   }
@@ -234,7 +240,7 @@ public class IntrinsicFunctionDeserializationTest {
             """;
 
     var exception =
-        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(payload, Map.class));
+        assertThrows(DatabindException.class, () -> objectMapper.readValue(payload, Map.class));
 
     assertThat(exception).hasMessageContaining("Intrinsic function limit exceeded");
   }

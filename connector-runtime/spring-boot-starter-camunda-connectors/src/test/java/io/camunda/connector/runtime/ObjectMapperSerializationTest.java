@@ -19,9 +19,6 @@ package io.camunda.connector.runtime;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.JsonMapper;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
@@ -33,6 +30,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.util.ReflectionTestUtils;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest(
     properties = {
@@ -47,7 +46,7 @@ public class ObjectMapperSerializationTest {
   @Autowired private ApplicationContext applicationContext;
 
   @Test
-  void getJsonMapper() throws JsonProcessingException {
+  void getJsonMapper() {
     ObjectMapper objectMapper = applicationContext.getBean(ObjectMapper.class);
     assertThat(objectMapper.writeValueAsString(new Date().toInstant().atOffset(ZoneOffset.UTC)))
         .isNotNull();
@@ -64,17 +63,19 @@ public class ObjectMapperSerializationTest {
 
     assertThat(objectMapper).isNotNull();
     assertThat(objectMapper).isInstanceOf(ObjectMapper.class);
-    assertThat(objectMapper.getDeserializationConfig()).isNotNull();
+    assertThat(objectMapper.deserializationConfig()).isNotNull();
     assertThat(
             objectMapper
-                .getDeserializationConfig()
+                .deserializationConfig()
                 .isEnabled(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES))
         .isFalse();
+    // This is Spring Boot's own default (unconfigured) Jackson 3 ObjectMapper bean, not one of
+    // ours — Jackson 3 flips this feature's default to enabled, unlike Jackson 2.
     assertThat(
             objectMapper
-                .getDeserializationConfig()
+                .deserializationConfig()
                 .isEnabled(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES))
-        .isFalse();
+        .isTrue();
     // should serialise OffsetDateTime
     assertThat(jsonMapper.toJson(new Date().toInstant().atOffset(ZoneOffset.UTC))).isNotNull();
   }

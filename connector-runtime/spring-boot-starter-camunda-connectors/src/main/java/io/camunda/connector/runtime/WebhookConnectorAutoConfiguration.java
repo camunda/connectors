@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.inbound.WebhookConnectorConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -25,7 +24,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @AutoConfiguration
 @AutoConfigureBefore(InboundConnectorsAutoConfiguration.class)
@@ -36,13 +37,13 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
     matchIfMissing = true)
 @Import(WebhookConnectorConfiguration.class)
 public class WebhookConnectorAutoConfiguration {
-  // TODO: Remove this with the Migration to Jackson 3
-  // This is currently required so that Webhook Endpoint responses are correctly
-  // serialized to JSON (e.g. including document support)
+  // This is required so that Webhook Endpoint responses are correctly serialized to JSON (e.g.
+  // including document support) through the same connectorsMapper used everywhere else, instead
+  // of Spring's own default Jackson message converter.
   @Bean
   @ConditionalOnMissingBean
-  public MappingJackson2HttpMessageConverter jackson2HttpMessageConverter(
+  public JacksonJsonHttpMessageConverter jacksonJsonHttpMessageConverter(
       @ConnectorsObjectMapper ObjectMapper connectorsMapper) {
-    return new MappingJackson2HttpMessageConverter(connectorsMapper);
+    return new JacksonJsonHttpMessageConverter((JsonMapper) connectorsMapper);
   }
 }

@@ -19,16 +19,14 @@ package io.camunda.connector.document.jackson.deserializer;
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isIntrinsicFunction;
 
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.deser.std.UntypedObjectDeserializer;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
 
 public class ObjectDeserializer extends AbstractDeserializer<Object> {
 
@@ -60,8 +58,7 @@ public class ObjectDeserializer extends AbstractDeserializer<Object> {
   }
 
   @Override
-  protected Object handleJsonNode(JsonNode node, DeserializationContext context)
-      throws IOException {
+  protected Object handleJsonNode(JsonNode node, DeserializationContext context) {
     if (isDocumentReference(node)) {
       // return Document object
       return documentDeserializer.handleJsonNode(node, context);
@@ -76,16 +73,13 @@ public class ObjectDeserializer extends AbstractDeserializer<Object> {
   }
 
   /** Fallback deserialization when the object is neither a document reference nor an operation. */
-  public Object fallback(JsonNode node, DeserializationContext ctx) throws IOException {
+  public Object fallback(JsonNode node, DeserializationContext ctx) {
     if (node.isObject()) {
-      var fields = node.fields();
+      var fields = node.properties();
       var map = new LinkedHashMap<String, Object>();
-      while (fields.hasNext()) {
-        var field = fields.next();
-        var parser = field.getValue().traverse();
-        parser.setCodec(ctx.getParser().getCodec());
-        // invoke the deserializer for the field
-        map.put(field.getKey(), ctx.readValue(parser, Object.class));
+      for (var field : fields) {
+        // invoke the deserializer for the field, so nested document references are still resolved
+        map.put(field.getKey(), ctx.readTreeAsValue(field.getValue(), Object.class));
       }
       return map;
     }
@@ -93,18 +87,24 @@ public class ObjectDeserializer extends AbstractDeserializer<Object> {
     if (node.isArray()) {
       var list = new ArrayList<>();
       for (int i = 0; i < node.size(); i++) {
-        var parser = node.get(i).traverse();
-        parser.setCodec(ctx.getParser().getCodec());
-        // invoke the deserializer for the element
-        list.add(ctx.readValue(parser, Object.class));
+        // invoke the deserializer for the element, so nested document references are still resolved
+        list.add(ctx.readTreeAsValue(node.get(i), Object.class));
       }
       return list;
     }
 
-    var parser = node.traverse(ctx.getParser().getCodec());
-    parser.nextToken();
-
-    final var fallbackDeserializer = new UntypedObjectDeserializer(null, null);
-    return fallbackDeserializer.deserialize(parser, ctx);
+    if (node.isTextual()) {
+      return node.textValue();
+    }
+    if (node.isNumber()) {
+      return node.numberValue();
+    }
+    if (node.isBoolean()) {
+      return node.booleanValue();
+    }
+    if (node.isBinary()) {
+      return node.binaryValue();
+    }
+    return null;
   }
 }

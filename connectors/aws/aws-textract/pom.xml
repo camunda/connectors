@@ -78,7 +78,7 @@ except in compliance with the proprietary license.</license.inlineheader>
          and assert against the expected JsonNode tree; otherwise only a transitive compile
          dependency via connector-aws-base -->
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
+      <groupId>tools.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <scope>test</scope>
     </dependency>
@@ -114,5 +114,4 @@ except in compliance with the proprietary license.</license.inlineheader>
   </build>
 
 </project>
-
 

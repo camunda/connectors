@@ -21,6 +21,12 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.document.jackson.serializer.DocumentSerializer;
 
+/**
+ * Jackson 2 variant, kept only because it is registered onto connector-feel's
+ * LocalFeelExpressionEvaluator ObjectMapper, which cannot move to Jackson 3 until
+ * jackson-module-scala ships a Jackson 3 release. Every other ObjectMapper in the codebase uses
+ * {@link io.camunda.connector.document.jackson.v3.JacksonModuleDocumentSerializer} instead.
+ */
 public class JacksonModuleDocumentSerializer extends SimpleModule {
 
   public JacksonModuleDocumentSerializer() {}

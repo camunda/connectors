@@ -109,7 +109,7 @@
       <artifactId>spring-boot-starter-cache</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
+      <groupId>tools.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
     <dependency>
@@ -225,11 +225,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>tools.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-web</artifactId>
     </dependency>
@@ -237,6 +232,27 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-jackson2</artifactId>
       <scope>test</scope>
+    </dependency>
+    <!-- Jackson 2: ConnectorsAutoConfiguration's camundaJsonMapper bean, and
+         BaseMultiInstancesTest/BaseOutboundMultiInstancesTest's standalone InstanceForwardingHttpClient
+         mapper, both need JavaTimeModule/Jdk8Module/ObjectMapper. Declared at compile scope rather
+         than test scope: a closer (test-scoped) declaration here would otherwise shadow the
+         transitive compile-scope dependency from connector-feel that main src relies on. -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jdk8</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
     </dependency>
    </dependencies>
 
@@ -262,6 +278,11 @@
                 <ignoredDependency>org.springframework.boot:spring-boot-starter-actuator</ignoredDependency>
                 <ignoredDependency>org.springframework.boot:spring-boot-starter-web</ignoredDependency>
                 <ignoredDependency>org.springframework.boot:spring-boot-starter-cache</ignoredDependency>
+                <!-- Jackson 2: needed at compile time (JsonMapper.builder() in
+                     ConnectorsAutoConfiguration transitively requires jackson-core's Versioned
+                     class to resolve), but the bytecode analyzer only sees it referenced from
+                     test code. -->
+                <ignoredDependency>com.fasterxml.jackson.core:jackson-core</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>

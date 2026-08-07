@@ -18,8 +18,6 @@ package io.camunda.connector.runtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
@@ -31,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jackson2.autoconfigure.Jackson2AutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest(
     properties = {
@@ -61,7 +60,7 @@ public class ObjectMapperQualifierTest {
   }
 
   @Test
-  void connectorObjectMapperShouldSupportFeelDeserialization() throws JsonProcessingException {
+  void connectorObjectMapperShouldSupportFeelDeserialization() {
     // Test that the connector ObjectMapper has FEEL support
     var json =
         """
@@ -76,7 +75,7 @@ public class ObjectMapperQualifierTest {
   }
 
   @Test
-  void connectorObjectMapperShouldEvaluateFeelFunctions() throws JsonProcessingException {
+  void connectorObjectMapperShouldEvaluateFeelFunctions() {
     // The default ConnectorsObjectMapper should evaluate FEEL functions (Supplier)
     var json =
         """
@@ -91,8 +90,7 @@ public class ObjectMapperQualifierTest {
   }
 
   @Test
-  void outboundConnectorObjectMapperShouldNotEvaluateFeelExpressions()
-      throws JsonProcessingException {
+  void outboundConnectorObjectMapperShouldNotEvaluateFeelExpressions() {
     // The OutboundConnectorObjectMapper has FEEL functions DISABLED
     // So @FEEL annotated fields should NOT evaluate FEEL expressions
     var json =
@@ -108,8 +106,7 @@ public class ObjectMapperQualifierTest {
   }
 
   @Test
-  void outboundConnectorObjectMapperShouldNotEvaluateFeelFunctions()
-      throws JsonProcessingException {
+  void outboundConnectorObjectMapperShouldNotEvaluateFeelFunctions() {
     // The OutboundConnectorObjectMapper has FEEL functions DISABLED
     // So Supplier fields should NOT be evaluated as FEEL expressions
     var json =
@@ -126,7 +123,7 @@ public class ObjectMapperQualifierTest {
   }
 
   @Test
-  void customObjectMapperShouldNotSupportFeelDeserialization() throws JsonProcessingException {
+  void customObjectMapperShouldNotSupportFeelDeserialization() {
     // The custom/default ObjectMapper should NOT support FEEL expressions
     // It will just read the literal string value
     var json =

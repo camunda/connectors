@@ -16,20 +16,20 @@
  */
 package io.camunda.connector.feel.jackson;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.BeanProperty;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.BeanProperty;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JavaType;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ValueDeserializer;
+import tools.jackson.databind.type.TypeFactory;
 
 /**
  * A Jackson deserializer for FEEL expressions. It can be used to deserialize a string that contains
@@ -63,7 +63,7 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
   @Override
   protected Object doDeserialize(
-      JsonNode node, JsonNode feelContext, DeserializationContext jacksonCtx) throws IOException {
+      JsonNode node, Object feelContext, DeserializationContext jacksonCtx) {
 
     if (isFeelExpression(node.textValue())) {
       return evaluateFeelExpression(jacksonCtx, node.textValue(), outputType, feelContext);
@@ -81,15 +81,15 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
               || (textValue.startsWith("'") && textValue.endsWith("'")))) {
         return handleNormalJsonNode(node, jacksonCtx);
       } else {
-        var jsonFactory = jacksonCtx.getParser().getCodec().getFactory();
-        try (JsonParser jsonParser = jsonFactory.createParser(textValue)) {
+        try (JsonParser jsonParser =
+            jacksonCtx.tokenStreamFactory().createParser(jacksonCtx, textValue)) {
           // check if this string contains a JSON object/array/etc inside (i.e. it's not just a
           // string)
           JsonNode jsonNode = jsonParser.readValueAsTree();
           if (jsonNode != null && !jsonNode.isNull()) {
             return handleNormalJsonNode(jsonNode, jacksonCtx);
           }
-        } catch (IOException e) {
+        } catch (JacksonException e) {
           // ignore, this is just a string, we will take care of it below
         }
       }
@@ -97,8 +97,7 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
     return handleNormalJsonNode(node, jacksonCtx);
   }
 
-  protected Object handleNormalJsonNode(JsonNode node, DeserializationContext context)
-      throws IOException {
+  protected Object handleNormalJsonNode(JsonNode node, DeserializationContext context) {
 
     if (node == null || node.isNull()) {
       return null;
@@ -150,7 +149,7 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
   }
 
   @Override
-  public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
+  public ValueDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
     return new FeelDeserializer(evaluator, property.getType());
   }
 }

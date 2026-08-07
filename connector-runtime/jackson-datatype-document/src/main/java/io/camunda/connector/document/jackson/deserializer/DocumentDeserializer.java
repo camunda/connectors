@@ -19,17 +19,16 @@ package io.camunda.connector.document.jackson.deserializer;
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isIntrinsicFunction;
 
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Deserializer for {@link Document} targets. It supports both the case where the source is a
@@ -96,15 +95,13 @@ public class DocumentDeserializer extends AbstractDeserializer<Document> {
   }
 
   @Override
-  protected Document handleJsonNode(JsonNode node, DeserializationContext context)
-      throws IOException {
+  protected Document handleJsonNode(JsonNode node, DeserializationContext context) {
     if (isDocumentReference(node)) {
       final var reference = context.readTreeAsValue(node, DocumentReferenceModel.class);
       return resolveDocumentFactory(context).resolve(reference);
     }
     if (node.isArray()) {
-      List<JsonNode> elements = new ArrayList<>();
-      node.elements().forEachRemaining(elements::add);
+      List<JsonNode> elements = new ArrayList<>(node.values());
       if (elements.size() == 1 && isDocumentReference(elements.get(0))) {
         final var reference =
             context.readTreeAsValue(elements.get(0), DocumentReferenceModel.class);

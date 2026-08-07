@@ -16,33 +16,35 @@
  */
 package io.camunda.connector.jackson;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.MapperFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.cfg.EnumFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 /** Default ObjectMapper supplier to be used by OOTB connectors and the Connector runtime. */
 public class ConnectorsObjectMapperSupplier {
 
   private static final ObjectMapper DEFAULT_MAPPER =
       JsonMapper.builder()
-          .addModules(new Jdk8Module(), new JavaTimeModule())
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
           .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+          // Jackson 3 flips this feature's default to enabled; disabled here to keep this
+          // mapper's null-handling identical to its Jackson 2 behavior.
+          .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
           .enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS)
-          .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-          .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
+          .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+          .disable(DateTimeFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
           .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
           .enable(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS)
-          .enable(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_USING_DEFAULT_VALUE)
+          .enable(EnumFeature.READ_UNKNOWN_ENUM_VALUES_USING_DEFAULT_VALUE)
           .build();
 
   private ConnectorsObjectMapperSupplier() {}
 
   public static ObjectMapper getCopy() {
-    return DEFAULT_MAPPER.copy();
+    return DEFAULT_MAPPER.rebuild().build();
   }
 }

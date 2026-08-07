@@ -16,10 +16,10 @@
  */
 package io.camunda.connector.feel.jackson;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import java.util.function.Supplier;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectReader;
 
 /**
  * Shortcut builder-like API for configuring {@link ObjectMapper} instances to contain a FEEL

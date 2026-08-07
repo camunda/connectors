@@ -16,18 +16,18 @@
  */
 package io.camunda.connector.feel.jackson;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import java.io.IOException;
+import java.util.Map;
 import java.util.function.Supplier;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JavaType;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.deser.std.StdDeserializer;
 
 /**
  * Base Jackson deserializer for connector FEEL-backed values.
@@ -37,8 +37,7 @@ import java.util.function.Supplier;
  *
  * @param <T> the deserialized target type
  */
-public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
-    implements ContextualDeserializer {
+public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T> {
 
   /**
    * A blank object mapper object for use in inheriting classes.
@@ -47,7 +46,7 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
    * aware of any registered modules beyond what's present in the default ObjectMapper. For example,
    * jackson-datatype-document will not be registered. It should not be used to deserialize the
    * final result. For final results, use the {@link DeserializationContext} object passed to {@link
-   * #doDeserialize(JsonNode, JsonNode, DeserializationContext)} instead.
+   * #doDeserialize(JsonNode, Object, DeserializationContext)} instead.
    */
   protected static final ObjectMapper BLANK_OBJECT_MAPPER =
       ConnectorsObjectMapperSupplier.getCopy();
@@ -86,7 +85,7 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
   }
 
   @Override
-  public T deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+  public T deserialize(JsonParser parser, DeserializationContext context) {
     JsonNode node = parser.readValueAsTree();
     if (node == null || node.isNull()) {
       return null;
@@ -97,21 +96,25 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
           context.getAttribute(FeelContextAwareObjectReader.FEEL_CONTEXT_ATTRIBUTE);
 
       if (feelContextSupplier == null) {
-        return doDeserialize(node, BLANK_OBJECT_MAPPER.createObjectNode(), context);
+        return doDeserialize(node, Map.of(), context);
       }
       if (feelContextSupplier instanceof Supplier<?> supplier) {
-        return doDeserialize(node, BLANK_OBJECT_MAPPER.valueToTree(supplier.get()), context);
+        // Passed through as-is (not converted via Jackson): the effective evaluator resolved
+        // below may be backed by a different major Jackson version (e.g. the local FEEL
+        // evaluator, which is Jackson 2-only), which would not recognize a Jackson 3 JsonNode as
+        // its own tree type when merging it into the evaluation variables.
+        return doDeserialize(node, supplier.get(), context);
       }
-      throw new IOException(
+      throw new IllegalArgumentException(
           "Attribute "
               + FeelContextAwareObjectReader.FEEL_CONTEXT_ATTRIBUTE
               + " must be a Supplier, but was: "
               + feelContextSupplier.getClass());
     }
-    throw new IOException(
+    throw new IllegalArgumentException(
         "Invalid input: expected a FEEL expression (starting with '=') or a JSON object/array/etc. "
             + "Property name: "
-            + parser.getParsingContext().getCurrentName());
+            + parser.currentName());
   }
 
   /**
@@ -157,7 +160,7 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
         return (R) BLANK_OBJECT_MAPPER.writeValueAsString(jsonNode);
       }
       return ctx.readTreeAsValue(jsonNode, targetType);
-    } catch (IOException e) {
+    } catch (JacksonException e) {
       throw new FeelEngineWrapperException(
           "Failed to convert FEEL evaluation result to the target type", expression, variables, e);
     }
@@ -170,11 +173,9 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
    * @param feelContext the FEEL context available during evaluation
    * @param deserializationContext the Jackson deserialization context
    * @return the deserialized value
-   * @throws IOException when deserialization fails
    */
   protected abstract T doDeserialize(
-      JsonNode node, JsonNode feelContext, DeserializationContext deserializationContext)
-      throws IOException;
+      JsonNode node, Object feelContext, DeserializationContext deserializationContext);
 
   private FeelExpressionEvaluator resolveEvaluator(DeserializationContext ctx) {
     // Strict deserializers are used for deferred runtime callbacks like Function/Supplier.

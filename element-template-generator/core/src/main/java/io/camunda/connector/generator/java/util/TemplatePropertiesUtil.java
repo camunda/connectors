@@ -18,7 +18,6 @@ package io.camunda.connector.generator.java.util;
 
 import static io.camunda.connector.util.reflection.ReflectionUtil.getAllFields;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.document.Document;
@@ -50,6 +49,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
+import tools.jackson.databind.JsonNode;
 
 /** Utility class for transforming data classes into {@link PropertyBuilder} instances. */
 public class TemplatePropertiesUtil {
@@ -493,6 +493,9 @@ public class TemplatePropertiesUtil {
         };
     if (Object.class.equals(parameterType)
         || JsonNode.class.equals(parameterType)
+        // Most connectors haven't migrated to Jackson 3 yet, so a field may still be typed as the
+        // Jackson 2 JsonNode.
+        || com.fasterxml.jackson.databind.JsonNode.class.equals(parameterType)
         || Collection.class.isAssignableFrom(parameterType)
         || Map.class.isAssignableFrom(parameterType)) {
       builder.feel(FeelMode.required);
@@ -711,6 +714,9 @@ public class TemplatePropertiesUtil {
         && type != String.class
         && type != Object.class
         && type != JsonNode.class
+        // Most connectors haven't migrated to Jackson 3 yet, so a field may still be typed as the
+        // Jackson 2 JsonNode.
+        && type != com.fasterxml.jackson.databind.JsonNode.class
         && !Document.class.isAssignableFrom(type)
         && !type.isEnum()
         && !type.isArray()

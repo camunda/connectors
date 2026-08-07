@@ -40,7 +40,7 @@ except in compliance with the proprietary license.</license.inlineheader>
       <artifactId>http-client</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
+      <groupId>tools.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <version>${version.jackson-bom}</version>
     </dependency>

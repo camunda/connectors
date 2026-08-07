@@ -44,41 +44,33 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
-    "value" : "io.camunda:aws-bedrock-codeinterpreter:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "group" : "taskDefinitionType",
+    "id" : "taskDefinitionType",
+    "type" : "String",
+    "value" : "io.camunda:aws-bedrock-codeinterpreter:1"
   }, {
-    "id" : "authentication.type",
-    "label" : "Authentication",
-    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
-    "value" : "credentials",
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.type",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
       "value" : "defaultCredentialsChain"
     }, {
       "name" : "Credentials",
       "value" : "credentials"
-    } ]
-  }, {
-    "id" : "authentication.accessKey",
-    "label" : "Access key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    } ],
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
     "group" : "authentication",
+    "id" : "authentication.type",
+    "label" : "Authentication",
+    "type" : "Dropdown",
+    "value" : "credentials"
+  }, {
     "binding" : {
       "name" : "authentication.accessKey",
       "type" : "zeebe:input"
@@ -88,18 +80,18 @@
       "equals" : "credentials",
       "type" : "simple"
     },
-    "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "authentication.secretKey",
-    "label" : "Secret key",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.accessKey",
+    "label" : "Access key",
+    "optional" : false,
+    "secret" : true,
+    "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.secretKey",
       "type" : "zeebe:input"
@@ -109,57 +101,59 @@
       "equals" : "credentials",
       "type" : "simple"
     },
-    "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "awsCredential",
-    "label" : "AWS credential",
-    "description" : "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's 'awsCredential' input.",
-    "optional" : true,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.secretKey",
+    "label" : "Secret key",
+    "optional" : false,
+    "secret" : true,
+    "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "awsCredential",
       "type" : "zeebe:input"
     },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda:aws-credential:1"
+    "configurationTemplate" : "io.camunda:aws-credential:1",
+    "description" : "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's 'awsCredential' input.",
+    "group" : "authentication",
+    "id" : "awsCredential",
+    "label" : "AWS credential",
+    "optional" : true,
+    "type" : "Configuration"
   }, {
-    "id" : "configuration.region",
-    "label" : "Region",
-    "optional" : false,
+    "binding" : {
+      "name" : "configuration.region",
+      "type" : "zeebe:input"
+    },
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "configuration",
-    "binding" : {
-      "name" : "configuration.region",
-      "type" : "zeebe:input"
-    },
+    "id" : "configuration.region",
+    "label" : "Region",
+    "optional" : false,
     "type" : "String"
   }, {
-    "id" : "configuration.endpoint",
-    "label" : "Endpoint",
-    "description" : "Specify endpoint if need to use custom endpoint",
-    "optional" : true,
-    "group" : "configuration",
     "binding" : {
       "name" : "configuration.endpoint",
       "type" : "zeebe:input"
     },
+    "description" : "Specify endpoint if need to use custom endpoint",
+    "group" : "configuration",
+    "id" : "configuration.endpoint",
+    "label" : "Endpoint",
+    "optional" : true,
     "type" : "Hidden"
   }, {
-    "id" : "input.language",
-    "label" : "Language",
-    "description" : "The programming language to use.",
-    "optional" : false,
-    "group" : "codeExecution",
     "binding" : {
       "name" : "input.language",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Python",
       "value" : "python"
@@ -169,161 +163,167 @@
     }, {
       "name" : "TypeScript",
       "value" : "typescript"
-    } ]
-  }, {
-    "id" : "input.code",
-    "label" : "Code",
-    "description" : "The code to execute in the Code Interpreter sandbox.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    } ],
+    "description" : "The programming language to use.",
     "group" : "codeExecution",
+    "id" : "input.language",
+    "label" : "Language",
+    "optional" : false,
+    "type" : "Dropdown"
+  }, {
     "binding" : {
       "name" : "input.code",
       "type" : "zeebe:input"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "description" : "The code to execute in the Code Interpreter sandbox.",
+    "feel" : "optional",
+    "group" : "codeExecution",
+    "id" : "input.code",
+    "label" : "Code",
+    "optional" : false,
     "type" : "String"
   }, {
-    "id" : "input.codeInterpreterIdentifier",
-    "label" : "Code Interpreter ID",
-    "description" : "The Code Interpreter identifier. Defaults to the AWS managed default.",
-    "optional" : true,
-    "value" : "aws.codeinterpreter.v1",
-    "feel" : "optional",
-    "group" : "session",
     "binding" : {
       "name" : "input.codeInterpreterIdentifier",
       "type" : "zeebe:input"
     },
-    "type" : "String"
-  }, {
-    "id" : "input.sessionTimeout",
-    "label" : "Session timeout",
-    "description" : "Session timeout as ISO 8601 duration (e.g. PT5M for 5 minutes). Defaults to PT5M.",
-    "optional" : true,
-    "value" : "PT5M",
+    "description" : "The Code Interpreter identifier. Defaults to the AWS managed default.",
     "feel" : "optional",
     "group" : "session",
+    "id" : "input.codeInterpreterIdentifier",
+    "label" : "Code Interpreter ID",
+    "optional" : true,
+    "type" : "String",
+    "value" : "aws.codeinterpreter.v1"
+  }, {
     "binding" : {
       "name" : "input.sessionTimeout",
       "type" : "zeebe:input"
     },
-    "type" : "String"
-  }, {
-    "id" : "input.maxFiles",
-    "label" : "Max files to retrieve",
-    "description" : "Maximum number of generated files to retrieve. Defaults to 10.",
-    "optional" : true,
-    "value" : 10,
-    "feel" : "static",
+    "description" : "Session timeout as ISO 8601 duration (e.g. PT5M for 5 minutes). Defaults to PT5M.",
+    "feel" : "optional",
     "group" : "session",
+    "id" : "input.sessionTimeout",
+    "label" : "Session timeout",
+    "optional" : true,
+    "type" : "String",
+    "value" : "PT5M"
+  }, {
     "binding" : {
       "name" : "input.maxFiles",
       "type" : "zeebe:input"
     },
-    "type" : "Number"
-  }, {
-    "id" : "input.maxTotalFileSize",
-    "label" : "Max total file size",
-    "description" : "Maximum total size of retrieved files in bytes. Defaults to 10 MB.",
-    "optional" : true,
-    "value" : 10485760,
+    "description" : "Maximum number of generated files to retrieve. Defaults to 10.",
     "feel" : "static",
     "group" : "session",
+    "id" : "input.maxFiles",
+    "label" : "Max files to retrieve",
+    "optional" : true,
+    "type" : "Number",
+    "value" : 10
+  }, {
     "binding" : {
       "name" : "input.maxTotalFileSize",
       "type" : "zeebe:input"
     },
-    "type" : "Number"
+    "description" : "Maximum total size of retrieved files in bytes. Defaults to 10 MB.",
+    "feel" : "static",
+    "group" : "session",
+    "id" : "input.maxTotalFileSize",
+    "label" : "Max total file size",
+    "optional" : true,
+    "type" : "Number",
+    "value" : 10485760
   }, {
-    "id" : "version",
-    "label" : "Version",
-    "description" : "Version of the element template",
-    "value" : "2",
-    "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
-  }, {
-    "id" : "id",
-    "label" : "ID",
-    "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.aws.bedrock.codeinterpreter.v1",
+    "description" : "Version of the element template",
     "group" : "connector",
+    "id" : "version",
+    "label" : "Version",
+    "type" : "Hidden",
+    "value" : "2"
+  }, {
     "binding" : {
       "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
+    "description" : "ID of the element template",
+    "group" : "connector",
+    "id" : "id",
+    "label" : "ID",
+    "type" : "Hidden",
+    "value" : "io.camunda.connectors.aws.bedrock.codeinterpreter.v1"
   }, {
-    "id" : "resultVariable",
-    "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
-    "group" : "output",
     "binding" : {
       "key" : "resultVariable",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "group" : "output",
+    "id" : "resultVariable",
+    "label" : "Result variable",
     "type" : "String"
   }, {
-    "id" : "resultExpression",
-    "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "output",
     "binding" : {
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "id" : "resultExpression",
+    "label" : "Result expression",
     "type" : "Text"
   }, {
-    "id" : "errorExpression",
-    "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "error",
     "binding" : {
       "key" : "errorExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "id" : "errorExpression",
+    "label" : "Error expression",
     "type" : "Text"
   }, {
-    "id" : "retryCount",
-    "label" : "Retries",
-    "description" : "Number of retries",
-    "value" : "3",
-    "feel" : "optional",
-    "group" : "retries",
     "binding" : {
       "property" : "retries",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
-  }, {
-    "id" : "retryBackoff",
-    "label" : "Retry backoff",
-    "description" : "ISO-8601 duration to wait between retries",
-    "value" : "PT30S",
+    "description" : "Number of retries",
+    "feel" : "optional",
     "group" : "retries",
+    "id" : "retryCount",
+    "label" : "Retries",
+    "type" : "String",
+    "value" : "3"
+  }, {
     "binding" : {
       "key" : "retryBackoff",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "String"
-  }, {
-    "id" : "jobTimeout",
-    "label" : "Job timeout",
-    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
-    "optional" : true,
+    "description" : "ISO-8601 duration to wait between retries",
     "group" : "retries",
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "type" : "String",
+    "value" : "PT30S"
+  }, {
     "binding" : {
       "key" : "jobTimeout",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "group" : "retries",
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "optional" : true,
     "type" : "String"
   } ],
   "configurationTemplates" : [ {
@@ -332,30 +332,24 @@
     "version" : 1,
     "name" : "AWS Credential",
     "properties" : [ {
-      "id" : "authentication.type",
-      "label" : "Authentication",
-      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
-      "value" : "credentials",
-      "group" : "authentication",
       "binding" : {
         "name" : "authentication.type",
         "type" : "property"
       },
-      "type" : "Dropdown",
       "choices" : [ {
         "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
         "value" : "defaultCredentialsChain"
       }, {
         "name" : "Credentials",
         "value" : "credentials"
-      } ]
-    }, {
-      "id" : "authentication.accessKey",
-      "label" : "Access key",
-      "constraints" : {
-        "notEmpty" : true
-      },
+      } ],
+      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
       "group" : "authentication",
+      "id" : "authentication.type",
+      "label" : "Authentication",
+      "type" : "Dropdown",
+      "value" : "credentials"
+    }, {
       "binding" : {
         "name" : "authentication.accessKey",
         "type" : "property"
@@ -365,16 +359,16 @@
         "equals" : "credentials",
         "type" : "simple"
       },
-      "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "authentication.secretKey",
-      "label" : "Secret key",
       "constraints" : {
         "notEmpty" : true
       },
       "group" : "authentication",
+      "id" : "authentication.accessKey",
+      "label" : "Access key",
+      "secret" : true,
+      "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.secretKey",
         "type" : "property"
@@ -384,20 +378,26 @@
         "equals" : "credentials",
         "type" : "simple"
       },
-      "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "region",
-      "label" : "Region",
       "constraints" : {
         "notEmpty" : true
       },
-      "group" : "configuration",
+      "group" : "authentication",
+      "id" : "authentication.secretKey",
+      "label" : "Secret key",
+      "secret" : true,
+      "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "region",
         "type" : "property"
       },
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "configuration",
+      "id" : "region",
+      "label" : "Region",
       "type" : "String"
     } ]
   } ],

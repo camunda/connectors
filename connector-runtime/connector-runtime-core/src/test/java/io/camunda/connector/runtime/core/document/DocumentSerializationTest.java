@@ -19,20 +19,20 @@ package io.camunda.connector.runtime.core.document;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.document.jackson.v3.JacksonModuleDocumentSerializer;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.skyscreamer.jsonassert.JSONAssert;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 public class DocumentSerializationTest {
 
@@ -40,13 +40,14 @@ public class DocumentSerializationTest {
   @Mock private IntrinsicFunctionExecutor operationExecutor;
 
   private final ObjectMapper objectMapper =
-      new ObjectMapper()
-          .registerModule(new JacksonModuleDocumentDeserializer(factory, operationExecutor))
-          .registerModule(new JacksonModuleDocumentSerializer())
-          .registerModule(new Jdk8Module());
+      JsonMapper.builder()
+          .addModules(
+              new JacksonModuleDocumentDeserializer(factory, operationExecutor),
+              new JacksonModuleDocumentSerializer())
+          .build();
 
   @Test
-  void sourceTypeDocument_jacksonInternalModel() throws JsonProcessingException, JSONException {
+  void sourceTypeDocument_jacksonInternalModel() throws JacksonException, JSONException {
     var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null, null, null);
     var ref = new CamundaDocumentReferenceModel("test", "test", "hash", metadata);
     var document = mock(Document.class);
@@ -69,7 +70,7 @@ public class DocumentSerializationTest {
   }
 
   @Test
-  void sourceTypeDocument_connectorSdkModel() throws JsonProcessingException, JSONException {
+  void sourceTypeDocument_connectorSdkModel() throws JacksonException, JSONException {
     var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null, null, null);
     var ref = new CamundaDocumentReferenceImpl("test", "test", "hash", metadata);
     var document = mock(Document.class);

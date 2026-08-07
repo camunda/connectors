@@ -16,15 +16,15 @@
  */
 package io.camunda.connector.http.client.mapper;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.utils.EnvVarHelper;
 import io.camunda.connector.http.client.utils.JsonHelper;
 import java.io.IOException;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Common {@link ResponseMapper} implementations.
@@ -53,7 +53,7 @@ public final class ResponseMappers {
       var mapper = objectMapperSupplier.get();
       try {
         return mapper.readValue(asString(response), valueType);
-      } catch (IOException e) {
+      } catch (JacksonException e) {
         throw new ConnectorException(
             "Failed to map response body to type " + valueType.getSimpleName(), e);
       }
@@ -114,7 +114,7 @@ public final class ResponseMappers {
     }
     try {
       return objectMapper.readTree(stringBody);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new ConnectorException("Failed to parse JSON string: " + stringBody, e);
     }
   }

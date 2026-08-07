@@ -46,35 +46,29 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "value" : "io.camunda:http-json:1",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "Hidden"
+    "type" : "Hidden",
+    "value" : "io.camunda:http-json:1"
   }, {
-    "id" : "authenticationConfiguration",
-    "label" : "Authentication credential",
-    "description" : "Choose a reusable REST authentication credential. When set, it is bound as a whole to the connector's 'authenticationConfiguration' input.",
-    "optional" : true,
-    "group" : "authentication",
     "binding" : {
       "name" : "authenticationConfiguration",
       "type" : "zeebe:input"
     },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:rest-authentication:1"
-  }, {
-    "id" : "authentication.type",
-    "label" : "Type",
-    "description" : "Choose the authentication type. Select 'None' if no authentication is necessary",
-    "value" : "noAuth",
+    "configurationTemplate" : "io.camunda.connectors:rest-authentication:1",
+    "description" : "Choose a reusable REST authentication credential. When set, it is bound as a whole to the connector's 'authenticationConfiguration' input.",
     "group" : "authentication",
+    "id" : "authenticationConfiguration",
+    "label" : "Authentication credential",
+    "optional" : true,
+    "type" : "Configuration"
+  }, {
     "binding" : {
       "name" : "authentication.type",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "API key",
       "value" : "apiKey"
@@ -93,43 +87,41 @@
     }, {
       "name" : "OAuth 2.0 Refresh Token",
       "value" : "oauth-refresh-token"
-    } ]
-  }, {
-    "id" : "authentication.apiKeyLocation",
-    "label" : "Api key location",
-    "optional" : false,
-    "value" : "headers",
-    "constraints" : {
-      "notEmpty" : true
-    },
+    } ],
+    "description" : "Choose the authentication type. Select 'None' if no authentication is necessary",
     "group" : "authentication",
+    "id" : "authentication.type",
+    "label" : "Type",
+    "type" : "Dropdown",
+    "value" : "noAuth"
+  }, {
     "binding" : {
       "name" : "authentication.apiKeyLocation",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "apiKey",
-      "type" : "simple"
-    },
-    "tooltip" : "Send API key in header or as query parameter.",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Headers",
       "value" : "headers"
     }, {
       "name" : "Query parameters",
       "value" : "query"
-    } ]
-  }, {
-    "id" : "authentication.name",
-    "label" : "API key name",
-    "optional" : false,
+    } ],
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "apiKey",
+      "type" : "simple"
+    },
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.apiKeyLocation",
+    "label" : "Api key location",
+    "optional" : false,
+    "tooltip" : "Send API key in header or as query parameter.",
+    "type" : "Dropdown",
+    "value" : "headers"
+  }, {
     "binding" : {
       "name" : "authentication.name",
       "type" : "zeebe:input"
@@ -139,16 +131,16 @@
       "equals" : "apiKey",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.value",
-    "label" : "API key value",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.name",
+    "label" : "API key name",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.value",
       "type" : "zeebe:input"
@@ -158,17 +150,17 @@
       "equals" : "apiKey",
       "type" : "simple"
     },
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "authentication.username",
-    "label" : "Username",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.value",
+    "label" : "API key value",
+    "optional" : false,
+    "secret" : true,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.username",
       "type" : "zeebe:input"
@@ -178,16 +170,16 @@
       "equals" : "basic",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.password",
-    "label" : "Password",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.username",
+    "label" : "Username",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.password",
       "type" : "zeebe:input"
@@ -197,17 +189,17 @@
       "equals" : "basic",
       "type" : "simple"
     },
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "authentication.token",
-    "label" : "Bearer token",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.password",
+    "label" : "Password",
+    "optional" : false,
+    "secret" : true,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.token",
       "type" : "zeebe:input"
@@ -217,21 +209,17 @@
       "equals" : "bearer",
       "type" : "simple"
     },
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "authentication.oauthTokenEndpoint",
-    "label" : "OAuth 2.0 token endpoint",
-    "optional" : false,
     "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
-        "message" : "Must be a http(s) URL"
-      }
+      "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.token",
+    "label" : "Bearer token",
+    "optional" : false,
+    "secret" : true,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.oauthTokenEndpoint",
       "type" : "zeebe:input"
@@ -241,16 +229,20 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.clientId",
-    "label" : "Client ID",
-    "optional" : false,
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.oauthTokenEndpoint",
+    "label" : "OAuth 2.0 token endpoint",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.clientId",
       "type" : "zeebe:input"
@@ -260,17 +252,17 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
-    "tooltip" : "Your application's client ID from the OAuth client",
-    "type" : "String"
-  }, {
-    "id" : "authentication.clientSecret",
-    "label" : "Client secret",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.clientId",
+    "label" : "Client ID",
+    "optional" : false,
+    "tooltip" : "Your application's client ID from the OAuth client",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.clientSecret",
       "type" : "zeebe:input"
@@ -280,15 +272,18 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
-    "tooltip" : "Your application's client secret from the OAuth client",
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "authentication.audience",
-    "label" : "Audience",
-    "optional" : true,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.clientSecret",
+    "label" : "Client secret",
+    "optional" : false,
+    "secret" : true,
+    "tooltip" : "Your application's client secret from the OAuth client",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.audience",
       "type" : "zeebe:input"
@@ -298,40 +293,40 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "authentication",
+    "id" : "authentication.audience",
+    "label" : "Audience",
+    "optional" : true,
     "tooltip" : "The unique identifier of the target API you want to access",
     "type" : "String"
   }, {
-    "id" : "authentication.clientAuthentication",
-    "label" : "Client authentication",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.clientAuthentication",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow",
-      "type" : "simple"
-    },
-    "tooltip" : "Send client ID and client secret as a Basic Auth header, or as client credentials in the request body",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Send client credentials in body",
       "value" : "credentialsBody"
     }, {
       "name" : "Send as Basic Auth header",
       "value" : "basicAuthHeader"
-    } ]
-  }, {
-    "id" : "authentication.scopes",
-    "label" : "Scopes",
-    "optional" : true,
-    "feel" : "optional",
+    } ],
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
+    },
+    "constraints" : {
+      "notEmpty" : true
+    },
     "group" : "authentication",
+    "id" : "authentication.clientAuthentication",
+    "label" : "Client authentication",
+    "optional" : false,
+    "tooltip" : "Send client ID and client secret as a Basic Auth header, or as client credentials in the request body",
+    "type" : "Dropdown"
+  }, {
     "binding" : {
       "name" : "authentication.scopes",
       "type" : "zeebe:input"
@@ -341,22 +336,15 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
-    "tooltip" : "The scopes which you want to request authorization for",
-    "placeholder" : "read:contacts",
-    "type" : "String"
-  }, {
-    "id" : "authentication.oauthRefreshToken.oauthTokenEndpoint",
-    "label" : "OAuth 2.0 token endpoint",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
-        "message" : "Must be a http(s) URL"
-      }
-    },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.scopes",
+    "label" : "Scopes",
+    "optional" : true,
+    "placeholder" : "read:contacts",
+    "tooltip" : "The scopes which you want to request authorization for",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.oauthTokenEndpoint",
       "type" : "zeebe:input"
@@ -366,16 +354,20 @@
       "equals" : "oauth-refresh-token",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.oauthRefreshToken.clientId",
-    "label" : "Client ID",
-    "optional" : false,
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.oauthRefreshToken.oauthTokenEndpoint",
+    "label" : "OAuth 2.0 token endpoint",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.clientId",
       "type" : "zeebe:input"
@@ -385,14 +377,17 @@
       "equals" : "oauth-refresh-token",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "id" : "authentication.oauthRefreshToken.clientId",
+    "label" : "Client ID",
+    "optional" : false,
     "tooltip" : "Your application's client ID from the OAuth client",
     "type" : "String"
   }, {
-    "id" : "authentication.oauthRefreshToken.clientSecret",
-    "label" : "Client secret",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.clientSecret",
       "type" : "zeebe:input"
@@ -402,18 +397,15 @@
       "equals" : "oauth-refresh-token",
       "type" : "simple"
     },
-    "tooltip" : "Your application's client secret from the OAuth client",
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "authentication.oauthRefreshToken.refreshToken",
-    "label" : "Refresh token",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.oauthRefreshToken.clientSecret",
+    "label" : "Client secret",
+    "optional" : true,
+    "secret" : true,
+    "tooltip" : "Your application's client secret from the OAuth client",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.refreshToken",
       "type" : "zeebe:input"
@@ -423,15 +415,18 @@
       "equals" : "oauth-refresh-token",
       "type" : "simple"
     },
-    "tooltip" : "The refresh token used to obtain a new access token",
-    "type" : "String",
-    "secret" : true
-  }, {
-    "id" : "authentication.oauthRefreshToken.scopes",
-    "label" : "Scopes",
-    "optional" : true,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.oauthRefreshToken.refreshToken",
+    "label" : "Refresh token",
+    "optional" : false,
+    "secret" : true,
+    "tooltip" : "The refresh token used to obtain a new access token",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.scopes",
       "type" : "zeebe:input"
@@ -441,70 +436,66 @@
       "equals" : "oauth-refresh-token",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "authentication",
+    "id" : "authentication.oauthRefreshToken.scopes",
+    "label" : "Scopes",
+    "optional" : true,
     "tooltip" : "The scopes to request authorization for (space-separated)",
     "type" : "String"
   }, {
-    "id" : "clientTls.clientCertificate",
-    "label" : "Client certificate (PEM)",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "tls",
     "binding" : {
       "name" : "clientTls.clientCertificate",
       "type" : "zeebe:input"
     },
+    "feel" : "optional",
+    "group" : "tls",
+    "id" : "clientTls.clientCertificate",
+    "label" : "Client certificate (PEM)",
+    "optional" : true,
     "tooltip" : "PEM-encoded client certificate chain presented to the server for mTLS. Provide together with the private key.",
     "type" : "Text"
   }, {
-    "id" : "clientTls.clientPrivateKey",
-    "label" : "Client private key (PEM)",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "tls",
     "binding" : {
       "name" : "clientTls.clientPrivateKey",
       "type" : "zeebe:input"
     },
+    "feel" : "optional",
+    "group" : "tls",
+    "id" : "clientTls.clientPrivateKey",
+    "label" : "Client private key (PEM)",
+    "optional" : true,
     "tooltip" : "PEM-encoded private key (PKCS#1, PKCS#8 or EC), optionally encrypted.",
     "type" : "Text"
   }, {
-    "id" : "clientTls.privateKeyPassword",
-    "label" : "Private key password",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "tls",
     "binding" : {
       "name" : "clientTls.privateKeyPassword",
       "type" : "zeebe:input"
     },
+    "feel" : "optional",
+    "group" : "tls",
+    "id" : "clientTls.privateKeyPassword",
+    "label" : "Private key password",
+    "optional" : true,
     "tooltip" : "Password protecting the private key. Leave empty if it is not encrypted.",
     "type" : "String"
   }, {
-    "id" : "clientTls.trustedCertificate",
-    "label" : "Trusted CA certificate (PEM)",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "tls",
     "binding" : {
       "name" : "clientTls.trustedCertificate",
       "type" : "zeebe:input"
     },
+    "feel" : "optional",
+    "group" : "tls",
+    "id" : "clientTls.trustedCertificate",
+    "label" : "Trusted CA certificate (PEM)",
+    "optional" : true,
     "tooltip" : "Optional PEM-encoded CA certificate(s) used to validate the server. If empty, the JVM's default trust store is used.",
     "type" : "Text"
   }, {
-    "id" : "method",
-    "label" : "Method",
-    "optional" : false,
-    "value" : "GET",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "endpoint",
     "binding" : {
       "name" : "method",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "POST",
       "value" : "POST"
@@ -520,11 +511,21 @@
     }, {
       "name" : "PUT",
       "value" : "PUT"
-    } ]
-  }, {
-    "id" : "url",
-    "label" : "URL",
+    } ],
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "endpoint",
+    "id" : "method",
+    "label" : "Method",
     "optional" : false,
+    "type" : "Dropdown",
+    "value" : "GET"
+  }, {
+    "binding" : {
+      "name" : "url",
+      "type" : "zeebe:input"
+    },
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
@@ -534,69 +535,62 @@
     },
     "feel" : "optional",
     "group" : "endpoint",
-    "binding" : {
-      "name" : "url",
-      "type" : "zeebe:input"
-    },
+    "id" : "url",
+    "label" : "URL",
+    "optional" : false,
     "type" : "String"
   }, {
-    "id" : "headers",
-    "label" : "Headers",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "endpoint",
     "binding" : {
       "name" : "headers",
       "type" : "zeebe:input"
     },
+    "feel" : "required",
+    "group" : "endpoint",
+    "id" : "headers",
+    "label" : "Headers",
+    "optional" : true,
     "tooltip" : "Map of HTTP headers to add to the request",
     "type" : "String"
   }, {
-    "id" : "queryParameters",
-    "label" : "Query parameters",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "endpoint",
     "binding" : {
       "name" : "queryParameters",
       "type" : "zeebe:input"
     },
+    "feel" : "required",
+    "group" : "endpoint",
+    "id" : "queryParameters",
+    "label" : "Query parameters",
+    "optional" : true,
     "tooltip" : "Map of query parameters to add to the request URL",
     "type" : "String"
   }, {
-    "id" : "skipEncoding",
-    "label" : "Skip URL encoding",
-    "optional" : true,
-    "group" : "endpoint",
     "binding" : {
       "name" : "skipEncoding",
       "type" : "zeebe:input"
     },
+    "group" : "endpoint",
+    "id" : "skipEncoding",
+    "label" : "Skip URL encoding",
+    "optional" : true,
     "type" : "Hidden"
   }, {
-    "id" : "followRedirects",
-    "label" : "Follow redirects",
-    "optional" : false,
-    "value" : false,
-    "feel" : "static",
-    "group" : "endpoint",
     "binding" : {
       "name" : "followRedirects",
       "type" : "zeebe:input"
     },
-    "tooltip" : "If enabled, HTTP 3xx redirects will be followed automatically. Disabled by default.",
-    "type" : "Boolean"
-  }, {
-    "id" : "documentReturnFormat",
-    "label" : "Response format",
-    "value" : "JSON",
+    "feel" : "static",
     "group" : "endpoint",
+    "id" : "followRedirects",
+    "label" : "Follow redirects",
+    "optional" : false,
+    "tooltip" : "If enabled, HTTP 3xx redirects will be followed automatically. Disabled by default.",
+    "type" : "Boolean",
+    "value" : false
+  }, {
     "binding" : {
       "name" : "documentReturnFormat.choice",
       "type" : "zeebe:input"
     },
-    "tooltip" : "How the response body should be returned. Document reference uploads the body to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Document reference",
       "value" : "DOCUMENT"
@@ -606,14 +600,14 @@
     }, {
       "name" : "as JSON",
       "value" : "JSON"
-    } ]
-  }, {
-    "id" : "documentReturnFormatEncoding",
-    "label" : "Encoding",
-    "description" : "Character set used to decode the response. Default UTF-8.",
-    "value" : "UTF-8",
-    "feel" : "optional",
+    } ],
     "group" : "endpoint",
+    "id" : "documentReturnFormat",
+    "label" : "Response format",
+    "tooltip" : "How the response body should be returned. Document reference uploads the body to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
+    "type" : "Dropdown",
+    "value" : "JSON"
+  }, {
     "binding" : {
       "name" : "documentReturnFormat.encoding",
       "type" : "zeebe:input"
@@ -623,32 +617,18 @@
       "equals" : "TEXT",
       "type" : "simple"
     },
-    "type" : "String"
+    "description" : "Character set used to decode the response. Default UTF-8.",
+    "feel" : "optional",
+    "group" : "endpoint",
+    "id" : "documentReturnFormatEncoding",
+    "label" : "Encoding",
+    "type" : "String",
+    "value" : "UTF-8"
   }, {
-    "id" : "connectionTimeoutInSeconds",
-    "label" : "Connection timeout in seconds",
-    "optional" : false,
-    "value" : 20,
-    "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^\\d+$",
-        "message" : "Must be a number"
-      }
-    },
-    "feel" : "static",
-    "group" : "timeout",
     "binding" : {
       "name" : "connectionTimeoutInSeconds",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Use 0 for an infinite timeout",
-    "type" : "Number"
-  }, {
-    "id" : "readTimeoutInSeconds",
-    "label" : "Read timeout in seconds",
-    "optional" : false,
-    "value" : 20,
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
@@ -658,18 +638,33 @@
     },
     "feel" : "static",
     "group" : "timeout",
+    "id" : "connectionTimeoutInSeconds",
+    "label" : "Connection timeout in seconds",
+    "optional" : false,
+    "tooltip" : "Use 0 for an infinite timeout",
+    "type" : "Number",
+    "value" : 20
+  }, {
     "binding" : {
       "name" : "readTimeoutInSeconds",
       "type" : "zeebe:input"
     },
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^\\d+$",
+        "message" : "Must be a number"
+      }
+    },
+    "feel" : "static",
+    "group" : "timeout",
+    "id" : "readTimeoutInSeconds",
+    "label" : "Read timeout in seconds",
+    "optional" : false,
     "tooltip" : "Use 0 for an infinite timeout",
-    "type" : "Number"
+    "type" : "Number",
+    "value" : 20
   }, {
-    "id" : "body",
-    "label" : "Request body",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "payload",
     "binding" : {
       "name" : "body",
       "type" : "zeebe:input"
@@ -679,15 +674,14 @@
       "oneOf" : [ "POST", "PUT", "PATCH" ],
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "payload",
+    "id" : "body",
+    "label" : "Request body",
+    "optional" : true,
     "tooltip" : "Payload to send with the request",
     "type" : "Text"
   }, {
-    "id" : "ignoreNullValues",
-    "label" : "Ignore null values",
-    "optional" : false,
-    "value" : false,
-    "feel" : "static",
-    "group" : "payload",
     "binding" : {
       "name" : "ignoreNullValues",
       "type" : "zeebe:input"
@@ -697,97 +691,103 @@
       "oneOf" : [ "POST", "PUT", "PATCH" ],
       "type" : "simple"
     },
+    "feel" : "static",
+    "group" : "payload",
+    "id" : "ignoreNullValues",
+    "label" : "Ignore null values",
+    "optional" : false,
     "tooltip" : "Null values will not be sent",
-    "type" : "Boolean"
+    "type" : "Boolean",
+    "value" : false
   }, {
-    "id" : "version",
-    "label" : "Version",
-    "description" : "Version of the element template",
-    "value" : "17",
-    "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
-  }, {
-    "id" : "id",
-    "label" : "ID",
-    "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.HttpJson.v2",
+    "description" : "Version of the element template",
     "group" : "connector",
+    "id" : "version",
+    "label" : "Version",
+    "type" : "Hidden",
+    "value" : "17"
+  }, {
     "binding" : {
       "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
+    "description" : "ID of the element template",
+    "group" : "connector",
+    "id" : "id",
+    "label" : "ID",
+    "type" : "Hidden",
+    "value" : "io.camunda.connectors.HttpJson.v2"
   }, {
-    "id" : "resultVariable",
-    "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
-    "group" : "output",
     "binding" : {
       "key" : "resultVariable",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "group" : "output",
+    "id" : "resultVariable",
+    "label" : "Result variable",
     "type" : "String"
   }, {
-    "id" : "resultExpression",
-    "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
-    "value" : "{\n  myResponseBody: response.body\n  // Use FEEL to extract values, e.g.,:\n  // myUserId: response.body.post.userId\n}",
-    "feel" : "required",
-    "group" : "output",
     "binding" : {
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
-    "tooltip" : "<div><p>Example response:</p><code>{\"body\":{\"order\":{\"id\":\"123\",\"total\":\"100.00€\"}},\"headers\":{\"Content-Type\":\"application/json\"},\"status\":200}</code><p>Example FEEL expression: <code>= { orderId: body.order.id }</code> -&gt; <code>{\"orderId\":\"123\"}</code></p></div>",
-    "type" : "Text"
-  }, {
-    "id" : "errorExpression",
-    "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
-    "group" : "error",
+    "group" : "output",
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "tooltip" : "<div><p>Example response:</p><code>{\"status\":200,\"headers\":{\"Content-Type\":\"application/json\"},\"body\":{\"order\":{\"id\":\"123\",\"total\":\"100.00€\"}}}</code><p>Example FEEL expression: <code>= { orderId: body.order.id }</code> -&gt; <code>{\"orderId\":\"123\"}</code></p></div>",
+    "type" : "Text",
+    "value" : "{\n  myResponseBody: response.body\n  // Use FEEL to extract values, e.g.,:\n  // myUserId: response.body.post.userId\n}"
+  }, {
     "binding" : {
       "key" : "errorExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "id" : "errorExpression",
+    "label" : "Error expression",
     "type" : "Text"
   }, {
-    "id" : "retryCount",
-    "label" : "Retries",
-    "description" : "Number of retries",
-    "value" : "3",
-    "feel" : "optional",
-    "group" : "retries",
     "binding" : {
       "property" : "retries",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
-  }, {
-    "id" : "retryBackoff",
-    "label" : "Retry backoff",
-    "description" : "ISO-8601 duration to wait between retries",
-    "value" : "PT30S",
+    "description" : "Number of retries",
+    "feel" : "optional",
     "group" : "retries",
+    "id" : "retryCount",
+    "label" : "Retries",
+    "type" : "String",
+    "value" : "3"
+  }, {
     "binding" : {
       "key" : "retryBackoff",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "String"
-  }, {
-    "id" : "jobTimeout",
-    "label" : "Job timeout",
-    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
-    "optional" : true,
+    "description" : "ISO-8601 duration to wait between retries",
     "group" : "retries",
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "type" : "String",
+    "value" : "PT30S"
+  }, {
     "binding" : {
       "key" : "jobTimeout",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "group" : "retries",
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "optional" : true,
     "type" : "String"
   } ],
   "configurationTemplates" : [ {
@@ -796,16 +796,10 @@
     "version" : 1,
     "name" : "REST Authentication",
     "properties" : [ {
-      "id" : "authentication.type",
-      "label" : "Type",
-      "description" : "Choose the authentication type. Select 'None' if no authentication is necessary",
-      "value" : "noAuth",
-      "group" : "authentication",
       "binding" : {
         "name" : "authentication.type",
         "type" : "property"
       },
-      "type" : "Dropdown",
       "choices" : [ {
         "name" : "API key",
         "value" : "apiKey"
@@ -824,40 +818,40 @@
       }, {
         "name" : "OAuth 2.0 Refresh Token",
         "value" : "oauth-refresh-token"
-      } ]
-    }, {
-      "id" : "authentication.apiKeyLocation",
-      "label" : "Api key location",
-      "value" : "headers",
-      "constraints" : {
-        "notEmpty" : true
-      },
+      } ],
+      "description" : "Choose the authentication type. Select 'None' if no authentication is necessary",
       "group" : "authentication",
+      "id" : "authentication.type",
+      "label" : "Type",
+      "type" : "Dropdown",
+      "value" : "noAuth"
+    }, {
       "binding" : {
         "name" : "authentication.apiKeyLocation",
         "type" : "property"
       },
-      "condition" : {
-        "property" : "authentication.type",
-        "equals" : "apiKey",
-        "type" : "simple"
-      },
-      "tooltip" : "Send API key in header or as query parameter.",
-      "type" : "Dropdown",
       "choices" : [ {
         "name" : "Headers",
         "value" : "headers"
       }, {
         "name" : "Query parameters",
         "value" : "query"
-      } ]
-    }, {
-      "id" : "authentication.name",
-      "label" : "API key name",
+      } ],
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      },
       "constraints" : {
         "notEmpty" : true
       },
       "group" : "authentication",
+      "id" : "authentication.apiKeyLocation",
+      "label" : "Api key location",
+      "tooltip" : "Send API key in header or as query parameter.",
+      "type" : "Dropdown",
+      "value" : "headers"
+    }, {
       "binding" : {
         "name" : "authentication.name",
         "type" : "property"
@@ -867,14 +861,14 @@
         "equals" : "apiKey",
         "type" : "simple"
       },
-      "type" : "String"
-    }, {
-      "id" : "authentication.value",
-      "label" : "API key value",
       "constraints" : {
         "notEmpty" : true
       },
       "group" : "authentication",
+      "id" : "authentication.name",
+      "label" : "API key name",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.value",
         "type" : "property"
@@ -884,15 +878,15 @@
         "equals" : "apiKey",
         "type" : "simple"
       },
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "authentication.username",
-      "label" : "Username",
       "constraints" : {
         "notEmpty" : true
       },
       "group" : "authentication",
+      "id" : "authentication.value",
+      "label" : "API key value",
+      "secret" : true,
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.username",
         "type" : "property"
@@ -902,14 +896,14 @@
         "equals" : "basic",
         "type" : "simple"
       },
-      "type" : "String"
-    }, {
-      "id" : "authentication.password",
-      "label" : "Password",
       "constraints" : {
         "notEmpty" : true
       },
       "group" : "authentication",
+      "id" : "authentication.username",
+      "label" : "Username",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.password",
         "type" : "property"
@@ -919,15 +913,15 @@
         "equals" : "basic",
         "type" : "simple"
       },
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "authentication.token",
-      "label" : "Bearer token",
       "constraints" : {
         "notEmpty" : true
       },
       "group" : "authentication",
+      "id" : "authentication.password",
+      "label" : "Password",
+      "secret" : true,
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.token",
         "type" : "property"
@@ -937,19 +931,15 @@
         "equals" : "bearer",
         "type" : "simple"
       },
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "authentication.oauthTokenEndpoint",
-      "label" : "OAuth 2.0 token endpoint",
       "constraints" : {
-        "notEmpty" : true,
-        "pattern" : {
-          "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
-          "message" : "Must be a http(s) URL"
-        }
+        "notEmpty" : true
       },
       "group" : "authentication",
+      "id" : "authentication.token",
+      "label" : "Bearer token",
+      "secret" : true,
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.oauthTokenEndpoint",
         "type" : "property"
@@ -959,14 +949,18 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       },
-      "type" : "String"
-    }, {
-      "id" : "authentication.clientId",
-      "label" : "Client ID",
       "constraints" : {
-        "notEmpty" : true
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+          "message" : "Must be a http(s) URL"
+        }
       },
       "group" : "authentication",
+      "id" : "authentication.oauthTokenEndpoint",
+      "label" : "OAuth 2.0 token endpoint",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.clientId",
         "type" : "property"
@@ -976,15 +970,15 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       },
-      "tooltip" : "Your application's client ID from the OAuth client",
-      "type" : "String"
-    }, {
-      "id" : "authentication.clientSecret",
-      "label" : "Client secret",
       "constraints" : {
         "notEmpty" : true
       },
       "group" : "authentication",
+      "id" : "authentication.clientId",
+      "label" : "Client ID",
+      "tooltip" : "Your application's client ID from the OAuth client",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.clientSecret",
         "type" : "property"
@@ -994,13 +988,16 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       },
-      "tooltip" : "Your application's client secret from the OAuth client",
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "authentication.audience",
-      "label" : "Audience",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "authentication",
+      "id" : "authentication.clientSecret",
+      "label" : "Client secret",
+      "secret" : true,
+      "tooltip" : "Your application's client secret from the OAuth client",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.audience",
         "type" : "property"
@@ -1010,37 +1007,37 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       },
+      "group" : "authentication",
+      "id" : "authentication.audience",
+      "label" : "Audience",
       "tooltip" : "The unique identifier of the target API you want to access",
       "type" : "String"
     }, {
-      "id" : "authentication.clientAuthentication",
-      "label" : "Client authentication",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "group" : "authentication",
       "binding" : {
         "name" : "authentication.clientAuthentication",
         "type" : "property"
       },
-      "condition" : {
-        "property" : "authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      },
-      "tooltip" : "Send client ID and client secret as a Basic Auth header, or as client credentials in the request body",
-      "type" : "Dropdown",
       "choices" : [ {
         "name" : "Send client credentials in body",
         "value" : "credentialsBody"
       }, {
         "name" : "Send as Basic Auth header",
         "value" : "basicAuthHeader"
-      } ]
-    }, {
-      "id" : "authentication.scopes",
-      "label" : "Scopes",
+      } ],
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      },
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "authentication",
+      "id" : "authentication.clientAuthentication",
+      "label" : "Client authentication",
+      "tooltip" : "Send client ID and client secret as a Basic Auth header, or as client credentials in the request body",
+      "type" : "Dropdown"
+    }, {
       "binding" : {
         "name" : "authentication.scopes",
         "type" : "property"
@@ -1050,20 +1047,13 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       },
-      "tooltip" : "The scopes which you want to request authorization for",
+      "group" : "authentication",
+      "id" : "authentication.scopes",
+      "label" : "Scopes",
       "placeholder" : "read:contacts",
+      "tooltip" : "The scopes which you want to request authorization for",
       "type" : "String"
     }, {
-      "id" : "authentication.oauthRefreshToken.oauthTokenEndpoint",
-      "label" : "OAuth 2.0 token endpoint",
-      "constraints" : {
-        "notEmpty" : true,
-        "pattern" : {
-          "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
-          "message" : "Must be a http(s) URL"
-        }
-      },
-      "group" : "authentication",
       "binding" : {
         "name" : "authentication.oauthRefreshToken.oauthTokenEndpoint",
         "type" : "property"
@@ -1073,14 +1063,18 @@
         "equals" : "oauth-refresh-token",
         "type" : "simple"
       },
-      "type" : "String"
-    }, {
-      "id" : "authentication.oauthRefreshToken.clientId",
-      "label" : "Client ID",
       "constraints" : {
-        "notEmpty" : true
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+          "message" : "Must be a http(s) URL"
+        }
       },
       "group" : "authentication",
+      "id" : "authentication.oauthRefreshToken.oauthTokenEndpoint",
+      "label" : "OAuth 2.0 token endpoint",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.oauthRefreshToken.clientId",
         "type" : "property"
@@ -1090,12 +1084,15 @@
         "equals" : "oauth-refresh-token",
         "type" : "simple"
       },
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "id" : "authentication.oauthRefreshToken.clientId",
+      "label" : "Client ID",
       "tooltip" : "Your application's client ID from the OAuth client",
       "type" : "String"
     }, {
-      "id" : "authentication.oauthRefreshToken.clientSecret",
-      "label" : "Client secret",
-      "group" : "authentication",
       "binding" : {
         "name" : "authentication.oauthRefreshToken.clientSecret",
         "type" : "property"
@@ -1105,16 +1102,13 @@
         "equals" : "oauth-refresh-token",
         "type" : "simple"
       },
-      "tooltip" : "Your application's client secret from the OAuth client",
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "authentication.oauthRefreshToken.refreshToken",
-      "label" : "Refresh token",
-      "constraints" : {
-        "notEmpty" : true
-      },
       "group" : "authentication",
+      "id" : "authentication.oauthRefreshToken.clientSecret",
+      "label" : "Client secret",
+      "secret" : true,
+      "tooltip" : "Your application's client secret from the OAuth client",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.oauthRefreshToken.refreshToken",
         "type" : "property"
@@ -1124,13 +1118,16 @@
         "equals" : "oauth-refresh-token",
         "type" : "simple"
       },
-      "tooltip" : "The refresh token used to obtain a new access token",
-      "type" : "String",
-      "secret" : true
-    }, {
-      "id" : "authentication.oauthRefreshToken.scopes",
-      "label" : "Scopes",
+      "constraints" : {
+        "notEmpty" : true
+      },
       "group" : "authentication",
+      "id" : "authentication.oauthRefreshToken.refreshToken",
+      "label" : "Refresh token",
+      "secret" : true,
+      "tooltip" : "The refresh token used to obtain a new access token",
+      "type" : "String"
+    }, {
       "binding" : {
         "name" : "authentication.oauthRefreshToken.scopes",
         "type" : "property"
@@ -1140,6 +1137,9 @@
         "equals" : "oauth-refresh-token",
         "type" : "simple"
       },
+      "group" : "authentication",
+      "id" : "authentication.oauthRefreshToken.scopes",
+      "label" : "Scopes",
       "tooltip" : "The scopes to request authorization for (space-separated)",
       "type" : "String"
     } ]

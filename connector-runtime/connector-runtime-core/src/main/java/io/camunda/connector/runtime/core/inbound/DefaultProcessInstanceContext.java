@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.ElementInstance;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -30,7 +28,9 @@ import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
-import java.io.IOException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 public final class DefaultProcessInstanceContext implements ProcessInstanceContext {
 
@@ -58,11 +58,15 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
             : validationProvider;
     this.correlationHandler = correlationHandler;
     this.objectMapper = objectMapper;
+    // Not passing .objectMapper(objectMapper): connector-feel (and this cluster evaluator) is
+    // Jackson 2-only (blocked on jackson-module-scala shipping a Jackson 3 release), while
+    // objectMapper here is Jackson 3. The evaluator falls back to its own default Jackson 2
+    // mapper, used only to merge input variables into a map for FEEL evaluation — not for final
+    // result deserialization, which goes through FeelContextAwareObjectReader below instead.
     this.evaluator =
         FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
             .tenantId(context.getDefinition().tenantId())
             .scopeKey(elementInstance.getElementInstanceKey())
-            .objectMapper(objectMapper)
             .build();
     this.processDefinitionProperties = objectMapper.valueToTree(context.getProperties());
   }
@@ -86,10 +90,11 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
               .withAttribute(
                   DocumentFactory.PHYSICAL_TENANT_ID_ATTRIBUTE,
                   context.getDefinition().physicalTenantId())
-              .readValue(processDefinitionProperties, cls);
+              .forType(cls)
+              .readValue(processDefinitionProperties);
       validationProvider.validate(mappedObject);
       return mappedObject;
-    } catch (IOException | FeelEngineWrapperException e) {
+    } catch (JacksonException | FeelEngineWrapperException e) {
       throw new RuntimeException(
           "Failed to bind process instance properties to "
               + cls.getName()

@@ -17,11 +17,11 @@
 package io.camunda.connector.api.annotation;
 
 import com.fasterxml.jackson.annotation.JacksonAnnotationsInside;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import tools.jackson.databind.annotation.JsonDeserialize;
 
 /**
  * Marks a property that needs to be deserialized as FEEL expression.

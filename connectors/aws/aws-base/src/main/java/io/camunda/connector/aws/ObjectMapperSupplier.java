@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.aws;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import tools.jackson.databind.ObjectMapper;
 
 public final class ObjectMapperSupplier {
 

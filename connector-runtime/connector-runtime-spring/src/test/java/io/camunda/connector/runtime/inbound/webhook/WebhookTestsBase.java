@@ -21,7 +21,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.inbound.ElementTemplateDetails;
 import io.camunda.connector.api.inbound.Health;
@@ -44,6 +43,7 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.List;
 import java.util.Map;
 import org.mockito.Mockito;
+import tools.jackson.databind.ObjectMapper;
 
 public abstract class WebhookTestsBase {
 

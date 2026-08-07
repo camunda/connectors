@@ -18,11 +18,11 @@ package io.camunda.connector.runtime.core.outbound;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 public class DefaultOutboundConnectorFactoryTest {
 

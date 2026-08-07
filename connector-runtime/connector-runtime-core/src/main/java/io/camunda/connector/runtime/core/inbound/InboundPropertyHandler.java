@@ -16,9 +16,6 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.core.secret.SecretHandler;
 import java.util.Arrays;
@@ -26,6 +23,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 public class InboundPropertyHandler {
 
@@ -117,7 +117,7 @@ public class InboundPropertyHandler {
       var propertiesWithSecretsJson =
           secretHandler.replaceSecrets(propertiesAsJsonString, secretContext);
       return objectMapper.readValue(propertiesWithSecretsJson, new TypeReference<>() {});
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new RuntimeException(e);
     }
   }

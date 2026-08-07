@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.inbound;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
@@ -64,6 +63,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
+import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 @Import({

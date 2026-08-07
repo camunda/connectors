@@ -18,27 +18,23 @@ package io.camunda.connector.feel.jackson;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
-import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 public class FeelFunctionDeserializerTest {
 
   private final ObjectMapper mapper =
-      new ObjectMapper()
-          .registerModule(new JacksonModuleFeelFunction())
-          .registerModule(new JavaTimeModule());
+      JsonMapper.builder().addModule(new JacksonModuleFeelFunction()).build();
 
   @Test
-  void feelFunctionDeserialization_objectResult() throws JsonProcessingException {
+  void feelFunctionDeserialization_objectResult() {
     // given
     String json =
         """
@@ -56,7 +52,7 @@ public class FeelFunctionDeserializerTest {
   }
 
   @Test
-  void feelFunctionDeserialization_stringResult() throws JsonProcessingException {
+  void feelFunctionDeserialization_stringResult() {
     // given
     String json =
         """
@@ -73,7 +69,7 @@ public class FeelFunctionDeserializerTest {
   }
 
   @Test
-  void feelFunctionDeserialization_booleanResult() throws JsonProcessingException {
+  void feelFunctionDeserialization_booleanResult() {
     // given
     String json =
         """
@@ -90,7 +86,7 @@ public class FeelFunctionDeserializerTest {
   }
 
   @Test
-  void feelFunctionDeserialization_integerResult() throws JsonProcessingException {
+  void feelFunctionDeserialization_integerResult() {
     // given
     String json =
         """
@@ -107,7 +103,7 @@ public class FeelFunctionDeserializerTest {
   }
 
   @Test
-  void feelFunctionDeserialization_nullResult() throws JsonProcessingException {
+  void feelFunctionDeserialization_nullResult() {
     // given
     String json =
         """
@@ -124,7 +120,7 @@ public class FeelFunctionDeserializerTest {
   }
 
   @Test
-  void feelSupplierDeserialization_listResult() throws JsonProcessingException {
+  void feelSupplierDeserialization_listResult() {
     // given
     String json =
         """
@@ -141,7 +137,7 @@ public class FeelFunctionDeserializerTest {
   }
 
   @Test
-  void feelSupplierDeserialization_mapResult() throws JsonProcessingException {
+  void feelSupplierDeserialization_mapResult() {
     // given
     String json =
         """
@@ -158,7 +154,7 @@ public class FeelFunctionDeserializerTest {
   }
 
   @Test
-  void feelSupplierDeserialization_foldedMapResult() throws JsonProcessingException {
+  void feelSupplierDeserialization_foldedMapResult() {
     // given
     String json =
         """
@@ -192,17 +188,19 @@ public class FeelFunctionDeserializerTest {
   }
 
   @Test
-  void feelFunctionDeserialization_contextAware_mergedWithInput() throws IOException {
+  void feelFunctionDeserialization_contextAware_mergedWithInput() {
     // given
     var json =
         """
         { "function": "= { result: a + c }" }
         """;
     var contextualReader =
-        FeelContextAwareObjectReader.of(mapper).withStaticContext(Map.of("c", "bar"));
+        FeelContextAwareObjectReader.of(mapper)
+            .withStaticContext(Map.of("c", "bar"))
+            .forType(TargetTypeObject.class);
 
     // when
-    TargetTypeObject targetType = contextualReader.readValue(json, TargetTypeObject.class);
+    TargetTypeObject targetType = contextualReader.readValue(json);
 
     // then
     InputContextString inputContext = new InputContextString("foo", "some value");
@@ -212,8 +210,7 @@ public class FeelFunctionDeserializerTest {
   }
 
   @Test
-  void feelFunctionDeserialization_withEvaluatorOverride_usesFunctionEvaluator()
-      throws IOException {
+  void feelFunctionDeserialization_withEvaluatorOverride_usesFunctionEvaluator() {
     // given
     var json =
         """
@@ -221,10 +218,11 @@ public class FeelFunctionDeserializerTest {
         """;
     var contextualReader =
         FeelContextAwareObjectReader.of(mapper)
-            .withEvaluator(new ThrowingFeelExpressionEvaluator());
+            .withEvaluator(new ThrowingFeelExpressionEvaluator())
+            .forType(TargetTypeObject.class);
 
     // when
-    TargetTypeObject targetType = contextualReader.readValue(json, TargetTypeObject.class);
+    TargetTypeObject targetType = contextualReader.readValue(json);
 
     // then
     InputContextString inputContext = new InputContextString("foo", "bar");
@@ -234,17 +232,19 @@ public class FeelFunctionDeserializerTest {
   }
 
   @Test
-  void feelFunctionDeserialization_contextAware_knowsJava8Time() throws IOException {
+  void feelFunctionDeserialization_contextAware_knowsJava8Time() {
     // given
     var json =
         """
         { "function": "= string(date(2021, 1, 1))" }
         """;
     var contextualReader =
-        FeelContextAwareObjectReader.of(mapper).withStaticContext(Map.of("c", "bar"));
+        FeelContextAwareObjectReader.of(mapper)
+            .withStaticContext(Map.of("c", "bar"))
+            .forType(TargetTypeJava8Time.class);
 
     // when
-    TargetTypeJava8Time targetType = contextualReader.readValue(json, TargetTypeJava8Time.class);
+    TargetTypeJava8Time targetType = contextualReader.readValue(json);
 
     // then
     InputContextInteger inputContext = new InputContextInteger(3, 5);

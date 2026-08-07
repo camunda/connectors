@@ -19,19 +19,18 @@ package io.camunda.connector.jackson;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.annotation.JsonEnumDefaultValue;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.exc.MismatchedInputException;
 
 class ConnectorsObjectMapperSupplierTest {
 
   @Test
-  void java8DatesShouldBeSupported() throws JsonProcessingException {
+  void java8DatesShouldBeSupported() {
     final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     final var json = "{\"data\":\"2024-01-01\"}";
     final var jsonDeserialized = Map.of("data", LocalDate.of(2024, 1, 1));
@@ -41,7 +40,7 @@ class ConnectorsObjectMapperSupplierTest {
   }
 
   @Test
-  void singlePrimitiveValueShouldBeAcceptedAsArray() throws JsonProcessingException {
+  void singlePrimitiveValueShouldBeAcceptedAsArray() {
     final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     final var json = "1";
     var actual = objectMapper.readValue(json, int[].class);
@@ -49,7 +48,7 @@ class ConnectorsObjectMapperSupplierTest {
   }
 
   @Test
-  void singleElementStringArrayBindingToObject() throws JsonProcessingException {
+  void singleElementStringArrayBindingToObject() {
     final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     final var json = "{\"value\":" + objectMapper.writeValueAsString(List.of("hey")) + "}";
     var actual = objectMapper.readValue(json, TestRecordWithString.class);
@@ -57,7 +56,7 @@ class ConnectorsObjectMapperSupplierTest {
   }
 
   @Test
-  void multipleElementStringArrayShouldNotBindToObject() throws JsonProcessingException {
+  void multipleElementStringArrayShouldNotBindToObject() {
     final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     final var json = "{\"value\":" + objectMapper.writeValueAsString(List.of("hey", "yo")) + "}";
     Assertions.assertThatThrownBy(() -> objectMapper.readValue(json, TestRecordWithString.class))
@@ -67,7 +66,7 @@ class ConnectorsObjectMapperSupplierTest {
   private record TestRecordWithString(String value) {}
 
   @Test
-  void unknownEnumValueShouldBeDeserializedUsingDefaultValue() throws JsonProcessingException {
+  void unknownEnumValueShouldBeDeserializedUsingDefaultValue() {
     final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     final var json = "{\"status\":\"PAUSED\"}";
     var actual = objectMapper.readValue(json, TestRecordWithEnum.class);

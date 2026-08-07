@@ -7,14 +7,17 @@
 package io.camunda.connector.suppliers;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import tools.jackson.databind.ObjectMapper;
 
 public final class ObjectMapperSupplier {
 
   private static final ObjectMapper OBJECT_MAPPER =
       ConnectorsObjectMapperSupplier.getCopy()
-          .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+          .rebuild()
+          .changeDefaultPropertyInclusion(
+              incl -> incl.withValueInclusion(JsonInclude.Include.NON_NULL))
+          .build();
 
   private ObjectMapperSupplier() {}
 

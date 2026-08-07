@@ -16,13 +16,13 @@
  */
 package io.camunda.connector.feel.jackson;
 
-import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import tools.jackson.core.Version;
+import tools.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.type.TypeFactory;
 
 public class JacksonModuleFeelFunction extends SimpleModule {
 

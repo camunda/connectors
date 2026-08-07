@@ -19,7 +19,6 @@ package io.camunda.connector.generator.dsl;
 import static io.camunda.connector.generator.java.annotation.BpmnType.*;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
@@ -34,11 +33,13 @@ import java.util.Set;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 public class ElementTemplateSerializationTest {
 
   private final ObjectMapper objectMapper =
-      new ObjectMapper().registerModule(new ElementTemplateModule());
+      JsonMapper.builder().addModule(new ElementTemplateModule()).build();
 
   @Test
   void serializationTest() throws Exception {

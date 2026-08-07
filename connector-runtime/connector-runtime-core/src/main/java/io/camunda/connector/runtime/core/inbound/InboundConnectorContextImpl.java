@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -51,7 +50,6 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -60,6 +58,8 @@ import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 public class InboundConnectorContextImpl extends AbstractConnectorContext
     implements InboundConnectorContext, InboundConnectorManagementContext {
@@ -100,10 +100,14 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     this.activityLogWriter = activityLogWriter;
     this.activationTimestamp = System.currentTimeMillis();
     this.camundaClient = Objects.requireNonNull(camundaClient, "camundaClient must not be null");
+    // Not passing .objectMapper(objectMapper): connector-feel (and this cluster evaluator) is
+    // Jackson 2-only (blocked on jackson-module-scala shipping a Jackson 3 release), while
+    // objectMapper here is Jackson 3. The evaluator falls back to its own default Jackson 2
+    // mapper, used only to merge input variables into a map for FEEL evaluation — not for final
+    // result deserialization, which goes through FeelContextAwareObjectReader below instead.
     this.evaluator =
         FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
             .tenantId(connectorDetails.tenantId())
-            .objectMapper(objectMapper)
             .build();
   }
 
@@ -318,14 +322,15 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   public <T> T bindProperties(Class<T> cls) {
     try {
       var propertiesJson = objectMapper.valueToTree(getPropertiesWithSecrets(properties));
-      var result =
+      T result =
           FeelContextAwareObjectReader.of(objectMapper)
               .withEvaluator(evaluator)
               .withAttribute(DocumentFactory.PHYSICAL_TENANT_ID_ATTRIBUTE, physicalTenantId())
-              .readValue(propertiesJson, cls);
+              .forType(cls)
+              .readValue(propertiesJson);
       getValidationProvider().validate(result);
       return result;
-    } catch (IOException | FeelEngineWrapperException e) {
+    } catch (JacksonException | FeelEngineWrapperException e) {
       throw new RuntimeException(
           "Failed to bind process instance properties to "
               + cls.getName()
@@ -350,14 +355,15 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
                   connectorDetails.processDefinitionId(),
                   physicalTenantId()));
       var propertiesJson = objectMapper.valueToTree(withSecrets);
-      var result =
+      T result =
           FeelContextAwareObjectReader.of(objectMapper)
               .withEvaluator(evaluator)
               .withAttribute(DocumentFactory.PHYSICAL_TENANT_ID_ATTRIBUTE, physicalTenantId())
-              .readValue(propertiesJson, cls);
+              .forType(cls)
+              .readValue(propertiesJson);
       getValidationProvider().validate(result);
       return result;
-    } catch (IOException | FeelEngineWrapperException e) {
+    } catch (JacksonException | FeelEngineWrapperException e) {
       throw new RuntimeException(
           "Failed to bind element properties to "
               + cls.getName()

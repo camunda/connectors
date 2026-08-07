@@ -16,14 +16,11 @@
  */
 package io.camunda.connector.generator.java;
 
-import static com.fasterxml.jackson.databind.MapperFeature.SORT_PROPERTIES_ALPHABETICALLY;
 import static io.camunda.connector.util.reflection.ReflectionUtil.getRequiredAnnotation;
 import static java.lang.Boolean.TRUE;
+import static tools.jackson.databind.MapperFeature.SORT_PROPERTIES_ALPHABETICALLY;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.generator.api.DocsGenerator;
 import io.camunda.connector.generator.api.DocsGeneratorConfiguration;
@@ -64,6 +61,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import tools.jackson.databind.ObjectWriter;
+import tools.jackson.databind.SerializationFeature;
 import uk.co.jemos.podam.api.DataProviderStrategy;
 import uk.co.jemos.podam.api.PodamFactory;
 import uk.co.jemos.podam.api.PodamFactoryImpl;
@@ -72,10 +71,12 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
 
   private static final ObjectWriter OBJECT_WRITER =
       ConnectorsObjectMapperSupplier.getCopy()
+          .rebuild()
           .enable(SORT_PROPERTIES_ALPHABETICALLY)
           .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
-          .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-          .registerModule(new ElementTemplateModule())
+          .changeDefaultPropertyInclusion(v -> v.withValueInclusion(JsonInclude.Include.NON_NULL))
+          .addModule(new ElementTemplateModule())
+          .build()
           .writerWithDefaultPrettyPrinter();
   private static final LocalFeelExpressionEvaluator feelEngine = new LocalFeelExpressionEvaluator();
   private final ClassLoader classLoader;
@@ -150,13 +151,7 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
     DataProviderStrategy strategy = new DocsDataProviderStrategy();
     PodamFactory factory = new PodamFactoryImpl(strategy);
     var exampleOutput = factory.manufacturePojo(type);
-    String exampleOutputJson;
-    try {
-      exampleOutputJson = OBJECT_WRITER.writeValueAsString(exampleOutput);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
-    return exampleOutputJson;
+    return OBJECT_WRITER.writeValueAsString(exampleOutput);
   }
 
   @Override

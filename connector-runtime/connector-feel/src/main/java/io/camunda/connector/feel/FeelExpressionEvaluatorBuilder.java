@@ -18,7 +18,6 @@ package io.camunda.connector.feel;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 
 /**
  * Step builder for {@link FeelExpressionEvaluator} instances. The entry points return distinct
@@ -93,7 +92,7 @@ public final class FeelExpressionEvaluatorBuilder {
 
     public FeelExpressionEvaluator build() {
       ObjectMapper mapper =
-          objectMapper != null ? objectMapper : ConnectorsObjectMapperSupplier.getCopy();
+          objectMapper != null ? objectMapper : JacksonSupport.DEFAULT_OBJECT_MAPPER;
       return new CamundaClientFeelExpressionEvaluator(camundaClient, tenantId, scopeKey, mapper);
     }
   }

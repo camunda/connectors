@@ -16,10 +16,11 @@
  */
 package io.camunda.connector.feel.jackson;
 
-import com.fasterxml.jackson.databind.introspect.Annotated;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
+import tools.jackson.databind.cfg.MapperConfig;
+import tools.jackson.databind.introspect.Annotated;
+import tools.jackson.databind.introspect.JacksonAnnotationIntrospector;
 
 public class FeelAnnotationIntrospector extends JacksonAnnotationIntrospector {
 
@@ -35,11 +36,11 @@ public class FeelAnnotationIntrospector extends JacksonAnnotationIntrospector {
   }
 
   @Override
-  public Object findDeserializer(Annotated a) {
+  public Object findDeserializer(MapperConfig<?> config, Annotated a) {
     FEEL ann = _findAnnotation(a, FEEL.class);
     if (ann != null) {
       return new FeelDeserializer(evaluator);
     }
-    return super.findDeserializer(a);
+    return super.findDeserializer(config, a);
   }
 }

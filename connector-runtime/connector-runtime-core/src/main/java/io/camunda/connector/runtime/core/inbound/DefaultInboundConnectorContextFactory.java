@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
@@ -31,6 +30,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Objects;
 import java.util.function.Consumer;
+import tools.jackson.databind.ObjectMapper;
 
 public class DefaultInboundConnectorContextFactory implements InboundConnectorContextFactory {
   private final ObjectMapper objectMapper;

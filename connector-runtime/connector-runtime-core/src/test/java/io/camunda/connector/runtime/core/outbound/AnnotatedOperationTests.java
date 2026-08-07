@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -38,6 +37,8 @@ import java.util.HashMap;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 public class AnnotatedOperationTests {
 
@@ -200,7 +201,7 @@ public class AnnotatedOperationTests {
    */
   @Test
   public void shouldUseContextObjectMapper_notRegistrationTimeMapper_forVariableResolution() {
-    var strictRegistrationMapper = new ObjectMapper();
+    var strictRegistrationMapper = JsonMapper.builder().build();
     var mismatchedInvoker =
         new OutboundConnectorOperationFunction(
             ConnectorOperations.from(connector, strictRegistrationMapper, validationProvider));
@@ -220,7 +221,7 @@ public class AnnotatedOperationTests {
   public void shouldUseContextObjectMapper_notRegistrationTimeMapper_forHeaderResolution() {
     // a bare ObjectMapper has no FEEL support, so it cannot convert the "=x+2" header string into
     // the Function<Map<String, Integer>, Integer> parameter type that myOperation5 expects.
-    var registrationMapperWithoutFeelSupport = new ObjectMapper();
+    var registrationMapperWithoutFeelSupport = JsonMapper.builder().build();
     var mismatchedInvoker =
         new OutboundConnectorOperationFunction(
             ConnectorOperations.from(

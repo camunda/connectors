@@ -21,26 +21,23 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.api.annotation.FEEL;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.DatabindException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 public class FeelDeserializerTest {
 
   private final ObjectMapper mapper =
-      new ObjectMapper()
-          .registerModule(new JacksonModuleFeelFunction())
-          .registerModule(new JavaTimeModule());
+      JsonMapper.builder().addModule(new JacksonModuleFeelFunction()).build();
 
   @Test
-  void feelDeserializer_deserializeMap() throws JsonProcessingException {
+  void feelDeserializer_deserializeMap() {
     // given
     String json =
         """
@@ -56,7 +53,7 @@ public class FeelDeserializerTest {
   }
 
   @Test
-  void feelDeserializer_deserializeNestedMap() throws JsonProcessingException {
+  void feelDeserializer_deserializeNestedMap() {
     // given
     String json =
         """
@@ -72,7 +69,7 @@ public class FeelDeserializerTest {
   }
 
   @Test
-  void feelDeserializer_deserializePrimitive() throws JsonProcessingException {
+  void feelDeserializer_deserializePrimitive() {
     // given
     String json =
         """
@@ -95,11 +92,11 @@ public class FeelDeserializerTest {
         """;
 
     // when & then
-    assertThrows(JsonMappingException.class, () -> mapper.readValue(json, TargetTypeArray.class));
+    assertThrows(DatabindException.class, () -> mapper.readValue(json, TargetTypeArray.class));
   }
 
   @Test
-  void feelDeserializer_plainString_preserved() throws JsonProcessingException {
+  void feelDeserializer_plainString_preserved() {
     // given
     String json =
         """
@@ -112,7 +109,7 @@ public class FeelDeserializerTest {
   }
 
   @Test
-  void feelDeserializer_handleObjectString() throws JsonProcessingException {
+  void feelDeserializer_handleObjectString() {
     // given, e.g. used in the REST connector body property
     String json =
         """
@@ -223,10 +220,13 @@ public class FeelDeserializerTest {
         { "props": "= { first: a, second: b }" }
         """;
     Supplier<Map<String, String>> supplier = () -> Map.of("a", "value1", "b", "value2");
-    var objectReader = FeelContextAwareObjectReader.of(mapper).withContextSupplier(supplier);
+    var objectReader =
+        mapper
+            .readerFor(TargetTypeMap.class)
+            .withAttribute(FeelContextAwareObjectReader.FEEL_CONTEXT_ATTRIBUTE, supplier);
 
     // when && then
-    var targetType = assertDoesNotThrow(() -> objectReader.readValue(json, TargetTypeMap.class));
+    TargetTypeMap targetType = assertDoesNotThrow(() -> objectReader.readValue(json));
     assertThat(targetType.props).containsEntry("first", "value1");
     assertThat(targetType.props).containsEntry("second", "value2");
   }
@@ -246,7 +246,7 @@ public class FeelDeserializerTest {
                 Map.of("a", "value1", "b", "value2")); // map is not a supplier
 
     // when && then
-    var e = assertThrows(JsonMappingException.class, () -> objectReader.readValue(json));
+    var e = assertThrows(DatabindException.class, () -> objectReader.readValue(json));
     assertThat(e.getMessage()).contains("Attribute FEEL_CONTEXT must be a Supplier");
   }
 
@@ -264,7 +264,7 @@ public class FeelDeserializerTest {
                 FeelContextAwareObjectReader.FEEL_EVALUATOR_ATTRIBUTE, "not an evaluator");
 
     // when && then
-    var e = assertThrows(JsonMappingException.class, () -> objectReader.readValue(json));
+    var e = assertThrows(DatabindException.class, () -> objectReader.readValue(json));
     assertThat(e.getMessage())
         .contains("Attribute FEEL_EVALUATOR must be a FeelExpressionEvaluator");
   }

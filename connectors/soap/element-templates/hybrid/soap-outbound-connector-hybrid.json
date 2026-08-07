@@ -46,40 +46,34 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
-    "value" : "io.camunda:soap:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "group" : "taskDefinitionType",
+    "id" : "taskDefinitionType",
+    "type" : "String",
+    "value" : "io.camunda:soap:1"
   }, {
-    "id" : "serviceUrl",
-    "label" : "Service URL",
-    "optional" : false,
+    "binding" : {
+      "name" : "serviceUrl",
+      "type" : "zeebe:input"
+    },
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "connection",
-    "binding" : {
-      "name" : "serviceUrl",
-      "type" : "zeebe:input"
-    },
+    "id" : "serviceUrl",
+    "label" : "Service URL",
+    "optional" : false,
     "tooltip" : "The URL where the service runs",
     "type" : "String"
   }, {
-    "id" : "authentication.authentication",
-    "label" : "Authentication",
-    "description" : "Authentication mechanism to use",
-    "value" : "none",
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.authentication",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "None",
       "value" : "none"
@@ -89,16 +83,14 @@
     }, {
       "name" : "WSS signature",
       "value" : "signature"
-    } ]
-  }, {
-    "id" : "authentication.username",
-    "label" : "Username",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    } ],
+    "description" : "Authentication mechanism to use",
     "group" : "authentication",
+    "id" : "authentication.authentication",
+    "label" : "Authentication",
+    "type" : "Dropdown",
+    "value" : "none"
+  }, {
     "binding" : {
       "name" : "authentication.username",
       "type" : "zeebe:input"
@@ -108,13 +100,16 @@
       "equals" : "usernameToken",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.password",
-    "label" : "Password",
-    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.username",
+    "label" : "Username",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.password",
       "type" : "zeebe:input"
@@ -124,63 +119,60 @@
       "equals" : "usernameToken",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "authentication",
+    "id" : "authentication.password",
+    "label" : "Password",
+    "optional" : false,
     "type" : "String"
   }, {
-    "id" : "authentication.encoded",
-    "label" : "Encoded",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.encoded",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "authentication.authentication",
-      "equals" : "usernameToken",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Yes",
       "value" : "Yes"
     }, {
       "name" : "No",
       "value" : "No"
-    } ]
-  }, {
-    "id" : "authentication.certificate.certificateType",
-    "label" : "Certificate type",
-    "description" : "From where the certificate is obtained",
+    } ],
+    "condition" : {
+      "property" : "authentication.authentication",
+      "equals" : "usernameToken",
+      "type" : "simple"
+    },
+    "constraints" : {
+      "notEmpty" : true
+    },
     "group" : "authentication",
+    "id" : "authentication.encoded",
+    "label" : "Encoded",
+    "optional" : false,
+    "type" : "Dropdown"
+  }, {
     "binding" : {
       "name" : "authentication.certificate.certificateType",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "authentication.authentication",
-      "equals" : "signature",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Single certificate",
       "value" : "single"
     }, {
       "name" : "Keystore certificate",
       "value" : "keystore"
-    } ]
-  }, {
-    "id" : "authentication.certificate.certificate",
-    "label" : "Certificate",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
+    } ],
+    "condition" : {
+      "property" : "authentication.authentication",
+      "equals" : "signature",
+      "type" : "simple"
     },
-    "feel" : "optional",
+    "description" : "From where the certificate is obtained",
     "group" : "authentication",
+    "id" : "authentication.certificate.certificateType",
+    "label" : "Certificate type",
+    "type" : "Dropdown"
+  }, {
     "binding" : {
       "name" : "authentication.certificate.certificate",
       "type" : "zeebe:input"
@@ -196,17 +188,17 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The X.509 certificate to use to sign the request",
-    "type" : "String"
-  }, {
-    "id" : "authentication.certificate.privateKey",
-    "label" : "Private key",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.certificate.certificate",
+    "label" : "Certificate",
+    "optional" : false,
+    "tooltip" : "The X.509 certificate to use to sign the request",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.certificate.privateKey",
       "type" : "zeebe:input"
@@ -222,17 +214,17 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The private key for the certificate",
-    "type" : "String"
-  }, {
-    "id" : "authentication.certificate.keystoreLocation",
-    "label" : "Keystore location",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.certificate.privateKey",
+    "label" : "Private key",
+    "optional" : false,
+    "tooltip" : "The private key for the certificate",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.certificate.keystoreLocation",
       "type" : "zeebe:input"
@@ -248,16 +240,16 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.certificate.keystorePassword",
-    "label" : "Keystore password",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.certificate.keystoreLocation",
+    "label" : "Keystore location",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.certificate.keystorePassword",
       "type" : "zeebe:input"
@@ -273,16 +265,16 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.certificate.alias",
-    "label" : "Certificate alias",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.certificate.keystorePassword",
+    "label" : "Keystore password",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.certificate.alias",
       "type" : "zeebe:input"
@@ -298,17 +290,17 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The alias for the certificate in the keystore",
-    "type" : "String"
-  }, {
-    "id" : "authentication.certificate.password",
-    "label" : "Certificate password",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.certificate.alias",
+    "label" : "Certificate alias",
+    "optional" : false,
+    "tooltip" : "The alias for the certificate in the keystore",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.certificate.password",
       "type" : "zeebe:input"
@@ -324,13 +316,16 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.signatureAlgorithm",
-    "label" : "Signature algorithm",
-    "optional" : true,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.certificate.password",
+    "label" : "Certificate password",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.signatureAlgorithm",
       "type" : "zeebe:input"
@@ -340,14 +335,14 @@
       "equals" : "signature",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "authentication",
+    "id" : "authentication.signatureAlgorithm",
+    "label" : "Signature algorithm",
+    "optional" : true,
     "tooltip" : "Fully qualified name of an alternative signature algorithm",
     "type" : "String"
   }, {
-    "id" : "authentication.digestAlgorithm",
-    "label" : "Digest algorithm",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.digestAlgorithm",
       "type" : "zeebe:input"
@@ -357,14 +352,14 @@
       "equals" : "signature",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "authentication",
+    "id" : "authentication.digestAlgorithm",
+    "label" : "Digest algorithm",
+    "optional" : true,
     "tooltip" : "Fully qualified name of an alternative digest algorithm",
     "type" : "String"
   }, {
-    "id" : "authentication.timestamp",
-    "label" : "Timestamp timeout in seconds",
-    "optional" : true,
-    "feel" : "static",
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.timestamp",
       "type" : "zeebe:input"
@@ -374,14 +369,14 @@
       "equals" : "signature",
       "type" : "simple"
     },
+    "feel" : "static",
+    "group" : "authentication",
+    "id" : "authentication.timestamp",
+    "label" : "Timestamp timeout in seconds",
+    "optional" : true,
     "tooltip" : "If set, adds a timestamp header with the given timeout",
     "type" : "Number"
   }, {
-    "id" : "authentication.encryptionParts",
-    "label" : "Signature parts",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.encryptionParts",
       "type" : "zeebe:input"
@@ -391,32 +386,32 @@
       "equals" : "signature",
       "type" : "simple"
     },
+    "feel" : "required",
+    "group" : "authentication",
+    "id" : "authentication.encryptionParts",
+    "label" : "Signature parts",
+    "optional" : true,
     "tooltip" : "Array of signature parts with namespace and localName",
     "type" : "String"
   }, {
-    "id" : "soapVersion.version",
-    "label" : "SOAP version",
-    "description" : "The SOAP version the service uses",
-    "value" : "1.1",
-    "group" : "soap-message",
     "binding" : {
       "name" : "soapVersion.version",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "1.1",
       "value" : "1.1"
     }, {
       "name" : "1.2",
       "value" : "1.2"
-    } ]
-  }, {
-    "id" : "soapVersion.soapAction",
-    "label" : "SOAPAction HTTP header",
-    "optional" : true,
-    "feel" : "optional",
+    } ],
+    "description" : "The SOAP version the service uses",
     "group" : "soap-message",
+    "id" : "soapVersion.version",
+    "label" : "SOAP version",
+    "type" : "Dropdown",
+    "value" : "1.1"
+  }, {
     "binding" : {
       "name" : "soapVersion.soapAction",
       "type" : "zeebe:input"
@@ -426,18 +421,17 @@
       "equals" : "1.1",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "soap-message",
+    "id" : "soapVersion.soapAction",
+    "label" : "SOAPAction HTTP header",
+    "optional" : true,
     "type" : "String"
   }, {
-    "id" : "header.type",
-    "label" : "SOAP header",
-    "description" : "The definition of the SOAP header",
-    "value" : "none",
-    "group" : "soap-message",
     "binding" : {
       "name" : "header.type",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Template",
       "value" : "template"
@@ -447,13 +441,14 @@
     }, {
       "name" : "No SOAP header required",
       "value" : "none"
-    } ]
-  }, {
-    "id" : "header.template",
-    "label" : "XML template",
-    "optional" : false,
-    "feel" : "optional",
+    } ],
+    "description" : "The definition of the SOAP header",
     "group" : "soap-message",
+    "id" : "header.type",
+    "label" : "SOAP header",
+    "type" : "Dropdown",
+    "value" : "none"
+  }, {
     "binding" : {
       "name" : "header.template",
       "type" : "zeebe:input"
@@ -463,14 +458,14 @@
       "equals" : "template",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "soap-message",
+    "id" : "header.template",
+    "label" : "XML template",
+    "optional" : false,
     "tooltip" : "The template for the header in XML format",
     "type" : "Text"
   }, {
-    "id" : "header.context",
-    "label" : "XML template context",
-    "optional" : false,
-    "feel" : "required",
-    "group" : "soap-message",
     "binding" : {
       "name" : "header.context",
       "type" : "zeebe:input"
@@ -480,14 +475,14 @@
       "equals" : "template",
       "type" : "simple"
     },
+    "feel" : "required",
+    "group" : "soap-message",
+    "id" : "header.context",
+    "label" : "XML template context",
+    "optional" : false,
     "tooltip" : "The context that is used to fill the template",
     "type" : "String"
   }, {
-    "id" : "header.json",
-    "label" : "JSON definition",
-    "optional" : false,
-    "feel" : "required",
-    "group" : "soap-message",
     "binding" : {
       "name" : "header.json",
       "type" : "zeebe:input"
@@ -497,32 +492,32 @@
       "equals" : "json",
       "type" : "simple"
     },
+    "feel" : "required",
+    "group" : "soap-message",
+    "id" : "header.json",
+    "label" : "JSON definition",
+    "optional" : false,
     "tooltip" : "Definition of the SOAP header as JSON object",
     "type" : "String"
   }, {
-    "id" : "body.type",
-    "label" : "SOAP body",
-    "description" : "The XML definition of the SOAP body",
-    "value" : "json",
-    "group" : "soap-message",
     "binding" : {
       "name" : "body.type",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Template",
       "value" : "template"
     }, {
       "name" : "XML compatible JSON",
       "value" : "json"
-    } ]
-  }, {
-    "id" : "body.template",
-    "label" : "XML template",
-    "optional" : false,
-    "feel" : "optional",
+    } ],
+    "description" : "The XML definition of the SOAP body",
     "group" : "soap-message",
+    "id" : "body.type",
+    "label" : "SOAP body",
+    "type" : "Dropdown",
+    "value" : "json"
+  }, {
     "binding" : {
       "name" : "body.template",
       "type" : "zeebe:input"
@@ -532,14 +527,14 @@
       "equals" : "template",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "soap-message",
+    "id" : "body.template",
+    "label" : "XML template",
+    "optional" : false,
     "tooltip" : "The template for the body in XML format",
     "type" : "Text"
   }, {
-    "id" : "body.context",
-    "label" : "XML template context",
-    "optional" : false,
-    "feel" : "required",
-    "group" : "soap-message",
     "binding" : {
       "name" : "body.context",
       "type" : "zeebe:input"
@@ -549,14 +544,14 @@
       "equals" : "template",
       "type" : "simple"
     },
+    "feel" : "required",
+    "group" : "soap-message",
+    "id" : "body.context",
+    "label" : "XML template context",
+    "optional" : false,
     "tooltip" : "The context that is used to fill the template",
     "type" : "String"
   }, {
-    "id" : "body.json",
-    "label" : "JSON definition",
-    "optional" : false,
-    "feel" : "required",
-    "group" : "soap-message",
     "binding" : {
       "name" : "body.json",
       "type" : "zeebe:input"
@@ -566,120 +561,125 @@
       "equals" : "json",
       "type" : "simple"
     },
+    "feel" : "required",
+    "group" : "soap-message",
+    "id" : "body.json",
+    "label" : "JSON definition",
+    "optional" : false,
     "tooltip" : "Definition of the SOAP body as JSON object",
     "type" : "String"
   }, {
-    "id" : "namespaces",
-    "label" : "Namespaces",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "soap-message",
     "binding" : {
       "name" : "namespaces",
       "type" : "zeebe:input"
     },
+    "feel" : "required",
+    "group" : "soap-message",
+    "id" : "namespaces",
+    "label" : "Namespaces",
+    "optional" : true,
     "tooltip" : "The namespaces that should be declared on the SOAP Envelope",
     "type" : "String"
   }, {
-    "id" : "connectionTimeoutInSeconds",
-    "label" : "Connection timeout in seconds",
-    "optional" : true,
-    "value" : 20,
-    "feel" : "static",
-    "group" : "timeout",
     "binding" : {
       "name" : "connectionTimeoutInSeconds",
       "type" : "zeebe:input"
     },
+    "feel" : "static",
+    "group" : "timeout",
+    "id" : "connectionTimeoutInSeconds",
+    "label" : "Connection timeout in seconds",
+    "optional" : true,
     "tooltip" : "Time in seconds to wait when establishing a connection, or 0 to wait indefinitely",
-    "type" : "Number"
+    "type" : "Number",
+    "value" : 20
   }, {
-    "id" : "version",
-    "label" : "Version",
-    "description" : "Version of the element template",
-    "value" : "2",
-    "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
-  }, {
-    "id" : "id",
-    "label" : "ID",
-    "description" : "ID of the element template",
-    "value" : "io.camunda:soap",
+    "description" : "Version of the element template",
     "group" : "connector",
+    "id" : "version",
+    "label" : "Version",
+    "type" : "Hidden",
+    "value" : "2"
+  }, {
     "binding" : {
       "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
+    "description" : "ID of the element template",
+    "group" : "connector",
+    "id" : "id",
+    "label" : "ID",
+    "type" : "Hidden",
+    "value" : "io.camunda:soap"
   }, {
-    "id" : "resultVariable",
-    "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
-    "group" : "output",
     "binding" : {
       "key" : "resultVariable",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "group" : "output",
+    "id" : "resultVariable",
+    "label" : "Result variable",
     "type" : "String"
   }, {
-    "id" : "resultExpression",
-    "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "output",
     "binding" : {
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "id" : "resultExpression",
+    "label" : "Result expression",
     "type" : "Text"
   }, {
-    "id" : "errorExpression",
-    "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "error",
     "binding" : {
       "key" : "errorExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "id" : "errorExpression",
+    "label" : "Error expression",
     "type" : "Text"
   }, {
-    "id" : "retryCount",
-    "label" : "Retries",
-    "description" : "Number of retries",
-    "value" : "3",
-    "feel" : "optional",
-    "group" : "retries",
     "binding" : {
       "property" : "retries",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
-  }, {
-    "id" : "retryBackoff",
-    "label" : "Retry backoff",
-    "description" : "ISO-8601 duration to wait between retries",
-    "value" : "PT30S",
+    "description" : "Number of retries",
+    "feel" : "optional",
     "group" : "retries",
+    "id" : "retryCount",
+    "label" : "Retries",
+    "type" : "String",
+    "value" : "3"
+  }, {
     "binding" : {
       "key" : "retryBackoff",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "String"
-  }, {
-    "id" : "jobTimeout",
-    "label" : "Job timeout",
-    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
-    "optional" : true,
+    "description" : "ISO-8601 duration to wait between retries",
     "group" : "retries",
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "type" : "String",
+    "value" : "PT30S"
+  }, {
     "binding" : {
       "key" : "jobTimeout",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "group" : "retries",
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "optional" : true,
     "type" : "String"
   } ],
   "icon" : {

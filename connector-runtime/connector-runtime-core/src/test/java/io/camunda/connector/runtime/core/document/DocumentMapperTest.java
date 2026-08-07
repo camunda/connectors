@@ -18,9 +18,6 @@ package io.camunda.connector.runtime.core.document;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
@@ -28,26 +25,37 @@ import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.D
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.intrinsic.MutableObjectMapperSupplier;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DatabindException;
+import tools.jackson.databind.ObjectMapper;
 
 public class DocumentMapperTest {
 
   public ObjectMapper createObjectMapper() {
     final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
-    var functionExecutor = new DefaultIntrinsicFunctionExecutor(objectMapper);
-    return objectMapper.registerModule(
-        new JacksonModuleDocumentDeserializer(
-            new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
-            functionExecutor,
-            DocumentModuleSettings.create()));
+    var mapperHolder = new MutableObjectMapperSupplier();
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(mapperHolder);
+    var finalMapper =
+        objectMapper
+            .rebuild()
+            .addModule(
+                new JacksonModuleDocumentDeserializer(
+                    new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
+                    functionExecutor,
+                    DocumentModuleSettings.create()))
+            .build();
+    mapperHolder.set(finalMapper);
+    return finalMapper;
   }
 
   @Test
-  void singleDocumentShouldBeAcceptedAsArray() throws JsonProcessingException {
+  void singleDocumentShouldBeAcceptedAsArray() throws JacksonException {
     var objectMapper = createObjectMapper();
     final var documentReference =
         new CamundaDocumentReferenceModel("default", UUID.randomUUID().toString(), "hash", null);
@@ -58,7 +66,7 @@ public class DocumentMapperTest {
   }
 
   @Test
-  void singleElementDocumentArrayShouldBeAcceptedAsObject() throws JsonProcessingException {
+  void singleElementDocumentArrayShouldBeAcceptedAsObject() throws JacksonException {
     var objectMapper = createObjectMapper();
     final var documentReference =
         new CamundaDocumentReferenceModel("default", UUID.randomUUID().toString(), "hash", null);
@@ -70,7 +78,7 @@ public class DocumentMapperTest {
   }
 
   @Test
-  void multipleElementDocumentArrayShouldNotBeAcceptedAsObject() throws JsonProcessingException {
+  void multipleElementDocumentArrayShouldNotBeAcceptedAsObject() throws JacksonException {
     var objectMapper = createObjectMapper();
     final var documentReference =
         new CamundaDocumentReferenceModel("default", UUID.randomUUID().toString(), "hash", null);
@@ -79,12 +87,12 @@ public class DocumentMapperTest {
             + objectMapper.writeValueAsString(List.of(documentReference, documentReference))
             + "}";
     Assertions.assertThatThrownBy(() -> objectMapper.readValue(json, TestRecordWithDocument.class))
-        .isInstanceOf(JsonMappingException.class)
+        .isInstanceOf(DatabindException.class)
         .hasCauseInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
-  void intrinsicFunctionShouldBeDeserialized() throws JsonProcessingException {
+  void intrinsicFunctionShouldBeDeserialized() throws JacksonException {
     var objectMapper = createObjectMapper();
 
     final var json =

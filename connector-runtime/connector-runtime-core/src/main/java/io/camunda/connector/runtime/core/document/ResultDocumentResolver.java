@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.core.document;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -29,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Resolves {@code createDocument(...)} sentinel markers produced by {@code

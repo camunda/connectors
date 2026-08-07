@@ -19,15 +19,12 @@ package io.camunda.connector.runtime.core;
 import static io.camunda.connector.feel.FeelEngineWrapperUtil.wrapResponse;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.document.jackson.v3.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.FeelConnectorFunctionProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
@@ -36,12 +33,14 @@ import io.camunda.connector.runtime.core.document.ResultDocumentResolver;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 public class ConnectorResultHandler {
 
@@ -57,22 +56,24 @@ public class ConnectorResultHandler {
   /**
    * @param objectMapper used for everything except serializing a resolved {@link
    *     io.camunda.connector.api.document.Document} back to JSON, which instead uses a private
-   *     {@code .copy()} with {@code JacksonModuleDocumentSerializer} registered on it: a caller
-   *     that omitted that module on {@code objectMapper} would otherwise not fail loudly — since
-   *     {@code ConnectorsObjectMapperSupplier} disables {@code FAIL_ON_EMPTY_BEANS} — but instead
-   *     silently serialize the just-created {@code Document} as {@code {}}, uploading it and then
-   *     losing the only reference to it. Copying rather than mutating {@code objectMapper} in place
-   *     avoids surprising callers who share that instance for unrelated serialization. Falls back
-   *     to {@code objectMapper} itself if {@code copy()} returns {@code null} — a real {@code
+   *     rebuild with {@code JacksonModuleDocumentSerializer} added to it: a caller that omitted
+   *     that module on {@code objectMapper} would otherwise not fail loudly — since {@code
+   *     ConnectorsObjectMapperSupplier} disables {@code FAIL_ON_EMPTY_BEANS} — but instead silently
+   *     serialize the just-created {@code Document} as {@code {}}, uploading it and then losing the
+   *     only reference to it. Rebuilding rather than mutating {@code objectMapper} in place avoids
+   *     surprising callers who share that instance for unrelated serialization. Falls back to
+   *     {@code objectMapper} itself if {@code rebuild()} returns {@code null} — a real {@code
    *     ObjectMapper} never does this, but a test double (e.g. a bare {@code
    *     mock(ObjectMapper.class)} with no stubbing) can, and such callers are by construction not
    *     relying on real Document serialization anyway.
    */
   public ConnectorResultHandler(ObjectMapper objectMapper, DocumentFactory documentFactory) {
     this.objectMapper = objectMapper;
-    ObjectMapper copy = objectMapper.copy();
+    var builder = objectMapper.rebuild();
     this.documentSerializingObjectMapper =
-        copy != null ? copy.registerModule(new JacksonModuleDocumentSerializer()) : objectMapper;
+        builder != null
+            ? builder.addModule(new JacksonModuleDocumentSerializer()).build()
+            : objectMapper;
     this.documentResolver = new ResultDocumentResolver(documentFactory);
   }
 
@@ -207,23 +208,14 @@ public class ConnectorResultHandler {
       }
       return objectMapper
           .reader()
+          .forType(type)
           .withAttribute(DocumentFactory.PHYSICAL_TENANT_ID_ATTRIBUTE, physicalTenantId)
-          .readValue(jsonVars, type);
+          .readValue(jsonVars);
     } catch (ConnectorInputException e) {
       // Re-throw our custom exception
       throw e;
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       // For other types (like ConnectorError), keep the original message
-      throw new ConnectorInputException(
-          new FeelEngineWrapperException(
-              String.format(ERROR_CANNOT_PARSE_VARIABLES, jsonVars, type.getName()),
-              expression,
-              jsonVars,
-              e));
-    } catch (IOException e) {
-      // ObjectReader#readValue declares the broader IOException (unlike ObjectMapper#readValue's
-      // JsonProcessingException), though in practice this path only ever throws for JSON-parsing
-      // reasons already covered above; kept for exhaustiveness.
       throw new ConnectorInputException(
           new FeelEngineWrapperException(
               String.format(ERROR_CANNOT_PARSE_VARIABLES, jsonVars, type.getName()),
@@ -251,7 +243,7 @@ public class ConnectorResultHandler {
     final JsonNode node;
     try {
       node = objectMapper.readTree(json);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new ConnectorInputException(
           new FeelEngineWrapperException(
               String.format(ERROR_CANNOT_PARSE_VARIABLES, json, Map.class.getName()),
@@ -292,7 +284,7 @@ public class ConnectorResultHandler {
     final Object resolved = documentResolver.resolve(node, physicalTenantId, expectedNonce);
     try {
       return documentSerializingObjectMapper.writeValueAsString(resolved);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new ConnectorInputException(
           new FeelEngineWrapperException(
               String.format(

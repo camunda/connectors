@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.secret.providers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -25,6 +24,7 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
+import tools.jackson.databind.ObjectMapper;
 
 public class AwsSecretProvider extends AbstractSecretProvider implements AutoCloseable {
 

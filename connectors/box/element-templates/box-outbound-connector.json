@@ -37,23 +37,17 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "value" : "io.camunda:box:1",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "Hidden"
+    "type" : "Hidden",
+    "value" : "io.camunda:box:1"
   }, {
-    "id" : "operation.type",
-    "label" : "Operation",
-    "description" : "The operation to execute.",
-    "value" : "createFolder",
-    "group" : "operation",
     "binding" : {
       "name" : "operation.type",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Create Folder",
       "value" : "createFolder"
@@ -75,16 +69,14 @@
     }, {
       "name" : "Search",
       "value" : "search"
-    } ]
-  }, {
-    "id" : "operation.createFolderName",
-    "label" : "Folder name",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    } ],
+    "description" : "The operation to execute.",
     "group" : "operation",
+    "id" : "operation.type",
+    "label" : "Operation",
+    "type" : "Dropdown",
+    "value" : "createFolder"
+  }, {
     "binding" : {
       "name" : "operation.name",
       "type" : "zeebe:input"
@@ -94,17 +86,16 @@
       "equals" : "createFolder",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.createFolderParentPath",
-    "label" : "Parent path",
-    "optional" : false,
-    "value" : "/",
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation.createFolderName",
+    "label" : "Folder name",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.folderPath",
       "type" : "zeebe:input"
@@ -114,16 +105,17 @@
       "equals" : "createFolder",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.deleteFolderPath",
-    "label" : "Folder path",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation.createFolderParentPath",
+    "label" : "Parent path",
+    "optional" : false,
+    "type" : "String",
+    "value" : "/"
+  }, {
     "binding" : {
       "name" : "operation.folderPath",
       "type" : "zeebe:input"
@@ -133,14 +125,16 @@
       "equals" : "deleteFolder",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "id" : "operation.deleteFolderPath",
+    "label" : "Folder path",
+    "optional" : false,
     "type" : "String"
   }, {
-    "id" : "operation.recursive",
-    "label" : "Recursive",
-    "optional" : false,
-    "value" : true,
-    "feel" : "static",
-    "group" : "operation",
     "binding" : {
       "name" : "operation.recursive",
       "type" : "zeebe:input"
@@ -150,17 +144,15 @@
       "equals" : "deleteFolder",
       "type" : "simple"
     },
-    "tooltip" : "Deletes all items contained by the folder",
-    "type" : "Boolean"
-  }, {
-    "id" : "operation.uploadFileName",
-    "label" : "File name",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "operation",
+    "id" : "operation.recursive",
+    "label" : "Recursive",
+    "optional" : false,
+    "tooltip" : "Deletes all items contained by the folder",
+    "type" : "Boolean",
+    "value" : true
+  }, {
     "binding" : {
       "name" : "operation.name",
       "type" : "zeebe:input"
@@ -170,16 +162,16 @@
       "equals" : "uploadFile",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.uploadFileFolderPath",
-    "label" : "Folder path",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation.uploadFileName",
+    "label" : "File name",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.folderPath",
       "type" : "zeebe:input"
@@ -189,23 +181,20 @@
       "equals" : "uploadFile",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "id" : "operation.uploadFileFolderPath",
+    "label" : "Folder path",
+    "optional" : false,
     "type" : "String"
   }, {
-    "id" : "operation.document_documentSource",
-    "label" : "Document source",
-    "value" : "camunda",
-    "group" : "operation",
     "binding" : {
       "name" : "operation.document_documentSource",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "operation.type",
-      "equals" : "uploadFile",
-      "type" : "simple"
-    },
-    "tooltip" : "The document reference that will be uploaded",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Camunda Document",
       "value" : "camunda"
@@ -215,15 +204,19 @@
     }, {
       "name" : "From URL",
       "value" : "external"
-    } ]
-  }, {
-    "id" : "operation.document_camundaReference",
-    "label" : "Camunda document",
-    "constraints" : {
-      "notEmpty" : true
+    } ],
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "uploadFile",
+      "type" : "simple"
     },
-    "feel" : "required",
     "group" : "operation",
+    "id" : "operation.document_documentSource",
+    "label" : "Document source",
+    "tooltip" : "The document reference that will be uploaded",
+    "type" : "Dropdown",
+    "value" : "camunda"
+  }, {
     "binding" : {
       "name" : "operation.document_camundaReference",
       "type" : "zeebe:input"
@@ -239,15 +232,15 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.document_inline_content",
-    "label" : "Content",
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "operation",
+    "id" : "operation.document_camundaReference",
+    "label" : "Camunda document",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.document_inline_content",
       "type" : "zeebe:input"
@@ -263,12 +256,15 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.document_inline_fileName",
-    "label" : "File name",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation.document_inline_content",
+    "label" : "Content",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.document_inline_fileName",
       "type" : "zeebe:input"
@@ -284,12 +280,12 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.document_inline_contentType",
-    "label" : "Content type",
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation.document_inline_fileName",
+    "label" : "File name",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.document_inline_contentType",
       "type" : "zeebe:input"
@@ -305,15 +301,12 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.document_external_url",
-    "label" : "URL",
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation.document_inline_contentType",
+    "label" : "Content type",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.document_external_url",
       "type" : "zeebe:input"
@@ -329,12 +322,15 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.document_external_fileName",
-    "label" : "File name",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation.document_external_url",
+    "label" : "URL",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.document_external_fileName",
       "type" : "zeebe:input"
@@ -350,11 +346,12 @@
         "type" : "simple"
       } ]
     },
+    "feel" : "optional",
+    "group" : "operation",
+    "id" : "operation.document_external_fileName",
+    "label" : "File name",
     "type" : "String"
   }, {
-    "id" : "operation.uploadFileDocument",
-    "value" : "=if document_documentSource = \"camunda\" then document_camundaReference else if document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: document_inline_content, name: document_inline_fileName, contentType: document_inline_contentType } else if document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: document_external_url, name: document_external_fileName } else null",
-    "group" : "operation",
     "binding" : {
       "name" : "operation.document",
       "type" : "zeebe:input"
@@ -364,13 +361,11 @@
       "equals" : "uploadFile",
       "type" : "simple"
     },
-    "type" : "Hidden"
-  }, {
-    "id" : "operation.downloadFilePath",
-    "label" : "File path",
-    "optional" : false,
-    "feel" : "optional",
     "group" : "operation",
+    "id" : "operation.uploadFileDocument",
+    "type" : "Hidden",
+    "value" : "=if document_documentSource = \"camunda\" then document_camundaReference else if document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: document_inline_content, name: document_inline_fileName, contentType: document_inline_contentType } else if document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: document_external_url, name: document_external_fileName } else null"
+  }, {
     "binding" : {
       "name" : "operation.filePath",
       "type" : "zeebe:input"
@@ -380,24 +375,18 @@
       "equals" : "downloadFile",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "operation",
+    "id" : "operation.downloadFilePath",
+    "label" : "File path",
+    "optional" : false,
     "tooltip" : "Path to the file item to download",
     "type" : "String"
   }, {
-    "id" : "documentReturnFormat",
-    "label" : "Response format",
-    "value" : "DOCUMENT",
-    "group" : "operation",
     "binding" : {
       "name" : "documentReturnFormat.choice",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "operation.type",
-      "equals" : "downloadFile",
-      "type" : "simple"
-    },
-    "tooltip" : "How the downloaded payload should be returned. Document reference uploads the payload to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Document reference",
       "value" : "DOCUMENT"
@@ -407,14 +396,19 @@
     }, {
       "name" : "as JSON",
       "value" : "JSON"
-    } ]
-  }, {
-    "id" : "documentReturnFormatEncoding",
-    "label" : "Encoding",
-    "description" : "Character set used to decode the response. Default UTF-8.",
-    "value" : "UTF-8",
-    "feel" : "optional",
+    } ],
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "downloadFile",
+      "type" : "simple"
+    },
     "group" : "operation",
+    "id" : "documentReturnFormat",
+    "label" : "Response format",
+    "tooltip" : "How the downloaded payload should be returned. Document reference uploads the payload to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
+    "type" : "Dropdown",
+    "value" : "DOCUMENT"
+  }, {
     "binding" : {
       "name" : "documentReturnFormat.encoding",
       "type" : "zeebe:input"
@@ -430,16 +424,14 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.moveFilePath",
-    "label" : "File path",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
+    "description" : "Character set used to decode the response. Default UTF-8.",
     "feel" : "optional",
     "group" : "operation",
+    "id" : "documentReturnFormatEncoding",
+    "label" : "Encoding",
+    "type" : "String",
+    "value" : "UTF-8"
+  }, {
     "binding" : {
       "name" : "operation.filePath",
       "type" : "zeebe:input"
@@ -449,16 +441,16 @@
       "equals" : "moveFile",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.moveFileFolderPath",
-    "label" : "Target folder path",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation.moveFilePath",
+    "label" : "File path",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.folderPath",
       "type" : "zeebe:input"
@@ -468,16 +460,16 @@
       "equals" : "moveFile",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.deleteFilePath",
-    "label" : "File path",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation.moveFileFolderPath",
+    "label" : "Target folder path",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.filePath",
       "type" : "zeebe:input"
@@ -487,16 +479,16 @@
       "equals" : "deleteFile",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.searchQuery",
-    "label" : "Search query",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation.deleteFilePath",
+    "label" : "File path",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.query",
       "type" : "zeebe:input"
@@ -506,17 +498,16 @@
       "equals" : "search",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.searchSortColumn",
-    "label" : "Search sort column",
-    "optional" : false,
-    "value" : "modified_at",
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operation",
+    "id" : "operation.searchQuery",
+    "label" : "Search query",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.sortColumn",
       "type" : "zeebe:input"
@@ -526,38 +517,41 @@
       "equals" : "search",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "operation.searchSortDirection",
-    "label" : "Search sort direction",
-    "optional" : false,
-    "value" : "DESC",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
     "group" : "operation",
+    "id" : "operation.searchSortColumn",
+    "label" : "Search sort column",
+    "optional" : false,
+    "type" : "String",
+    "value" : "modified_at"
+  }, {
     "binding" : {
       "name" : "operation.sortDirection",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "operation.type",
-      "equals" : "search",
-      "type" : "simple"
-    },
-    "tooltip" : "Sort order for results: ASC (ascending) or DESC (descending)",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "ASC",
       "value" : "ASC"
     }, {
       "name" : "DESC",
       "value" : "DESC"
-    } ]
-  }, {
-    "id" : "operation.searchOffset",
-    "label" : "Search offset",
-    "optional" : false,
-    "value" : 0,
-    "feel" : "static",
+    } ],
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "search",
+      "type" : "simple"
+    },
     "group" : "operation",
+    "id" : "operation.searchSortDirection",
+    "label" : "Search sort direction",
+    "optional" : false,
+    "tooltip" : "Sort order for results: ASC (ascending) or DESC (descending)",
+    "type" : "Dropdown",
+    "value" : "DESC"
+  }, {
     "binding" : {
       "name" : "operation.offset",
       "type" : "zeebe:input"
@@ -567,14 +561,14 @@
       "equals" : "search",
       "type" : "simple"
     },
-    "type" : "Number"
-  }, {
-    "id" : "operation.searchLimit",
-    "label" : "Search limit",
-    "optional" : false,
-    "value" : 30,
     "feel" : "static",
     "group" : "operation",
+    "id" : "operation.searchOffset",
+    "label" : "Search offset",
+    "optional" : false,
+    "type" : "Number",
+    "value" : 0
+  }, {
     "binding" : {
       "name" : "operation.limit",
       "type" : "zeebe:input"
@@ -584,18 +578,18 @@
       "equals" : "search",
       "type" : "simple"
     },
-    "type" : "Number"
+    "feel" : "static",
+    "group" : "operation",
+    "id" : "operation.searchLimit",
+    "label" : "Search limit",
+    "optional" : false,
+    "type" : "Number",
+    "value" : 30
   }, {
-    "id" : "authentication.type",
-    "label" : "Authentication",
-    "description" : "Specify authentication strategy. Learn more at the <a href=\"https://developer.box.com/guides/authentication/\" target=\"_blank\">documentation page</a>",
-    "value" : "developerToken",
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.type",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Client Credentials Enterprise",
       "value" : "clientCredentialsEnterprise"
@@ -608,16 +602,14 @@
     }, {
       "name" : "JWT JSON Config",
       "value" : "jwtJsonConfig"
-    } ]
-  }, {
-    "id" : "authentication.clientIdEnterprise",
-    "label" : "Client id",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    } ],
+    "description" : "Specify authentication strategy. Learn more at the <a href=\"https://developer.box.com/guides/authentication/\" target=\"_blank\">documentation page</a>",
     "group" : "authentication",
+    "id" : "authentication.type",
+    "label" : "Authentication",
+    "type" : "Dropdown",
+    "value" : "developerToken"
+  }, {
     "binding" : {
       "name" : "authentication.clientId",
       "type" : "zeebe:input"
@@ -627,16 +619,16 @@
       "equals" : "clientCredentialsEnterprise",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.clientSecretEnterprise",
-    "label" : "Client secret",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.clientIdEnterprise",
+    "label" : "Client id",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.clientSecret",
       "type" : "zeebe:input"
@@ -646,16 +638,16 @@
       "equals" : "clientCredentialsEnterprise",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.enterpriseId",
-    "label" : "Enterprise ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.clientSecretEnterprise",
+    "label" : "Client secret",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.enterpriseId",
       "type" : "zeebe:input"
@@ -665,17 +657,17 @@
       "equals" : "clientCredentialsEnterprise",
       "type" : "simple"
     },
-    "tooltip" : "The enterprise ID to authenticate against",
-    "type" : "String"
-  }, {
-    "id" : "authentication.clientIdUser",
-    "label" : "Client id",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.enterpriseId",
+    "label" : "Enterprise ID",
+    "optional" : false,
+    "tooltip" : "The enterprise ID to authenticate against",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.clientId",
       "type" : "zeebe:input"
@@ -685,16 +677,16 @@
       "equals" : "clientCredentialsUser",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.clientSecretUser",
-    "label" : "Client secret",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.clientIdUser",
+    "label" : "Client id",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.clientSecret",
       "type" : "zeebe:input"
@@ -704,16 +696,16 @@
       "equals" : "clientCredentialsUser",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.userId",
-    "label" : "User ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.clientSecretUser",
+    "label" : "Client secret",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.userId",
       "type" : "zeebe:input"
@@ -723,17 +715,17 @@
       "equals" : "clientCredentialsUser",
       "type" : "simple"
     },
-    "tooltip" : "The user ID of the account to authenticate against",
-    "type" : "String"
-  }, {
-    "id" : "authentication.accessToken",
-    "label" : "Access key",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.userId",
+    "label" : "User ID",
+    "optional" : false,
+    "tooltip" : "The user ID of the account to authenticate against",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.accessToken",
       "type" : "zeebe:input"
@@ -743,17 +735,17 @@
       "equals" : "developerToken",
       "type" : "simple"
     },
-    "tooltip" : "The access key or developer token",
-    "type" : "String"
-  }, {
-    "id" : "authentication.jsonConfig",
-    "label" : "JSON config",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.accessToken",
+    "label" : "Access key",
+    "optional" : false,
+    "tooltip" : "The access key or developer token",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.jsonConfig",
       "type" : "zeebe:input"
@@ -763,95 +755,103 @@
       "equals" : "jwtJsonConfig",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "id" : "authentication.jsonConfig",
+    "label" : "JSON config",
+    "optional" : false,
     "tooltip" : "The JSON config as string",
     "type" : "String"
   }, {
-    "id" : "version",
-    "label" : "Version",
-    "description" : "Version of the element template",
-    "value" : "5",
-    "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
-  }, {
-    "id" : "id",
-    "label" : "ID",
-    "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.box",
+    "description" : "Version of the element template",
     "group" : "connector",
+    "id" : "version",
+    "label" : "Version",
+    "type" : "Hidden",
+    "value" : "5"
+  }, {
     "binding" : {
       "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
+    "description" : "ID of the element template",
+    "group" : "connector",
+    "id" : "id",
+    "label" : "ID",
+    "type" : "Hidden",
+    "value" : "io.camunda.connectors.box"
   }, {
-    "id" : "resultVariable",
-    "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
-    "group" : "output",
     "binding" : {
       "key" : "resultVariable",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "group" : "output",
+    "id" : "resultVariable",
+    "label" : "Result variable",
     "type" : "String"
   }, {
-    "id" : "resultExpression",
-    "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "output",
     "binding" : {
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "id" : "resultExpression",
+    "label" : "Result expression",
     "type" : "Text"
   }, {
-    "id" : "errorExpression",
-    "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "error",
     "binding" : {
       "key" : "errorExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "id" : "errorExpression",
+    "label" : "Error expression",
     "type" : "Text"
   }, {
-    "id" : "retryCount",
-    "label" : "Retries",
-    "description" : "Number of retries",
-    "value" : "3",
-    "feel" : "optional",
-    "group" : "retries",
     "binding" : {
       "property" : "retries",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
-  }, {
-    "id" : "retryBackoff",
-    "label" : "Retry backoff",
-    "description" : "ISO-8601 duration to wait between retries",
-    "value" : "PT30S",
+    "description" : "Number of retries",
+    "feel" : "optional",
     "group" : "retries",
+    "id" : "retryCount",
+    "label" : "Retries",
+    "type" : "String",
+    "value" : "3"
+  }, {
     "binding" : {
       "key" : "retryBackoff",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "String"
-  }, {
-    "id" : "jobTimeout",
-    "label" : "Job timeout",
-    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
-    "optional" : true,
+    "description" : "ISO-8601 duration to wait between retries",
     "group" : "retries",
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "type" : "String",
+    "value" : "PT30S"
+  }, {
     "binding" : {
       "key" : "jobTimeout",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "group" : "retries",
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "optional" : true,
     "type" : "String"
   } ],
   "steps" : [ {

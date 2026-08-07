@@ -18,8 +18,6 @@ package io.camunda.connector.runtime.outbound.job;
 
 import static java.util.Objects.requireNonNullElse;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.ClientStatusException;
@@ -82,6 +80,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * An enhanced implementation of a {@link JobHandler} that adds metrics, asynchronous command
@@ -758,7 +758,7 @@ public class SpringConnectorJobHandler implements JobHandler {
     if (variables == null || variables.isEmpty()) return;
     try {
       InlineSizeGuard.check(objectMapper.writeValueAsBytes(variables).length);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new RuntimeException("Failed to serialize variables for size check", e);
     }
   }

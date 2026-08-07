@@ -27,8 +27,8 @@ import io.camunda.client.api.command.ProblemException;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.feel.CamundaClientFeelExpressionEvaluator;
-import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.feel.JacksonSupport;
+import io.camunda.connector.feel.jackson.v2.JacksonModuleFeelFunction;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.time.Duration;
@@ -66,7 +66,7 @@ public class FeelDeserializerCamundaClientTest {
   void setup() {
     var evaluator =
         new CamundaClientFeelExpressionEvaluator(
-            camundaClient, ConnectorsObjectMapperSupplier.getCopy());
+            camundaClient, JacksonSupport.DEFAULT_OBJECT_MAPPER);
     mapper =
         new ObjectMapper()
             .registerModule(new JacksonModuleFeelFunction(true, evaluator))

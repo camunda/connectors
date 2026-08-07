@@ -17,17 +17,16 @@
 package io.camunda.connector.feel.jackson;
 
 import com.fasterxml.jackson.annotation.JsonMerge;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.BeanProperty;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
-import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.BeanProperty;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JavaType;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ValueDeserializer;
+import tools.jackson.databind.type.TypeFactory;
 
 class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Function<IN, OUT>> {
 
@@ -43,7 +42,7 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
   @Override
   @SuppressWarnings("unchecked")
   protected Function<IN, OUT> doDeserialize(
-      JsonNode node, JsonNode feelContext, DeserializationContext deserializationContext) {
+      JsonNode node, Object feelContext, DeserializationContext deserializationContext) {
     return (input) -> {
       JsonNode jsonNode =
           BLANK_OBJECT_MAPPER.valueToTree(
@@ -53,23 +52,19 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
                   deserializationContext.getTypeFactory().constructType(JsonNode.class),
                   input,
                   feelContext));
-      try {
-        if (jsonNode == null || jsonNode.isNull()) {
-          return null;
-        }
-        if (outputType.getRawClass() == String.class && jsonNode.isObject()) {
-          return (OUT) BLANK_OBJECT_MAPPER.writeValueAsString(jsonNode);
-        } else {
-          return deserializationContext.readTreeAsValue(jsonNode, outputType);
-        }
-      } catch (IOException e) {
-        throw new RuntimeException(e);
+      if (jsonNode == null || jsonNode.isNull()) {
+        return null;
+      }
+      if (outputType.getRawClass() == String.class && jsonNode.isObject()) {
+        return (OUT) BLANK_OBJECT_MAPPER.writeValueAsString(jsonNode);
+      } else {
+        return deserializationContext.readTreeAsValue(jsonNode, outputType);
       }
     };
   }
 
   @Override
-  public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
+  public ValueDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
     if (property != null) {
       if (property.getType().containedTypeCount() == 2) {
         var outputType = property.getType().containedType(1);

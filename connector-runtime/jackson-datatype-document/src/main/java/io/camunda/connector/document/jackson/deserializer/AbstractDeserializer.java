@@ -16,15 +16,14 @@
  */
 package io.camunda.connector.document.jackson.deserializer;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import java.io.IOException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ValueDeserializer;
 
 /** Base class for deserializers within the document module. */
-public abstract class AbstractDeserializer<T> extends JsonDeserializer<T> {
+public abstract class AbstractDeserializer<T> extends ValueDeserializer<T> {
 
   protected final DocumentModuleSettings settings;
 
@@ -33,13 +32,12 @@ public abstract class AbstractDeserializer<T> extends JsonDeserializer<T> {
   }
 
   /**
-   * Base method from {@link JsonDeserializer} to deserialize a JSON node. It will delegate to
+   * Base method from {@link ValueDeserializer} to deserialize a JSON node. It will delegate to
    * {@link #handleJsonNode(JsonNode, DeserializationContext)} to perform the actual
    * deserialization.
    */
   @Override
-  public T deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
-      throws IOException {
+  public T deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) {
     DeserializationUtil.ensureIntrinsicFunctionCounterInitialized(deserializationContext, settings);
     final JsonNode node = jsonParser.readValueAsTree();
     if (node == null || node.isNull()) {
@@ -54,6 +52,5 @@ public abstract class AbstractDeserializer<T> extends JsonDeserializer<T> {
    * the parser can only be read once. All deserializer-specific logic should be implemented in this
    * method.
    */
-  protected abstract T handleJsonNode(JsonNode node, DeserializationContext context)
-      throws IOException;
+  protected abstract T handleJsonNode(JsonNode node, DeserializationContext context);
 }

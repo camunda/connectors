@@ -16,10 +16,6 @@
  */
 package io.camunda.connector.runtime.test.outbound;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -33,13 +29,14 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.document.jackson.v3.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.intrinsic.MutableObjectMapperSupplier;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
@@ -47,6 +44,10 @@ import io.camunda.connector.test.MapSecretProvider;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /** Test helper class for creating a {@link OutboundConnectorContext} with a fluent API. */
 public class OutboundConnectorContextBuilder {
@@ -62,27 +63,25 @@ public class OutboundConnectorContextBuilder {
   private ObjectMapper objectMapper = createObjectMapper();
 
   private ObjectMapper createObjectMapper() {
-    var copy = ConnectorsObjectMapperSupplier.getCopy();
-    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
-    var jacksonModuleDocumentDeserializer =
-        new JacksonModuleDocumentDeserializer(
-            documentFactory, functionExecutor, DocumentModuleSettings.create());
-    return copy.registerModules(
-        jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(),
-        new JacksonModuleDocumentSerializer());
+    return createObjectMapper(documentFactory);
   }
 
   private ObjectMapper createObjectMapper(DocumentFactory documentFactory) {
     var copy = ConnectorsObjectMapperSupplier.getCopy();
-    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var mapperHolder = new MutableObjectMapperSupplier();
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(mapperHolder);
     var jacksonModuleDocumentDeserializer =
         new JacksonModuleDocumentDeserializer(
             documentFactory, functionExecutor, DocumentModuleSettings.create());
-    return copy.registerModules(
-        jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(),
-        new JacksonModuleDocumentSerializer());
+    var finalMapper =
+        copy.rebuild()
+            .addModules(
+                jacksonModuleDocumentDeserializer,
+                new JacksonModuleFeelFunction(),
+                new JacksonModuleDocumentSerializer())
+            .build();
+    mapperHolder.set(finalMapper);
+    return finalMapper;
   }
 
   /**
@@ -108,7 +107,7 @@ public class OutboundConnectorContextBuilder {
     this.assertNoVariables();
     try {
       this.variables = objectMapper.readValue(variablesAsJSON, new TypeReference<>() {});
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new IllegalArgumentException("Invalid JSON: " + variablesAsJSON, e);
     }
     return this;
@@ -234,12 +233,8 @@ public class OutboundConnectorContextBuilder {
     protected TestConnectorContext(
         SecretProvider secretProvider, ValidationProvider validationProvider) {
       super(secretProvider, SecretFilter.allowAll(), validationProvider);
-      try {
-        var asString = objectMapper.writeValueAsString(variables);
-        variablesWithSecrets = getSecretHandler().replaceSecrets(asString, null);
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
-      }
+      var asString = objectMapper.writeValueAsString(variables);
+      variablesWithSecrets = getSecretHandler().replaceSecrets(asString, null);
       this.jobContext = new TestJobContext(() -> headers, () -> variablesWithSecrets);
     }
 
@@ -273,15 +268,11 @@ public class OutboundConnectorContextBuilder {
 
     @Override
     public <T> T bindVariables(Class<T> cls) {
-      try {
-        var mappedObject = objectMapper.readValue(variablesWithSecrets, cls);
-        if (validationProvider != null) {
-          getValidationProvider().validate(mappedObject);
-        }
-        return mappedObject;
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
+      var mappedObject = objectMapper.readValue(variablesWithSecrets, cls);
+      if (validationProvider != null) {
+        getValidationProvider().validate(mappedObject);
       }
+      return mappedObject;
     }
 
     @Override

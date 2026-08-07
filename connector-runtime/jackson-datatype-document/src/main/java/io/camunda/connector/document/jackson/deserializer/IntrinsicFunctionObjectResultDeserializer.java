@@ -18,13 +18,12 @@ package io.camunda.connector.document.jackson.deserializer;
 
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isIntrinsicFunction;
 
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
 import io.camunda.connector.document.jackson.IntrinsicFunctionParams;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import java.io.IOException;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
 
 public class IntrinsicFunctionObjectResultDeserializer extends AbstractDeserializer<Object> {
 
@@ -37,8 +36,7 @@ public class IntrinsicFunctionObjectResultDeserializer extends AbstractDeseriali
   }
 
   @Override
-  protected Object handleJsonNode(JsonNode node, DeserializationContext context)
-      throws IOException {
+  protected Object handleJsonNode(JsonNode node, DeserializationContext context) {
     if (!isIntrinsicFunction(node)) {
       throw new IllegalArgumentException(
           "Unsupported document format. Expected an operation, got: " + node);

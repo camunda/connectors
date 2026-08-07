@@ -22,7 +22,6 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -44,6 +43,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @ExtendWith(MockitoExtension.class)
 class JobHandlerContextTest {
@@ -53,7 +55,10 @@ class JobHandlerContextTest {
   @Mock private ValidationProvider validationProvider;
   @Mock private DocumentFactory documentFactory;
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  // Jackson 3 defaults FAIL_ON_UNKNOWN_PROPERTIES to false (unlike Jackson 2's bare
+  // ObjectMapper); enabled explicitly so the invalid-field tests below still exercise that path.
+  private final ObjectMapper objectMapper =
+      JsonMapper.builder().enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
   private JobHandlerContext jobHandlerContext;
 
   @BeforeEach

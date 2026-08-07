@@ -20,7 +20,6 @@ import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.clientNa
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.resolveClient;
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.toMapByPhysicalTenantId;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.api.validation.ConfigurationValidator;
@@ -39,6 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Wires configuration (credential) validation. This is <b>direction-agnostic</b>: the same

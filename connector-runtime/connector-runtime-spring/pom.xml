@@ -86,8 +86,18 @@
     </dependency>
 
     <dependency>
+      <groupId>tools.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <!-- Jackson 2: io.camunda.connector.runtime.core.http.InstanceForwardingHttpClient (used from
+         this module) is still Jackson 2-only, not yet migrated as part of #5910. -->
+    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
     </dependency>
 
     <!-- The runtime provides enhanced metrics for logback if it is present -->
@@ -202,6 +212,13 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-test-utils</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Jackson 2: DefaultInstanceForwardingServiceIntegrationTest exercises the still-Jackson-2-only
+         InstanceForwardingHttpClient with a standalone mapper that needs JavaTimeModule. -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

@@ -205,7 +205,7 @@
         <artifactId>maven-dependency-plugin</artifactId>
             <configuration>
               <ignoredDependencies>
-                <dependency>com.fasterxml.jackson.core:jackson-databind</dependency>
+                <dependency>tools.jackson.core:jackson-databind</dependency>
                 <dependency>io.camunda.connector:connector-object-mapper</dependency>
                 <dependency>org.springframework.security:spring-security-core</dependency>
                 <dependency>org.springframework.boot:spring-boot</dependency>

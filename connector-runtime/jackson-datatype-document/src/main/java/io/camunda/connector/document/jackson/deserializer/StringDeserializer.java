@@ -19,18 +19,14 @@ package io.camunda.connector.document.jackson.deserializer;
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isIntrinsicFunction;
 
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import java.io.IOException;
 import java.util.Map;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
 
 public class StringDeserializer extends AbstractDeserializer<String> {
-
-  private final com.fasterxml.jackson.databind.deser.std.StringDeserializer fallbackDeserializer =
-      new com.fasterxml.jackson.databind.deser.std.StringDeserializer();
 
   private final DocumentDeserializer documentDeserializer;
   private final IntrinsicFunctionObjectResultDeserializer intrinsicFunctionDeserializer;
@@ -60,8 +56,7 @@ public class StringDeserializer extends AbstractDeserializer<String> {
   }
 
   @Override
-  protected String handleJsonNode(JsonNode node, DeserializationContext context)
-      throws IOException {
+  protected String handleJsonNode(JsonNode node, DeserializationContext context) {
     if (isDocumentReference(node)) {
       final var document = documentDeserializer.handleJsonNode(node, context);
       return document.asBase64();
@@ -75,9 +70,7 @@ public class StringDeserializer extends AbstractDeserializer<String> {
       throw new IllegalArgumentException(
           "Unsupported operation result, expected a string, got: " + operationResult);
     }
-    // if not document or operation, fallback to default deserialization
-    var parser = node.traverse(context.getParser().getCodec());
-    parser.nextToken();
-    return fallbackDeserializer.deserialize(parser, context);
+    // if not document or operation, fall back to the node's default text coercion
+    return node.asText();
   }
 }

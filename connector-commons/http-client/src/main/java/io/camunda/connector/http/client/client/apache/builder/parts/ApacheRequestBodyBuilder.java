@@ -20,8 +20,6 @@ import static org.apache.hc.core5.http.ContentType.MULTIPART_FORM_DATA;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
@@ -39,6 +37,8 @@ import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Maps the request body of a {@link HttpClientRequest} to an Apache {@link ClassicRequestBuilder}.
@@ -50,7 +50,10 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   public static final String EMPTY_BODY = "";
   public static final ObjectMapper mapperIgnoreNull =
       HttpClientObjectMapperSupplier.getCopy()
-          .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+          .rebuild()
+          .changeDefaultPropertyInclusion(
+              incl -> incl.withValueInclusion(JsonInclude.Include.NON_NULL))
+          .build();
   public static final ObjectMapper mapperSendNull = HttpClientObjectMapperSupplier.getCopy();
 
   @Override
@@ -113,7 +116,7 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
                   ? mapperIgnoreNull.writeValueAsString(body)
                   : mapperSendNull.writeValueAsString(body),
               contentType.orElse(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new ConnectorException("Failed to serialize request body:" + body, e);
     }
   }

@@ -40,22 +40,17 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "value" : "io.camunda:google-sheets:1",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "Hidden"
+    "type" : "Hidden",
+    "value" : "io.camunda:google-sheets:1"
   }, {
-    "id" : "operation.type",
-    "label" : "Input",
-    "value" : "createSpreadsheet",
-    "group" : "operation",
     "binding" : {
       "name" : "operation.type",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Create spreadsheet",
       "value" : "createSpreadsheet"
@@ -86,37 +81,34 @@
     }, {
       "name" : "Get worksheet data",
       "value" : "getWorksheetData"
-    } ]
+    } ],
+    "group" : "operation",
+    "id" : "operation.type",
+    "label" : "Input",
+    "type" : "Dropdown",
+    "value" : "createSpreadsheet"
   }, {
-    "id" : "authentication.authType",
-    "label" : "Type",
-    "optional" : false,
-    "value" : "refresh",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.authType",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Bearer token",
       "value" : "bearer"
     }, {
       "name" : "Refresh token",
       "value" : "refresh"
-    } ]
-  }, {
-    "id" : "authentication.bearerToken",
-    "label" : "Bearer token",
-    "optional" : false,
+    } ],
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.authType",
+    "label" : "Type",
+    "optional" : false,
+    "type" : "Dropdown",
+    "value" : "refresh"
+  }, {
     "binding" : {
       "name" : "authentication.bearerToken",
       "type" : "zeebe:input"
@@ -126,16 +118,16 @@
       "equals" : "bearer",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.oauthClientId",
-    "label" : "Client ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.bearerToken",
+    "label" : "Bearer token",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.oauthClientId",
       "type" : "zeebe:input"
@@ -145,16 +137,16 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.oauthClientSecret",
-    "label" : "Client secret",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.oauthClientId",
+    "label" : "Client ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.oauthClientSecret",
       "type" : "zeebe:input"
@@ -164,16 +156,16 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.oauthRefreshToken",
-    "label" : "Refresh token",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.oauthClientSecret",
+    "label" : "Client secret",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.oauthRefreshToken",
       "type" : "zeebe:input"
@@ -183,16 +175,16 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "createSpreadsheet.spreadsheetName",
-    "label" : "Spreadsheet name",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "operationDetails",
+    "group" : "authentication",
+    "id" : "authentication.oauthRefreshToken",
+    "label" : "Refresh token",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.spreadsheetName",
       "type" : "zeebe:input"
@@ -202,13 +194,16 @@
       "equals" : "createSpreadsheet",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "parent",
-    "label" : "Parent folder ID",
-    "optional" : true,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "createSpreadsheet.spreadsheetName",
+    "label" : "Spreadsheet name",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.parent",
       "type" : "zeebe:input"
@@ -218,17 +213,14 @@
       "equals" : "createSpreadsheet",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "id" : "parent",
+    "label" : "Parent folder ID",
+    "optional" : true,
     "tooltip" : "Folder in which the new spreadsheet is created. If left empty, it is created in the Google Drive root folder of the OAuth token owner.",
     "type" : "String"
   }, {
-    "id" : "addValues.spreadsheetId",
-    "label" : "Spreadsheet ID",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "operationDetails",
     "binding" : {
       "name" : "operation.spreadsheetId",
       "type" : "zeebe:input"
@@ -238,16 +230,16 @@
       "equals" : "addValues",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "addValues.worksheetName",
-    "label" : "Worksheet name",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "addValues.spreadsheetId",
+    "label" : "Spreadsheet ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.worksheetName",
       "type" : "zeebe:input"
@@ -257,16 +249,16 @@
       "equals" : "addValues",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "cellId",
-    "label" : "Cell ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "addValues.worksheetName",
+    "label" : "Worksheet name",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.cellId",
       "type" : "zeebe:input"
@@ -276,18 +268,18 @@
       "equals" : "addValues",
       "type" : "simple"
     },
-    "tooltip" : "Target cell in ColumnRow format. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">add values to spreadsheet</a> operation.",
-    "placeholder" : "A1",
-    "type" : "String"
-  }, {
-    "id" : "value",
-    "label" : "Value",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "cellId",
+    "label" : "Cell ID",
+    "optional" : false,
+    "placeholder" : "A1",
+    "tooltip" : "Target cell in ColumnRow format. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">add values to spreadsheet</a> operation.",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.value",
       "type" : "zeebe:input"
@@ -297,16 +289,16 @@
       "equals" : "addValues",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "createEmptyColumnOrRow.spreadsheetId",
-    "label" : "Spreadsheet ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "value",
+    "label" : "Value",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.spreadsheetId",
       "type" : "zeebe:input"
@@ -316,16 +308,16 @@
       "equals" : "createEmptyColumnOrRow",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "createEmptyColumnOrRow.worksheetId",
-    "label" : "Worksheet ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "createEmptyColumnOrRow.spreadsheetId",
+    "label" : "Spreadsheet ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.worksheetId",
       "type" : "zeebe:input"
@@ -335,39 +327,42 @@
       "equals" : "createEmptyColumnOrRow",
       "type" : "simple"
     },
-    "type" : "Number"
-  }, {
-    "id" : "dimension",
-    "label" : "Dimension",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "createEmptyColumnOrRow.worksheetId",
+    "label" : "Worksheet ID",
+    "optional" : false,
+    "type" : "Number"
+  }, {
     "binding" : {
       "name" : "operation.dimension",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "operation.type",
-      "equals" : "createEmptyColumnOrRow",
-      "type" : "simple"
-    },
-    "tooltip" : "What to add: column or row",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "ROWS",
       "value" : "ROWS"
     }, {
       "name" : "COLUMNS",
       "value" : "COLUMNS"
-    } ]
-  }, {
-    "id" : "startIndex",
-    "label" : "Start index",
-    "optional" : false,
-    "feel" : "optional",
+    } ],
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "createEmptyColumnOrRow",
+      "type" : "simple"
+    },
+    "constraints" : {
+      "notEmpty" : true
+    },
     "group" : "operationDetails",
+    "id" : "dimension",
+    "label" : "Dimension",
+    "optional" : false,
+    "tooltip" : "What to add: column or row",
+    "type" : "Dropdown"
+  }, {
     "binding" : {
       "name" : "operation.startIndex",
       "type" : "zeebe:input"
@@ -377,14 +372,14 @@
       "equals" : "createEmptyColumnOrRow",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "id" : "startIndex",
+    "label" : "Start index",
+    "optional" : false,
     "tooltip" : "Leave empty to add to the end of the sheet. Count starts from 0. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">create empty column or row</a> operation.",
     "type" : "Number"
   }, {
-    "id" : "endIndex",
-    "label" : "End index",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "operationDetails",
     "binding" : {
       "name" : "operation.endIndex",
       "type" : "zeebe:input"
@@ -394,17 +389,14 @@
       "equals" : "createEmptyColumnOrRow",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "id" : "endIndex",
+    "label" : "End index",
+    "optional" : false,
     "tooltip" : "Leave empty to add to the end of the sheet. Count starts from 0. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">create empty column or row</a> operation.",
     "type" : "Number"
   }, {
-    "id" : "createRow.spreadsheetId",
-    "label" : "Spreadsheet ID",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "operationDetails",
     "binding" : {
       "name" : "operation.spreadsheetId",
       "type" : "zeebe:input"
@@ -414,16 +406,16 @@
       "equals" : "createRow",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "createRow.worksheetName",
-    "label" : "Worksheet name",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "createRow.spreadsheetId",
+    "label" : "Spreadsheet ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.worksheetName",
       "type" : "zeebe:input"
@@ -433,20 +425,16 @@
       "equals" : "createRow",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "createRow.rowIndex",
-    "label" : "Row index",
-    "optional" : true,
     "constraints" : {
-      "notEmpty" : false,
-      "pattern" : {
-        "value" : "^(=.*|[0-9]+|)$",
-        "message" : "Must be a number"
-      }
+      "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "createRow.worksheetName",
+    "label" : "Worksheet name",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.rowIndex",
       "type" : "zeebe:input"
@@ -456,17 +444,21 @@
       "equals" : "createRow",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : false,
+      "pattern" : {
+        "value" : "^(=.*|[0-9]+|)$",
+        "message" : "Must be a number"
+      }
+    },
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "id" : "createRow.rowIndex",
+    "label" : "Row index",
+    "optional" : true,
     "tooltip" : "Position of the row, shown to the left of each row. If left empty, a new row is appended to the end. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">what is a row index</a>.",
     "type" : "Number"
   }, {
-    "id" : "values",
-    "label" : "Enter values",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "operationDetails",
     "binding" : {
       "name" : "operation.values",
       "type" : "zeebe:input"
@@ -476,17 +468,17 @@
       "equals" : "createRow",
       "type" : "simple"
     },
-    "tooltip" : "List of cell values to add as a new row. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">create row</a> operation.",
-    "type" : "String"
-  }, {
-    "id" : "createWorksheet.spreadsheetId",
-    "label" : "Spreadsheet ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "operationDetails",
+    "id" : "values",
+    "label" : "Enter values",
+    "optional" : false,
+    "tooltip" : "List of cell values to add as a new row. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">create row</a> operation.",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.spreadsheetId",
       "type" : "zeebe:input"
@@ -496,16 +488,16 @@
       "equals" : "createWorksheet",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "createWorksheet.worksheetName",
-    "label" : "Worksheet name",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "createWorksheet.spreadsheetId",
+    "label" : "Spreadsheet ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.worksheetName",
       "type" : "zeebe:input"
@@ -515,13 +507,16 @@
       "equals" : "createWorksheet",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "worksheetIndex",
-    "label" : "Worksheet index",
-    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "createWorksheet.worksheetName",
+    "label" : "Worksheet name",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.worksheetIndex",
       "type" : "zeebe:input"
@@ -531,17 +526,14 @@
       "equals" : "createWorksheet",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "id" : "worksheetIndex",
+    "label" : "Worksheet index",
+    "optional" : false,
     "tooltip" : "Position of the new worksheet; count starts from 0. Leave empty to add it to the end of the sheet list. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-worksheet-index\" target=\"_blank\">what is a worksheet index</a>.",
     "type" : "Number"
   }, {
-    "id" : "deleteColumn.spreadsheetId",
-    "label" : "Spreadsheet ID",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "operationDetails",
     "binding" : {
       "name" : "operation.spreadsheetId",
       "type" : "zeebe:input"
@@ -551,16 +543,16 @@
       "equals" : "deleteColumn",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "deleteColumn.worksheetId",
-    "label" : "Worksheet ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "deleteColumn.spreadsheetId",
+    "label" : "Spreadsheet ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.worksheetId",
       "type" : "zeebe:input"
@@ -570,40 +562,43 @@
       "equals" : "deleteColumn",
       "type" : "simple"
     },
-    "type" : "Number"
-  }, {
-    "id" : "columnIndexType",
-    "label" : "Index format",
-    "optional" : false,
-    "value" : "NUMBERS",
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "deleteColumn.worksheetId",
+    "label" : "Worksheet ID",
+    "optional" : false,
+    "type" : "Number"
+  }, {
     "binding" : {
       "name" : "operation.columnIndexType",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "operation.type",
-      "equals" : "deleteColumn",
-      "type" : "simple"
-    },
-    "tooltip" : "How the column to delete is identified: Numbers (numeric index at the top of the column, starting from 0) or Letters (the column letter). See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">defining which column will be deleted</a>.",
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Numbers",
       "value" : "NUMBERS"
     }, {
       "name" : "Letters",
       "value" : "LETTERS"
-    } ]
-  }, {
-    "id" : "columnNumberIndex",
-    "label" : "Column numeric index",
-    "optional" : false,
-    "feel" : "optional",
+    } ],
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "deleteColumn",
+      "type" : "simple"
+    },
+    "constraints" : {
+      "notEmpty" : true
+    },
     "group" : "operationDetails",
+    "id" : "columnIndexType",
+    "label" : "Index format",
+    "optional" : false,
+    "tooltip" : "How the column to delete is identified: Numbers (numeric index at the top of the column, starting from 0) or Letters (the column letter). See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">defining which column will be deleted</a>.",
+    "type" : "Dropdown",
+    "value" : "NUMBERS"
+  }, {
     "binding" : {
       "name" : "operation.columnNumberIndex",
       "type" : "zeebe:input"
@@ -619,14 +614,14 @@
         "type" : "simple"
       } ]
     },
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "id" : "columnNumberIndex",
+    "label" : "Column numeric index",
+    "optional" : false,
     "tooltip" : "Numeric position of the column to delete; count starts from 0 (column A is 0, B is 1). See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">defining which column will be deleted</a>.",
     "type" : "Number"
   }, {
-    "id" : "columnLetterIndex",
-    "label" : "Column letter index",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "operationDetails",
     "binding" : {
       "name" : "operation.columnLetterIndex",
       "type" : "zeebe:input"
@@ -642,18 +637,15 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Letter of the column to delete, as shown at the top of the column. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">defining which column will be deleted</a>.",
-    "placeholder" : "A",
-    "type" : "String"
-  }, {
-    "id" : "deleteWorksheet.spreadsheetId",
-    "label" : "Spreadsheet ID",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "columnLetterIndex",
+    "label" : "Column letter index",
+    "optional" : false,
+    "placeholder" : "A",
+    "tooltip" : "Letter of the column to delete, as shown at the top of the column. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">defining which column will be deleted</a>.",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.spreadsheetId",
       "type" : "zeebe:input"
@@ -663,16 +655,16 @@
       "equals" : "deleteWorksheet",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "deleteWorksheet.worksheetId",
-    "label" : "Worksheet ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "deleteWorksheet.spreadsheetId",
+    "label" : "Spreadsheet ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.worksheetId",
       "type" : "zeebe:input"
@@ -682,16 +674,16 @@
       "equals" : "deleteWorksheet",
       "type" : "simple"
     },
-    "type" : "Number"
-  }, {
-    "id" : "getRowByIndex.spreadsheetId",
-    "label" : "Spreadsheet ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "deleteWorksheet.worksheetId",
+    "label" : "Worksheet ID",
+    "optional" : false,
+    "type" : "Number"
+  }, {
     "binding" : {
       "name" : "operation.spreadsheetId",
       "type" : "zeebe:input"
@@ -701,13 +693,16 @@
       "equals" : "getRowByIndex",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "getRowByIndex.worksheetName",
-    "label" : "Worksheet name",
-    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "getRowByIndex.spreadsheetId",
+    "label" : "Spreadsheet ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.worksheetName",
       "type" : "zeebe:input"
@@ -717,16 +712,13 @@
       "equals" : "getRowByIndex",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "getRowByIndex.rowIndex",
-    "label" : "Row index",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "getRowByIndex.worksheetName",
+    "label" : "Worksheet name",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.rowIndex",
       "type" : "zeebe:input"
@@ -736,17 +728,17 @@
       "equals" : "getRowByIndex",
       "type" : "simple"
     },
-    "tooltip" : "Position of the row to retrieve, shown to the left of each row. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">what is a row index</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "spreadsheetsDetails.spreadsheetId",
-    "label" : "Spreadsheet ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "getRowByIndex.rowIndex",
+    "label" : "Row index",
+    "optional" : false,
+    "tooltip" : "Position of the row to retrieve, shown to the left of each row. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">what is a row index</a>.",
+    "type" : "Number"
+  }, {
     "binding" : {
       "name" : "operation.spreadsheetId",
       "type" : "zeebe:input"
@@ -756,16 +748,16 @@
       "equals" : "spreadsheetsDetails",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "getWorksheetData.spreadsheetId",
-    "label" : "Spreadsheet ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "spreadsheetsDetails.spreadsheetId",
+    "label" : "Spreadsheet ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.spreadsheetId",
       "type" : "zeebe:input"
@@ -775,16 +767,16 @@
       "equals" : "getWorksheetData",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "getWorksheetData.worksheetName",
-    "label" : "Worksheet name",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "operationDetails",
+    "id" : "getWorksheetData.spreadsheetId",
+    "label" : "Spreadsheet ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "operation.worksheetName",
       "type" : "zeebe:input"
@@ -794,94 +786,102 @@
       "equals" : "getWorksheetData",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "id" : "getWorksheetData.worksheetName",
+    "label" : "Worksheet name",
+    "optional" : false,
     "type" : "String"
   }, {
-    "id" : "version",
-    "label" : "Version",
-    "description" : "Version of the element template",
-    "value" : "7",
-    "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
-  }, {
-    "id" : "id",
-    "label" : "ID",
-    "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.GoogleSheets.v1",
+    "description" : "Version of the element template",
     "group" : "connector",
+    "id" : "version",
+    "label" : "Version",
+    "type" : "Hidden",
+    "value" : "7"
+  }, {
     "binding" : {
       "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
+    "description" : "ID of the element template",
+    "group" : "connector",
+    "id" : "id",
+    "label" : "ID",
+    "type" : "Hidden",
+    "value" : "io.camunda.connectors.GoogleSheets.v1"
   }, {
-    "id" : "resultVariable",
-    "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
-    "group" : "output",
     "binding" : {
       "key" : "resultVariable",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "group" : "output",
+    "id" : "resultVariable",
+    "label" : "Result variable",
     "type" : "String"
   }, {
-    "id" : "resultExpression",
-    "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "output",
     "binding" : {
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "id" : "resultExpression",
+    "label" : "Result expression",
     "type" : "Text"
   }, {
-    "id" : "errorExpression",
-    "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "error",
     "binding" : {
       "key" : "errorExpression",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "id" : "errorExpression",
+    "label" : "Error expression",
     "type" : "Text"
   }, {
-    "id" : "retryCount",
-    "label" : "Retries",
-    "description" : "Number of retries",
-    "value" : "3",
-    "feel" : "optional",
-    "group" : "retries",
     "binding" : {
       "property" : "retries",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
-  }, {
-    "id" : "retryBackoff",
-    "label" : "Retry backoff",
-    "description" : "ISO-8601 duration to wait between retries",
-    "value" : "PT30S",
+    "description" : "Number of retries",
+    "feel" : "optional",
     "group" : "retries",
+    "id" : "retryCount",
+    "label" : "Retries",
+    "type" : "String",
+    "value" : "3"
+  }, {
     "binding" : {
       "key" : "retryBackoff",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "String"
-  }, {
-    "id" : "jobTimeout",
-    "label" : "Job timeout",
-    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
-    "optional" : true,
+    "description" : "ISO-8601 duration to wait between retries",
     "group" : "retries",
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "type" : "String",
+    "value" : "PT30S"
+  }, {
     "binding" : {
       "key" : "jobTimeout",
       "type" : "zeebe:taskHeader"
     },
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "group" : "retries",
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "optional" : true,
     "type" : "String"
   } ],
   "steps" : [ {

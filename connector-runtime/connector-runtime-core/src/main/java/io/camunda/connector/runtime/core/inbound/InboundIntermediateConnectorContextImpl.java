@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.ElementInstance;
 import io.camunda.connector.api.document.Document;
@@ -31,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Implementation of {@link InboundIntermediateConnectorContext} that extends {@link

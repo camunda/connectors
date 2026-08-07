@@ -8,7 +8,6 @@ package io.camunda.connector.http.base;
 
 import static io.camunda.connector.http.client.utils.JsonHelper.isJsonStringValid;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -24,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Maps a {@link StreamingHttpResponse} to a {@link HttpCommonResult}. If the option to store the

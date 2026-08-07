@@ -42,25 +42,19 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
-    "id" : "connectorType",
-    "value" : "io.camunda:connector-o365-email-inbound:1",
-    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "group" : "connectorType",
+    "id" : "connectorType",
+    "type" : "String",
+    "value" : "io.camunda:connector-o365-email-inbound:1"
   }, {
-    "id" : "authentication.type",
-    "label" : "Type",
-    "description" : "Authentication type depends on your Microsoft Entra (Azure AD) configuration. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>",
-    "value" : "clientCredentials",
-    "group" : "authentication",
     "binding" : {
       "name" : "authentication.type",
       "type" : "zeebe:property"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Bearer token",
       "value" : "token"
@@ -70,15 +64,14 @@
     }, {
       "name" : "Refresh token",
       "value" : "refresh"
-    } ]
-  }, {
-    "id" : "authentication.bearer.token",
-    "label" : "Bearer token",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
+    } ],
+    "description" : "Authentication type depends on your Microsoft Entra (Azure AD) configuration. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>",
     "group" : "authentication",
+    "id" : "authentication.type",
+    "label" : "Type",
+    "type" : "Dropdown",
+    "value" : "clientCredentials"
+  }, {
     "binding" : {
       "name" : "authentication.token",
       "type" : "zeebe:property"
@@ -88,16 +81,15 @@
       "equals" : "token",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.credentials.clientId",
-    "label" : "Client ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.bearer.token",
+    "label" : "Bearer token",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.clientId",
       "type" : "zeebe:property"
@@ -107,16 +99,16 @@
       "equals" : "clientCredentials",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.credentials.tenantId",
-    "label" : "Tenant ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.credentials.clientId",
+    "label" : "Client ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.tenantId",
       "type" : "zeebe:property"
@@ -126,16 +118,16 @@
       "equals" : "clientCredentials",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.credentials.clientSecret",
-    "label" : "Client secret",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.credentials.tenantId",
+    "label" : "Tenant ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.clientSecret",
       "type" : "zeebe:property"
@@ -145,17 +137,17 @@
       "equals" : "clientCredentials",
       "type" : "simple"
     },
-    "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application",
-    "type" : "String"
-  }, {
-    "id" : "authentication.refresh.token",
-    "label" : "Refresh token",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.credentials.clientSecret",
+    "label" : "Client secret",
+    "optional" : false,
+    "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.token",
       "type" : "zeebe:property"
@@ -165,16 +157,16 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.refresh.clientId",
-    "label" : "Client ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.refresh.token",
+    "label" : "Refresh token",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.clientId",
       "type" : "zeebe:property"
@@ -184,16 +176,16 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.refresh.tenantId",
-    "label" : "Tenant ID",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.refresh.clientId",
+    "label" : "Client ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.tenantId",
       "type" : "zeebe:property"
@@ -203,13 +195,16 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "authentication.refresh.clientSecret",
-    "label" : "Client secret",
-    "optional" : true,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "authentication",
+    "id" : "authentication.refresh.tenantId",
+    "label" : "Tenant ID",
+    "optional" : false,
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "authentication.clientSecret",
       "type" : "zeebe:property"
@@ -219,52 +214,48 @@
       "equals" : "refresh",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "authentication",
+    "id" : "authentication.refresh.clientSecret",
+    "label" : "Client secret",
+    "optional" : true,
     "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application; optional, depends on whether the client is public or private",
     "type" : "String"
   }, {
-    "id" : "pollingConfig.userId",
-    "label" : "Mailbox Owner",
-    "optional" : false,
+    "binding" : {
+      "name" : "pollingConfig.userId",
+      "type" : "zeebe:property"
+    },
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "pollingConfig",
-    "binding" : {
-      "name" : "pollingConfig.userId",
-      "type" : "zeebe:property"
-    },
-    "tooltip" : "The email address or user ID of the mailbox to monitor. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#configuration\" target=\"_blank\">Microsoft O365 Mail connector configuration</a>",
+    "id" : "pollingConfig.userId",
+    "label" : "Mailbox Owner",
+    "optional" : false,
     "placeholder" : "user@example.com",
+    "tooltip" : "The email address or user ID of the mailbox to monitor. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#configuration\" target=\"_blank\">Microsoft O365 Mail connector configuration</a>",
     "type" : "String"
   }, {
-    "id" : "pollingConfig.folder.folderSpecification",
-    "label" : "Folder Identifier Type",
-    "description" : "Prefer using a folder ID if you are using a well-known folder; otherwise, use the folder name.",
-    "value" : "byId",
-    "group" : "pollingConfig",
     "binding" : {
       "name" : "pollingConfig.folder.folderSpecification",
       "type" : "zeebe:property"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Folder ID",
       "value" : "byId"
     }, {
       "name" : "Folder Name",
       "value" : "byName"
-    } ]
-  }, {
-    "id" : "pollingConfig.folder.folderId",
-    "label" : "Folder ID",
-    "optional" : false,
-    "value" : "inbox",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    } ],
+    "description" : "Prefer using a folder ID if you are using a well-known folder; otherwise, use the folder name.",
     "group" : "pollingConfig",
+    "id" : "pollingConfig.folder.folderSpecification",
+    "label" : "Folder Identifier Type",
+    "type" : "Dropdown",
+    "value" : "byId"
+  }, {
     "binding" : {
       "name" : "pollingConfig.folder.folderId",
       "type" : "zeebe:property"
@@ -274,17 +265,18 @@
       "equals" : "byId",
       "type" : "simple"
     },
-    "tooltip" : "The well-known folder ID or custom folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'>See folder properties in the API</a>",
-    "type" : "String"
-  }, {
-    "id" : "pollingConfig.folder.folderName",
-    "label" : "Folder Name",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "pollingConfig",
+    "id" : "pollingConfig.folder.folderId",
+    "label" : "Folder ID",
+    "optional" : false,
+    "tooltip" : "The well-known folder ID or custom folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'>See folder properties in the API</a>",
+    "type" : "String",
+    "value" : "inbox"
+  }, {
     "binding" : {
       "name" : "pollingConfig.folder.folderName",
       "type" : "zeebe:property"
@@ -294,46 +286,48 @@
       "equals" : "byName",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "id" : "pollingConfig.folder.folderName",
+    "label" : "Folder Name",
+    "optional" : false,
     "tooltip" : "The display name of the folder. Must be unique within the mailbox.",
     "type" : "String"
   }, {
-    "id" : "pollingConfig.pollingInterval",
-    "label" : "Polling interval",
-    "optional" : false,
-    "value" : "PT30S",
-    "feel" : "optional",
-    "group" : "pollingConfig",
     "binding" : {
       "name" : "pollingConfig.pollingInterval",
       "type" : "zeebe:property"
     },
-    "tooltip" : "The interval between email polling requests, in ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
-    "type" : "String"
-  }, {
-    "id" : "pollingConfig.filterCriteria.filterSpecification",
-    "label" : "Filter Specification",
-    "description" : "Use predefined filter conditions or provide your own OData filter string",
-    "value" : "simple",
+    "feel" : "optional",
     "group" : "pollingConfig",
+    "id" : "pollingConfig.pollingInterval",
+    "label" : "Polling interval",
+    "optional" : false,
+    "tooltip" : "The interval between email polling requests, in ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
+    "type" : "String",
+    "value" : "PT30S"
+  }, {
     "binding" : {
       "name" : "pollingConfig.filterCriteria.filterSpecification",
       "type" : "zeebe:property"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Simple",
       "value" : "simple"
     }, {
       "name" : "Advanced",
       "value" : "advanced"
-    } ]
-  }, {
-    "id" : "pollingConfig.filterCriteria.onlyUnread",
-    "label" : "Only Unread",
-    "optional" : false,
-    "value" : true,
-    "feel" : "static",
+    } ],
+    "description" : "Use predefined filter conditions or provide your own OData filter string",
     "group" : "pollingConfig",
+    "id" : "pollingConfig.filterCriteria.filterSpecification",
+    "label" : "Filter Specification",
+    "type" : "Dropdown",
+    "value" : "simple"
+  }, {
     "binding" : {
       "name" : "pollingConfig.filterCriteria.onlyUnread",
       "type" : "zeebe:property"
@@ -343,14 +337,15 @@
       "equals" : "simple",
       "type" : "simple"
     },
-    "tooltip" : "Only fetch unread emails",
-    "type" : "Boolean"
-  }, {
-    "id" : "pollingConfig.filterCriteria.subjectContains",
-    "label" : "Subject Contains",
-    "optional" : true,
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "pollingConfig",
+    "id" : "pollingConfig.filterCriteria.onlyUnread",
+    "label" : "Only Unread",
+    "optional" : false,
+    "tooltip" : "Only fetch unread emails",
+    "type" : "Boolean",
+    "value" : true
+  }, {
     "binding" : {
       "name" : "pollingConfig.filterCriteria.subjectContains",
       "type" : "zeebe:property"
@@ -360,14 +355,14 @@
       "equals" : "simple",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "id" : "pollingConfig.filterCriteria.subjectContains",
+    "label" : "Subject Contains",
+    "optional" : true,
     "tooltip" : "Only fetch emails where subject contains this text (case-sensitive)",
     "type" : "String"
   }, {
-    "id" : "pollingConfig.filterCriteria.fromAddress",
-    "label" : "From Email Address",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "pollingConfig",
     "binding" : {
       "name" : "pollingConfig.filterCriteria.fromAddress",
       "type" : "zeebe:property"
@@ -377,16 +372,14 @@
       "equals" : "simple",
       "type" : "simple"
     },
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "id" : "pollingConfig.filterCriteria.fromAddress",
+    "label" : "From Email Address",
+    "optional" : true,
     "tooltip" : "Only fetch emails from this sender address (exact match, e.g. 'invoice@vendor.com')",
     "type" : "String"
   }, {
-    "id" : "pollingConfig.filterCriteria.filterString",
-    "label" : "OData Filter String",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "pollingConfig",
     "binding" : {
       "name" : "pollingConfig.filterCriteria.filterString",
       "type" : "zeebe:property"
@@ -396,18 +389,20 @@
       "equals" : "advanced",
       "type" : "simple"
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "pollingConfig",
+    "id" : "pollingConfig.filterCriteria.filterString",
+    "label" : "OData Filter String",
+    "optional" : false,
     "tooltip" : "A custom OData filter expression. <a href='https://learn.microsoft.com/en-us/graph/filter-query-parameter' target='_blank'>See OData filter documentation</a>",
     "type" : "String"
   }, {
-    "id" : "operation.processingOperationDiscriminator",
-    "label" : "Postprocessing configuration",
-    "value" : "mark-read",
-    "group" : "postprocessing",
     "binding" : {
       "name" : "operation.processingOperationDiscriminator",
       "type" : "zeebe:property"
     },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Delete",
       "value" : "delete"
@@ -417,14 +412,13 @@
     }, {
       "name" : "Move to other folder",
       "value" : "move"
-    } ]
-  }, {
-    "id" : "operation.force",
-    "label" : "Force delete (email is permanently deleted)",
-    "optional" : false,
-    "value" : false,
-    "feel" : "static",
+    } ],
     "group" : "postprocessing",
+    "id" : "operation.processingOperationDiscriminator",
+    "label" : "Postprocessing configuration",
+    "type" : "Dropdown",
+    "value" : "mark-read"
+  }, {
     "binding" : {
       "name" : "operation.force",
       "type" : "zeebe:property"
@@ -434,40 +428,37 @@
       "equals" : "delete",
       "type" : "simple"
     },
-    "type" : "Boolean"
-  }, {
-    "id" : "operation.targetFolder.folderSpecification",
-    "label" : "Folder Identifier Type",
-    "description" : "Prefer using a folder ID if you are using a well-known folder; otherwise, use the folder name.",
-    "value" : "byId",
+    "feel" : "static",
     "group" : "postprocessing",
+    "id" : "operation.force",
+    "label" : "Force delete (email is permanently deleted)",
+    "optional" : false,
+    "type" : "Boolean",
+    "value" : false
+  }, {
     "binding" : {
       "name" : "operation.targetFolder.folderSpecification",
       "type" : "zeebe:property"
     },
-    "condition" : {
-      "property" : "operation.processingOperationDiscriminator",
-      "equals" : "move",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Folder ID",
       "value" : "byId"
     }, {
       "name" : "Folder Name",
       "value" : "byName"
-    } ]
-  }, {
-    "id" : "operation.targetFolder.folderId",
-    "label" : "Folder ID",
-    "optional" : false,
-    "value" : "inbox",
-    "constraints" : {
-      "notEmpty" : true
+    } ],
+    "condition" : {
+      "property" : "operation.processingOperationDiscriminator",
+      "equals" : "move",
+      "type" : "simple"
     },
-    "feel" : "optional",
+    "description" : "Prefer using a folder ID if you are using a well-known folder; otherwise, use the folder name.",
     "group" : "postprocessing",
+    "id" : "operation.targetFolder.folderSpecification",
+    "label" : "Folder Identifier Type",
+    "type" : "Dropdown",
+    "value" : "byId"
+  }, {
     "binding" : {
       "name" : "operation.targetFolder.folderId",
       "type" : "zeebe:property"
@@ -483,17 +474,18 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The well-known folder ID or custom folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'>See folder properties in the API</a>",
-    "type" : "String"
-  }, {
-    "id" : "operation.targetFolder.folderName",
-    "label" : "Folder Name",
-    "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "postprocessing",
+    "id" : "operation.targetFolder.folderId",
+    "label" : "Folder ID",
+    "optional" : false,
+    "tooltip" : "The well-known folder ID or custom folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'>See folder properties in the API</a>",
+    "type" : "String",
+    "value" : "inbox"
+  }, {
     "binding" : {
       "name" : "operation.targetFolder.folderName",
       "type" : "zeebe:property"
@@ -509,65 +501,73 @@
         "type" : "simple"
       } ]
     },
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "postprocessing",
+    "id" : "operation.targetFolder.folderName",
+    "label" : "Folder Name",
+    "optional" : false,
     "tooltip" : "The display name of the folder. Must be unique within the mailbox.",
     "type" : "String"
   }, {
-    "id" : "activationCondition",
-    "label" : "Activation condition",
-    "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "activation",
     "binding" : {
       "name" : "activationCondition",
       "type" : "zeebe:property"
     },
+    "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
+    "feel" : "required",
+    "group" : "activation",
+    "id" : "activationCondition",
+    "label" : "Activation condition",
+    "optional" : true,
     "type" : "String"
   }, {
-    "id" : "correlationKeyProcess",
-    "label" : "Correlation key (process)",
-    "description" : "Sets up the correlation key from process variables",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "correlation",
     "binding" : {
       "name" : "correlationKey",
       "type" : "bpmn:Message#zeebe:subscription#property"
     },
-    "type" : "String"
-  }, {
-    "id" : "correlationKeyPayload",
-    "label" : "Correlation key (payload)",
-    "description" : "Extracts the correlation key from the incoming message payload",
     "constraints" : {
       "notEmpty" : true
     },
+    "description" : "Sets up the correlation key from process variables",
     "feel" : "required",
     "group" : "correlation",
+    "id" : "correlationKeyProcess",
+    "label" : "Correlation key (process)",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "correlationKeyExpression",
       "type" : "zeebe:property"
     },
-    "type" : "String"
-  }, {
-    "id" : "messageIdExpression",
-    "label" : "Message ID expression",
-    "description" : "Expression to extract unique identifier of a message",
-    "optional" : true,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "description" : "Extracts the correlation key from the incoming message payload",
     "feel" : "required",
     "group" : "correlation",
+    "id" : "correlationKeyPayload",
+    "label" : "Correlation key (payload)",
+    "type" : "String"
+  }, {
     "binding" : {
       "name" : "messageIdExpression",
       "type" : "zeebe:property"
     },
+    "description" : "Expression to extract unique identifier of a message",
+    "feel" : "required",
+    "group" : "correlation",
+    "id" : "messageIdExpression",
+    "label" : "Message ID expression",
+    "optional" : true,
     "type" : "String"
   }, {
-    "id" : "messageTtl",
-    "label" : "Message TTL",
-    "description" : "Time-to-live for the message in the broker (ISO-8601 duration)",
-    "optional" : true,
+    "binding" : {
+      "name" : "messageTtl",
+      "type" : "zeebe:property"
+    },
     "constraints" : {
       "notEmpty" : false,
       "pattern" : {
@@ -575,47 +575,47 @@
         "message" : "must be an ISO-8601 duration"
       }
     },
+    "description" : "Time-to-live for the message in the broker (ISO-8601 duration)",
     "feel" : "optional",
     "group" : "correlation",
-    "binding" : {
-      "name" : "messageTtl",
-      "type" : "zeebe:property"
-    },
+    "id" : "messageTtl",
+    "label" : "Message TTL",
+    "optional" : true,
     "type" : "String"
   }, {
-    "id" : "messageNameUuid",
-    "label" : "Message name",
-    "generatedValue" : {
-      "type" : "uuid"
-    },
-    "feel" : "optional",
-    "group" : "correlation",
     "binding" : {
       "name" : "name",
       "type" : "bpmn:Message#property"
     },
+    "feel" : "optional",
+    "generatedValue" : {
+      "type" : "uuid"
+    },
+    "group" : "correlation",
+    "id" : "messageNameUuid",
+    "label" : "Message name",
     "tooltip" : "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.",
     "type" : "String"
   }, {
-    "id" : "resultVariable",
-    "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
-    "group" : "output",
     "binding" : {
       "name" : "resultVariable",
       "type" : "zeebe:property"
     },
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "group" : "output",
+    "id" : "resultVariable",
+    "label" : "Result variable",
     "type" : "String"
   }, {
-    "id" : "resultExpression",
-    "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "output",
     "binding" : {
       "name" : "resultExpression",
       "type" : "zeebe:property"
     },
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "id" : "resultExpression",
+    "label" : "Result expression",
     "type" : "Text"
   } ],
   "icon" : {

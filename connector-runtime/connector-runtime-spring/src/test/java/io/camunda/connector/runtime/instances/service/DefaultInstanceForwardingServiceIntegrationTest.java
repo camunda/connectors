@@ -26,10 +26,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Severity;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.http.InstanceForwardingHttpClient;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
@@ -53,11 +54,17 @@ public class DefaultInstanceForwardingServiceIntegrationTest {
   private static final WireMockServer runtime1 = new WireMockServer(options().dynamicPort());
   private static final WireMockServer runtime2 = new WireMockServer(options().dynamicPort());
 
+  // InstanceForwardingHttpClient is still Jackson 2-only (not yet migrated as part of #5910), so
+  // this uses a standalone Jackson 2 mapper rather than the (Jackson 3)
+  // ConnectorsObjectMapperSupplier.
+  private static final ObjectMapper objectMapper =
+      new ObjectMapper().registerModule(new JavaTimeModule());
+
   private static final InstanceForwardingHttpClient instanceForwardingHttpClient =
       new InstanceForwardingHttpClient(
           HttpClient.newHttpClient(),
           (path) -> List.of(runtime1.baseUrl() + path, runtime2.baseUrl() + path),
-          ConnectorsObjectMapperSupplier.getCopy());
+          objectMapper);
 
   @BeforeAll
   static void setup() {
@@ -77,8 +84,7 @@ public class DefaultInstanceForwardingServiceIntegrationTest {
         get(urlPathMatching("/api/forward"))
             .withQueryParam("param", equalTo("value"))
             .withHeader("Authorization", equalTo("Bearer xyz"))
-            .willReturn(
-                ok().withBody(ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(body))));
+            .willReturn(ok().withBody(objectMapper.writeValueAsString(body))));
   }
 
   @Nested

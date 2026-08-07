@@ -74,7 +74,7 @@ except in compliance with the proprietary license.</license.inlineheader>
       <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
+      <groupId>tools.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
 
@@ -128,7 +128,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     </dependencies>
   </dependencyManagement>
 
-
   <build>
     <pluginManagement>
       <plugins>
@@ -162,14 +161,14 @@ except in compliance with the proprietary license.</license.inlineheader>
                 <dependency>io.camunda.connector:connector-runtime-test</dependency>
                 <dependency>io.camunda.connector:connector-object-mapper</dependency>
                 <dependency>io.camunda.connector:connector-validation</dependency>
-                <dependency>com.fasterxml.jackson.core:jackson-databind</dependency>
+                <dependency>tools.jackson.core:jackson-databind</dependency>
                 <dependency>org.mockito:mockito-core</dependency>
                 <dependency>org.springframework.boot:spring-boot-test</dependency>
                 <dependency>org.apache.tika:tika-parsers-standard-package</dependency>
               </ignoredUnusedDeclaredDependencies>
               <ignoredNonTestScopedDependencies combine.children="append">
                 <dependency>io.camunda.connector:connector-validation</dependency>
-                <dependency>com.fasterxml.jackson.core:jackson-core</dependency>
+                <dependency>tools.jackson.core:jackson-core</dependency>
                 <dependency>io.camunda.connector:jackson-datatype-document</dependency>
                 <dependency>io.camunda.connector:connector-object-mapper</dependency>
                 <dependency>org.junit.jupiter:junit-jupiter-api</dependency>

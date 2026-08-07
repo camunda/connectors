@@ -16,15 +16,16 @@
  */
 package io.camunda.connector.runtime.core;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.document.jackson.v3.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.intrinsic.MutableObjectMapperSupplier;
+import tools.jackson.databind.ObjectMapper;
 
 public class TestObjectMapperSupplier {
 
@@ -33,13 +34,19 @@ public class TestObjectMapperSupplier {
   public static ObjectMapper getInstance() {
     var copy = ConnectorsObjectMapperSupplier.getCopy();
     var documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
-    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var mapperHolder = new MutableObjectMapperSupplier();
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(mapperHolder);
     var jacksonModuleDocumentDeserializer =
         new JacksonModuleDocumentDeserializer(
             documentFactory, functionExecutor, DocumentModuleSettings.create());
-    return copy.registerModules(
-        jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(),
-        new JacksonModuleDocumentSerializer());
+    var finalMapper =
+        copy.rebuild()
+            .addModules(
+                jacksonModuleDocumentDeserializer,
+                new JacksonModuleFeelFunction(),
+                new JacksonModuleDocumentSerializer())
+            .build();
+    mapperHolder.set(finalMapper);
+    return finalMapper;
   }
 }

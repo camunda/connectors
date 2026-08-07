@@ -36,8 +36,24 @@
       <artifactId>connector-feel</artifactId>
     </dependency>
     <dependency>
+      <groupId>tools.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <!-- Jackson 2: TemplatePropertiesUtil recognizes both Jackson major versions' JsonNode (most
+         connectors haven't migrated yet), and ClassBasedDocsGenerator needs it resolvable for
+         connector-feel's FeelExpressionEvaluator overloads. Declared at compile scope rather than
+         test scope: a closer (test-scoped) declaration here would otherwise shadow the transitive
+         compile-scope dependency from connector-feel that main src relies on. -->
+    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <!-- Jackson 2: only ConfigurationTemplateSchemaTest references this directly (for
+         JsonGenerator), so test scope is correct here. -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>jakarta.validation</groupId>

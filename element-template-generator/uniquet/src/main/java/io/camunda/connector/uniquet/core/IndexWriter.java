@@ -18,7 +18,6 @@ package io.camunda.connector.uniquet.core;
 
 import static io.camunda.connector.uniquet.core.FileHelper.*;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.uniquet.dto.Connector;
 import io.camunda.connector.uniquet.dto.Engine;
 import io.camunda.connector.uniquet.dto.OutputElementTemplate;
@@ -27,6 +26,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import tools.jackson.databind.JsonNode;
 
 public class IndexWriter {
 

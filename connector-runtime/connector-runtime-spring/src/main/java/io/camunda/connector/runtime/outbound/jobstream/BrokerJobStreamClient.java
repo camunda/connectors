@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.outbound.jobstream;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import java.io.IOException;
 import java.net.URI;
@@ -25,6 +24,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Fetches remote (broker-side) job-stream data from each Zeebe broker's monitoring endpoint ({@code

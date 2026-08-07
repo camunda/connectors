@@ -16,12 +16,6 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.exc.*;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -40,6 +34,14 @@ import io.camunda.connector.runtime.core.secret.SecretFilter;
 import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.exc.StreamReadException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.exc.InvalidFormatException;
+import tools.jackson.databind.exc.InvalidNullException;
+import tools.jackson.databind.exc.InvalidTypeIdException;
+import tools.jackson.databind.exc.PropertyBindingException;
 
 /**
  * Implementation of {@link io.camunda.connector.api.outbound.OutboundConnectorContext} passed on to
@@ -104,7 +106,7 @@ public class JobHandlerContext extends AbstractConnectorContext
     var jsonWithSecrets = getJsonReplacedWithSecrets();
     try {
       return objectMapper.readValue(jsonWithSecrets, cls);
-    } catch (JsonParseException e) {
+    } catch (StreamReadException e) {
       throw new ConnectorInputException("This is not a JSON object", e);
     } catch (InvalidFormatException
         | InvalidNullException
@@ -112,7 +114,7 @@ public class JobHandlerContext extends AbstractConnectorContext
         | PropertyBindingException e) {
       String errorMessage =
           e.getPath().stream()
-              .map(JsonMappingException.Reference::getFieldName)
+              .map(JacksonException.Reference::getPropertyName)
               .reduce((s, s2) -> s.concat(", ").concat(s2))
               .map("Json object contains an invalid field: "::concat)
               .map(
@@ -125,7 +127,7 @@ public class JobHandlerContext extends AbstractConnectorContext
               .orElse("Unexpected Error, Further investigation is needed");
 
       throw new ConnectorInputException(errorMessage, e);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new ConnectorInputException(e.getOriginalMessage(), e);
     }
   }

@@ -16,21 +16,20 @@
  */
 package io.camunda.connector.document.jackson.deserializer;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
-import java.io.IOException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ValueDeserializer;
 
 /**
  * Allows inline document content to be provided either as a JSON string or as arbitrary JSON.
  * String values are used as-is; non-string JSON values are captured as compact JSON text.
  */
-public class InlineContentDeserializer extends JsonDeserializer<String> {
+public class InlineContentDeserializer extends ValueDeserializer<String> {
 
   @Override
-  public String deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+  public String deserialize(JsonParser p, DeserializationContext ctxt) {
     JsonToken token = p.currentToken();
     if (token == JsonToken.VALUE_NULL) {
       return null;

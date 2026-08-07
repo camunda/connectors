@@ -16,12 +16,12 @@
  */
 package io.camunda.connector.secret.providers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.secretmanager.v1.AccessSecretVersionResponse;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import com.google.cloud.secretmanager.v1.SecretVersionName;
 import java.util.Objects;
 import org.slf4j.Logger;
+import tools.jackson.databind.ObjectMapper;
 
 public class GcpSecretProvider extends AbstractSecretProvider {
 

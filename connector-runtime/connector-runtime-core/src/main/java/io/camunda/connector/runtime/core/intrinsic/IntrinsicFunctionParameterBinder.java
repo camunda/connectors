@@ -16,19 +16,20 @@
  */
 package io.camunda.connector.runtime.core.intrinsic;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.document.jackson.IntrinsicFunctionParams;
 import jakarta.annotation.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.List;
+import java.util.function.Supplier;
+import tools.jackson.databind.ObjectMapper;
 
 public class IntrinsicFunctionParameterBinder {
 
-  private final ObjectMapper objectMapper;
+  private final Supplier<ObjectMapper> objectMapper;
 
-  public IntrinsicFunctionParameterBinder(ObjectMapper objectMapper) {
+  public IntrinsicFunctionParameterBinder(Supplier<ObjectMapper> objectMapper) {
     this.objectMapper = objectMapper;
   }
 
@@ -65,7 +66,7 @@ public class IntrinsicFunctionParameterBinder {
       }
 
       try {
-        return objectMapper.convertValue(positionalParams.params().get(index), type);
+        return objectMapper.get().convertValue(positionalParams.params().get(index), type);
       } catch (IllegalArgumentException e) {
         throw new IllegalArgumentException(
             "Failed to convert parameter "

@@ -16,12 +16,8 @@
  */
 package io.camunda.connector.uniquet.core;
 
-import static com.fasterxml.jackson.core.util.DefaultIndenter.SYSTEM_LINEFEED_INSTANCE;
+import static tools.jackson.core.util.DefaultIndenter.SYSTEM_LINEFEED_INSTANCE;
 
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -31,12 +27,17 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
+import tools.jackson.core.util.DefaultPrettyPrinter;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectWriter;
 
 public class FileHelper {
   private static final ObjectMapper mapper = new ObjectMapper();
   private static final ObjectWriter objectWriter =
       new ObjectMapper()
-          .writer(new DefaultPrettyPrinter().withObjectIndenter(SYSTEM_LINEFEED_INSTANCE));
+          .writer()
+          .with(new DefaultPrettyPrinter().withObjectIndenter(SYSTEM_LINEFEED_INSTANCE));
 
   public static String getBaseName(File file) {
     String filename = file.getName();
@@ -48,11 +49,7 @@ public class FileHelper {
   }
 
   public static JsonNode toJsonNode(File jsonFile) {
-    try {
-      return mapper.readTree(jsonFile);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    return mapper.readTree(jsonFile);
   }
 
   public static void writeToFile(File file, JsonNode jsonNode) {
