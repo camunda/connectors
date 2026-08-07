@@ -13,7 +13,8 @@ Writes a JSON object to --out (default stdout):
     {"dispatches": [...], "suppressed": [...], "noise": [...], "blame": {...}}
 
 Exit status is 0 even when nothing is dispatchable — an empty plan is a normal
-outcome, not an error.
+outcome, not an error. It is non-zero only when a required lookup fails, so that
+"the API was down" cannot be mistaken for "nothing failed".
 """
 
 from __future__ import annotations
@@ -46,6 +47,10 @@ KEY_LABEL_PREFIX = planning.KEY_LABEL_PREFIX
 #: two lookups below fail closed, a repository the token cannot reach would wedge every
 #: dispatch shut rather than merely returning nothing.
 FIX_PR_REPOS = [REPO, E2E_REPO]
+
+
+class DiscoveryError(RuntimeError):
+    """A required lookup failed, so the run cannot be classified at all."""
 
 
 def log(message: str) -> None:
@@ -122,9 +127,18 @@ def failure_annotations(check_run_url: str | None) -> list[str]:
 
 
 def failing_jobs(run_id: str) -> list[dict]:
-    data = gh_json(
-        ["api", f"repos/{REPO}/actions/runs/{run_id}/jobs?per_page=100"], {}
+    """The run's failing jobs.
+
+    Raises rather than degrading to an empty list: "the API is down" and "nothing
+    failed" would otherwise be indistinguishable, and the second reads as a clean
+    triage. The caller turns this into a non-zero exit so the workflow reports a
+    failed classification instead of a quiet all-clear.
+    """
+    data, err = gh_json_ex(
+        ["api", f"repos/{REPO}/actions/runs/{run_id}/jobs?per_page=100"], None
     )
+    if data is None or not isinstance(data, dict):
+        raise DiscoveryError(f"could not list jobs for run {run_id}: {err.strip()[:200]}")
     return [
         j
         for j in (data.get("jobs") or [])
@@ -256,7 +270,7 @@ def covered_fingerprints() -> set[str]:
 def open_fix_pr_keys() -> tuple[set[str], bool]:
     """Dispatch keys that already have an open fix PR, in any repo a fix can land in.
 
-    Read from the `alwaysgreen-key:<base_ref>:<surface>` label the fix workflow
+    Read from the `ag-key:<source>:<base_ref>:<surface>` label the fix workflow
     stamps, not from the PR body: the body's coverage block is written by the agent
     and cannot be relied on to exist.
 
@@ -485,6 +499,16 @@ def serialise(result: planning.Plan, blame: classify.Blame, run_id: str) -> dict
 
 
 def main() -> int:
+    try:
+        return _run()
+    except DiscoveryError as exc:
+        # Surfaced as an error, not a traceback: the workflow reads the step outcome and
+        # says "triage failed" rather than "nothing to dispatch".
+        log(f"::error::AlwaysGreen discovery failed: {exc}")
+        return 1
+
+
+def _run() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--run-id", required=True)
     ap.add_argument("--base-ref", required=True)

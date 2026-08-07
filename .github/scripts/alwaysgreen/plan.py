@@ -8,7 +8,7 @@ Two levels of identity are used, for different jobs:
 
 * A per-spec fingerprint identifies one failing test. It goes in the fix PR's
   coverage block and is what suppresses a re-dispatch once a PR covers it.
-* A dispatch key, `<base_ref>:<surface>`, identifies one agent's remit. At most one
+* A dispatch key, `<source>:<base_ref>:<surface>`, identifies one agent's remit. At most one
   agent per key may be in flight. This is the rule that actually holds the line when
   the same cause fails many consecutive runs: on 2026-07-23 seventeen runs failed on
   one root cause roughly 30-40 minutes apart, while an agent takes 15-60 minutes, so

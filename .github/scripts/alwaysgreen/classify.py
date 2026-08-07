@@ -283,6 +283,14 @@ def clean_error(message: str | None, *, limit: int = 600) -> str:
     return text[:limit]
 
 
+#: Terminal statuses that mean the attempt genuinely failed. Playwright reports a test
+#: that blew its own timeout as `timedOut`, not `failed`, so treating only `failed` as
+#: terminal tells the agent a reproducible hang is flaky — and the sanctioned remedy for
+#: flakiness is a longer wait, which is exactly the mask the manual forbids.
+#: `interrupted` and `skipped` stay out: neither is evidence about this test.
+FAILED_STATUSES = frozenset({"failed", "timedOut"})
+
+
 @dataclass
 class FailingSpec:
     file: str
@@ -299,7 +307,7 @@ class FailingSpec:
         A `failed → passed` sequence is flakiness, which calls for a waiting or
         retry fix rather than a behavioural change.
         """
-        return bool(self.statuses) and all(s == "failed" for s in self.statuses)
+        return bool(self.statuses) and all(s in FAILED_STATUSES for s in self.statuses)
 
 
 def failing_specs(report: Any, *, suite: str | None = None) -> list[FailingSpec]:

@@ -589,3 +589,32 @@ def test_helm_template_and_input_jobs_are_reported_as_ci_infra():
         == classify.SURFACE_CI_INFRA
     )
     assert classify.surface_for_job("Prepare inputs") == classify.SURFACE_CI_INFRA
+
+
+# ---------------------------------------------------------------------------
+# Terminal statuses
+# ---------------------------------------------------------------------------
+
+
+def _spec_with(statuses):
+    return classify.FailingSpec(file="f", test_name="t", statuses=list(statuses))
+
+
+def test_a_spec_that_timed_out_every_attempt_is_deterministic():
+    # Playwright reports a test that blew its own timeout as `timedOut`, not `failed`.
+    # Reading that as flaky would send the agent after a longer wait, which is exactly
+    # the mask the manual forbids for a reproducible hang.
+    assert _spec_with(["timedOut", "timedOut"]).deterministic
+    assert _spec_with(["failed", "timedOut"]).deterministic
+
+
+def test_a_spec_that_recovered_is_still_flaky():
+    assert not _spec_with(["timedOut", "passed"]).deterministic
+    assert not _spec_with(["failed", "passed"]).deterministic
+
+
+def test_non_terminal_statuses_are_not_evidence_of_a_real_failure():
+    # An interrupted or skipped attempt says nothing about this test.
+    assert not _spec_with(["interrupted", "interrupted"]).deterministic
+    assert not _spec_with(["skipped"]).deterministic
+    assert not _spec_with([]).deterministic
