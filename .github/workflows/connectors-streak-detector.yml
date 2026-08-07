@@ -1,7 +1,7 @@
 # description: Streak detector for the "Merge queue Helm test" pipeline. Reacts
 # to completion of that pipeline on a protected branch (main / stable/*) and
-# maintains ONE live Slack message per base branch in the connectors support
-# channel — same find-and-update pattern as camunda/camunda's
+# maintains ONE live Slack message per base branch in #alwaysgreen-reliability —
+# same find-and-update pattern as camunda/camunda's
 # alwaysgreen-streak-detector.yml.
 #
 # Behaviour:
@@ -138,12 +138,34 @@ jobs:
           echo "pings=${pings}" >> "$GITHUB_OUTPUT"
           echo "Will ping: ${pings}"
 
+      # No streak alert from this repo has ever arrived: the connectors bot is not a
+      # member of #alwaysgreen-reliability, so conversations.history and
+      # chat.postMessage both come back not_in_channel. Post as the shared QA bot
+      # instead, like the other AlwaysGreen repos.
+      #
+      # The read is denied (403) until connectors' approle is granted
+      # secret/data/products/qa/ci/common; the steps below then no-op on an empty
+      # token, exactly as they do today, and start working once it lands.
+      - name: Import Slack token
+        id: slack-secrets
+        if: steps.streak.outputs.is_streak == 'true' || steps.streak.outputs.latest_success == 'true'
+        continue-on-error: true
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/common SLACK_BOT_USER_OAUTH_TOKEN ;
+
       - name: Find existing Slack streak message for this base
         id: find-message
         if: steps.streak.outputs.is_streak == 'true' || steps.streak.outputs.latest_success == 'true'
         continue-on-error: true
         env:
-          SLACK_TOKEN: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          SLACK_TOKEN: ${{ steps.slack-secrets.outputs.SLACK_BOT_USER_OAUTH_TOKEN }}
           CHANNEL_ID: C0AK0AVKRL0
           BASE_REF: ${{ steps.streak.outputs.base_ref }}
         run: |
@@ -173,7 +195,7 @@ jobs:
         uses: slackapi/slack-github-action@v4.0.0
         with:
           method: chat.postMessage
-          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          token: ${{ steps.slack-secrets.outputs.SLACK_BOT_USER_OAUTH_TOKEN }}
           payload: |
             {
               "channel": "C0AK0AVKRL0",
@@ -185,7 +207,7 @@ jobs:
         uses: slackapi/slack-github-action@v4.0.0
         with:
           method: chat.update
-          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          token: ${{ steps.slack-secrets.outputs.SLACK_BOT_USER_OAUTH_TOKEN }}
           payload: |
             {
               "channel": "C0AK0AVKRL0",
@@ -198,7 +220,7 @@ jobs:
         uses: slackapi/slack-github-action@v4.0.0
         with:
           method: chat.update
-          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          token: ${{ steps.slack-secrets.outputs.SLACK_BOT_USER_OAUTH_TOKEN }}
           payload: |
             {
               "channel": "C0AK0AVKRL0",

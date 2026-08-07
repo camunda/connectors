@@ -179,11 +179,36 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
+    # Surfaced so a later job can reply in this message's thread instead of
+    # opening a second top-level message for the same failure.
+    outputs:
+      slack_ts: ${{ steps.feedback.outputs.slack_ts }}
+      slack_channel: ${{ steps.feedback.outputs.slack_channel }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: "24"
+      # Post as the shared QA bot, like every other AlwaysGreen repo, so one
+      # failure reads as one thread from one sender. The connectors bot is not a
+      # member of the channel and its posts come back not_in_channel.
+      #
+      # This read is currently denied (403): connectors' approle has no policy for
+      # secret/data/products/qa/ci/common. continue-on-error keeps the job summary
+      # and the PR comment working meanwhile — the action skips Slack when the
+      # token is empty — and Slack starts working by itself once the grant lands.
+      - name: Import Slack token
+        id: slack-secrets
+        continue-on-error: true
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/common SLACK_BOT_USER_OAUTH_TOKEN ;
       - name: Generate GitHub App Token
         id: app-token
         uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
@@ -198,9 +223,10 @@ jobs:
           vault-url: ${{ secrets.VAULT_ADDR }}
           owner: camunda
           repositories: connectors
-      # Standardised AlwaysGreen feedback → job summary + PR comment (+ Slack once
-      # the channel is set below and the bot is invited to it). Best-effort.
+      # Standardised AlwaysGreen feedback → job summary, PR comment, and Slack.
+      # Best-effort.
       - name: Post AlwaysGreen failure feedback
+        id: feedback
         continue-on-error: true
         uses: ./.github/actions/post-failure-feedback
         with:
@@ -216,9 +242,9 @@ jobs:
           # paying for a lookup that would also need pull-requests: read.
           pr_is_draft: "false"
           # Shared AlwaysGreen channel (#alwaysgreen-reliability) — consistent
-          # across all AlwaysGreen repos. The connectors bot must be a member.
+          # across all AlwaysGreen repos.
           slack_channel: "C0AK0AVKRL0"
-          slack_bot_token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          slack_bot_token: ${{ steps.slack-secrets.outputs.SLACK_BOT_USER_OAUTH_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
 
   trigger-saas-e2e:
@@ -229,6 +255,12 @@ jobs:
     timeout-minutes: 25
     continue-on-error: ${{ github.event_name == 'merge_group' }}
     permissions: { }
+    # The downstream run is where a SaaS failure is actually diagnosed, so the
+    # feedback job needs its URL to put in the alert.
+    outputs:
+      downstream_run_url: ${{ steps.wait-downstream.outputs.downstream_run_url }}
+      downstream_conclusion: ${{ steps.wait-downstream.outputs.downstream_conclusion }}
+      outcome: ${{ steps.outcome.outputs.status }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -277,17 +309,6 @@ jobs:
                       "optimizeVersion": "SNAPSHOT"
                   }
                 }'
-
-      - name: Observe build status
-        if: always()
-        continue-on-error: true
-        uses: ./.github/actions/observe-build-status
-        with:
-          build_status: ${{ job.status }}
-          job_name: trigger-saas-e2e
-          secret_vault_address: ${{ secrets.VAULT_ADDR }}
-          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
 
       - name: Wait for downstream workflow to finish
         id: wait-downstream
@@ -365,6 +386,7 @@ jobs:
             echo "Workflow run $RUN_ID status: $STATUS ($CONCLUSION)"
 
             if [[ "$STATUS" == "completed" ]]; then
+              echo "downstream_conclusion=${CONCLUSION}" >> "$GITHUB_OUTPUT"
               if [[ "$CONCLUSION" == "success" ]]; then
                 echo "Downstream workflow succeeded!"
                 exit 0
@@ -377,6 +399,7 @@ jobs:
             sleep 30
           done
 
+          echo "downstream_conclusion=timed-out" >> "$GITHUB_OUTPUT"
           echo "Timed out waiting for downstream workflow to complete."
           exit 1
 
@@ -410,6 +433,121 @@ jobs:
             fi
             echo "**Full guide:** [CI Debugging Cookbook — SaaS E2E section](${COOKBOOK_URL}#failure-type-5--saas-e2e-tests)"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # The downstream run holds the only per-spec evidence for a SaaS failure, and
+      # its id lives nowhere but this job's log — which another workflow cannot read.
+      # Publish it as an artifact instead. The name and the field names are the ones
+      # the AlwaysGreen classifier looks for; changing either breaks SaaS triage.
+      - name: Record downstream SaaS run for triage
+        if: ${{ always() && steps.wait-downstream.outcome != 'success' }}
+        env:
+          DOWNSTREAM_RUN_URL: ${{ steps.wait-downstream.outputs.downstream_run_url }}
+          DOWNSTREAM_CONCLUSION: ${{ steps.wait-downstream.outputs.downstream_conclusion }}
+          CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
+        run: |
+          set -euo pipefail
+          jq -nc \
+            --arg url "${DOWNSTREAM_RUN_URL}" \
+            --arg conclusion "${DOWNSTREAM_CONCLUSION}" \
+            --arg correlation "${CORRELATION_ID}" \
+            '{downstream_run_url: $url,
+              downstream_conclusion: $conclusion,
+              correlation_id: $correlation}' \
+            > "${RUNNER_TEMP}/alwaysgreen-saas-category.json"
+          cat "${RUNNER_TEMP}/alwaysgreen-saas-category.json"
+
+      - name: Upload downstream SaaS run record
+        if: ${{ always() && steps.wait-downstream.outcome != 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: alwaysgreen-saas-category
+          path: ${{ runner.temp }}/alwaysgreen-saas-category.json
+          retention-days: 5
+          if-no-files-found: warn
+
+      # On merge_group this job runs with continue-on-error, and a job that failed
+      # that way reports `success` in a dependent job's needs.<job>.result — so a
+      # gate on the result cannot see the failure at all. Measured, not assumed:
+      # a probe with two failed continue-on-error jobs read back result=success
+      # for both and contains(needs.*.result, 'failure') = false. Publish the real
+      # outcome so the feedback job below fires on both push and merge_group.
+      - name: Publish job outcome
+        id: outcome
+        if: always()
+        run: echo "status=${{ job.status }}" >> "$GITHUB_OUTPUT"
+
+  saas-e2e-debug-summary:
+    name: AlwaysGreen failure feedback (SaaS E2E)
+    needs: trigger-saas-e2e
+    # `outputs.outcome` first: on merge_group the result reads `success` even when
+    # the job failed (see "Publish job outcome" above). The result check is the
+    # fallback for a job that died before publishing its outcome, e.g. cancelled.
+    if: >-
+      always() && (needs.trigger-saas-e2e.outputs.outcome == 'failure'
+      || needs.trigger-saas-e2e.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: ${{ github.event_name == 'merge_group' }}
+    permissions:
+      pull-requests: write
+      contents: read
+    outputs:
+      slack_ts: ${{ steps.feedback.outputs.slack_ts }}
+      slack_channel: ${{ steps.feedback.outputs.slack_channel }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: "24"
+      # Same shared QA bot, same pending Vault grant, as the SM job above.
+      - name: Import Slack token
+        id: slack-secrets
+        continue-on-error: true
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/common SLACK_BOT_USER_OAUTH_TOKEN ;
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: connectors
+      # SaaS failures were previously reported nowhere: this stage had no feedback
+      # step, so 18 of the 41 failing runs in a recent 400-run window were silent
+      # apart from the job log.
+      - name: Post AlwaysGreen failure feedback
+        id: feedback
+        continue-on-error: true
+        uses: ./.github/actions/post-failure-feedback
+        with:
+          failure_category: unknown
+          stage: saas-e2e
+          owner_team: "@camunda/connectors"
+          run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          status: failure
+          evidence: >-
+            SaaS E2E tests failed (downstream conclusion:
+            ${{ needs.trigger-saas-e2e.outputs.downstream_conclusion || 'unknown' }})
+            ${{ needs.trigger-saas-e2e.outputs.downstream_run_url }}
+          pr: ${{ github.event.merge_group.head_ref }}
+          pr_is_draft: "false"
+          slack_channel: "C0AK0AVKRL0"
+          slack_bot_token: ${{ steps.slack-secrets.outputs.SLACK_BOT_USER_OAUTH_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
 
   run-ai-agent-cpt:
     name: AI Agent E2E Tests (CPT)
@@ -502,14 +640,3 @@ jobs:
             -am \
             -Pit-real-llm \
             --batch-mode
-
-      - name: Observe build status
-        if: always()
-        continue-on-error: true
-        uses: ./.github/actions/observe-build-status
-        with:
-          build_status: ${{ job.status }}
-          job_name: run-ai-agent-cpt
-          secret_vault_address: ${{ secrets.VAULT_ADDR }}
-          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}

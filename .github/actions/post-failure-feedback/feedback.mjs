@@ -174,7 +174,17 @@ async function postSummary(md) {
 // Upsert: one bot comment per PR, updated on re-runs (find by MARKER).
 async function upsertPrComment(m, md) {
   if (!m.pr || !m.repo || !env('GH_TOKEN')) {
-    console.log('[feedback] PR comment skipped (no pr/repo/token)');
+    // Name the missing input: "no pr/repo/token" cannot distinguish a push run
+    // (no PR at all, expected) from a merge_group run whose head_ref did not
+    // parse or whose token was empty (a wiring bug worth fixing).
+    const missing = [
+      !m.pr && `pr (FB_PR=${JSON.stringify(env('FB_PR'))})`,
+      !m.repo && 'repo',
+      !env('GH_TOKEN') && 'github_token',
+    ]
+      .filter(Boolean)
+      .join(', ');
+    console.log(`[feedback] PR comment skipped — missing ${missing}`);
     return;
   }
   try {
@@ -209,6 +219,18 @@ async function upsertPrComment(m, md) {
     }
   } catch (e) {
     console.error(`[feedback] PR comment failed: ${e.message || e}`);
+  }
+}
+
+// Publishes the posted message's identity so a later job in the same run can reply in
+// its thread instead of opening a second top-level message for the same failure.
+async function setStepOutput(name, value) {
+  const file = process.env.GITHUB_OUTPUT;
+  if (!file || !value) return;
+  try {
+    await appendFile(file, `${name}=${value}\n`);
+  } catch (e) {
+    console.error(`[feedback] could not write output ${name}: ${e.message || e}`);
   }
 }
 
@@ -269,7 +291,9 @@ async function postSlack(m) {
     });
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'unknown');
-    console.log(`[feedback] posted to Slack ${channel}`);
+    console.log(`[feedback] posted to Slack ${channel} (ts=${j.ts})`);
+    await setStepOutput('slack_ts', j.ts);
+    await setStepOutput('slack_channel', j.channel || channel);
   } catch (e) {
     console.error(`[feedback] Slack post failed: ${e.message || e}`);
   }
