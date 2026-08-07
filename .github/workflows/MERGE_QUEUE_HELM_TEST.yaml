@@ -235,6 +235,12 @@ jobs:
     timeout-minutes: 25
     continue-on-error: ${{ github.event_name == 'merge_group' }}
     permissions: { }
+    outputs:
+      # Whether this job failed, stated explicitly. On merge_group the job carries
+      # continue-on-error, and GitHub does not document what needs.<job>.result then
+      # reports to a dependent job — so a gate built on that alone could silently never
+      # fire for the one event that supplies a PR to comment on.
+      status: ${{ steps.job-status.outputs.status }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -445,13 +451,26 @@ jobs:
             echo "**Full guide:** [CI Debugging Cookbook — SaaS E2E section](${COOKBOOK_URL}#failure-type-5--saas-e2e-tests)"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Last step in the job, so job.status here reflects everything above it.
+      - name: Record job status
+        id: job-status
+        if: always()
+        run: echo "status=${{ job.status }}" >> "$GITHUB_OUTPUT"
+
   # Mirror of sm-e2e-debug-summary. Until this existed a SaaS failure produced no
   # Slack message and no PR comment at all — only the streak detector's aggregate,
   # which fires at three consecutive failures and says nothing about a single one.
   saas-e2e-debug-summary:
     name: AlwaysGreen failure feedback (SaaS E2E)
     needs: trigger-saas-e2e
-    if: always() && needs.trigger-saas-e2e.result == 'failure'
+    # Two signals for one condition. `result` covers push, where the job fails
+    # normally; the explicit output covers merge_group, where continue-on-error may
+    # present the failure to dependents as a success. merge_group is the only trigger
+    # that supplies a PR, so relying on `result` alone risks the PR comment never
+    # being posted at all.
+    if: >-
+      always() && (needs.trigger-saas-e2e.result == 'failure' ||
+      needs.trigger-saas-e2e.outputs.status == 'failure')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     continue-on-error: ${{ github.event_name == 'merge_group' }}
