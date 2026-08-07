@@ -677,6 +677,34 @@ limitations under the License.</license.inlineheader>
         <version>${version.httpcore5}</version>
       </dependency>
 
+      <!-- CVE-2026-55955: tomcat.version alone does not override Spring Boot's
+           dependency-management import, since spring-boot-dependencies defines its own
+           internal tomcat.version property. These four artifacts ship in lockstep from the
+           same Tomcat release and must be pinned together to avoid a version skew. -->
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-core</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-el</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-websocket</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tomcat</groupId>
+        <artifactId>tomcat-annotations-api</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
@@ -1028,6 +1056,23 @@ version.kafka-clients was changed! Check if the lz4-java CVE-2026-59949 override
 If the new kafka-clients version ships lz4-java &gt;= 1.11.1, remove the version.lz4-java property,
 the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.xml.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
+                </regexMessage>
+              </requireProperty>
+              <!-- CVE-2026-55955 guard: fails if version.spring-boot is bumped, as a reminder to
+                   check whether the tomcat-embed-* overrides can be removed (see tomcat.version).
+                   A same-named property does not override a dependency-management import, so this
+                   pin must stay explicit until verified otherwise - do not delete it without checking. -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^4\.1\.0$</regex>
+                <regexMessage>
+version.spring-boot was changed! Check if the tomcat-embed-* CVE-2026-55955 overrides can be removed.
+If the new spring-boot-dependencies BOM ships tomcat.version &gt;= 11.0.23 (confirm with
+`mvn dependency:tree -Dincludes=org.apache.tomcat.embed,org.apache.tomcat:tomcat-annotations-api`,
+not just the property), remove the tomcat-embed-core/tomcat-embed-el/tomcat-embed-websocket/
+tomcat-annotations-api dependencyManagement entries, the tomcat.version property, and this
+enforcer rule from parent/pom.xml.
+See: https://nvd.nist.gov/vuln/detail/CVE-2026-55955
                 </regexMessage>
               </requireProperty>
             </rules>
