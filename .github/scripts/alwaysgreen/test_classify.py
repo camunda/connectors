@@ -560,7 +560,11 @@ def test_sm_npm_package_rootdir_resolves_to_a_source_path():
 
 
 def test_real_connectors_saas_report_yields_dispatchable_failures():
-    # Downstream run 30522330457: two specs failed every attempt, one passed on retry.
+    # A four-spec excerpt of downstream run 30522330457 — the two that failed every
+    # attempt, the one that passed on retry, and one clean pass. The point of using
+    # real output rather than the synthetic reports above is that those encode what we
+    # *believe* Playwright emits; the classifier's worst historical bug was a walk that
+    # only went one suite deep, which no self-written fixture would have caught.
     report = _report("connectors-saas-results.json")
     suite = classify.suite_from_rootdir(report["config"]["rootDir"])
     assert suite == "8.10"
