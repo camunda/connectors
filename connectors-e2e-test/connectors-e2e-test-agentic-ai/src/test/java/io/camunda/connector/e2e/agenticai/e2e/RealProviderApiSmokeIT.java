@@ -241,13 +241,13 @@ class RealProviderApiSmokeIT {
             "provider.anthropic.backend.type",
             "bedrock",
             "provider.anthropic.backend.bedrock.region",
-            envOrDefault("ANTHROPIC_BEDROCK_REGION", "eu-central-1"),
+            envOrDefault("ANTHROPIC_BEDROCK_REGION", "us-east-1"),
             "provider.anthropic.backend.bedrock.authentication.type",
             "apiKey",
             "provider.anthropic.backend.bedrock.authentication.apiKey",
             envOrPlaceholder("ANTHROPIC_BEDROCK_API_KEY"),
             "provider.anthropic.model.model",
-            model),
+            "anthropic." + model),
         capabilityProperties,
         true);
   }
@@ -283,21 +283,21 @@ class RealProviderApiSmokeIT {
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",
                             "provider.anthropic.model.parameters.effort", "high"))),
-            // Same model and capability configuration as the anthropic-api claude-sonnet-4-6 row
-            // above, to prove Bedrock Mantle's pass-through end-to-end with only the
-            // backend/transport differing.
+            // Same model/capability config as the anthropic-api claude-sonnet-5 row above, minus
+            // structured output: Bedrock Mantle rejects output_config.format with a 400. AWS docs
+            // confirm this endpoint doesn't support it:
+            // https://docs.aws.amazon.com/bedrock/latest/userguide/claude-messages-structured-outputs.html
             anthropicBedrock(
-                "claude-sonnet-4-6",
+                "claude-sonnet-5",
                 Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING,
                         Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
                     Capability.REASONING,
                         Map.of(
-                            "provider.anthropic.model.parameters.thinking.mode", "enabled",
-                            "provider.anthropic.model.parameters.thinking.budgetTokens", "2048"))))
+                            "provider.anthropic.model.parameters.thinking.mode", "adaptive",
+                            "provider.anthropic.model.parameters.effort", "high"))))
         .filter(Provider::isEnabled);
   }
 
