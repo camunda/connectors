@@ -287,16 +287,23 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 optional = true)
             @Nullable Integer topK) {
 
+      /**
+       * Anthropic's default {@code max_tokens} when the property is left unset. Shared so the
+       * thinking-budget cross-field check below validates against the same effective maximum that's
+       * actually sent on the wire.
+       */
+      public static final long DEFAULT_MAX_TOKENS = 4096L;
+
       @JsonIgnore
       @AssertTrue(message = "thinking.budgetTokens must be less than maxTokens")
       public boolean isThinkingBudgetWithinMaxTokens() {
         if (thinking == null
             || thinking.mode() != ThinkingMode.ENABLED
-            || thinking.budgetTokens() == null
-            || maxTokens == null) {
+            || thinking.budgetTokens() == null) {
           return true;
         }
-        return thinking.budgetTokens() < maxTokens;
+        long effectiveMaxTokens = maxTokens != null ? maxTokens : DEFAULT_MAX_TOKENS;
+        return thinking.budgetTokens() < effectiveMaxTokens;
       }
     }
 

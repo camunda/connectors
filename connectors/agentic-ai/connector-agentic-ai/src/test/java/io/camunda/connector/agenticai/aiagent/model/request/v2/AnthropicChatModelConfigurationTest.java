@@ -220,6 +220,50 @@ class AnthropicChatModelConfigurationTest {
   }
 
   @Test
+  void
+      thinkingBudgetTokensRejectsValuesAtOrAboveTheEffectiveDefaultMaxTokensWhenMaxTokensIsUnset() {
+    final var thinking =
+        new AnthropicThinking(
+            ThinkingMode.ENABLED, (int) AnthropicModelParameters.DEFAULT_MAX_TOKENS, null);
+    final var parameters =
+        new AnthropicModelParameters(null, thinking, null, null, null, null, null);
+    final var config =
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicApiBackend(
+                    new AnthropicApiBackend.AnthropicApi("sk-ant-123", null, null, null, null)),
+                new AnthropicModel("claude-sonnet-4-6", parameters),
+                null));
+
+    final Set<ConstraintViolation<AnthropicChatModelConfiguration>> violations =
+        validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v ->
+                assertThat(v.getMessage())
+                    .isEqualTo("thinking.budgetTokens must be less than maxTokens"));
+  }
+
+  @Test
+  void thinkingBudgetTokensBelowTheEffectiveDefaultMaxTokensHasNoViolationsWhenMaxTokensIsUnset() {
+    final var thinking =
+        new AnthropicThinking(
+            ThinkingMode.ENABLED, (int) AnthropicModelParameters.DEFAULT_MAX_TOKENS - 1, null);
+    final var parameters =
+        new AnthropicModelParameters(null, thinking, null, null, null, null, null);
+    final var config =
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicApiBackend(
+                    new AnthropicApiBackend.AnthropicApi("sk-ant-123", null, null, null, null)),
+                new AnthropicModel("claude-sonnet-4-6", parameters),
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+  }
+
+  @Test
   void validAnthropicConfigurationHasNoViolations() {
     final var config =
         new AnthropicChatModelConfiguration(

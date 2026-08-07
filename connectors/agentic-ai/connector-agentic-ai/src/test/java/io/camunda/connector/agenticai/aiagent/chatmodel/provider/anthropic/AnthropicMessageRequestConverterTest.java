@@ -505,7 +505,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params = converter.toMessageCreateParams(model(null), null, snapshot);
 
-    assertThat(params.maxTokens()).isEqualTo(AnthropicMessageRequestConverter.DEFAULT_MAX_TOKENS);
+    assertThat(params.maxTokens()).isEqualTo(AnthropicModelParameters.DEFAULT_MAX_TOKENS);
     assertThat(params.maxTokens()).isEqualTo(4096L);
   }
 
