@@ -24,7 +24,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     group = "provider",
     name = "type",
     description = "Specify the LLM provider to use.",
-    defaultValue = CUSTOM_ID)
+    defaultValue = ANTHROPIC_ID)
 public sealed interface ProviderConfiguration extends ChatModelConfiguration
     permits AnthropicChatModelConfiguration, CustomProviderConfiguration {
 
