@@ -31,6 +31,7 @@ import io.camunda.connector.microsoft.common.auth.GraphServiceClientSupplier;
 import io.camunda.connector.microsoft.common.auth.MicrosoftAuthentication;
 import io.camunda.connector.microsoft.common.auth.RefreshTokenAuthentication;
 import io.camunda.connector.microsoft.email.model.config.Folder;
+import io.camunda.connector.microsoft.email.model.output.EmailAttachmentMetadata;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
 import io.camunda.connector.microsoft.email.model.output.GraphApiMapper;
 import java.lang.reflect.InvocationTargetException;
@@ -40,8 +41,12 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MicrosoftMailClient implements MailClient {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(MicrosoftMailClient.class);
 
   private final Supplier<GraphServiceClient> clientSupplier;
   private final String userId;
@@ -234,9 +239,50 @@ public class MicrosoftMailClient implements MailClient {
             });
   }
 
-  private static boolean processMessageItem(Message msg, Consumer<EmailMessage> handler) {
-    var myMsg = GraphApiMapper.toEmailMessage(msg, List.of());
+  private boolean processMessageItem(Message msg, Consumer<EmailMessage> handler) {
+    // Resolve lightweight attachment metadata (no content download) before the activation
+    // condition is evaluated, so conditions can filter on attachment properties such as file type.
+    List<EmailAttachmentMetadata> attachmentMetadata =
+        Boolean.TRUE.equals(msg.getHasAttachments())
+            ? fetchAttachmentMetadata(msg.getId())
+            : List.of();
+    var myMsg = GraphApiMapper.toMessageWithMetadata(msg, attachmentMetadata);
     handler.accept(myMsg);
     return true;
+  }
+
+  private List<EmailAttachmentMetadata> fetchAttachmentMetadata(String messageId) {
+    try {
+      var response =
+          getGraphClient()
+              .messages()
+              .byMessageId(messageId)
+              .attachments()
+              .get(
+                  requestConfiguration ->
+                      // Selecting only metadata fields ensures Graph does not return the
+                      // (potentially large) contentBytes payload for file attachments.
+                      requestConfiguration.queryParameters.select =
+                          new String[] {"id", "name", "contentType", "size", "isInline"});
+      if (response == null || response.getValue() == null) {
+        return List.of();
+      }
+      var metadata = new ArrayList<EmailAttachmentMetadata>();
+      for (var attachment : response.getValue()) {
+        metadata.add(
+            new EmailAttachmentMetadata(
+                attachment.getId(),
+                attachment.getName(),
+                attachment.getContentType(),
+                attachment.getSize() == null ? null : attachment.getSize().longValue(),
+                attachment.getIsInline()));
+      }
+      return metadata;
+    } catch (Exception e) {
+      // Degrade gracefully: a metadata lookup failure must not abort polling or trigger an
+      // endless retry loop. The email is processed as if it had no resolvable attachment metadata.
+      LOGGER.warn("Failed to resolve attachment metadata for message {}", messageId, e);
+      return List.of();
+    }
   }
 }

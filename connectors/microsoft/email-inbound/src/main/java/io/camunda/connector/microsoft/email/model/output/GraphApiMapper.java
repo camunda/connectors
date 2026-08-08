@@ -32,11 +32,12 @@ public final class GraphApiMapper {
         .toList();
   }
 
-  public static EmailMessage toEmailMessage(Message message, List<Document> documents) {
-    var sender = toEmailAddress(message.getSender());
-    var recipients = toEmailAddressList(message.getToRecipients());
-    var cc = toEmailAddressList(message.getCcRecipients());
-    var bcc = toEmailAddressList(message.getBccRecipients());
+  /**
+   * Maps a Graph message and its resolved attachment metadata to a {@link MessageWithMetadata}, the
+   * shape evaluated by the activation condition.
+   */
+  public static MessageWithMetadata toMessageWithMetadata(
+      Message message, List<EmailAttachmentMetadata> attachmentMetadata) {
     String body = null;
     String bodyContentType = null;
     if (message.getBody() != null) {
@@ -47,17 +48,37 @@ public final class GraphApiMapper {
       }
     }
     OffsetDateTime receivedTime = message.getReceivedDateTime();
-    return new EmailMessage(
+    return new MessageWithMetadata(
         message.getId(),
         message.getConversationId(),
-        sender,
-        recipients,
-        cc,
-        bcc,
+        toEmailAddress(message.getSender()),
+        toEmailAddressList(message.getToRecipients()),
+        toEmailAddressList(message.getCcRecipients()),
+        toEmailAddressList(message.getBccRecipients()),
         message.getSubject(),
         body,
         bodyContentType,
         receivedTime,
+        attachmentMetadata);
+  }
+
+  /**
+   * Builds a {@link MessageWithAttachments} by copying the common fields of an existing message and
+   * attaching the downloaded attachment documents.
+   */
+  public static MessageWithAttachments toMessageWithAttachments(
+      EmailMessage source, List<Document> documents) {
+    return new MessageWithAttachments(
+        source.id(),
+        source.conversationId(),
+        source.sender(),
+        source.recipients(),
+        source.cc(),
+        source.bcc(),
+        source.subject(),
+        source.body(),
+        source.bodyContentType(),
+        source.receivedDateTime(),
         documents);
   }
 }
