@@ -13,7 +13,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.util.JsonPayloadLogging;
+import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Optional;
@@ -93,7 +93,7 @@ public class BedrockChatModelApi implements ChatModel {
     if (LOG.isTraceEnabled()) {
       LOG.trace(
           "Bedrock Converse API request: {}",
-          JsonPayloadLogging.toJson(objectMapper, converseStreamRequest));
+          LoggingSupport.toJson(objectMapper, converseStreamRequest));
     }
 
     final long startNanos = System.nanoTime();
@@ -106,7 +106,7 @@ public class BedrockChatModelApi implements ChatModel {
       final ConverseResponse response = streamAssembler.converseResponse();
       if (LOG.isTraceEnabled()) {
         LOG.trace(
-            "Bedrock Converse API response: {}", JsonPayloadLogging.toJson(objectMapper, response));
+            "Bedrock Converse API response: {}", LoggingSupport.toJson(objectMapper, response));
       }
       final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
       return responseConverter.toResult(response, executionTime);
