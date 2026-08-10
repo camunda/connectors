@@ -137,6 +137,27 @@ class OpenAiChatModelConfigurationTest {
   }
 
   @Test
+  void customBackendRedactsHeadersAndRequestParametersInToString() {
+    final var backend =
+        new OpenAiCustomBackend(
+            new CustomBackend(
+                "https://custom.example.com",
+                Map.of("Authorization", "Bearer secret"),
+                Map.of("api-version", "2026-01-01"),
+                Map.of("large_field", "large_value"),
+                new ApiKeyAuthentication("sk-custom-super-secret")));
+
+    final String toString = backend.toString();
+    assertThat(toString).doesNotContain("sk-custom-super-secret", "Bearer secret", "large_value");
+    assertThat(toString)
+        .contains(
+            "headers={Authorization=[REDACTED]}",
+            "queryParameters={api-version=[REDACTED]}",
+            "requestParameters={large_field=[REDACTED]}",
+            "apiKey=[REDACTED]");
+  }
+
+  @Test
   void validConfigurationHasNoViolations() {
     final var config = configuration(responsesApi(), openAiApiBackend("sk-test"), "gpt-5.5");
 
