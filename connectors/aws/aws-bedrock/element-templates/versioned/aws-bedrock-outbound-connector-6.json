@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid AWS Bedrock Outbound Connector",
-  "id" : "io.camunda.connectors.aws.bedrock.v1-hybrid",
+  "name" : "AWS Bedrock Outbound Connector",
+  "id" : "io.camunda.connectors.aws.bedrock.v1",
   "description" : "Invoke models and converse using AWS Bedrock.",
   "keywords" : [ "invoke model", "run inference", "invokemodel API", "converse API", "converse", "AI", "LLM", "machine learning", "language model", "generative AI" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/",
-  "version" : 7,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,9 +18,6 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "operation",
     "label" : "Operation"
   }, {
@@ -49,14 +46,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:aws-bedrock:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "action",
     "label" : "Action",
@@ -558,7 +553,7 @@
     "type" : "String"
   }, {
     "id" : "data.newDocuments",
-    "value" : "=if data.data_newDocuments_documentMode = \"multiple\" then data.data_newDocuments_multiple_expression else if data.data_newDocuments_documentMode = \"single\" then (if data.data_newDocuments_single_documentSource = \"camunda\" then [data.data_newDocuments_single_camundaReference] else if data.data_newDocuments_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data.data_newDocuments_single_inline_content, name: data.data_newDocuments_single_inline_fileName, contentType: data.data_newDocuments_single_inline_contentType }] else if data.data_newDocuments_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data.data_newDocuments_single_external_url, name: data.data_newDocuments_single_external_fileName }] else null) else null",
+    "value" : "=if data_newDocuments_documentMode = \"multiple\" then data_newDocuments_multiple_expression else if data_newDocuments_documentMode = \"single\" then (if data_newDocuments_single_documentSource = \"camunda\" then [data_newDocuments_single_camundaReference] else if data_newDocuments_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data_newDocuments_single_inline_content, name: data_newDocuments_single_inline_fileName, contentType: data_newDocuments_single_inline_contentType }] else if data_newDocuments_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data_newDocuments_single_external_url, name: data_newDocuments_single_external_fileName }] else null) else null",
     "group" : "converse",
     "binding" : {
       "name" : "data.newDocuments",
@@ -574,7 +569,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "7",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
