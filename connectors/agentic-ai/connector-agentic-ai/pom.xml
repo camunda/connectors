@@ -493,19 +493,6 @@
                      dependency declaration above); the analyzer would otherwise flag it unused. -->
                 <ignoredDependency>com.squareup.okhttp3:okhttp-jvm</ignoredDependency>
               </ignoredDependencies>
-              <!--
-                Task 1 of the native OpenAI provider plan only adds openai-java-core /
-                openai-java-client-okhttp and a compile-time surface-pinning test
-                (OpenAiSdkSurfaceTest); no production code depends on them yet, so the analyzer
-                flags both as "non-test scoped test only dependencies". Remove this ignore once a
-                later task wires the SDK into production code (chat model API factory / wire
-                mappers), mirroring the anthropic-java-core / anthropic-java-client-okhttp
-                dependencies above.
-              -->
-              <ignoredNonTestScopedDependencies combine.children="append">
-                <dependency>com.openai:openai-java-core</dependency>
-                <dependency>com.openai:openai-java-client-okhttp</dependency>
-              </ignoredNonTestScopedDependencies>
             </configuration>
           </execution>
         </executions>
