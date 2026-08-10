@@ -15,10 +15,6 @@ import java.util.List;
 import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Test;
 
-/**
- * Guards what the generated template offers for the uploaded-document source and the response
- * format, both of which are assembled by the shared element template generator.
- */
 class TextractDocumentSourceTemplateTest {
 
   private static final File TEMPLATE_FILE =
@@ -57,7 +53,6 @@ class TextractDocumentSourceTemplateTest {
   void uploadedSourceOffersCamundaAndUrlButNotInline() throws Exception {
     JsonNode dropdown = propertyById("input.document_documentSource");
 
-    // Inline content is UTF-8 text bytes, which Textract never accepts (PDF/PNG/JPEG/TIFF only).
     assertThat(dropdown.get("choices"))
         .extracting(c -> c.get("value").asText())
         .containsExactly("camunda", "external");
@@ -82,8 +77,6 @@ class TextractDocumentSourceTemplateTest {
     JsonNode composer = propertyById("input.document__composer");
 
     assertThat(composer.get("binding").get("name").asText()).isEqualTo("input.document");
-    // A branch for a source that was left out would reference helper variables that the template
-    // never declares.
     assertThat(composer.get("value").asText()).doesNotContain("\"inline\"");
   }
 
@@ -97,12 +90,9 @@ class TextractDocumentSourceTemplateTest {
     assertThat(dropdown.get("choices"))
         .extracting(c -> c.get("value").asText())
         .containsExactly("JSON", "DOCUMENT");
-    // Async writes the analysis to the user's own S3 bucket, so there is nothing to convert. The
-    // output bucket is active exactly on that path, which makes "not active" the needed negation.
     assertThat(dropdown.get("condition").get("property").asText())
         .isEqualTo("input.outputConfigS3Bucket");
     assertThat(dropdown.get("condition").get("isActive").asBoolean()).isFalse();
-    // TEXT is not offered, so the encoding sub-field must not be generated either.
     assertThat(propertyIds()).doesNotContain("documentReturnFormatEncoding");
   }
 }

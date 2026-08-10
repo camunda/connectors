@@ -31,10 +31,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-/**
- * Pins the response format contract: JSON (and old templates, which send no choice at all) return
- * the typed result record untouched, while DOCUMENT hands a {@link DocumentReturn} to the runtime.
- */
 @ExtendWith(MockitoExtension.class)
 class TextractResponseFormatTest {
 
@@ -67,8 +63,6 @@ class TextractResponseFormatTest {
 
     var result = textractConnectorFunction.execute(context);
 
-    // Not a DocumentReturn: JSON must bypass the conversion so the response shape and the
-    // runtime's inline-size guard behave exactly as they did before the dropdown existed.
     assertThat(result).isSameAs(ANALYSIS);
   }
 
@@ -82,7 +76,6 @@ class TextractResponseFormatTest {
     assertThat(result).isInstanceOf(DocumentReturn.class);
     var documentReturn = (DocumentReturn<?>) result;
     assertThat(documentReturn.payload().contentType()).isEqualTo("application/json");
-    // Textract has no natural file name for a generated analysis; HttpService passes null too.
     assertThat(documentReturn.payload().fileName()).isNull();
 
     String payload =
@@ -98,7 +91,6 @@ class TextractResponseFormatTest {
     var documentReturn = (DocumentReturn<?>) textractConnectorFunction.execute(context);
     Object converted = new Object();
 
-    // Google Drive pattern: no envelope, the document reference itself is the result variable.
     assertThat(documentReturn.wrap().apply(converted, DocumentReturnChoice.DOCUMENT))
         .isSameAs(converted);
   }
@@ -116,7 +108,6 @@ class TextractResponseFormatTest {
         .build();
   }
 
-  /** The runtime reads the user's pick from the root {@code documentReturnFormat} job variable. */
   private static String variablesWithChoice(DocumentReturnChoice choice) {
     try {
       ObjectNode variables = (ObjectNode) MAPPER.readTree(TextractTestUtils.SYNC_EXECUTION_JSON);

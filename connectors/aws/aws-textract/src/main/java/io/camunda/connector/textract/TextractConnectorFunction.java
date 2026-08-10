@@ -119,15 +119,6 @@ public class TextractConnectorFunction implements OutboundConnectorFunction {
     return applyReturnFormat(context, result);
   }
 
-  /**
-   * Only the {@code DOCUMENT} choice routes through {@link DocumentReturn}, where the runtime
-   * uploads the serialized analysis to the document store. {@code JSON} — the default, and what old
-   * templates send by sending nothing at all — returns the typed result record unchanged, so the
-   * response shape stays exactly as it was before the dropdown existed.
-   *
-   * <p>Textract has no metadata to keep alongside the payload (unlike S3's bucket and key), so the
-   * document reference itself becomes the result, as in the Google Drive connector.
-   */
   private Object applyReturnFormat(OutboundConnectorContext context, Object result)
       throws JsonProcessingException {
     var choice = context.readDocumentReturnFormat().map(DocumentReturnFormat::choice).orElse(null);

@@ -701,10 +701,6 @@ public class DocumentPropertyHandlerTest extends BaseTest {
     }
   }
 
-  /**
-   * Covers {@link TemplateDocumentProperty#sources()}, used by connectors that cannot consume every
-   * source — e.g. AWS Textract, which rejects the UTF-8 text bytes an inline document produces.
-   */
   @Nested
   class SourceRestriction {
 
@@ -729,10 +725,6 @@ public class DocumentPropertyHandlerTest extends BaseTest {
           .contains("doc_camundaReference", "doc_external_url");
     }
 
-    /**
-     * The load-bearing assertion: a composer branch for an excluded source would reference helper
-     * variables that were never generated.
-     */
     @Test
     void restrictedSources_composerHasNoBranchForExcludedSource() {
       var template = generator.generate(WithRestrictedSources.class).getFirst();

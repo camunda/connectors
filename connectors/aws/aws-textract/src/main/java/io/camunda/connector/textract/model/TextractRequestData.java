@@ -58,8 +58,6 @@ public record TextractRequestData(
     @TemplateDocumentProperty(
             group = "document",
             tooltip = "The document to be analyzed.",
-            // Inline content is turned into UTF-8 text bytes, which Textract never accepts: it only
-            // analyzes PDF, PNG, JPEG and TIFF.
             sources = {DocumentSource.CAMUNDA, DocumentSource.EXTERNAL},
             fileName = FieldVisibility.HIDDEN,
             contentType = FieldVisibility.HIDDEN,

@@ -88,7 +88,6 @@ final class DocumentPropertyHandler {
     }
   }
 
-  /** The sub-fields each source contributes, and what governs their visibility. */
   private static final Map<DocumentSource, List<SubField>> SUB_FIELDS =
       new EnumMap<>(
           Map.of(
@@ -116,14 +115,6 @@ final class DocumentPropertyHandler {
                       FeelMode.optional,
                       TemplateDocumentProperty::fileName))));
 
-  /**
-   * Everything a document property derives from its annotation and declared name, resolved once so
-   * the single, optional-single and list variants share one derivation.
-   *
-   * @param targetPath binding path of the composer, i.e. where the assembled document JSON lands
-   * @param targetParent parent path the helper sub-fields are bound under, empty at the root
-   * @param localPrefix {@code targetPath} with dots replaced, used to build helper ids
-   */
   private record DocumentContext(
       String targetPath,
       String targetParent,
@@ -140,7 +131,6 @@ final class DocumentPropertyHandler {
           helperTargetParent(targetPath),
           toLocalPrefix(targetPath),
           blankToNull(annotation.group()),
-          // qualified: the record's own accessor would shadow the static helper
           DocumentPropertyHandler.parentCondition(annotation),
           resolveSources(annotation, declaredName),
           resolveComposerId(annotation, targetPath));
@@ -274,11 +264,6 @@ final class DocumentPropertyHandler {
         listDocComposerExpression(modeId, single, multipleExpressionId, context.sources()));
   }
 
-  /**
-   * The mode dropdown that fronts a document property: {@code Attach document?} for an optional
-   * single document, {@code Number of documents} for a list. Both differ only in label, choices and
-   * default.
-   */
   private static DiscriminatorPropertyBuilder buildModeDropdown(
       DocumentContext context,
       TemplateDocumentProperty annotation,
@@ -301,11 +286,6 @@ final class DocumentPropertyHandler {
     return modeDropdown;
   }
 
-  /**
-   * Every variant emits the same shape: the discriminator first, then its dependant sub-fields,
-   * then the composer that assembles them — which must come last so the Modeler renders it after
-   * the fields it reads.
-   */
   private static List<PropertyBuilder> assemble(
       PropertyBuilder discriminator,
       List<PropertyBuilder> dependants,
@@ -420,11 +400,6 @@ final class DocumentPropertyHandler {
     return composer;
   }
 
-  /**
-   * Resolves {@link TemplateDocumentProperty#sources()}. The returned {@link EnumSet} iterates in
-   * {@link DocumentSource} declaration order, so the generated dropdown, sub-fields and composer
-   * branches stay in a stable sequence no matter how the annotation lists them.
-   */
   private static Set<DocumentSource> resolveSources(
       TemplateDocumentProperty annotation, String declaredName) {
     var declared = EnumSet.noneOf(DocumentSource.class);
@@ -471,11 +446,6 @@ final class DocumentPropertyHandler {
                 sourceBranches(single, sources, true, qualify));
   }
 
-  /**
-   * Builds the {@code if source = "..." then ... else ...} chain, emitting a branch only for the
-   * enabled {@code sources} so the expression never references helper variables that were not
-   * generated.
-   */
   private static String sourceBranches(
       SingleDocFields fields,
       Set<DocumentSource> sources,
