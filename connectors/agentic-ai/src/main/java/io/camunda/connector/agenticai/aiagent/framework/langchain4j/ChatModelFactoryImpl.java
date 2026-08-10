@@ -206,9 +206,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       Optional.ofNullable(modelParameters.temperature())
           .map(Float::doubleValue)
           .ifPresent(builder::temperature);
-      Optional.ofNullable(modelParameters.topP())
-          .map(Float::doubleValue)
-          .ifPresent(builder::topP);
+      Optional.ofNullable(modelParameters.topP()).map(Float::doubleValue).ifPresent(builder::topP);
       Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
     }
 
