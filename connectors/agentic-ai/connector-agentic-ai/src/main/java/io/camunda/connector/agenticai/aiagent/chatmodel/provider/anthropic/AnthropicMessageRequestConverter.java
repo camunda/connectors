@@ -230,16 +230,16 @@ public class AnthropicMessageRequestConverter {
               apiBackend.anthropic().headers(),
               apiBackend.anthropic().queryParameters(),
               apiBackend.anthropic().bodyProperties());
-      case AnthropicCustomBackend custom ->
-          new RequestCustomizations(
-              custom.custom().headers(),
-              custom.custom().queryParameters(),
-              custom.custom().bodyProperties());
       case AnthropicAwsBedrockMantleBackend awsBedrockMantleBackend ->
           new RequestCustomizations(
               awsBedrockMantleBackend.awsBedrockMantle().headers(),
               awsBedrockMantleBackend.awsBedrockMantle().queryParameters(),
               awsBedrockMantleBackend.awsBedrockMantle().bodyProperties());
+      case AnthropicCustomBackend custom ->
+          new RequestCustomizations(
+              custom.custom().headers(),
+              custom.custom().queryParameters(),
+              custom.custom().bodyProperties());
     };
   }
 
