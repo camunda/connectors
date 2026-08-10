@@ -17,9 +17,11 @@
 package io.camunda.connector.runtime.core.inbound.correlation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
@@ -94,6 +96,22 @@ public class ActivationConditionEvaluatorTest {
         .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, elementId, "default"));
     when(element.activationCondition()).thenReturn(activationCondition);
     return element;
+  }
+
+  @Test
+  @DisplayName("Invalid activation condition FEEL expression names the failing property")
+  void invalidActivationCondition_namesTheExpression() {
+    // Regression test: an invalid FEEL expression previously surfaced as a bare
+    // "Failed to evaluate expression '...'" incident with no indication of which property caused
+    // it.
+    var element = createStartEventElement("elem1", "=");
+
+    var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () -> evaluator.isActivationConditionMet(element, Map.of()));
+
+    assertThat(exception).hasMessageContaining("Activation condition could not be evaluated");
   }
 
   @Nested
