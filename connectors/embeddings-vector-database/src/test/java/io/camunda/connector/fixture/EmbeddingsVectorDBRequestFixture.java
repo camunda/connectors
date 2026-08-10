@@ -59,6 +59,46 @@ public class EmbeddingsVectorDBRequestFixture {
     return request;
   }
 
+  /**
+   * What element templates from version 4 on produce: no source discriminator, documents supplied
+   * through the unified document source dropdown (Camunda / inline / URL all deserialize to {@code
+   * Document}).
+   */
+  public static EmbeddingsVectorDBRequest createEmbedOperationWithUnifiedDocumentInput() {
+    final var operation =
+        new EmbedDocumentOperation(
+            null,
+            null,
+            List.of(CamundaDocumentFixture.inMemoryTxtDocument()),
+            DocumentSplitterFixture.noopDocumentSplitter());
+    return new EmbeddingsVectorDBRequest(
+        operation,
+        EmbeddingModelProviderFixture.createDefaultBedrockEmbeddingModel(),
+        EmbeddingsVectorStoreFixture.createAmazonManagedOpenVectorStore());
+  }
+
+  /** Neither source populated — the connector has nothing to embed. */
+  public static EmbeddingsVectorDBRequest createEmbedOperationWithoutInput() {
+    final var operation =
+        new EmbedDocumentOperation(
+            null, null, List.of(), DocumentSplitterFixture.noopDocumentSplitter());
+    return new EmbeddingsVectorDBRequest(
+        operation,
+        EmbeddingModelProviderFixture.createDefaultBedrockEmbeddingModel(),
+        EmbeddingsVectorStoreFixture.createAmazonManagedOpenVectorStore());
+  }
+
+  /** Plain text without the legacy discriminator, as the hidden runtime fallback receives it. */
+  public static EmbeddingsVectorDBRequest createEmbedOperationWithPlainTextOnly() {
+    final var operation =
+        new EmbedDocumentOperation(
+            null, CONVERSATION, List.of(), DocumentSplitterFixture.noopDocumentSplitter());
+    return new EmbeddingsVectorDBRequest(
+        operation,
+        EmbeddingModelProviderFixture.createDefaultBedrockEmbeddingModel(),
+        EmbeddingsVectorStoreFixture.createAmazonManagedOpenVectorStore());
+  }
+
   public static EmbeddingsVectorDBRequest createEmbedOperationWithPlainText() {
     final var operation =
         new EmbedDocumentOperation(

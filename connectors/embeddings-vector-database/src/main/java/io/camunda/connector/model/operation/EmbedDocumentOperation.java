@@ -9,16 +9,23 @@ package io.camunda.connector.model.operation;
 import static io.camunda.connector.model.operation.EmbedDocumentOperation.EMBED_DOCUMENT_OPERATION;
 
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.model.embedding.splitter.DocumentSplitter;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
+/**
+ * @param documentSource legacy source discriminator, replaced by the unified document source
+ *     dropdown on {@code newDocuments} — inline content covers what {@code PlainText} used to. Kept
+ *     as a hidden runtime-only input so element templates up to version 3 keep working: when
+ *     present it still decides which path {@code DefaultTextSegmentExtractor} takes. Templates from
+ *     version 4 on never set it, and the path follows whichever input is populated.
+ * @param documentSourceFromProcessVariable legacy plain-text input, kept for the same reason as
+ *     {@code documentSource}.
+ */
 @TemplateSubType(
     label = "Embed document",
     id = EMBED_DOCUMENT_OPERATION,
@@ -31,38 +38,12 @@ import java.util.List;
       "semantic index"
     })
 public record EmbedDocumentOperation(
-    @NotNull
-        @TemplateProperty(
-            group = "document",
-            id = "documentSource",
-            label = "Document source",
-            feel = FeelMode.required,
-            type = TemplateProperty.PropertyType.Dropdown,
-            description = "Whether you want to embed a Camunda document file or plain text",
-            defaultValue = "CamundaDocument")
-        EmbedDocumentSource documentSource,
-    @TemplateProperty(
-            group = "document",
-            id = "documentSourceFromProcessVariable",
-            label = "Plain text to embed",
-            feel = FeelMode.optional,
-            constraints = @PropertyConstraints(notEmpty = true),
-            condition =
-                @PropertyCondition(
-                    property = "vectorDatabaseConnectorOperation.documentSource",
-                    equals = "PlainText"))
-        String documentSourceFromProcessVariable,
-    @TemplateProperty(
-            label = "Documents",
+    @TemplateProperty(ignore = true) EmbedDocumentSource documentSource,
+    @TemplateProperty(ignore = true) String documentSourceFromProcessVariable,
+    @TemplateDocumentProperty(
             group = "document",
             id = "newDocuments",
-            feel = FeelMode.required,
-            binding = @TemplateProperty.PropertyBinding(name = "newDocuments"),
-            constraints = @PropertyConstraints(notEmpty = true),
-            condition =
-                @PropertyCondition(
-                    property = "vectorDatabaseConnectorOperation.documentSource",
-                    equals = "CamundaDocument"))
+            binding = @TemplateProperty.PropertyBinding(name = "newDocuments"))
         List<Document> newDocuments,
     @NotNull @Valid DocumentSplitter documentSplitter)
     implements VectorDatabaseConnectorOperation {

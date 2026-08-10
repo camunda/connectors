@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.doc.parsing;
 
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.fixture.EmbeddingsVectorDBRequestFixture;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -40,5 +41,37 @@ class DefaultTextSegmentExtractorTest {
         extractor.fromRequest(EmbeddingsVectorDBRequestFixture.createEmbedOperationWithPlainText());
 
     Assertions.assertThat(segments).size().isEqualTo(1);
+  }
+
+  @Test
+  void segmentsFromRequestWithUnifiedDocumentInput() {
+    final var extractor = new DefaultTextSegmentExtractor();
+
+    final var segments =
+        extractor.fromRequest(
+            EmbeddingsVectorDBRequestFixture.createEmbedOperationWithUnifiedDocumentInput());
+
+    Assertions.assertThat(segments).size().isEqualTo(1);
+  }
+
+  @Test
+  void segmentsFromRequestWithPlainTextOnlyFallback() {
+    final var extractor = new DefaultTextSegmentExtractor();
+
+    final var segments =
+        extractor.fromRequest(
+            EmbeddingsVectorDBRequestFixture.createEmbedOperationWithPlainTextOnly());
+
+    Assertions.assertThat(segments).size().isEqualTo(1);
+  }
+
+  @Test
+  void throwsWhenNeitherDocumentsNorPlainTextProvided() {
+    final var extractor = new DefaultTextSegmentExtractor();
+    final var request = EmbeddingsVectorDBRequestFixture.createEmbedOperationWithoutInput();
+
+    Assertions.assertThatThrownBy(() -> extractor.fromRequest(request))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("Nothing to embed");
   }
 }

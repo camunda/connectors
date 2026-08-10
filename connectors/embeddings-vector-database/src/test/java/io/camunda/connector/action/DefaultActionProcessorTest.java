@@ -12,12 +12,15 @@ import io.camunda.connector.action.embed.DefaultEmbeddingActionProcessor;
 import io.camunda.connector.action.embed.EmbeddingActionProcessor;
 import io.camunda.connector.action.retrieve.DefaultRetrievingActionProcessor;
 import io.camunda.connector.action.retrieve.RetrievingActionProcessor;
-import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReturnChoice;
+import io.camunda.connector.api.document.DocumentReturnFormat;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.fixture.EmbeddingsVectorDBRequestFixture;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedConstruction;
@@ -35,14 +38,14 @@ class DefaultActionProcessorTest {
       Mockito.mock(EmbeddingActionProcessor.class);
   private final RetrievingActionProcessor retrievingProcessor =
       Mockito.mock(RetrievingActionProcessor.class);
-  private final DocumentFactory documentFactory = Mockito.mock(DocumentFactory.class);
+  private final OutboundConnectorContext context = Mockito.mock(OutboundConnectorContext.class);
 
   @Test
   void handleEmbedRequest() {
     final var actionProcessor = new DefaultActionProcessor(embeddingProcessor, retrievingProcessor);
     final var embedRequest = EmbeddingsVectorDBRequestFixture.createDefaultEmbedOperation();
 
-    actionProcessor.handleFlow(embedRequest, documentFactory);
+    actionProcessor.handleFlow(embedRequest, context);
 
     Mockito.verify(embeddingProcessor).embed(embedRequest);
   }
@@ -52,9 +55,24 @@ class DefaultActionProcessorTest {
     final var actionProcessor = new DefaultActionProcessor(embeddingProcessor, retrievingProcessor);
     final var retrieveRequest = EmbeddingsVectorDBRequestFixture.createDefaultRetrieve();
 
-    actionProcessor.handleFlow(retrieveRequest, documentFactory);
+    actionProcessor.handleFlow(retrieveRequest, context);
 
-    Mockito.verify(retrievingProcessor).retrieve(retrieveRequest, documentFactory);
+    // no dropdown value (element templates up to version 3) keeps the pre-dropdown behaviour
+    Mockito.verify(retrievingProcessor)
+        .retrieve(retrieveRequest, context, DocumentReturnChoice.DOCUMENT);
+  }
+
+  @Test
+  void handleRetrieveRequestPassesSelectedReturnChoice() {
+    final var actionProcessor = new DefaultActionProcessor(embeddingProcessor, retrievingProcessor);
+    final var retrieveRequest = EmbeddingsVectorDBRequestFixture.createDefaultRetrieve();
+    Mockito.when(context.readDocumentReturnFormat())
+        .thenReturn(Optional.of(new DocumentReturnFormat(DocumentReturnChoice.TEXT, null)));
+
+    actionProcessor.handleFlow(retrieveRequest, context);
+
+    Mockito.verify(retrievingProcessor)
+        .retrieve(retrieveRequest, context, DocumentReturnChoice.TEXT);
   }
 
   @Test

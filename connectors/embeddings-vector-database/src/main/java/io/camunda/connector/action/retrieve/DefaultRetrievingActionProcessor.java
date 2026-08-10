@@ -13,6 +13,8 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.embeddingmodel.DefaultEmbeddingModelFactory;
 import io.camunda.connector.embeddingstore.ClosableEmbeddingStore;
 import io.camunda.connector.embeddingstore.DefaultEmbeddingStoreFactory;
@@ -44,7 +46,9 @@ public class DefaultRetrievingActionProcessor implements RetrievingActionProcess
 
   @Override
   public RetrievingActionProcessorResponse retrieve(
-      final EmbeddingsVectorDBRequest request, final DocumentFactory documentFactory) {
+      final EmbeddingsVectorDBRequest request,
+      final DocumentFactory documentFactory,
+      final DocumentReturnChoice returnChoice) {
     final var retrieveRequest =
         (RetrieveDocumentOperation) request.vectorDatabaseConnectorOperation();
     EmbeddingModel model =
@@ -67,25 +71,29 @@ public class DefaultRetrievingActionProcessor implements RetrievingActionProcess
       // original document was split into chunks,
       // thus we return most applicable chunks and,
       // store them into document storage;
-      // then they can be used by other connectors
+      // then they can be used by other connectors.
+      // Unless the user asked for text only — then the chunk text is all they get,
+      // and the document store is left untouched.
+      final var storeChunks = returnChoice != DocumentReturnChoice.TEXT;
       final var chunks = new ArrayList<RetrievedChunk>();
       for (EmbeddingMatch<TextSegment> matched : relevant) {
-        final var persistedDoc =
-            documentFactory.create(
-                DocumentCreationRequest.from(
-                        matched.embedded().text().getBytes(StandardCharsets.UTF_8))
-                    .contentType(
-                        Mimetype.MIMETYPE_TEXT_PLAIN) // TODO: for v1 we support only plain text
-                    .build());
-        chunks.add(
-            new RetrievedChunk(
-                matched.embeddingId(),
-                persistedDoc.reference(),
-                matched.score(),
-                matched.embedded().text()));
+        final var text = matched.embedded().text();
+        final var reference = storeChunks ? storeChunk(documentFactory, text) : null;
+        chunks.add(new RetrievedChunk(matched.embeddingId(), reference, matched.score(), text));
       }
 
       return new RetrievingActionProcessorResponse(chunks);
     }
+  }
+
+  private static DocumentReference storeChunk(
+      final DocumentFactory documentFactory, final String text) {
+    return documentFactory
+        .create(
+            DocumentCreationRequest.from(text.getBytes(StandardCharsets.UTF_8))
+                .contentType(
+                    Mimetype.MIMETYPE_TEXT_PLAIN) // TODO: for v1 we support only plain text
+                .build())
+        .reference();
   }
 }

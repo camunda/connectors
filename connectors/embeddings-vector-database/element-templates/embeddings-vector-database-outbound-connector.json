@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.EmbeddingsVectorDB.v1",
   "description" : "Embed and download documents with vector databases",
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/embeddings-vector-db/",
-  "version" : 3,
+  "version" : 4,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -124,6 +124,29 @@
       "type" : "simple"
     },
     "type" : "Number"
+  }, {
+    "id" : "documentReturnFormat",
+    "label" : "Response format",
+    "description" : "Whether each retrieved chunk is stored as a document or returned as text only",
+    "value" : "DOCUMENT",
+    "group" : "query",
+    "binding" : {
+      "name" : "documentReturnFormat.choice",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorDatabaseConnectorOperation.operationType",
+      "equals" : "retrieveDocumentOperation",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Document reference",
+      "value" : "DOCUMENT"
+    }, {
+      "name" : "as text",
+      "value" : "TEXT"
+    } ]
   }, {
     "id" : "embeddingModelProvider.modelProvider",
     "label" : "Model provider",
@@ -1668,17 +1691,12 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorDatabaseConnectorOperation.documentSource",
-    "label" : "Document source",
-    "description" : "Whether you want to embed a Camunda document file or plain text",
-    "optional" : false,
-    "value" : "CamundaDocument",
-    "constraints" : {
-      "notEmpty" : true
-    },
+    "id" : "vectorDatabaseConnectorOperation.newDocuments_documentMode",
+    "label" : "Number of documents",
+    "value" : "single",
     "group" : "document",
     "binding" : {
-      "name" : "vectorDatabaseConnectorOperation.documentSource",
+      "name" : "vectorDatabaseConnectorOperation.newDocuments_documentMode",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1688,29 +1706,218 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Camunda document",
-      "value" : "CamundaDocument"
+      "name" : "Single document",
+      "value" : "single"
     }, {
-      "name" : "Plain text",
-      "value" : "PlainText"
+      "name" : "Multiple documents",
+      "value" : "multiple"
     } ]
   }, {
-    "id" : "vectorDatabaseConnectorOperation.documentSourceFromProcessVariable",
-    "label" : "Plain text to embed",
-    "optional" : false,
+    "id" : "vectorDatabaseConnectorOperation.newDocuments_single_documentSource",
+    "label" : "Document source",
+    "value" : "camunda",
+    "group" : "document",
+    "binding" : {
+      "name" : "vectorDatabaseConnectorOperation.newDocuments_single_documentSource",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.operationType",
+        "equals" : "embedDocumentOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Camunda Document",
+      "value" : "camunda"
+    }, {
+      "name" : "Inline Content",
+      "value" : "inline"
+    }, {
+      "name" : "From URL",
+      "value" : "external"
+    } ]
+  }, {
+    "id" : "vectorDatabaseConnectorOperation.newDocuments_single_camundaReference",
+    "label" : "Camunda document",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "document",
+    "binding" : {
+      "name" : "vectorDatabaseConnectorOperation.newDocuments_single_camundaReference",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_single_documentSource",
+        "equals" : "camunda",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.operationType",
+        "equals" : "embedDocumentOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorDatabaseConnectorOperation.newDocuments_single_inline_content",
+    "label" : "Content",
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "document",
     "binding" : {
-      "name" : "vectorDatabaseConnectorOperation.documentSourceFromProcessVariable",
+      "name" : "vectorDatabaseConnectorOperation.newDocuments_single_inline_content",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorDatabaseConnectorOperation.documentSource",
-        "equals" : "PlainText",
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_single_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.operationType",
+        "equals" : "embedDocumentOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorDatabaseConnectorOperation.newDocuments_single_inline_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "vectorDatabaseConnectorOperation.newDocuments_single_inline_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_single_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.operationType",
+        "equals" : "embedDocumentOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorDatabaseConnectorOperation.newDocuments_single_inline_contentType",
+    "label" : "Content type",
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "vectorDatabaseConnectorOperation.newDocuments_single_inline_contentType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_single_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.operationType",
+        "equals" : "embedDocumentOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorDatabaseConnectorOperation.newDocuments_single_external_url",
+    "label" : "URL",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "vectorDatabaseConnectorOperation.newDocuments_single_external_url",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_single_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.operationType",
+        "equals" : "embedDocumentOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorDatabaseConnectorOperation.newDocuments_single_external_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "vectorDatabaseConnectorOperation.newDocuments_single_external_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_single_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.operationType",
+        "equals" : "embedDocumentOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorDatabaseConnectorOperation.newDocuments_multiple_expression",
+    "label" : "Documents",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "document",
+    "binding" : {
+      "name" : "vectorDatabaseConnectorOperation.newDocuments_multiple_expression",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorDatabaseConnectorOperation.newDocuments_documentMode",
+        "equals" : "multiple",
         "type" : "simple"
       }, {
         "property" : "vectorDatabaseConnectorOperation.operationType",
@@ -1721,29 +1928,18 @@
     "type" : "String"
   }, {
     "id" : "vectorDatabaseConnectorOperation.newDocuments",
-    "label" : "Documents",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
+    "value" : "=if vectorDatabaseConnectorOperation.newDocuments_documentMode = \"multiple\" then vectorDatabaseConnectorOperation.newDocuments_multiple_expression else if vectorDatabaseConnectorOperation.newDocuments_documentMode = \"single\" then (if vectorDatabaseConnectorOperation.newDocuments_single_documentSource = \"camunda\" then [vectorDatabaseConnectorOperation.newDocuments_single_camundaReference] else if vectorDatabaseConnectorOperation.newDocuments_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: vectorDatabaseConnectorOperation.newDocuments_single_inline_content, name: vectorDatabaseConnectorOperation.newDocuments_single_inline_fileName, contentType: vectorDatabaseConnectorOperation.newDocuments_single_inline_contentType }] else if vectorDatabaseConnectorOperation.newDocuments_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: vectorDatabaseConnectorOperation.newDocuments_single_external_url, name: vectorDatabaseConnectorOperation.newDocuments_single_external_fileName }] else null) else null",
     "group" : "document",
     "binding" : {
       "name" : "vectorDatabaseConnectorOperation.newDocuments",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "vectorDatabaseConnectorOperation.documentSource",
-        "equals" : "CamundaDocument",
-        "type" : "simple"
-      }, {
-        "property" : "vectorDatabaseConnectorOperation.operationType",
-        "equals" : "embedDocumentOperation",
-        "type" : "simple"
-      } ]
+      "property" : "vectorDatabaseConnectorOperation.operationType",
+      "equals" : "embedDocumentOperation",
+      "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "vectorDatabaseConnectorOperation.documentSplitter.documentSplitter",
     "label" : "Document splitting strategy",
@@ -1818,7 +2014,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "3",
+    "value" : "4",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

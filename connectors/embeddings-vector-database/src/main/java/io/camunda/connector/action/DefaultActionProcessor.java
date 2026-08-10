@@ -10,7 +10,9 @@ import io.camunda.connector.action.embed.DefaultEmbeddingActionProcessor;
 import io.camunda.connector.action.embed.EmbeddingActionProcessor;
 import io.camunda.connector.action.retrieve.DefaultRetrievingActionProcessor;
 import io.camunda.connector.action.retrieve.RetrievingActionProcessor;
-import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReturnChoice;
+import io.camunda.connector.api.document.DocumentReturnFormat;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.model.EmbeddingsVectorDBRequest;
@@ -42,12 +44,23 @@ public class DefaultActionProcessor {
     this.retrievingActionProcessor = retrievingActionProcessor;
   }
 
-  public Object handleFlow(EmbeddingsVectorDBRequest request, DocumentFactory documentFactory) {
+  public Object handleFlow(EmbeddingsVectorDBRequest request, OutboundConnectorContext context) {
     return switch (request.vectorDatabaseConnectorOperation()) {
       case EmbedDocumentOperation ignored -> embeddingActionProcessor.embed(request);
       case RetrieveDocumentOperation ignored ->
-          retrievingActionProcessor.retrieve(request, documentFactory);
+          retrievingActionProcessor.retrieve(request, context, resolveReturnChoice(context));
     };
+  }
+
+  /**
+   * Element templates up to version 3 have no response format dropdown, so an absent choice means
+   * the pre-dropdown behaviour: store every chunk as a document.
+   */
+  private static DocumentReturnChoice resolveReturnChoice(OutboundConnectorContext context) {
+    return context
+        .readDocumentReturnFormat()
+        .map(DocumentReturnFormat::choice)
+        .orElse(DocumentReturnChoice.DOCUMENT);
   }
 
   private static ProxyConfiguration resolveProxyConfiguration() {

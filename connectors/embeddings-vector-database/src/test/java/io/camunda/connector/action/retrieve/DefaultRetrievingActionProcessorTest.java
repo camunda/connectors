@@ -13,11 +13,13 @@ import dev.langchain4j.model.output.Response;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.embeddingmodel.DefaultEmbeddingModelFactory;
 import io.camunda.connector.embeddingstore.ClosableEmbeddingStore;
 import io.camunda.connector.embeddingstore.DefaultEmbeddingStoreFactory;
 import io.camunda.connector.fixture.CamundaDocumentFixture;
 import io.camunda.connector.fixture.EmbeddingsVectorDBRequestFixture;
+import io.camunda.connector.model.EmbeddingsVectorDBRequest;
 import io.camunda.connector.model.operation.RetrieveDocumentOperation;
 import java.util.List;
 import org.assertj.core.api.Assertions;
@@ -66,12 +68,62 @@ class DefaultRetrievingActionProcessorTest {
     final var defaultRetrievingActionProcessor =
         new DefaultRetrievingActionProcessor(embeddingModelProvider, embeddingStoreProvider);
 
-    final var response = defaultRetrievingActionProcessor.retrieve(request, documentFactory);
+    final var response =
+        defaultRetrievingActionProcessor.retrieve(
+            request, documentFactory, DocumentReturnChoice.DOCUMENT);
 
     Mockito.verify(documentFactory, Mockito.times(1)).create(ArgumentMatchers.any());
     Assertions.assertThat(response.chunks()).hasSize(1);
     Assertions.assertThat(response.chunks().getFirst().score()).isEqualTo(matchedChunkScore);
     Assertions.assertThat(response.chunks().getFirst().chunkId())
         .isEqualTo(matchedChunkEmbeddingId);
+    Assertions.assertThat(response.chunks().getFirst().documentReference()).isNotNull();
+    Assertions.assertThat(response.chunks().getFirst().content()).isEqualTo(matchedChunkContent);
+  }
+
+  @Test
+  void retrieve_asText_returnsChunkTextWithoutStoringDocuments() {
+    final var request = EmbeddingsVectorDBRequestFixture.createDefaultRetrieve();
+    final var matchedChunkContent = "Returned content";
+    final var documentFactory = Mockito.mock(DocumentFactory.class);
+    final var processor = processorReturning(request, matchedChunkContent);
+
+    final var response = processor.retrieve(request, documentFactory, DocumentReturnChoice.TEXT);
+
+    Mockito.verifyNoInteractions(documentFactory);
+    Assertions.assertThat(response.chunks()).hasSize(1);
+    Assertions.assertThat(response.chunks().getFirst().documentReference()).isNull();
+    Assertions.assertThat(response.chunks().getFirst().content()).isEqualTo(matchedChunkContent);
+  }
+
+  private static DefaultRetrievingActionProcessor processorReturning(
+      final EmbeddingsVectorDBRequest request, final String chunkContent) {
+    final var embeddingModelProvider = Mockito.mock(DefaultEmbeddingModelFactory.class);
+    final var model = Mockito.mock(EmbeddingModel.class);
+    Mockito.when(embeddingModelProvider.createEmbeddingModel(request.embeddingModelProvider()))
+        .thenReturn(model);
+    Mockito.when(
+            model.embed(
+                ((RetrieveDocumentOperation) request.vectorDatabaseConnectorOperation()).query()))
+        .thenReturn(Response.from(Embedding.from(List.of(0.1f, 0.2f, 0.3f))));
+
+    final var embeddingStoreProvider = Mockito.mock(DefaultEmbeddingStoreFactory.class);
+    final var store = Mockito.mock(ClosableEmbeddingStore.class);
+    Mockito.when(
+            embeddingStoreProvider.initializeVectorStore(
+                request.vectorStore(), model, request.vectorDatabaseConnectorOperation()))
+        .thenReturn(store);
+    final var embeddingSearchResult = Mockito.mock(EmbeddingSearchResult.class);
+    Mockito.when(store.search(ArgumentMatchers.any())).thenReturn(embeddingSearchResult);
+    Mockito.when(embeddingSearchResult.matches())
+        .thenReturn(
+            List.of(
+                new EmbeddingMatch<>(
+                    0.88d,
+                    "emb-id-01",
+                    Embedding.from(List.of(0.2f, 0.3f, 0.4f)),
+                    TextSegment.from(chunkContent))));
+
+    return new DefaultRetrievingActionProcessor(embeddingModelProvider, embeddingStoreProvider);
   }
 }
