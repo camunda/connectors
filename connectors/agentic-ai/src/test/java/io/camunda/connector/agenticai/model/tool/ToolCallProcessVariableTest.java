@@ -48,4 +48,24 @@ class ToolCallProcessVariableTest {
       assertThat(toolCall).usingRecursiveComparison().isEqualTo(TOOL_CALL);
     }
   }
+
+  /**
+   * {@code ToolCall#metadata()} carries opaque provider bookkeeping (e.g. Gemini 3 thought
+   * signatures) that must never leak into the {@code fromAi(toolCall.x)} surface tool implementers
+   * write FEEL expressions against.
+   */
+  @Test
+  void from_ignoresToolCallMetadata() {
+    final var toolCall =
+        new ToolCall(
+            "123456",
+            "toolName",
+            Map.of("foo", "bar"),
+            Map.of("googleVertexAi", Map.of("thoughtSignature", "c2ln")));
+
+    final var processVariable = ToolCallProcessVariable.from(toolCall);
+
+    assertThat(processVariable)
+        .isEqualTo(new ToolCallProcessVariable("123456", "toolName", Map.of("foo", "bar")));
+  }
 }

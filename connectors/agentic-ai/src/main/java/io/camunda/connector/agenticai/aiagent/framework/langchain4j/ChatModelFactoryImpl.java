@@ -7,14 +7,20 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import com.azure.identity.ClientSecretCredentialBuilder;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.genai.Client;
+import com.google.genai.errors.GenAiIOException;
+import com.google.genai.types.ClientOptions;
+import com.google.genai.types.HttpOptions;
+import com.google.genai.types.HttpRetryOptions;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
+import dev.langchain4j.model.google.genai.GoogleGenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
-import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AwsBedrockRuntimeAuthenticationCustomizer;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
@@ -23,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
@@ -48,6 +55,9 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(ChatModelFactoryImpl.class);
 
   private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(15);
+
+  private static final String GOOGLE_CLOUD_PLATFORM_SCOPE =
+      "https://www.googleapis.com/auth/cloud-platform";
 
   private final AgenticAiConnectorsConfigurationProperties.ChatModelProperties chatModelProperties;
   private final ChatModelHttpProxySupport proxySupport;
@@ -204,15 +214,13 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
   protected CloseableChatModel createGoogleVertexAiChatModel(
       GoogleVertexAiProviderConfiguration vertexAi) {
     final var connection = vertexAi.googleVertexAi();
-    final var builder =
-        VertexAiGeminiChatModel.builder()
-            .project(connection.projectId())
-            .location(connection.region())
-            .modelName(connection.model().model());
+    final var client = createGoogleGenAiClient(connection);
 
-    if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
-      builder.credentials(createGoogleServiceAccountCredentials(sac));
-    }
+    final var builder =
+        GoogleGenAiChatModel.builder()
+            .client(client)
+            .modelName(connection.model().model())
+            .maxRetries(0);
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
@@ -222,15 +230,77 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
     }
 
-    final var model = builder.build();
-    return new CloseableChatModelDelegate(model, model);
+    // GoogleGenAiChatModel is not AutoCloseable and never exposes its client, so we build the
+    // client ourselves and close that instead - otherwise every job execution leaks the OkHttp
+    // dispatcher and connection pool.
+    return new CloseableChatModelDelegate(builder.build(), client);
   }
 
-  private ServiceAccountCredentials createGoogleServiceAccountCredentials(
+  private Client createGoogleGenAiClient(GoogleVertexAiConnection connection) {
+    final var apiTimeout = deriveTimeoutSetting(connection.timeouts());
+
+    final var httpOptions =
+        HttpOptions.builder()
+            .retryOptions(HttpRetryOptions.builder().attempts(1).build())
+            .timeout(toGoogleGenAiTimeoutMillis(apiTimeout));
+
+    Optional.ofNullable(connection.endpoint())
+        .filter(StringUtils::isNotBlank)
+        .ifPresent(httpOptions::baseUrl);
+
+    final var clientBuilder =
+        Client.builder()
+            .vertexAI(true)
+            .project(connection.projectId())
+            .location(connection.region())
+            .httpOptions(httpOptions.build());
+
+    proxySupport
+        .createGoogleGenAiProxyOptions(connection.endpoint(), connection.region())
+        .ifPresent(
+            proxyOptions ->
+                clientBuilder.clientOptions(
+                    ClientOptions.builder().proxyOptions(proxyOptions).build()));
+
+    if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
+      clientBuilder.credentials(createGoogleServiceAccountCredentials(sac));
+    }
+
+    try {
+      // application default credentials are resolved eagerly here
+      return clientBuilder.build();
+    } catch (GenAiIOException | IllegalArgumentException e) {
+      LOGGER.error("Failed to create Google Vertex AI client", e);
+      throw new ConnectorInputException("Failed to create Google Vertex AI client", e);
+    }
+  }
+
+  /**
+   * {@code HttpOptions.timeout} only accepts an {@code Integer} millisecond value, while the
+   * connector accepts any positive {@link Duration}. Values above {@code Integer.MAX_VALUE} ms
+   * (~24.8 days) would silently overflow on a raw cast, so reject them with a clear input error
+   * instead.
+   */
+  private int toGoogleGenAiTimeoutMillis(Duration apiTimeout) {
+    final var timeoutMillis = apiTimeout.toMillis();
+    if (timeoutMillis > Integer.MAX_VALUE) {
+      throw new ConnectorInputException(
+          "Configured timeout of %s exceeds the maximum supported by the Google GenAI SDK (%dms)"
+              .formatted(apiTimeout, Integer.MAX_VALUE));
+    }
+
+    return (int) timeoutMillis;
+  }
+
+  private GoogleCredentials createGoogleServiceAccountCredentials(
       ServiceAccountCredentialsAuthentication sac) {
     try {
+      // Credentials read from a key file carry no scopes. google-genai only scopes the application
+      // default credentials it resolves itself and passes these through verbatim, so without this
+      // the token request fails with invalid_scope.
       return ServiceAccountCredentials.fromStream(
-          new ByteArrayInputStream(sac.jsonKey().getBytes(StandardCharsets.UTF_8)));
+              new ByteArrayInputStream(sac.jsonKey().getBytes(StandardCharsets.UTF_8)))
+          .createScoped(GOOGLE_CLOUD_PLATFORM_SCOPE);
     } catch (IOException e) {
       LOGGER.error("Failed to parse service account credentials", e);
       throw new ConnectorInputException(

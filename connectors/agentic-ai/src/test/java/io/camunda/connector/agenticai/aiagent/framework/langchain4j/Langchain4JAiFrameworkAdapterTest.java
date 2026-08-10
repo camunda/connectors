@@ -39,6 +39,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorRes
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
@@ -73,6 +75,14 @@ class Langchain4JAiFrameworkAdapterTest {
           dev.langchain4j.data.message.UserMessage.userMessage(USER_PROMPT));
 
   private static final AssistantMessage ASSISTANT_MESSAGE = assistantMessage(RESPONSE_TEXT);
+
+  private static final ProviderConfiguration PROVIDER_CONFIGURATION =
+      new AnthropicProviderConfiguration(
+          new AnthropicProviderConfiguration.AnthropicConnection(
+              null,
+              new AnthropicProviderConfiguration.AnthropicAuthentication("apiKey"),
+              null,
+              new AnthropicProviderConfiguration.AnthropicModel("model", null)));
 
   private static final List<ToolDefinition> TOOL_DEFINITIONS =
       List.of(
@@ -114,7 +124,8 @@ class Langchain4JAiFrameworkAdapterTest {
   void setUp() {
     runtimeMemory = new DefaultRuntimeMemory();
     runtimeMemory.addMessages(INPUT_MESSAGES);
-    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(runtimeMemory.filteredMessages(), PROVIDER_CONFIGURATION))
+        .thenReturn(L4J_MESSAGES);
 
     when(toolSpecificationConverter.asToolSpecifications(TOOL_DEFINITIONS))
         .thenReturn(L4J_TOOL_SPECIFICATIONS);
@@ -122,7 +133,8 @@ class Langchain4JAiFrameworkAdapterTest {
     when(chatModelFactory.createChatModel(any())).thenReturn(chatModel);
     when(chatModel.chat(chatRequestCaptor.capture())).thenReturn(chatResponse);
     when(chatResponse.tokenUsage()).thenReturn(new TokenUsage(5, 6));
-    when(chatMessageConverter.toAssistantMessage(chatResponse)).thenReturn(ASSISTANT_MESSAGE);
+    when(chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER_CONFIGURATION))
+        .thenReturn(ASSISTANT_MESSAGE);
 
     adapter =
         new Langchain4JAiFrameworkAdapter(
@@ -144,7 +156,8 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void wrapsUnderlyingExceptionsInConnectorException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(runtimeMemory.filteredMessages(), PROVIDER_CONFIGURATION))
+        .thenReturn(L4J_MESSAGES);
 
     final var cause = new ModelNotFoundException("Model 'dummy' was not found");
     doThrow(cause).when(chatModel).chat(any(ChatRequest.class));
@@ -165,7 +178,8 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void usesExceptionClassIfNoMessageIncludedInException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(runtimeMemory.filteredMessages(), PROVIDER_CONFIGURATION))
+        .thenReturn(L4J_MESSAGES);
 
     final var cause = new UnresolvedModelServerException((String) null);
     doThrow(cause).when(chatModel).chat(any(ChatRequest.class));
@@ -308,7 +322,8 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void closesChatModelEvenWhenChatCallThrows() throws Exception {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(runtimeMemory.filteredMessages(), PROVIDER_CONFIGURATION))
+        .thenReturn(L4J_MESSAGES);
     doThrow(new RuntimeException("model unavailable")).when(chatModel).chat(any(ChatRequest.class));
 
     assertThatThrownBy(
@@ -329,6 +344,7 @@ class Langchain4JAiFrameworkAdapterTest {
       ResponseConfiguration responseConfiguration) {
     final var executionContext = mock(AgentExecutionContext.class);
     when(executionContext.response()).thenReturn(responseConfiguration);
+    when(executionContext.provider()).thenReturn(PROVIDER_CONFIGURATION);
 
     return executionContext;
   }

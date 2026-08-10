@@ -87,7 +87,8 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
                     new ToolCall(
                         MCP_TOOLS_DISCOVERY_PREFIX + gatewayToolDefinition.name(),
                         gatewayToolDefinition.name(),
-                        listToolsOperation))
+                        listToolsOperation,
+                        Map.of()))
             .toList();
 
     return new GatewayToolDiscoveryInitiationResult(updatedAgentContext, discoveryToolCalls);
@@ -209,7 +210,8 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
                     toolCallIdentifier.elementName(),
                     mcpClientOperationAsMap(
                         McpClientOperationDefinitions.callTool(
-                            toolCallIdentifier.mcpToolName(), toolCall.arguments())));
+                            toolCallIdentifier.mcpToolName(), toolCall.arguments())),
+                    Map.of());
               }
 
               return toolCall;
