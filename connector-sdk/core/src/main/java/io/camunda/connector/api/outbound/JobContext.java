@@ -62,4 +62,13 @@ public interface JobContext {
   long getElementInstanceKey();
 
   String getTenantId();
+
+  /**
+   * The lease token identifying this job's activation, or {@code null} if the job was activated
+   * without a lease. Pass it along when making requests that should be fenced against a stale,
+   * superseded activation of this same job.
+   */
+  default String getLeaseToken() {
+    return null;
+  }
 }

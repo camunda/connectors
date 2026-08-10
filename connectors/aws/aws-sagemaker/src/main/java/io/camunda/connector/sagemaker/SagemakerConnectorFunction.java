@@ -9,7 +9,6 @@ package io.camunda.connector.sagemaker;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.sagemaker.caller.SageMakerAsyncCaller;
@@ -84,17 +83,11 @@ public class SagemakerConnectorFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) {
     final var request = context.bindVariables(SageMakerRequest.class);
     if (request.getInput().invocationType() == SageMakerInvocationType.ASYNC) {
-      try (var client =
-          sageMakeClientSupplier.getAsyncClient(
-              CredentialsProviderSupportV2.credentialsProvider(request),
-              request.getConfiguration().region())) {
+      try (var client = sageMakeClientSupplier.getAsyncClient(request)) {
         return asyncCallerFunction.apply(client, request);
       }
     } else {
-      try (var client =
-          sageMakeClientSupplier.getSyncClient(
-              CredentialsProviderSupportV2.credentialsProvider(request),
-              request.getConfiguration().region())) {
+      try (var client = sageMakeClientSupplier.getSyncClient(request)) {
         return syncCallerFunction.apply(client, request);
       }
     }

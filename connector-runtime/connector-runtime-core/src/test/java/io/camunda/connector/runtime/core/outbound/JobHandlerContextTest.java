@@ -76,6 +76,18 @@ class JobHandlerContextTest {
   }
 
   @Test
+  void getLeaseToken() {
+    when(activatedJob.getLeaseToken()).thenReturn("lease-token-1");
+    assertThat(jobHandlerContext.getJobContext().getLeaseToken()).isEqualTo("lease-token-1");
+  }
+
+  @Test
+  void getLeaseToken_nullWhenJobActivatedWithoutLease() {
+    when(activatedJob.getLeaseToken()).thenReturn(null);
+    assertThat(jobHandlerContext.getJobContext().getLeaseToken()).isNull();
+  }
+
+  @Test
   void readDocumentReturnFormat_absentReturnsEmptyForOlderTemplates() {
     // Older templates do not send `documentReturnFormat`. Reading it must not throw the way
     // job.getVariable(...) would, so the connector can fall through to its legacy flow.

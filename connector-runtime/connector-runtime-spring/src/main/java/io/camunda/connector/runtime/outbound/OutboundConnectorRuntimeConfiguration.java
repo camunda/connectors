@@ -285,13 +285,16 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   /**
-   * Builds the per-physical-tenant {@link DocumentFactory} map. In the single-physical-tenant case,
-   * the already-resolved {@code injectedDocumentFactory} bean is reused instead of always
-   * constructing a new client-backed one: this preserves pre-#6961 behavior for single-client/
-   * custom runtimes that override the {@code documentFactory} bean (e.g. an in-memory document
-   * store in tests), which would otherwise be silently bypassed. Note this must check the actual
-   * client count rather than {@code registry == null}: {@link CamundaClientRegistry} is registered
-   * unconditionally by the camunda-client Spring Boot starter, so it is never actually null.
+   * Builds the per-physical-tenant {@link DocumentFactory} map, for the outbound path. In the
+   * single-physical-tenant case, the already-resolved {@code injectedDocumentFactory} bean is
+   * reused instead of always constructing a new client-backed one: this preserves pre-#6961
+   * behavior for single-client/custom runtimes that override the {@code documentFactory} bean (e.g.
+   * an in-memory document store in tests), which would otherwise be silently bypassed. This must
+   * check the actual client count rather than {@code registry == null}: {@link
+   * CamundaClientRegistry} is registered unconditionally by the camunda-client Spring Boot starter,
+   * so it is never actually null. The inbound path has its own equivalent, {@code
+   * PhysicalTenantIds#buildDocumentFactoriesByPhysicalTenantId} in {@code
+   * connector-runtime/connector-runtime-spring/.../inbound/}, using the same condition.
    */
   private static Map<String, DocumentFactory> buildDocumentFactoriesByPhysicalTenantId(
       CamundaClientRegistry registry,

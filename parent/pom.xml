@@ -96,12 +96,12 @@ limitations under the License.</license.inlineheader>
 
     <version.spring-boot>4.1.0</version.spring-boot>
     <tomcat.version>11.0.24</tomcat.version>
-    <version.netty>4.2.16.Final</version.netty>
+    <version.netty>4.2.17.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.1.0</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.1</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.50.3</version.aws-sdk2>
+    <version.aws-sdk2>2.51.2</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -143,7 +143,7 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>4.3.1</version.kafka-clients>
     <!-- CVE-2026-59949: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.1
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-59949 -->
-    <version.lz4-java>1.11.1</version.lz4-java>
+    <version.lz4-java>1.11.2</version.lz4-java>
 
     <version.microsoft-graph>6.67.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.3</version.microsoft-kiota-abstraction>
@@ -153,7 +153,7 @@ limitations under the License.</license.inlineheader>
     <version.azure-cosmos>4.81.0</version.azure-cosmos>
 
     <version.bouncycastle>1.85</version.bouncycastle>
-    <version.box-sdk>5.14.1</version.box-sdk>
+    <version.box-sdk>5.15.0</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
@@ -724,6 +724,34 @@ limitations under the License.</license.inlineheader>
         <version>${version.httpcore5}</version>
       </dependency>
 
+      <!-- CVE-2026-55955: tomcat.version alone does not override Spring Boot's
+           dependency-management import, since spring-boot-dependencies defines its own
+           internal tomcat.version property. These four artifacts ship in lockstep from the
+           same Tomcat release and must be pinned together to avoid a version skew. -->
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-core</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-el</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-websocket</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tomcat</groupId>
+        <artifactId>tomcat-annotations-api</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
@@ -1077,6 +1105,23 @@ the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
                 </regexMessage>
               </requireProperty>
+              <!-- CVE-2026-55955 guard: fails if version.spring-boot is bumped, as a reminder to
+                   check whether the tomcat-embed-* overrides can be removed (see tomcat.version).
+                   A same-named property does not override a dependency-management import, so this
+                   pin must stay explicit until verified otherwise - do not delete it without checking. -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^4\.1\.0$</regex>
+                <regexMessage>
+version.spring-boot was changed! Check if the tomcat-embed-* CVE-2026-55955 overrides can be removed.
+If the new spring-boot-dependencies BOM ships tomcat.version &gt;= 11.0.23 (confirm with
+`mvn dependency:tree -Dincludes=org.apache.tomcat.embed,org.apache.tomcat:tomcat-annotations-api`,
+not just the property), remove the tomcat-embed-core/tomcat-embed-el/tomcat-embed-websocket/
+tomcat-annotations-api dependencyManagement entries, the tomcat.version property, and this
+enforcer rule from parent/pom.xml.
+See: https://nvd.nist.gov/vuln/detail/CVE-2026-55955
+                </regexMessage>
+              </requireProperty>
             </rules>
           </configuration>
           <executions>
@@ -1360,6 +1405,32 @@ See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
                 <requireReleaseDeps/>
               </rules>
             </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>flatten-maven-plugin</artifactId>
+            <version>1.8.0</version>
+            <configuration>
+              <flattenMode>ossrh</flattenMode>
+              <updatePomFile>true</updatePomFile>
+              <pomElements>
+                <properties>keep</properties>
+                <dependencyManagement>keep</dependencyManagement>
+                <build>keep</build>
+              </pomElements>
+            </configuration>
+            <executions>
+              <execution>
+                <id>flatten</id>
+                <phase>process-resources</phase>
+                <goals><goal>flatten</goal></goals>
+              </execution>
+              <execution>
+                <id>flatten-clean</id>
+                <phase>clean</phase>
+                <goals><goal>clean</goal></goals>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>

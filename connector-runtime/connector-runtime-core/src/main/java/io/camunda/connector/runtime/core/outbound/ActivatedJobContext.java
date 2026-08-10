@@ -85,4 +85,9 @@ public class ActivatedJobContext implements JobContext {
   public String getTenantId() {
     return activatedJob.getTenantId();
   }
+
+  @Override
+  public String getLeaseToken() {
+    return activatedJob.getLeaseToken();
+  }
 }

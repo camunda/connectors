@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.inbound;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
@@ -45,6 +46,36 @@ public class InboundCorrelationConfiguration {
    * InboundConnectorRuntimeConfiguration#springInboundConnectorContextFactory}, without either
    * declaring a {@code Map<String, InboundCorrelationHandler>}-typed {@code @Bean} parameter — see
    * {@link PhysicalTenantIds} for why that matters.
+   */
+  public static Map<String, InboundCorrelationHandler> buildCorrelationHandlersByPhysicalTenantId(
+      CamundaClientRegistry registry,
+      CamundaClient legacyCamundaClient,
+      ObjectMapper objectMapper,
+      Duration messageTtl,
+      Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId,
+      ConnectorsInboundMetrics connectorsInboundMetrics) {
+    return registry.clientNames().stream()
+        .collect(
+            PhysicalTenantIds.toMapByPhysicalTenantId(
+                registry,
+                legacyCamundaClient,
+                name -> {
+                  var physicalTenantId =
+                      PhysicalTenantIds.resolvePhysicalTenantId(
+                          registry, name, legacyCamundaClient);
+                  return new MeteredInboundCorrelationHandler(
+                      PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient),
+                      objectMapper,
+                      messageTtl,
+                      documentFactoriesByPhysicalTenantId.get(physicalTenantId),
+                      connectorsInboundMetrics);
+                }));
+  }
+
+  /**
+   * Preserves source/binary compatibility for callers compiled against the pre-{@code
+   * createDocument()} five-argument overload. {@code createDocument()} is unavailable through the
+   * handlers this produces (see {@code MeteredInboundCorrelationHandler}'s legacy constructor).
    */
   public static Map<String, InboundCorrelationHandler> buildCorrelationHandlersByPhysicalTenantId(
       CamundaClientRegistry registry,
@@ -78,10 +109,19 @@ public class InboundCorrelationConfiguration {
       CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
       @ConnectorsObjectMapper ObjectMapper objectMapper,
+      @Autowired(required = false) DocumentFactory legacyDocumentFactory,
       ConnectorsInboundMetrics connectorsInboundMetrics) {
+    var documentFactoriesByPhysicalTenantId =
+        PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
+            registry, legacyCamundaClient, legacyDocumentFactory);
     return PhysicalTenantIds.onlyValue(
         buildCorrelationHandlersByPhysicalTenantId(
-            registry, legacyCamundaClient, objectMapper, messageTtl, connectorsInboundMetrics),
+            registry,
+            legacyCamundaClient,
+            objectMapper,
+            messageTtl,
+            documentFactoriesByPhysicalTenantId,
+            connectorsInboundMetrics),
         InboundCorrelationHandler.class);
   }
 }

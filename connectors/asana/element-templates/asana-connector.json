@@ -54,6 +54,10 @@
     {
       "id": "errors",
       "label": "Error handling"
+    },
+    {
+      "id": "retries",
+      "label": "Retries"
     }
   ],
   "properties": [
@@ -702,6 +706,42 @@
         "type": "zeebe:taskHeader",
         "key": "errorExpression"
       }
+    },
+    {
+      "id": "retryCount",
+      "label": "Retries",
+      "value": "3",
+      "feel": "optional",
+      "group": "retries",
+      "binding": {
+        "property": "retries",
+        "type": "zeebe:taskDefinition"
+      },
+      "type": "String"
+    },
+    {
+      "id": "retryBackoff",
+      "label": "Retry backoff",
+      "tooltip": "ISO-8601 duration to wait between retries",
+      "value": "PT30S",
+      "group": "retries",
+      "binding": {
+        "key": "retryBackoff",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "String"
+    },
+    {
+      "id": "jobTimeout",
+      "label": "Job timeout",
+      "description": "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+      "optional": true,
+      "group": "retries",
+      "binding": {
+        "key": "jobTimeout",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "String"
     }
   ],
   "steps": [

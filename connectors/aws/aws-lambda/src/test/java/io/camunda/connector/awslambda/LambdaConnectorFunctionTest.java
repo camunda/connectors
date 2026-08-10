@@ -14,11 +14,13 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
@@ -48,7 +50,8 @@ class LambdaConnectorFunctionTest extends BaseTest {
   public void execute_shouldExecuteAndReturnStatusOkAndActualPayload(String input) {
     // Given valid data
     OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
-    when(supplier.awsLambdaService(any(), any())).thenReturn(lambdaClient);
+    ArgumentCaptor<String> regionCaptor = ArgumentCaptor.forClass(String.class);
+    when(supplier.awsLambdaService(any(), regionCaptor.capture())).thenReturn(lambdaClient);
     when(lambdaClient.invoke(any(InvokeRequest.class))).thenReturn(invokeResponse);
     // When connector execute
     Object execute = function.execute(context);
@@ -57,6 +60,9 @@ class LambdaConnectorFunctionTest extends BaseTest {
     AwsLambdaResult result = (AwsLambdaResult) execute;
     assertThat(result.getStatusCode()).isEqualTo(200);
     assertThat(result.getPayload()).isEqualTo(ACTUAL_PAYLOAD);
+    // Then the captured region must match what LambdaConnectorFunction resolves, not just any()
+    var request = context.bindVariables(AwsLambdaRequest.class);
+    assertThat(regionCaptor.getValue()).isEqualTo(LambdaConnectorFunction.resolveRegion(request));
   }
 
   @ParameterizedTest(name = "execute connector with invalid data # {index}")
