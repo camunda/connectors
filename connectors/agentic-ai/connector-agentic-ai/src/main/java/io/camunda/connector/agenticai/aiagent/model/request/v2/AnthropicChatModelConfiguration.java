@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend.ANTHROPIC_API_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend.AWS_BEDROCK_MANTLE_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend.CUSTOM_ID;
 import static io.camunda.connector.agenticai.aiagent.util.LoggingSupport.redactValues;
 
@@ -18,12 +19,14 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication;
+import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -59,6 +62,9 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
     @JsonSubTypes.Type(value = AnthropicBackend.AnthropicApiBackend.class, name = ANTHROPIC_API_ID),
+    @JsonSubTypes.Type(
+        value = AnthropicBackend.AnthropicAwsBedrockMantleBackend.class,
+        name = AWS_BEDROCK_MANTLE_ID),
     @JsonSubTypes.Type(value = AnthropicBackend.AnthropicCustomBackend.class, name = CUSTOM_ID)
   })
   @TemplateDiscriminatorProperty(
@@ -139,6 +145,167 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
               + "}";
         }
       }
+    }
+
+    @TemplateSubType(id = AWS_BEDROCK_MANTLE_ID, label = "AWS Bedrock Mantle")
+    record AnthropicAwsBedrockMantleBackend(
+        @Valid @NotNull AwsBedrockMantleBackend awsBedrockMantle) implements AnthropicBackend {
+
+      @TemplateProperty(ignore = true)
+      public static final String AWS_BEDROCK_MANTLE_ID = "aws-bedrock-mantle";
+
+      @Override
+      public String type() {
+        return AWS_BEDROCK_MANTLE_ID;
+      }
+
+      public record AwsBedrockMantleBackend(
+          @NotBlank
+              @TemplateProperty(
+                  group = "provider",
+                  label = "AWS region",
+                  description = "Specify the AWS region (example: <code>eu-west-1</code>).",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = FeelMode.optional,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              String region,
+          @HttpUrl
+              @TemplateProperty(
+                  group = "provider",
+                  label = "Custom endpoint",
+                  description =
+                      "Custom API endpoint for VPC/PrivateLink configurations or other non-standard "
+                          + "deployments. Must be the full Bedrock Mantle base URL, including the "
+                          + "<code>/anthropic</code> path segment (e.g. "
+                          + "<code>https://your-vpce-host/anthropic</code>) — it replaces the default "
+                          + "<code>https://bedrock-mantle.&lt;region&gt;.api.aws/anthropic</code> verbatim.",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = FeelMode.optional,
+                  optional = true)
+              @Nullable String endpoint,
+          @Valid @NotNull AwsAuthentication authentication,
+          @TemplateProperty(
+                  group = "advanced-provider-options",
+                  label = "HTTP headers",
+                  description = "Map of HTTP headers to add to the request.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable Map<String, String> headers,
+          @Valid
+              @TemplateProperty(
+                  group = "advanced-provider-options",
+                  label = "Query parameters",
+                  description = "Map of query parameters to add to the request URL.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable Map<@NotBlank String, String> queryParameters,
+          @TemplateProperty(
+                  group = "advanced-provider-options",
+                  label = "Body properties",
+                  description = "Map of additional properties to include in the request body.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable Map<String, Object> bodyProperties) {
+
+        @JsonIgnore
+        @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
+        public boolean isDefaultCredentialsChainUsedInSaaS() {
+          return ConnectorUtils.isSaaS()
+              && authentication
+                  instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+        }
+
+        @Override
+        public String toString() {
+          return "AwsBedrockMantleBackend{region="
+              + region
+              + ", endpoint="
+              + endpoint
+              + ", authentication="
+              + authentication
+              + ", headers="
+              + redactValues(headers)
+              + ", queryParameters="
+              + redactValues(queryParameters)
+              + ", bodyProperties="
+              + redactValues(bodyProperties)
+              + "}";
+        }
+      }
+    }
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes({
+      @JsonSubTypes.Type(
+          value = AwsAuthentication.AwsStaticCredentialsAuthentication.class,
+          name = "credentials"),
+      @JsonSubTypes.Type(
+          value = AwsAuthentication.AwsDefaultCredentialsChainAuthentication.class,
+          name = "defaultCredentialsChain"),
+      @JsonSubTypes.Type(value = AwsAuthentication.AwsApiKeyAuthentication.class, name = "apiKey")
+    })
+    @TemplateDiscriminatorProperty(
+        label = "Authentication",
+        group = "provider",
+        name = "type",
+        defaultValue = "credentials",
+        description = "Specify the AWS authentication strategy.")
+    sealed interface AwsAuthentication {
+
+      @TemplateSubType(id = "credentials", label = "Credentials")
+      record AwsStaticCredentialsAuthentication(
+          @NotBlank
+              @TemplateProperty(
+                  group = "provider",
+                  label = "Access key",
+                  description = "AWS IAM access key.",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = FeelMode.optional,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              String accessKey,
+          @NotBlank
+              @TemplateProperty(
+                  group = "provider",
+                  label = "Secret key",
+                  description = "AWS IAM secret key.",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = FeelMode.optional,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              String secretKey)
+          implements AwsAuthentication {
+
+        @Override
+        public String toString() {
+          return "AwsStaticCredentialsAuthentication{accessKey=[REDACTED], secretKey=[REDACTED]}";
+        }
+      }
+
+      @TemplateSubType(id = "apiKey", label = "API key")
+      record AwsApiKeyAuthentication(
+          @NotBlank
+              @TemplateProperty(
+                  group = "provider",
+                  label = "API key",
+                  description = "Bearer API key for AWS Bedrock Mantle.",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = FeelMode.optional,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              String apiKey)
+          implements AwsAuthentication {
+
+        @Override
+        public String toString() {
+          return "AwsApiKeyAuthentication{apiKey=[REDACTED]}";
+        }
+      }
+
+      @TemplateSubType(
+          id = "defaultCredentialsChain",
+          label = "Default Credentials Chain (Hybrid/Self-Managed only)")
+      record AwsDefaultCredentialsChainAuthentication() implements AwsAuthentication {}
     }
 
     @TemplateSubType(id = CUSTOM_ID, label = "Custom / compatible endpoint")

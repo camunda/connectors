@@ -152,6 +152,12 @@
       <version>${version.anthropic-java}</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java-bedrock</artifactId>
+      <version>${version.anthropic-java}</version>
+    </dependency>
+
     <!--
       OkHttp 5 split into multi-platform modules: the `okhttp` artifact's pom is now an empty
       shell (classes ship in `okhttp-jvm`), see the comment in parent/pom.xml.

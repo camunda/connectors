@@ -35,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicEffort;
@@ -49,6 +50,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
@@ -206,24 +208,19 @@ public class AnthropicMessageRequestConverter {
 
   /**
    * Merges the backend's headers, query parameters, and body properties onto the request. The
-   * {@code custom} backend exposes these as regular properties; the {@code anthropic-api} backend
-   * exposes the same extension points as hidden properties for special scenarios not covered by the
-   * modeler UI (e.g. routing through an intermediary that requires extra headers).
+   * {@code custom} backend exposes these as regular properties; the {@code anthropic-api} and
+   * {@code aws-bedrock-mantle} backends expose the same extension points as hidden properties for
+   * special scenarios not covered by the modeler UI (e.g. routing through an intermediary that
+   * requires extra headers).
    */
   private void applyRequestCustomizations(
       MessageCreateParams.Builder builder, AnthropicConnection connection) {
     final RequestCustomizations customizations = requestCustomizations(connection.backend());
-    if (customizations.headers() != null) {
-      customizations.headers().forEach(builder::putAdditionalHeader);
-    }
-    if (customizations.queryParameters() != null) {
-      customizations.queryParameters().forEach(builder::putAdditionalQueryParam);
-    }
-    if (customizations.bodyProperties() != null) {
-      customizations
-          .bodyProperties()
-          .forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));
-    }
+    customizations.headers().forEach(builder::putAdditionalHeader);
+    customizations.queryParameters().forEach(builder::putAdditionalQueryParam);
+    customizations
+        .bodyProperties()
+        .forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));
   }
 
   private RequestCustomizations requestCustomizations(AnthropicBackend backend) {
@@ -233,6 +230,11 @@ public class AnthropicMessageRequestConverter {
               apiBackend.anthropic().headers(),
               apiBackend.anthropic().queryParameters(),
               apiBackend.anthropic().bodyProperties());
+      case AnthropicAwsBedrockMantleBackend awsBedrockMantleBackend ->
+          new RequestCustomizations(
+              awsBedrockMantleBackend.awsBedrockMantle().headers(),
+              awsBedrockMantleBackend.awsBedrockMantle().queryParameters(),
+              awsBedrockMantleBackend.awsBedrockMantle().bodyProperties());
       case AnthropicCustomBackend custom ->
           new RequestCustomizations(
               custom.custom().headers(),
@@ -242,9 +244,19 @@ public class AnthropicMessageRequestConverter {
   }
 
   private record RequestCustomizations(
-      @Nullable Map<String, String> headers,
-      @Nullable Map<String, String> queryParameters,
-      @Nullable Map<String, Object> bodyProperties) {}
+      Map<String, String> headers,
+      Map<String, String> queryParameters,
+      Map<String, Object> bodyProperties) {
+
+    private RequestCustomizations(
+        @Nullable Map<String, String> headers,
+        @Nullable Map<String, String> queryParameters,
+        @Nullable Map<String, Object> bodyProperties) {
+      this.headers = Objects.requireNonNullElse(headers, Map.of());
+      this.queryParameters = Objects.requireNonNullElse(queryParameters, Map.of());
+      this.bodyProperties = Objects.requireNonNullElse(bodyProperties, Map.of());
+    }
+  }
 
   private void applyMessages(MessageCreateParams.Builder builder, List<Message> messages) {
     // Seed an empty list so build() doesn't throw for an all-system/empty snapshot
