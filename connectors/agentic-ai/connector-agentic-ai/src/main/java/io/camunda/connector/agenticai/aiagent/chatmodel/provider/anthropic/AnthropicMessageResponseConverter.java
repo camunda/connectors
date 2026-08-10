@@ -65,11 +65,13 @@ public class AnthropicMessageResponseConverter {
     final AgentMetrics metrics =
         toMetrics(message, assistantMessage.toolCalls().size(), executionTime);
 
-    final boolean paused =
-        message.stopReason().map(sr -> sr.equals(StopReason.PAUSE_TURN)).orElse(false);
-    return paused
+    return isPaused(message)
         ? new ChatResult.Continuation(assistantMessage, metrics)
         : new ChatResult.Completed(assistantMessage, metrics);
+  }
+
+  private boolean isPaused(Message message) {
+    return message.stopReason().map(sr -> sr.equals(StopReason.PAUSE_TURN)).orElse(false);
   }
 
   AssistantMessage toAssistantMessage(Message message) {
