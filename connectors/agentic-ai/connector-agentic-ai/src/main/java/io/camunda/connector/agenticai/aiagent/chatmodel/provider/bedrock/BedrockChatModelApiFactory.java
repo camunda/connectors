@@ -20,18 +20,17 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.AwsAuthent
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.auth.token.credentials.StaticTokenProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
-import software.amazon.awssdk.http.auth.scheme.NoAuthAuthScheme;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClientBuilder;
+import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntimeAuthSchemeProvider;
 
 /**
  * Builds the AWS SDK async client backing the native Bedrock Converse provider and wraps it, along
@@ -89,7 +88,7 @@ public class BedrockChatModelApiFactory implements ChatModelFactory {
         BedrockRuntimeAsyncClient.builder().region(Region.of(connection.region()));
     final var overrideConfigurationBuilder = ClientOverrideConfiguration.builder();
 
-    applyAuthentication(connection.authentication(), builder, overrideConfigurationBuilder);
+    applyAuthentication(connection.authentication(), builder);
 
     URI endpointOverride = null;
     if (connection.endpoint() != null) {
@@ -100,13 +99,9 @@ public class BedrockChatModelApiFactory implements ChatModelFactory {
     overrideConfigurationBuilder.apiCallTimeout(apiTimeout);
     builder.overrideConfiguration(overrideConfigurationBuilder.build());
 
-    // The synchronous BedrockRuntimeClient has no streaming operation, so converseStream requires
-    // the Netty-based async HTTP client. Apache's socketTimeout has no direct analogue on the Netty
-    // client; readTimeout is the equivalent lever, and mapping the API-call timeout onto it (rather
-    // than leaving Netty's short fixed default) is the fix for issue #7193: a long-running model
-    // call is no longer killed by socket inactivity partway through generation. The TCP connect
-    // timeout stays a short constant since it covers infrastructure availability, not model
-    // latency.
+    // Netty's readTimeout is the streaming client's analogue to Apache's socketTimeout; mapping
+    // the API-call timeout onto it keeps a long-running model call from being killed by socket
+    // inactivity partway through generation.
     builder.httpClientBuilder(
         httpProxySupport
             .createAwsAsyncHttpClientBuilder(endpointOverride)
@@ -117,9 +112,7 @@ public class BedrockChatModelApiFactory implements ChatModelFactory {
   }
 
   private static void applyAuthentication(
-      AwsAuthentication authentication,
-      BedrockRuntimeAsyncClientBuilder builder,
-      ClientOverrideConfiguration.Builder overrideConfigurationBuilder) {
+      AwsAuthentication authentication, BedrockRuntimeAsyncClientBuilder builder) {
     switch (authentication) {
       case AwsAuthentication.AwsStaticCredentialsAuthentication staticAuth ->
           builder.credentialsProvider(
@@ -127,16 +120,15 @@ public class BedrockChatModelApiFactory implements ChatModelFactory {
                   AwsBasicCredentials.create(staticAuth.accessKey(), staticAuth.secretKey())));
       case AwsAuthentication.AwsDefaultCredentialsChainAuthentication ignored ->
           builder.credentialsProvider(DefaultCredentialsProvider.builder().build());
-      case AwsAuthentication.AwsApiKeyAuthentication apiKeyAuth -> {
-        // Matches AwsBedrockRuntimeAuthenticationCustomizer's v1 bearer-token mechanism: anonymous
-        // SigV4 credentials plus a no-auth auth scheme so the SDK does not attempt to sign the
-        // request, with the bearer token carried as a plain Authorization header instead.
-        builder
-            .credentialsProvider(AnonymousCredentialsProvider.create())
-            .putAuthScheme(NoAuthAuthScheme.create());
-        overrideConfigurationBuilder.headers(
-            Map.of("Authorization", List.of("Bearer " + apiKeyAuth.apiKey())));
-      }
+      case AwsAuthentication.AwsApiKeyAuthentication apiKeyAuth ->
+          // Native "Bedrock API keys" support (the same mechanism as AWS_BEARER_TOKEN_BEDROCK):
+          // the httpBearerAuth scheme is listed after sigv4 by default, and sigv4 is always
+          // resolvable (credentialsProvider falls back to the default chain when unset), so
+          // without this preference override sigv4 would win and the token would never be sent.
+          builder
+              .tokenProvider(StaticTokenProvider.create(apiKeyAuth::apiKey))
+              .authSchemeProvider(
+                  BedrockRuntimeAuthSchemeProvider.defaultProvider(List.of("httpBearerAuth")));
     }
   }
 }

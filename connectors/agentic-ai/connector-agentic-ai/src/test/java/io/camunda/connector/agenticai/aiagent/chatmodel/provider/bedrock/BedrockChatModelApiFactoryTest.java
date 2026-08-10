@@ -33,7 +33,6 @@ import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfi
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
-import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,14 +46,15 @@ import org.mockito.MockedStatic;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
-import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.auth.token.credentials.SdkTokenProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClientBuilder;
+import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntimeAuthSchemeProvider;
 
 /**
  * Mirrors {@code BedrockChatModelFactoryTest} (the v1 langchain4j equivalent): a real, non-mocked
@@ -167,18 +167,20 @@ class BedrockChatModelApiFactoryTest {
     testBuilder(
         bedrockConfig(authentication, null),
         (clientBuilder) -> {
-          verify(clientBuilder).credentialsProvider(credentialsProviderCaptor.capture());
-          assertThat(credentialsProviderCaptor.getValue())
-              .isInstanceOf(AnonymousCredentialsProvider.class);
+          verify(clientBuilder, never()).credentialsProvider(any());
+
+          final var tokenProviderCaptor = ArgumentCaptor.forClass(SdkTokenProvider.class);
+          verify(clientBuilder).tokenProvider(tokenProviderCaptor.capture());
+          assertThat(tokenProviderCaptor.getValue().resolveToken().token())
+              .isEqualTo("bedrock-key");
+
+          verify(clientBuilder).authSchemeProvider(any(BedrockRuntimeAuthSchemeProvider.class));
 
           final var overrideConfigurationCaptor =
               ArgumentCaptor.forClass(ClientOverrideConfiguration.class);
           verify(clientBuilder).overrideConfiguration(overrideConfigurationCaptor.capture());
-
-          final var overrideConfiguration = overrideConfigurationCaptor.getValue();
-          assertThat(overrideConfiguration.headers())
-              .containsEntry("Authorization", List.of("Bearer bedrock-key"));
-          assertThat(overrideConfiguration.apiCallTimeout()).contains(Duration.ofMinutes(3));
+          assertThat(overrideConfigurationCaptor.getValue().apiCallTimeout())
+              .contains(Duration.ofMinutes(3));
         });
   }
 
