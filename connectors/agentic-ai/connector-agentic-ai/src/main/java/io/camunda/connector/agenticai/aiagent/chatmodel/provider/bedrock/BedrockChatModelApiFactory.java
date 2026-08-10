@@ -13,11 +13,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.AwsAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.net.URI;
 import java.util.List;
 import org.slf4j.Logger;
@@ -41,14 +41,14 @@ public class BedrockChatModelApiFactory implements ChatModelFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(BedrockChatModelApiFactory.class);
 
   private final ChatModelProperties config;
-  private final ChatModelHttpProxySupport httpProxySupport;
+  private final AgenticAiHttpProxySupport httpProxySupport;
   private final BedrockConverseRequestConverter requestConverter;
   private final BedrockConverseResponseConverter responseConverter;
   private final ObjectMapper objectMapper;
 
   public BedrockChatModelApiFactory(
       ChatModelProperties config,
-      ChatModelHttpProxySupport httpProxySupport,
+      AgenticAiHttpProxySupport httpProxySupport,
       BedrockConverseRequestConverter requestConverter,
       BedrockConverseResponseConverter responseConverter,
       ObjectMapper objectMapper) {

@@ -25,11 +25,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.NullUnmarked;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.http.apache.ApacheHttpClient;
-import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 
 public class ChatModelHttpProxySupport {
   private static final Logger LOG = LoggerFactory.getLogger(ChatModelHttpProxySupport.class);
@@ -163,96 +160,6 @@ public class ChatModelHttpProxySupport {
         return builtClient = delegate.build();
       }
     }
-  }
-
-  public ApacheHttpClient.Builder createAwsHttpClientBuilder(@Nullable URI endpointOverride) {
-    String schemeName =
-        endpointOverride != null ? endpointOverride.getScheme() : ProxyConfiguration.SCHEME_HTTPS;
-    return ApacheHttpClient.builder().proxyConfiguration(createAwsProxyConfiguration(schemeName));
-  }
-
-  software.amazon.awssdk.http.apache.ProxyConfiguration createAwsProxyConfiguration(
-      String schemeName) {
-    software.amazon.awssdk.http.apache.ProxyConfiguration.Builder awsProxyConfigBuilder =
-        software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
-            .useSystemPropertyValues(true);
-
-    proxyConfiguration
-        .getProxyDetails(schemeName)
-        .ifPresent(
-            proxyDetails -> {
-              LOG.debug(
-                  "Using proxy for target scheme [{}] => [{}://{}:{}]",
-                  schemeName,
-                  proxyDetails.scheme(),
-                  proxyDetails.host(),
-                  proxyDetails.port());
-              awsProxyConfigBuilder
-                  .scheme(proxyDetails.scheme())
-                  .endpoint(toUri(proxyDetails))
-                  .nonProxyHosts(
-                      NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
-
-              if (proxyDetails.hasCredentials()) {
-                awsProxyConfigBuilder.username(proxyDetails.user());
-                awsProxyConfigBuilder.password(proxyDetails.password());
-              }
-            });
-
-    return awsProxyConfigBuilder.build();
-  }
-
-  /**
-   * Async equivalent of {@link #createAwsHttpClientBuilder(URI)} for AWS SDK clients backed by the
-   * Netty HTTP transport (required for streaming operations, which the synchronous Apache-based
-   * client above cannot serve — e.g. {@code BedrockRuntimeAsyncClient.converseStream}).
-   */
-  public NettyNioAsyncHttpClient.Builder createAwsAsyncHttpClientBuilder(
-      @Nullable URI endpointOverride) {
-    String schemeName =
-        endpointOverride != null ? endpointOverride.getScheme() : ProxyConfiguration.SCHEME_HTTPS;
-    return NettyNioAsyncHttpClient.builder()
-        .proxyConfiguration(createAwsAsyncProxyConfiguration(schemeName));
-  }
-
-  /**
-   * Mechanical port of {@link #createAwsProxyConfiguration(String)}: {@link
-   * software.amazon.awssdk.http.nio.netty.ProxyConfiguration.Builder} is field-for-field identical
-   * to the Apache {@code ProxyConfiguration.Builder} above ({@code host}, {@code port}, {@code
-   * scheme}, {@code nonProxyHosts}, {@code username}, {@code password}, {@code
-   * useSystemPropertyValues}), except that host and port are set independently rather than via a
-   * single proxy endpoint URI.
-   */
-  software.amazon.awssdk.http.nio.netty.ProxyConfiguration createAwsAsyncProxyConfiguration(
-      String schemeName) {
-    software.amazon.awssdk.http.nio.netty.ProxyConfiguration.Builder awsProxyConfigBuilder =
-        software.amazon.awssdk.http.nio.netty.ProxyConfiguration.builder()
-            .useSystemPropertyValues(true);
-
-    proxyConfiguration
-        .getProxyDetails(schemeName)
-        .ifPresent(
-            proxyDetails -> {
-              LOG.debug(
-                  "Using proxy for target scheme [{}] => [{}://{}:{}]",
-                  schemeName,
-                  proxyDetails.scheme(),
-                  proxyDetails.host(),
-                  proxyDetails.port());
-              awsProxyConfigBuilder
-                  .scheme(proxyDetails.scheme())
-                  .host(proxyDetails.host())
-                  .port(proxyDetails.port())
-                  .nonProxyHosts(
-                      NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
-
-              if (proxyDetails.hasCredentials()) {
-                awsProxyConfigBuilder.username(proxyDetails.user());
-                awsProxyConfigBuilder.password(proxyDetails.password());
-              }
-            });
-
-    return awsProxyConfigBuilder.build();
   }
 
   public Optional<ProxyOptions> createAzureProxyOptions(String endpoint) {

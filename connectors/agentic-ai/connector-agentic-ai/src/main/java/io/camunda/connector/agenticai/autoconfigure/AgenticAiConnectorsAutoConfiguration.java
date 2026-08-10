@@ -48,7 +48,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -252,7 +251,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AwsAgentCoreConversationStore aiAgentAwsAgentCoreConversationStore(
-      AwsAgentCoreConversationMapper conversationMapper, ChatModelHttpProxySupport proxySupport) {
+      AwsAgentCoreConversationMapper conversationMapper, AgenticAiHttpProxySupport proxySupport) {
     return new AwsAgentCoreConversationStore(
         new DefaultBedrockAgentCoreClientFactory(proxySupport), conversationMapper);
   }

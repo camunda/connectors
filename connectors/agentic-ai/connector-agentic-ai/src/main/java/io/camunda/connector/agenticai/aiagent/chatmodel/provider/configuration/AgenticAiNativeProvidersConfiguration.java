@@ -15,7 +15,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.Bedrock
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseResponseConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
@@ -57,7 +56,7 @@ public class AgenticAiNativeProvidersConfiguration {
   @ConditionalOnMissingBean
   public BedrockChatModelApiFactory aiAgentBedrockChatModelApiFactory(
       AgenticAiConnectorsConfigurationProperties configuration,
-      ChatModelHttpProxySupport httpProxySupport,
+      AgenticAiHttpProxySupport httpProxySupport,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new BedrockConverseContentConverter(objectMapper);
     final var requestConverter =

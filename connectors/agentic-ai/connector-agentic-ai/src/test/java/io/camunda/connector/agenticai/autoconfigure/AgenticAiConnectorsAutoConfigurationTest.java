@@ -583,7 +583,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
         CustomBedrockChatModelFactory() {
           super(
               mock(AgenticAiConnectorsConfigurationProperties.ChatModelProperties.class),
-              mock(ChatModelHttpProxySupport.class),
+              mock(AgenticAiHttpProxySupport.class),
               mock(ChatMessageConverter.class),
               mock(ToolSpecificationConverter.class),
               mock(JsonSchemaConverter.class));

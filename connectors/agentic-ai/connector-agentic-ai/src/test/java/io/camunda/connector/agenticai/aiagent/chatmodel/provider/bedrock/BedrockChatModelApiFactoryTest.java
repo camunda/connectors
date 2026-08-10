@@ -17,7 +17,6 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
@@ -29,7 +28,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelC
 import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.AwsAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
-import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
+import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
@@ -58,7 +57,7 @@ import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntime
 
 /**
  * Mirrors {@code BedrockChatModelFactoryTest} (the v1 langchain4j equivalent): a real, non-mocked
- * {@link ChatModelHttpProxySupport} (backed by {@link ProxyConfiguration#NONE}) builds a real Netty
+ * {@link AgenticAiHttpProxySupport} (backed by {@link ProxyConfiguration#NONE}) builds a real Netty
  * HTTP client builder, and only the top-level {@link BedrockRuntimeAsyncClient#builder()} factory
  * method is static-mocked so the spy can assert exactly which builder methods were called, while
  * still letting {@code build()} run for real via {@link ResultCaptor}.
@@ -71,10 +70,8 @@ class BedrockChatModelApiFactoryTest {
   private static final Region AWS_REGION = Region.of(REGION);
 
   private final ProxyConfiguration proxyConfiguration = ProxyConfiguration.NONE;
-  private final ChatModelHttpProxySupport proxySupport =
-      spy(
-          new ChatModelHttpProxySupport(
-              proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
+  private final AgenticAiHttpProxySupport proxySupport =
+      spy(new AgenticAiHttpProxySupport(proxyConfiguration));
 
   private final ChatModelProperties config =
       new ChatModelProperties(new ApiProperties(Duration.ofMinutes(3)));
