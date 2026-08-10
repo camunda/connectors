@@ -360,6 +360,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Dispatch fix agents
+        id: dispatch
         # outcome, not just count: a failed discovery leaves count empty, and '' != '0'
         # would otherwise dispatch with no plan file.
         if: ${{ steps.mode.outputs.dispatch == 'true' && steps.plan.outcome == 'success' && steps.plan.outputs.count != '0' }}
@@ -436,13 +437,25 @@ jobs:
           SLACK_TOKEN: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           SLACK_TS: ${{ steps.slack.outputs.self_ts }}
           SLACK_CHANNEL: ${{ steps.slack.outputs.channel }}
+          DISPATCH_OUTCOME: ${{ steps.dispatch.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          [ -s /tmp/agent-runs.tsv ] || { echo "No agent runs to link."; exit 0; }
           [ -s /tmp/slack-text.txt ] || { echo "No posted message to update."; exit 0; }
 
-          links=$(awk -F'\t' '{printf "%s<%s|%s ↗>", sep, $2, $1; sep=" · "}' /tmp/agent-runs.tsv)
-          text="$(cat /tmp/slack-text.txt)"$'\n'"Agents: ${links}"
+          # The message already claims agents were dispatched — it has to be posted
+          # first, because the agent needs its ts to reply in-thread. So if the dispatch
+          # then failed, or produced no run at all, the thread is left asserting an
+          # agent that does not exist and nobody is told. Correct it here.
+          if [ "${DISPATCH_OUTCOME}" = "failure" ] || \
+             { [ "${DISPATCH_OUTCOME}" = "success" ] && [ ! -s /tmp/agent-runs.tsv ]; }; then
+            echo "::error::fix-agent dispatch did not start any run; the Slack thread has been corrected"
+            text="$(cat /tmp/slack-text.txt)"$'\n'":x: *Dispatch failed* — no fix agent was started, so the line above is not accurate. <${RUN_URL}|Triage run ↗>"
+          else
+            [ -s /tmp/agent-runs.tsv ] || { echo "No agent runs to link."; exit 0; }
+            links=$(awk -F'\t' '{printf "%s<%s|%s ↗>", sep, $2, $1; sep=" · "}' /tmp/agent-runs.tsv)
+            text="$(cat /tmp/slack-text.txt)"$'\n'"Agents: ${links}"
+          fi
 
           # A threaded reply is updated by its own ts; chat.update needs no thread_ts.
           payload=$(jq -nc --arg channel "${SLACK_CHANNEL}" --arg ts "${SLACK_TS}" --arg text "$text" \

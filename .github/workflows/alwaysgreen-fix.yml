@@ -393,6 +393,7 @@ jobs:
       # over downloaded evidence would undo the care taken to keep it out of
       # ~/.gitconfig two steps earlier.
       - name: Run Claude Code fix agent
+        id: agent
         env:
           ANTHROPIC_API_KEY: ${{ steps.secrets.outputs.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ steps.github-token.outputs.token }}
@@ -474,6 +475,7 @@ jobs:
       - name: Request review and label PRs
         if: always()
         env:
+          AGENT_OUTCOME: ${{ steps.agent.outcome }}
           GH_TOKEN: ${{ steps.github-token.outputs.token }}
           BLAME_REVIEWER: ${{ steps.ctx.outputs.blame_reviewer }}
           DEFAULT_REPO: ${{ github.repository }}
@@ -481,7 +483,19 @@ jobs:
           KEY_LABEL: ag-key:${{ inputs.dispatch_key }}
         run: |
           set -euo pipefail
-          [ -f /tmp/fix-meta.json ] || { echo "no fix-meta.json"; exit 0; }
+          if [ ! -f /tmp/fix-meta.json ]; then
+            # An agent that exited cleanly without the manifest may still have opened a
+            # PR, and this step is the only thing that labels one. Unlabelled means
+            # triage cannot see it, re-dispatches the same key, and a second agent
+            # edits the same lines — so this must be loud rather than a quiet
+            # "no fix determined".
+            if [ "${AGENT_OUTCOME}" = "success" ]; then
+              echo "::error::the agent finished without writing /tmp/fix-meta.json; any PR it opened is unlabelled and dedupe is blind to it"
+              exit 1
+            fi
+            echo "no fix-meta.json, and the agent step did not succeed — nothing to label"
+            exit 0
+          fi
 
           jq -c '.prs[]?' /tmp/fix-meta.json | while read -r pr; do
             num=$(jq -r '.number' <<<"$pr")

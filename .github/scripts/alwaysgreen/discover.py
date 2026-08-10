@@ -201,10 +201,17 @@ def saas_candidate(run_id: str, base_ref: str, job_name: str, workdir: Path) -> 
     cand.evidence_repo = E2E_REPO
     downstream_id = downstream_url.rstrip("/").rsplit("/", 1)[-1]
 
-    arts = gh_json(
+    # Fail loudly rather than into saas-infra: an outage here looks exactly like a
+    # downstream run that published no reports, and that verdict silently withholds a
+    # dispatchable failure.
+    arts, err = gh_json_ex(
         ["api", f"repos/{E2E_REPO}/actions/runs/{downstream_id}/artifacts?per_page=100"],
-        {},
+        None,
     )
+    if arts is None or not isinstance(arts, dict):
+        raise DiscoveryError(
+            f"could not list artifacts for downstream run {downstream_id}: {err.strip()[:200]}"
+        )
     names = [a.get("name", "") for a in (arts.get("artifacts") or [])]
     has_reports = any(n.startswith("json-report") for n in names)
 

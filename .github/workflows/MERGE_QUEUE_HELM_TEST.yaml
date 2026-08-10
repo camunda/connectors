@@ -434,6 +434,10 @@ jobs:
           name: alwaysgreen-saas-category
           path: ${{ runner.temp }}/alwaysgreen-saas-category.json
           retention-days: 14
+          # Artifacts are immutable and a re-run reuses the run id, so without this the
+          # second attempt fails to upload and triage reads the first attempt's stale
+          # downstream link — pointing the fix agent at the wrong evidence.
+          overwrite: true
 
       - name: Add debugging guidance on failure
         if: steps.wait-downstream.outcome == 'failure'
