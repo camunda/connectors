@@ -1,5 +1,5 @@
 {
-  "name": "connectors (macOS / Docker Desktop)",
+  "name": "connectors-macos",
   "build": {
     "context": "..",
     "dockerfile": "../Dockerfile"
@@ -18,13 +18,13 @@
     }
   },
 
-  "remoteUser": "vscode",
+  "remoteUser": "dev",
 
   "mounts": [
     "source=/run/host-services/ssh-auth.sock,target=/ssh-agent,type=bind",
-    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
-    "source=connectors-maven-cache,target=/home/vscode/.m2,type=volume",
-    "source=connectors-npm-cache,target=/home/vscode/.npm,type=volume"
+    "source=${localEnv:HOME}/.gitconfig,target=/home/dev/.gitconfig,type=bind,readonly",
+    "source=connectors-maven-cache,target=/home/dev/.m2,type=volume",
+    "source=connectors-npm-cache,target=/home/dev/.npm,type=volume"
   ],
 
   "remoteEnv": {

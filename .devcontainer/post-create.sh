@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # Named volumes mount as root:root on first creation, blocking writes from
-# the non-root vscode user (mvnw/npm need to write into their caches).
-sudo chown vscode:vscode ~/.m2 ~/.npm
+# the non-root dev user (mvnw/npm need to write into their caches).
+sudo chown dev:dev ~/.m2 ~/.npm
 
 echo "==> Git"
 git --version
