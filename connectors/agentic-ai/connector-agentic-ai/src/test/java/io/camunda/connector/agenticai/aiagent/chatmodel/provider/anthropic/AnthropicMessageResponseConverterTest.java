@@ -477,6 +477,31 @@ class AnthropicMessageResponseConverterTest {
   }
 
   @Test
+  void mapsModelContextWindowExceededToContextWindowExceeded() {
+    final var message =
+        message(
+            """
+            {
+              "id": "msg_context_window_exceeded",
+              "model": "claude-sonnet-4-6",
+              "role": "assistant",
+              "type": "message",
+              "content": [{"type": "text", "text": "partial answer"}],
+              "stop_reason": "model_context_window_exceeded",
+              "usage": {"input_tokens": 1, "output_tokens": 1}
+            }
+            """);
+
+    final var result = converter.toResult(message, EXECUTION_TIME);
+
+    assertThat(result).isInstanceOf(ChatResult.Completed.class);
+    assertThat(result.assistantMessage().stopReason())
+        .isEqualTo(StopReason.CONTEXT_WINDOW_EXCEEDED);
+    assertThat(result.assistantMessage().metadata())
+        .containsEntry("anthropic", Map.of("stopReason", "model_context_window_exceeded"));
+  }
+
+  @Test
   void mapsUnrecognisedStopReasonToUnknownStopReasonCarryingTheRawValue() {
     final var message =
         message(

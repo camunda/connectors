@@ -964,17 +964,13 @@ invocation. The engine applies metric updates additively, so collapsing the roun
 keeps the counters correct while minimizing PATCH round-trips (and narrows the retry double-count
 window pending the API-level idempotency fix).
 
-### Normalized stop reasons & the content-filter guard
+### Normalized stop reasons & the terminal-stop-reason guard
 
-`StopReason` is a sealed, provider-neutral finish reason living on `AssistantMessage`: known values
-(`STOP`, `LENGTH`, `TOOL_USE`, `CONTENT_FILTERED`, `GUARDRAIL`, `ERROR`, `ABORTED`) plus an
-`UnknownStopReason` that carries an unrecognised vendor value verbatim. It is diagnostics and a thin
-predicate surface only — control flow keys off `AssistantMessage.hasToolCalls()`, not this field — with
-one exception: `BaseAgentRequestHandler` checks `stopReason() == StopReason.CONTENT_FILTERED` generically,
-before ingesting the response, and throws `ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED` if it matches.
-Enforcing the guard once in the orchestrator means every current and future provider inherits it rather
-than each reimplementing it. Continuation states (e.g. `pause_turn`) are represented via
-`ChatResult.Continuation`, not via `StopReason`.
+`StopReason` is a sealed, provider-neutral finish reason living on `AssistantMessage`, mostly
+diagnostic. One exception: `BaseAgentRequestHandler.throwIfTerminalStopReason` checks it generically,
+before ingesting the response, and throws a dedicated error code for terminal reasons
+(`CONTENT_FILTERED`, `CONTEXT_WINDOW_EXCEEDED`) rather than every provider reimplementing the guard —
+see [Error Codes](#15-error-codes).
 
 ### LangChain4j Implementation
 
@@ -1116,6 +1112,7 @@ on).
 | `ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT`           | `FAILED_TO_PARSE_RESPONSE_CONTENT`             | JSON parse failure (explicit JSON response format only)                 |
 | `ERROR_CODE_FAILED_MODEL_CALL`                          | `FAILED_MODEL_CALL`                            | the chat model call threw                                               |
 | `ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED`            | `MODEL_RESPONSE_CONTENT_FILTERED`              | provider blocked the model response with content filtering              |
+| `ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED`              | `MODEL_CONTEXT_WINDOW_EXCEEDED`                | model's context window was exceeded before it finished responding       |
 | `ERROR_CODE_MIGRATION_MISSING_TOOLS`                    | `MIGRATION_MISSING_TOOLS`                      | existing tools were removed after a process migration                   |
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |

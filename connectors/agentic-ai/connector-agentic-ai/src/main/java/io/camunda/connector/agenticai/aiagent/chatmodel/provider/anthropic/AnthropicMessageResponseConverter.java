@@ -187,6 +187,8 @@ public class AnthropicMessageResponseConverter {
       case TOOL_USE -> io.camunda.connector.agenticai.aiagent.model.message.StopReason.TOOL_USE;
       case REFUSAL ->
           io.camunda.connector.agenticai.aiagent.model.message.StopReason.CONTENT_FILTERED;
+      case MODEL_CONTEXT_WINDOW_EXCEEDED ->
+          io.camunda.connector.agenticai.aiagent.model.message.StopReason.CONTEXT_WINDOW_EXCEEDED;
       default ->
           new io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason(
               stopReason.asString());
