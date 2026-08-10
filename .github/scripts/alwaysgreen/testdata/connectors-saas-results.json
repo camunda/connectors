@@ -1,0 +1,185 @@
+{
+  "config": {
+    "rootDir": "/home/runner/_work/c8-cross-component-e2e-tests/c8-cross-component-e2e-tests/tests/8.10"
+  },
+  "suites": [
+    {
+      "title": "test-setup.spec.ts",
+      "file": "test-setup.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Cluster Setup Tests",
+          "file": "test-setup.spec.ts",
+          "line": 33,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Enable Alpha Features",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 720000,
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium-v2-setup",
+                  "projectName": "chromium-v2-setup",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "status": "skipped",
+                      "duration": 205,
+                      "retry": 0,
+                      "startTime": "2026-07-30T07:19:45.503Z"
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "6231f7bc451ffa4ed4ae-27f7ac2762c7523aae56",
+              "file": "test-setup.spec.ts",
+              "line": 39,
+              "column": 7
+            },
+            {
+              "title": "Create Default Cluster",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2160000,
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-v2-setup",
+                  "projectName": "chromium-v2-setup",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "status": "failed",
+                      "duration": 280012,
+                      "error": {
+                        "message": "Error: Login failed after 3 attempts: Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\nCall Log:\n- Timeout 60000ms exceeded while waiting on the predicate"
+                      },
+                      "retry": 0,
+                      "startTime": "2026-07-30T07:19:45.511Z"
+                    },
+                    {
+                      "workerIndex": 7,
+                      "status": "passed",
+                      "duration": 638382,
+                      "retry": 1,
+                      "startTime": "2026-07-30T07:24:26.370Z"
+                    }
+                  ],
+                  "status": "flaky"
+                }
+              ],
+              "id": "6231f7bc451ffa4ed4ae-8ebca52336a06034469b",
+              "file": "test-setup.spec.ts",
+              "line": 71,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "smoke-tests.spec.ts",
+      "file": "smoke-tests.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Smoke Tests",
+          "file": "smoke-tests.spec.ts",
+          "line": 32,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Most Common Flow User Flow With All Apps",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2160000,
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-v2",
+                  "projectName": "chromium-v2",
+                  "results": [
+                    {
+                      "workerIndex": 14,
+                      "status": "failed",
+                      "duration": 87147,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 30000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: getByTitle('append gateway')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - expect.toBeVisible with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for getByTitle('append gateway')\u001b[22m\n"
+                      },
+                      "retry": 0,
+                      "startTime": "2026-07-30T07:35:09.138Z"
+                    },
+                    {
+                      "workerIndex": 17,
+                      "status": "failed",
+                      "duration": 93300,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 30000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: getByTitle('append gateway')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - expect.toBeVisible with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for getByTitle('append gateway')\u001b[22m\n"
+                      },
+                      "retry": 1,
+                      "startTime": "2026-07-30T07:36:37.173Z"
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "a8bb41ad8b38f84bf4a2-ba9c910bd8afd4ff1c72",
+              "file": "smoke-tests.spec.ts",
+              "line": 47,
+              "column": 7
+            },
+            {
+              "title": "Most Common REST Connector User Flow",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2160000,
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-v2",
+                  "projectName": "chromium-v2",
+                  "results": [
+                    {
+                      "workerIndex": 15,
+                      "status": "failed",
+                      "duration": 65049,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 15000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: getByTitle('Append task')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - expect.toBeVisible with timeout 15000ms\u001b[22m\n\u001b[2m  - waiting for getByTitle('Append task')\u001b[22m\n"
+                      },
+                      "retry": 0,
+                      "startTime": "2026-07-30T07:35:09.155Z"
+                    },
+                    {
+                      "workerIndex": 16,
+                      "status": "failed",
+                      "duration": 69409,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 15000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: getByTitle('Append task')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - expect.toBeVisible with timeout 15000ms\u001b[22m\n\u001b[2m  - waiting for getByTitle('Append task')\u001b[22m\n"
+                      },
+                      "retry": 1,
+                      "startTime": "2026-07-30T07:36:15.064Z"
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "a8bb41ad8b38f84bf4a2-8694fdb0d2932cccf84b",
+              "file": "smoke-tests.spec.ts",
+              "line": 240,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -31,7 +31,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       "notification"
     },
     inputDataClass = SlackRequest.class,
-    version = 11,
+    version = 12,
     defaultResultExpression =
         "{\n"
             + "  myResponse: response\n"
