@@ -210,7 +210,7 @@ public class AnthropicMessageRequestConverter {
    * {@code custom} backend exposes these as regular properties; the {@code anthropic-api} backend
    * exposes the same extension points as hidden properties for special scenarios not covered by the
    * modeler UI (e.g. routing through an intermediary that requires extra headers); other backends
-   * (currently just {@code aws-bedrock-mantle}) have no such extension points.
+   * have no such extension points.
    */
   private void applyRequestCustomizations(
       MessageCreateParams.Builder builder, AnthropicConnection connection) {
@@ -226,14 +226,14 @@ public class AnthropicMessageRequestConverter {
     return switch (backend) {
       case AnthropicApiBackend apiBackend ->
           new RequestCustomizations(
-              Objects.requireNonNullElse(apiBackend.anthropic().headers(), Map.of()),
-              Objects.requireNonNullElse(apiBackend.anthropic().queryParameters(), Map.of()),
-              Objects.requireNonNullElse(apiBackend.anthropic().bodyProperties(), Map.of()));
+              apiBackend.anthropic().headers(),
+              apiBackend.anthropic().queryParameters(),
+              apiBackend.anthropic().bodyProperties());
       case AnthropicCustomBackend custom ->
           new RequestCustomizations(
-              Objects.requireNonNullElse(custom.custom().headers(), Map.of()),
-              Objects.requireNonNullElse(custom.custom().queryParameters(), Map.of()),
-              Objects.requireNonNullElse(custom.custom().bodyProperties(), Map.of()));
+              custom.custom().headers(),
+              custom.custom().queryParameters(),
+              custom.custom().bodyProperties());
       default -> RequestCustomizations.empty();
     };
   }
@@ -242,6 +242,15 @@ public class AnthropicMessageRequestConverter {
       Map<String, String> headers,
       Map<String, String> queryParameters,
       Map<String, Object> bodyProperties) {
+
+    private RequestCustomizations(
+        @Nullable Map<String, String> headers,
+        @Nullable Map<String, String> queryParameters,
+        @Nullable Map<String, Object> bodyProperties) {
+      this.headers = Objects.requireNonNullElse(headers, Map.of());
+      this.queryParameters = Objects.requireNonNullElse(queryParameters, Map.of());
+      this.bodyProperties = Objects.requireNonNullElse(bodyProperties, Map.of());
+    }
 
     static RequestCustomizations empty() {
       return new RequestCustomizations(Map.of(), Map.of(), Map.of());
