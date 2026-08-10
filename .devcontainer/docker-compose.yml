@@ -9,14 +9,10 @@ services:
       - ${HOST_HOME}/.gitconfig:/home/vscode/.gitconfig:ro
       - connectors-maven-cache:/home/vscode/.m2
       - connectors-npm-cache:/home/vscode/.npm
-      # If you use SSH-based commit signing (git config gpg.format=ssh) and want
-      # `git commit -S` to work in here too: it rides on the SSH agent forward
-      # above for free, it just also needs your public signing key visible at
-      # the SAME absolute path git expects (user.signingkey in your gitconfig)
-      # — add a personal line, not committed here since that path differs per
-      # developer and a missing file fails the whole container to start, not
-      # just this:
-      # - ${HOST_HOME}/.ssh/<your-key>.pub:${HOST_HOME}/.ssh/<your-key>.pub:ro
+      # Auto-detected by detect-host-env.sh from this host's own git config —
+      # a real path if SSH-based commit signing (gpg.format=ssh) is set up,
+      # otherwise /dev/null as a harmless no-op. See that script for why.
+      - ${SIGNING_PUBKEY_MOUNT_SRC}:${SIGNING_PUBKEY_MOUNT_DST}:ro
     command: sleep infinity
 
 volumes:

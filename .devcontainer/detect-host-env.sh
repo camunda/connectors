@@ -14,7 +14,25 @@ else
   SSH_AUTH_SOCK_MOUNT="$SSH_AUTH_SOCK"
 fi
 
+# SSH-based commit signing (git config gpg.format=ssh) needs its public key
+# file visible inside the container at the same absolute path git expects
+# (user.signingkey) — signing itself rides on the SSH_AUTH_SOCK forward above
+# for free. This differs per developer, so it can't be a fixed line in the
+# committed compose file; look it up from this host's own git config instead.
+# Falls back to a harmless /dev/null mount for anyone not using SSH signing.
+GPG_FORMAT="$(git config --global --get gpg.format || true)"
+SIGNING_KEY="$(git config --global --get user.signingkey || true)"
+if [ "$GPG_FORMAT" = "ssh" ] && [ -n "$SIGNING_KEY" ] && [ -f "$SIGNING_KEY" ]; then
+  SIGNING_PUBKEY_MOUNT_SRC="$SIGNING_KEY"
+  SIGNING_PUBKEY_MOUNT_DST="$SIGNING_KEY"
+else
+  SIGNING_PUBKEY_MOUNT_SRC="/dev/null"
+  SIGNING_PUBKEY_MOUNT_DST="/tmp/no-ssh-signing-key-configured"
+fi
+
 {
   echo "SSH_AUTH_SOCK_MOUNT=${SSH_AUTH_SOCK_MOUNT}"
   echo "HOST_HOME=${HOME}"
+  echo "SIGNING_PUBKEY_MOUNT_SRC=${SIGNING_PUBKEY_MOUNT_SRC}"
+  echo "SIGNING_PUBKEY_MOUNT_DST=${SIGNING_PUBKEY_MOUNT_DST}"
 } > .env
