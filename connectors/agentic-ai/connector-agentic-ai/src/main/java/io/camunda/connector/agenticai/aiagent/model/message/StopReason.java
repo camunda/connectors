@@ -10,12 +10,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * Provider-neutral, normalized finish reason. Primarily diagnostic (tool-call continuation keys off
- * {@link AssistantMessage#hasToolCalls()}, not this field), but it IS consulted for control flow in
- * at least one case: {@code BaseAgentRequestHandler} throws when this reason is {@link
- * KnownStopReason#CONTENT_FILTERED}, failing the job rather than ingesting a filtered response. The
- * raw vendor value is always preserved in {@link AssistantMessage#metadata()} in addition to living
- * on this field for a genuinely unrecognised value (see {@link UnknownStopReason} below).
+ * Provider-neutral, normalized finish reason.
  *
  * <p>This is a sealed interface, not an enum: {@link KnownStopReason} covers the recognised values,
  * while {@link UnknownStopReason} carries a vendor stop reason verbatim when it doesn't map to any
@@ -34,6 +29,7 @@ public sealed interface StopReason
   StopReason LENGTH = KnownStopReason.LENGTH;
   StopReason TOOL_USE = KnownStopReason.TOOL_USE;
   StopReason CONTENT_FILTERED = KnownStopReason.CONTENT_FILTERED;
+  StopReason CONTEXT_WINDOW_EXCEEDED = KnownStopReason.CONTEXT_WINDOW_EXCEEDED;
   StopReason GUARDRAIL = KnownStopReason.GUARDRAIL;
   StopReason ERROR = KnownStopReason.ERROR;
   StopReason ABORTED = KnownStopReason.ABORTED;
@@ -65,6 +61,8 @@ public sealed interface StopReason
     TOOL_USE,
     /** The response was blocked or redacted by provider content filtering. */
     CONTENT_FILTERED,
+    /** The model's total context window (input + output tokens) was exceeded. */
+    CONTEXT_WINDOW_EXCEEDED,
     /** The response was stopped by a provider-side guardrail policy. */
     GUARDRAIL,
     /** The provider reported an error while generating the response. */

@@ -15,6 +15,8 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration.ProxyDetails;
 import java.net.Authenticator;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.http.HttpClient;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -129,6 +131,60 @@ class AgenticAiHttpProxySupportTest {
     assertThat(client.proxy()).isPresent().get().isInstanceOf(JdkProxySelector.class);
     assertThat(httpProxySupport.getProxyConfiguration().getProxyDetails("http")).isPresent();
     assertThat(httpProxySupport.getProxyConfiguration().getProxyDetails("https")).isEmpty();
+  }
+
+  @Test
+  void okHttpProxyReturnsEmptyWhenNoProxyConfiguredForScheme() {
+    var httpProxySupport = new AgenticAiHttpProxySupport(ProxyConfiguration.NONE);
+
+    assertThat(httpProxySupport.okHttpProxy(ProxyConfiguration.SCHEME_HTTPS)).isEmpty();
+  }
+
+  @Test
+  void okHttpProxyDerivesProxyWithoutCredentials() {
+    var proxyConfig = testProxyConfiguration("proxy.example.com", 8080, null, null);
+    var httpProxySupport = new AgenticAiHttpProxySupport(proxyConfig);
+
+    var result = httpProxySupport.okHttpProxy(ProxyConfiguration.SCHEME_HTTPS);
+
+    assertThat(result).isPresent();
+    var okHttpProxy = result.get();
+    assertThat(okHttpProxy.proxy())
+        .isEqualTo(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("proxy.example.com", 8080)));
+    assertThat(okHttpProxy.hasCredentials()).isFalse();
+    assertThat(okHttpProxy.username()).isNull();
+    assertThat(okHttpProxy.password()).isNull();
+  }
+
+  @Test
+  void okHttpProxyDerivesProxyWithCredentials() {
+    var proxyConfig = testProxyConfiguration("proxy.example.com", 8080, "user", "pass");
+    var httpProxySupport = new AgenticAiHttpProxySupport(proxyConfig);
+
+    var result = httpProxySupport.okHttpProxy(ProxyConfiguration.SCHEME_HTTPS);
+
+    assertThat(result).isPresent();
+    var okHttpProxy = result.get();
+    assertThat(okHttpProxy.hasCredentials()).isTrue();
+    assertThat(okHttpProxy.username()).isEqualTo("user");
+    assertThat(okHttpProxy.password()).isEqualTo("pass");
+  }
+
+  @Test
+  void okHttpProxyQueriesProxyDetailsForTheRequestedSchemeOnly() {
+    ProxyConfiguration httpOnlyProxy =
+        protocol -> {
+          if (ProxyConfiguration.SCHEME_HTTP.equals(protocol)) {
+            return Optional.of(
+                new ProxyDetails(
+                    ProxyConfiguration.SCHEME_HTTP, "proxy.example.com", 8080, null, null));
+          }
+          return Optional.empty();
+        };
+    var httpProxySupport = new AgenticAiHttpProxySupport(httpOnlyProxy);
+
+    assertThat(httpProxySupport.okHttpProxy(ProxyConfiguration.SCHEME_HTTPS)).isEmpty();
+    assertThat(httpProxySupport.okHttpProxy(ProxyConfiguration.SCHEME_HTTP)).isPresent();
   }
 
   private static ProxyConfiguration testProxyConfiguration(

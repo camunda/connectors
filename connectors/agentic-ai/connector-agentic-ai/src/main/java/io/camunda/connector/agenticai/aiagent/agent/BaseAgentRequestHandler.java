@@ -219,7 +219,7 @@ public abstract class BaseAgentRequestHandler<
           workingConversation.window(agentConfiguration.contextWindowSize());
       final var chatResult = chatModel.execute(new ChatRequest(executionContext, windowedSnapshot));
 
-      throwIfContentFiltered(chatResult.assistantMessage());
+      throwIfTerminalStopReason(chatResult.assistantMessage());
 
       workingConversation =
           workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
@@ -243,11 +243,16 @@ public abstract class BaseAgentRequestHandler<
     return workingConversation;
   }
 
-  private void throwIfContentFiltered(AssistantMessage assistantMessage) {
+  private void throwIfTerminalStopReason(AssistantMessage assistantMessage) {
     if (assistantMessage.stopReason() == StopReason.CONTENT_FILTERED) {
       throw new ConnectorException(
           AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
           "Model response was blocked by provider content filtering.");
+    }
+    if (assistantMessage.stopReason() == StopReason.CONTEXT_WINDOW_EXCEEDED) {
+      throw new ConnectorException(
+          AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED,
+          "Model's context window was exceeded before it could finish generating a response.");
     }
   }
 
