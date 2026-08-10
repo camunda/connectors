@@ -48,7 +48,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * the final {@code usage}) - mirroring the real behavior of {@code
  * stream_options.include_usage=true}, which the native provider's request converter always sets.
  */
-final class NativeOpenAiCompletionsSseChatModelStubs {
+public final class NativeOpenAiCompletionsSseChatModelStubs {
 
   private static final String SCENARIO_NAME = "llm-conversation-native-openai-completions-sse";
   private static final ObjectMapper JSON = new ObjectMapper();
