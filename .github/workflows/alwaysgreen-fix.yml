@@ -502,7 +502,8 @@ jobs:
             case " ${FIX_REPOS} " in (*" $1 "*) return 0 ;; (*) return 1 ;; esac
           }
 
-          rm -f /tmp/manifest-rejected
+          rm -f /tmp/pr-step-failed
+          fatal() { echo "::error::$1"; printf '%s\n' "$1" >> /tmp/pr-step-failed; }
           jq -c '.prs[]?' /tmp/fix-meta.json | while read -r pr; do
             num=$(jq -r '.number // ""' <<<"$pr")
             owner=$(jq -r '.owner // ""' <<<"$pr")
@@ -518,18 +519,18 @@ jobs:
             # typo risk.
             if [[ ! "$num" =~ ^[0-9]+$ ]] || [ -z "$owner" ] || [ -z "$name" ] \
                || ! writable "$repo"; then
-              echo "::error::refusing to act on manifest entry ${pr} — number must be numeric and the repository one of: ${FIX_REPOS}"
-              touch /tmp/manifest-rejected
+              fatal "refusing to act on manifest entry ${pr} — number must be numeric and the repository one of: ${FIX_REPOS}"
               continue
             fi
 
-            # The key label is what triage reads to suppress re-dispatch, so a silent
-            # failure here means duplicate fix PRs on the next push. Keep stderr and say
-            # so loudly; still non-fatal, because a labelled-but-unreviewed PR is worth
-            # more than a failed run.
+            # The key label is the durable dedupe claim — the only one that outlives
+            # this run. Without it triage re-dispatches the key on the next failure and
+            # a second agent works the same problem, and for a connectors-side PR the
+            # open-PR path scan cannot cover the gap because it only looks at e2e spec
+            # paths. So a failure here is fatal, not a warning.
             if ! gh pr edit "$num" --repo "$repo" \
                    --add-label "${FIX_LABEL}" --add-label "${KEY_LABEL}"; then
-              echo "::warning::could not label ${repo}#${num} with ${KEY_LABEL} — triage will re-dispatch this key until the label is applied"
+              fatal "could not label ${repo}#${num} with ${KEY_LABEL} — the PR is open with no dedupe claim, so triage will dispatch another agent for this key"
             fi
 
             # Only source-repo PRs are branch-scoped; the e2e and chart repos have
@@ -537,12 +538,19 @@ jobs:
             # silently targets the default branch, which makes the diff the whole
             # stable-to-main delta.
             if [ "$repo" = "${DEFAULT_REPO}" ]; then
-              base=$(gh pr view "$num" --repo "$repo" --json baseRefName \
-                       --jq '.baseRefName' 2>/dev/null || echo "")
-              if [ -n "$base" ] && [ "$base" != "${BASE_REF}" ]; then
+              # Both halves are fatal on failure. An unverified base is not a safe
+              # base: a stable/8.x fix left pointing at main carries the whole
+              # stable-to-main delta, and merging it pushes stable-only code onto main.
+              # Reporting the agent as successful with that PR open is the worst of the
+              # available outcomes, so neither an unreadable base nor a refused
+              # retarget may pass quietly.
+              if ! base=$(gh pr view "$num" --repo "$repo" --json baseRefName \
+                            --jq '.baseRefName'); then
+                fatal "could not read the base branch of ${repo}#${num} — cannot confirm it targets ${BASE_REF}"
+              elif [ "$base" != "${BASE_REF}" ]; then
                 echo "::warning::${repo}#${num} opened against '${base}', retargeting to '${BASE_REF}'"
                 gh pr edit "$num" --repo "$repo" --base "${BASE_REF}" \
-                  || echo "::error::could not retarget ${repo}#${num} to ${BASE_REF}"
+                  || fatal "could not retarget ${repo}#${num} from '${base}' to ${BASE_REF} — the PR carries the whole ${base}-to-${BASE_REF} delta"
               fi
             fi
 
@@ -559,12 +567,12 @@ jobs:
           done
 
           # Checked after the loop, not inside it: the loop body runs in a subshell, so
-          # a variable set there would not survive. Valid entries are still processed —
-          # one bad record must not strand the PRs that were recorded correctly — but
-          # the run fails, because a PR the agent opened and mis-recorded is a PR
-          # nothing labelled, and triage will re-dispatch its key.
-          if [ -f /tmp/manifest-rejected ]; then
-            echo "::error::the agent's manifest contained entries this step refused to act on"
+          # a variable set there would not survive. Every entry is still processed —
+          # one bad record must not strand the PRs handled correctly — and the run then
+          # fails, because each of these leaves a PR open that nothing is tracking.
+          if [ -s /tmp/pr-step-failed ]; then
+            echo "::error::this run left PRs in a state nothing is tracking:"
+            cat /tmp/pr-step-failed
             exit 1
           fi
 

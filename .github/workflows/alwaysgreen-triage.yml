@@ -203,12 +203,20 @@ jobs:
             echo "::error::run_id must be numeric, got '$run_id'"
             exit 1
           fi
-          # base_ref is free-form on workflow_dispatch and flows into shell, jq and the
-          # dispatch key. Restrict it to what a git ref can contain before any of that.
-          if [[ ! "$INPUT_BASE_REF" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]]; then
-            echo "::error::base_ref contains unsupported characters"
-            exit 1
-          fi
+          # Canonical spellings only. This is not just input hygiene: the job's
+          # concurrency group is built from the raw input, while discovery normalises
+          # `refs/heads/main` and queue refs down to `main`. Accepting a non-canonical
+          # spelling would put a manual replay in a different concurrency group from
+          # the automatic triage for the same branch, while both derive the same
+          # dispatch key — reopening the double-dispatch race the group exists to
+          # close. Rejecting outright keeps group and key in agreement by construction.
+          case "$INPUT_BASE_REF" in
+            main|stable/8.7|stable/8.8|stable/8.9) ;;
+            *)
+              echo "::error::base_ref must be one of main, stable/8.7, stable/8.8, stable/8.9 — got '$INPUT_BASE_REF'"
+              exit 1
+              ;;
+          esac
           {
             echo "run_id=${run_id}"
             echo "base_ref=${INPUT_BASE_REF}"

@@ -190,6 +190,11 @@ def iter_specs(report: Any) -> Iterator[dict]:
 _SETUP_SPEC_RE = re.compile(r"test-setup\.spec\.[jt]s$")
 
 
+def is_setup_spec(path: str) -> bool:
+    """True for the provisioning spec, which is never a test-code fix."""
+    return bool(_SETUP_SPEC_RE.search(path or ""))
+
+
 @dataclass(frozen=True)
 class SpecCounts:
     total: int = 0

@@ -618,3 +618,45 @@ def test_non_terminal_statuses_are_not_evidence_of_a_real_failure():
     assert not _spec_with(["interrupted", "interrupted"]).deterministic
     assert not _spec_with(["skipped"]).deterministic
     assert not _spec_with([]).deterministic
+
+
+# ---------------------------------------------------------------------------
+# Provisioning specs in a mixed report
+# ---------------------------------------------------------------------------
+
+
+def test_is_setup_spec_matches_both_extensions_and_full_paths():
+    assert classify.is_setup_spec("test-setup.spec.ts")
+    assert classify.is_setup_spec("test-setup.spec.js")
+    assert classify.is_setup_spec("tests/8.10/test-setup.spec.ts")
+    assert not classify.is_setup_spec("tests/8.10/smoke-tests.spec.ts")
+    assert not classify.is_setup_spec("")
+
+
+def test_a_mixed_report_stays_dispatchable_but_still_carries_its_setup_failures():
+    # Provisioning broke *and* a real spec failed. The surface is dispatchable for the
+    # real one, so the setup specs would otherwise travel in the payload and the agent
+    # would be told to fix org provisioning as test code. discover.saas_candidate
+    # filters them; this pins the shape that makes the filter necessary.
+    report = _nested_report(
+        [
+            {"file": "test-setup.spec.ts", "title": "Create Org", "ok": False,
+             "tests": [{"results": [{"status": "failed"}]}]},
+            {"file": "smoke-tests.spec.ts", "title": "Basic Login", "ok": False,
+             "tests": [{"results": [{"status": "failed"}]}]},
+        ]
+    )
+    counts = classify.count_specs(report)
+    assert (counts.failed, counts.setup_failed) == (2, 1)
+    assert (
+        classify.saas_surface_from_counts(counts, has_artifacts=True)
+        == classify.SURFACE_SAAS_E2E
+    )
+
+    specs = classify.failing_specs(report, suite="8.10")
+    assert [s.file for s in specs if classify.is_setup_spec(s.file)] == [
+        "tests/8.10/test-setup.spec.ts"
+    ]
+    assert [s.file for s in specs if not classify.is_setup_spec(s.file)] == [
+        "tests/8.10/smoke-tests.spec.ts"
+    ]

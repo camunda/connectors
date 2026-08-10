@@ -244,6 +244,21 @@ def saas_candidate(run_id: str, base_ref: str, job_name: str, workdir: Path) -> 
     if cand.surface != classify.SURFACE_SAAS_E2E:
         # Only a genuine non-setup test failure is actionable in test code.
         cand.specs = []
+        return cand
+
+    # A mixed report — org provisioning broke *and* a real spec failed — stays
+    # dispatchable for the real one, but the setup failures must not travel with it.
+    # The agent is told to fix every spec it is given, and test-setup.spec.ts failing
+    # is a cluster/org problem no test-code change can address. Dropping them here also
+    # keeps them out of the coverage block, so the provisioning failure stays
+    # unclaimed and is re-triaged rather than marked handled.
+    dropped = [s for s in cand.specs if classify.is_setup_spec(s.file)]
+    if dropped:
+        log(
+            f"saas: withholding {len(dropped)} provisioning spec(s) from the payload: "
+            + ", ".join(sorted({s.file for s in dropped}))
+        )
+        cand.specs = [s for s in cand.specs if not classify.is_setup_spec(s.file)]
     return cand
 
 
