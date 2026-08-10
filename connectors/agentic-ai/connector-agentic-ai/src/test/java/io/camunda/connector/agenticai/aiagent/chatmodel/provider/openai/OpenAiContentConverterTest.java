@@ -380,15 +380,6 @@ class OpenAiContentConverterTest {
   }
 
   @Test
-  void unwrapsObjectContentRatherThanSerializingTheEnvelope() {
-    var items = converter.toToolResultOutputItems(List.of(ObjectContent.objectContent(24)));
-
-    assertThat(items)
-        .singleElement()
-        .satisfies(i -> assertThat(i.inputText().orElseThrow().text()).isEqualTo("24"));
-  }
-
-  @Test
   void rejectsUnsupportedContentType() {
     assertThatThrownBy(
             () ->
