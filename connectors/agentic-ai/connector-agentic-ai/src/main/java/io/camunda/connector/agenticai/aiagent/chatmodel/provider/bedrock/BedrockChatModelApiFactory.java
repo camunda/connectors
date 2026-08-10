@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderSupport.CONNECT_TIMEOUT;
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderSupport.deriveTimeoutSetting;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatModelProviderSupport.CONNECT_TIMEOUT;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatModelProviderSupport.deriveTimeoutSetting;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
