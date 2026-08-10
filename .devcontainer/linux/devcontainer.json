@@ -31,10 +31,6 @@
     "SSH_AUTH_SOCK": "/ssh-agent"
   },
 
-  "containerEnv": {
-    "TESTCONTAINERS_HOST_OVERRIDE": "host.docker.internal"
-  },
-
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "postStartCommand": "sudo chmod 666 /ssh-agent"
 }
