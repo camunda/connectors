@@ -31,6 +31,5 @@
     "SSH_AUTH_SOCK": "/ssh-agent"
   },
 
-  "postCreateCommand": "bash .devcontainer/post-create.sh",
-  "postStartCommand": "sudo chmod 666 /ssh-agent"
+  "postCreateCommand": "bash .devcontainer/post-create.sh"
 }
