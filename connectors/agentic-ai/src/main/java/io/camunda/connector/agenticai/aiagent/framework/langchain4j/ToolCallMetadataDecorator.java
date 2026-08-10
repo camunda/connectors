@@ -73,7 +73,8 @@ final class ToolCallMetadataDecorator {
       case GoogleVertexAiProviderConfiguration ignored -> {
         if (toolCallMetadata.get(GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID)
                 instanceof Map<?, ?> googleMetadata
-            && googleMetadata.get(GOOGLE_THOUGHT_SIGNATURE_METADATA_KEY) instanceof String signature) {
+            && googleMetadata.get(GOOGLE_THOUGHT_SIGNATURE_METADATA_KEY)
+                instanceof String signature) {
           yield Map.of(GOOGLE_THOUGHT_SIGNATURE_ATTRIBUTE_KEY_PREFIX + toolCallId, signature);
         }
         yield Map.of();
