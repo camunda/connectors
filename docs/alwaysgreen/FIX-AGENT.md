@@ -307,11 +307,15 @@ Write `/tmp/fix-meta.json` before stopping, always:
 }
 ```
 
-`owner` and `repo` are required — a PR can land in `connectors` or
-`c8-cross-component-e2e-tests`, and the workflow uses them to label it and request
-review. Naming `camunda-platform-helm` or `camunda-docs` here is a mistake: the token
-cannot reach them, so the labelling step would fail on a PR that should never have been
-opened. A finding in either belongs in `reason` with an empty `prs`.
+Every entry needs a numeric `number` plus `owner` and `repo`, and the repository must be
+`camunda/connectors` or `camunda/c8-cross-component-e2e-tests` — the workflow reads them
+to label the PR and request review.
+
+There is no default and no leniency here: an entry the workflow cannot verify is refused
+and the run fails. The alternative is acting on whatever PR happens to carry that number
+in the wrong repository — labelling it, requesting review on it, and retargeting its base
+branch. `camunda-platform-helm` and `camunda-docs` are rejected for the same reason; a
+finding in either belongs in `reason` with an empty `prs`.
 
 **`"prs": []` with `category: "not-determined"` is a legitimate, expected outcome.** If the
 evidence shows the environment broke and you cannot pin it to a config change, say so and

@@ -479,6 +479,7 @@ jobs:
           GH_TOKEN: ${{ steps.github-token.outputs.token }}
           BLAME_REVIEWER: ${{ steps.ctx.outputs.blame_reviewer }}
           DEFAULT_REPO: ${{ github.repository }}
+          FIX_REPOS: camunda/connectors camunda/c8-cross-component-e2e-tests
           BASE_REF: ${{ inputs.base_ref }}
           KEY_LABEL: ag-key:${{ inputs.dispatch_key }}
         run: |
@@ -497,12 +498,30 @@ jobs:
             exit 0
           fi
 
+          writable() {
+            case " ${FIX_REPOS} " in (*" $1 "*) return 0 ;; (*) return 1 ;; esac
+          }
+
+          rm -f /tmp/manifest-rejected
           jq -c '.prs[]?' /tmp/fix-meta.json | while read -r pr; do
-            num=$(jq -r '.number' <<<"$pr")
+            num=$(jq -r '.number // ""' <<<"$pr")
             owner=$(jq -r '.owner // ""' <<<"$pr")
             name=$(jq -r '.repo // ""' <<<"$pr")
-            repo="${DEFAULT_REPO}"
-            [ -n "$owner" ] && [ -n "$name" ] && repo="${owner}/${name}"
+            repo="${owner}/${name}"
+
+            # Every field is checked, and there is deliberately no fallback repository.
+            # A missing owner/repo used to resolve to this one, so an e2e PR recorded
+            # without its repo would have been matched against whatever connectors PR
+            # happens to carry that number — and the block below labels it, requests
+            # review on it, and retargets its base branch. The manifest is written by
+            # the agent from evidence it downloaded, so a wrong entry is not only a
+            # typo risk.
+            if [[ ! "$num" =~ ^[0-9]+$ ]] || [ -z "$owner" ] || [ -z "$name" ] \
+               || ! writable "$repo"; then
+              echo "::error::refusing to act on manifest entry ${pr} — number must be numeric and the repository one of: ${FIX_REPOS}"
+              touch /tmp/manifest-rejected
+              continue
+            fi
 
             # The key label is what triage reads to suppress re-dispatch, so a silent
             # failure here means duplicate fix PRs on the next push. Keep stderr and say
@@ -538,6 +557,16 @@ jobs:
               fi
             fi
           done
+
+          # Checked after the loop, not inside it: the loop body runs in a subshell, so
+          # a variable set there would not survive. Valid entries are still processed —
+          # one bad record must not strand the PRs that were recorded correctly — but
+          # the run fails, because a PR the agent opened and mis-recorded is a PR
+          # nothing labelled, and triage will re-dispatch its key.
+          if [ -f /tmp/manifest-rejected ]; then
+            echo "::error::the agent's manifest contained entries this step refused to act on"
+            exit 1
+          fi
 
       - name: Write job summary
         if: always()
