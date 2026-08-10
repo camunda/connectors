@@ -201,6 +201,15 @@ All production code is `@NullMarked` via per-package `package-info.java`: every 
 - Fix null-safety errors by handling the null. Never suppress them.
 - `@NullUnmarked` is a named deferral only. Add a comment explaining why; file a follow-up issue.
 - For third-party APIs without nullability annotations, inspect their source to determine the actual contract.
+- After adding a new package, run `connector-agentic-ai/bin/generate-package-info.groovy` to fill in any
+  missing `package-info.java` (it's idempotent and scans every package under `src/main/java`, so it also
+  catches pre-existing gaps, not just the one you added):
+  ```bash
+  cd connectors/agentic-ai/connector-agentic-ai
+  mvn org.codehaus.gmavenplus:gmavenplus-plugin:5.1.0:execute -Dscripts="file:///$(pwd)/bin/generate-package-info.groovy"
+  ```
+  Run `mvn license:format` on the module afterwards — the script doesn't stamp the license header — then
+  commit the generated file(s).
 
 ### Definition of Done
 
