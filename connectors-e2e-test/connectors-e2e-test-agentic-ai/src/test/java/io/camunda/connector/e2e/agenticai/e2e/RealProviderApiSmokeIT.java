@@ -252,6 +252,32 @@ class RealProviderApiSmokeIT {
         true);
   }
 
+  // The OpenAI API family axis (Chat Completions vs Responses) and the backend axis (OpenAI API
+  // vs Azure/custom) are orthogonal; this row always targets the openai-api backend, mirroring
+  // anthropicApi above. `family` is the OpenAiApi discriminator ("completions" or "responses"),
+  // which also selects the nested property path for family-specific parameters (e.g. effort).
+  static Provider openAiApi(
+      String family, String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new Provider(
+        "openai-api/" + family + "/" + model,
+        List.of("OPENAI_API_KEY"),
+        Map.of(
+            "provider.type",
+            "openai",
+            "provider.openai.backend.type",
+            "openai-api",
+            "provider.openai.backend.openai.apiKey",
+            envOrPlaceholder("OPENAI_API_KEY"),
+            "provider.openai.api.type",
+            family,
+            "provider.openai.model.model",
+            model),
+        capabilityProperties,
+        // OpenAI reports a cache-read token count but no distinct cache-creation (write) metric
+        // for either API family, unlike Anthropic.
+        false);
+  }
+
   static Stream<Provider> providers() {
     return Stream.of(
             // claude-sonnet-4-6 only supports thinking mode "enabled" (explicit budget) — the model
@@ -297,7 +323,31 @@ class RealProviderApiSmokeIT {
                     Capability.REASONING,
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",
-                            "provider.anthropic.model.parameters.effort", "high"))))
+                            "provider.anthropic.model.parameters.effort", "high"))),
+            // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
+            // domain block in addition to reasoning_tokens, so REASONING is exercisable here.
+            openAiApi(
+                "responses",
+                "gpt-5.5",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
+                    Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
+            // Chat Completions never returns/replays a ReasoningContent domain block — only
+            // reasoning_tokens surfaces into TokenUsage — so this row intentionally omits
+            // Capability.REASONING even though the model supports reasoning_effort. The shared
+            // reasoningEnabledProducesReasoningContent assertion has no token-count-based
+            // alternative path and would guarantee-fail against this API family.
+            openAiApi(
+                "completions",
+                "gpt-5.5",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())))
         .filter(Provider::isEnabled);
   }
 
