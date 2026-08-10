@@ -97,6 +97,25 @@ jobs:
     name: Classify and dispatch
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # The in-flight check is a read taken before the dispatch write, and nothing made
+    # the two atomic. MERGE_QUEUE_HELM_TEST.yaml puts the commit SHA in its concurrency
+    # group on protected branches, deliberately, so consecutive pushes run in parallel —
+    # two of them 13 seconds apart is a real, observed pattern. Two such runs could both
+    # fail, both reach triage, both see no agent running for the key, and both dispatch
+    # it: two agents editing the same specs, which is the one thing the dedupe layers
+    # exist to prevent.
+    #
+    # Serialising triage per branch closes it without new state: the second run waits,
+    # and by the time it reads, the first run's fix agent exists and is visible. The
+    # dispatch step already blocks until it can resolve that run, so the ordering holds.
+    #
+    # cancel-in-progress stays false — cancelling a triage would drop a real failure on
+    # the floor. A third concurrent run displaces the queued second one, which is the
+    # safe direction: a skipped triage re-triages on the next failure, a duplicate PR
+    # does not un-happen.
+    concurrency:
+      group: alwaysgreen-triage-${{ github.repository }}-${{ inputs.base_ref }}
+      cancel-in-progress: false
     steps:
       # Checkout first: the flag lives in a local composite action, and the flag
       # decides whether anything else runs.
