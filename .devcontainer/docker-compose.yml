@@ -1,0 +1,24 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspaces/connectors:cached
+      - ${SSH_AUTH_SOCK_MOUNT}:/ssh-agent
+      - ${HOST_HOME}/.gitconfig:/home/vscode/.gitconfig:ro
+      - connectors-maven-cache:/home/vscode/.m2
+      - connectors-npm-cache:/home/vscode/.npm
+      # If you use SSH-based commit signing (git config gpg.format=ssh) and want
+      # `git commit -S` to work in here too: it rides on the SSH agent forward
+      # above for free, it just also needs your public signing key visible at
+      # the SAME absolute path git expects (user.signingkey in your gitconfig)
+      # — add a personal line, not committed here since that path differs per
+      # developer and a missing file fails the whole container to start, not
+      # just this:
+      # - ${HOST_HOME}/.ssh/<your-key>.pub:${HOST_HOME}/.ssh/<your-key>.pub:ro
+    command: sleep infinity
+
+volumes:
+  connectors-maven-cache:
+  connectors-npm-cache:

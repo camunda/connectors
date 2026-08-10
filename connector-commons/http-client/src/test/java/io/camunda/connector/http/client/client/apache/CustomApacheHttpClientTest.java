@@ -165,7 +165,7 @@ public class CustomApacheHttpClientTest {
           () -> {
             withEnvironmentVariables(
                     "CONNECTOR_HTTP_PROXY_HOST",
-                    "localhost",
+                    proxyContainer.getHost(),
                     "CONNECTOR_HTTP_PROXY_PORT",
                     proxyContainer.getMappedPort(3128).toString(),
                     "CONNECTOR_HTTP_PROXY_USER",
@@ -220,7 +220,7 @@ public class CustomApacheHttpClientTest {
           () -> {
             withEnvironmentVariables(
                     "CONNECTOR_HTTP_PROXY_HOST",
-                    "localhost",
+                    proxyContainer.getHost(),
                     "CONNECTOR_HTTP_PROXY_PORT",
                     proxyContainer.getMappedPort(3128).toString(),
                     "CONNECTOR_HTTP_PROXY_USER",
@@ -249,7 +249,7 @@ public class CustomApacheHttpClientTest {
           () -> {
             withEnvironmentVariables(
                     "CONNECTOR_HTTP_PROXY_HOST",
-                    "localhost",
+                    proxyContainer.getHost(),
                     "CONNECTOR_HTTP_PROXY_PORT",
                     proxyContainer.getMappedPort(3128).toString(),
                     "CONNECTOR_HTTP_PROXY_USER",
