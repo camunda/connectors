@@ -18,7 +18,7 @@ for impossible scenarios, no unrequested flexibility. Touch only what the task r
 | `connector-runtime/`           | Execution environment — `connector-runtime-core/`, `-spring/`, `spring-boot-starter-camunda-connectors/` |
 | `connectors/`                  | Out-of-the-box connectors (one Maven module per connector)          |
 | `element-template-generator/`  | Generates Camunda Modeler element templates from annotations        |
-| `bundle/`                      | Docker images bundling runtime + connectors                         |
+| `apps/`                        | Docker images and runtime application (bundles runtime + connectors) |
 | `connector-commons/`           | Shared utilities: `connector-object-mapper/`, `connector-test-utils/`, `http-client/` |
 | `secret-providers/`            | Secret provider implementations                                     |
 | `connectors-e2e-test/`         | End-to-end test modules                                              |

@@ -1,10 +1,10 @@
 # These owners will be the default owners for everything in the repo.
 * @camunda/connectors
 
-# Core platform infrastructure (SDK, runtime, bundle, shared libs)
+# Core platform infrastructure (SDK, runtime, deliverable apps, shared libs)
 /connector-sdk/ @camunda/connectors-core
 /connector-runtime/ @camunda/connectors-core
-/bundle/ @camunda/connectors-core
+/apps/ @camunda/connectors-core
 /connector-commons/ @camunda/connectors-core
 /parent/ @camunda/connectors-core
 /secret-providers/ @camunda/connectors-core

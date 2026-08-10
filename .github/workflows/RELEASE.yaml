@@ -186,7 +186,7 @@ jobs:
 
       - name: Generate sbom reports
         run: |
-          ./mvnw cyclonedx:makeAggregateBom -pl bundle/default-bundle
+          ./mvnw cyclonedx:makeAggregateBom -pl apps/bundle/default-bundle
 
       - name: Generate a GitHub App token
         id: app-token
@@ -519,19 +519,19 @@ jobs:
       matrix:
         include:
           - name: connector-runtime
-            context: connector-runtime/connector-runtime-application/
+            context: apps/connector-runtime-application/
             image: camunda/connectors
             readme: ''
             short_description: ''
           - name: bundle-default
-            context: bundle/default-bundle/
+            context: apps/bundle/default-bundle/
             image: camunda/connectors-bundle
-            readme: bundle/README.md
+            readme: apps/bundle/README.md
             short_description: 'Camunda out-of-the-box Connectors Bundle'
           - name: bundle-saas
-            context: bundle/camunda-saas-bundle/
+            context: apps/bundle/camunda-saas-bundle/
             image: camunda/connectors-bundle-saas
-            readme: bundle/README.md
+            readme: apps/bundle/README.md
             short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
     permissions:
       contents: read
@@ -639,7 +639,7 @@ jobs:
 
       # Update GitHub release
       - name: Bundle element templates
-        run: bash bundle/bundle-templates.sh ${RELEASE_VERSION}
+        run: bash apps/bundle/bundle-templates.sh ${RELEASE_VERSION}
         env:
           RELEASE_VERSION: ${{ inputs.version }}
 
@@ -662,8 +662,8 @@ jobs:
           body: ${{ steps.changelog.outputs.changes }}
           tag_name: ${{ inputs.version }}
           files: |
-            bundle/default-bundle/target/connectors-bundle-sbom.json
-            bundle/default-bundle/target/connectors-bundle-sbom.xml
+            apps/bundle/default-bundle/target/connectors-bundle-sbom.json
+            apps/bundle/default-bundle/target/connectors-bundle-sbom.xml
             connectors-bundle-templates-${{ inputs.version }}.tar.gz
             connectors-bundle-templates-${{ inputs.version }}.zip
 
