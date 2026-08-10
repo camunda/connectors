@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitHub Outbound Connector",
   "id": "io.camunda.connectors.GitHub.v1",
-  "version": 13,
+  "version": 12,
   "engines": {
     "camunda": "^8.7"
   },
@@ -596,7 +596,7 @@
     {
       "group": "authentication",
       "type": "Hidden",
-      "value": "= if authentication.authType = \"github_app\" then {\"camunda.function.type\":\"createGithubAppInstallationToken\",\"params\":[authentication.githubAppPrivateKey,authentication.githubAppAppId,authentication.githubAppInstallationId]} else authentication.pat",
+      "value": "= if authType = \"github_app\" then {\"camunda.function.type\":\"createGithubAppInstallationToken\",\"params\":[githubAppPrivateKey,githubAppAppId,githubAppInstallationId]} else pat",
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.token"
