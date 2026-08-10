@@ -79,32 +79,10 @@ public class AnthropicMessageResponseConverter {
     final List<ToolCall> toolCalls = new ArrayList<>();
 
     for (final ContentBlock block : message.content()) {
-      if (block.isText()) {
-        final var text = block.text().orElseThrow();
-        content.add(TextContent.textContent(text.text()));
-      } else if (block.isToolUse()) {
-        final var toolUse = block.toolUse().orElseThrow();
-        toolCalls.add(new ToolCall(toolUse.id(), toolUse.name(), toolUseArguments(toolUse)));
-      } else if (block.isThinking()) {
-        // Raw block preserved verbatim (minus the lifted-out text) so it replays byte-identical
-        // on the request side; see AnthropicContentConverter, which merges the text back in
-        final Map<String, Object> raw = new LinkedHashMap<>(rawBlock(block));
-        final String text =
-            block.thinking().map(ThinkingBlock::thinking).filter(StringUtils::hasText).orElse(null);
-        if (text == null) {
-          content.add(new ReasoningContent(ANTHROPIC_ID, raw, null, null));
-        } else {
-          raw.remove("thinking");
-          content.add(new ReasoningContent(ANTHROPIC_ID, raw, text, null));
-        }
-      } else if (block.isRedactedThinking()) {
-        // Redacted thinking blocks carry no readable text (the `data` field is encrypted), so
-        // there is nothing to lift out of the payload.
-        content.add(new ReasoningContent(ANTHROPIC_ID, rawBlock(block), null, null));
+      if (block.isToolUse()) {
+        toolCalls.add(toToolCall(block.toolUse().orElseThrow()));
       } else {
-        // Fallback for any Anthropic content block type not explicitly handled above: preserve
-        // it losslessly, in original order, as ProviderContent
-        content.add(new ProviderContent(ANTHROPIC_ID, rawBlock(block), null));
+        content.add(toContent(block));
       }
     }
 
@@ -123,6 +101,39 @@ public class AnthropicMessageResponseConverter {
         .stopReason(mapStopReason(message.stopReason().orElse(null)))
         .metadata(AssistantMessageMetadata.withDefaults(anthropicMetadata))
         .build();
+  }
+
+  private Content toContent(ContentBlock block) {
+    if (block.isText()) {
+      return TextContent.textContent(block.text().orElseThrow().text());
+    } else if (block.isThinking()) {
+      return toReasoningContent(block);
+    } else if (block.isRedactedThinking()) {
+      // Redacted thinking blocks carry no readable text (the `data` field is encrypted), so
+      // there is nothing to lift out of the payload.
+      return new ReasoningContent(ANTHROPIC_ID, rawBlock(block), null, null);
+    } else {
+      // Fallback for any Anthropic content block type not explicitly handled above: preserve
+      // it losslessly, in original order, as ProviderContent
+      return new ProviderContent(ANTHROPIC_ID, rawBlock(block), null);
+    }
+  }
+
+  private ReasoningContent toReasoningContent(ContentBlock block) {
+    // Raw block preserved verbatim (minus the lifted-out text) so it replays byte-identical on
+    // the request side; see AnthropicContentConverter, which merges the text back in
+    final Map<String, Object> raw = new LinkedHashMap<>(rawBlock(block));
+    final String text =
+        block.thinking().map(ThinkingBlock::thinking).filter(StringUtils::hasText).orElse(null);
+    if (text == null) {
+      return new ReasoningContent(ANTHROPIC_ID, raw, null, null);
+    }
+    raw.remove("thinking");
+    return new ReasoningContent(ANTHROPIC_ID, raw, text, null);
+  }
+
+  private ToolCall toToolCall(ToolUseBlock toolUse) {
+    return new ToolCall(toolUse.id(), toolUse.name(), toolUseArguments(toolUse));
   }
 
   private Map<String, Object> rawBlock(ContentBlock block) {
