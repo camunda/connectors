@@ -36,13 +36,9 @@ public final class DocumentHandle {
    *       population and render sites, so correlation and dedup work correctly
    * </ul>
    *
-   * <p>Unlike the original implementation this was ported from (PR #7632, branch {@code
-   * agentic-ai-sandbox-gateway-tool}), the generic/unsupported case throws instead of falling back
-   * to a random UUID. A content-hash fallback would produce a valid-looking id over an invalid
-   * payload: the only reachable instance of this case is an {@link InlineDocumentReference} with
-   * blank content, whose {@link Document#asByteArray()} is empty and which Bedrock rejects outright
-   * — so failing fast here surfaces the real problem instead of masking it behind a document handle
-   * that looks fine.
+   * <p>Any other reference type, or an {@link InlineDocumentReference} with blank content, throws
+   * rather than falling back to a random id: a fallback would produce a valid-looking handle over
+   * an unsupported payload instead of surfacing the real problem.
    *
    * <p>The {@code case null, default} arm is compiler-mandated even though only the three reference
    * types above are expected: {@link DocumentReference} is a plain, non-sealed interface, so the
@@ -68,11 +64,13 @@ public final class DocumentHandle {
     };
   }
 
-  static String sha256Prefix(String input, int hexChars) {
+  private static final HexFormat HEX_FORMAT = HexFormat.of();
+
+  private static String sha256Prefix(String input, int hexChars) {
     try {
       final var digest = MessageDigest.getInstance("SHA-256");
       final var bytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-      return HexFormat.of().formatHex(bytes).substring(0, hexChars);
+      return HEX_FORMAT.formatHex(bytes).substring(0, hexChars);
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("SHA-256 not available", e);
     }
