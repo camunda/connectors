@@ -14,6 +14,7 @@ import com.anthropic.core.ObjectMappers;
 import com.anthropic.models.messages.ContentBlock;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.StopReason;
+import com.anthropic.models.messages.ThinkingBlock;
 import com.anthropic.models.messages.ToolUseBlock;
 import com.anthropic.models.messages.Usage;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -33,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
+import org.springframework.util.StringUtils;
 
 /**
  * Maps an accumulated Anthropic SDK {@link Message} response to the domain {@link
@@ -84,12 +86,10 @@ public class AnthropicMessageResponseConverter {
       } else if (block.isThinking()) {
         // Raw block preserved verbatim (minus the lifted-out text) so it replays byte-identical
         // on the request side; see AnthropicContentConverter, which merges the text back in
-        final Map<String, Object> raw =
-            new LinkedHashMap<>(
-                ObjectMappers.jsonMapper()
-                    .convertValue(block, new TypeReference<Map<String, Object>>() {}));
-        final String text = block.thinking().orElseThrow().thinking();
-        if (text.isEmpty()) {
+        final Map<String, Object> raw = new LinkedHashMap<>(rawBlock(block));
+        final String text =
+            block.thinking().map(ThinkingBlock::thinking).filter(StringUtils::hasText).orElse(null);
+        if (text == null) {
           content.add(new ReasoningContent(ANTHROPIC_ID, raw, null, null));
         } else {
           raw.remove("thinking");
@@ -98,17 +98,11 @@ public class AnthropicMessageResponseConverter {
       } else if (block.isRedactedThinking()) {
         // Redacted thinking blocks carry no readable text (the `data` field is encrypted), so
         // there is nothing to lift out of the payload.
-        final Map<String, Object> raw =
-            ObjectMappers.jsonMapper()
-                .convertValue(block, new TypeReference<Map<String, Object>>() {});
-        content.add(new ReasoningContent(ANTHROPIC_ID, raw, null, null));
+        content.add(new ReasoningContent(ANTHROPIC_ID, rawBlock(block), null, null));
       } else {
         // Fallback for any Anthropic content block type not explicitly handled above: preserve
         // it losslessly, in original order, as ProviderContent
-        final Map<String, Object> raw =
-            ObjectMappers.jsonMapper()
-                .convertValue(block, new TypeReference<Map<String, Object>>() {});
-        content.add(new ProviderContent(ANTHROPIC_ID, raw, null));
+        content.add(new ProviderContent(ANTHROPIC_ID, rawBlock(block), null));
       }
     }
 
@@ -127,6 +121,11 @@ public class AnthropicMessageResponseConverter {
         .stopReason(mapStopReason(message.stopReason().orElse(null)))
         .metadata(AssistantMessageMetadata.withDefaults(anthropicMetadata))
         .build();
+  }
+
+  private Map<String, Object> rawBlock(ContentBlock block) {
+    return ObjectMappers.jsonMapper()
+        .convertValue(block, new TypeReference<Map<String, Object>>() {});
   }
 
   private Map<String, Object> toolUseArguments(ToolUseBlock toolUse) {

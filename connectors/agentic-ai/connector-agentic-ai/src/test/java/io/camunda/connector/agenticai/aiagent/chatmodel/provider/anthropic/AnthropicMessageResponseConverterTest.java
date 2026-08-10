@@ -212,6 +212,38 @@ class AnthropicMessageResponseConverterTest {
   }
 
   @Test
+  void mapsThinkingWithWhitespaceOnlyTextToReasoningContentWithoutLiftingIt() {
+    // Whitespace-only `thinking` text is treated as absent, same as an empty string.
+    final var message =
+        message(
+            """
+            {
+              "id": "msg_blank_thinking",
+              "model": "claude-sonnet-4-6",
+              "role": "assistant",
+              "type": "message",
+              "content": [
+                {"type": "thinking", "thinking": "   ", "signature": "sig-123"},
+                {"type": "text", "text": "the answer"}
+              ],
+              "stop_reason": "end_turn",
+              "usage": {"input_tokens": 1, "output_tokens": 1}
+            }
+            """);
+
+    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+
+    assertThat(assistantMessage.content())
+        .containsExactly(
+            new ReasoningContent(
+                "anthropic",
+                Map.of("type", "thinking", "thinking", "   ", "signature", "sig-123"),
+                null,
+                null),
+            TextContent.textContent("the answer"));
+  }
+
+  @Test
   void mapsRedactedThinkingToReasoningContentWithRawBlockPayload() {
     final var message =
         message(

@@ -132,11 +132,15 @@ public class AnthropicContentConverter {
       merged.put("thinking", rc.text());
       payload = merged;
     }
-    return ObjectMappers.jsonMapper().convertValue(payload, ContentBlockParam.class);
+    return toContentBlockParam(payload);
   }
 
   private ContentBlockParam toProviderContentBlockParam(ProviderContent pc) {
-    return ObjectMappers.jsonMapper().convertValue(pc.payload(), ContentBlockParam.class);
+    return toContentBlockParam(pc.payload());
+  }
+
+  private ContentBlockParam toContentBlockParam(Object payload) {
+    return ObjectMappers.jsonMapper().convertValue(payload, ContentBlockParam.class);
   }
 
   public List<ToolResultBlockParam.Content.Block> toToolResultBlocks(List<Content> content) {
