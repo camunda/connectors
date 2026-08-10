@@ -97,6 +97,15 @@
         "connectors/google/pom.xml"
       ],
       "enabled": false
+    },
+    {
+      "description": "Skip BouncyCastle 1.85.2 — it's an incomplete release: bcprov-jdk18on was published at 1.85.2 but bcpkix-jdk18on and bcutil-jdk18on were not, so the shared version.bouncycastle property can't resolve on Maven Central. Remove once a full, consistent 1.85.x/1.86+ release exists across all bc*-jdk18on artifacts.",
+      "matchPackageNames": [
+        "org.bouncycastle:bcpkix-jdk18on",
+        "org.bouncycastle:bcprov-jdk18on",
+        "org.bouncycastle:bcutil-jdk18on"
+      ],
+      "allowedVersions": "!/^1\\.85\\.2$/"
     }
   ],
   "baseBranches": [
