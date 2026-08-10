@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -23,6 +24,8 @@ import io.camunda.connector.http.client.client.apache.proxy.ProxyRoutePlanner;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.OpenSearchVectorStore;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClientBuilder;
@@ -32,6 +35,7 @@ import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.opensearch.client.transport.aws.AwsSdk2Transport;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 
 class OpenSearchVectorStoreFactoryTest {
@@ -279,6 +283,42 @@ class OpenSearchVectorStoreFactoryTest {
           proxyConfig,
           EmbeddingsVectorStoreFixture.createAmazonManagedOpenVectorStore(),
           true); // with credentials
+    }
+
+    @Test
+    void createAmazonManagedOpenSearchVectorStoreStripsSchemeFromServerUrl() {
+      assertTransportHost("https://opensearch.aws", "opensearch.aws");
+    }
+
+    @Test
+    void createAmazonManagedOpenSearchVectorStoreAcceptsBareHostname() {
+      assertTransportHost("opensearch.aws", "opensearch.aws");
+    }
+
+    /**
+     * {@code AwsSdk2Transport} builds every request URL as {@code "https://" + host}, so passing a
+     * fully qualified URL — which is what the "Server URL" property asks for — yields {@code
+     * https://https://…} and a DNS lookup for the host {@code https}.
+     */
+    private void assertTransportHost(String serverUrl, String expectedTransportHost) {
+      var proxyConfig = mock(ProxyConfiguration.class);
+      when(proxyConfig.getProxyDetails(ProxyConfiguration.SCHEME_HTTPS))
+          .thenReturn(Optional.empty());
+      var factory = new OpenSearchVectorStoreFactory(proxyConfig);
+      var vectorStore =
+          new AmazonManagedOpenSearchVectorStore(
+              new AmazonManagedOpenSearchVectorStore.Configuration(
+                  "ACCESS_KEY", "SECRET_KEY", serverUrl, "us-east-1", "embeddings_idx"));
+
+      List<List<?>> transportArgs = new ArrayList<>();
+      try (var ignored =
+          mockConstruction(
+              AwsSdk2Transport.class, (mock, context) -> transportArgs.add(context.arguments()))) {
+        factory.createAmazonManagedOpenSearchVectorStore(vectorStore);
+      }
+
+      assertThat(transportArgs).hasSize(1);
+      assertThat(transportArgs.getFirst().get(1)).isEqualTo(expectedTransportHost);
     }
 
     private void testAmazonManagedOpenSearchConfiguration(

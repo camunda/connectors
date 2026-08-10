@@ -142,7 +142,10 @@ public class OpenSearchVectorStoreFactory {
     OpenSearchTransport transport =
         new AwsSdk2Transport(
             httpClient,
-            amazonManagedOpenSearch.serverUrl(),
+            // AwsSdk2Transport builds every request URL as "https://" + host, so it needs a bare
+            // hostname. Passing the fully qualified URL that the property asks for would yield
+            // "https://https://<host>" and a DNS lookup for the host "https".
+            openSearchHost.getHostName(),
             AMAZON_SIGNING_SERVICE_NAME,
             selectedRegion,
             AwsSdk2TransportOptions.builder()
