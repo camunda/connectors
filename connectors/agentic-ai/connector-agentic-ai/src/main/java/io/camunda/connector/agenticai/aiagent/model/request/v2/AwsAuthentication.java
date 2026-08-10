@@ -19,10 +19,10 @@ import jakarta.validation.constraints.NotBlank;
   @JsonSubTypes.Type(
       value = AwsAuthentication.AwsStaticCredentialsAuthentication.class,
       name = "credentials"),
+  @JsonSubTypes.Type(value = AwsAuthentication.AwsApiKeyAuthentication.class, name = "apiKey"),
   @JsonSubTypes.Type(
       value = AwsAuthentication.AwsDefaultCredentialsChainAuthentication.class,
-      name = "defaultCredentialsChain"),
-  @JsonSubTypes.Type(value = AwsAuthentication.AwsApiKeyAuthentication.class, name = "apiKey")
+      name = "defaultCredentialsChain")
 })
 @TemplateDiscriminatorProperty(
     label = "Authentication",
@@ -66,7 +66,7 @@ public sealed interface AwsAuthentication {
           @TemplateProperty(
               group = "provider",
               label = "API key",
-              description = "Bearer API key for Amazon Bedrock.",
+              description = "Bearer API key for AWS Bedrock.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))

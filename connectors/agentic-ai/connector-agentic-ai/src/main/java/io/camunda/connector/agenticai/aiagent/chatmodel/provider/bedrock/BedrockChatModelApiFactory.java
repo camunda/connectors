@@ -118,17 +118,16 @@ public class BedrockChatModelApiFactory implements ChatModelFactory {
           builder.credentialsProvider(
               StaticCredentialsProvider.create(
                   AwsBasicCredentials.create(staticAuth.accessKey(), staticAuth.secretKey())));
-      case AwsAuthentication.AwsDefaultCredentialsChainAuthentication ignored ->
-          builder.credentialsProvider(DefaultCredentialsProvider.builder().build());
       case AwsAuthentication.AwsApiKeyAuthentication apiKeyAuth ->
-          // Native "Bedrock API keys" support (the same mechanism as AWS_BEARER_TOKEN_BEDROCK):
-          // the httpBearerAuth scheme is listed after sigv4 by default, and sigv4 is always
-          // resolvable (credentialsProvider falls back to the default chain when unset), so
-          // without this preference override sigv4 would win and the token would never be sent.
+          // Native "Bedrock API keys" support. Forces httpBearerAuth ahead of sigv4 (listed first
+          // by default and always resolvable via the default credentials chain), otherwise the
+          // token would never be sent. Anthropic's Bedrock Mantle backend handles this internally.
           builder
               .tokenProvider(StaticTokenProvider.create(apiKeyAuth::apiKey))
               .authSchemeProvider(
                   BedrockRuntimeAuthSchemeProvider.defaultProvider(List.of("httpBearerAuth")));
+      case AwsAuthentication.AwsDefaultCredentialsChainAuthentication ignored ->
+          builder.credentialsProvider(DefaultCredentialsProvider.builder().build());
     }
   }
 }
