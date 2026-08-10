@@ -66,10 +66,6 @@ abstract class BaseOpenAiNativeSubProcessTest extends BaseAgentSubProcessV2Test 
         .property("provider.openai.model.model", defaultModel());
   }
 
-  static Function<ElementTemplate, ElementTemplate> model(String modelId) {
-    return template -> template.property("provider.openai.model.model", modelId);
-  }
-
   static LoggedRequest soleRecordedRequest() {
     final var requests = recordedLoggedRequests();
     assertThat(requests).as("recorded model-call requests").hasSize(1);

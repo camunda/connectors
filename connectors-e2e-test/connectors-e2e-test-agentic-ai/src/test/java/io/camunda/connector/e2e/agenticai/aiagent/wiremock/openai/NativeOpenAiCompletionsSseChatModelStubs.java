@@ -92,6 +92,14 @@ public final class NativeOpenAiCompletionsSseChatModelStubs {
    * (mirroring real OpenAI behavior when a call has no cache hit / no reasoning spend); this
    * dedicated single-turn stub exists purely so e2e coverage can exercise the non-zero case (see
    * {@code OpenAiCompletionsResponseConverter#toTokenUsage}).
+   *
+   * <p>{@code inputTokens} is the expected <strong>post-subtraction, non-cached</strong> count -
+   * i.e. what {@code AgentMetrics.TokenUsage#inputTokenCount()} should end up holding once the
+   * converter subtracts {@code cachedTokens} from the wire's raw prompt total - not the raw wire
+   * {@code prompt_tokens} value itself. {@link #sseBody(UsageDetailsTurnStub)} grosses it back up
+   * ({@code inputTokens + cachedTokens}) when building the wire body, since cached tokens are
+   * always a subset of the real API's {@code prompt_tokens} and a wire body with {@code
+   * prompt_tokens < cached_tokens} is a combination OpenAI can never actually produce.
    */
   public record UsageDetailsTurnStub(
       String text, int inputTokens, int outputTokens, long cachedTokens, long reasoningTokens) {}
@@ -110,7 +118,9 @@ public final class NativeOpenAiCompletionsSseChatModelStubs {
         dataLine(
             usageChunkJson(
                 id,
-                turn.inputTokens(),
+                // gross the non-cached inputTokens back up to a realistic raw wire
+                // prompt_tokens total: cached tokens are always a subset of it.
+                Math.toIntExact(turn.inputTokens() + turn.cachedTokens()),
                 turn.outputTokens(),
                 turn.cachedTokens(),
                 turn.reasoningTokens())));
