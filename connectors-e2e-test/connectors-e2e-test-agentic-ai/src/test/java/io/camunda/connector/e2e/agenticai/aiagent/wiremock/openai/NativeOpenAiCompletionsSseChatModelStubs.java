@@ -47,6 +47,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * a finish-reason chunk (empty delta), and a trailing usage-only chunk ({@code "choices":[]} with
  * the final {@code usage}) - mirroring the real behavior of {@code
  * stream_options.include_usage=true}, which the native provider's request converter always sets.
+ *
+ * <p>{@link #stubConversation(TurnStub...)} always renders {@code prompt_tokens_details} / {@code
+ * completion_tokens_details} with zero-valued sub-fields, since the generic {@link TurnStub} SPI
+ * has no dial for them; use {@link #stubConversation(UsageDetailsTurnStub)} for a single turn whose
+ * cache-read/reasoning token counts need to be non-zero.
  */
 public final class NativeOpenAiCompletionsSseChatModelStubs {
 
@@ -56,7 +61,7 @@ public final class NativeOpenAiCompletionsSseChatModelStubs {
 
   private NativeOpenAiCompletionsSseChatModelStubs() {}
 
-  static void stubConversation(TurnStub... turns) {
+  public static void stubConversation(TurnStub... turns) {
     if (turns.length == 0) {
       throw new IllegalArgumentException("At least one conversation turn is required");
     }
@@ -76,6 +81,41 @@ public final class NativeOpenAiCompletionsSseChatModelStubs {
       }
       stubFor(mapping);
     }
+  }
+
+  /**
+   * A single-turn conversation whose usage carries explicit {@code
+   * prompt_tokens_details.cached_tokens} and/or {@code completion_tokens_details.reasoning_tokens}
+   * values - the shape a prompt-cache-hit or reasoning-effort-enabled Completions call returns. The
+   * generic {@link TurnStub} SPI (shared with every other provider's stubs) has no dial for these
+   * fields, so {@link #stubConversation(TurnStub...)} always renders them as absent-equivalent
+   * (mirroring real OpenAI behavior when a call has no cache hit / no reasoning spend); this
+   * dedicated single-turn stub exists purely so e2e coverage can exercise the non-zero case (see
+   * {@code OpenAiCompletionsResponseConverter#toTokenUsage}).
+   */
+  public record UsageDetailsTurnStub(
+      String text, int inputTokens, int outputTokens, long cachedTokens, long reasoningTokens) {}
+
+  public static void stubConversation(UsageDetailsTurnStub turn) {
+    stubFor(post(urlPathEqualTo(CHAT_COMPLETIONS_PATH)).willReturn(sseResponse(sseBody(turn))));
+  }
+
+  private static String sseBody(UsageDetailsTurnStub turn) {
+    final String id = "chatcmpl-test-" + TURN_COUNTER.getAndIncrement();
+
+    final StringBuilder body = new StringBuilder();
+    body.append(dataLine(chunkJson(id, deltaWithContent(turn.text()), null)));
+    body.append(dataLine(chunkJson(id, "{}", "stop")));
+    body.append(
+        dataLine(
+            usageChunkJson(
+                id,
+                turn.inputTokens(),
+                turn.outputTokens(),
+                turn.cachedTokens(),
+                turn.reasoningTokens())));
+    body.append("data: [DONE]\n\n");
+    return body.toString();
   }
 
   private static String sseBody(TurnStub turn) {
@@ -141,6 +181,11 @@ public final class NativeOpenAiCompletionsSseChatModelStubs {
   }
 
   private static String usageChunkJson(String id, int promptTokens, int completionTokens) {
+    return usageChunkJson(id, promptTokens, completionTokens, 0L, 0L);
+  }
+
+  private static String usageChunkJson(
+      String id, int promptTokens, int completionTokens, long cachedTokens, long reasoningTokens) {
     return "{\"id\":"
         + quote(id)
         + ",\"object\":\"chat.completion.chunk\",\"created\":0,\"model\":\"test-model\","
@@ -150,7 +195,11 @@ public final class NativeOpenAiCompletionsSseChatModelStubs {
         + completionTokens
         + ",\"total_tokens\":"
         + (promptTokens + completionTokens)
-        + "}}";
+        + ",\"prompt_tokens_details\":{\"cached_tokens\":"
+        + cachedTokens
+        + "},\"completion_tokens_details\":{\"reasoning_tokens\":"
+        + reasoningTokens
+        + "}}}";
   }
 
   private static String dataLine(String json) {
