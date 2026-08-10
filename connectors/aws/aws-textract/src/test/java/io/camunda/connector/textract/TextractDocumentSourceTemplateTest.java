@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.File;
 import java.util.List;
 import java.util.stream.StreamSupport;
@@ -17,11 +18,13 @@ import org.junit.jupiter.api.Test;
 
 class TextractDocumentSourceTemplateTest {
 
+  private static final ObjectMapper MAPPER = ConnectorsObjectMapperSupplier.getCopy();
+
   private static final File TEMPLATE_FILE =
       new File("element-templates/aws-textract-outbound-connector.json");
 
   private static JsonNode template() throws Exception {
-    return new ObjectMapper().readTree(TEMPLATE_FILE);
+    return MAPPER.readTree(TEMPLATE_FILE);
   }
 
   private static JsonNode propertyById(String id) throws Exception {

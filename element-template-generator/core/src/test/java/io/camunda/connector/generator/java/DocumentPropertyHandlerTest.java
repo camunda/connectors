@@ -737,15 +737,15 @@ public class DocumentPropertyHandlerTest extends BaseTest {
     }
 
     @Test
-    void sourceOrderOnAnnotation_doesNotAffectGeneratedOrder() {
+    void sourceOrderOnAnnotation_drivesGeneratedOrder() {
       var template = generator.generate(WithReorderedSources.class).getFirst();
 
       var dropdown = (DropdownProperty) getPropertyById("doc_documentSource", template);
       assertThat(dropdown.getChoices())
           .containsExactly(
-              new DropdownChoice("Camunda Document", "camunda"),
-              new DropdownChoice("From URL", "external"));
-      assertThat(dropdown.getValue()).isEqualTo("camunda");
+              new DropdownChoice("From URL", "external"),
+              new DropdownChoice("Camunda Document", "camunda"));
+      assertThat(dropdown.getValue()).isEqualTo("external");
     }
 
     @Test
@@ -761,7 +761,7 @@ public class DocumentPropertyHandlerTest extends BaseTest {
 
     @Test
     void emptySources_isRejected() {
-      assertThrows(IllegalStateException.class, () -> generator.generate(WithNoSources.class));
+      assertThrows(IllegalArgumentException.class, () -> generator.generate(WithNoSources.class));
     }
 
     @Test

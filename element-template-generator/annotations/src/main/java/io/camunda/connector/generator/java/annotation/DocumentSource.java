@@ -16,11 +16,19 @@
  */
 package io.camunda.connector.generator.java.annotation;
 
+/**
+ * A source a document input can be supplied from. Selected per connector via {@link
+ * TemplateDocumentProperty#sources()}; each entry becomes one choice in the generated <em>Document
+ * source</em> dropdown.
+ */
 public enum DocumentSource {
+  /** A reference to a document already held in Camunda document storage. */
   CAMUNDA("Camunda Document", "camunda"),
 
+  /** Content supplied inline in the model, carried as UTF-8 text bytes. */
   INLINE("Inline Content", "inline"),
 
+  /** A document fetched at runtime from an external URL. */
   EXTERNAL("From URL", "external");
 
   private final String label;

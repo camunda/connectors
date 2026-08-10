@@ -33,7 +33,7 @@ import io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationP
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
-import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -402,10 +402,9 @@ final class DocumentPropertyHandler {
 
   private static Set<DocumentSource> resolveSources(
       TemplateDocumentProperty annotation, String declaredName) {
-    var declared = EnumSet.noneOf(DocumentSource.class);
-    declared.addAll(Arrays.asList(annotation.sources()));
+    var declared = new LinkedHashSet<>(Arrays.asList(annotation.sources()));
     if (declared.isEmpty()) {
-      throw new IllegalStateException(
+      throw new IllegalArgumentException(
           "@TemplateDocumentProperty on '" + declaredName + "' must declare at least one source");
     }
     return declared;
