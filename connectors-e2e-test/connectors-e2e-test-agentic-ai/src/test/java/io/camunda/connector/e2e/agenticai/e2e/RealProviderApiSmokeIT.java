@@ -260,16 +260,16 @@ class RealProviderApiSmokeIT {
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new Provider(
         "bedrock-converse/" + model,
-        List.of("BEDROCK_CONVERSE_API_KEY"),
+        List.of("AWS_BEDROCK_API_KEY"),
         Map.of(
             "provider.type",
             "bedrock",
             "provider.bedrock.region",
-            envOrDefault("BEDROCK_CONVERSE_REGION", "us-east-1"),
+            envOrDefault("AWS_BEDROCK_REGION", "us-east-1"),
             "provider.bedrock.authentication.type",
             "apiKey",
             "provider.bedrock.authentication.apiKey",
-            envOrPlaceholder("BEDROCK_CONVERSE_API_KEY"),
+            envOrPlaceholder("AWS_BEDROCK_API_KEY"),
             "provider.bedrock.model.model",
             model),
         capabilityProperties,
