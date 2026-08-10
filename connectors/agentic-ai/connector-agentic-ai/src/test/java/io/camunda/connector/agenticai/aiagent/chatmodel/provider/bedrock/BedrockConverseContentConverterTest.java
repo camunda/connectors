@@ -302,6 +302,55 @@ class BedrockConverseContentConverterTest {
     }
 
     @Test
+    void mapsObjectContentWithEmbeddedDocumentToJsonBlockWithReferencePlaceholder() {
+      // A tool result whose value isn't a plain string is lifted into a single ObjectContent
+      // wrapping the raw tree verbatim (ToolCallResultContent#contentFromObject) - documents
+      // embedded inside it (e.g. a FEEL-composed {attachments: [doc]}) are never split out
+      // beforehand, so they arrive here as raw Document instances nested in the tree. The actual
+      // document content reaches the model separately, via the provider-agnostic synthetic
+      // document-echo message (AgentConversationTurnInputComposerImpl) - inlining it here too would
+      // send it twice and trip Bedrock's "duplicate document names" validation, so this converter
+      // only ever emits a reference placeholder for it.
+      final var doc = inlineDocument("fake-pdf-bytes", "report.pdf", "application/pdf");
+
+      final var blocks =
+          converter.toToolResultBlocks(
+              List.of(new ObjectContent(Map.of("attachments", List.of(doc)), null)));
+
+      assertThat(blocks).hasSize(1);
+      final var json = blocks.get(0).json();
+      assertThat(json).isNotNull();
+      final var attachments = json.asMap().get("attachments").asList();
+      assertThat(attachments).hasSize(1);
+      assertThat(attachments.get(0).asString())
+          .isEqualTo("document-ref:" + DocumentHandle.idFor(doc));
+    }
+
+    @Test
+    void
+        mapsObjectContentWithMultipleNestedEmbeddedDocumentsToReferencePlaceholdersWithoutRecursing() {
+      final var cover = inlineDocument("fake-png-bytes", "cover.png", "image/png");
+      final var report = inlineDocument("fake-pdf-bytes", "report.pdf", "application/pdf");
+
+      final var blocks =
+          converter.toToolResultBlocks(
+              List.of(
+                  new ObjectContent(
+                      Map.of(
+                          "attachments", List.of(report),
+                          "metadata", Map.of("cover", cover)),
+                      null)));
+
+      assertThat(blocks).hasSize(1);
+      final var json = blocks.get(0).json();
+      assertThat(json).isNotNull();
+      assertThat(json.asMap().get("attachments").asList().get(0).asString())
+          .isEqualTo("document-ref:" + DocumentHandle.idFor(report));
+      assertThat(json.asMap().get("metadata").asMap().get("cover").asString())
+          .isEqualTo("document-ref:" + DocumentHandle.idFor(cover));
+    }
+
+    @Test
     void throwsForUnsupportedDocumentContentType() {
       final var doc = inlineDocument("zip-bytes", "archive.zip", "application/zip");
 

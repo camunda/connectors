@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,16 +26,34 @@ import software.amazon.awssdk.core.document.Document;
  * tool-use input ({@code BedrockConverseStreamAssembler}). Consolidated here (rather than
  * duplicated per call site) so all three agree on exactly one conversion policy.
  *
- * <p>Anything that isn't already a {@code Map}/{@code List}/{@code String}/{@code Number}/{@code
- * Boolean}/{@code null} is treated as an arbitrary POJO: it is normalized to its JSON tree shape
- * via {@code objectMapper.convertValue(value, Object.class)} and retried. This deliberately never
- * throws for a POJO Jackson can serialize; for the rare value neither this method nor Jackson can
- * make sense of, {@code convertValue} itself throws (typically an {@link IllegalArgumentException}
- * wrapping a {@code JsonMappingException}), which is intentionally left uncaught here. The three
- * call sites have different failure semantics (a bad tool schema vs. a malformed streamed response
- * vs. an unsupported request parameter), so each catches and wraps that generic failure into its
- * own {@code ConnectorException} with its own appropriate error code, rather than this shared
- * helper picking one error code for all of them.
+ * <p>A {@link io.camunda.connector.api.document.Document} nested anywhere in the tree (e.g. a tool
+ * result whose JSON embeds one or more documents, per {@code
+ * io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent#contentFromObject}, which
+ * lifts any non-string tool result into a single {@code ObjectContent} without extracting embedded
+ * documents first) is replaced by a stable {@link
+ * DocumentHandle#idFor(io.camunda.connector.api.document.Document)} reference string rather than
+ * recursed into. This is mandatory, not cosmetic: {@code objectMapper.convertValue(document,
+ * Object.class)} round-trips through the runtime's registered Document Jackson module, which
+ * deserializes an {@code Object.class} target back into another {@code Document} instance instead
+ * of a plain map - so treating it as an arbitrary POJO would recurse forever. The actual document
+ * content is never lost: {@code AgentConversationTurnInputComposerImpl} already extracts every
+ * document referenced by a tool result and echoes it, provider-agnostically, in a separate
+ * synthetic user message ({@code <doc/>} tag plus the real content block) that every provider
+ * (Bedrock included) converts normally - this method only has to avoid recursing on the copy still
+ * embedded in the original tool result's JSON. Inlining the document here too, instead of a
+ * reference, would send it to the model twice and trip Bedrock's "duplicate document names"
+ * validation, since {@link DocumentHandle#idFor} produces the same id both places.
+ *
+ * <p>Anything else that isn't already a {@code Map}/{@code List}/{@code String}/{@code Number}/
+ * {@code Boolean}/{@code null} is treated as an arbitrary POJO: it is normalized to its JSON tree
+ * shape via {@code objectMapper.convertValue(value, Object.class)} and retried. This deliberately
+ * never throws for a POJO Jackson can serialize; for the rare value neither this method nor Jackson
+ * can make sense of, {@code convertValue} itself throws (typically an {@link
+ * IllegalArgumentException} wrapping a {@code JsonMappingException}), which is intentionally left
+ * uncaught here. The three call sites have different failure semantics (a bad tool schema vs. a
+ * malformed streamed response vs. an unsupported request parameter), so each catches and wraps that
+ * generic failure into its own {@code ConnectorException} with its own appropriate error code,
+ * rather than this shared helper picking one error code for all of them.
  */
 final class BedrockDocuments {
 
@@ -52,6 +71,9 @@ final class BedrockDocuments {
     }
     if (value instanceof Number number) {
       return Document.fromNumber(number.toString());
+    }
+    if (value instanceof io.camunda.connector.api.document.Document document) {
+      return Document.fromString("document-ref:" + DocumentHandle.idFor(document));
     }
     if (value instanceof Map<?, ?> map) {
       final Map<String, Document> result = new LinkedHashMap<>();
