@@ -17,6 +17,7 @@
 package io.camunda.connector.http.rest;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -101,8 +102,12 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(final OutboundConnectorContext context) {
-    final var request = context.bindVariables(HttpJsonRequest.class);
-    var responseChoice = context.readDocumentReturnFormat().map(f -> f.choice()).orElse(null);
-    return httpService.executeConnectorRequest(request, context, responseChoice);
+    // DO NOT MERGE. Deliberate break, to prove the AlwaysGreen pipeline actually
+    // notices a failing smoke test end to end. Throwing here raises an incident on the
+    // service task, so the SaaS "Most Common REST Connector User Flow" spec times out
+    // waiting for the instance to complete. Nothing else in the smoke suite touches
+    // this connector, so exactly one spec should fail.
+    throw new ConnectorException(
+        "ALWAYSGREEN-VALIDATION", "deliberate failure injected to validate AlwaysGreen");
   }
 }

@@ -221,9 +221,9 @@ jobs:
           # draft cannot enter a merge queue — so state the answer instead of
           # paying for a lookup that would also need pull-requests: read.
           pr_is_draft: "false"
-          # Shared AlwaysGreen channel (#alwaysgreen-reliability) — consistent
-          # across all AlwaysGreen repos. The connectors bot must be a member.
-          slack_channel: "C0AK0AVKRL0"
+          # VALIDATION BRANCH: #test-metrics, not the shared #alwaysgreen-reliability.
+          # Revert to C0AK0AVKRL0 before this goes anywhere near main.
+          slack_channel: "C0ALT57EN3C"
           slack_bot_token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
 
@@ -519,7 +519,7 @@ jobs:
           # draft cannot enter a merge queue — so state the answer instead of
           # paying for a lookup that would also need pull-requests: read.
           pr_is_draft: "false"
-          slack_channel: "C0AK0AVKRL0"
+          slack_channel: "C0ALT57EN3C"
           slack_bot_token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
 
