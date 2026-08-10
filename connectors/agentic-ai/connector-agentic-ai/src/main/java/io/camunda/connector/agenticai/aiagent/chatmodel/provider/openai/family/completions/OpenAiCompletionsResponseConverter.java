@@ -168,7 +168,7 @@ public class OpenAiCompletionsResponseConverter {
             .orElse(0L);
 
     return AgentMetrics.TokenUsage.builder()
-        .inputTokenCount((int) usage.promptTokens())
+        .inputTokenCount((int) (usage.promptTokens() - cachedTokens))
         .outputTokenCount((int) usage.completionTokens())
         .cacheReadTokenCount((int) cachedTokens)
         .reasoningTokenCount((int) reasoningTokens)

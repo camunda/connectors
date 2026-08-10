@@ -358,7 +358,9 @@ class OpenAiResponsesResponseConverterTest {
     assertThat(metrics.modelCalls()).isEqualTo(1);
     assertThat(metrics.toolCalls()).isZero();
     assertThat(metrics.executionTime()).isEqualTo(Duration.ofMillis(250));
-    assertThat(metrics.tokenUsage().inputTokenCount()).isEqualTo(100);
+    // input_tokens (100) includes the 20 cached tokens; inputTokenCount must exclude them so it
+    // reflects only new, non-cached input tokens (see AgentMetrics.TokenUsage javadoc).
+    assertThat(metrics.tokenUsage().inputTokenCount()).isEqualTo(80);
     assertThat(metrics.tokenUsage().outputTokenCount()).isEqualTo(50);
     assertThat(metrics.tokenUsage().cacheReadTokenCount()).isEqualTo(20);
     assertThat(metrics.tokenUsage().reasoningTokenCount()).isEqualTo(10);

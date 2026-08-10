@@ -229,10 +229,12 @@ public class OpenAiResponsesResponseConverter {
   }
 
   private AgentMetrics.TokenUsage toTokenUsage(ResponseUsage usage) {
+    final long cachedTokens = usage.inputTokensDetails().cachedTokens();
+
     return AgentMetrics.TokenUsage.builder()
-        .inputTokenCount((int) usage.inputTokens())
+        .inputTokenCount((int) (usage.inputTokens() - cachedTokens))
         .outputTokenCount((int) usage.outputTokens())
-        .cacheReadTokenCount((int) usage.inputTokensDetails().cachedTokens())
+        .cacheReadTokenCount((int) cachedTokens)
         .reasoningTokenCount((int) usage.outputTokensDetails().reasoningTokens())
         .build();
   }
