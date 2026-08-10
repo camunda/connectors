@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -391,5 +392,43 @@ class OpenAiResponsesResponseConverterTest {
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(((ChatResult.Completed) result).assistantMessage().stopReason())
         .isEqualTo(StopReason.CONTENT_FILTERED);
+  }
+
+  @Test
+  void stampsTimestampAndRawIncompleteDetailsReasonMetadata() {
+    final ChatResult result = converter.toResult(truncatedResponse(), Duration.ofSeconds(1));
+
+    assertThat(result.assistantMessage().metadata())
+        .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY)
+        .containsEntry("openai", Map.of("stopReason", "max_output_tokens"));
+  }
+
+  @Test
+  void stampsTimestampAndRawStatusMetadataWhenNoIncompleteDetails() {
+    final Response response =
+        responseFromJson(
+            """
+            {
+              "id": "resp_status", "object": "response", "created_at": 0, "model": "gpt-5",
+              "status": "completed",
+              "output": [], "parallel_tool_calls": true, "tool_choice": "auto", "tools": []
+            }
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(10));
+
+    assertThat(result.assistantMessage().metadata())
+        .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY)
+        .containsEntry("openai", Map.of("stopReason", "completed"));
+  }
+
+  @Test
+  void stampsOnlyTimestampMetadataWhenNoRawStopReasonAvailable() {
+    final Response response = baseResponse("[]");
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(10));
+
+    assertThat(result.assistantMessage().metadata())
+        .containsOnlyKeys(AssistantMessageMetadata.TIMESTAMP_KEY);
   }
 }

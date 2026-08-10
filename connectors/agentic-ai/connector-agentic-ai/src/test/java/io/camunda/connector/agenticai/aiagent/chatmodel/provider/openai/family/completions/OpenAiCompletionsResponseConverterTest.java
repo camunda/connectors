@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -355,6 +356,32 @@ class OpenAiCompletionsResponseConverterTest {
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.TOOL_USE);
+  }
+
+  @Test
+  void stampsTimestampAndRawFinishReasonMetadata() {
+    final ChatCompletion completion =
+        completionWithFinishReason(
+            "tool_calls",
+            """
+            {
+              "role": "assistant",
+              "content": null,
+              "tool_calls": [
+                {
+                  "id": "call_1",
+                  "type": "function",
+                  "function": {"name": "get_weather", "arguments": "{}"}
+                }
+              ]
+            }
+            """);
+
+    final ChatResult result = converter.toResult(completion, Duration.ZERO);
+
+    assertThat(result.assistantMessage().metadata())
+        .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY)
+        .containsEntry("openai", Map.of("stopReason", "tool_calls"));
   }
 
   @Test

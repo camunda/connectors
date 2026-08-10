@@ -15,6 +15,7 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseFunctionToolCall;
 import com.openai.models.responses.ResponseOutputItem;
 import com.openai.models.responses.ResponseOutputMessage;
+import com.openai.models.responses.ResponseStatus;
 import com.openai.models.responses.ResponseUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -25,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,6 +64,12 @@ import org.slf4j.LoggerFactory;
  * more {@code function_call} items maps to {@link StopReason#TOOL_USE}, and a normal completion
  * maps to {@link StopReason#STOP}. The Responses API otherwise has no equivalent of Anthropic's
  * {@code pause_turn} stop reason, so every call always surfaces as {@link ChatResult.Completed}.
+ *
+ * <p>The raw vendor stop-reason string ({@code incomplete_details.reason}, falling back to the
+ * response's top-level {@code status}) is always preserved under the {@code openai} provider-id key
+ * in {@link AssistantMessage#metadata()}, independent of how it normalizes to the domain {@link
+ * StopReason}; see {@link AssistantMessageMetadata} for the {@code timestamp} entry every provider
+ * adds alongside it.
  */
 public class OpenAiResponsesResponseConverter {
 
@@ -132,7 +140,27 @@ public class OpenAiResponsesResponseConverter {
         .messageId(response.id())
         .modelId(modelId(response.model()))
         .stopReason(mapStopReason(response, !toolCalls.isEmpty()))
+        .metadata(AssistantMessageMetadata.withDefaults(openAiMetadata(response)))
         .build();
+  }
+
+  /**
+   * The raw vendor stop-reason string preserved under the {@code openai} provider-id key in {@link
+   * AssistantMessage#metadata()}, independent of how it normalizes to the domain {@link
+   * StopReason}; mirrors {@code AnthropicMessageResponseConverter}'s handling of {@code
+   * Optional<StopReason>}. The Responses API has no single stop-reason enum: an {@code
+   * incomplete_details.reason} is the most specific raw signal when present (truncation / content
+   * filtering); otherwise the response's top-level {@code status} (e.g. {@code completed}) is used
+   * as a fallback raw signal.
+   */
+  private Map<String, Object> openAiMetadata(Response response) {
+    return response
+        .incompleteDetails()
+        .flatMap(Response.IncompleteDetails::reason)
+        .map(Response.IncompleteDetails.Reason::asString)
+        .or(() -> response.status().map(ResponseStatus::asString))
+        .<Map<String, Object>>map(sr -> Map.of(OPENAI_PROVIDER, Map.of("stopReason", sr)))
+        .orElse(Map.of());
   }
 
   /**

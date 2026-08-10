@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,8 +53,15 @@ import java.util.Map;
  *
  * <p>The Completions API has no equivalent of Anthropic's {@code pause_turn} stop reason, so every
  * call always surfaces as a {@link ChatResult.Completed}.
+ *
+ * <p>The raw vendor {@code finish_reason} string is always preserved under the {@code openai}
+ * provider-id key in {@link AssistantMessage#metadata()}, independent of how it normalizes to the
+ * domain {@link StopReason}; see {@link AssistantMessageMetadata} for the {@code timestamp} entry
+ * every provider adds alongside it.
  */
 public class OpenAiCompletionsResponseConverter {
+
+  private static final String OPENAI_PROVIDER = "openai";
 
   private final ObjectMapper objectMapper;
 
@@ -84,12 +92,16 @@ public class OpenAiCompletionsResponseConverter {
     final List<ToolCall> toolCalls = new ArrayList<>();
     message.toolCalls().ifPresent(calls -> calls.forEach(call -> toToolCall(call, toolCalls)));
 
+    final Map<String, Object> openAiMetadata =
+        Map.of(OPENAI_PROVIDER, Map.of("stopReason", choice.finishReason().asString()));
+
     return AssistantMessage.builder()
         .content(content)
         .toolCalls(toolCalls)
         .messageId(completion.id())
         .modelId(completion.model())
         .stopReason(mapStopReason(choice.finishReason()))
+        .metadata(AssistantMessageMetadata.withDefaults(openAiMetadata))
         .build();
   }
 
