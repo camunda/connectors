@@ -352,13 +352,13 @@ class RealProviderApiSmokeIT {
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",
                             "provider.anthropic.model.parameters.effort", "high"))),
-            // Amazon's own flagship Converse model: Nova Lite-class models are multimodal, and
-            // Nova documents both explicit prompt-caching cachePoints and a reasoningConfig
-            // request shape.
+            // Amazon's own flagship Converse model: multimodal + prompt caching + reasoning.
+            // STRUCTURED_OUTPUT is deliberately NOT declared -- confirmed against a real API call:
+            // AWS rejects outputConfig for this model ("This model doesn't support the outputConfig
+            // field"), matching its model card ("Structured outputs" listed as Not Supported).
             bedrockConverse(
                 "us.amazon.nova-2-lite-v1:0",
                 Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING,
                         Map.of("provider.bedrock.model.parameters.promptCaching.enabled", "true"),
@@ -378,6 +378,21 @@ class RealProviderApiSmokeIT {
                     Map.of(
                         "provider.bedrock.model.parameters.requestParameters",
                         "={reasoning_effort: \"medium\"}"))),
+            // Claude via the native Converse path -- not the audience this provider targets
+            // (Claude gets its own dedicated provider), but a permanent cross-check that the
+            // generic sdkFields() codec round-trips Anthropic's own block shapes correctly too.
+            // Global cross-region inference ID (no in-region endpoint for this model).
+            bedrockConverse(
+                "global.anthropic.claude-sonnet-4-6",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING,
+                        Map.of("provider.bedrock.model.parameters.promptCaching.enabled", "true"),
+                    Capability.REASONING,
+                        Map.of(
+                            "provider.bedrock.model.parameters.requestParameters",
+                            "={thinking: {type: \"enabled\", budget_tokens: 2048}}"))),
             // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
             // domain block in addition to reasoning_tokens, so REASONING is exercisable here.
             openAiResponsesApi(

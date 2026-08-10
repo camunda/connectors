@@ -75,6 +75,14 @@ public class BedrockConverseResponseConverter {
         message != null && message.hasContent() ? message.content() : List.of();
 
     for (final ContentBlock block : blocks) {
+      // Some models (observed: gpt-oss-120b) emit a text block with an empty string alongside a
+      // reasoningContent/toolUse block in the same turn -- TextContent forbids blank text, so an
+      // empty block carries no information to preserve and is dropped rather than crashing the
+      // turn.
+      if (block.text() != null && block.text().isBlank()) {
+        continue;
+      }
+
       if (block.text() != null) {
         content.add(new TextContent(block.text(), residualMetadata(block, "text")));
       } else if (block.toolUse() != null) {

@@ -249,13 +249,42 @@ public class BedrockConverseRequestConverter {
       tools.add(Tool.fromCachePoint(defaultCachePoint()));
     }
 
-    if (!messages.isEmpty()) {
-      final int lastIndex = messages.size() - 1;
-      final Message last = messages.get(lastIndex);
-      final List<ContentBlock> content = new ArrayList<>(last.content());
+    final int index = lastCacheableMessageIndex(messages);
+    if (index >= 0) {
+      final Message target = messages.get(index);
+      final List<ContentBlock> content = new ArrayList<>(target.content());
       content.add(ContentBlock.fromCachePoint(defaultCachePoint()));
-      messages.set(lastIndex, last.toBuilder().content(content).build());
+      messages.set(index, target.toBuilder().content(content).build());
     }
+  }
+
+  /**
+   * Finds the last message eligible for the moving checkpoint. Confirmed empirically against the
+   * real API (AWS returns "extraneous key [cachePoint] is not permitted" otherwise): Bedrock
+   * rejects a {@code cachePoint} block in any message that contains a {@code toolUse}, {@code
+   * toolResult}, or {@code reasoningContent} block -- only messages made entirely of {@code
+   * text}/{@code image}/{@code document} content qualify. This matches every placement example in
+   * AWS's own docs (cachePoint only ever follows {@code text}/{@code image}) and LangChain4j's
+   * Bedrock integration, which independently arrives at the same rule by only ever targeting a
+   * genuine {@code UserMessage}, never a {@code ToolExecutionResultMessage} or an {@code AiMessage}
+   * carrying a tool call. In an agentic loop this means the checkpoint cannot advance past a tool
+   * round-trip -- it stays pinned to the last plain-text message -- but it still moves for
+   * multi-turn conversations without tool calls in between.
+   */
+  private static int lastCacheableMessageIndex(List<Message> messages) {
+    for (int i = messages.size() - 1; i >= 0; i--) {
+      final List<ContentBlock> content = messages.get(i).content();
+      if (!content.isEmpty()
+          && content.stream()
+              .noneMatch(
+                  block ->
+                      block.toolUse() != null
+                          || block.toolResult() != null
+                          || block.reasoningContent() != null)) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   // No ttl is ever set: AWS's default 5-minute TTL applies, and the "longer TTL must precede
