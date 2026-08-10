@@ -202,7 +202,12 @@ class AnthropicChatModelApiFactoryClientTest {
     executeAgainst(
         new AnthropicAwsBedrockMantleBackend(
             new AnthropicAwsBedrockMantleBackend.AwsBedrockMantleBackend(
-                "eu-central-1", wireMock.getHttpBaseUrl() + "/anthropic", authentication)));
+                "eu-central-1",
+                wireMock.getHttpBaseUrl() + "/anthropic",
+                authentication,
+                null,
+                null,
+                null)));
   }
 
   @Test

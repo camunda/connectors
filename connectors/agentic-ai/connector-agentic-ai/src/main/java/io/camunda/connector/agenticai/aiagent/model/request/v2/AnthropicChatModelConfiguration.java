@@ -183,7 +183,32 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   feel = FeelMode.optional,
                   optional = true)
               @Nullable String endpoint,
-          @Valid @NotNull AwsAuthentication authentication) {
+          @Valid @NotNull AwsAuthentication authentication,
+          @TemplateProperty(
+                  group = "advanced-provider-options",
+                  label = "HTTP headers",
+                  description = "Map of HTTP headers to add to the request.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable Map<String, String> headers,
+          @Valid
+              @TemplateProperty(
+                  group = "advanced-provider-options",
+                  label = "Query parameters",
+                  description = "Map of query parameters to add to the request URL.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable Map<@NotBlank String, String> queryParameters,
+          @TemplateProperty(
+                  group = "advanced-provider-options",
+                  label = "Body properties",
+                  description = "Map of additional properties to include in the request body.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable Map<String, Object> bodyProperties) {
 
         @JsonIgnore
         @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
@@ -191,6 +216,23 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
           return ConnectorUtils.isSaaS()
               && authentication
                   instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+        }
+
+        @Override
+        public String toString() {
+          return "AwsBedrockMantleBackend{region="
+              + region
+              + ", endpoint="
+              + endpoint
+              + ", authentication="
+              + authentication
+              + ", headers="
+              + redactValues(headers)
+              + ", queryParameters="
+              + redactValues(queryParameters)
+              + ", bodyProperties="
+              + redactValues(bodyProperties)
+              + "}";
         }
       }
     }

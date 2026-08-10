@@ -137,7 +137,7 @@ class AnthropicChatModelApiFactoryTest {
         new AnthropicConnection(
             new AnthropicAwsBedrockMantleBackend(
                 new AnthropicAwsBedrockMantleBackend.AwsBedrockMantleBackend(
-                    "eu-central-1", null, authentication)),
+                    "eu-central-1", null, authentication, null, null, null)),
             new AnthropicModel(modelId, null),
             null));
   }
