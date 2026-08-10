@@ -49,7 +49,8 @@ public class Langchain4JAiFrameworkAdapter
       AgentExecutionContext executionContext,
       AgentContext agentContext,
       RuntimeMemory runtimeMemory) {
-    final var messages = chatMessageConverter.map(runtimeMemory.filteredMessages());
+    final var messages =
+        chatMessageConverter.map(runtimeMemory.filteredMessages(), executionContext.provider());
     final var toolSpecifications =
         toolSpecificationConverter.asToolSpecifications(agentContext.toolDefinitions());
 
@@ -59,7 +60,8 @@ public class Langchain4JAiFrameworkAdapter
 
     final ChatModel chatModel = chatModelFactory.createChatModel(executionContext.provider());
     final ChatResponse chatResponse = chatModel.chat(chatRequestBuilder.build());
-    final AssistantMessage assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse);
+    final AssistantMessage assistantMessage =
+        chatMessageConverter.toAssistantMessage(chatResponse, executionContext.provider());
 
     final var updatedAgentContext =
         agentContext.withMetrics(
