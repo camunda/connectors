@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
@@ -133,6 +134,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentInstanceClient.class,
           ChatModelRegistry.class,
           AnthropicChatModelFactory.class,
+          BedrockChatModelApiFactory.class,
           OpenAiChatModelFactory.class);
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =

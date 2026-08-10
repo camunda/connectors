@@ -32,12 +32,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Registers each native (non-LangChain4j) {@code ChatModelFactory} as a bean so it is picked up by
- * {@code aiAgentChatModelRegistry(List<ChatModelFactory>)} and resolved for the configurations it
- * supports. One shared configuration class for all native providers, rather than a dedicated class
- * per provider.
- */
 @Configuration
 public class AgenticAiNativeProvidersConfiguration {
 
