@@ -209,7 +209,7 @@ class BedrockChatModelApiFactoryTest {
       TimeoutConfiguration timeouts, Duration expectedTimeout) {
     final var connection =
         new BedrockConnection(
-            REGION, null, defaultCredentialsAuth(), null, null, timeouts, model());
+            REGION, null, defaultCredentialsAuth(), null, null, null, timeouts, model());
 
     testBuilder(
         new BedrockChatModelConfiguration(connection),
@@ -251,7 +251,7 @@ class BedrockChatModelApiFactoryTest {
   private static BedrockChatModelConfiguration bedrockConfig(
       AwsAuthentication authentication, String endpoint) {
     return new BedrockChatModelConfiguration(
-        new BedrockConnection(REGION, endpoint, authentication, null, null, null, model()));
+        new BedrockConnection(REGION, endpoint, authentication, null, null, null, null, model()));
   }
 
   private static AwsAuthentication.AwsDefaultCredentialsChainAuthentication

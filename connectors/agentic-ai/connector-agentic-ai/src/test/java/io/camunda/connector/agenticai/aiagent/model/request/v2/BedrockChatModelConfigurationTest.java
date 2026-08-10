@@ -115,7 +115,7 @@ class BedrockChatModelConfigurationTest {
   }
 
   @Test
-  void bedrockConnectionRedactsHeadersAndQueryParametersInToString() {
+  void bedrockConnectionRedactsHeadersQueryParametersAndBodyPropertiesInToString() {
     final var connection =
         new BedrockConnection(
             "eu-central-1",
@@ -123,25 +123,17 @@ class BedrockChatModelConfigurationTest {
             new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA123", "secret123"),
             Map.of("X-Custom-Header", "some-header-value"),
             Map.of("some-query-param", "some-query-value"),
+            Map.of("some-body-param", "some-body-value"),
             null,
             new BedrockModel("us.amazon.nova-2-lite-v1:0", null));
 
     assertThat(connection.toString())
         .doesNotContain("some-header-value")
         .doesNotContain("some-query-value")
-        .contains("headers=[REDACTED]")
-        .contains("queryParameters=[REDACTED]");
-  }
-
-  @Test
-  void bedrockModelParametersRedactsRequestParametersInToString() {
-    final var parameters =
-        new BedrockModelParameters(
-            null, null, null, null, Map.of("some-request-param", "some-request-value"));
-
-    assertThat(parameters.toString())
-        .doesNotContain("some-request-value")
-        .contains("requestParameters=[REDACTED]");
+        .doesNotContain("some-body-value")
+        .contains("headers={X-Custom-Header=[REDACTED]}")
+        .contains("queryParameters={some-query-param=[REDACTED]}")
+        .contains("bodyProperties={some-body-param=[REDACTED]}");
   }
 
   @Test
@@ -152,6 +144,7 @@ class BedrockChatModelConfigurationTest {
                 "",
                 null,
                 new AwsAuthentication.AwsStaticCredentialsAuthentication("", ""),
+                null,
                 null,
                 null,
                 null,
@@ -204,6 +197,7 @@ class BedrockChatModelConfigurationTest {
                 null,
                 null,
                 null,
+                null,
                 new BedrockModel("", null)));
 
     final var violations = validator.validate(config);
@@ -247,7 +241,7 @@ class BedrockChatModelConfigurationTest {
 
   @Test
   void temperatureAcceptsValuesAboveOneWithNoUpperBound() {
-    final var parameters = new BedrockModelParameters(null, null, 1.5, null, null);
+    final var parameters = new BedrockModelParameters(null, null, 1.5, null);
     final var config = bedrockConfigWithParameters(parameters);
 
     assertThat(validator.validate(config)).isEmpty();
@@ -255,7 +249,7 @@ class BedrockChatModelConfigurationTest {
 
   @Test
   void temperatureRejectsValuesBelowZero() {
-    final var parameters = new BedrockModelParameters(null, null, -0.1, null, null);
+    final var parameters = new BedrockModelParameters(null, null, -0.1, null);
     final var config = bedrockConfigWithParameters(parameters);
 
     final var violations = validator.validate(config);
@@ -271,7 +265,7 @@ class BedrockChatModelConfigurationTest {
 
   @Test
   void topPRejectsValuesAboveOne() {
-    final var parameters = new BedrockModelParameters(null, null, null, 1.5, null);
+    final var parameters = new BedrockModelParameters(null, null, null, 1.5);
     final var config = bedrockConfigWithParameters(parameters);
 
     final var violations = validator.validate(config);
@@ -286,7 +280,7 @@ class BedrockChatModelConfigurationTest {
 
   @Test
   void maxTokensRejectsZero() {
-    final var parameters = new BedrockModelParameters(null, 0, null, null, null);
+    final var parameters = new BedrockModelParameters(null, 0, null, null);
     final var config = bedrockConfigWithParameters(parameters);
 
     final var violations = validator.validate(config);
@@ -317,6 +311,7 @@ class BedrockChatModelConfigurationTest {
             null,
             null,
             null,
+            null,
             new BedrockModel("us.amazon.nova-2-lite-v1:0", null)));
   }
 
@@ -327,6 +322,7 @@ class BedrockChatModelConfigurationTest {
             "eu-central-1",
             null,
             new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+            null,
             null,
             null,
             null,

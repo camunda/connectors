@@ -37,8 +37,8 @@ import org.junit.jupiter.api.Test;
  * block - mirrors {@code AgentSubProcessAnthropicReasoningEffortTests
  * #roundTripsSignedThinkingBlockBeforeToolResultOnFollowUpRequest}, adapted to Bedrock's generic
  * {@code sdkFields()} capture/replay mechanism (design spec &sect;5.4) rather than a typed
- * reasoning configuration - Bedrock has none (design spec &sect;3.4), so no {@code
- * requestParameters} toggle is needed for the block to appear; the stub simply streams one.
+ * reasoning configuration - Bedrock has none (design spec &sect;3.4), so no {@code bodyProperties}
+ * toggle is needed for the block to appear; the stub simply streams one.
  */
 class AgentSubProcessBedrockReasoningRoundTripTests extends BaseBedrockNativeSubProcessTest {
 

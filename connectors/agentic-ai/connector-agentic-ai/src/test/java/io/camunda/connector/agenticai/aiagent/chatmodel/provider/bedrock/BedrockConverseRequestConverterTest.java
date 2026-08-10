@@ -55,12 +55,15 @@ class BedrockConverseRequestConverterTest {
             null,
             null,
             null,
+            null,
             new BedrockModel(MODEL_ID, parameters)));
   }
 
-  /** Builds a model with only the given headers/query parameters set on the connection. */
+  /** Builds a model with only the given headers/query/body properties set on the connection. */
   private static BedrockChatModelConfiguration connectionOverridesModel(
-      @Nullable Map<String, String> headers, @Nullable Map<String, String> queryParameters) {
+      @Nullable Map<String, String> headers,
+      @Nullable Map<String, String> queryParameters,
+      @Nullable Map<String, Object> bodyProperties) {
     return new BedrockChatModelConfiguration(
         new BedrockConnection(
             REGION,
@@ -68,13 +71,14 @@ class BedrockConverseRequestConverterTest {
             new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
             headers,
             queryParameters,
+            bodyProperties,
             null,
             new BedrockModel(MODEL_ID, null)));
   }
 
   private static BedrockModelParameters promptCachingParams(@Nullable Boolean enabled) {
     final var promptCaching = enabled == null ? null : new BedrockPromptCaching(enabled);
-    return new BedrockModelParameters(promptCaching, null, null, null, null);
+    return new BedrockModelParameters(promptCaching, null, null, null);
   }
 
   @Nested
@@ -82,7 +86,7 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void mapsMaxTokensTemperatureAndTopPWhenSet() {
-      final var parameters = new BedrockModelParameters(null, 2048, 0.5, 0.9, null);
+      final var parameters = new BedrockModelParameters(null, 2048, 0.5, 0.9);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
@@ -104,7 +108,7 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void appliesMaxTokensIndependentlyOfTemperatureAndTopP() {
-      final var parameters = new BedrockModelParameters(null, 100, null, null, null);
+      final var parameters = new BedrockModelParameters(null, 100, null, null);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
@@ -116,7 +120,7 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void appliesTemperatureIndependentlyOfMaxTokensAndTopP() {
-      final var parameters = new BedrockModelParameters(null, null, 0.3, null, null);
+      final var parameters = new BedrockModelParameters(null, null, 0.3, null);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
@@ -128,7 +132,7 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void appliesTopPIndependentlyOfMaxTokensAndTemperature() {
-      final var parameters = new BedrockModelParameters(null, null, null, 0.8, null);
+      final var parameters = new BedrockModelParameters(null, null, null, 0.8);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
@@ -388,16 +392,15 @@ class BedrockConverseRequestConverterTest {
   }
 
   @Nested
-  class RequestParameters {
+  class BodyProperties {
 
     @Test
-    void requestParametersMapToAdditionalModelRequestFields() {
-      final var parameters =
-          new BedrockModelParameters(
-              null, null, null, null, Map.of("thinking", Map.of("type", "enabled")));
+    void bodyPropertiesMapToAdditionalModelRequestFields() {
+      final var config =
+          connectionOverridesModel(null, null, Map.of("thinking", Map.of("type", "enabled")));
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-      final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
+      final var request = converter.toConverseStreamRequest(config, null, snapshot);
 
       final var fields = request.additionalModelRequestFields();
       assertThat(fields).isNotNull();
@@ -406,7 +409,7 @@ class BedrockConverseRequestConverterTest {
     }
 
     @Test
-    void omitsAdditionalModelRequestFieldsWhenRequestParametersUnset() {
+    void omitsAdditionalModelRequestFieldsWhenBodyPropertiesUnset() {
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
@@ -420,7 +423,8 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void headersReachOverrideConfiguration() {
-      final var config = connectionOverridesModel(Map.of("X-Custom-Header", "custom-value"), null);
+      final var config =
+          connectionOverridesModel(Map.of("X-Custom-Header", "custom-value"), null, null);
 
       final var request =
           converter.toConverseStreamRequest(
@@ -433,7 +437,7 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void queryParametersReachOverrideConfiguration() {
-      final var config = connectionOverridesModel(null, Map.of("api-version", "2026-01-01"));
+      final var config = connectionOverridesModel(null, Map.of("api-version", "2026-01-01"), null);
 
       final var request =
           converter.toConverseStreamRequest(
@@ -573,8 +577,7 @@ class BedrockConverseRequestConverterTest {
         final var parameters =
             flag == null
                 ? null
-                : new BedrockModelParameters(
-                    new BedrockPromptCaching(flag), null, null, null, null);
+                : new BedrockModelParameters(new BedrockPromptCaching(flag), null, null, null);
         final var snapshot =
             new ConversationSnapshot(
                 List.of(

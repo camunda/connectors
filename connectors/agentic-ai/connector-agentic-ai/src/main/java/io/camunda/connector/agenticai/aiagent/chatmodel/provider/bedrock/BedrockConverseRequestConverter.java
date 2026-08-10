@@ -106,7 +106,7 @@ public class BedrockConverseRequestConverter {
     }
 
     applyOutputConfig(builder, response);
-    applyAdditionalModelRequestFields(builder, params);
+    applyAdditionalModelRequestFields(builder, connection);
     applyOverrideConfiguration(builder, connection);
 
     return builder.build();
@@ -318,13 +318,12 @@ public class BedrockConverseRequestConverter {
   }
 
   private void applyAdditionalModelRequestFields(
-      ConverseStreamRequest.Builder builder, @Nullable BedrockModelParameters params) {
-    final Map<String, Object> requestParameters =
-        params == null ? null : params.requestParameters();
-    if (requestParameters == null || requestParameters.isEmpty()) {
+      ConverseStreamRequest.Builder builder, BedrockConnection connection) {
+    final Map<String, Object> bodyProperties = connection.bodyProperties();
+    if (bodyProperties == null || bodyProperties.isEmpty()) {
       return;
     }
-    builder.additionalModelRequestFields(toDocument(requestParameters));
+    builder.additionalModelRequestFields(toDocument(bodyProperties));
   }
 
   /** Merges the escape-hatch {@code headers} and {@code queryParameters} onto the request. */

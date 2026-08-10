@@ -67,6 +67,7 @@ class BedrockChatModelApiTest {
               null,
               null,
               null,
+              null,
               new BedrockModel(MODEL_ID, null)));
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);

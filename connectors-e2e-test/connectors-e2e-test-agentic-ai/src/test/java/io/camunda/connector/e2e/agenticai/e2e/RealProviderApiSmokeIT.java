@@ -364,7 +364,7 @@ class RealProviderApiSmokeIT {
                         Map.of("provider.bedrock.model.parameters.promptCaching.enabled", "true"),
                     Capability.REASONING,
                         Map.of(
-                            "provider.bedrock.model.parameters.requestParameters",
+                            "provider.bedrock.bodyProperties",
                             "={reasoningConfig: {type: \"enabled\", maxReasoningEffort: \"medium\"}}"))),
             // A non-Amazon Converse model: gpt-oss-120b's model card lists text-only input
             // modalities, and neither structured output nor explicit prompt caching is documented
@@ -375,9 +375,7 @@ class RealProviderApiSmokeIT {
                 "openai.gpt-oss-120b-1:0",
                 Map.of(
                     Capability.REASONING,
-                    Map.of(
-                        "provider.bedrock.model.parameters.requestParameters",
-                        "={reasoning_effort: \"medium\"}"))),
+                    Map.of("provider.bedrock.bodyProperties", "={reasoning_effort: \"medium\"}"))),
             // Claude via the native Converse path -- not the audience this provider targets
             // (Claude gets its own dedicated provider), but a permanent cross-check that the
             // generic sdkFields() codec round-trips Anthropic's own block shapes correctly too.
@@ -391,7 +389,7 @@ class RealProviderApiSmokeIT {
                         Map.of("provider.bedrock.model.parameters.promptCaching.enabled", "true"),
                     Capability.REASONING,
                         Map.of(
-                            "provider.bedrock.model.parameters.requestParameters",
+                            "provider.bedrock.bodyProperties",
                             "={thinking: {type: \"enabled\", budget_tokens: 2048}}"))),
             // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
             // domain block in addition to reasoning_tokens, so REASONING is exercisable here.

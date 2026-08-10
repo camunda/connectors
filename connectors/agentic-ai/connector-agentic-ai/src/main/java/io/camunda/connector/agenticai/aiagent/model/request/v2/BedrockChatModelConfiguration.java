@@ -6,10 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
+import static io.camunda.connector.agenticai.aiagent.util.LoggingSupport.redactValues;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -66,22 +67,30 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
           @Nullable String endpoint,
       @Valid @NotNull AwsAuthentication authentication,
       @TemplateProperty(
-              group = "provider",
-              label = "Headers",
-              tooltip = "Map of HTTP headers to add to the request.",
+              group = "advanced-provider-options",
+              label = "HTTP headers",
+              description = "Map of HTTP headers to add to the request.",
               type = TemplateProperty.PropertyType.Hidden,
               feel = FeelMode.disabled,
               optional = true)
           @Nullable Map<String, String> headers,
       @Valid
           @TemplateProperty(
-              group = "provider",
+              group = "advanced-provider-options",
               label = "Query parameters",
-              tooltip = "Map of query parameters to add to the request URL.",
+              description = "Map of query parameters to add to the request URL.",
               type = TemplateProperty.PropertyType.Hidden,
               feel = FeelMode.disabled,
               optional = true)
           @Nullable Map<@NotBlank String, String> queryParameters,
+      @TemplateProperty(
+              group = "advanced-provider-options",
+              label = "Body properties",
+              description = "Map of additional properties to include in the request body.",
+              type = TemplateProperty.PropertyType.Hidden,
+              feel = FeelMode.disabled,
+              optional = true)
+          @Nullable Map<String, Object> bodyProperties,
       @Valid @Nullable TimeoutConfiguration timeouts,
       @Valid @NotNull BedrockModel model) {
 
@@ -100,7 +109,13 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
           + endpoint
           + ", authentication="
           + authentication
-          + ", headers=[REDACTED], queryParameters=[REDACTED], timeouts="
+          + ", headers="
+          + redactValues(headers)
+          + ", queryParameters="
+          + redactValues(queryParameters)
+          + ", bodyProperties="
+          + redactValues(bodyProperties)
+          + ", timeouts="
           + timeouts
           + ", model="
           + model
@@ -159,15 +174,7 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            @Nullable Double topP,
-        @TemplateProperty(
-                group = "model-options",
-                label = "Request parameters",
-                tooltip = "Map of additional parameters to include in the request body.",
-                type = TemplateProperty.PropertyType.Hidden,
-                feel = FeelMode.disabled,
-                optional = true)
-            @Nullable Map<String, Object> requestParameters) {
+            @Nullable Double topP) {
 
       @Override
       public String toString() {
@@ -179,7 +186,7 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
             + temperature
             + ", topP="
             + topP
-            + ", requestParameters=[REDACTED]}";
+            + "}";
       }
     }
 

@@ -86,7 +86,7 @@ verbatim, or a SHA-256 prefix of the external URL / inline content.
 ### Reasoning
 
 No typed reasoning configuration — enabling reasoning happens entirely through the generic
-`requestParameters` escape hatch (`additionalModelRequestFields` on the wire). This is deliberate:
+`bodyProperties` escape hatch (`additionalModelRequestFields` on the wire). This is deliberate:
 Converse's reachable model families each enable reasoning through a different, incompatible shape with
 irreconcilable budget-vs-effort semantics and no documented generalized dial, and sniffing the vendor
 out of a model id breaks on custom-model and marketplace ARNs. A generalized dial belongs with the
