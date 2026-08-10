@@ -152,14 +152,6 @@
       <version>${version.anthropic-java}</version>
     </dependency>
 
-    <!--
-      Backend for AWS Bedrock Mantle (SigV4/API-key signed, Messages-API-only). Brings in
-      anthropic-java-aws (AwsBackend, out of scope here) and AWS SDK auth/http-client-spi/eventstream
-      as transitive api dependencies, version-managed by its own AWS SDK BOM import. This project
-      already pins software.amazon.awssdk:auth/regions/http-client-spi to ${version.aws-sdk2} via
-      parent/pom.xml's dependencyManagement, which takes precedence over the transitive BOM (verified
-      with `mvn dependency:tree`, no version conflict / mixed classpath).
-    -->
     <dependency>
       <groupId>com.anthropic</groupId>
       <artifactId>anthropic-java-bedrock</artifactId>
