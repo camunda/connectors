@@ -32,14 +32,9 @@ import software.amazon.awssdk.utils.builder.Buildable;
  * structures.
  *
  * <p><strong>Why generic instead of typed per-type mapping.</strong> {@code ContentBlock} is a
- * 15-member union; beyond {@code text}, {@code toolUse} and {@code reasoningContent}, the remaining
- * members ({@code citationsContent} and friends) drag in 15-20 nested types across recursive unions
- * ({@code Citation} &rarr; {@code CitationSourceContent}, {@code CitationLocation}, {@code
- * SearchResultContentBlock}, {@code CitationsConfig}, ...). Walking {@link SdkPojo#sdkFields()}
- * reflectively is far smaller than hand-writing a converter per type, stays correct across AWS SDK
- * version bumps that add fields or members, and doubles as the residual-metadata mechanism for
- * ordinary {@code text} and {@code toolUse} blocks (see the design spec &sect;5.4 for the full
- * rationale).
+ * 15-member union dragging in 15-20 nested types; walking {@link SdkPojo#sdkFields()} reflectively
+ * is far smaller than hand-writing a converter per type and stays correct across AWS SDK version
+ * bumps (design spec &sect;5.4).
  *
  * <p><strong>Capture direction ({@link #capture(SdkPojo)}).</strong> Walks {@code
  * pojo.sdkFields()}; for every field with a non-null value ({@link

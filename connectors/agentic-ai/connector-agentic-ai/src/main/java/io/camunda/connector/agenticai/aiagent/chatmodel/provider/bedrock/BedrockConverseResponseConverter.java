@@ -251,10 +251,7 @@ public class BedrockConverseResponseConverter {
           io.camunda.connector.agenticai.aiagent.model.message.StopReason.ERROR;
       default ->
           new io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason(
-              // rawStopReason mirrors stopReason 1:1 (both derived from the same wire value) and is
-              // therefore always present whenever stopReason itself is non-null;
-              // stopReason.toString()
-              // is an equally-valid fallback for NullAway's benefit, never actually exercised.
+              // Fallback for NullAway; rawStopReason always mirrors stopReason here.
               rawStopReason != null ? rawStopReason : stopReason.toString());
     };
   }
