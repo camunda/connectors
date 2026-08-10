@@ -73,7 +73,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
     String type();
 
     @TemplateSubType(id = COMPLETIONS_ID, label = "Chat Completions")
-    record OpenAiCompletionsApi(@Valid @NotNull CompletionsParameters completions)
+    record OpenAiCompletionsApi(@Valid @Nullable CompletionsParameters completions)
         implements OpenAiApi {
 
       @TemplateProperty(ignore = true)
@@ -138,7 +138,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
     }
 
     @TemplateSubType(id = RESPONSES_ID, label = "Responses")
-    record OpenAiResponsesApi(@Valid @NotNull ResponsesParameters responses) implements OpenAiApi {
+    record OpenAiResponsesApi(@Valid @Nullable ResponsesParameters responses) implements OpenAiApi {
 
       @TemplateProperty(ignore = true)
       public static final String RESPONSES_ID = "responses";

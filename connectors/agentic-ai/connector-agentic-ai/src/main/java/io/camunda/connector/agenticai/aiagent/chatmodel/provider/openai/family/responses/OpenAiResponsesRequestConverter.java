@@ -95,9 +95,11 @@ public class OpenAiResponsesRequestConverter {
    * This converter only handles the {@code responses} API family; routing a {@code completions}
    * family configuration here is a caller/family-dispatch bug (Task 7's family-selection logic),
    * not a user-facing configuration error, hence the unchecked exception rather than a {@code
-   * ConnectorException}.
+   * ConnectorException}. {@code responses} itself is optional -- every one of its own fields is
+   * optional, so a modeler leaving all of them unset means the object is absent entirely, not
+   * present-with-nulls.
    */
-  private ResponsesParameters responsesParameters(OpenAiConnection connection) {
+  private @Nullable ResponsesParameters responsesParameters(OpenAiConnection connection) {
     return switch (connection.api()) {
       case OpenAiResponsesApi responsesApi -> responsesApi.responses();
       case OpenAiApi.OpenAiCompletionsApi completionsApi ->
@@ -108,7 +110,10 @@ public class OpenAiResponsesRequestConverter {
   }
 
   private void applyModelParameters(
-      ResponseCreateParams.Builder builder, ResponsesParameters params) {
+      ResponseCreateParams.Builder builder, @Nullable ResponsesParameters params) {
+    if (params == null) {
+      return;
+    }
     if (params.maxOutputTokens() != null) {
       builder.maxOutputTokens(params.maxOutputTokens().longValue());
     }
@@ -128,8 +133,9 @@ public class OpenAiResponsesRequestConverter {
    * conversation-memory model, which persists reasoning itself rather than relying on OpenAI-side
    * state.
    */
-  private void applyReasoning(ResponseCreateParams.Builder builder, ResponsesParameters params) {
-    final OpenAiEffort effort = params.effort();
+  private void applyReasoning(
+      ResponseCreateParams.Builder builder, @Nullable ResponsesParameters params) {
+    final OpenAiEffort effort = params == null ? null : params.effort();
     if (effort == null) {
       return;
     }

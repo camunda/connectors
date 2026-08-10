@@ -164,6 +164,25 @@ class OpenAiChatModelConfigurationTest {
     assertThat(validator.validate(config)).isEmpty();
   }
 
+  /**
+   * Regression test: every field of {@link CompletionsParameters}/{@link ResponsesParameters} is
+   * itself optional, so a modeler leaving all of them unset means the FEEL/outbound-variable
+   * binding never populates the {@code completions}/{@code responses} object at all -- it comes
+   * back {@code null}, not present-with-null-fields. Both wrapper records must therefore accept a
+   * {@code null} value without a validation violation (caught by e2e: earlier versions marked them
+   * {@code @NotNull}, which failed real job binding whenever no option under the family was set).
+   */
+  @Test
+  void nullCompletionsAndResponsesParametersAreValid() {
+    final var completionsConfig =
+        configuration(new OpenAiCompletionsApi(null), openAiApiBackend("sk-test"), "gpt-5.5");
+    final var responsesConfig =
+        configuration(new OpenAiResponsesApi(null), openAiApiBackend("sk-test"), "gpt-5.5");
+
+    assertThat(validator.validate(completionsConfig)).isEmpty();
+    assertThat(validator.validate(responsesConfig)).isEmpty();
+  }
+
   @Test
   void deserialisesOpenAiApiBackendWithResponsesApiAndRoundTrips() throws Exception {
     final String json =

@@ -345,6 +345,28 @@ class OpenAiCompletionsRequestConverterTest {
     assertThat(params.topP()).contains(0.9);
   }
 
+  /**
+   * Regression test: {@code completions} itself (not just its fields) can be {@code null} - every
+   * one of its fields is optional, so real job binding produces a {@code null} object, not one with
+   * all-null fields, whenever a modeler leaves every option under the family unset (caught by e2e
+   * running against the real job-input binding path).
+   */
+  @Test
+  void handlesNullCompletionsParametersWithoutError() {
+    final var config =
+        new OpenAiChatModelConfiguration(
+            new OpenAiConnection(
+                new OpenAiCompletionsApi(null), defaultBackend(), new OpenAiModel("gpt-4o"), null));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(config, null, snapshot);
+
+    assertThat(params.reasoningEffort()).isEmpty();
+    assertThat(params.maxCompletionTokens()).isEmpty();
+    assertThat(params.temperature()).isEmpty();
+    assertThat(params.topP()).isEmpty();
+  }
+
   @Test
   void alwaysRequestsUsageOnStreamingRequests() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());

@@ -108,9 +108,11 @@ public class OpenAiCompletionsRequestConverter {
   /**
    * This converter only handles the {@code completions} API family; routing a {@code responses}
    * family configuration here is a caller/family-dispatch bug, not a user-facing configuration
-   * error, hence the unchecked exception rather than a {@code ConnectorException}.
+   * error, hence the unchecked exception rather than a {@code ConnectorException}. {@code
+   * completions} itself is optional -- every one of its own fields is optional, so a modeler
+   * leaving all of them unset means the object is absent entirely, not present-with-nulls.
    */
-  private CompletionsParameters completionsParameters(OpenAiConnection connection) {
+  private @Nullable CompletionsParameters completionsParameters(OpenAiConnection connection) {
     return switch (connection.api()) {
       case OpenAiCompletionsApi completionsApi -> completionsApi.completions();
       case OpenAiApi.OpenAiResponsesApi responsesApi ->
@@ -121,7 +123,10 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   private void applyModelParameters(
-      ChatCompletionCreateParams.Builder builder, CompletionsParameters params) {
+      ChatCompletionCreateParams.Builder builder, @Nullable CompletionsParameters params) {
+    if (params == null) {
+      return;
+    }
     if (params.maxCompletionTokens() != null) {
       builder.maxCompletionTokens(params.maxCompletionTokens().longValue());
     }
@@ -140,8 +145,8 @@ public class OpenAiCompletionsRequestConverter {
    * state to opt out of.
    */
   private void applyReasoning(
-      ChatCompletionCreateParams.Builder builder, CompletionsParameters params) {
-    final OpenAiEffort effort = params.effort();
+      ChatCompletionCreateParams.Builder builder, @Nullable CompletionsParameters params) {
+    final OpenAiEffort effort = params == null ? null : params.effort();
     if (effort == null) {
       return;
     }

@@ -424,6 +424,30 @@ class OpenAiResponsesRequestConverterTest {
     assertThat(params.include()).isEmpty();
   }
 
+  /**
+   * Regression test: {@code responses} itself (not just its fields) can be {@code null} - every one
+   * of its fields is optional, so real job binding produces a {@code null} object, not one with
+   * all-null fields, whenever a modeler leaves every option under the family unset (caught by e2e
+   * running against the real job-input binding path).
+   */
+  @Test
+  void handlesNullResponsesParametersWithoutError() {
+    final var config =
+        new OpenAiChatModelConfiguration(
+            new OpenAiConnection(
+                new OpenAiResponsesApi(null), defaultBackend(), new OpenAiModel("gpt-5"), null));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(config, null, snapshot);
+
+    assertThat(params.reasoning()).isEmpty();
+    assertThat(params.store()).isEmpty();
+    assertThat(params.include()).isEmpty();
+    assertThat(params.maxOutputTokens()).isEmpty();
+    assertThat(params.temperature()).isEmpty();
+    assertThat(params.topP()).isEmpty();
+  }
+
   @Test
   void mapsEachEffortLevelToItsLowercaseWireValue() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
