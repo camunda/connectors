@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.Anthr
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -29,5 +30,13 @@ public class AgenticAiNativeProvidersConfiguration {
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
     return new AnthropicChatModelFactory(httpProxySupport, requestConverter, responseConverter);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public OpenAiChatModelFactory aiAgentOpenAiChatModelFactory(
+      AgenticAiHttpProxySupport httpProxySupport,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new OpenAiChatModelFactory(httpProxySupport, objectMapper);
   }
 }
