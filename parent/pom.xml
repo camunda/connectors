@@ -95,12 +95,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.1</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.51.3</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.51.4</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.51.3</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.51.4</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.51.3</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.51.4</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -116,14 +116,14 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260610-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.71.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.62.0</version.google-genai>
+    <version.google-genai>1.65.0</version.google-genai>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
     <version.httpcore5>5.4.3</version.httpcore5>
     <version.httpclient5>5.6.4</version.httpclient5>
     <version.pdfbox>3.0.8</version.pdfbox>
-    <version.collections4>4.5.0</version.collections4>
+    <version.collections4>4.6.0</version.collections4>
 
     <version.commons-io>2.22.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
@@ -137,7 +137,12 @@ limitations under the License.</license.inlineheader>
     <version.azure-identity>1.18.4</version.azure-identity>
     <version.azure-cosmos>4.81.0</version.azure-cosmos>
 
-    <version.bouncycastle>1.85</version.bouncycastle>
+    <!-- Independent properties: bcpkix-jdk18on and bcprov-jdk18on don't always ship
+         new patch releases in lockstep (e.g. 1.85.2 exists only for bcprov-jdk18on),
+         so a shared property lets Renovate's property-grouping bump one artifact to a
+         version the other doesn't have, breaking dependency resolution. -->
+    <version.bouncycastle-pkix>1.85</version.bouncycastle-pkix>
+    <version.bouncycastle-prov>1.85</version.bouncycastle-prov>
     <version.box-sdk>4.16.4</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
@@ -682,13 +687,13 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcpkix-jdk18on</artifactId>
-        <version>${version.bouncycastle}</version>
+        <version>${version.bouncycastle-pkix}</version>
       </dependency>
 
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk18on</artifactId>
-        <version>${version.bouncycastle}</version>
+        <version>${version.bouncycastle-prov}</version>
       </dependency>
 
       <dependency>
