@@ -264,6 +264,7 @@ class OpenAiResponsesRequestConverterTest {
             List.of(
                 AssistantMessage.builder()
                     .content(List.of(TextContent.textContent("here's the answer")))
+                    .messageId("resp_1")
                     .build()),
             List.of());
 
@@ -272,12 +273,10 @@ class OpenAiResponsesRequestConverterTest {
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(1);
 
-    final var easy = items.get(0).easyInputMessage().orElseThrow();
-    assertThat(easy.role()).isEqualTo(EasyInputMessage.Role.ASSISTANT);
-
-    final var parts = easy.content().asResponseInputMessageContentList();
-    assertThat(parts).hasSize(1);
-    assertThat(parts.get(0).inputText().orElseThrow().text()).isEqualTo("here's the answer");
+    final var message = items.get(0).responseOutputMessage().orElseThrow();
+    assertThat(message.content()).hasSize(1);
+    assertThat(message.content().get(0).outputText().orElseThrow().text())
+        .isEqualTo("here's the answer");
   }
 
   @Test
@@ -294,6 +293,7 @@ class OpenAiResponsesRequestConverterTest {
                                 .name("get_weather")
                                 .arguments(Map.of("city", "Berlin"))
                                 .build()))
+                    .messageId("resp_1")
                     .build()),
             List.of());
 
@@ -302,8 +302,7 @@ class OpenAiResponsesRequestConverterTest {
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(2);
 
-    final var easy = items.get(0).easyInputMessage().orElseThrow();
-    assertThat(easy.role()).isEqualTo(EasyInputMessage.Role.ASSISTANT);
+    assertThat(items.get(0).responseOutputMessage()).isPresent();
 
     final var functionCall = items.get(1).functionCall().orElseThrow();
     assertThat(functionCall.callId()).isEqualTo("call_1");
@@ -329,6 +328,7 @@ class OpenAiResponsesRequestConverterTest {
                                 .name("get_weather")
                                 .arguments(Map.of("city", "Berlin"))
                                 .build()))
+                    .messageId("resp_1")
                     .build()),
             List.of());
 
@@ -337,7 +337,7 @@ class OpenAiResponsesRequestConverterTest {
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(3);
     assertThat(items.get(0).reasoning()).isPresent();
-    assertThat(items.get(1).easyInputMessage()).isPresent();
+    assertThat(items.get(1).responseOutputMessage()).isPresent();
     assertThat(items.get(2).functionCall()).isPresent();
   }
 

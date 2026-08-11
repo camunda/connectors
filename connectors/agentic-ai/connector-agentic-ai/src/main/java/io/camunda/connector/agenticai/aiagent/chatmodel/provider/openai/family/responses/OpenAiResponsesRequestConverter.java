@@ -20,6 +20,7 @@ import com.openai.models.responses.ResponseFormatTextJsonSchemaConfig;
 import com.openai.models.responses.ResponseFunctionToolCall;
 import com.openai.models.responses.ResponseIncludable;
 import com.openai.models.responses.ResponseInputItem;
+import com.openai.models.responses.ResponseOutputMessage;
 import com.openai.models.responses.ResponseTextConfig;
 import com.openai.models.responses.Tool;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
@@ -50,6 +51,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -224,12 +226,11 @@ public class OpenAiResponsesRequestConverter {
     }
     if (!plainContent.isEmpty()) {
       items.add(
-          ResponseInputItem.ofEasyInputMessage(
-              EasyInputMessage.builder()
-                  .role(EasyInputMessage.Role.ASSISTANT)
-                  .content(
-                      EasyInputMessage.Content.ofResponseInputMessageContentList(
-                          contentConverter.toResponsesContentParts(plainContent)))
+          ResponseInputItem.ofResponseOutputMessage(
+              ResponseOutputMessage.builder()
+                  .id(assistantMessageItemId(assistant))
+                  .status(ResponseOutputMessage.Status.COMPLETED)
+                  .content(contentConverter.toResponsesOutputContentParts(plainContent))
                   .build()));
     }
     for (final ToolCall toolCall : assistant.toolCalls()) {
@@ -242,6 +243,17 @@ public class OpenAiResponsesRequestConverter {
                   .build()));
     }
     return items;
+  }
+
+  /**
+   * The SDK requires an {@code id} on a replayed assistant message item. This is a per-turn id, not
+   * a per-content-block one, so {@link AssistantMessage#messageId()} -- the id of the response this
+   * turn came from -- is already at the right scope; every OpenAI Responses assistant message
+   * carries one.
+   */
+  private String assistantMessageItemId(AssistantMessage assistant) {
+    return Objects.requireNonNull(
+        assistant.messageId(), "expected assistant message to have a messageId");
   }
 
   /**
