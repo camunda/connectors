@@ -295,11 +295,6 @@ class OpenSearchVectorStoreFactoryTest {
       assertTransportHost("opensearch.aws", "opensearch.aws");
     }
 
-    /**
-     * {@code AwsSdk2Transport} builds every request URL as {@code "https://" + host}, so passing a
-     * fully qualified URL — which is what the "Server URL" property asks for — yields {@code
-     * https://https://…} and a DNS lookup for the host {@code https}.
-     */
     private void assertTransportHost(String serverUrl, String expectedTransportHost) {
       var proxyConfig = mock(ProxyConfiguration.class);
       when(proxyConfig.getProxyDetails(ProxyConfiguration.SCHEME_HTTPS))
