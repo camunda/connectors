@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -70,7 +70,7 @@ public class AgentTaskLimitsTests extends BaseAgentTaskTest {
     assertIncident(
         zeebeTest,
         incident -> {
-          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
+          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
           assertThat(incident.getErrorMessage())
               .startsWith(
                   "Maximum number of model calls reached (modelCalls: %1$d, limit: %1$d)"

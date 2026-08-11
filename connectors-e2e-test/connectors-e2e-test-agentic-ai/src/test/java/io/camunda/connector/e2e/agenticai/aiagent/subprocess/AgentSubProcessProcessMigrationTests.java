@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.client.api.response.ProcessInstanceEvent;
@@ -142,7 +142,7 @@ public class AgentSubProcessProcessMigrationTests extends BaseAgentSubProcessTes
     assertIncident(
         zeebeTest,
         incident -> {
-          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
+          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
           assertThat(incident.getErrorMessage())
               .contains("Removing or renaming existing tools is currently not supported.")
               .contains(
@@ -178,7 +178,7 @@ public class AgentSubProcessProcessMigrationTests extends BaseAgentSubProcessTes
     assertIncident(
         zeebeTest,
         incident -> {
-          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
+          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
           assertThat(incident.getErrorMessage())
               .contains(
                   "Adding or removing gateway tool definitions to a running AI Agent is currently not supported.")
