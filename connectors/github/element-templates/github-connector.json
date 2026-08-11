@@ -3962,7 +3962,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "12",
+      "value": "13",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
