@@ -26,9 +26,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.agenticai.common.util.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
-import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -137,9 +137,8 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     if (chatResponse.metadata() != null) {
       final var responseMetadata = chatResponse.metadata();
       builder.metadata(
-          Map.of(
-              "timestamp", ZonedDateTime.now(),
-              "framework", serializedChatResponseMetadata(responseMetadata)));
+          AssistantMessageMetadata.withDefaults(
+              Map.of("framework", serializedChatResponseMetadata(responseMetadata))));
 
       Optional.ofNullable(responseMetadata.modelName())
           .filter(StringUtils::isNotBlank)

@@ -24,6 +24,7 @@
     <version.a2asdk>0.3.3.Final</version.a2asdk>
     <version.errorprone>2.50.0</version.errorprone>
     <version.nullaway>0.13.8</version.nullaway>
+    <version.anthropic-java>2.52.0</version.anthropic-java>
   </properties>
 
   <licenses>
@@ -132,6 +133,42 @@
     <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-http-client-jdk</artifactId>
+    </dependency>
+
+    <!--
+      Declared directly rather than via the com.anthropic:anthropic-java aggregator:
+      anthropic-java-core (the com.anthropic.models.* classes) and anthropic-java-client-okhttp
+      (the OkHttp-based AnthropicClient builder used by AnthropicChatModelApiFactory, plus the
+      ProxyAuthenticator used for proxy credentials) share the aggregator's version.
+    -->
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java-core</artifactId>
+      <version>${version.anthropic-java}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java-client-okhttp</artifactId>
+      <version>${version.anthropic-java}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java-bedrock</artifactId>
+      <version>${version.anthropic-java}</version>
+    </dependency>
+
+    <!--
+      OkHttp 5 split into multi-platform modules: the `okhttp` artifact's pom is now an empty
+      shell (classes ship in `okhttp-jvm`), see the comment in parent/pom.xml.
+      anthropic-java-client-okhttp only depends on the empty `okhttp` shell, so
+      AnthropicOkHttpClient.builder().build() throws NoClassDefFoundError at runtime unless we
+      add `okhttp-jvm` explicitly (same pattern as connectors/slack and connectors/microsoft/common).
+    -->
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp-jvm</artifactId>
+      <version>${version.okhttp}</version>
     </dependency>
 
     <!-- Native MCP Java SDK -->
@@ -414,6 +451,10 @@
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-core</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-json</ignoredDependency>
+                <!-- okhttp-jvm has no direct source import (it's only reflectively required by
+                     anthropic-java-client-okhttp's AnthropicOkHttpClient at runtime, see the
+                     dependency declaration above); the analyzer would otherwise flag it unused. -->
+                <ignoredDependency>com.squareup.okhttp3:okhttp-jvm</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>

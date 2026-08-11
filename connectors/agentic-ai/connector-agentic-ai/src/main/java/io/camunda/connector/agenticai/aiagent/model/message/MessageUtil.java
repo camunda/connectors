@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.util.List;
+import java.util.Optional;
 
 public class MessageUtil {
   private MessageUtil() {}
@@ -19,5 +20,11 @@ public class MessageUtil {
 
   public static List<Content> content(Content... contents) {
     return List.of(contents);
+  }
+
+  public static Optional<SystemMessage> leadingSystemMessage(List<Message> messages) {
+    return !messages.isEmpty() && messages.getFirst() instanceof SystemMessage systemMessage
+        ? Optional.of(systemMessage)
+        : Optional.empty();
   }
 }

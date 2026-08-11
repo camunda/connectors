@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration.CUSTOM_ID;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -14,15 +15,18 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes({@JsonSubTypes.Type(value = CustomProviderConfiguration.class, name = CUSTOM_ID)})
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = AnthropicChatModelConfiguration.class, name = ANTHROPIC_ID),
+  @JsonSubTypes.Type(value = CustomProviderConfiguration.class, name = CUSTOM_ID)
+})
 @TemplateDiscriminatorProperty(
     label = "Provider",
     group = "provider",
     name = "type",
     description = "Specify the LLM provider to use.",
-    defaultValue = CUSTOM_ID)
+    defaultValue = ANTHROPIC_ID)
 public sealed interface ProviderConfiguration extends ChatModelConfiguration
-    permits CustomProviderConfiguration {
+    permits AnthropicChatModelConfiguration, CustomProviderConfiguration {
 
   @Override
   String provider();

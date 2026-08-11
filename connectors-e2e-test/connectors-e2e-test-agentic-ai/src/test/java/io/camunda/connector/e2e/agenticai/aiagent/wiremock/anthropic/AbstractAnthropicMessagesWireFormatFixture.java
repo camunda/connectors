@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
@@ -26,12 +24,15 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import org.assertj.core.api.Assertions;
 
 /**
- * Plugs Anthropic's Messages API wire format into the provider-agnostic {@link
- * ProviderWireFormatFixture} SPI.
+ * Shared wire-format plumbing for Anthropic's Messages API, common to both the non-streaming
+ * ({@link AnthropicMessagesV1WireFormatFixture}) and streaming ({@link
+ * AnthropicMessagesV2WireFormatFixture}) fixtures — they send/receive the exact same wire format
+ * and only differ in how the connector is pointed at the WireMock server and how the response is
+ * stubbed (see {@code apiName()}/{@code configureProvider(...)}/{@code stubConversation(...)} on
+ * each subclass).
  *
  * <p>Notable wire-level differences from OpenAI's Chat Completions format:
  *
@@ -47,12 +48,7 @@ import org.assertj.core.api.Assertions;
  *       of scope here since this suite always supplies a schema.
  * </ul>
  */
-public final class AnthropicMessagesWireFormatFixture implements ProviderWireFormatFixture {
-
-  @Override
-  public String apiName() {
-    return "AnthropicMessages";
-  }
+abstract class AbstractAnthropicMessagesWireFormatFixture implements ProviderWireFormatFixture {
 
   @Override
   public String toString() {
@@ -60,21 +56,10 @@ public final class AnthropicMessagesWireFormatFixture implements ProviderWireFor
   }
 
   @Override
-  public Function<ElementTemplate, ElementTemplate> configureProvider(
-      WireMockRuntimeInfo wireMock) {
-    return template ->
-        template
-            .property("provider.type", "anthropic")
-            .property("provider.anthropic.endpoint", wireMock.getHttpBaseUrl() + "/v1/")
-            .property("provider.anthropic.authentication.apiKey", "dummy")
-            .property("provider.anthropic.model.model", "test-model");
-  }
-
-  @Override
   public void stubConversation(TurnStub... turns) {
     AnthropicMessagesChatModelStubs.stubConversation(
         Arrays.stream(turns)
-            .map(AnthropicMessagesWireFormatFixture::toStubTurn)
+            .map(AbstractAnthropicMessagesWireFormatFixture::toStubTurn)
             .toArray(Turn[]::new));
   }
 

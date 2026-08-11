@@ -381,6 +381,49 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
+  void toolResultTurn_bareDocumentResult_deliversDocumentOnlyViaFallbackMessage() {
+    // a tool call result whose whole content is a Document (not nested in an object): the
+    // ToolCallResultContent lift must not turn this into a first-class DocumentContent, since a
+    // native provider tool-result converter would then embed the same bytes a second time — the
+    // fallback <doc/> message stays the document's only delivery channel
+    var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(
+                ToolCallResult.builder()
+                    .id("abcdef")
+                    .name("getWeather")
+                    .content(weatherDoc)
+                    .build(),
+                ToolCallResult.builder()
+                    .id("fedcba")
+                    .name("getDateTime")
+                    .content("15:00")
+                    .build()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+
+    var messages = ((CompositionResult.NextTurn) result).messages();
+    assertThat(messages).hasSize(2);
+    var toolCallResultMessage = (ToolCallResultMessage) messages.getFirst();
+    assertThat(toolCallResultMessage.results())
+        .filteredOn(r -> "abcdef".equals(r.id()))
+        .first()
+        .satisfies(
+            r -> assertThat(r.content()).doesNotHaveAnyElementsOfTypes(DocumentContent.class));
+    assertThat(messages.get(1))
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            documentMessage ->
+                assertThat(documentMessage.content())
+                    .contains(DocumentContent.documentContent(weatherDoc)));
+  }
+
+  @Test
   void waitForToolResults_toolAndEventDocuments_emitsMessagesInOrder() {
     var config =
         new AgentConfiguration(

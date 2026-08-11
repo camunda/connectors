@@ -5,7 +5,7 @@
   "description" : "Execute S3 requests",
   "keywords" : [ "upload file", "download file", "delete file", "upload object", "download object", "delete object", "object storage", "bucket", "file storage" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/amazon-s3/",
-  "version" : 6,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -417,7 +417,7 @@
     "type" : "String"
   }, {
     "id" : "uploadActionDocument",
-    "value" : "=if action_document_documentSource = \"camunda\" then action_document_camundaReference else if action_document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: action_document_inline_content, name: action_document_inline_fileName, contentType: action_document_inline_contentType } else if action_document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: action_document_external_url, name: action_document_external_fileName } else null",
+    "value" : "=if action.action_document_documentSource = \"camunda\" then action.action_document_camundaReference else if action.action_document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: action.action_document_inline_content, name: action.action_document_inline_fileName, contentType: action.action_document_inline_contentType } else if action.action_document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: action.action_document_external_url, name: action.action_document_external_fileName } else null",
     "group" : "uploadObject",
     "binding" : {
       "name" : "action.document",
@@ -522,7 +522,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "6",
+    "value" : "7",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import java.util.List;
 import java.util.Optional;
@@ -26,8 +27,7 @@ public final class TurnReconstructor {
       return new PreviousConversation(Optional.empty(), List.of());
     }
 
-    Optional<SystemMessage> systemMessage =
-        messages.getFirst() instanceof SystemMessage sm ? Optional.of(sm) : Optional.empty();
+    Optional<SystemMessage> systemMessage = MessageUtil.leadingSystemMessage(messages);
     var body = messages.subList(systemMessage.isPresent() ? 1 : 0, messages.size());
 
     if (!body.isEmpty() && !(body.getLast() instanceof AssistantMessage)) {

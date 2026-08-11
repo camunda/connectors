@@ -27,7 +27,8 @@
     <module>element-template-generator</module>
     <module>connector-runtime</module>
     <module>connectors</module>
-    <module>bundle</module>
+    <module>apps/connector-runtime-application</module>
+    <module>apps/bundle</module>
     <module>connector-commons</module>
     <module>secret-providers</module>
   </modules>

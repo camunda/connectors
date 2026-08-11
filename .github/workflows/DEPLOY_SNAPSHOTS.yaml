@@ -129,12 +129,12 @@ jobs:
       - name: Lint Connector Bundle Dockerfile - SaaS
         uses: hadolint/hadolint-action@v3.4.0
         with:
-          dockerfile: bundle/camunda-saas-bundle/Dockerfile
+          dockerfile: apps/bundle/camunda-saas-bundle/Dockerfile
 
       - name: Lint Connector Bundle Dockerfile - default-bundle
         uses: hadolint/hadolint-action@v3.4.0
         with:
-          dockerfile: bundle/default-bundle/Dockerfile
+          dockerfile: apps/bundle/default-bundle/Dockerfile
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -160,7 +160,7 @@ jobs:
       - name: Build and Push Docker Image - connector-runtime
         uses: docker/build-push-action@v7
         with:
-          context: connector-runtime/connector-runtime-application/
+          context: apps/connector-runtime-application/
           push: true
           tags: camunda/connectors:${{ steps.maven_version.outputs.docker_version }}
           platforms: linux/amd64,linux/arm64
@@ -170,7 +170,7 @@ jobs:
         if: steps.version.outputs.is_main == 'true'
         uses: docker/build-push-action@v7
         with:
-          context: connector-runtime/connector-runtime-application/
+          context: apps/connector-runtime-application/
           push: true
           tags: camunda/connectors:SNAPSHOT
           platforms: linux/amd64,linux/arm64
@@ -187,7 +187,7 @@ jobs:
       - name: Build and Push Docker Image - bundle-default
         uses: docker/build-push-action@v7
         with:
-          context: bundle/default-bundle/
+          context: apps/bundle/default-bundle/
           push: true
           tags: camunda/connectors-bundle:${{ steps.maven_version.outputs.docker_version }}
           platforms: linux/amd64,linux/arm64
@@ -197,7 +197,7 @@ jobs:
         if: steps.version.outputs.is_main == 'true'
         uses: docker/build-push-action@v7
         with:
-          context: bundle/default-bundle/
+          context: apps/bundle/default-bundle/
           push: true
           tags: camunda/connectors-bundle:SNAPSHOT
           platforms: linux/amd64,linux/arm64
@@ -214,7 +214,7 @@ jobs:
       - name: Build and Push Docker Image - bundle-saas
         uses: docker/build-push-action@v7
         with:
-          context: bundle/camunda-saas-bundle/
+          context: apps/bundle/camunda-saas-bundle/
           push: true
           tags: camunda/connectors-bundle-saas:${{ steps.maven_version.outputs.docker_version }}
           platforms: linux/amd64,linux/arm64
@@ -224,7 +224,7 @@ jobs:
         if: steps.version.outputs.is_main == 'true'
         uses: docker/build-push-action@v7
         with:
-          context: bundle/camunda-saas-bundle/
+          context: apps/bundle/camunda-saas-bundle/
           push: true
           tags: camunda/connectors-bundle-saas:SNAPSHOT
           platforms: linux/amd64,linux/arm64

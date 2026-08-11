@@ -38,7 +38,13 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     defaultResultVariable = "agent",
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),
+      @PropertyGroup(
+          id = "advanced-provider-options",
+          label = "Advanced provider options",
+          tooltip = "Advanced options for fine-tuning the connection to the model provider.",
+          openByDefault = false),
       @PropertyGroup(id = "model", label = "Model", openByDefault = false),
+      @PropertyGroup(id = "model-options", label = "Model options", openByDefault = false),
       @PropertyGroup(
           id = "systemPrompt",
           label = "System prompt",

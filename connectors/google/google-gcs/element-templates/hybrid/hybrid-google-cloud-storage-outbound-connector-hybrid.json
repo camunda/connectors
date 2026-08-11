@@ -5,7 +5,7 @@
   "description" : "Upload and download files from Google Cloud Storage.",
   "keywords" : [ "download file from google cloud storage", "upload file to google cloud storage", "download file from gcs", "upload file to gcs", "gcs", "download file", "upload file", "download object", "upload object", "cloud storage", "object storage", "file storage" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage",
-  "version" : 4,
+  "version" : 5,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -380,7 +380,7 @@
     "type" : "String"
   }, {
     "id" : "uploadOperationDocument",
-    "value" : "=if operation_document_documentSource = \"camunda\" then operation_document_camundaReference else if operation_document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: operation_document_inline_content, name: operation_document_inline_fileName, contentType: operation_document_inline_contentType } else if operation_document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: operation_document_external_url, name: operation_document_external_fileName } else null",
+    "value" : "=if operation.operation_document_documentSource = \"camunda\" then operation.operation_document_camundaReference else if operation.operation_document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: operation.operation_document_inline_content, name: operation.operation_document_inline_fileName, contentType: operation.operation_document_inline_contentType } else if operation.operation_document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: operation.operation_document_external_url, name: operation.operation_document_external_fileName } else null",
     "group" : "operation",
     "binding" : {
       "name" : "operation.document",
@@ -428,7 +428,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "4",
+    "value" : "5",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

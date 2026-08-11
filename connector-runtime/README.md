@@ -32,9 +32,9 @@ Refer to the [Releases](https://github.com/camunda/connectors-bundle/releases) p
 
 ### Via Docker
 
-Refer to the [Connector Runtime Application Docker example](./connector-runtime-application/example) for further details.
+Refer to the [Connector Runtime Application Docker example](../apps/connector-runtime-application/example) for further details.
 
-To use the Camunda-provided Connectors with the runtime out of the box, refer to the [Connectors Bundle](../bundle).
+To use the Camunda-provided Connectors with the runtime out of the box, refer to the [Connectors Bundle](../apps/bundle).
 
 ## Building Connector runtime bundles
 
