@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionMessage;
@@ -15,6 +13,7 @@ import com.openai.models.chat.completions.ChatCompletionMessageFunctionToolCall;
 import com.openai.models.chat.completions.ChatCompletionMessageToolCall;
 import com.openai.models.completions.CompletionUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiToolCallArguments;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -40,24 +39,13 @@ import java.util.Map;
  * completion_tokens_details.reasoning_tokens} is surfaced via {@link AgentMetrics.TokenUsage}, even
  * though no corresponding {@link ReasoningContent} exists on the message.
  *
- * <p>The domain {@link StopReason} is derived from the choice's {@code finish_reason}: {@code stop}
- * maps to {@link StopReason#STOP}, {@code tool_calls} and the legacy singular {@code function_call}
- * both map to {@link StopReason#TOOL_USE} (both indicate the model stopped to invoke a
- * function/tool), {@code content_filter} maps to {@link StopReason#CONTENT_FILTERED}, and {@code
- * length} maps to {@link StopReason#LENGTH} -- returned as a normal {@link ChatResult.Completed}
- * rather than raised as an error, mirroring {@code AnthropicMessageResponseConverter}'s {@code
- * MAX_TOKENS -> LENGTH} / {@code REFUSAL -> CONTENT_FILTERED} mappings and the Responses sibling's
- * {@code incomplete_details.reason} handling; the caller decides whether/how to react to a
- * truncated or filtered turn. Any {@code finish_reason} value not recognized by this SDK version
- * falls back to {@link StopReason.UnknownStopReason} rather than being silently dropped.
- *
- * <p>The Completions API has no equivalent of Anthropic's {@code pause_turn} stop reason, so every
- * call always surfaces as a {@link ChatResult.Completed}.
+ * <p>The domain {@link StopReason} is derived from the choice's {@code finish_reason}; see {@link
+ * #mapStopReason} for the mapping. The Completions API has no equivalent of Anthropic's {@code
+ * pause_turn} stop reason, so every call always surfaces as a {@link ChatResult.Completed}.
  *
  * <p>The raw vendor {@code finish_reason} string is always preserved under the {@code openai}
- * provider-id key in {@link AssistantMessage#metadata()}, independent of how it normalizes to the
- * domain {@link StopReason}; see {@link AssistantMessageMetadata} for the {@code timestamp} entry
- * every provider adds alongside it.
+ * provider-id key in {@link AssistantMessage#metadata()}; see {@link AssistantMessageMetadata} for
+ * the {@code timestamp} entry every provider adds alongside it.
  */
 public class OpenAiCompletionsResponseConverter {
 
@@ -135,24 +123,9 @@ public class OpenAiCompletionsResponseConverter {
         ToolCall.builder()
             .id(functionCall.id())
             .name(functionCall.function().name())
-            .arguments(parseArguments(functionCall.function().arguments()))
+            .arguments(
+                OpenAiToolCallArguments.parse(objectMapper, functionCall.function().arguments()))
             .build());
-  }
-
-  /**
-   * No blank/missing guard is needed here: {@code function.arguments()} is a {@code
-   * getRequired("arguments")} accessor that throws if the field is absent, and OpenAI always sends
-   * a valid JSON object string for {@code arguments} -- {@code "{}"} for a no-argument call --
-   * never a blank or missing one.
-   */
-  private Map<String, Object> parseArguments(String argumentsJson) {
-    try {
-      final Map<String, Object> arguments =
-          objectMapper.readValue(argumentsJson, new TypeReference<Map<String, Object>>() {});
-      return arguments != null ? arguments : Map.of();
-    } catch (JsonProcessingException e) {
-      throw new IllegalStateException("Failed to parse tool call arguments", e);
-    }
   }
 
   private AgentMetrics toMetrics(ChatCompletion completion, int toolCalls, Duration executionTime) {

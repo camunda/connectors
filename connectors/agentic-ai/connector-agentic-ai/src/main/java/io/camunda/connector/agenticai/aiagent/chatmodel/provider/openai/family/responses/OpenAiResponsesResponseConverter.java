@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.ObjectMappers;
@@ -18,6 +17,7 @@ import com.openai.models.responses.ResponseOutputMessage;
 import com.openai.models.responses.ResponseStatus;
 import com.openai.models.responses.ResponseUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiToolCallArguments;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -112,7 +112,7 @@ public class OpenAiResponsesResponseConverter {
             ToolCall.builder()
                 .id(functionCall.callId())
                 .name(functionCall.name())
-                .arguments(parseArguments(functionCall.arguments()))
+                .arguments(OpenAiToolCallArguments.parse(objectMapper, functionCall.arguments()))
                 .build());
       } else if (item.reasoning().isPresent()) {
         content.add(toReasoningContent(item));
@@ -226,22 +226,6 @@ public class OpenAiResponsesResponseConverter {
   private Map<String, Object> toRawMap(ResponseOutputItem item) {
     return ObjectMappers.jsonMapper()
         .convertValue(item, new TypeReference<Map<String, Object>>() {});
-  }
-
-  /**
-   * No blank/missing guard is needed here: {@code functionCall.arguments()} is a {@code
-   * getRequired("arguments")} accessor that throws if the field is absent, and OpenAI always sends
-   * a valid JSON object string for {@code arguments} -- {@code "{}"} for a no-argument call --
-   * never a blank or missing one.
-   */
-  private Map<String, Object> parseArguments(String argumentsJson) {
-    try {
-      final Map<String, Object> arguments =
-          objectMapper.readValue(argumentsJson, new TypeReference<Map<String, Object>>() {});
-      return arguments != null ? arguments : Map.of();
-    } catch (JsonProcessingException e) {
-      throw new IllegalStateException("Failed to parse tool call arguments", e);
-    }
   }
 
   private AgentMetrics toMetrics(Response response, int toolCalls, Duration executionTime) {
