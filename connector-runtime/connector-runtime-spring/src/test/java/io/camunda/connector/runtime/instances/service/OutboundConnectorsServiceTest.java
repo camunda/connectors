@@ -19,12 +19,15 @@ package io.camunda.connector.runtime.instances.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.runtime.core.common.AbstractConnectorFactory.ConnectorRuntimeConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
+import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerConnectivityState;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerJobStreamClient;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerStreamsResult;
@@ -40,9 +43,12 @@ class OutboundConnectorsServiceTest {
   private static final String TYPE = "io.camunda:http-json:1";
   private static final String OTHER_TYPE = "io.camunda:rabbitmq:1";
   private static final String STREAM_ID = "stream-abc-123";
+  private static final String TENANT_A = "tenanta";
+  private static final String TENANT_B = "tenantb";
 
   private final OutboundConnectorFactory factory = mock(OutboundConnectorFactory.class);
   private final BrokerJobStreamClient brokerClient = mock(BrokerJobStreamClient.class);
+  private final BrokerJobStreamClient otherBrokerClient = mock(BrokerJobStreamClient.class);
 
   @BeforeEach
   void setupFactory() {
@@ -216,5 +222,143 @@ class OutboundConnectorsServiceTest {
 
     assertThatThrownBy(() -> service.findByType("io.camunda:unknown:1", RUNTIME_ID))
         .isInstanceOf(DataNotFoundException.class);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Multiple physical tenants (engines)
+  // ---------------------------------------------------------------------------
+
+  @Test
+  void shouldReportNoPhysicalTenant_whenWiredWithoutPhysicalTenantIds() throws Exception {
+    when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of()));
+
+    var service = new OutboundConnectorsService(factory, brokerClient);
+
+    assertThat(service.findAll(RUNTIME_ID)).singleElement().extracting("physicalTenantId").isNull();
+  }
+
+  @Test
+  void shouldReportEachConnectorOncePerPhysicalTenant() throws Exception {
+    when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of()));
+    when(otherBrokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of()));
+
+    var results = multiTenantService().findAll(RUNTIME_ID);
+
+    assertThat(results).hasSize(2);
+    assertThat(results).allMatch(r -> TYPE.equals(r.type()));
+    assertThat(results)
+        .extracting(OutboundConnectorResponse::physicalTenantId)
+        .containsExactlyInAnyOrder(TENANT_A, TENANT_B);
+  }
+
+  @Test
+  void shouldReportEachPhysicalTenantsOwnBrokerConnectivity() throws Exception {
+    when(brokerClient.fetchRemoteStreams())
+        .thenReturn(
+            new BrokerStreamsResult(
+                List.of(List.of(new RemoteJobStream(TYPE, List.of(Map.of("id", STREAM_ID)))))));
+    when(otherBrokerClient.fetchRemoteStreams())
+        .thenReturn(
+            new BrokerStreamsResult(List.of(List.of(new RemoteJobStream(TYPE, List.of())))));
+
+    var results = multiTenantService().findAll(RUNTIME_ID);
+
+    var tenantA = responseOf(results, TENANT_A);
+    assertThat(tenantA.brokerConnectivityState()).isEqualTo(BrokerConnectivityState.ALL_CONNECTED);
+    assertThat(tenantA.streamIds()).containsExactly(STREAM_ID);
+
+    var tenantB = responseOf(results, TENANT_B);
+    assertThat(tenantB.brokerConnectivityState()).isEqualTo(BrokerConnectivityState.NONE);
+    assertThat(tenantB.streamIds()).isNull();
+  }
+
+  @Test
+  void shouldReportUnknown_forPhysicalTenantWithoutBrokerClient() throws Exception {
+    when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of()));
+
+    var service =
+        new OutboundConnectorsService(
+            factory, List.of(TENANT_A, TENANT_B), Map.of(TENANT_A, brokerClient));
+
+    var results = service.findAll(RUNTIME_ID);
+
+    assertThat(responseOf(results, TENANT_A).brokerConnectivityState())
+        .isEqualTo(BrokerConnectivityState.NONE);
+    assertThat(responseOf(results, TENANT_B).brokerConnectivityState())
+        .isEqualTo(BrokerConnectivityState.UNKNOWN);
+  }
+
+  @Test
+  void shouldStillReportOtherPhysicalTenants_whenOneEnginesBrokersAreUnreachable()
+      throws Exception {
+    when(brokerClient.fetchRemoteStreams()).thenThrow(new RuntimeException("connection refused"));
+    when(otherBrokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of()));
+
+    var results = multiTenantService().findAll(RUNTIME_ID);
+
+    assertThat(responseOf(results, TENANT_A).brokerConnectivityState())
+        .isEqualTo(BrokerConnectivityState.UNKNOWN);
+    assertThat(responseOf(results, TENANT_B).brokerConnectivityState())
+        .isEqualTo(BrokerConnectivityState.NONE);
+  }
+
+  // ---------------------------------------------------------------------------
+  // physicalTenantIds filter
+  // ---------------------------------------------------------------------------
+
+  @Test
+  void shouldFilterByPhysicalTenantId() throws Exception {
+    when(otherBrokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of()));
+
+    var results = multiTenantService().findAll(RUNTIME_ID, List.of(TENANT_B));
+
+    assertThat(results)
+        .singleElement()
+        .extracting(OutboundConnectorResponse::physicalTenantId)
+        .isEqualTo(TENANT_B);
+    verify(brokerClient, never()).fetchRemoteStreams();
+  }
+
+  @Test
+  void shouldReturnEveryPhysicalTenant_whenFilterIsEmpty() throws Exception {
+    when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of()));
+    when(otherBrokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of()));
+
+    assertThat(multiTenantService().findAll(RUNTIME_ID, List.of())).hasSize(2);
+  }
+
+  @Test
+  void findByType_shouldFilterByPhysicalTenantId() throws Exception {
+    when(otherBrokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of()));
+
+    var results = multiTenantService().findByType(TYPE, RUNTIME_ID, List.of(TENANT_B));
+
+    assertThat(results)
+        .singleElement()
+        .extracting(OutboundConnectorResponse::physicalTenantId)
+        .isEqualTo(TENANT_B);
+  }
+
+  @Test
+  void findByType_shouldThrowDataNotFoundException_whenFilterMatchesNoPhysicalTenant() {
+    var service = multiTenantService();
+
+    assertThatThrownBy(() -> service.findByType(TYPE, RUNTIME_ID, List.of("unknown-tenant")))
+        .isInstanceOf(DataNotFoundException.class);
+  }
+
+  private OutboundConnectorsService multiTenantService() {
+    return new OutboundConnectorsService(
+        factory,
+        List.of(TENANT_A, TENANT_B),
+        Map.of(TENANT_A, brokerClient, TENANT_B, otherBrokerClient));
+  }
+
+  private static OutboundConnectorResponse responseOf(
+      List<OutboundConnectorResponse> responses, String physicalTenantId) {
+    return responses.stream()
+        .filter(r -> physicalTenantId.equals(r.physicalTenantId()))
+        .findFirst()
+        .orElseThrow();
   }
 }
