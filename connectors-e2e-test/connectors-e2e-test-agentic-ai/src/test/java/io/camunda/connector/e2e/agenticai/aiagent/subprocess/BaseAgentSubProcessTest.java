@@ -16,7 +16,9 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
+import static io.camunda.connector.e2e.agenticai.BpmnUtil.withAgentDefinitionMarker;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AGENT_RESPONSE_VARIABLE;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PROPERTIES;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.BpmnUtil;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAgentTest;
 import io.camunda.connector.e2e.agenticai.aiagent.task.BaseAgentTaskTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
@@ -36,6 +39,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
@@ -97,6 +101,13 @@ public abstract class BaseAgentSubProcessTest extends BaseAgentTest {
 
   protected Function<ElementTemplate, ElementTemplate> providerConfigurer() {
     return this::withOpenAiCompatibleProvider;
+  }
+
+  /** See {@link BpmnUtil#withAgentDefinitionMarker} for why this is needed. */
+  @Override
+  protected BpmnModelInstance customizeModel(BpmnModelInstance model) {
+    return super.customizeModel(
+        withAgentDefinitionMarker(model, AI_AGENT_ELEMENT_ID, "aiAgentSubProcess"));
   }
 
   @Override
