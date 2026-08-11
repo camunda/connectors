@@ -71,13 +71,31 @@ public record TextractRequestData(
             defaultValue = "POLLING",
             feel = FeelMode.disabled,
             tooltip =
-                "How the document should be processed. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#execution-types\" target=\"_blank\">Amazon Textract execution types documentation</a>.",
+                "How the document should be processed. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#input-parameters\" target=\"_blank\">Amazon Textract execution types documentation</a>.",
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.documentLocationType",
                     equals = "S3"))
         @NotNull
         TextractExecutionType executionType,
+    // Template-only twin of executionType: same binding, inverse condition, null at runtime.
+    @TemplateProperty(
+            id = "uploadedExecutionType",
+            label = "Execution type",
+            group = "input",
+            type = TemplateProperty.PropertyType.Dropdown,
+            defaultValue = "SYNC",
+            feel = FeelMode.disabled,
+            choices = @TemplateProperty.DropdownPropertyChoice(value = "SYNC", label = "Real-time"),
+            tooltip =
+                "Documents supplied from Camunda are analyzed in real time. Polling and asynchronous execution require the document to be stored in Amazon S3.",
+            // Relative: the generator prefixes "input." from TextractRequest's `input` field.
+            binding = @TemplateProperty.PropertyBinding(name = "executionType"),
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "input.documentLocationType",
+                    equals = "UPLOADED"))
+        TextractExecutionType uploadedExecutionType,
     @TemplateProperty(
             label = "Analyze tables",
             tooltip =
