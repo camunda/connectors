@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
@@ -17,11 +18,12 @@ import java.util.List;
 
 public interface ChatMessageConverter {
 
-  default List<ChatMessage> map(Message message) {
+  default List<ChatMessage> map(Message message, ProviderConfiguration providerConfiguration) {
     return switch (message) {
       case SystemMessage systemMessage -> List.of(fromSystemMessage(systemMessage));
       case UserMessage userMessage -> List.of(fromUserMessage(userMessage));
-      case AssistantMessage assistantMessage -> List.of(fromAssistantMessage(assistantMessage));
+      case AssistantMessage assistantMessage ->
+          List.of(fromAssistantMessage(assistantMessage, providerConfiguration));
       case ToolCallResultMessage toolCallResultMessage ->
           fromToolCallResultMessage(toolCallResultMessage).stream()
               .map(ChatMessage.class::cast)
@@ -30,17 +32,23 @@ public interface ChatMessageConverter {
     };
   }
 
-  default List<ChatMessage> map(List<Message> messages) {
-    return messages.stream().map(this::map).flatMap(List::stream).toList();
+  default List<ChatMessage> map(
+      List<Message> messages, ProviderConfiguration providerConfiguration) {
+    return messages.stream()
+        .map(message -> map(message, providerConfiguration))
+        .flatMap(List::stream)
+        .toList();
   }
 
   dev.langchain4j.data.message.SystemMessage fromSystemMessage(SystemMessage systemMessage);
 
   dev.langchain4j.data.message.UserMessage fromUserMessage(UserMessage userMessage);
 
-  dev.langchain4j.data.message.AiMessage fromAssistantMessage(AssistantMessage assistantMessage);
+  dev.langchain4j.data.message.AiMessage fromAssistantMessage(
+      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration);
 
-  AssistantMessage toAssistantMessage(ChatResponse chatResponse);
+  AssistantMessage toAssistantMessage(
+      ChatResponse chatResponse, ProviderConfiguration providerConfiguration);
 
   List<dev.langchain4j.data.message.ToolExecutionResultMessage> fromToolCallResultMessage(
       ToolCallResultMessage toolCallResultMessage);

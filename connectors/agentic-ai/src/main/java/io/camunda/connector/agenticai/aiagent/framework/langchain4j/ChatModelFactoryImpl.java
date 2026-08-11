@@ -7,15 +7,20 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import com.azure.identity.ClientSecretCredentialBuilder;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.genai.Client;
+import com.google.genai.errors.GenAiIOException;
+import com.google.genai.types.HttpOptions;
+import com.google.genai.types.HttpRetryOptions;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.google.genai.GoogleGenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
-import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
@@ -25,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProv
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication.AwsStaticCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
@@ -56,6 +62,9 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
   // it was not easily backportable, thus a simple backport of the actual functionality for version
   // 8.8
   private static final Duration DEFAULT_MODEL_CALL_TIMEOUT = Duration.ofMinutes(3);
+
+  private static final String GOOGLE_CLOUD_PLATFORM_SCOPE =
+      "https://www.googleapis.com/auth/cloud-platform";
 
   @Override
   public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
@@ -182,35 +191,64 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     return builder;
   }
 
-  protected VertexAiGeminiChatModel.VertexAiGeminiChatModelBuilder
-      createGoogleVertexAiChatModelBuilder(GoogleVertexAiProviderConfiguration vertexAi) {
+  protected GoogleGenAiChatModel.Builder createGoogleVertexAiChatModelBuilder(
+      GoogleVertexAiProviderConfiguration vertexAi) {
     final var connection = vertexAi.googleVertexAi();
     final var builder =
-        VertexAiGeminiChatModel.builder()
-            .project(connection.projectId())
-            .location(connection.region())
-            .modelName(connection.model().model());
-
-    if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
-      builder.credentials(createGoogleServiceAccountCredentials(sac));
-    }
+        GoogleGenAiChatModel.builder()
+            .client(createGoogleGenAiClient(connection))
+            .modelName(connection.model().model())
+            .maxRetries(0);
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
       Optional.ofNullable(modelParameters.maxOutputTokens()).ifPresent(builder::maxOutputTokens);
-      Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
-      Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
+      Optional.ofNullable(modelParameters.temperature())
+          .map(Float::doubleValue)
+          .ifPresent(builder::temperature);
+      Optional.ofNullable(modelParameters.topP()).map(Float::doubleValue).ifPresent(builder::topP);
       Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
     }
 
     return builder;
   }
 
-  private ServiceAccountCredentials createGoogleServiceAccountCredentials(
+  private Client createGoogleGenAiClient(GoogleVertexAiConnection connection) {
+    final var httpOptions =
+        HttpOptions.builder()
+            .retryOptions(HttpRetryOptions.builder().attempts(1).build())
+            .timeout((int) DEFAULT_MODEL_CALL_TIMEOUT.toMillis())
+            .build();
+
+    final var clientBuilder =
+        Client.builder()
+            .vertexAI(true)
+            .project(connection.projectId())
+            .location(connection.region())
+            .httpOptions(httpOptions);
+
+    if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
+      clientBuilder.credentials(createGoogleServiceAccountCredentials(sac));
+    }
+
+    try {
+      // application default credentials are resolved eagerly here
+      return clientBuilder.build();
+    } catch (GenAiIOException | IllegalArgumentException e) {
+      LOGGER.error("Failed to create Google Vertex AI client", e);
+      throw new ConnectorInputException("Failed to create Google Vertex AI client", e);
+    }
+  }
+
+  private GoogleCredentials createGoogleServiceAccountCredentials(
       ServiceAccountCredentialsAuthentication sac) {
     try {
+      // Credentials read from a key file carry no scopes. google-genai only scopes the
+      // application default credentials it resolves itself and passes these through verbatim,
+      // so without this the token request fails with invalid_scope.
       return ServiceAccountCredentials.fromStream(
-          new ByteArrayInputStream(sac.jsonKey().getBytes(StandardCharsets.UTF_8)));
+              new ByteArrayInputStream(sac.jsonKey().getBytes(StandardCharsets.UTF_8)))
+          .createScoped(GOOGLE_CLOUD_PLATFORM_SCOPE);
     } catch (IOException e) {
       LOGGER.error("Failed to parse service account credentials", e);
       throw new ConnectorInputException(
