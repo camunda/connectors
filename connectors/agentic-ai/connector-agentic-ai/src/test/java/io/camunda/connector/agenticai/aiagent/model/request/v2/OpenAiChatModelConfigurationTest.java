@@ -118,7 +118,7 @@ class OpenAiChatModelConfigurationTest {
   }
 
   @Test
-  void redactsHeadersAndQueryParametersAndRequestParametersInToString() {
+  void redactsHeadersAndQueryParametersAndBodyPropertiesInToString() {
     final var connection =
         new OpenAiApiConnection(
             "sk-secret",
@@ -127,17 +127,17 @@ class OpenAiChatModelConfigurationTest {
             null,
             Map.of("Authorization", "Bearer secret-header"),
             Map.of("token", "secret-query"),
-            Map.of("apiKey", "secret-request"));
+            Map.of("apiKey", "secret-body"));
 
     assertThat(connection.toString())
         .contains("[REDACTED]")
         .doesNotContain("secret-header")
         .doesNotContain("secret-query")
-        .doesNotContain("secret-request");
+        .doesNotContain("secret-body");
   }
 
   @Test
-  void customBackendRedactsHeadersAndRequestParametersInToString() {
+  void customBackendRedactsHeadersAndBodyPropertiesInToString() {
     final var backend =
         new OpenAiCustomBackend(
             new CustomBackend(
@@ -153,7 +153,7 @@ class OpenAiChatModelConfigurationTest {
         .contains(
             "headers={Authorization=[REDACTED]}",
             "queryParameters={api-version=[REDACTED]}",
-            "requestParameters={large_field=[REDACTED]}",
+            "bodyProperties={large_field=[REDACTED]}",
             "apiKey=[REDACTED]");
   }
 

@@ -303,8 +303,8 @@ public class OpenAiCompletionsRequestConverter {
       ChatCompletionCreateParams.Builder builder, OpenAiConnection connection) {
     final Map<String, Object> requestParameters =
         switch (connection.backend()) {
-          case OpenAiApiBackend apiBackend -> apiBackend.openai().requestParameters();
-          case OpenAiCustomBackend customBackend -> customBackend.custom().requestParameters();
+          case OpenAiApiBackend apiBackend -> apiBackend.openai().bodyProperties();
+          case OpenAiCustomBackend customBackend -> customBackend.custom().bodyProperties();
         };
     if (requestParameters != null) {
       requestParameters.forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));

@@ -281,7 +281,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   optional = true)
               @Nullable String endpoint,
           @TemplateProperty(
-                  group = "provider",
+                  group = "advanced-provider-options",
                   label = "Headers",
                   tooltip = "Map of HTTP headers to add to the request.",
                   type = TemplateProperty.PropertyType.Hidden,
@@ -290,7 +290,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
               @Nullable Map<String, String> headers,
           @Valid
               @TemplateProperty(
-                  group = "provider",
+                  group = "advanced-provider-options",
                   label = "Query parameters",
                   tooltip = "Map of query parameters to add to the request URL.",
                   type = TemplateProperty.PropertyType.Hidden,
@@ -298,13 +298,13 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   optional = true)
               @Nullable Map<@NotBlank String, String> queryParameters,
           @TemplateProperty(
-                  group = "model-options",
-                  label = "Request parameters",
-                  tooltip = "Map of additional parameters to include in the request body.",
+                  group = "advanced-provider-options",
+                  label = "Body properties",
+                  tooltip = "Map of additional properties to include in the request body.",
                   type = TemplateProperty.PropertyType.Hidden,
                   feel = FeelMode.disabled,
                   optional = true)
-              @Nullable Map<String, Object> requestParameters) {
+              @Nullable Map<String, Object> bodyProperties) {
 
         @Override
         public String toString() {
@@ -314,7 +314,13 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
               + projectId
               + ", endpoint="
               + endpoint
-              + ", headers=[REDACTED], queryParameters=[REDACTED], requestParameters=[REDACTED]}";
+              + ", headers="
+              + redactValues(headers)
+              + ", queryParameters="
+              + redactValues(queryParameters)
+              + ", bodyProperties="
+              + redactValues(bodyProperties)
+              + "}";
         }
       }
     }
@@ -344,7 +350,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
               String endpoint,
           @TemplateProperty(
-                  group = "provider",
+                  group = "advanced-provider-options",
                   label = "Headers",
                   description = "Map of HTTP headers to add to the request.",
                   feel = FeelMode.required,
@@ -352,19 +358,19 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
               @Nullable Map<String, String> headers,
           @Valid
               @TemplateProperty(
-                  group = "provider",
+                  group = "advanced-provider-options",
                   label = "Query parameters",
                   description = "Map of query parameters to add to the request URL.",
                   feel = FeelMode.required,
                   optional = true)
               @Nullable Map<@NotBlank String, String> queryParameters,
           @TemplateProperty(
-                  group = "model-options",
-                  label = "Request parameters",
-                  description = "Map of additional parameters to include in the request body.",
+                  group = "advanced-provider-options",
+                  label = "Body properties",
+                  description = "Map of additional properties to include in the request body.",
                   feel = FeelMode.required,
                   optional = true)
-              @Nullable Map<String, Object> requestParameters,
+              @Nullable Map<String, Object> bodyProperties,
           @Valid @NotNull CustomEndpointAuthentication authentication) {
 
         @Override
@@ -375,8 +381,8 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
               + redactValues(headers)
               + ", queryParameters="
               + redactValues(queryParameters)
-              + ", requestParameters="
-              + redactValues(requestParameters)
+              + ", bodyProperties="
+              + redactValues(bodyProperties)
               + ", authentication="
               + authentication
               + "}";

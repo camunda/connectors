@@ -617,48 +617,6 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "provider.openai.backend.openai.headers",
-    "label" : "Headers",
-    "optional" : true,
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.openai.headers",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.type",
-        "equals" : "openai-api",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "provider.openai.backend.openai.queryParameters",
-    "label" : "Query parameters",
-    "optional" : true,
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.openai.queryParameters",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.type",
-        "equals" : "openai-api",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Hidden"
-  }, {
     "id" : "provider.openai.backend.custom.endpoint",
     "label" : "API endpoint",
     "description" : "Base URL of the OpenAI-compatible API; <code>/chat/completions</code> or <code>/responses</code> will be appended depending on the selected API.",
@@ -684,52 +642,6 @@
       } ]
     },
     "placeholder" : "https://api.openai.com/v1",
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.backend.custom.headers",
-    "label" : "Headers",
-    "description" : "Map of HTTP headers to add to the request.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.headers",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.backend.custom.queryParameters",
-    "label" : "Query parameters",
-    "description" : "Map of query parameters to add to the request URL.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.queryParameters",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
     "type" : "String"
   }, {
     "id" : "provider.openai.backend.custom.authentication.type",
@@ -1041,6 +953,138 @@
       }, {
         "property" : "provider.type",
         "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.openai.headers",
+    "label" : "Headers",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.openai.backend.openai.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.openai.queryParameters",
+    "label" : "Query parameters",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.openai.backend.openai.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.openai.bodyProperties",
+    "label" : "Body properties",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.openai.backend.openai.bodyProperties",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.custom.headers",
+    "label" : "Headers",
+    "description" : "Map of HTTP headers to add to the request.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.custom.queryParameters",
+    "label" : "Query parameters",
+    "description" : "Map of query parameters to add to the request URL.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.custom.bodyProperties",
+    "label" : "Body properties",
+    "description" : "Map of additional properties to include in the request body.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.bodyProperties",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
         "type" : "simple"
       } ]
     },
@@ -1527,50 +1571,6 @@
     },
     "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-top_p\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
-  }, {
-    "id" : "provider.openai.backend.openai.requestParameters",
-    "label" : "Request parameters",
-    "optional" : true,
-    "group" : "model-options",
-    "binding" : {
-      "name" : "provider.openai.backend.openai.requestParameters",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.type",
-        "equals" : "openai-api",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "provider.openai.backend.custom.requestParameters",
-    "label" : "Request parameters",
-    "description" : "Map of additional parameters to include in the request body.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model-options",
-    "binding" : {
-      "name" : "provider.openai.backend.custom.requestParameters",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.backend.type",
-        "equals" : "custom",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
   }, {
     "id" : "data.systemPrompt.prompt",
     "label" : "System prompt",
