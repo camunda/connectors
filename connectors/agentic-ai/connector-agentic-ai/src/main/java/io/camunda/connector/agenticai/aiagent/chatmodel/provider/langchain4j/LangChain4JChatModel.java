@@ -69,7 +69,7 @@ public class LangChain4JChatModel implements ChatModel {
     final var executionContext = request.executionContext();
     final var snapshot = request.snapshot();
 
-    final var messages = chatMessageConverter.map(snapshot.messages());
+    final var messages = chatMessageConverter.map(snapshot.messages(), chatModel);
     final var toolSpecifications =
         toolSpecificationConverter.asToolSpecifications(snapshot.toolDefinitions());
 
@@ -82,7 +82,8 @@ public class LangChain4JChatModel implements ChatModel {
     final ChatResponse chatResponse = doChat(chatRequestBuilder);
     final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
 
-    final AssistantMessage assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse);
+    final AssistantMessage assistantMessage =
+        chatMessageConverter.toAssistantMessage(chatResponse, chatModel);
     final var metrics = buildMetrics(chatResponse, assistantMessage, executionTime);
     return new ChatResult.Completed(assistantMessage, metrics);
   }

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
 
 import dev.langchain4j.model.chat.ChatModel;
+import java.util.Map;
 
 /**
  * A {@link ChatModel} that owns a closeable resource (e.g. an HTTP connection pool) and must be
@@ -16,4 +17,33 @@ import dev.langchain4j.model.chat.ChatModel;
 public interface CloseableChatModel extends ChatModel, AutoCloseable {
   @Override
   void close();
+
+  /**
+   * Decorates the {@code AiMessage.attributes()} / {@code ToolCall.metadata()} round trip with
+   * provider-specific knowledge of what is safe to persist into a Camunda process variable.
+   *
+   * <p>{@code AiMessage.attributes()} is a generic map, populated only by langchain4j's own
+   * provider-specific integration code, and is documented as "typically provider-specific". Since
+   * the persisted {@code ToolCall} lives in an untyped process variable, it must never be dumped
+   * verbatim - every chat model drops attributes entirely unless it overrides these methods.
+   *
+   * <p>Called on the write path with the full, flat {@code aiMessage.attributes()} (never null, may
+   * be empty) and the ID of the specific tool call being converted.
+   *
+   * @return the metadata to persist on that tool call.
+   */
+  default Map<String, Object> decorateOnWrite(
+      String toolCallId, Map<String, Object> aiMessageAttributes) {
+    return Map.of();
+  }
+
+  /**
+   * Called on the read path with the already-unwrapped {@code toolCall.metadata()} (never null, may
+   * be empty, untyped since it round-tripped through a process variable) of a single tool call.
+   * Returns the entry to restore onto the outgoing {@code AiMessage.attributes()}, keyed the way
+   * langchain4j expects.
+   */
+  default Map<String, Object> decorateOnRead(String toolCallId, Map<?, ?> toolCallMetadata) {
+    return Map.of();
+  }
 }

@@ -557,6 +557,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
         CustomGoogleVertexAiChatModelFactory() {
           super(
+              mock(AgenticAiConnectorsConfigurationProperties.ChatModelProperties.class),
+              mock(ChatModelHttpProxySupport.class),
               mock(ChatMessageConverter.class),
               mock(ToolSpecificationConverter.class),
               mock(JsonSchemaConverter.class));

@@ -17,11 +17,12 @@ import java.util.List;
 
 public interface ChatMessageConverter {
 
-  default List<ChatMessage> map(Message message) {
+  default List<ChatMessage> map(Message message, CloseableChatModel chatModel) {
     return switch (message) {
       case SystemMessage systemMessage -> List.of(fromSystemMessage(systemMessage));
       case UserMessage userMessage -> List.of(fromUserMessage(userMessage));
-      case AssistantMessage assistantMessage -> List.of(fromAssistantMessage(assistantMessage));
+      case AssistantMessage assistantMessage ->
+          List.of(fromAssistantMessage(assistantMessage, chatModel));
       case ToolCallResultMessage toolCallResultMessage ->
           fromToolCallResultMessage(toolCallResultMessage).stream()
               .map(ChatMessage.class::cast)
@@ -30,17 +31,18 @@ public interface ChatMessageConverter {
     };
   }
 
-  default List<ChatMessage> map(List<Message> messages) {
-    return messages.stream().map(this::map).flatMap(List::stream).toList();
+  default List<ChatMessage> map(List<Message> messages, CloseableChatModel chatModel) {
+    return messages.stream().map(message -> map(message, chatModel)).flatMap(List::stream).toList();
   }
 
   dev.langchain4j.data.message.SystemMessage fromSystemMessage(SystemMessage systemMessage);
 
   dev.langchain4j.data.message.UserMessage fromUserMessage(UserMessage userMessage);
 
-  dev.langchain4j.data.message.AiMessage fromAssistantMessage(AssistantMessage assistantMessage);
+  dev.langchain4j.data.message.AiMessage fromAssistantMessage(
+      AssistantMessage assistantMessage, CloseableChatModel chatModel);
 
-  AssistantMessage toAssistantMessage(ChatResponse chatResponse);
+  AssistantMessage toAssistantMessage(ChatResponse chatResponse, CloseableChatModel chatModel);
 
   List<dev.langchain4j.data.message.ToolExecutionResultMessage> fromToolCallResultMessage(
       ToolCallResultMessage toolCallResultMessage);

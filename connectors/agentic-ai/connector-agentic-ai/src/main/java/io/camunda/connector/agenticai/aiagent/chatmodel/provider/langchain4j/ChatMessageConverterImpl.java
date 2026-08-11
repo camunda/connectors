@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.agenticai.common.util.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
@@ -95,12 +96,12 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   @Override
   public dev.langchain4j.data.message.AiMessage fromAssistantMessage(
-      AssistantMessage assistantMessage) {
-    return fromAssistantMessageBuilder(assistantMessage).build();
+      AssistantMessage assistantMessage, CloseableChatModel chatModel) {
+    return fromAssistantMessageBuilder(assistantMessage, chatModel).build();
   }
 
   protected dev.langchain4j.data.message.AiMessage.Builder fromAssistantMessageBuilder(
-      AssistantMessage assistantMessage) {
+      AssistantMessage assistantMessage, CloseableChatModel chatModel) {
     final var builder = AiMessage.builder();
 
     if (!CollectionUtils.isEmpty(assistantMessage.content())) {
@@ -123,15 +124,46 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       builder.toolExecutionRequests(toolExecutionRequests);
     }
 
+    final var attributes = toolCallAttributes(assistantMessage, chatModel);
+    if (!attributes.isEmpty()) {
+      builder.attributes(attributes);
+    }
+
     return builder;
   }
 
-  @Override
-  public AssistantMessage toAssistantMessage(ChatResponse chatResponse) {
-    return toAssistantMessageBuilder(chatResponse).build();
+  /**
+   * Provider tool call metadata carries data the provider requires us to echo back verbatim on the
+   * next request, e.g. Gemini 3 thought signatures. This is provider-specific data, kept separate
+   * from {@link #serializedChatResponseMetadata}. What is safe to restore is provider-specific -
+   * see {@link CloseableChatModel#decorateOnRead}.
+   */
+  protected Map<String, Object> toolCallAttributes(
+      AssistantMessage assistantMessage, CloseableChatModel chatModel) {
+    if (CollectionUtils.isEmpty(assistantMessage.toolCalls())) {
+      return Map.of();
+    }
+
+    final var attributes = new LinkedHashMap<String, Object>();
+    for (final var toolCall : assistantMessage.toolCalls()) {
+      if (CollectionUtils.isEmpty(toolCall.metadata())) {
+        continue;
+      }
+
+      attributes.putAll(chatModel.decorateOnRead(toolCall.id(), toolCall.metadata()));
+    }
+
+    return attributes;
   }
 
-  protected AssistantMessageBuilder toAssistantMessageBuilder(ChatResponse chatResponse) {
+  @Override
+  public AssistantMessage toAssistantMessage(
+      ChatResponse chatResponse, CloseableChatModel chatModel) {
+    return toAssistantMessageBuilder(chatResponse, chatModel).build();
+  }
+
+  protected AssistantMessageBuilder toAssistantMessageBuilder(
+      ChatResponse chatResponse, CloseableChatModel chatModel) {
     final var builder = AssistantMessage.builder();
 
     if (chatResponse.metadata() != null) {
@@ -157,11 +189,24 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     }
 
     final var toolCalls =
-        aiMessage.toolExecutionRequests().stream().map(toolCallConverter::asToolCall).toList();
+        aiMessage.toolExecutionRequests().stream()
+            .map(toolCallConverter::asToolCall)
+            .map(toolCall -> decorateToolCallMetadata(toolCall, aiMessage, chatModel))
+            .toList();
 
     builder.toolCalls(toolCalls);
 
     return builder;
+  }
+
+  private ToolCall decorateToolCallMetadata(
+      ToolCall toolCall, AiMessage aiMessage, CloseableChatModel chatModel) {
+    if (CollectionUtils.isEmpty(aiMessage.attributes())) {
+      return toolCall;
+    }
+
+    final var metadata = chatModel.decorateOnWrite(toolCall.id(), aiMessage.attributes());
+    return metadata.isEmpty() ? toolCall : toolCall.withMetadata(metadata);
   }
 
   private static StopReason toStopReason(FinishReason finishReason) {
