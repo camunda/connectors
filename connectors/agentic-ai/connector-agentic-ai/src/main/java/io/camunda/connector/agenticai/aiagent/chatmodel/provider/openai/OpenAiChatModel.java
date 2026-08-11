@@ -31,15 +31,15 @@ import org.slf4j.LoggerFactory;
  * interface does not implement {@link AutoCloseable}), so it is closed explicitly and guarded,
  * mirroring the Anthropic sibling's handling of {@code AnthropicClient}.
  */
-public class OpenAiChatModelApi implements ChatModel {
+public class OpenAiChatModel implements ChatModel {
 
-  private static final Logger LOG = LoggerFactory.getLogger(OpenAiChatModelApi.class);
+  private static final Logger LOG = LoggerFactory.getLogger(OpenAiChatModel.class);
 
   private final OpenAIClient client;
   private final OpenAiChatModelConfiguration configuration;
   private final OpenAiApiFamilyStrategy strategy;
 
-  public OpenAiChatModelApi(
+  public OpenAiChatModel(
       OpenAIClient client,
       OpenAiChatModelConfiguration configuration,
       OpenAiApiFamilyStrategy strategy) {

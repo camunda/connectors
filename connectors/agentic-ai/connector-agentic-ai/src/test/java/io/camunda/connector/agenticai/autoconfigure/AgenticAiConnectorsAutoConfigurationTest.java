@@ -42,12 +42,11 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.fac
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.BedrockChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.GoogleVertexAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.LangChain4JChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.OpenAiCompatibleChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
@@ -130,7 +129,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentInstanceClient.class,
           ChatModelRegistry.class,
           AnthropicChatModelFactory.class,
-          OpenAiChatModelApiFactory.class);
+          OpenAiChatModelFactory.class);
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
       List.of(
@@ -146,7 +145,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AzureOpenAiChatModelFactory.class,
           BedrockChatModelFactory.class,
           GoogleVertexAiChatModelFactory.class,
-          OpenAiChatModelFactory.class,
+          io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .OpenAiChatModelFactory.class,
           OpenAiCompatibleChatModelFactory.class);
 
   // this will need to be updated in case we support different frameworks
@@ -413,7 +413,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
                             "sk-openai-test", null, null, null, null, null, null)),
                     new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
                     null)),
-            OpenAiChatModelApiFactory.class),
+            OpenAiChatModelFactory.class),
         new ChatModelResolutionCase(
             "openai (langchain4j)",
             new OpenAiProviderConfiguration(
@@ -421,7 +421,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     new OpenAiAuthentication("sk-openai-test", null, null),
                     null,
                     new OpenAiModel("gpt-4o", null))),
-            OpenAiChatModelFactory.class),
+            io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+                .OpenAiChatModelFactory.class),
         new ChatModelResolutionCase(
             "openai-compatible",
             new OpenAiCompatibleProviderConfiguration(
@@ -491,7 +492,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           new FactoryOverrideCase(
               CustomOpenAiProviderConfig.class,
               "customOpenAiChatModelFactory",
-              OpenAiChatModelFactory.class,
+              io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+                  .OpenAiChatModelFactory.class,
               CustomOpenAiChatModelFactory.class),
           new FactoryOverrideCase(
               CustomOpenAiCompatibleProviderConfig.class,
@@ -618,11 +620,15 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
     static class CustomOpenAiProviderConfig {
       @Bean
-      OpenAiChatModelFactory customOpenAiChatModelFactory() {
+      io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .OpenAiChatModelFactory
+          customOpenAiChatModelFactory() {
         return new CustomOpenAiChatModelFactory();
       }
 
-      static class CustomOpenAiChatModelFactory extends OpenAiChatModelFactory {
+      static class CustomOpenAiChatModelFactory
+          extends io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .OpenAiChatModelFactory {
 
         CustomOpenAiChatModelFactory() {
           super(

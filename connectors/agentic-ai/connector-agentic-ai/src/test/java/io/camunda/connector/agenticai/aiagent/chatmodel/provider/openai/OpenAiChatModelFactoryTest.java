@@ -38,7 +38,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class OpenAiChatModelApiFactoryTest {
+class OpenAiChatModelFactoryTest {
 
   private static final String MODEL_ID = "gpt-5.5";
 
@@ -46,11 +46,11 @@ class OpenAiChatModelApiFactoryTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  private OpenAiChatModelApiFactory factory;
+  private OpenAiChatModelFactory factory;
 
   @BeforeEach
   void setUp() {
-    factory = new OpenAiChatModelApiFactory(httpProxySupport, objectMapper);
+    factory = new OpenAiChatModelFactory(httpProxySupport, objectMapper);
   }
 
   @Test
@@ -69,7 +69,7 @@ class OpenAiChatModelApiFactoryTest {
 
     final ChatModel api = factory.create(config);
 
-    assertThat(api).isNotNull().isInstanceOf(OpenAiChatModelApi.class);
+    assertThat(api).isNotNull().isInstanceOf(OpenAiChatModel.class);
     api.close();
   }
 

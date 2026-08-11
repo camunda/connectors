@@ -59,8 +59,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Exercises {@link OpenAiChatModelApiFactory}'s {@code custom}-backend, header/query-parameter and
- * proxy wiring through its public surface ({@link OpenAiChatModelApiFactory#create} + {@link
+ * Exercises {@link OpenAiChatModelFactory}'s {@code custom}-backend, header/query-parameter and
+ * proxy wiring through its public surface ({@link OpenAiChatModelFactory#create} + {@link
  * ChatModel#execute}) rather than reaching into the private client-building internals: the built
  * {@link ChatModel} issues a real (WireMock-backed) request, and assertions verify what actually
  * went over the wire.
@@ -70,16 +70,16 @@ import org.junit.jupiter.api.Test;
  * endpoint.
  */
 @WireMockTest
-class OpenAiChatModelApiFactoryClientTest {
+class OpenAiChatModelFactoryClientTest {
 
   private static final String MODEL_ID = "gpt-5.5";
 
   /**
    * Minimal OpenAI Responses API streaming (SSE) response: a {@code response.created} event
    * carrying an in-progress response, followed by a {@code response.completed} event carrying the
-   * final response with one text output item. {@link OpenAiChatModelApi} always drives the
-   * Responses API's {@code createStreaming()}, so a plain buffered JSON body (as a non-streaming
-   * stub would return) isn't accepted by the vendor SDK's {@code ResponseAccumulator}.
+   * final response with one text output item. {@link OpenAiChatModel} always drives the Responses
+   * API's {@code createStreaming()}, so a plain buffered JSON body (as a non-streaming stub would
+   * return) isn't accepted by the vendor SDK's {@code ResponseAccumulator}.
    */
   private static final String RESPONSES_SSE_RESPONSE_BODY =
       """
@@ -92,8 +92,8 @@ class OpenAiChatModelApiFactoryClientTest {
   /**
    * Minimal OpenAI Chat Completions API streaming (SSE) response: a role/content delta chunk
    * followed by a finish_reason chunk, terminated by the {@code [DONE]} sentinel. {@link
-   * OpenAiChatModelApi} always drives the Chat Completions API's {@code createStreaming()}, so a
-   * plain buffered JSON body isn't accepted by the vendor SDK's {@code ChatCompletionAccumulator}.
+   * OpenAiChatModel} always drives the Chat Completions API's {@code createStreaming()}, so a plain
+   * buffered JSON body isn't accepted by the vendor SDK's {@code ChatCompletionAccumulator}.
    */
   private static final String COMPLETIONS_SSE_RESPONSE_BODY =
       """
@@ -203,7 +203,7 @@ class OpenAiChatModelApiFactoryClientTest {
   void customBackendWithNoAuthenticationSendsPlaceholderAuthorizationHeader(
       WireMockRuntimeInfo wireMock) {
     // unlike the Anthropic SDK, the OpenAI SDK's client builder requires at least one credential
-    // source to build at all (see OpenAiChatModelApiFactory#NO_AUTH_PLACEHOLDER_API_KEY), so a
+    // source to build at all (see OpenAiChatModelFactory#NO_AUTH_PLACEHOLDER_API_KEY), so a
     // "none" authentication custom backend still sends a (meaningless, ignored by a real
     // OpenAI-compatible endpoint without authentication) Authorization header.
     executeAgainst(
@@ -310,7 +310,7 @@ class OpenAiChatModelApiFactoryClientTest {
       AgenticAiHttpProxySupport httpProxySupport,
       OpenAiChatModelConfiguration.OpenAiApi api,
       OpenAiBackend backend) {
-    final var factory = new OpenAiChatModelApiFactory(httpProxySupport, objectMapper);
+    final var factory = new OpenAiChatModelFactory(httpProxySupport, objectMapper);
     final var configuration =
         new OpenAiChatModelConfiguration(
             new OpenAiChatModelConfiguration.OpenAiConnection(
@@ -342,12 +342,11 @@ class OpenAiChatModelApiFactoryClientTest {
   }
 
   /**
-   * Minimal hand-rolled HTTP forward proxy used to exercise {@link OpenAiChatModelApiFactory}'s
-   * real proxy-application branch end-to-end (rather than mocking {@link
-   * AgenticAiHttpProxySupport}, which leaves that branch untested). When credentials are
-   * configured, challenges the first request with {@code 407 Proxy Authentication Required} so the
-   * vendor SDK's {@code ProxyAuthenticator} actually has to respond, mirroring how a real
-   * authenticating proxy behaves.
+   * Minimal hand-rolled HTTP forward proxy used to exercise {@link OpenAiChatModelFactory}'s real
+   * proxy-application branch end-to-end (rather than mocking {@link AgenticAiHttpProxySupport},
+   * which leaves that branch untested). When credentials are configured, challenges the first
+   * request with {@code 407 Proxy Authentication Required} so the vendor SDK's {@code
+   * ProxyAuthenticator} actually has to respond, mirroring how a real authenticating proxy behaves.
    */
   private static final class FakeProxyServer implements AutoCloseable {
     private final ServerSocket serverSocket;

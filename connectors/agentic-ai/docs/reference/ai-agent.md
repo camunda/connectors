@@ -1305,7 +1305,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `ToolSpecificationConverterImpl` → Tool definition conversion
 - `AnthropicChatModelFactory`, `BedrockChatModelFactory`, `OpenAiChatModelFactory`, `OpenAiCompatibleChatModelFactory`, `AzureOpenAiChatModelFactory`, `GoogleVertexAiChatModelFactory` → Provider-specific `ChatModel` creation (`LangChain4JChatModelFactory` subclasses)
 - `AnthropicChatModelApiFactory` → Native (non-LangChain4J) Anthropic `ChatModel` creation for `AnthropicChatModelConfiguration` (v2, `aiagent/chatmodel/provider/anthropic/**`); `AnthropicChatModelApi.execute()` drives the Anthropic Java SDK's stable Messages client directly
-- `OpenAiChatModelApiFactory` → Native (non-LangChain4J) OpenAI `ChatModel` creation for `OpenAiChatModelConfiguration` (v2, `aiagent/chatmodel/provider/openai/**`); `OpenAiChatModelApi.execute()` drives the OpenAI Java SDK directly across both wire formats (Chat Completions, Responses) via the per-family `OpenAiApiFamilyStrategy` seam
+- `OpenAiChatModelFactory` → Native (non-LangChain4J) OpenAI `ChatModel` creation for `OpenAiChatModelConfiguration` (v2, `aiagent/chatmodel/provider/openai/**`); `OpenAiChatModel.execute()` drives the OpenAI Java SDK directly across both wire formats (Chat Completions, Responses) via the per-family `OpenAiApiFamilyStrategy` seam
 
 ### Configuration
 - `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
@@ -1895,7 +1895,7 @@ base class). Reference implementation: `AnthropicChatModelFactory` with
 fully native provider: `AnthropicChatModelApiFactory` (`aiagent/chatmodel/provider/anthropic/**`) with
 `AnthropicChatModelConfiguration` (`model/request/v2`) — drives the Anthropic Java SDK's stable
 Messages client directly (no LangChain4J), covering the request/response converter chain, transport,
-reasoning/effort/prompt-caching, and Spring registration end to end; and `OpenAiChatModelApiFactory`
+reasoning/effort/prompt-caching, and Spring registration end to end; and `OpenAiChatModelFactory`
 (`aiagent/chatmodel/provider/openai/**`) with `OpenAiChatModelConfiguration` (`model/request/v2`) —
 drives the OpenAI Java SDK directly across **two** wire formats, Chat Completions and Responses, each
 with its own request/response converters and stream assembler behind a per-family

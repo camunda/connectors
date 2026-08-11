@@ -29,7 +29,7 @@ import java.util.function.Function;
 /**
  * Plugs the native (own-LLM-layer) OpenAI Chat Completions wire format into the provider-agnostic
  * {@link ProviderWireFormatFixture} SPI, driving the connector through the v2 native OpenAI
- * provider - see {@code OpenAiChatModelApiFactory}. The *request* wire is the standard Chat
+ * provider - see {@code OpenAiChatModelFactory}. The *request* wire is the standard Chat
  * Completions body - identical to the legacy langchain4j-bridge fixture's - so request recording is
  * reused via {@link OpenAiCompletionsRecordedConversation} / {@link
  * OpenAiCompletionsRecordedChatRequestAdapter} rather than duplicating the parsing logic (mirrors
@@ -42,7 +42,7 @@ import java.util.function.Function;
  * host with a trailing {@code /v1} so the SDK's {@code /chat/completions} path resolves to the
  * recorded path - the native SDK client's {@code custom} backend does not re-append {@code /v1}
  * itself, it appends only the relative operation path onto whatever base URL is configured (see
- * {@code OpenAiChatModelApiFactory} and the {@code CustomBackend.endpoint} template property
+ * {@code OpenAiChatModelFactory} and the {@code CustomBackend.endpoint} template property
  * description: "Base URL of the OpenAI-compatible API; /chat/completions or /responses will be
  * appended").
  */

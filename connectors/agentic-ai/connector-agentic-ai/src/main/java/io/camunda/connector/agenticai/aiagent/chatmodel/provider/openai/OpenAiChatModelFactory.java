@@ -44,7 +44,7 @@ import org.jspecify.annotations.Nullable;
  * io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelApiFactory}'s
  * inline shape rather than a separate client-factory class.
  */
-public class OpenAiChatModelApiFactory implements ChatModelFactory {
+public class OpenAiChatModelFactory implements ChatModelFactory {
 
   /**
    * Placeholder API key sent for {@code custom} backends configured with no authentication. The SDK
@@ -57,7 +57,7 @@ public class OpenAiChatModelApiFactory implements ChatModelFactory {
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final ObjectMapper objectMapper;
 
-  public OpenAiChatModelApiFactory(
+  public OpenAiChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport, ObjectMapper objectMapper) {
     this.httpProxySupport = httpProxySupport;
     this.objectMapper = objectMapper;
@@ -76,7 +76,7 @@ public class OpenAiChatModelApiFactory implements ChatModelFactory {
 
     final var client = buildClient(connection.backend(), timeout, httpProxySupport);
     final var strategy = buildStrategy(connection.api());
-    return new OpenAiChatModelApi(client, model, strategy);
+    return new OpenAiChatModel(client, model, strategy);
   }
 
   private OpenAiApiFamilyStrategy buildStrategy(OpenAiChatModelConfiguration.OpenAiApi api) {

@@ -39,7 +39,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class OpenAiChatModelApiTest {
+class OpenAiChatModelTest {
 
   @Mock private OpenAIClient client;
   @Mock private OpenAiApiFamilyStrategy strategy;
@@ -58,11 +58,11 @@ class OpenAiChatModelApiTest {
   private final ChatRequest request =
       new ChatRequest(executionContext, new ConversationSnapshot(List.of(), List.of()));
 
-  private OpenAiChatModelApi api;
+  private OpenAiChatModel api;
 
   @BeforeEach
   void setUp() {
-    api = new OpenAiChatModelApi(client, configuration, strategy);
+    api = new OpenAiChatModel(client, configuration, strategy);
   }
 
   @Test
