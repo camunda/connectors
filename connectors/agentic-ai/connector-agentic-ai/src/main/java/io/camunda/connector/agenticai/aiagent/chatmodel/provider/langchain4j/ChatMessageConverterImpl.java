@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.agenticai.common.util.ObjectMapperConstants;
@@ -96,12 +97,12 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   @Override
   public dev.langchain4j.data.message.AiMessage fromAssistantMessage(
-      AssistantMessage assistantMessage, CloseableChatModel chatModel) {
-    return fromAssistantMessageBuilder(assistantMessage, chatModel).build();
+      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
+    return fromAssistantMessageBuilder(assistantMessage, providerConfiguration).build();
   }
 
   protected dev.langchain4j.data.message.AiMessage.Builder fromAssistantMessageBuilder(
-      AssistantMessage assistantMessage, CloseableChatModel chatModel) {
+      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
     final var builder = AiMessage.builder();
 
     if (!CollectionUtils.isEmpty(assistantMessage.content())) {
@@ -124,7 +125,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       builder.toolExecutionRequests(toolExecutionRequests);
     }
 
-    final var attributes = toolCallAttributes(assistantMessage, chatModel);
+    final var attributes = toolCallAttributes(assistantMessage, providerConfiguration);
     if (!attributes.isEmpty()) {
       builder.attributes(attributes);
     }
@@ -136,10 +137,10 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
    * Provider tool call metadata carries data the provider requires us to echo back verbatim on the
    * next request, e.g. Gemini 3 thought signatures. This is provider-specific data, kept separate
    * from {@link #serializedChatResponseMetadata}. What is safe to restore is provider-specific -
-   * see {@link CloseableChatModel#restoreToolCallAttributes}.
+   * see {@link ToolCallMetadataDecorator}.
    */
   protected Map<String, Object> toolCallAttributes(
-      AssistantMessage assistantMessage, CloseableChatModel chatModel) {
+      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
     if (CollectionUtils.isEmpty(assistantMessage.toolCalls())) {
       return Map.of();
     }
@@ -150,7 +151,9 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
         continue;
       }
 
-      attributes.putAll(chatModel.restoreToolCallAttributes(toolCall.id(), toolCall.metadata()));
+      attributes.putAll(
+          ToolCallMetadataDecorator.decorateOnRead(
+              providerConfiguration, toolCall.id(), toolCall.metadata()));
     }
 
     return attributes;
@@ -158,12 +161,12 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   @Override
   public AssistantMessage toAssistantMessage(
-      ChatResponse chatResponse, CloseableChatModel chatModel) {
-    return toAssistantMessageBuilder(chatResponse, chatModel).build();
+      ChatResponse chatResponse, ProviderConfiguration providerConfiguration) {
+    return toAssistantMessageBuilder(chatResponse, providerConfiguration).build();
   }
 
   protected AssistantMessageBuilder toAssistantMessageBuilder(
-      ChatResponse chatResponse, CloseableChatModel chatModel) {
+      ChatResponse chatResponse, ProviderConfiguration providerConfiguration) {
     final var builder = AssistantMessage.builder();
 
     if (chatResponse.metadata() != null) {
@@ -191,7 +194,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     final var toolCalls =
         aiMessage.toolExecutionRequests().stream()
             .map(toolCallConverter::asToolCall)
-            .map(toolCall -> decorateToolCallMetadata(toolCall, aiMessage, chatModel))
+            .map(toolCall -> decorateToolCallMetadata(toolCall, aiMessage, providerConfiguration))
             .toList();
 
     builder.toolCalls(toolCalls);
@@ -200,12 +203,14 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
   }
 
   private ToolCall decorateToolCallMetadata(
-      ToolCall toolCall, AiMessage aiMessage, CloseableChatModel chatModel) {
+      ToolCall toolCall, AiMessage aiMessage, ProviderConfiguration providerConfiguration) {
     if (CollectionUtils.isEmpty(aiMessage.attributes())) {
       return toolCall;
     }
 
-    final var metadata = chatModel.extractToolCallMetadata(toolCall.id(), aiMessage.attributes());
+    final var metadata =
+        ToolCallMetadataDecorator.decorateOnWrite(
+            providerConfiguration, toolCall.id(), aiMessage.attributes());
     return metadata.isEmpty() ? toolCall : toolCall.withMetadata(metadata);
   }
 

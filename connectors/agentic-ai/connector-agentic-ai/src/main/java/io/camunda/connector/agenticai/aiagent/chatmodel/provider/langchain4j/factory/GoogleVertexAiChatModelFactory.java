@@ -19,6 +19,7 @@ import dev.langchain4j.model.google.genai.GoogleGenAiChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration;
@@ -87,7 +88,7 @@ public class GoogleVertexAiChatModelFactory
     // GoogleGenAiChatModel is not AutoCloseable and never exposes its client, so we build the
     // client ourselves and close that instead - otherwise every job execution leaks the OkHttp
     // dispatcher and connection pool.
-    return new GoogleVertexAiCloseableChatModel(builder.build(), client);
+    return new CloseableChatModelDelegate(builder.build(), client);
   }
 
   private Client createGoogleGenAiClient(GoogleVertexAiConnection connection) {

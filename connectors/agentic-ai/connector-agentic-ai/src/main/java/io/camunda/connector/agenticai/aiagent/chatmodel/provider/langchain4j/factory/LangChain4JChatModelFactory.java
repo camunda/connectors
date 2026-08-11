@@ -95,6 +95,7 @@ public abstract class LangChain4JChatModelFactory<T extends ProviderConfiguratio
 
     return new LangChain4JChatModel(
         chatModel,
+        providerConfiguration,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter,

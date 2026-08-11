@@ -32,6 +32,7 @@ import com.google.genai.types.ProxyType;
 import dev.langchain4j.model.google.genai.GoogleGenAiChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
@@ -325,11 +326,11 @@ class GoogleVertexAiChatModelFactoryTest {
       chatModelMock.when(GoogleGenAiChatModel::builder).thenReturn(chatModelBuilder);
 
       final var chatModel = factory.createChatModel(providerConfig);
-      assertThat(chatModel).isNotNull().isInstanceOf(GoogleVertexAiCloseableChatModel.class);
-      assertThat(((GoogleVertexAiCloseableChatModel) chatModel).delegate())
+      assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
+      assertThat(((CloseableChatModelDelegate) chatModel).delegate())
           .isSameAs(chatModelResultCaptor.getResult());
       // GoogleGenAiChatModel is not closeable - the client is the resource we must release
-      assertThat(((GoogleVertexAiCloseableChatModel) chatModel).resource()).isSameAs(client);
+      assertThat(((CloseableChatModelDelegate) chatModel).resource()).isSameAs(client);
 
       verify(proxySupport)
           .createGoogleGenAiProxyOptions(
