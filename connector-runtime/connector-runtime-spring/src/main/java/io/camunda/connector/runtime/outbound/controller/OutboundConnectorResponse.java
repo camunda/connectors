@@ -63,4 +63,30 @@ public record OutboundConnectorResponse(
       String runtimeId) {
     this(name, type, inputVariables, timeout, enabled, runtimeId, null, null, null);
   }
+
+  /**
+   * The canonical constructor as it stood before {@code physicalTenantId} was added — kept so
+   * callers compiled against the previous signature keep linking, mirroring the stream-less
+   * convenience constructor above.
+   */
+  public OutboundConnectorResponse(
+      String name,
+      String type,
+      List<String> inputVariables,
+      Long timeout,
+      boolean enabled,
+      String runtimeId,
+      BrokerConnectivityState brokerConnectivityState,
+      List<String> streamIds) {
+    this(
+        name,
+        type,
+        inputVariables,
+        timeout,
+        enabled,
+        runtimeId,
+        brokerConnectivityState,
+        streamIds,
+        null);
+  }
 }

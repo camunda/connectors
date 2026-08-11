@@ -143,6 +143,15 @@ public class ConnectorMetrics {
    */
   public static final String DEFAULT_PHYSICAL_TENANT_ID = "default";
 
+  /**
+   * Attributes the counter to the job's own physical tenant. Callers that know which physical
+   * tenant's job worker received the job should prefer {@link #counter(ActivatedJob, String)}, so
+   * that the meter and the {@code /outbound} entry it belongs to always carry the same value.
+   */
+  public static CounterMetricsContext counter(ActivatedJob job) {
+    return counter(job, null);
+  }
+
   public static CounterMetricsContext counter(ActivatedJob job, String physicalTenantId) {
     Result result = Result.getResult(job);
     return new CounterMetricsContext(
@@ -155,6 +164,11 @@ public class ConnectorMetrics {
                 ConnectorMetrics.Tag.PHYSICAL_TENANT_ID,
                 resolvePhysicalTenantId(physicalTenantId, result))),
         1);
+  }
+
+  /** See {@link #counter(ActivatedJob)}; the equivalent for the execution-time timer. */
+  public static TimerMetricsContext timer(ActivatedJob job) {
+    return timer(job, null);
   }
 
   public static TimerMetricsContext timer(ActivatedJob job, String physicalTenantId) {

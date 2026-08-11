@@ -84,6 +84,21 @@ class ConnectorOutboundMetricsPhysicalTenantTest {
   }
 
   @Test
+  void tenantLessOverloads_attributeTheJobToItsOwnPhysicalTenant() {
+    var registry = new SimpleMeterRegistry();
+    var recorder = new MicrometerMetricsRecorder(registry);
+    var job = job();
+    when(job.getPhysicalTenantId()).thenReturn("tenant-from-job");
+
+    // the pre-#7965 signatures, kept for callers compiled against them
+    recorder.increaseCompleted(ConnectorMetrics.counter(job));
+    var timerTags = ConnectorMetrics.timer(job).tags();
+
+    assertThat(completedFor(registry, "tenant-from-job")).isEqualTo(1);
+    assertThat(timerTags).containsEntry(ConnectorMetrics.Tag.PHYSICAL_TENANT_ID, "tenant-from-job");
+  }
+
+  @Test
   void lastCompletedGauge_isTaggedPerPhysicalTenant() {
     var registry = new SimpleMeterRegistry();
     var recorder = new MicrometerMetricsRecorder(registry);
