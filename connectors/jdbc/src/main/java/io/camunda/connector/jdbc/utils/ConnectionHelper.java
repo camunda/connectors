@@ -21,24 +21,38 @@ public class ConnectionHelper {
   private static final Logger LOG = LoggerFactory.getLogger(ConnectionHelper.class);
 
   public static Connection openConnection(JdbcRequest request) {
+    // The effective database, not the raw field: a bound credential's database wins (see
+    // JdbcRequest#database()), so the driver and URL scheme match the host and login.
     SupportedDatabase database = request.database();
-    String driverClassName = database.getDriverClassName();
     try {
       LOG.debug("Executing JDBC request: {}", request);
-      LOG.debug("Loading JDBC driver: {}", driverClassName);
-      Class.forName(driverClassName);
-      JdbcConnection connection = resolveConnection(request);
-      Connection conn =
-          DriverManager.getConnection(
-              ensureMySQLCompatibleUrl(connection.getConnectionString(database), database),
-              connection.getProperties());
-      LOG.debug("Connection established for Database {}: {}", database, conn);
-      return conn;
+      return openConnection(database, resolveConnection(request));
     } catch (ClassNotFoundException e) {
-      throw new ConnectorException("Cannot find class: " + driverClassName);
+      throw new ConnectorException("Cannot find class: " + database.getDriverClassName());
     } catch (SQLException e) {
       throw new ConnectorException("Cannot create the Database connection: " + e.getMessage());
     }
+  }
+
+  /**
+   * Opens a connection without a surrounding request, for callers that hold a database and a
+   * connection but no job to execute — out-of-band validation of a stored connection credential.
+   *
+   * <p>Driver failures are propagated rather than wrapped, because a caller that has to tell "the
+   * database rejected this login" from "the database is unreachable" needs the {@link
+   * SQLException#getSQLState() SQL state}, which the {@link ConnectorException} above discards.
+   */
+  public static Connection openConnection(SupportedDatabase database, JdbcConnection connection)
+      throws ClassNotFoundException, SQLException {
+    String driverClassName = database.getDriverClassName();
+    LOG.debug("Loading JDBC driver: {}", driverClassName);
+    Class.forName(driverClassName);
+    Connection conn =
+        DriverManager.getConnection(
+            ensureMySQLCompatibleUrl(connection.getConnectionString(database), database),
+            connection.getProperties());
+    LOG.debug("Connection established for Database {}: {}", database, conn);
+    return conn;
   }
 
   /**

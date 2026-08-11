@@ -7,13 +7,22 @@
 package io.camunda.connector.jdbc.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.validation.ConfigurationValidationResult.Status;
+import io.camunda.connector.jdbc.model.request.JdbcRequest;
+import io.camunda.connector.jdbc.model.request.JdbcRequestData;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
+import io.camunda.connector.jdbc.model.request.connection.JdbcConnectionConfiguration;
+import io.camunda.connector.jdbc.model.request.connection.JdbcConnectionValidator;
+import io.camunda.connector.jdbc.utils.ConnectionHelper;
 import io.camunda.connector.test.utils.DockerImages;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -441,6 +450,146 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
                   throw new RuntimeException(e);
                 }
               });
+    }
+  }
+
+  /**
+   * Out-of-band validation of a stored connection credential, against every supported product. The
+   * point of running this for real is the failure classification: telling "the database rejected
+   * this login" from "the database is unreachable" relies on SQL states and vendor error codes that
+   * differ per product, and only a real server reports the ones it actually reports.
+   */
+  private static JdbcConnectionConfiguration credential(
+      IntegrationTestConfig config, String password) {
+    return new JdbcConnectionConfiguration(
+        config.database(),
+        config.host(),
+        config.port(),
+        config.databaseName(),
+        config.username(),
+        password);
+  }
+
+  /**
+   * A credential carries no connection properties (see {@code
+   * JdbcConnectionConfiguration#toDetailedConnection}), so a product that needs one to be reachable
+   * at all cannot be reached through one. Only SQL Server is affected here: the test server's
+   * certificate is self-signed and its driver requires {@code encrypt=false} to accept it.
+   */
+  private static void assumeReachableWithoutConnectionProperties(IntegrationTestConfig config) {
+    assumeTrue(
+        config.properties() == null || config.properties().isEmpty(),
+        "a stored credential cannot carry the connection properties this product needs");
+  }
+
+  /** A product whose driver and URL scheme cannot reach {@code config}'s server. */
+  private static SupportedDatabase aDifferentDatabaseFrom(IntegrationTestConfig config) {
+    return config.database() == SupportedDatabase.POSTGRESQL
+        ? SupportedDatabase.ORACLE
+        : SupportedDatabase.POSTGRESQL;
+  }
+
+  /**
+   * The database a bound credential names must drive execution, not only validation. Otherwise the
+   * credential supplies the host, port and login while the connector's own field still picks the
+   * driver and URL scheme, and the two can disagree with nothing reporting it.
+   */
+  @Nested
+  class ConnectionCredentialPrecedenceTests {
+
+    private final JdbcRequestData data = new JdbcRequestData(false, "SELECT 1");
+
+    @ParameterizedTest
+    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+    public void shouldConnectUsingTheDatabaseTheCredentialNames(IntegrationTestConfig config)
+        throws Exception {
+      assumeReachableWithoutConnectionProperties(config);
+      var request =
+          new JdbcRequest(
+              credential(config, config.password()), aDifferentDatabaseFrom(config), null, data);
+
+      assertThat(request.database()).isEqualTo(config.database());
+      try (Connection connection = ConnectionHelper.openConnection(request)) {
+        assertThat(connection.isClosed()).isFalse();
+      }
+    }
+
+    @ParameterizedTest
+    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+    public void shouldConnectWhenOnlyTheCredentialNamesADatabase(IntegrationTestConfig config)
+        throws Exception {
+      // The shape a modeler produces when they expect the credential to supply the whole
+      // connection.
+      assumeReachableWithoutConnectionProperties(config);
+      var request = new JdbcRequest(credential(config, config.password()), null, null, data);
+
+      try (Connection connection = ConnectionHelper.openConnection(request)) {
+        assertThat(connection.isClosed()).isFalse();
+      }
+    }
+
+    /**
+     * Negative control: the same mismatched product really does fail when no credential overrides
+     * it, so the two tests above are not passing for some unrelated reason.
+     */
+    @ParameterizedTest
+    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+    public void shouldFailWhenTheMismatchedDatabaseIsNotOverriddenByACredential(
+        IntegrationTestConfig config) {
+      assumeReachableWithoutConnectionProperties(config);
+      var inline = credential(config, config.password()).toDetailedConnection();
+      var request = new JdbcRequest(aDifferentDatabaseFrom(config), inline, data);
+
+      assertThatThrownBy(() -> ConnectionHelper.openConnection(request))
+          .isInstanceOf(ConnectorException.class);
+    }
+  }
+
+  @Nested
+  class ConnectionCredentialValidationTests {
+
+    private final JdbcConnectionValidator validator = new JdbcConnectionValidator();
+
+    @ParameterizedTest
+    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+    public void shouldSucceed_whenTheCredentialCanLogIn(IntegrationTestConfig config) {
+      assumeReachableWithoutConnectionProperties(config);
+
+      var result = validator.validate(credential(config, config.password()));
+
+      assertThat(result.status()).isEqualTo(Status.SUCCESS);
+    }
+
+    @ParameterizedTest
+    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+    public void shouldReportUnauthorized_whenThePasswordIsWrong(IntegrationTestConfig config) {
+      assumeReachableWithoutConnectionProperties(config);
+
+      var result = validator.validate(credential(config, config.password() + "wrong"));
+
+      assertThat(result.status()).isEqualTo(Status.FAILURE);
+      assertThat(result.code()).isEqualTo("UNAUTHORIZED");
+      assertThat(result.message()).doesNotContain(config.password(), config.username());
+    }
+
+    @ParameterizedTest
+    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+    public void shouldReportError_whenTheDatabaseIsUnreachable(IntegrationTestConfig config) {
+      // A closed port must not read as a rejected login: an operator told "unauthorized" would go
+      // looking for the wrong problem.
+      var unreachable =
+          new JdbcConnectionConfiguration(
+              config.database(),
+              config.host(),
+              "1",
+              config.databaseName(),
+              config.username(),
+              config.password());
+
+      var result = validator.validate(unreachable);
+
+      assertThat(result.status()).isEqualTo(Status.FAILURE);
+      assertThat(result.code()).isEqualTo("ERROR");
     }
   }
 }

@@ -87,16 +87,14 @@ public class JdbcRequestTest extends BaseTest {
   /**
    * Exercises the full runtime path (JSON -> Jackson binding -> {@code @Valid} cascade), which
    * {@code ConnectionHelperTest} does not cover since it constructs {@code JdbcRequest} directly.
-   * Only the bound connection credential is present; no inline connection fields and no inline
-   * {@code database} either, proving moving {@code @NotNull} off that record component works. The
-   * conflicting-value case (both an inline {@code database} and a credential set) is covered
-   * separately in {@code ConnectionHelperTest}.
+   * Only the bound connection credential is present; no inline connection fields.
    */
   @Test
   void bindVariablesSucceedsWithOnlyConfigurationProvided() {
     String variables =
         """
         {
+          "database": "MYSQL",
           "configuration": {
             "database": "POSTGRESQL",
             "host": "cred-host",
@@ -115,7 +113,7 @@ public class JdbcRequestTest extends BaseTest {
     assertThat(request.connection()).isNull();
     assertThat(request.configuration()).isNotNull();
     assertThat(request.configuration().host()).isEqualTo("cred-host");
-    // The credential's mandatory database selection is the only source, and satisfies validation.
+    // The credential's mandatory database selection wins over the (hidden, ignored) inline value.
     assertThat(request.database()).isEqualTo(SupportedDatabase.POSTGRESQL);
   }
 
@@ -195,6 +193,88 @@ public class JdbcRequestTest extends BaseTest {
 
     assertThat(request.configuration()).isNotNull();
     assertThat(request.configuration().host()).isEqualTo("cred-host");
+  }
+
+  /**
+   * The credential names the database and the connector's own field is left empty — the shape a
+   * modeler produces when they expect the credential to supply everything about the connection. The
+   * inline field is hidden once a credential is bound, so this is the shape Modeler writes.
+   */
+  @Test
+  void bindVariablesUsesTheCredentialDatabaseWhenTheInlineFieldIsAbsent() {
+    String variables =
+        """
+        {
+          "configuration": {
+            "database": "POSTGRESQL",
+            "host": "cred-host",
+            "port": "5432",
+            "databaseName": "cred-db",
+            "username": "cred-user",
+            "password": "cred-pass"
+          },
+          "data": { "returnResults": false, "query": "SELECT 1" }
+        }
+        """;
+    var context = OutboundConnectorContextBuilder.create().variables(variables).build();
+
+    var request = context.bindVariables(JdbcRequest.class);
+
+    assertThat(request.database()).isEqualTo(SupportedDatabase.POSTGRESQL);
+  }
+
+  /**
+   * The credential's database is mandatory from version 2 on (see {@link
+   * io.camunda.connector.jdbc.model.request.connection.JdbcConnectionConfiguration}), so a bound
+   * credential that names none is rejected rather than silently falling through to the inline field
+   * — which is hidden, and therefore not something a modeler can see or correct.
+   */
+  @Test
+  void bindVariablesFailsWhenTheBoundCredentialNamesNoDatabase() {
+    String variables =
+        """
+        {
+          "database": "MYSQL",
+          "configuration": {
+            "host": "cred-host",
+            "port": "5432",
+            "databaseName": "cred-db",
+            "username": "cred-user",
+            "password": "cred-pass"
+          },
+          "data": { "returnResults": false, "query": "SELECT 1" }
+        }
+        """;
+    var context = OutboundConnectorContextBuilder.create().variables(variables).build();
+
+    assertThatThrownBy(() -> context.bindVariables(JdbcRequest.class))
+        .hasMessageContaining("configuration.database");
+  }
+
+  /**
+   * No credential is bound and the inline field is absent, so nothing names a database. Reported
+   * against the effective value by {@code isDatabaseSourceProvided()} rather than by a
+   * component-level {@code @NotNull}, which could not hold now that the credential may supply it.
+   */
+  @Test
+  void bindVariablesFailsWhenNoSourceNamesADatabase() {
+    String variables =
+        """
+        {
+          "connection": {
+            "authType": "detailed",
+            "host": "localhost",
+            "port": "5868",
+            "username": "myLogin",
+            "password": "mySecretPassword"
+          },
+          "data": { "returnResults": false, "query": "SELECT 1" }
+        }
+        """;
+    var context = OutboundConnectorContextBuilder.create().variables(variables).build();
+
+    assertThatThrownBy(() -> context.bindVariables(JdbcRequest.class))
+        .hasMessageContaining("No database selected by the credential or the element template");
   }
 
   /** Without a bound credential, the same incomplete inline connection must still fail. */

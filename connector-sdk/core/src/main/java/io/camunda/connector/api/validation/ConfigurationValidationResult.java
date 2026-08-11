@@ -24,8 +24,11 @@ package io.camunda.connector.api.validation;
  *   <li>{@code SUCCESS} — the configuration is usable.
  *   <li>{@code FAILURE} — the configuration is not usable; {@code code} and {@code message}
  *       describe why (e.g. {@code UNAUTHORIZED}).
- *   <li>{@code UNSUPPORTED} — no validator is registered for the requested configuration id.
- *       Produced by the runtime, not by connector authors.
+ *   <li>{@code UNSUPPORTED} — the configuration cannot be checked out of band, so nothing is
+ *       claimed about it either way. The runtime produces it when no validator is registered for
+ *       the requested configuration id; a validator produces it for a configuration instance it
+ *       cannot check, typically because the credential names no target system to authenticate
+ *       against (see {@link #unsupported()}).
  * </ul>
  *
  * <p>Connector authors return {@link #success()} or {@link #failure(ErrorCode, String)}, preferring
@@ -75,6 +78,15 @@ public record ConfigurationValidationResult(Status status, String code, String m
     return new ConfigurationValidationResult(Status.FAILURE, code, message);
   }
 
+  /**
+   * No verdict: the configuration was not checked. A validator returns this — rather than {@link
+   * #success()} — for an instance it has no way to check, so that a client shows "not validated"
+   * instead of a confirmation nothing backs. A credential carrying only a secret and no endpoint to
+   * present it to (an API key, a bearer token) is the usual case.
+   *
+   * <p>Do not use it for a check that was attempted and could not be completed; that is {@link
+   * ErrorCode#ERROR}.
+   */
   public static ConfigurationValidationResult unsupported() {
     return new ConfigurationValidationResult(Status.UNSUPPORTED, null, null);
   }
