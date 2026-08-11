@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 
 class OutboundConnectorsServiceTest {
 
@@ -319,12 +321,29 @@ class OutboundConnectorsServiceTest {
     verify(brokerClient, never()).fetchRemoteStreams();
   }
 
-  @Test
-  void shouldReturnEveryPhysicalTenant_whenFilterIsEmpty() throws Exception {
+  /** A {@code null} filter is what the endpoints pass when the query param is omitted entirely. */
+  @ParameterizedTest
+  @NullAndEmptySource
+  void shouldReturnEveryPhysicalTenant_whenFilterIsNullOrEmpty(List<String> filter)
+      throws Exception {
     when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of()));
     when(otherBrokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of()));
 
-    assertThat(multiTenantService().findAll(RUNTIME_ID, List.of())).hasSize(2);
+    assertThat(multiTenantService().findAll(RUNTIME_ID, filter))
+        .extracting(OutboundConnectorResponse::physicalTenantId)
+        .containsExactlyInAnyOrder(TENANT_A, TENANT_B);
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  void findByType_shouldReturnEveryPhysicalTenant_whenFilterIsNullOrEmpty(List<String> filter)
+      throws Exception {
+    when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of()));
+    when(otherBrokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of()));
+
+    assertThat(multiTenantService().findByType(TYPE, RUNTIME_ID, filter))
+        .extracting(OutboundConnectorResponse::physicalTenantId)
+        .containsExactlyInAnyOrder(TENANT_A, TENANT_B);
   }
 
   @Test
