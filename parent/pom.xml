@@ -90,7 +90,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-boot>3.5.16-spring-boot-3.5.18</version.spring-boot>
     <tomcat.version>10.1.57</tomcat.version>
     <version.spring-cloud-gcp-starter-logging>5.13.11</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.6.1</version.logback>
+    <version.logback>1.6.2</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
     <version.software-aws-java-sdk>2.51.4</version.software-aws-java-sdk>
@@ -135,7 +135,7 @@ limitations under the License.</license.inlineheader>
          so a shared property lets Renovate's property-grouping bump one artifact to a
          version the other doesn't have, breaking dependency resolution. -->
     <version.bouncycastle-pkix>1.85</version.bouncycastle-pkix>
-    <version.bouncycastle-prov>1.85</version.bouncycastle-prov>
+    <version.bouncycastle-prov>1.85.2</version.bouncycastle-prov>
     <version.box-sdk>4.16.4</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
