@@ -53,7 +53,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>Each turn's {@code output[]} array carries an optional {@code message} item (present whenever
  * the turn has non-blank assistant text) followed by one {@code function_call} item per tool call.
  */
-public final class NativeOpenAiResponsesSseChatModelStubs {
+public final class OpenAiResponsesV2SseChatModelStubs {
 
   static final String RESPONSES_PATH = "/v1/responses";
 
@@ -61,7 +61,7 @@ public final class NativeOpenAiResponsesSseChatModelStubs {
   private static final ObjectMapper JSON = new ObjectMapper();
   private static final AtomicInteger TURN_COUNTER = new AtomicInteger(0);
 
-  private NativeOpenAiResponsesSseChatModelStubs() {}
+  private OpenAiResponsesV2SseChatModelStubs() {}
 
   public static void stubConversation(TurnStub... turns) {
     if (turns.length == 0) {

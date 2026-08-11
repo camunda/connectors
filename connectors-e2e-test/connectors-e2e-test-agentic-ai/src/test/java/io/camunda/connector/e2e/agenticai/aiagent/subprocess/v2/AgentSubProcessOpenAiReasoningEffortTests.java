@@ -21,8 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiCompletionsSseChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiCompletionsSseChatModelStubs.UsageDetailsTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV2SseChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV2SseChatModelStubs.UsageDetailsTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import java.util.Map;
@@ -41,8 +41,8 @@ import org.junit.jupiter.api.Test;
  * ever emitted (see {@code OpenAiCompletionsResponseConverter}).
  *
  * <p>Uses the v2 element template, {@code provider.openai.*} properties (Chat Completions family),
- * and {@link NativeOpenAiCompletionsSseChatModelStubs} for the streamed SSE response - mirrors
- * {@link AgentSubProcessAnthropicReasoningEffortTests}' wiring for the Completions API family.
+ * and {@link OpenAiCompletionsV2SseChatModelStubs} for the streamed SSE response - mirrors {@link
+ * AgentSubProcessAnthropicReasoningEffortTests}' wiring for the Completions API family.
  */
 class AgentSubProcessOpenAiReasoningEffortTests extends BaseOpenAiNativeSubProcessTest {
 
@@ -58,7 +58,7 @@ class AgentSubProcessOpenAiReasoningEffortTests extends BaseOpenAiNativeSubProce
   void xhighEffortAppearsOnTheWireAsReasoningEffort() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
-    NativeOpenAiCompletionsSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    OpenAiCompletionsV2SseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     awaitProcessCompletion(
@@ -72,7 +72,7 @@ class AgentSubProcessOpenAiReasoningEffortTests extends BaseOpenAiNativeSubProce
   void unsetEffortOmitsReasoningEffortFromTheWire() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
-    NativeOpenAiCompletionsSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    OpenAiCompletionsV2SseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
@@ -92,7 +92,7 @@ class AgentSubProcessOpenAiReasoningEffortTests extends BaseOpenAiNativeSubProce
     final var userPrompt = "Write a haiku about the sea";
     final var responseText = "A haiku about the endless sea.";
 
-    NativeOpenAiCompletionsSseChatModelStubs.stubConversation(
+    OpenAiCompletionsV2SseChatModelStubs.stubConversation(
         new UsageDetailsTurnStub(responseText, 10, 20, 0L, 7L));
     enqueueUserFeedback(userSatisfiedFeedback());
 

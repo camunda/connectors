@@ -23,10 +23,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.ObjectMappers;
 import com.openai.models.responses.ResponseOutputItem;
 import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiResponsesRecordedConversation;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiResponsesSseChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiResponsesSseChatModelStubs.ReasoningTurnStub;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiResponsesSseChatModelStubs.ServerToolTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2RecordedConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2SseChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2SseChatModelStubs.ReasoningTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2SseChatModelStubs.ServerToolTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
@@ -60,11 +60,11 @@ import org.junit.jupiter.api.Test;
  * round-trip the stub itself performs when materializing the SSE wire body ({@code readValue} then
  * {@code writeValueAsString}), and the actual item is read straight off the recorded follow-up
  * request's raw {@code input[]} array ({@link
- * NativeOpenAiResponsesRecordedConversation.RecordedChatRequest#rawInputItems()}) rather than
- * through the regrouping {@code messages()} parser, which silently skips item kinds it does not
- * model. A field added, dropped, or reordered on either side fails the exact string comparison -
- * unlike a {@code Map}/{@code JsonNode} structural equality check, which is order-insensitive and
- * would not catch a reordering regression.
+ * OpenAiResponsesV2RecordedConversation.RecordedChatRequest#rawInputItems()}) rather than through
+ * the regrouping {@code messages()} parser, which silently skips item kinds it does not model. A
+ * field added, dropped, or reordered on either side fails the exact string comparison - unlike a
+ * {@code Map}/{@code JsonNode} structural equality check, which is order-insensitive and would not
+ * catch a reordering regression.
  */
 @SlowTest
 class AgentSubProcessNativeOpenAiResponsesAdvancedFeaturesTests extends BaseAgentSubProcessV2Test {
@@ -77,7 +77,7 @@ class AgentSubProcessNativeOpenAiResponsesAdvancedFeaturesTests extends BaseAgen
     return this::configureOpenAiResponsesBackend;
   }
 
-  /** Mirrors {@code NativeOpenAiResponsesWireFormatFixture#configureProvider}. */
+  /** Mirrors {@code OpenAiResponsesV2WireFormatFixture#configureProvider}. */
   private ElementTemplate configureOpenAiResponsesBackend(ElementTemplate template) {
     return template
         .property("provider.type", "openai")
@@ -102,14 +102,14 @@ class AgentSubProcessNativeOpenAiResponsesAdvancedFeaturesTests extends BaseAgen
     final var userPrompt = "Write a haiku about the sea";
     final var responseText = "A haiku about the endless sea.";
 
-    NativeOpenAiResponsesSseChatModelStubs.stubConversation(TurnStub.text(responseText, 10, 20));
+    OpenAiResponsesV2SseChatModelStubs.stubConversation(TurnStub.text(responseText, 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
         awaitProcessCompletion(
             createProcessInstance(effort("high"), Map.of("userPrompt", userPrompt)));
 
-    final var recorded = NativeOpenAiResponsesRecordedConversation.recorded();
+    final var recorded = OpenAiResponsesV2RecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
 
     final var request = recorded.lastRequest();
@@ -129,13 +129,13 @@ class AgentSubProcessNativeOpenAiResponsesAdvancedFeaturesTests extends BaseAgen
     final var userPrompt = "Write a haiku about the sea";
     final var responseText = "A haiku about the endless sea.";
 
-    NativeOpenAiResponsesSseChatModelStubs.stubConversation(TurnStub.text(responseText, 10, 20));
+    OpenAiResponsesV2SseChatModelStubs.stubConversation(TurnStub.text(responseText, 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
         awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
 
-    final var recorded = NativeOpenAiResponsesRecordedConversation.recorded();
+    final var recorded = OpenAiResponsesV2RecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
 
     final var request = recorded.lastRequest();
@@ -163,7 +163,7 @@ class AgentSubProcessNativeOpenAiResponsesAdvancedFeaturesTests extends BaseAgen
     final var toolCallId = "call_e2e_advfeat_001";
     final var finalMessage = "The superflux calculation of 5 and 3 is 24.";
 
-    NativeOpenAiResponsesSseChatModelStubs.stubReasoningConversation(
+    OpenAiResponsesV2SseChatModelStubs.stubReasoningConversation(
         new ReasoningTurnStub(
             reasoningId,
             encryptedContent,
@@ -177,7 +177,7 @@ class AgentSubProcessNativeOpenAiResponsesAdvancedFeaturesTests extends BaseAgen
         awaitProcessCompletion(
             createProcessInstance(effort("high"), Map.of("userPrompt", userPrompt)));
 
-    final var recorded = NativeOpenAiResponsesRecordedConversation.recorded();
+    final var recorded = OpenAiResponsesV2RecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
     final var followUpRequest = recorded.requests().get(1);
@@ -222,7 +222,7 @@ class AgentSubProcessNativeOpenAiResponsesAdvancedFeaturesTests extends BaseAgen
     final var followUpPrompt = "And in Munich?";
     final var finalMessage = "It's sunny and 22 degrees in Berlin right now.";
 
-    NativeOpenAiResponsesSseChatModelStubs.stubServerToolConversation(
+    OpenAiResponsesV2SseChatModelStubs.stubServerToolConversation(
         new ServerToolTurnStub(assistantText, webSearchCallId, searchQuery, 10, 20),
         TurnStub.text(finalMessage, 11, 22));
     // The server-tool turn carries no client tool call (it is resolved server-side by OpenAI
@@ -233,7 +233,7 @@ class AgentSubProcessNativeOpenAiResponsesAdvancedFeaturesTests extends BaseAgen
     final var zeebeTest =
         awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
 
-    final var recorded = NativeOpenAiResponsesRecordedConversation.recorded();
+    final var recorded = OpenAiResponsesV2RecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
     final var followUpRequest = recorded.requests().get(1);
@@ -281,9 +281,9 @@ class AgentSubProcessNativeOpenAiResponsesAdvancedFeaturesTests extends BaseAgen
 
   /**
    * Canonicalizes a hand-written response output item's JSON the same way {@code
-   * NativeOpenAiResponsesSseChatModelStubs} materializes the SSE wire body for turn 1 - parsing it
-   * into the vendor SDK's {@link ResponseOutputItem} union and re-serializing it with the vendor's
-   * own {@link ObjectMappers#jsonMapper()} - so the expected value reflects the vendor SDK's actual
+   * OpenAiResponsesV2SseChatModelStubs} materializes the SSE wire body for turn 1 - parsing it into
+   * the vendor SDK's {@link ResponseOutputItem} union and re-serializing it with the vendor's own
+   * {@link ObjectMappers#jsonMapper()} - so the expected value reflects the vendor SDK's actual
    * canonical field order rather than whatever order this literal happens to be written in. The SDK
    * mapper always resolves a given field set to the same canonical order regardless of input order,
    * so this literal's field order is deliberately independent of the stub's own private

@@ -27,29 +27,30 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * Plugs the native (own-LLM-layer) OpenAI Responses wire format into the provider-agnostic {@link
- * ProviderWireFormatFixture} SPI - the sibling of {@link NativeOpenAiCompletionsWireFormatFixture}
- * for the Responses API family, which has its own request shape ({@code instructions}/{@code
- * input[]}/{@code tools[]}/{@code text.format}) and response shape (a single {@code Response}
- * rather than accumulated chat-completion chunks), so it needs its own request recording ({@link
- * NativeOpenAiResponsesRecordedConversation}) and SSE stub ({@link
- * NativeOpenAiResponsesSseChatModelStubs}) instead of reusing the Completions ones.
+ * Plugs the native (own-LLM-layer) OpenAI Chat Completions wire format into the provider-agnostic
+ * {@link ProviderWireFormatFixture} SPI, driving the connector through the v2 native OpenAI
+ * provider - see {@code OpenAiChatModelFactory}. The *request* wire is the standard Chat
+ * Completions body - identical to the legacy langchain4j-bridge fixture's - so request recording is
+ * reused via {@link OpenAiCompletionsRecordedConversation} / {@link
+ * OpenAiCompletionsRecordedChatRequestAdapter} rather than duplicating the parsing logic (mirrors
+ * how the reference pilot branch's streaming Completions fixture reused the same non-streaming
+ * request parser). The *response* wire differs (native streams SSE, the legacy bridge buffers
+ * JSON), so {@link #stubConversation} uses {@link OpenAiCompletionsV2SseChatModelStubs}.
  *
  * <p>Drives the v2 element template with {@code provider.openai.*} property ids, via the {@code
- * custom} backend pointed at the WireMock host with a trailing {@code /v1} so the SDK's {@code
- * /responses} path resolves to the recorded path (mirrors {@link
- * NativeOpenAiCompletionsWireFormatFixture}'s endpoint setup).
- *
- * <p>Does not override {@code assertResponseFormatConfigured}: unlike Anthropic, the Responses wire
- * does carry the configured schema name (in {@code text.format.name}), and {@link
- * NativeOpenAiResponsesRecordedChatRequestAdapter} already surfaces it, so the SPI default
- * (asserting type/name/schema) applies unchanged.
+ * custom} backend (the only OpenAI backend with a configurable endpoint) pointed at the WireMock
+ * host with a trailing {@code /v1} so the SDK's {@code /chat/completions} path resolves to the
+ * recorded path - the native SDK client's {@code custom} backend does not re-append {@code /v1}
+ * itself, it appends only the relative operation path onto whatever base URL is configured (see
+ * {@code OpenAiChatModelFactory} and the {@code CustomBackend.endpoint} template property
+ * description: "Base URL of the OpenAI-compatible API; /chat/completions or /responses will be
+ * appended").
  */
-public final class NativeOpenAiResponsesWireFormatFixture implements ProviderWireFormatFixture {
+public final class OpenAiCompletionsV2WireFormatFixture implements ProviderWireFormatFixture {
 
   @Override
   public String apiName() {
-    return "NativeOpenAiResponses";
+    return "OpenAiCompletionsV2";
   }
 
   @Override
@@ -63,7 +64,7 @@ public final class NativeOpenAiResponsesWireFormatFixture implements ProviderWir
     return template ->
         template
             .property("provider.type", "openai")
-            .property("provider.openai.api.type", "responses")
+            .property("provider.openai.api.type", "completions")
             .property("provider.openai.backend.type", "custom")
             .property("provider.openai.backend.custom.endpoint", wireMock.getHttpBaseUrl() + "/v1")
             .property("provider.openai.backend.custom.authentication.type", "apiKey")
@@ -84,13 +85,13 @@ public final class NativeOpenAiResponsesWireFormatFixture implements ProviderWir
 
   @Override
   public void stubConversation(TurnStub... turns) {
-    NativeOpenAiResponsesSseChatModelStubs.stubConversation(turns);
+    OpenAiCompletionsV2SseChatModelStubs.stubConversation(turns);
   }
 
   @Override
   public List<RecordedChatRequest> recordedRequests() {
-    return NativeOpenAiResponsesRecordedConversation.recorded().requests().stream()
-        .<RecordedChatRequest>map(NativeOpenAiResponsesRecordedChatRequestAdapter::new)
+    return OpenAiCompletionsRecordedConversation.recorded().requests().stream()
+        .<RecordedChatRequest>map(OpenAiCompletionsRecordedChatRequestAdapter::new)
         .toList();
   }
 }

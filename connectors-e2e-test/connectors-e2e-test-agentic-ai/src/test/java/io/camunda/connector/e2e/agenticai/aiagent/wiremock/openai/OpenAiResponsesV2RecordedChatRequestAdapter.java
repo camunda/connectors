@@ -26,16 +26,16 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Adapts {@link NativeOpenAiResponsesRecordedConversation.RecordedChatRequest} (and its nested
+ * Adapts {@link OpenAiResponsesV2RecordedConversation.RecordedChatRequest} (and its nested
  * message/tool-call types) to the provider-agnostic {@link RecordedChatRequest} SPI, mirroring
  * {@link OpenAiCompletionsRecordedChatRequestAdapter}.
  */
-final class NativeOpenAiResponsesRecordedChatRequestAdapter implements RecordedChatRequest {
+final class OpenAiResponsesV2RecordedChatRequestAdapter implements RecordedChatRequest {
 
-  private final NativeOpenAiResponsesRecordedConversation.RecordedChatRequest delegate;
+  private final OpenAiResponsesV2RecordedConversation.RecordedChatRequest delegate;
 
-  NativeOpenAiResponsesRecordedChatRequestAdapter(
-      NativeOpenAiResponsesRecordedConversation.RecordedChatRequest delegate) {
+  OpenAiResponsesV2RecordedChatRequestAdapter(
+      OpenAiResponsesV2RecordedConversation.RecordedChatRequest delegate) {
     this.delegate = delegate;
   }
 
@@ -59,7 +59,7 @@ final class NativeOpenAiResponsesRecordedChatRequestAdapter implements RecordedC
                     format.type(), format.schemaName(), format.jsonSchema()));
   }
 
-  private record MessageAdapter(NativeOpenAiResponsesRecordedConversation.RecordedMessage delegate)
+  private record MessageAdapter(OpenAiResponsesV2RecordedConversation.RecordedMessage delegate)
       implements RecordedMessage {
 
     @Override
@@ -99,7 +99,7 @@ final class NativeOpenAiResponsesRecordedChatRequestAdapter implements RecordedC
   }
 
   private record ToolCallAdapter(
-      NativeOpenAiResponsesRecordedConversation.RecordedMessage.RecordedToolCall delegate)
+      OpenAiResponsesV2RecordedConversation.RecordedMessage.RecordedToolCall delegate)
       implements RecordedToolCall {
 
     @Override

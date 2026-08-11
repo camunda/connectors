@@ -31,9 +31,9 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMe
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV2WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.AzureOpenAiCompletionsWireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiCompletionsWireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiResponsesWireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV1WireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV2WireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
@@ -77,13 +77,13 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
 
   static Stream<ProviderWireFormatFixture> fixtures() {
     return Stream.of(
-        new OpenAiCompletionsWireFormatFixture(),
+        new OpenAiCompletionsV1WireFormatFixture(),
         new AnthropicMessagesV1WireFormatFixture(),
         new AnthropicMessagesV2WireFormatFixture(),
         new BedrockConverseWireFormatFixture(),
         new AzureOpenAiCompletionsWireFormatFixture(),
-        new NativeOpenAiCompletionsWireFormatFixture(),
-        new NativeOpenAiResponsesWireFormatFixture());
+        new OpenAiCompletionsV2WireFormatFixture(),
+        new OpenAiResponsesV2WireFormatFixture());
   }
 
   /**

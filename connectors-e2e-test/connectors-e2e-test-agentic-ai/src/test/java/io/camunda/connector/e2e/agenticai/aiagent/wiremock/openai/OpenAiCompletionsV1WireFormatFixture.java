@@ -32,11 +32,11 @@ import java.util.function.Function;
  * {@link OpenAiCompletionsRecordedConversation}, which also back the rest of the agentic-ai e2e
  * suite) into the provider-agnostic {@link ProviderWireFormatFixture} SPI.
  */
-public final class OpenAiCompletionsWireFormatFixture implements ProviderWireFormatFixture {
+public final class OpenAiCompletionsV1WireFormatFixture implements ProviderWireFormatFixture {
 
   @Override
   public String apiName() {
-    return "OpenAiCompletions";
+    return "OpenAiCompletionsV1";
   }
 
   @Override
@@ -59,7 +59,7 @@ public final class OpenAiCompletionsWireFormatFixture implements ProviderWireFor
   public void stubConversation(TurnStub... turns) {
     OpenAiCompletionsChatModelStubs.stubConversation(
         Arrays.stream(turns)
-            .map(OpenAiCompletionsWireFormatFixture::toStubTurn)
+            .map(OpenAiCompletionsV1WireFormatFixture::toStubTurn)
             .toArray(Turn[]::new));
   }
 

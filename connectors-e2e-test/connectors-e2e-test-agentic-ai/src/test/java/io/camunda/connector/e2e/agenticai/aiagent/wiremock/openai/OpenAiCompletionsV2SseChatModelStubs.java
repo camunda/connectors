@@ -53,13 +53,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * has no dial for them; use {@link #stubConversation(UsageDetailsTurnStub)} for a single turn whose
  * cache-read/reasoning token counts need to be non-zero.
  */
-public final class NativeOpenAiCompletionsSseChatModelStubs {
+public final class OpenAiCompletionsV2SseChatModelStubs {
 
   private static final String SCENARIO_NAME = "llm-conversation-native-openai-completions-sse";
   private static final ObjectMapper JSON = new ObjectMapper();
   private static final AtomicInteger TURN_COUNTER = new AtomicInteger(0);
 
-  private NativeOpenAiCompletionsSseChatModelStubs() {}
+  private OpenAiCompletionsV2SseChatModelStubs() {}
 
   public static void stubConversation(TurnStub... turns) {
     if (turns.length == 0) {

@@ -48,23 +48,23 @@ import java.util.Optional;
  * the one-message-per-turn shape every other provider's wire format already produces and the shared
  * {@code ProviderWireFormatSmokeTests} assertions expect.
  */
-public final class NativeOpenAiResponsesRecordedConversation {
+public final class OpenAiResponsesV2RecordedConversation {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final List<RecordedChatRequest> requests;
 
-  private NativeOpenAiResponsesRecordedConversation(List<RecordedChatRequest> requests) {
+  private OpenAiResponsesV2RecordedConversation(List<RecordedChatRequest> requests) {
     this.requests = requests;
   }
 
   /** Reads and parses all recorded {@code POST /v1/responses} requests, oldest first. */
-  public static NativeOpenAiResponsesRecordedConversation recorded() {
-    return recorded(NativeOpenAiResponsesSseChatModelStubs.RESPONSES_PATH);
+  public static OpenAiResponsesV2RecordedConversation recorded() {
+    return recorded(OpenAiResponsesV2SseChatModelStubs.RESPONSES_PATH);
   }
 
   /** Reads and parses all recorded Responses requests at the given path, oldest first. */
-  public static NativeOpenAiResponsesRecordedConversation recorded(String path) {
+  public static OpenAiResponsesV2RecordedConversation recorded(String path) {
     final List<LoggedRequest> loggedRequests =
         new ArrayList<>(findAll(postRequestedFor(urlPathEqualTo(path))));
 
@@ -77,7 +77,7 @@ public final class NativeOpenAiResponsesRecordedConversation {
             .map(RecordedChatRequest::parse)
             .toList();
 
-    return new NativeOpenAiResponsesRecordedConversation(parsed);
+    return new OpenAiResponsesV2RecordedConversation(parsed);
   }
 
   /** Number of model calls. */

@@ -17,8 +17,8 @@
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess.v2;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiCompletionsSseChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.NativeOpenAiCompletionsSseChatModelStubs.UsageDetailsTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV2SseChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV2SseChatModelStubs.UsageDetailsTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import java.util.Map;
@@ -47,7 +47,7 @@ class AgentSubProcessOpenAiPromptCachingTests extends BaseOpenAiNativeSubProcess
     final var userPrompt = "Write a haiku about the sea";
     final var responseText = "A haiku about the endless sea.";
 
-    NativeOpenAiCompletionsSseChatModelStubs.stubConversation(
+    OpenAiCompletionsV2SseChatModelStubs.stubConversation(
         new UsageDetailsTurnStub(responseText, 10, 20, 15L, 0L));
     enqueueUserFeedback(userSatisfiedFeedback());
 
@@ -68,7 +68,7 @@ class AgentSubProcessOpenAiPromptCachingTests extends BaseOpenAiNativeSubProcess
     final var userPrompt = "Write a haiku about the sea";
     final var responseText = "A haiku about the endless sea.";
 
-    NativeOpenAiCompletionsSseChatModelStubs.stubConversation(TurnStub.text(responseText, 10, 20));
+    OpenAiCompletionsV2SseChatModelStubs.stubConversation(TurnStub.text(responseText, 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
