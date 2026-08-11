@@ -42,9 +42,9 @@ import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamRespon
  * built once by the factory and owned for the lifetime of this instance (one agent request, across
  * all continuation rounds); {@link #close()} closes it once.
  */
-public class BedrockChatModelApi implements ChatModel {
+public class BedrockChatModel implements ChatModel {
 
-  private static final Logger LOG = LoggerFactory.getLogger(BedrockChatModelApi.class);
+  private static final Logger LOG = LoggerFactory.getLogger(BedrockChatModel.class);
 
   private final BedrockRuntimeAsyncClient client;
   private final BedrockChatModelConfiguration configuration;
@@ -53,7 +53,7 @@ public class BedrockChatModelApi implements ChatModel {
   private final ObjectMapper objectMapper;
   private final Supplier<BedrockConverseStreamAssembler> streamAssemblerFactory;
 
-  public BedrockChatModelApi(
+  public BedrockChatModel(
       BedrockRuntimeAsyncClient client,
       BedrockChatModelConfiguration configuration,
       BedrockConverseRequestConverter requestConverter,
@@ -68,7 +68,7 @@ public class BedrockChatModelApi implements ChatModel {
         () -> new BedrockConverseStreamAssembler(objectMapper));
   }
 
-  BedrockChatModelApi(
+  BedrockChatModel(
       BedrockRuntimeAsyncClient client,
       BedrockChatModelConfiguration configuration,
       BedrockConverseRequestConverter requestConverter,

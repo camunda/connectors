@@ -27,7 +27,7 @@ import java.util.function.Function;
 /**
  * Plugs AWS Bedrock's Converse API wire format into the provider-agnostic {@link
  * ProviderWireFormatFixture} SPI, driving the connector through the native v2 Bedrock provider —
- * see {@code BedrockChatModelApi}. The *request* wire format is identical to the v1 fixture; see
+ * see {@code BedrockChatModel}. The *request* wire format is identical to the v1 fixture; see
  * {@link AbstractBedrockConverseWireFormatFixture} for the shared plumbing ({@code
  * recordedRequests()}).
  *

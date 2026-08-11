@@ -63,7 +63,7 @@ import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntime
  * still letting {@code build()} run for real via {@link ResultCaptor}.
  */
 @ExtendWith(MockitoExtension.class)
-class BedrockChatModelApiFactoryTest {
+class BedrockChatModelFactoryTest {
 
   private static final String MODEL_ID = "us.amazon.nova-2-lite-v1:0";
   private static final String REGION = "eu-central-1";
@@ -83,8 +83,8 @@ class BedrockChatModelApiFactoryTest {
   private final BedrockConverseResponseConverter responseConverter =
       new BedrockConverseResponseConverter();
 
-  private final BedrockChatModelApiFactory factory =
-      new BedrockChatModelApiFactory(
+  private final BedrockChatModelFactory factory =
+      new BedrockChatModelFactory(
           config, proxySupport, requestConverter, responseConverter, new ObjectMapper());
 
   @Captor private ArgumentCaptor<AwsCredentialsProvider> credentialsProviderCaptor;
@@ -119,7 +119,7 @@ class BedrockChatModelApiFactoryTest {
       final var bedrockConfig = bedrockConfig(defaultCredentialsAuth(), null);
       final ChatModel chatModel = factory.create(bedrockConfig);
       try {
-        assertThat(chatModel).isInstanceOf(BedrockChatModelApi.class);
+        assertThat(chatModel).isInstanceOf(BedrockChatModel.class);
       } finally {
         chatModel.close();
       }

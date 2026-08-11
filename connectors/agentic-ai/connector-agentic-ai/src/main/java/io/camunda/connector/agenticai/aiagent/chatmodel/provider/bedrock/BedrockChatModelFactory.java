@@ -34,11 +34,11 @@ import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntime
 
 /**
  * Builds the AWS SDK async client backing the native Bedrock Converse provider and wraps it, along
- * with the request/response converters, in a {@link BedrockChatModelApi}.
+ * with the request/response converters, in a {@link BedrockChatModel}.
  */
-public class BedrockChatModelApiFactory implements ChatModelFactory {
+public class BedrockChatModelFactory implements ChatModelFactory {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(BedrockChatModelApiFactory.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BedrockChatModelFactory.class);
 
   private final ChatModelProperties config;
   private final AgenticAiHttpProxySupport httpProxySupport;
@@ -46,7 +46,7 @@ public class BedrockChatModelApiFactory implements ChatModelFactory {
   private final BedrockConverseResponseConverter responseConverter;
   private final ObjectMapper objectMapper;
 
-  public BedrockChatModelApiFactory(
+  public BedrockChatModelFactory(
       ChatModelProperties config,
       AgenticAiHttpProxySupport httpProxySupport,
       BedrockConverseRequestConverter requestConverter,
@@ -68,8 +68,7 @@ public class BedrockChatModelApiFactory implements ChatModelFactory {
   public ChatModel create(ChatModelConfiguration configuration) {
     final var model = (BedrockChatModelConfiguration) configuration;
     final var client = buildAsyncClient(model.bedrock());
-    return new BedrockChatModelApi(
-        client, model, requestConverter, responseConverter, objectMapper);
+    return new BedrockChatModel(client, model, requestConverter, responseConverter, objectMapper);
   }
 
   /**
@@ -78,7 +77,7 @@ public class BedrockChatModelApiFactory implements ChatModelFactory {
    * <p>Package-private seam: exposed so tests can verify client construction (region, endpoint
    * override, credentials per {@link AwsAuthentication} variant, proxy, timeouts) independently of
    * {@link #create(ChatModelConfiguration)}, which wires the client this returns into a {@link
-   * BedrockChatModelApi}.
+   * BedrockChatModel}.
    */
   BedrockRuntimeAsyncClient buildAsyncClient(BedrockConnection connection) {
     final var apiTimeout =

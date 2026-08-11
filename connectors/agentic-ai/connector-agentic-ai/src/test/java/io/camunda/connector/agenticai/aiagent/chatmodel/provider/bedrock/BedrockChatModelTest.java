@@ -46,7 +46,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamReques
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamResponseHandler;
 
 @ExtendWith(MockitoExtension.class)
-class BedrockChatModelApiTest {
+class BedrockChatModelTest {
 
   private static final String MODEL_ID = "us.amazon.nova-2-lite-v1:0";
 
@@ -75,13 +75,13 @@ class BedrockChatModelApiTest {
   private final ChatRequest request =
       new ChatRequest(executionContext, new ConversationSnapshot(List.of(), List.of()));
 
-  private BedrockChatModelApi api;
+  private BedrockChatModel api;
 
   @BeforeEach
   void setUp() {
     when(executionContext.configuration()).thenReturn(mock(AgentConfiguration.class));
     api =
-        new BedrockChatModelApi(
+        new BedrockChatModel(
             client,
             configuration,
             requestConverter,

@@ -27,8 +27,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Proves that {@code AwsApiKeyAuthentication} actually reaches the wire as a bearer token via the
- * AWS SDK's native {@code httpBearerAuth} scheme (see {@code BedrockChatModelApiFactory}), rather
- * than being silently dropped in favor of the sigv4 scheme the SDK lists first by default.
+ * AWS SDK's native {@code httpBearerAuth} scheme (see {@code BedrockChatModelFactory}), rather than
+ * being silently dropped in favor of the sigv4 scheme the SDK lists first by default.
  */
 class AgentSubProcessBedrockApiKeyAuthenticationTests extends BaseBedrockNativeSubProcessTest {
 
