@@ -12,6 +12,15 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.Anthr
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesRequestConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -37,6 +46,17 @@ public class AgenticAiNativeProvidersConfiguration {
   public OpenAiChatModelFactory aiAgentOpenAiChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new OpenAiChatModelFactory(httpProxySupport, objectMapper);
+    final var contentConverter = new OpenAiContentConverter(objectMapper);
+    final var completionsStrategy =
+        new OpenAiCompletionsStrategy(
+            new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
+            new OpenAiCompletionsResponseConverter(objectMapper),
+            OpenAiCompletionsStreamAssembler.accumulating());
+    final var responsesStrategy =
+        new OpenAiResponsesStrategy(
+            new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
+            new OpenAiResponsesResponseConverter(objectMapper),
+            OpenAiResponsesStreamAssembler.accumulating());
+    return new OpenAiChatModelFactory(httpProxySupport, completionsStrategy, responsesStrategy);
   }
 }

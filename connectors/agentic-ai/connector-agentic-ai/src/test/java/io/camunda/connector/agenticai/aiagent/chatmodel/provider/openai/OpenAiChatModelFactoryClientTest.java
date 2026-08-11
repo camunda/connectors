@@ -24,6 +24,14 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesRequestConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -310,7 +318,18 @@ class OpenAiChatModelFactoryClientTest {
       AgenticAiHttpProxySupport httpProxySupport,
       OpenAiChatModelConfiguration.OpenAiApi api,
       OpenAiBackend backend) {
-    final var factory = new OpenAiChatModelFactory(httpProxySupport, objectMapper);
+    final var contentConverter = new OpenAiContentConverter(objectMapper);
+    final var factory =
+        new OpenAiChatModelFactory(
+            httpProxySupport,
+            new OpenAiCompletionsStrategy(
+                new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
+                new OpenAiCompletionsResponseConverter(objectMapper),
+                OpenAiCompletionsStreamAssembler.accumulating()),
+            new OpenAiResponsesStrategy(
+                new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
+                new OpenAiResponsesResponseConverter(objectMapper),
+                OpenAiResponsesStreamAssembler.accumulating()));
     final var configuration =
         new OpenAiChatModelConfiguration(
             new OpenAiChatModelConfiguration.OpenAiConnection(

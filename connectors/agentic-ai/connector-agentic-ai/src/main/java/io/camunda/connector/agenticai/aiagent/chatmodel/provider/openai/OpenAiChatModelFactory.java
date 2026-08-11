@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.core.http.ProxyAuthenticator;
@@ -14,14 +13,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesRequestConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi;
@@ -54,12 +45,16 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
   private static final String NO_AUTH_PLACEHOLDER_API_KEY = "not-required";
 
   private final AgenticAiHttpProxySupport httpProxySupport;
-  private final ObjectMapper objectMapper;
+  private final OpenAiApiFamilyStrategy completionsStrategy;
+  private final OpenAiApiFamilyStrategy responsesStrategy;
 
   public OpenAiChatModelFactory(
-      AgenticAiHttpProxySupport httpProxySupport, ObjectMapper objectMapper) {
+      AgenticAiHttpProxySupport httpProxySupport,
+      OpenAiApiFamilyStrategy completionsStrategy,
+      OpenAiApiFamilyStrategy responsesStrategy) {
     this.httpProxySupport = httpProxySupport;
-    this.objectMapper = objectMapper;
+    this.completionsStrategy = completionsStrategy;
+    this.responsesStrategy = responsesStrategy;
   }
 
   @Override
@@ -74,23 +69,14 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
     final var timeout = connection.timeouts() != null ? connection.timeouts().timeout() : null;
 
     final var client = buildClient(connection.backend(), timeout, httpProxySupport);
-    final var strategy = buildStrategy(connection.api());
+    final var strategy = strategyFor(connection.api());
     return new OpenAiChatModel(client, model, strategy);
   }
 
-  private OpenAiApiFamilyStrategy buildStrategy(OpenAiChatModelConfiguration.OpenAiApi api) {
-    final var contentConverter = new OpenAiContentConverter(objectMapper);
+  private OpenAiApiFamilyStrategy strategyFor(OpenAiChatModelConfiguration.OpenAiApi api) {
     return switch (api) {
-      case OpenAiCompletionsApi ignored ->
-          new OpenAiCompletionsStrategy(
-              new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
-              new OpenAiCompletionsResponseConverter(objectMapper),
-              OpenAiCompletionsStreamAssembler.accumulating());
-      case OpenAiResponsesApi ignored ->
-          new OpenAiResponsesStrategy(
-              new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
-              new OpenAiResponsesResponseConverter(objectMapper),
-              OpenAiResponsesStreamAssembler.accumulating());
+      case OpenAiCompletionsApi ignored -> completionsStrategy;
+      case OpenAiResponsesApi ignored -> responsesStrategy;
     };
   }
 

@@ -13,6 +13,14 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesRequestConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
@@ -50,7 +58,18 @@ class OpenAiChatModelFactoryTest {
 
   @BeforeEach
   void setUp() {
-    factory = new OpenAiChatModelFactory(httpProxySupport, objectMapper);
+    final var contentConverter = new OpenAiContentConverter(objectMapper);
+    factory =
+        new OpenAiChatModelFactory(
+            httpProxySupport,
+            new OpenAiCompletionsStrategy(
+                new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
+                new OpenAiCompletionsResponseConverter(objectMapper),
+                OpenAiCompletionsStreamAssembler.accumulating()),
+            new OpenAiResponsesStrategy(
+                new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
+                new OpenAiResponsesResponseConverter(objectMapper),
+                OpenAiResponsesStreamAssembler.accumulating()));
   }
 
   @Test
