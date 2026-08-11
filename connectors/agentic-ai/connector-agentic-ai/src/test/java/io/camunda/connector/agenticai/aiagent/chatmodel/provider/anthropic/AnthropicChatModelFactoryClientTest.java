@@ -58,23 +58,23 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Exercises {@link AnthropicChatModelApiFactory}'s {@code custom}-backend and proxy wiring through
- * its public surface ({@link AnthropicChatModelApiFactory#create} + {@link ChatModel#execute})
- * rather than reaching into the private client-building internals: the built {@link ChatModel}
- * issues a real (WireMock-backed) request, and assertions verify what actually went over the wire.
+ * Exercises {@link AnthropicChatModelFactory}'s {@code custom}-backend and proxy wiring through its
+ * public surface ({@link AnthropicChatModelFactory#create} + {@link ChatModel#execute}) rather than
+ * reaching into the private client-building internals: the built {@link ChatModel} issues a real
+ * (WireMock-backed) request, and assertions verify what actually went over the wire.
  *
  * <p>The {@code anthropic-api} backend normally targets the production Anthropic base URL; its
  * hidden {@code endpoint} override is exercised here the same way as the {@code custom} backend's
  * endpoint.
  */
 @WireMockTest
-class AnthropicChatModelApiFactoryClientTest {
+class AnthropicChatModelFactoryClientTest {
 
   private static final String MODEL_ID = "claude-sonnet-4-6";
 
   /*
    * Minimal Anthropic Messages streaming (SSE) response: message_start -> one text block -> a
-   * message_delta/stop_reason -> message_stop. AnthropicChatModelApi always drives
+   * message_delta/stop_reason -> message_stop. AnthropicChatModel always drives
    * createStreaming(), so a plain buffered JSON body (as a non-streaming stub would return) isn't
    * accepted by the vendor SDK's MessageAccumulator.
    */
@@ -198,7 +198,7 @@ class AnthropicChatModelApiFactoryClientTest {
       WireMockRuntimeInfo wireMock, AwsAuthentication authentication) {
     // the endpoint override must be the full Bedrock Mantle base URL, including the /anthropic
     // path segment BedrockMantleBackend's own default derivation appends (see
-    // AnthropicChatModelApiFactory#applyAwsBedrockMantleBackend).
+    // AnthropicChatModelFactory#applyAwsBedrockMantleBackend).
     executeAgainst(
         new AnthropicAwsBedrockMantleBackend(
             new AnthropicAwsBedrockMantleBackend.AwsBedrockMantleBackend(
@@ -264,7 +264,7 @@ class AnthropicChatModelApiFactoryClientTest {
   private void executeAgainst(
       AgenticAiHttpProxySupport httpProxySupport, AnthropicBackend backend) {
     final var factory =
-        new AnthropicChatModelApiFactory(
+        new AnthropicChatModelFactory(
             httpProxySupport,
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
             new AnthropicMessageResponseConverter(objectMapper));
@@ -298,7 +298,7 @@ class AnthropicChatModelApiFactoryClientTest {
   }
 
   /**
-   * Minimal hand-rolled HTTP forward proxy used to exercise {@link AnthropicChatModelApiFactory}'s
+   * Minimal hand-rolled HTTP forward proxy used to exercise {@link AnthropicChatModelFactory}'s
    * real proxy-application branch end-to-end (rather than mocking {@link
    * AgenticAiHttpProxySupport}, which leaves that branch untested). When credentials are
    * configured, challenges the first request with {@code 407 Proxy Authentication Required} so the

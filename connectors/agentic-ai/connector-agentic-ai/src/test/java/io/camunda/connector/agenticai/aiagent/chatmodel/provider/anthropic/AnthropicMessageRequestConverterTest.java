@@ -435,7 +435,7 @@ class AnthropicMessageRequestConverterTest {
       "deprecation") // temperature()/topP()/topK() deprecated in anthropic-java 2.48.0
   void mapsFullV1ParameterParitySet() {
     // v1 Anthropic exposed exactly: endpoint, apiKey, timeout, model, maxTokens, temperature,
-    // topP, topK. endpoint/apiKey/timeout are transport-layer (AnthropicChatModelApiFactory's
+    // topP, topK. endpoint/apiKey/timeout are transport-layer (AnthropicChatModelFactory's
     // concern); this asserts the remaining 5 model-parameter fields this converter is responsible
     // for.
     final var parameters = new AnthropicModelParameters(null, null, null, 2048, 0.5, 0.9, 40);

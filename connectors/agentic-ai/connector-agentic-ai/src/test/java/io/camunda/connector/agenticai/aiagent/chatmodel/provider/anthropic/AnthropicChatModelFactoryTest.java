@@ -35,7 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AnthropicChatModelApiFactoryTest {
+class AnthropicChatModelFactoryTest {
 
   private static final String MODEL_ID = "claude-sonnet-4-6";
 
@@ -43,12 +43,12 @@ class AnthropicChatModelApiFactoryTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  private AnthropicChatModelApiFactory factory;
+  private AnthropicChatModelFactory factory;
 
   @BeforeEach
   void setUp() {
     factory =
-        new AnthropicChatModelApiFactory(
+        new AnthropicChatModelFactory(
             httpProxySupport,
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
             new AnthropicMessageResponseConverter(objectMapper));
@@ -75,7 +75,7 @@ class AnthropicChatModelApiFactoryTest {
 
     final ChatModel api = factory.create(config);
 
-    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModelApi.class);
+    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
     api.close();
   }
 
@@ -95,7 +95,7 @@ class AnthropicChatModelApiFactoryTest {
         factory.create(
             bedrockConfig(MODEL_ID, new AwsAuthentication.AwsApiKeyAuthentication("bedrock-key")));
 
-    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModelApi.class);
+    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
     api.close();
   }
 
@@ -108,7 +108,7 @@ class AnthropicChatModelApiFactoryTest {
             bedrockConfig(
                 MODEL_ID, new AwsAuthentication.AwsDefaultCredentialsChainAuthentication()));
 
-    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModelApi.class);
+    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
     api.close();
   }
 
