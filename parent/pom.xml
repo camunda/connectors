@@ -137,7 +137,12 @@ limitations under the License.</license.inlineheader>
     <version.azure-identity>1.18.4</version.azure-identity>
     <version.azure-cosmos>4.81.0</version.azure-cosmos>
 
-    <version.bouncycastle>1.85</version.bouncycastle>
+    <!-- Independent properties: bcpkix-jdk18on and bcprov-jdk18on don't always ship
+         new patch releases in lockstep (e.g. 1.85.2 exists only for bcprov-jdk18on),
+         so a shared property lets Renovate's property-grouping bump one artifact to a
+         version the other doesn't have, breaking dependency resolution. -->
+    <version.bouncycastle-pkix>1.85</version.bouncycastle-pkix>
+    <version.bouncycastle-prov>1.85</version.bouncycastle-prov>
     <version.box-sdk>4.16.4</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
@@ -682,13 +687,13 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcpkix-jdk18on</artifactId>
-        <version>${version.bouncycastle}</version>
+        <version>${version.bouncycastle-pkix}</version>
       </dependency>
 
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk18on</artifactId>
-        <version>${version.bouncycastle}</version>
+        <version>${version.bouncycastle-prov}</version>
       </dependency>
 
       <dependency>
