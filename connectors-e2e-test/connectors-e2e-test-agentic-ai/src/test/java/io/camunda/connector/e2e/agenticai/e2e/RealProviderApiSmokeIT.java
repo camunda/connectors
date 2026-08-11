@@ -252,11 +252,18 @@ class RealProviderApiSmokeIT {
         true);
   }
 
-  // The OpenAI API family axis (Chat Completions vs Responses) and the backend axis (OpenAI API
-  // vs Azure/custom) are orthogonal; this row always targets the openai-api backend, mirroring
-  // anthropicApi above. `family` is the OpenAiApi discriminator ("completions" or "responses"),
-  // which also selects the nested property path for family-specific parameters (e.g. effort).
-  static Provider openAiApi(
+  // Always targets the openai-api backend, mirroring anthropicApi above.
+  static Provider openAiCompletionsApi(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return openAiApi("completions", model, capabilityProperties);
+  }
+
+  static Provider openAiResponsesApi(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return openAiApi("responses", model, capabilityProperties);
+  }
+
+  private static Provider openAiApi(
       String family, String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new Provider(
         "openai-api/" + family + "/" + model,
@@ -326,8 +333,7 @@ class RealProviderApiSmokeIT {
                             "provider.anthropic.model.parameters.effort", "high"))),
             // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
             // domain block in addition to reasoning_tokens, so REASONING is exercisable here.
-            openAiApi(
-                "responses",
+            openAiResponsesApi(
                 "gpt-5.5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
@@ -340,13 +346,29 @@ class RealProviderApiSmokeIT {
             // Capability.REASONING even though the model supports reasoning_effort. The shared
             // reasoningEnabledProducesReasoningContent assertion has no token-count-based
             // alternative path and would guarantee-fail against this API family.
-            openAiApi(
-                "completions",
+            //
+            // MULTIMODAL_TOOL_RESULT is also intentionally omitted: the Completions request
+            // converter always flattens tool-result content to text, so a document in a tool
+            // result never actually reaches the model on this API family — unlike Responses above.
+            openAiCompletionsApi(
                 "gpt-5.5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
+            // An older model, on both API families, for completeness.
+            openAiResponsesApi(
+                "gpt-4.1",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
+            openAiCompletionsApi(
+                "gpt-4.1",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())))
         .filter(Provider::isEnabled);
   }
