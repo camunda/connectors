@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
 
 import com.anthropic.core.ObjectMappers;
 import com.anthropic.models.messages.Base64ImageSource;
@@ -68,8 +69,20 @@ public class AnthropicContentConverter {
         case TextContent text -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(text)));
         case DocumentContent doc -> blocks.add(toDocumentBlockParam(doc));
         case ObjectContent obj -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(obj)));
-        case ReasoningContent rc -> blocks.add(toReasoningContentBlockParam(rc));
-        case ProviderContent pc -> blocks.add(toProviderContentBlockParam(pc));
+        // A ReasoningContent/ProviderContent block from a different provider (e.g. a prior turn
+        // on OpenAI, left behind by a provider switch) carries a payload shaped for that other
+        // vendor's SDK; convertValue-ing it against Anthropic's ContentBlockParam would either
+        // throw or silently produce garbage, so it's dropped rather than replayed.
+        case ReasoningContent rc when ANTHROPIC_ID.equals(rc.provider()) ->
+            blocks.add(toReasoningContentBlockParam(rc));
+        case ReasoningContent rc -> {
+          // dropped: foreign provider, see comment above
+        }
+        case ProviderContent pc when ANTHROPIC_ID.equals(pc.provider()) ->
+            blocks.add(toProviderContentBlockParam(pc));
+        case ProviderContent pc -> {
+          // dropped: foreign provider, see comment above
+        }
       }
     }
     return blocks;

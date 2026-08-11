@@ -198,6 +198,27 @@ class AnthropicContentConverterTest {
     }
 
     @Test
+    void dropsReasoningContentFromAForeignProvider() {
+      final var payload = Map.<String, Object>of("type", "reasoning", "id", "rs_1");
+
+      final var blocks =
+          converter.toContentBlockParams(
+              List.of(new ReasoningContent("openai", payload, null, null)));
+
+      assertThat(blocks).isEmpty();
+    }
+
+    @Test
+    void dropsProviderContentFromAForeignProvider() {
+      final var payload = Map.<String, Object>of("type", "web_search_call", "id", "ws_1");
+
+      final var blocks =
+          converter.toContentBlockParams(List.of(new ProviderContent("openai", payload, null)));
+
+      assertThat(blocks).isEmpty();
+    }
+
+    @Test
     void mapsMultipleContentItemsInOrder() {
       final var doc = mockDocument("image/png", "QUJD");
       final List<Content> content =

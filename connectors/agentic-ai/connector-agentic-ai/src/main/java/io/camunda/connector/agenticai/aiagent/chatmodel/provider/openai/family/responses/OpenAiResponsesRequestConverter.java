@@ -27,13 +27,13 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.O
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
@@ -46,9 +46,10 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
+import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -77,6 +78,10 @@ public class OpenAiResponsesRequestConverter {
     final ResponsesParameters params = responsesParameters(connection);
 
     final var builder = ResponseCreateParams.builder().model(modelId);
+
+    // Zero Data Retention-compatible: this connector persists conversation memory itself, so it
+    // never relies on OpenAI-side response storage.
+    builder.store(false);
 
     applyModelParameters(builder, params);
     applyReasoning(builder, params);
@@ -126,10 +131,7 @@ public class OpenAiResponsesRequestConverter {
   /**
    * Maps the {@code effort} dial onto the SDK's {@code reasoning} param. {@code
    * REASONING_ENCRYPTED_CONTENT} is always requested alongside effort so reasoning items can be
-   * replayed on a subsequent turn (see {@link #assistantInputItems}); {@code store(false)} keeps
-   * the request stateless (Zero Data Retention-compatible), matching the rest of this connector's
-   * conversation-memory model, which persists reasoning itself rather than relying on OpenAI-side
-   * state.
+   * replayed on a subsequent turn (see {@link #assistantInputItems}).
    */
   private void applyReasoning(
       ResponseCreateParams.Builder builder, @Nullable ResponsesParameters params) {
@@ -139,7 +141,6 @@ public class OpenAiResponsesRequestConverter {
     }
     builder.reasoning(Reasoning.builder().effort(mapEffort(effort)).build());
     builder.addInclude(ResponseIncludable.REASONING_ENCRYPTED_CONTENT);
-    builder.store(false);
   }
 
   private ReasoningEffort mapEffort(OpenAiEffort effort) {
@@ -147,19 +148,10 @@ public class OpenAiResponsesRequestConverter {
   }
 
   private void applySystemPrompt(ResponseCreateParams.Builder builder, List<Message> messages) {
-    // Relies on the upstream invariant of a single, prepended SystemMessage: hoisting every
-    // SystemMessage is equivalent to hoisting just the leading one.
-    final String system =
-        messages.stream()
-            .filter(SystemMessage.class::isInstance)
-            .map(SystemMessage.class::cast)
-            .flatMap(m -> m.content().stream())
-            .filter(TextContent.class::isInstance)
-            .map(c -> ((TextContent) c).text())
-            .collect(Collectors.joining("\n"));
-    if (!system.isBlank()) {
-      builder.instructions(system);
-    }
+    MessageUtil.leadingSystemMessage(messages)
+        .map(MessageUtil::systemPromptText)
+        .filter(system -> !system.isBlank())
+        .ifPresent(builder::instructions);
   }
 
   private void applyMessages(ResponseCreateParams.Builder builder, List<Message> messages) {
@@ -200,23 +192,33 @@ public class OpenAiResponsesRequestConverter {
    * <p>The reasoning/provider-content payloads are replayed via the SDK's own {@link
    * ObjectMappers#jsonMapper()} rather than the injected app {@link ObjectMapper}: the captured
    * payload's Kotlin-generated absent-vs-null field tracking only round-trips correctly through
-   * that mapper. {@code text()} is intentionally never read here -- unlike the Anthropic sibling,
-   * OpenAI's reasoning payload carries everything needed to replay byte-identically on its own, so
-   * there is no merge-back step.
+   * that mapper. {@link ReasoningContent#text()}, when present, is merged back into the payload's
+   * {@code summary} field before replay -- see {@link #mergeReasoningText} and the response-side
+   * extraction on {@code OpenAiResponsesResponseConverter#toReasoningContent}.
+   *
+   * <p>Only blocks tagged with this provider's id are replayed; a {@link ReasoningContent}/{@link
+   * ProviderContent} left over from a different provider (e.g. a prior turn on Anthropic, after a
+   * provider switch) carries a payload shaped for that other vendor's SDK -- convertValue-ing it
+   * against {@link ResponseInputItem} would either throw or silently produce garbage, so it's
+   * dropped instead.
    */
   private List<ResponseInputItem> assistantInputItems(AssistantMessage assistant) {
     final List<ResponseInputItem> items = new ArrayList<>();
     final List<Content> plainContent = new ArrayList<>();
     for (final Content content : assistant.content()) {
       switch (content) {
-        case ReasoningContent reasoning ->
+        case ReasoningContent reasoning
+            when OpenAiChatModelConfiguration.OPENAI_ID.equals(reasoning.provider()) ->
             items.add(
                 ObjectMappers.jsonMapper()
-                    .convertValue(reasoning.payload(), ResponseInputItem.class));
-        case ProviderContent providerContent ->
+                    .convertValue(mergeReasoningText(reasoning), ResponseInputItem.class));
+        case ReasoningContent ignored -> {} // foreign provider, see class-method Javadoc
+        case ProviderContent providerContent
+            when OpenAiChatModelConfiguration.OPENAI_ID.equals(providerContent.provider()) ->
             items.add(
                 ObjectMappers.jsonMapper()
                     .convertValue(providerContent.payload(), ResponseInputItem.class));
+        case ProviderContent ignored -> {} // foreign provider, see class-method Javadoc
         default -> plainContent.add(content); // Text/Object/Document: replayed as a message below
       }
     }
@@ -240,6 +242,32 @@ public class OpenAiResponsesRequestConverter {
                   .build()));
     }
     return items;
+  }
+
+  /**
+   * Reconstructs the reasoning item's {@code summary} field from {@link ReasoningContent#text()}
+   * when the response side stripped it (see {@code OpenAiResponsesResponseConverter
+   * #canReconstructSummaryFromText}). If {@code payload} already carries a {@code summary} -- the
+   * response side left it untouched because reconstruction would have been lossy -- it is replayed
+   * verbatim instead, ignoring {@code text()}, which is then just a duplicate convenience copy.
+   * Returns the payload unchanged when {@code text()} is absent entirely.
+   */
+  private Object mergeReasoningText(ReasoningContent reasoning) {
+    if (reasoning.text() == null) {
+      return reasoning.payload();
+    }
+    if (!(reasoning.payload() instanceof Map<?, ?> rawPayload)) {
+      throw new IllegalStateException(
+          "Expected reasoning content payload to be a Map when text is present, got %s"
+              .formatted(reasoning.payload().getClass().getSimpleName()));
+    }
+    if (rawPayload.containsKey("summary")) {
+      return rawPayload;
+    }
+    final Map<String, Object> merged = new LinkedHashMap<>();
+    rawPayload.forEach((k, v) -> merged.put(String.valueOf(k), v));
+    merged.put("summary", List.of(Map.of("type", "summary_text", "text", reasoning.text())));
+    return merged;
   }
 
   private List<ResponseInputItem> toolResultInputItems(ToolCallResultMessage message) {

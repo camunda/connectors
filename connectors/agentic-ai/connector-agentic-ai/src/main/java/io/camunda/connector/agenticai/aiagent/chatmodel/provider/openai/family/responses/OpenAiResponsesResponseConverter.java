@@ -14,6 +14,7 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseFunctionToolCall;
 import com.openai.models.responses.ResponseOutputItem;
 import com.openai.models.responses.ResponseOutputMessage;
+import com.openai.models.responses.ResponseReasoningItem;
 import com.openai.models.responses.ResponseStatus;
 import com.openai.models.responses.ResponseUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
@@ -29,10 +30,15 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 /**
  * Maps an accumulated OpenAI Responses API SDK {@link Response} to the domain {@link
@@ -44,9 +50,9 @@ import org.slf4j.LoggerFactory;
  * <strong>full raw item</strong> (a {@code Map<String, Object>} produced via the SDK's own {@link
  * ObjectMappers#jsonMapper()} -- {@code id}/{@code summary}/{@code encrypted_content}/... -- unlike
  * Anthropic's thinking blocks, this always includes {@code encrypted_content} rather than a
- * signature). This raw payload IS re-emitted back to OpenAI on the request side (see {@code
- * OpenAiResponsesRequestConverter}), so reasoning round-trips losslessly; the summary text stays
- * inside the raw payload rather than being duplicated onto the domain type.
+ * signature); see {@link #toReasoningContent} for when the summary text is instead lifted onto
+ * {@link ReasoningContent#text()}. This raw payload IS re-emitted back to OpenAI on the request
+ * side (see {@code OpenAiResponsesRequestConverter}), so reasoning round-trips losslessly.
  *
  * <p>Server-tool items ({@code web_search_call}, {@code code_interpreter_call}) have no
  * provider-neutral representation and are captured losslessly as {@link ProviderContent} (the raw
@@ -207,12 +213,47 @@ public class OpenAiResponsesResponseConverter {
   }
 
   /**
-   * Builds the {@link ReasoningContent} for a reasoning output item: {@code payload} is the full
-   * raw item -- carrying {@code encrypted_content} and the summary -- so it can be replayed
-   * byte-identical on the request side.
+   * Builds the {@link ReasoningContent} for a reasoning output item. The human-readable summary
+   * text is always lifted out of {@code summary} into {@link ReasoningContent#text()}, mirroring
+   * the Anthropic sibling's {@code thinking} handling. Whether {@code summary} is also stripped
+   * from {@code payload} depends on {@link #canReconstructSummaryFromText}: when it holds, {@code
+   * text()} is the sole copy and {@link OpenAiResponsesRequestConverter#mergeReasoningText}
+   * rebuilds {@code summary} from it before replay; otherwise {@code summary} is left untouched in
+   * {@code payload} -- deliberately duplicated with {@code text()} -- since reconstructing it from
+   * a single joined string would be lossy (multiple entries, or an entry carrying fields this
+   * domain model doesn't model).
    */
   private ReasoningContent toReasoningContent(ResponseOutputItem item) {
-    return ReasoningContent.reasoningContent(OPENAI_PROVIDER, toRawMap(item));
+    final Map<String, Object> raw = new LinkedHashMap<>(toRawMap(item));
+    final Optional<ResponseReasoningItem> reasoning = item.reasoning();
+    final String text = reasoning.map(this::summaryText).orElse(null);
+    if (text == null) {
+      return ReasoningContent.reasoningContent(OPENAI_PROVIDER, raw);
+    }
+    if (reasoning.filter(this::canReconstructSummaryFromText).isPresent()) {
+      raw.remove("summary");
+    }
+    return new ReasoningContent(OPENAI_PROVIDER, raw, text, Map.of());
+  }
+
+  private @Nullable String summaryText(ResponseReasoningItem reasoning) {
+    final String joined =
+        reasoning.summary().stream()
+            .map(ResponseReasoningItem.Summary::text)
+            .collect(Collectors.joining("\n"));
+    return StringUtils.hasText(joined) ? joined : null;
+  }
+
+  /**
+   * Holds only when {@code summary} can be reconstructed byte-identical from {@link #summaryText}'s
+   * joined string alone: exactly one entry, with no additional/unknown fields on it. This is safe
+   * to check conservatively: unlike Anthropic's {@code thinking} signature, {@code summary} plays
+   * no role in verifying reasoning continuity (only {@code encrypted_content}/{@code id} do), so
+   * leaving it un-stripped costs nothing but the deduplication.
+   */
+  private boolean canReconstructSummaryFromText(ResponseReasoningItem reasoning) {
+    final List<ResponseReasoningItem.Summary> summary = reasoning.summary();
+    return summary.size() == 1 && summary.get(0)._additionalProperties().isEmpty();
   }
 
   /**

@@ -420,7 +420,7 @@ class OpenAiResponsesRequestConverterTest {
     final var params = converter.toRequest(model(null), null, snapshot);
 
     assertThat(params.reasoning()).isEmpty();
-    assertThat(params.store()).isEmpty();
+    assertThat(params.store()).contains(false); // unconditional, not tied to reasoning
     assertThat(params.include()).isEmpty();
   }
 
@@ -441,7 +441,7 @@ class OpenAiResponsesRequestConverterTest {
     final var params = converter.toRequest(config, null, snapshot);
 
     assertThat(params.reasoning()).isEmpty();
-    assertThat(params.store()).isEmpty();
+    assertThat(params.store()).contains(false); // unconditional, not tied to reasoning
     assertThat(params.include()).isEmpty();
     assertThat(params.maxOutputTokens()).isEmpty();
     assertThat(params.temperature()).isEmpty();
@@ -506,6 +506,77 @@ class OpenAiResponsesRequestConverterTest {
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(1);
     assertThat(items.get(0).itemReference().orElseThrow().id()).isEqualTo("ref_1");
+  }
+
+  @Test
+  void mergesReasoningTextBackIntoSummaryBeforeReplay() {
+    final var payload =
+        Map.<String, Object>of("type", "reasoning", "id", "rs_1", "encrypted_content", "abc123");
+    final var reasoning = new ReasoningContent("openai", payload, "Thinking about it", Map.of());
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(AssistantMessage.builder().content(List.of(reasoning)).build()), List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    final var replayed = rawInputItems(params).get(0);
+    assertThat(replayed).containsEntry("id", "rs_1").containsEntry("encrypted_content", "abc123");
+    assertThat((List<?>) replayed.get("summary"))
+        .isEqualTo(List.of(Map.of("type", "summary_text", "text", "Thinking about it")));
+  }
+
+  @Test
+  void replaysExistingSummaryVerbatimWhenPayloadAlreadyCarriesIt() {
+    // Mirrors OpenAiResponsesResponseConverter's duplicate-rather-than-reconstruct case for
+    // multi-entry summaries: text() is a convenience copy, payload's own summary wins on replay.
+    final var originalSummary =
+        List.of(
+            Map.of("type", "summary_text", "text", "First part"),
+            Map.of("type", "summary_text", "text", "Second part"));
+    final var payload =
+        Map.<String, Object>of(
+            "type", "reasoning",
+            "id", "rs_1",
+            "encrypted_content", "abc123",
+            "summary", originalSummary);
+    final var reasoning =
+        new ReasoningContent("openai", payload, "First part\nSecond part", Map.of());
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(AssistantMessage.builder().content(List.of(reasoning)).build()), List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    final var replayed = rawInputItems(params).get(0);
+    assertThat(replayed.get("summary")).isEqualTo(originalSummary);
+  }
+
+  @Test
+  void dropsReasoningContentFromAForeignProvider() {
+    final var payload = Map.<String, Object>of("type", "thinking", "thinking", "some thought");
+    final var reasoning = new ReasoningContent("anthropic", payload, null, Map.of());
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(AssistantMessage.builder().content(List.of(reasoning)).build()), List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    assertThat(params.input().orElseThrow().asResponse()).isEmpty();
+  }
+
+  @Test
+  void dropsProviderContentFromAForeignProvider() {
+    final var providerContent =
+        new ProviderContent(
+            "anthropic", Map.of("type", "server_tool_use", "id", "srvtoolu_1"), null);
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(AssistantMessage.builder().content(List.of(providerContent)).build()),
+            List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    assertThat(params.input().orElseThrow().asResponse()).isEmpty();
   }
 
   // --- Backend request customizations --------------------------------------------------------

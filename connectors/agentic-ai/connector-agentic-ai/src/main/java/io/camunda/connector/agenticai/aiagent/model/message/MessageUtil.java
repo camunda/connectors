@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class MessageUtil {
   private MessageUtil() {}
@@ -37,5 +38,16 @@ public class MessageUtil {
     return !messages.isEmpty() && messages.getFirst() instanceof SystemMessage systemMessage
         ? Optional.of(systemMessage)
         : Optional.empty();
+  }
+
+  /**
+   * Flattens a {@link SystemMessage}'s {@link TextContent} blocks to a single string, joined with
+   * {@code \n}; non-text content blocks are ignored.
+   */
+  public static String systemPromptText(SystemMessage systemMessage) {
+    return systemMessage.content().stream()
+        .filter(TextContent.class::isInstance)
+        .map(c -> ((TextContent) c).text())
+        .collect(Collectors.joining("\n"));
   }
 }

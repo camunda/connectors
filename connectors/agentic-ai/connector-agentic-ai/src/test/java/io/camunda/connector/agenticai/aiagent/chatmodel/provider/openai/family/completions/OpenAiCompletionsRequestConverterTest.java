@@ -379,6 +379,15 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
+  void alwaysDisablesServerSideStorage() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    assertThat(params.store()).contains(false);
+  }
+
+  @Test
   void mergesCustomBackendBodyPropertiesIntoRequestBody() {
     final var backend =
         new OpenAiCustomBackend(

@@ -198,13 +198,16 @@ class OpenAiResponsesResponseConverterTest {
     final ReasoningContent reasoningContent =
         (ReasoningContent) result.assistantMessage().content().get(0);
 
+    // the summary text is lifted out into text(), mirroring the Anthropic sibling's thinking
+    // handling, so it isn't persisted twice
+    assertThat(reasoningContent.text()).contains("Thinking about it");
+
     @SuppressWarnings("unchecked")
     final Map<String, Object> payload = (Map<String, Object>) reasoningContent.payload();
     assertThat(payload).containsEntry("id", "rs_1");
     assertThat(payload).containsEntry("type", "reasoning");
     assertThat(payload).containsEntry("encrypted_content", "encrypted-blob");
-    // the summary stays inside the raw payload rather than being duplicated onto the domain type
-    assertThat(payload.get("summary").toString()).contains("Thinking about it");
+    assertThat(payload).doesNotContainKey("summary");
   }
 
   @Test
@@ -225,6 +228,38 @@ class OpenAiResponsesResponseConverterTest {
     @SuppressWarnings("unchecked")
     final Map<String, Object> payload = (Map<String, Object>) reasoningContent.payload();
     assertThat(payload).containsEntry("id", "rs_2");
+  }
+
+  @Test
+  void liftsMultiEntrySummaryTextButLeavesPayloadSummaryUntouched() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "reasoning",
+                "id": "rs_3",
+                "summary": [
+                  {"type": "summary_text", "text": "First part"},
+                  {"type": "summary_text", "text": "Second part"}
+                ],
+                "encrypted_content": "encrypted-blob"
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    final ReasoningContent reasoningContent =
+        (ReasoningContent) result.assistantMessage().content().get(0);
+
+    // two entries can't be losslessly reconstructed from a single joined text() string, so text()
+    // is a duplicated convenience copy and the original summary array is kept in the payload
+    assertThat(reasoningContent.text()).isEqualTo("First part\nSecond part");
+
+    @SuppressWarnings("unchecked")
+    final Map<String, Object> payload = (Map<String, Object>) reasoningContent.payload();
+    assertThat(payload).containsKey("summary");
   }
 
   @Test

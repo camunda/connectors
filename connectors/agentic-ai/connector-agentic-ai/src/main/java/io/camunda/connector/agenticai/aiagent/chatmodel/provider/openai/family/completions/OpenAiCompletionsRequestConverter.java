@@ -29,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.O
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -93,6 +94,10 @@ public class OpenAiCompletionsRequestConverter {
     // (input/output/cached) are populated. Set unconditionally, on every request.
     builder.streamOptions(ChatCompletionStreamOptions.builder().includeUsage(true).build());
 
+    // Zero Data Retention-compatible: this connector persists conversation memory itself, so it
+    // never relies on OpenAI-side response storage.
+    builder.store(false);
+
     applyModelParameters(builder, params);
     applyReasoning(builder, params);
     applyMessages(builder, snapshot.messages());
@@ -138,9 +143,8 @@ public class OpenAiCompletionsRequestConverter {
 
   /**
    * Maps the {@code effort} dial onto the SDK's {@code reasoning_effort} param. Unlike the
-   * Responses sibling's {@code applyReasoning}, there is no encrypted-content include and no {@code
-   * store(false)} toggle: Completions has neither a reasoning-item replay mechanism nor server-side
-   * state to opt out of.
+   * Responses sibling's {@code applyReasoning}, there is no encrypted-content include: Completions
+   * has no reasoning-item replay mechanism at all.
    */
   private void applyReasoning(
       ChatCompletionCreateParams.Builder builder, @Nullable CompletionsParameters params) {
@@ -170,12 +174,9 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   private ChatCompletionSystemMessageParam systemMessage(SystemMessage system) {
-    final String text =
-        system.content().stream()
-            .filter(TextContent.class::isInstance)
-            .map(c -> ((TextContent) c).text())
-            .collect(Collectors.joining("\n"));
-    return ChatCompletionSystemMessageParam.builder().content(text).build();
+    return ChatCompletionSystemMessageParam.builder()
+        .content(MessageUtil.systemPromptText(system))
+        .build();
   }
 
   private ChatCompletionUserMessageParam userMessage(UserMessage user) {

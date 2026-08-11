@@ -29,7 +29,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
@@ -51,7 +50,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -180,11 +178,7 @@ public class AnthropicMessageRequestConverter {
     if (systemMessage.isEmpty()) {
       return;
     }
-    final String system =
-        systemMessage.get().content().stream()
-            .filter(TextContent.class::isInstance)
-            .map(c -> ((TextContent) c).text())
-            .collect(Collectors.joining("\n"));
+    final String system = MessageUtil.systemPromptText(systemMessage.get());
     if (!system.isBlank()) {
       builder.system(system);
     }
