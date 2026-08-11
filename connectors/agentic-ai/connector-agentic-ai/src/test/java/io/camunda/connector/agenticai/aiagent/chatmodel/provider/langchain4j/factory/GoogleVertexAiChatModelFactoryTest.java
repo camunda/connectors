@@ -204,6 +204,20 @@ class GoogleVertexAiChatModelFactoryTest {
   }
 
   @Test
+  void throwsForTimeoutExceedingIntegerMillisRange() {
+    final var providerConfig =
+        createProviderConfig(
+            null,
+            new TimeoutConfiguration(Duration.ofDays(30)),
+            new ApplicationDefaultCredentialsAuthentication(),
+            null);
+
+    assertThatThrownBy(() -> factory.createChatModel(providerConfig))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("exceeds the maximum supported by the Google GenAI SDK");
+  }
+
+  @Test
   void appliesCustomEndpoint() {
     testGoogleVertexAiChatModelBuilder(
         createProviderConfig(

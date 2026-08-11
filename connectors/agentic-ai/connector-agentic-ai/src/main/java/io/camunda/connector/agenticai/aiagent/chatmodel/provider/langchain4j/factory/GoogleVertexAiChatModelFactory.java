@@ -29,6 +29,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -96,7 +97,7 @@ public class GoogleVertexAiChatModelFactory
     final var httpOptions =
         HttpOptions.builder()
             .retryOptions(HttpRetryOptions.builder().attempts(1).build())
-            .timeout((int) apiTimeout.toMillis());
+            .timeout(toGoogleGenAiTimeoutMillis(apiTimeout));
 
     Optional.ofNullable(connection.endpoint())
         .filter(StringUtils::isNotBlank)
@@ -127,6 +128,23 @@ public class GoogleVertexAiChatModelFactory
       LOGGER.error("Failed to create Google Vertex AI client", e);
       throw new ConnectorInputException("Failed to create Google Vertex AI client", e);
     }
+  }
+
+  /**
+   * {@code HttpOptions.timeout} only accepts an {@code Integer} millisecond value, while the
+   * connector accepts any positive {@link Duration}. Values above {@code Integer.MAX_VALUE} ms
+   * (~24.8 days) would silently overflow on a raw cast, so reject them with a clear input error
+   * instead.
+   */
+  private int toGoogleGenAiTimeoutMillis(Duration apiTimeout) {
+    final var timeoutMillis = apiTimeout.toMillis();
+    if (timeoutMillis > Integer.MAX_VALUE) {
+      throw new ConnectorInputException(
+          "Configured timeout of %s exceeds the maximum supported by the Google GenAI SDK (%dms)"
+              .formatted(apiTimeout, Integer.MAX_VALUE));
+    }
+
+    return (int) timeoutMillis;
   }
 
   private GoogleCredentials createGoogleServiceAccountCredentials(

@@ -63,7 +63,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderCo
 import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration.BedrockConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration.BedrockModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiCompatibleProviderConfiguration;
@@ -326,6 +326,24 @@ class AgenticAiConnectorsAutoConfigurationTest {
         });
   }
 
+  // A throwaway, self-signed key never used against a real Google account - only needed so
+  // ServiceAccountCredentials.fromStream() can parse it without hitting the network.
+  private static final String FAKE_GOOGLE_SERVICE_ACCOUNT_KEY =
+      """
+      {
+        "type": "service_account",
+        "project_id": "my-project",
+        "private_key_id": "test-key-id",
+        "private_key": "-----BEGIN PRIVATE KEY-----\\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC4KONsg1R7zrU1\\nur0Mbdc9hxiVnzUXTEULxsWioJrILEcn4Ne6BHHgDuusHvJv04OmptPpr/kmGXc9\\n1MRUlnxR4pQ4MPIDlasCWROG3WfQ27ru4pFyhUvxUwWV4dWMWntQjAVcKUVV2kX0\\n4M7SxRTZnbS8D77RkfrLa8CuVL/lukTscXe1vmpCVBXDqMC+meAgwdW0JwZhRgtx\\n0RvjHSvi91Bi2hPmmjpRwts3bMYJXxj38kNut++GIJQ0Mhd77AN4fJMhqiDoWHKE\\nBvYTm0xRsAlBlLaEEFzLNLWsO3hobJI1oYoddjq9009/+InRFiHqHZWcWXbYVX0w\\nEVjNeWUHAgMBAAECggEACtkZwHgh/2MHSKF15mgIAE9XcuTcd0FeZdmxJanJRFZb\\nYK19d68wWA748fwmstCmVihInmDnz8c7P3CrmgH9U8OBkKfNccmct7gwjsa3CVYQ\\nNmcxQyo39YC6+P/DGQ/xaKa+4BVsSKjhaxHdDQxf9Iu2LEfPKUAsolP4FyzV2v3a\\n34GV6OaNeV1mnxz7wf+Y1L/YvxHU9iCClQY9ZPxYS4rtLLPQPkxcWog853ZwrSMP\\n0VZ+1XJlfo7zOmgn/ye8XEzlZ+e5yFK+ceff0dKkNQyK4DL4OTcZsQNavg3xWdUU\\nKLQh5Bc4l4yQy1S6BF0UsfSsftyYYb7vqcl/6Xjb1QKBgQDfDnXHgJnoEdg2YyIc\\nVAuYMxCJWCVS//PyJFpz+TqAQvpKTxzMuIr6B48mJFNoaOcygxXPWT0WD0B50FUi\\ncR48Oh30dN1NBr12QjlyPyWCcMgQ63DYNoZIc+rV4Mu1mxyX+KdlnUdMgyKirka0\\nCJ/oP2vXh11nzIJ3Z3OFr3SdhQKBgQDTW8fv1eMQ90wpWQ8OUZlEW5gRDFwmK4sD\\nrrCNX6QNegr32DD/SiLWIWFmpYcanN8m60ZX56R/ai4iUu2KsG/6Xkg5wqQy3vN+\\nt56Eet/SDjbanMX5i42qoY5CPem/1TVSBHWcR5x3i3tNxExSDAclzb/N1DDtTbfO\\nqby2klAoGwKBgQDXo+UdkCg6gTXjrocFmAL1iziLbxn2Wdf+2kJQKDv0T8wlFsKi\\n8C37dl9f4nJ4WCJbZPsqz/0MXIZavZvwhidS1mSrNmfT1ZZIw9FBr+aVam8gXF1l\\nyaCcXuRDDOYjledYzF0ZEaoiQAy19YII/uWI4/dgEE+uz7m5sduu/Gbi+QKBgQDG\\n/zsXzMGlT7EdnQRX7uvnOHXMV17LcWPJa8g+0zWamrWI9LvtINf71CHoiyDRJbHU\\n6t+oFCkE7evR1VJhqg1EJVDLUT9XxiJrxGYzRZ1GIKv02HZtpb8UUFeodrKGMy+o\\nsRoqsiHXTDQj3BYficORDE7ydD48r1fH9HgBTXC60QKBgQDL76i13a3RyJqABG4v\\n5ysATMLyIBtlOn4ncQuFKFVt8SPhSraaNtWDPU44J3d2jlXpeh3IWhhZpheD+6Sb\\nv1I4uOMxGeFV1vPhHLg1vqmB3WH/upZmLAgKj9OOqNvYPj1FMN5jpmHnaUhy/DVy\\n4jhO1CWKD3CKJhgOCN58k7ohHQ==\\n-----END PRIVATE KEY-----\\n",
+        "client_email": "test@my-project.iam.gserviceaccount.com",
+        "client_id": "123456789",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/test%40my-project.iam.gserviceaccount.com"
+      }
+      """;
+
   static Stream<ChatModelResolutionCase> chatModelResolutionCases() {
     return Stream.of(
         new ChatModelResolutionCase(
@@ -367,12 +385,15 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     new BedrockModel("anthropic.claude-3-sonnet", null))),
             BedrockChatModelFactory.class),
         new ChatModelResolutionCase(
+            // Google's genai SDK resolves application default credentials eagerly when the
+            // client is built, which would require real GCP credentials in this environment.
+            // Service account credentials avoid that lookup entirely.
             "google-vertex-ai",
             new GoogleVertexAiProviderConfiguration(
                 new GoogleVertexAiConnection(
                     "my-project",
                     "us-central1",
-                    new ApplicationDefaultCredentialsAuthentication(),
+                    new ServiceAccountCredentialsAuthentication(FAKE_GOOGLE_SERVICE_ACCOUNT_KEY),
                     new GoogleVertexAiModel("gemini-2.5-pro", null))),
             GoogleVertexAiChatModelFactory.class),
         new ChatModelResolutionCase(
