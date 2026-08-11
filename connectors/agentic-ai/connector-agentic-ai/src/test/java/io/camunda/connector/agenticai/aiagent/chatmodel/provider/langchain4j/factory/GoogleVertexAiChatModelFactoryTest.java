@@ -219,6 +219,17 @@ class GoogleVertexAiChatModelFactoryTest {
   }
 
   @Test
+  void clampsSubMillisecondTimeoutToOneMillisecond() {
+    testGoogleVertexAiChatModelBuilder(
+        createProviderConfig(
+            null,
+            new TimeoutConfiguration(Duration.ofNanos(500)),
+            new ApplicationDefaultCredentialsAuthentication(),
+            null),
+        (builders) -> assertThat(captureHttpOptions(builders).timeout()).isPresent().contains(1));
+  }
+
+  @Test
   void appliesCustomEndpoint() {
     testGoogleVertexAiChatModelBuilder(
         createProviderConfig(

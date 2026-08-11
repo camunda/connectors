@@ -20,7 +20,7 @@ import java.util.Map;
  * - every provider drops attributes entirely unless explicitly handled below.
  *
  * <p>Google's Gemini API attaches a thought signature to the specific function-call part it belongs
- * to, not to the message as a whole - langchain4j only exposes it via the flat, message- level
+ * to, not to the message as a whole - langchain4j only exposes it via the flat, message-level
  * {@code AiMessage.attributes()} map keyed by tool call ID, since {@code ToolExecutionRequest} has
  * no field for it. This decorator un-flattens that back onto the individual {@link
  * io.camunda.connector.agenticai.aiagent.model.tool.ToolCall} it actually belongs to.
@@ -32,8 +32,8 @@ import java.util.Map;
  */
 final class ToolCallMetadataDecorator {
 
-  private static final String THOUGHT_SIGNATURE_ATTRIBUTE_KEY_PREFIX = "thought_signature_";
-  private static final String THOUGHT_SIGNATURE_METADATA_KEY = "thoughtSignature";
+  private static final String GOOGLE_THOUGHT_SIGNATURE_ATTRIBUTE_KEY_PREFIX = "thought_signature_";
+  private static final String GOOGLE_THOUGHT_SIGNATURE_METADATA_KEY = "thoughtSignature";
 
   private ToolCallMetadataDecorator() {}
 
@@ -49,11 +49,11 @@ final class ToolCallMetadataDecorator {
       Map<String, Object> aiMessageAttributes) {
     return switch (providerConfiguration) {
       case GoogleVertexAiProviderConfiguration ignored -> {
-        if (aiMessageAttributes.get(THOUGHT_SIGNATURE_ATTRIBUTE_KEY_PREFIX + toolCallId)
+        if (aiMessageAttributes.get(GOOGLE_THOUGHT_SIGNATURE_ATTRIBUTE_KEY_PREFIX + toolCallId)
             instanceof String signature) {
           yield namespaced(
               GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
-              Map.of(THOUGHT_SIGNATURE_METADATA_KEY, signature));
+              Map.of(GOOGLE_THOUGHT_SIGNATURE_METADATA_KEY, signature));
         }
         yield Map.of();
       }
@@ -73,8 +73,9 @@ final class ToolCallMetadataDecorator {
       case GoogleVertexAiProviderConfiguration ignored -> {
         if (toolCallMetadata.get(GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID)
                 instanceof Map<?, ?> googleMetadata
-            && googleMetadata.get(THOUGHT_SIGNATURE_METADATA_KEY) instanceof String signature) {
-          yield Map.of(THOUGHT_SIGNATURE_ATTRIBUTE_KEY_PREFIX + toolCallId, signature);
+            && googleMetadata.get(GOOGLE_THOUGHT_SIGNATURE_METADATA_KEY)
+                instanceof String signature) {
+          yield Map.of(GOOGLE_THOUGHT_SIGNATURE_ATTRIBUTE_KEY_PREFIX + toolCallId, signature);
         }
         yield Map.of();
       }

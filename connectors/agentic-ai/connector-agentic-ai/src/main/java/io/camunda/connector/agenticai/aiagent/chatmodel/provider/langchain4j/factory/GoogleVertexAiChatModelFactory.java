@@ -45,6 +45,8 @@ public class GoogleVertexAiChatModelFactory
   private static final String GOOGLE_CLOUD_PLATFORM_SCOPE =
       "https://www.googleapis.com/auth/cloud-platform";
 
+  private static final Duration MAX_GOOGLE_GENAI_TIMEOUT = Duration.ofMillis(Integer.MAX_VALUE);
+
   private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
@@ -138,14 +140,15 @@ public class GoogleVertexAiChatModelFactory
    * instead.
    */
   private int toGoogleGenAiTimeoutMillis(Duration apiTimeout) {
-    final var timeoutMillis = apiTimeout.toMillis();
-    if (timeoutMillis > Integer.MAX_VALUE) {
+    if (apiTimeout.compareTo(MAX_GOOGLE_GENAI_TIMEOUT) > 0) {
       throw new ConnectorInputException(
           "Configured timeout of %s exceeds the maximum supported by the Google GenAI SDK (%dms)"
               .formatted(apiTimeout, Integer.MAX_VALUE));
     }
 
-    return (int) timeoutMillis;
+    // a positive sub-millisecond timeout would otherwise truncate to 0, which OkHttp treats as
+    // an unlimited call timeout rather than the shortest possible one
+    return (int) Math.max(1, apiTimeout.toMillis());
   }
 
   private GoogleCredentials createGoogleServiceAccountCredentials(
