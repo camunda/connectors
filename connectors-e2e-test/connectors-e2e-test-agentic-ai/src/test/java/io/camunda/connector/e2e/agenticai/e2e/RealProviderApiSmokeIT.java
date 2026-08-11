@@ -341,20 +341,13 @@ class RealProviderApiSmokeIT {
                     Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING, Map.of(),
                     Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
-            // Chat Completions never returns/replays a ReasoningContent domain block — only
-            // reasoning_tokens surfaces into TokenUsage — so this row intentionally omits
-            // Capability.REASONING even though the model supports reasoning_effort. The shared
-            // reasoningEnabledProducesReasoningContent assertion has no token-count-based
-            // alternative path and would guarantee-fail against this API family.
-            //
-            // MULTIMODAL_TOOL_RESULT is also intentionally omitted: the Completions request
-            // converter always flattens tool-result content to text, so a document in a tool
-            // result never actually reaches the model on this API family — unlike Responses above.
+            // REASONING omitted: Completions never returns a ReasoningContent block to assert on.
             openAiCompletionsApi(
                 "gpt-5.5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
             // An older model, on both API families, for completeness.
             openAiResponsesApi(
@@ -369,6 +362,7 @@ class RealProviderApiSmokeIT {
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())))
         .filter(Provider::isEnabled);
   }

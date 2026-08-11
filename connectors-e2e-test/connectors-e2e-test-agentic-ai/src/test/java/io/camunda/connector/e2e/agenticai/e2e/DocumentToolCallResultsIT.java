@@ -237,18 +237,18 @@ class DocumentToolCallResultsIT {
             // OpenAI (v1)
             openaiV1("gpt-4.1"),
             openaiV1("gpt-5.4"),
-            // OpenAI (v2, native), Responses family only: Chat Completions always flattens
-            // tool-result content to text (see OpenAiCompletionsRequestConverter), so it can never
-            // actually see a document delivered via a tool call result.
+            // OpenAI (v2)
             openaiResponsesV2("gpt-4.1"),
             openaiResponsesV2("gpt-5.4"),
+            openaiCompletionsV2("gpt-4.1"),
+            openaiCompletionsV2("gpt-5.4"),
             // Anthropic (v1)
             anthropicV1("claude-sonnet-4-6"),
             anthropicV1("claude-haiku-4-5-20251001"),
             // Anthropic (v2)
             anthropicV2("claude-sonnet-4-6"),
             anthropicV2("claude-haiku-4-5-20251001"),
-            // Anthropic (v2), native AWS Bedrock Mantle backend
+            // Anthropic (v2), AWS Bedrock Mantle backend
             anthropicBedrockMantleV2("claude-sonnet-5"),
             anthropicBedrockMantleV2("claude-haiku-4-5"),
             // AWS Bedrock (Anthropic models via cross-region inference)
@@ -283,7 +283,7 @@ class DocumentToolCallResultsIT {
             model));
   }
 
-  /** OpenAI, v2 (native), Responses family. */
+  /** OpenAI, v2, Responses family. */
   static ProviderConfig openaiResponsesV2(String model) {
     return new ProviderConfig(
         "openai-responses-v2/" + model,
@@ -298,6 +298,25 @@ class DocumentToolCallResultsIT {
             envOrPlaceholder("OPENAI_API_KEY"),
             "provider.openai.api.type",
             "responses",
+            "provider.openai.model.model",
+            model));
+  }
+
+  /** OpenAI, v2, Completions family. */
+  static ProviderConfig openaiCompletionsV2(String model) {
+    return new ProviderConfig(
+        "openai-completions-v2/" + model,
+        List.of("OPENAI_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "openai",
+            "provider.openai.backend.type",
+            "openai-api",
+            "provider.openai.backend.openai.apiKey",
+            envOrPlaceholder("OPENAI_API_KEY"),
+            "provider.openai.api.type",
+            "completions",
             "provider.openai.model.model",
             model));
   }
@@ -317,7 +336,7 @@ class DocumentToolCallResultsIT {
             model));
   }
 
-  /** Anthropic, v2 (native). */
+  /** Anthropic, v2. */
   static ProviderConfig anthropicV2(String model) {
     return new ProviderConfig(
         "anthropic-v2/" + model,
@@ -335,8 +354,8 @@ class DocumentToolCallResultsIT {
   }
 
   /**
-   * Anthropic, v2 (native), via the AWS Bedrock Mantle backend: the same Messages API wire format
-   * as anthropicV2, just SigV4-signed and sent to a Bedrock Mantle endpoint instead of
+   * Anthropic, v2, via the AWS Bedrock Mantle backend: the same Messages API wire format as
+   * anthropicV2, just SigV4-signed and sent to a Bedrock Mantle endpoint instead of
    * api.anthropic.com.
    */
   static ProviderConfig anthropicBedrockMantleV2(String model) {
