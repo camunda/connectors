@@ -27,7 +27,7 @@ import java.util.function.Function;
 /**
  * Plugs Anthropic's Messages API wire format into the provider-agnostic {@link
  * ProviderWireFormatFixture} SPI, driving the connector through the native v2 Anthropic provider —
- * see {@code AnthropicChatModelApi}. The *request* wire format is identical to the v1 fixture; see
+ * see {@code AnthropicChatModel}. The *request* wire format is identical to the v1 fixture; see
  * {@link AbstractAnthropicMessagesWireFormatFixture} for the shared plumbing ({@code
  * recordedRequests()}, {@code assertResponseFormatConfigured(...)}).
  *

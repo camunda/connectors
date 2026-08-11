@@ -32,13 +32,12 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.AzureOpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.BedrockChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.GoogleVertexAiChatModelFactory;
@@ -128,7 +127,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentSubProcessV2Function.class,
           AgentInstanceClient.class,
           ChatModelRegistry.class,
-          AnthropicChatModelApiFactory.class);
+          AnthropicChatModelFactory.class);
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
       List.of(
@@ -139,7 +138,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           JsonSchemaConverter.class,
           ToolSpecificationConverter.class,
           ChatMessageConverter.class,
-          AnthropicChatModelFactory.class,
+          io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .AnthropicChatModelFactory.class,
           AzureOpenAiChatModelFactory.class,
           BedrockChatModelFactory.class,
           GoogleVertexAiChatModelFactory.class,
@@ -337,7 +337,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
                             "sk-ant-test", null, null, null, null)),
                     new AnthropicModel("claude-sonnet-5", null),
                     null)),
-            AnthropicChatModelApiFactory.class),
+            AnthropicChatModelFactory.class),
         new ChatModelResolutionCase(
             "anthropic (langchain4j)",
             new AnthropicProviderConfiguration(
@@ -346,7 +346,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     new AnthropicProviderConfiguration.AnthropicAuthentication("sk-ant-test"),
                     null,
                     new AnthropicProviderConfiguration.AnthropicModel("claude-sonnet-5", null))),
-            AnthropicChatModelFactory.class),
+            io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+                .AnthropicChatModelFactory.class),
         new ChatModelResolutionCase(
             "azure-openai",
             new AzureOpenAiProviderConfiguration(
@@ -431,7 +432,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           new FactoryOverrideCase(
               CustomAnthropicProviderConfig.class,
               "customAnthropicChatModelFactory",
-              AnthropicChatModelFactory.class,
+              io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+                  .AnthropicChatModelFactory.class,
               CustomAnthropicChatModelFactory.class),
           new FactoryOverrideCase(
               CustomAzureOpenAiProviderConfig.class,
@@ -474,11 +476,15 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
     static class CustomAnthropicProviderConfig {
       @Bean
-      AnthropicChatModelFactory customAnthropicChatModelFactory() {
+      io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .AnthropicChatModelFactory
+          customAnthropicChatModelFactory() {
         return new CustomAnthropicChatModelFactory();
       }
 
-      static class CustomAnthropicChatModelFactory extends AnthropicChatModelFactory {
+      static class CustomAnthropicChatModelFactory
+          extends io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .AnthropicChatModelFactory {
 
         CustomAnthropicChatModelFactory() {
           super(

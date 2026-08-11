@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Extract Text from Document with AWS Textract",
-  "id" : "io.camunda.connectors.AWSTEXTRACT.v1-hybrid",
+  "name" : "Extract Text from Document with AWS Textract",
+  "id" : "io.camunda.connectors.AWSTEXTRACT.v1",
   "description" : "Extract text and data using AWS Textract.",
   "keywords" : [ "extract text", "extract data", "extract text from image", "extract data from image", "ocr", "OCR", "document processing", "text extraction", "analyze document", "asynchronous", "real-time" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/amazon-textract/",
-  "version" : 7,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,9 +18,6 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -49,14 +46,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:aws-textract:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
@@ -268,7 +263,7 @@
       "equals" : "S3",
       "type" : "simple"
     },
-    "tooltip" : "How the document should be processed. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#input-parameters\" target=\"_blank\">Amazon Textract execution types documentation</a>.",
+    "tooltip" : "How the document should be processed. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#execution-types\" target=\"_blank\">Amazon Textract execution types documentation</a>.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Asynchronous",
@@ -279,27 +274,6 @@
     }, {
       "name" : "Polling",
       "value" : "POLLING"
-    } ]
-  }, {
-    "id" : "input.uploadedExecutionType",
-    "label" : "Execution type",
-    "optional" : false,
-    "value" : "SYNC",
-    "group" : "input",
-    "binding" : {
-      "name" : "input.executionType",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "input.documentLocationType",
-      "equals" : "UPLOADED",
-      "type" : "simple"
-    },
-    "tooltip" : "Documents supplied from Camunda are analyzed in real time. Polling and asynchronous execution require the document to be stored in Amazon S3.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Real-time",
-      "value" : "SYNC"
     } ]
   }, {
     "id" : "input.analyzeTables",
@@ -528,7 +502,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "7",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
