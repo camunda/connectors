@@ -53,10 +53,8 @@ public class OpenAiChatModel implements ChatModel {
     try {
       return strategy.call(client, configuration, request);
     } catch (ConnectorException e) {
-      // the family strategy builds its request params (running content conversion, which can
-      // throw an already-coded ConnectorException, e.g. OpenAiContentConverter's unsupported
-      // content type) inside strategy.call(); re-throw verbatim so it isn't double-wrapped as a
-      // generic "Model call failed" below.
+      // already coded (e.g. OpenAiContentConverter's unsupported content type); avoid
+      // double-wrapping as a generic "Model call failed" below.
       throw e;
     } catch (Exception e) {
       final String detail =
