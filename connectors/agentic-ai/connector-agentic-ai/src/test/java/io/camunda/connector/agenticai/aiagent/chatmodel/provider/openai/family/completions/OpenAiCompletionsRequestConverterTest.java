@@ -379,7 +379,7 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
-  void mergesCustomBackendRequestParametersIntoRequestBody() {
+  void mergesCustomBackendBodyPropertiesIntoRequestBody() {
     final var backend =
         new OpenAiCustomBackend(
             new CustomBackend(
@@ -398,7 +398,7 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
-  void mergesApiBackendRequestParametersIntoRequestBody() {
+  void mergesApiBackendBodyPropertiesIntoRequestBody() {
     final var backend =
         new OpenAiApiBackend(
             new OpenAiApiConnection(
@@ -412,7 +412,7 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
-  void doesNotAddRequestParametersWhenNoneConfigured() {
+  void doesNotAddBodyPropertiesWhenNoneConfigured() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params = converter.toRequest(model(null), null, snapshot);
@@ -420,6 +420,46 @@ class OpenAiCompletionsRequestConverterTest {
     final var body = requestBodyAsJson(params);
     assertThat(body.has("service_tier")).isFalse();
     assertThat(body.has("top_logprobs")).isFalse();
+  }
+
+  @Test
+  void mergesCustomBackendHeadersAndQueryParametersAsAdditional() {
+    final var backend =
+        new OpenAiCustomBackend(
+            new CustomBackend(
+                "https://example.test/v1",
+                Map.of("X-Custom-Header", "header-value"),
+                Map.of("api-version", "2026-01-01"),
+                null,
+                new NoAuthentication()));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
+
+    assertThat(params._additionalHeaders().values("X-Custom-Header"))
+        .containsExactly("header-value");
+    assertThat(params._additionalQueryParams().values("api-version")).containsExactly("2026-01-01");
+  }
+
+  @Test
+  void mergesApiBackendHiddenHeadersAndQueryParametersAsAdditional() {
+    final var backend =
+        new OpenAiApiBackend(
+            new OpenAiApiConnection(
+                "sk-test",
+                null,
+                null,
+                null,
+                Map.of("X-Hidden-Header", "hidden-value"),
+                Map.of("api-version", "2026-01-01"),
+                null));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
+
+    assertThat(params._additionalHeaders().values("X-Hidden-Header"))
+        .containsExactly("hidden-value");
+    assertThat(params._additionalQueryParams().values("api-version")).containsExactly("2026-01-01");
   }
 
   // --- Family guard --------------------------------------------------------------------------

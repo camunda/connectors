@@ -1918,14 +1918,17 @@ container field per the wrapping convention below.
 
 **Backends: `openai-api` and `custom`.** `OpenAiApiBackend` targets the OpenAI API itself (required
 `apiKey`, optional `organizationId`/`projectId`) plus a hidden override quartet —
-`endpoint`/`headers`/`queryParameters`/`requestParameters`, all `PropertyType.Hidden` with
-`FeelMode.disabled` — that mirrors
+`endpoint`/`headers`/`queryParameters`/`bodyProperties`, all `PropertyType.Hidden` with
+`FeelMode.disabled`, grouped under `advanced-provider-options` — that mirrors
 `AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend` field-for-field, down to a
-`toString` redacting the same four sensitive fields. `OpenAiCustomBackend` targets any
-OpenAI-compatible endpoint: a required `endpoint` base URL (the SDK appends `/chat/completions` or
-`/responses` depending on the selected family), visible `headers`/`queryParameters`/`requestParameters`,
-and the shared `CustomEndpointAuthentication` (`none`|`apiKey`). Azure OpenAI is not a backend here,
-deferred exactly as Anthropic's Bedrock backend was deferred out of its own PR.
+`toString` redacting the same four sensitive fields via `redactValues`. `OpenAiCustomBackend` targets
+any OpenAI-compatible endpoint: a required `endpoint` base URL (the SDK appends `/chat/completions` or
+`/responses` depending on the selected family), visible `headers`/`queryParameters`/`bodyProperties`
+in the same group, and the shared `CustomEndpointAuthentication` (`none`|`apiKey`). Headers, query
+parameters, and body properties are merged onto the request by `OpenAiRequestCustomizations` (shared
+between `OpenAiCompletionsRequestConverter`/`OpenAiResponsesRequestConverter`) rather than the client
+builder, matching `AnthropicMessageRequestConverter`'s `RequestCustomizations`. Azure OpenAI is not a
+backend here, deferred exactly as Anthropic's Bedrock backend was deferred out of its own PR.
 
 **Reasoning effort on both families; encrypted round-trip on Responses only.** A single nullable
 `OpenAiEffort` enum (`minimal`|`low`|`medium`|`high`|`xhigh`|`max`, serialized lowercase; unset omits

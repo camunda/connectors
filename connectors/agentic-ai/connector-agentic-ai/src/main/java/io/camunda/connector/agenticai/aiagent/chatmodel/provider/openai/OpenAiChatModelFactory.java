@@ -33,7 +33,6 @@ import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
-import java.util.Map;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
@@ -41,7 +40,7 @@ import org.jspecify.annotations.Nullable;
  * {@link ChatModelFactory} for the native OpenAI provider's {@code openai-api} (API key) and {@code
  * custom} (OpenAI-compatible endpoint) backends, for both the Responses and Chat Completions API
  * families. Client construction is folded in here, mirroring {@link
- * io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelApiFactory}'s
+ * io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory}'s
  * inline shape rather than a separate client-factory class.
  */
 public class OpenAiChatModelFactory implements ChatModelFactory {
@@ -138,8 +137,6 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
     if (openai.endpoint() != null) {
       builder.baseUrl(openai.endpoint());
     }
-
-    applyHeadersAndQueryParameters(builder, openai.headers(), openai.queryParameters());
   }
 
   private static void applyCustomBackend(
@@ -152,20 +149,6 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
             ? apiKeyAuth.apiKey()
             : NO_AUTH_PLACEHOLDER_API_KEY;
     builder.apiKey(apiKey);
-
-    applyHeadersAndQueryParameters(builder, connection.headers(), connection.queryParameters());
-  }
-
-  private static void applyHeadersAndQueryParameters(
-      OpenAIOkHttpClient.Builder builder,
-      @Nullable Map<String, String> headers,
-      @Nullable Map<String, String> queryParameters) {
-    if (headers != null) {
-      headers.forEach(builder::putHeader);
-    }
-    if (queryParameters != null) {
-      queryParameters.forEach(builder::putQueryParam);
-    }
   }
 
   /**

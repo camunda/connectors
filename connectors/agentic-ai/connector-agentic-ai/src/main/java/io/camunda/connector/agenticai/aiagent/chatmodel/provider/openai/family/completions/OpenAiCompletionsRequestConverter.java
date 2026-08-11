@@ -25,6 +25,7 @@ import com.openai.models.chat.completions.ChatCompletionTool;
 import com.openai.models.chat.completions.ChatCompletionToolMessageParam;
 import com.openai.models.chat.completions.ChatCompletionUserMessageParam;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiRequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -42,8 +43,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi.CompletionsParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -52,7 +51,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
@@ -100,7 +98,7 @@ public class OpenAiCompletionsRequestConverter {
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
     applyStructuredOutput(builder, response);
-    applyBackendRequestParameters(builder, connection);
+    applyRequestCustomizations(builder, connection);
 
     return builder.build();
   }
@@ -295,20 +293,17 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   /**
-   * Both backend variants allow passing arbitrary additional request-body parameters (e.g.
-   * vendor-specific extensions unsupported by the SDK's typed builder). {@code headers}/{@code
-   * queryParameters} are applied at the client level, not here.
+   * Merges the backend's headers, query parameters, and body properties onto the request, shared
+   * with the Responses sibling via {@link OpenAiRequestCustomizations}.
    */
-  private void applyBackendRequestParameters(
+  private void applyRequestCustomizations(
       ChatCompletionCreateParams.Builder builder, OpenAiConnection connection) {
-    final Map<String, Object> requestParameters =
-        switch (connection.backend()) {
-          case OpenAiApiBackend apiBackend -> apiBackend.openai().bodyProperties();
-          case OpenAiCustomBackend customBackend -> customBackend.custom().bodyProperties();
-        };
-    if (requestParameters != null) {
-      requestParameters.forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));
-    }
+    final var customizations = OpenAiRequestCustomizations.from(connection);
+    customizations.headers().forEach(builder::putAdditionalHeader);
+    customizations.queryParameters().forEach(builder::putAdditionalQueryParam);
+    customizations
+        .bodyProperties()
+        .forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));
   }
 
   private String writeAsJson(Object value) {
