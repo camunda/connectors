@@ -29,9 +29,9 @@ import org.slf4j.LoggerFactory;
  * <p>Google's Gemini API attaches a thought signature to the specific function-call part it belongs
  * to, not to the message as a whole - langchain4j only exposes it via the flat, message-level
  * {@code AiMessage.attributes()} map keyed by tool call ID, since {@code ToolExecutionRequest} has
- * no field for it. {@link #decorateOnWrite}/{@link #decorateOnRead} un-flatten that back onto the
- * individual {@link io.camunda.connector.agenticai.aiagent.model.tool.ToolCall} it actually belongs
- * to.
+ * no field for it. {@link #extractToolCallMetadata}/{@link #restoreToolCallAttributes} un-flatten
+ * that back onto the individual {@link io.camunda.connector.agenticai.aiagent.model.tool.ToolCall}
+ * it actually belongs to.
  *
  * <p>Persisted entries are namespaced by the provider's {@code TemplateSubType} ID so that
  * switching a process instance's provider - e.g. via a config update or a process instance
@@ -81,7 +81,7 @@ public record GoogleVertexAiCloseableChatModel(ChatModel delegate, AutoCloseable
   }
 
   @Override
-  public Map<String, Object> decorateOnWrite(
+  public Map<String, Object> extractToolCallMetadata(
       String toolCallId, Map<String, Object> aiMessageAttributes) {
     if (aiMessageAttributes.get(THOUGHT_SIGNATURE_ATTRIBUTE_KEY_PREFIX + toolCallId)
         instanceof String signature) {
@@ -93,7 +93,8 @@ public record GoogleVertexAiCloseableChatModel(ChatModel delegate, AutoCloseable
   }
 
   @Override
-  public Map<String, Object> decorateOnRead(String toolCallId, Map<?, ?> toolCallMetadata) {
+  public Map<String, Object> restoreToolCallAttributes(
+      String toolCallId, Map<?, ?> toolCallMetadata) {
     if (toolCallMetadata.get(GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID)
             instanceof Map<?, ?> googleMetadata
         && googleMetadata.get(THOUGHT_SIGNATURE_METADATA_KEY) instanceof String signature) {

@@ -32,7 +32,8 @@ class GoogleVertexAiCloseableChatModelTest {
   }
 
   @Test
-  void decorateOnWrite_keepsThoughtSignatureMatchingThisToolCallId_namespacedByProviderId() {
+  void
+      extractToolCallMetadata_keepsThoughtSignatureMatchingThisToolCallId_namespacedByProviderId() {
     final var aiMessageAttributes =
         Map.<String, Object>of(
             "thought_signature_" + TOOL_CALL_ID,
@@ -42,7 +43,7 @@ class GoogleVertexAiCloseableChatModelTest {
             "raw_http_response",
             "leak-risk");
 
-    assertThat(chatModel.decorateOnWrite(TOOL_CALL_ID, aiMessageAttributes))
+    assertThat(chatModel.extractToolCallMetadata(TOOL_CALL_ID, aiMessageAttributes))
         .containsExactly(
             entry(
                 GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
@@ -50,38 +51,40 @@ class GoogleVertexAiCloseableChatModelTest {
   }
 
   @Test
-  void decorateOnWrite_dropsResultWhenNoMatchingThoughtSignature() {
-    assertThat(chatModel.decorateOnWrite(TOOL_CALL_ID, Map.of("raw_http_response", "leak-risk")))
+  void extractToolCallMetadata_dropsResultWhenNoMatchingThoughtSignature() {
+    assertThat(
+            chatModel.extractToolCallMetadata(
+                TOOL_CALL_ID, Map.of("raw_http_response", "leak-risk")))
         .isEmpty();
   }
 
   @Test
-  void decorateOnWrite_dropsResultWhenSignatureValueIsNotAString() {
+  void extractToolCallMetadata_dropsResultWhenSignatureValueIsNotAString() {
     assertThat(
-            chatModel.decorateOnWrite(
+            chatModel.extractToolCallMetadata(
                 TOOL_CALL_ID, Map.of("thought_signature_" + TOOL_CALL_ID, 42)))
         .isEmpty();
   }
 
   @Test
-  void decorateOnRead_returnsPrefixedAttributeEntry() {
+  void restoreToolCallAttributes_returnsPrefixedAttributeEntry() {
     final var persisted =
         Map.of(
             GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
             Map.of("thoughtSignature", "c2ln"));
 
-    assertThat(chatModel.decorateOnRead(TOOL_CALL_ID, persisted))
+    assertThat(chatModel.restoreToolCallAttributes(TOOL_CALL_ID, persisted))
         .containsExactly(entry("thought_signature_" + TOOL_CALL_ID, "c2ln"));
   }
 
   @Test
-  void decorateOnRead_dropsResultWhenSignatureValueIsNotAString() {
+  void restoreToolCallAttributes_dropsResultWhenSignatureValueIsNotAString() {
     final var persisted =
         Map.of(
             GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
             Map.of("thoughtSignature", 42));
 
-    assertThat(chatModel.decorateOnRead(TOOL_CALL_ID, persisted)).isEmpty();
+    assertThat(chatModel.restoreToolCallAttributes(TOOL_CALL_ID, persisted)).isEmpty();
   }
 
   /**
@@ -90,9 +93,9 @@ class GoogleVertexAiCloseableChatModelTest {
    * belonged to this one.
    */
   @Test
-  void decorateOnRead_ignoresMetadataPersistedUnderADifferentProviderId() {
+  void restoreToolCallAttributes_ignoresMetadataPersistedUnderADifferentProviderId() {
     final var persisted = Map.of("some-other-provider", Map.of("thoughtSignature", "c2ln"));
 
-    assertThat(chatModel.decorateOnRead(TOOL_CALL_ID, persisted)).isEmpty();
+    assertThat(chatModel.restoreToolCallAttributes(TOOL_CALL_ID, persisted)).isEmpty();
   }
 }

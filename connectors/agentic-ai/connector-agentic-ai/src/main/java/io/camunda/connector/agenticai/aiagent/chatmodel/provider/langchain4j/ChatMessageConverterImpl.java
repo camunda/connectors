@@ -136,7 +136,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
    * Provider tool call metadata carries data the provider requires us to echo back verbatim on the
    * next request, e.g. Gemini 3 thought signatures. This is provider-specific data, kept separate
    * from {@link #serializedChatResponseMetadata}. What is safe to restore is provider-specific -
-   * see {@link CloseableChatModel#decorateOnRead}.
+   * see {@link CloseableChatModel#restoreToolCallAttributes}.
    */
   protected Map<String, Object> toolCallAttributes(
       AssistantMessage assistantMessage, CloseableChatModel chatModel) {
@@ -150,7 +150,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
         continue;
       }
 
-      attributes.putAll(chatModel.decorateOnRead(toolCall.id(), toolCall.metadata()));
+      attributes.putAll(chatModel.restoreToolCallAttributes(toolCall.id(), toolCall.metadata()));
     }
 
     return attributes;
@@ -205,7 +205,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       return toolCall;
     }
 
-    final var metadata = chatModel.decorateOnWrite(toolCall.id(), aiMessage.attributes());
+    final var metadata = chatModel.extractToolCallMetadata(toolCall.id(), aiMessage.attributes());
     return metadata.isEmpty() ? toolCall : toolCall.withMetadata(metadata);
   }
 

@@ -71,8 +71,9 @@ class ChatMessageConverterTest {
 
   @InjectMocks private ChatMessageConverterImpl chatMessageConverter;
 
-  // every chat model drops attributes by default (CloseableChatModel's decorateOnRead/Write
-  // defaults) unless it overrides them, like GoogleVertexAiCloseableChatModel does below
+  // every chat model drops attributes by default (CloseableChatModel's extractToolCallMetadata/
+  // restoreToolCallAttributes defaults) unless it overrides them, like
+  // GoogleVertexAiCloseableChatModel does below
   private final CloseableChatModel chatModel =
       mock(CloseableChatModel.class, Answers.CALLS_REAL_METHODS);
 
