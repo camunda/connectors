@@ -47,7 +47,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AnthropicChatModelApiTest {
+class AnthropicChatModelTest {
 
   @Mock private AnthropicClient client;
   @Mock private MessageService messageService;
@@ -70,13 +70,13 @@ class AnthropicChatModelApiTest {
   private final ChatRequest request =
       new ChatRequest(executionContext, new ConversationSnapshot(List.of(), List.of()));
 
-  private AnthropicChatModelApi api;
+  private AnthropicChatModel api;
 
   @BeforeEach
   void setUp() {
     when(executionContext.configuration()).thenReturn(mock(AgentConfiguration.class));
     api =
-        new AnthropicChatModelApi(
+        new AnthropicChatModel(
             client, configuration, requestConverter, responseConverter, streamAssembler);
   }
 

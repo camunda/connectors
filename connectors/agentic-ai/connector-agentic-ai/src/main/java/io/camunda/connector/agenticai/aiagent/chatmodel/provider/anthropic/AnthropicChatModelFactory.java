@@ -29,13 +29,13 @@ import org.jspecify.annotations.Nullable;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 
-public class AnthropicChatModelApiFactory implements ChatModelFactory {
+public class AnthropicChatModelFactory implements ChatModelFactory {
 
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final AnthropicMessageRequestConverter requestConverter;
   private final AnthropicMessageResponseConverter responseConverter;
 
-  public AnthropicChatModelApiFactory(
+  public AnthropicChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter) {
@@ -56,7 +56,7 @@ public class AnthropicChatModelApiFactory implements ChatModelFactory {
     final var timeout = connection.timeouts() != null ? connection.timeouts().timeout() : null;
 
     final var client = buildClient(connection.backend(), timeout, httpProxySupport);
-    return new AnthropicChatModelApi(client, model, requestConverter, responseConverter);
+    return new AnthropicChatModel(client, model, requestConverter, responseConverter);
   }
 
   private static AnthropicClient buildClient(

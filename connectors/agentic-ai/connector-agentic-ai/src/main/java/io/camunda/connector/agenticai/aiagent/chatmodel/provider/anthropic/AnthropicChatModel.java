@@ -38,9 +38,9 @@ import org.slf4j.LoggerFactory;
  * <p>The {@link AnthropicClient} is built once by the factory and owned for the lifetime of this
  * instance (one agent request, across all continuation rounds); {@link #close()} closes it once.
  */
-public class AnthropicChatModelApi implements ChatModel {
+public class AnthropicChatModel implements ChatModel {
 
-  private static final Logger LOG = LoggerFactory.getLogger(AnthropicChatModelApi.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AnthropicChatModel.class);
   private static final ObjectMapper MAPPER = ObjectMappers.jsonMapper();
 
   private final AnthropicChatModelConfiguration configuration;
@@ -49,7 +49,7 @@ public class AnthropicChatModelApi implements ChatModel {
   private final AnthropicMessageResponseConverter responseConverter;
   private final AnthropicMessageStreamAssembler streamAssembler;
 
-  public AnthropicChatModelApi(
+  public AnthropicChatModel(
       AnthropicClient client,
       AnthropicChatModelConfiguration configuration,
       AnthropicMessageRequestConverter requestConverter,
@@ -62,7 +62,7 @@ public class AnthropicChatModelApi implements ChatModel {
         AnthropicMessageStreamAssembler.accumulating());
   }
 
-  AnthropicChatModelApi(
+  AnthropicChatModel(
       AnthropicClient client,
       AnthropicChatModelConfiguration configuration,
       AnthropicMessageRequestConverter requestConverter,
