@@ -44,7 +44,7 @@ import org.junit.jupiter.api.Test;
  * and {@link OpenAiCompletionsV2SseChatModelStubs} for the streamed SSE response - mirrors {@link
  * AgentSubProcessAnthropicReasoningEffortTests}' wiring for the Completions API family.
  */
-class AgentSubProcessOpenAiReasoningEffortTests extends BaseOpenAiNativeSubProcessTest {
+class AgentSubProcessOpenAiCompletionsReasoningEffortTests extends BaseOpenAiNativeSubProcessTest {
 
   private static Function<ElementTemplate, ElementTemplate> effort(String effort) {
     return template -> template.property("provider.openai.api.completions.effort", effort);

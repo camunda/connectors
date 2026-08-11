@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Test;
  * case - never asserting a cache-creation count as non-zero, since OpenAI can never report one (see
  * {@code OpenAiCompletionsResponseConverter#toTokenUsage}).
  */
-class AgentSubProcessOpenAiPromptCachingTests extends BaseOpenAiNativeSubProcessTest {
+class AgentSubProcessOpenAiCompletionsPromptCachingTests extends BaseOpenAiNativeSubProcessTest {
 
   @Test
   void cacheReadTokensSurfaceIntoTokenUsageOnACacheHit() throws Exception {
