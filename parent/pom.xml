@@ -98,10 +98,10 @@ limitations under the License.</license.inlineheader>
     <tomcat.version>11.0.24</tomcat.version>
     <version.netty>4.2.17.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.1.0</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.6.1</version.logback>
+    <version.logback>1.6.2</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.51.3</version.aws-sdk2>
+    <version.aws-sdk2>2.52.0</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -135,7 +135,7 @@ limitations under the License.</license.inlineheader>
     <version.httpclient>4.5.14</version.httpclient>
     <version.ayza>10.0.6</version.ayza>
     <version.pdfbox>3.0.8</version.pdfbox>
-    <version.collections4>4.5.0</version.collections4>
+    <version.collections4>4.6.0</version.collections4>
 
     <version.commons-io>2.22.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
@@ -157,7 +157,7 @@ limitations under the License.</license.inlineheader>
          so a shared property lets Renovate's property-grouping bump one artifact to a
          version the other doesn't have, breaking dependency resolution. -->
     <version.bouncycastle-pkix>1.85</version.bouncycastle-pkix>
-    <version.bouncycastle-prov>1.85</version.bouncycastle-prov>
+    <version.bouncycastle-prov>1.85.2</version.bouncycastle-prov>
     <version.box-sdk>5.15.0</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
@@ -186,8 +186,8 @@ limitations under the License.</license.inlineheader>
 
     <version.langchain4j>1.18.1</version.langchain4j>
     <version.mcp-sdk>2.0.0</version.mcp-sdk>
-    <version.elasticsearch-java>8.19.19</version.elasticsearch-java>
-    <version.elasticsearch-rest-client>8.19.19</version.elasticsearch-rest-client>
+    <version.elasticsearch-java>8.19.20</version.elasticsearch-java>
+    <version.elasticsearch-rest-client>8.19.20</version.elasticsearch-rest-client>
 
     <version.scala>3.8.4</version.scala>
 
