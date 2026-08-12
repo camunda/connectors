@@ -101,7 +101,9 @@ public class RestAuthenticationValidator
       case BearerAuthentication _ -> ConfigurationValidationResult.unsupported();
       case ApiKeyAuthentication _ -> ConfigurationValidationResult.unsupported();
       case OAuthAuthentication oauth -> requestTokenFor(oauth);
-      case OAuthRefreshTokenAuthentication oauth -> requestTokenFor(oauth);
+      case OAuthRefreshTokenAuthentication ignored ->
+          ConfigurationValidationResult
+              .unsupported(); // Refresh-token rotation can invalidate the token just used
     };
   }
 

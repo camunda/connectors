@@ -115,6 +115,10 @@ public class JdbcConnectionValidator
 
   private static void openAndClose(JdbcConnectionConfiguration configuration)
       throws ClassNotFoundException, SQLException {
+    // TODO: apply a finite login timeout to prevent a black-holed host from blocking the
+    // validation endpoint indefinitely. Use driver-specific connection properties or a bounded
+    // mechanism that guarantees late connections are closed, rather than DriverManager's
+    // process-global setLoginTimeout.
     try (Connection ignored =
         ConnectionHelper.openConnection(
             configuration.database(), configuration.toDetailedConnection())) {

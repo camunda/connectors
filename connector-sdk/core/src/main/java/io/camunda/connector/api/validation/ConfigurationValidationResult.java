@@ -31,8 +31,8 @@ package io.camunda.connector.api.validation;
  *       against (see {@link #unsupported()}).
  * </ul>
  *
- * <p>Connector authors return {@link #success()} or {@link #failure(ErrorCode, String)}, preferring
- * a shared {@link ErrorCode} over inventing a per-connector one.
+ * <p>Connector authors return {@link #success()}, {@link #failure(ErrorCode, String)}, or {@link
+ * #unsupported()}, preferring a shared {@link ErrorCode} over inventing a per-connector one.
  */
 public record ConfigurationValidationResult(Status status, String code, String message) {
 

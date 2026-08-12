@@ -325,35 +325,14 @@ class RestAuthenticationValidatorTest {
     }
 
     @Test
-    void refreshTokenSucceedsWhenATokenIsIssued(WireMockRuntimeInfo wireMock) {
-      WireMock.stubFor(
-          WireMock.post("/token").willReturn(WireMock.okJson("{\"access_token\":\"a-token\"}")));
+    void refreshTokenIsUnsupportedBecauseTheProviderMayRotateIt() {
+      // Under RFC 6749 §6, a refresh token grant may cause the provider to rotate the refresh token
+      // and invalidate the one just presented. This validator cannot persist a rotated token, so
+      // validating a working rotating credential could make its next execution fail. Return
+      // UNSUPPORTED rather than expose that risk.
+      var result = validator.validate(configuration(refreshToken("http://example.com/token")));
 
-      var result = validator.validate(configuration(refreshToken(tokenEndpoint(wireMock))));
-
-      assertThat(result.status()).isEqualTo(Status.SUCCESS);
-      WireMock.verify(
-          WireMock.postRequestedFor(WireMock.urlEqualTo("/token"))
-              .withRequestBody(WireMock.containing("grant_type=refresh_token")));
-    }
-
-    @Test
-    void refreshTokenIsUnauthorizedWhenTheGrantIsRejectedWith200(WireMockRuntimeInfo wireMock) {
-      // Some providers answer 200 with an error body; the token service turns that into a dedicated
-      // error code, which must still read as "the credential is no good".
-      WireMock.stubFor(
-          WireMock.post("/token")
-              .willReturn(
-                  WireMock.okJson(
-                      "{\"error\":\"invalid_grant\",\"error_description\":\""
-                          + SENSITIVE
-                          + "\"}")));
-
-      var result = validator.validate(configuration(refreshToken(tokenEndpoint(wireMock))));
-
-      assertThat(result.status()).isEqualTo(Status.FAILURE);
-      assertThat(result.code()).isEqualTo("UNAUTHORIZED");
-      assertThat(result.message()).doesNotContain(SENSITIVE);
+      assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
     }
 
     @Test
