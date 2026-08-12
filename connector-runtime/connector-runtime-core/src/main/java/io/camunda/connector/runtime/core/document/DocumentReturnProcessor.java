@@ -16,9 +16,10 @@
  */
 package io.camunda.connector.runtime.core.document;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReturn;
@@ -32,6 +33,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,19 +118,29 @@ public class DocumentReturnProcessor {
   }
 
   private Object parseJson(byte[] bytes) throws IOException {
-    try {
-      JsonNode node = objectMapper.readTree(bytes);
-      if (node == null || node.isMissingNode()) {
-        throw new ConnectorException(
-            "JSON response format selected but payload was empty or could not be parsed.");
+    // Not readTree: it stops after the first value, so trailing garbage would pass silently.
+    List<Object> values = new ArrayList<>();
+    ObjectReader reader = objectMapper.readerFor(Object.class);
+    try (JsonParser parser = objectMapper.createParser(bytes)) {
+      while (parser.nextToken() != null) {
+        values.add(reader.readValue(parser));
       }
-      return objectMapper.treeToValue(node, Object.class);
     } catch (JsonProcessingException e) {
-      throw new ConnectorException(
-          null,
-          "JSON response format selected but payload is not valid JSON: " + e.getMessage(),
-          e);
+      throw invalidJson(e.getMessage(), e);
     }
+    if (values.isEmpty()) {
+      throw invalidJson("no content to map due to end-of-input", null);
+    }
+    return values.size() == 1 ? values.getFirst() : values;
+  }
+
+  private static ConnectorException invalidJson(String detail, Throwable cause) {
+    return new ConnectorException(
+        null,
+        "JSON response format selected but payload is not valid JSON: "
+            + detail
+            + ". Use 'Text' or 'Document reference' as the response format for non-JSON payloads.",
+        cause);
   }
 
   private static Charset resolveEncoding(String encoding) {
