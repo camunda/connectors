@@ -118,6 +118,7 @@ public class DocumentReturnProcessor {
   }
 
   private Object parseJson(byte[] bytes) throws IOException {
+    // Not readTree: it stops after the first value, so trailing garbage would pass silently.
     List<Object> values = new ArrayList<>();
     ObjectReader reader = objectMapper.readerFor(Object.class);
     try (JsonParser parser = objectMapper.createParser(bytes)) {
