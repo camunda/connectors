@@ -264,7 +264,7 @@ class OpenAiResponsesRequestConverterTest {
             List.of(
                 AssistantMessage.builder()
                     .content(List.of(TextContent.textContent("here's the answer")))
-                    .messageId("resp_1")
+                    .messageId("msg_1")
                     .build()),
             List.of());
 
@@ -293,7 +293,7 @@ class OpenAiResponsesRequestConverterTest {
                                 .name("get_weather")
                                 .arguments(Map.of("city", "Berlin"))
                                 .build()))
-                    .messageId("resp_1")
+                    .messageId("msg_1")
                     .build()),
             List.of());
 
@@ -328,7 +328,7 @@ class OpenAiResponsesRequestConverterTest {
                                 .name("get_weather")
                                 .arguments(Map.of("city", "Berlin"))
                                 .build()))
-                    .messageId("resp_1")
+                    .messageId("msg_1")
                     .build()),
             List.of());
 

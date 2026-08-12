@@ -99,10 +99,20 @@ public class OpenAiResponsesResponseConverter {
   AssistantMessage toAssistantMessage(Response response) {
     final List<Content> content = new ArrayList<>();
     final List<ToolCall> toolCalls = new ArrayList<>();
+    @Nullable String assistantMessageId = null;
 
     for (final ResponseOutputItem item : response.output()) {
       if (item.message().isPresent()) {
-        for (final ResponseOutputMessage.Content messageContent : item.message().get().content()) {
+        final ResponseOutputMessage message = item.message().get();
+        // The first message item's own id (msg_*), not response.id() (resp_*, the envelope this
+        // turn came from) -- OpenAiResponsesRequestConverter#assistantMessageItemId replays this
+        // as a ResponseOutputMessage.id, which the API validates against the msg_* namespace. If
+        // a response ever produced more than one message item, only the first's id survives; the
+        // rest are lost the same way their items' content is already flattened into one list.
+        if (assistantMessageId == null) {
+          assistantMessageId = message.id();
+        }
+        for (final ResponseOutputMessage.Content messageContent : message.content()) {
           messageContent
               .outputText()
               .ifPresent(text -> content.add(TextContent.textContent(text.text())));
@@ -143,7 +153,7 @@ public class OpenAiResponsesResponseConverter {
     return AssistantMessage.builder()
         .content(content)
         .toolCalls(toolCalls)
-        .messageId(response.id())
+        .messageId(assistantMessageId)
         .modelId(modelId(response.model()))
         .stopReason(mapStopReason(response, !toolCalls.isEmpty()))
         .metadata(AssistantMessageMetadata.withDefaults(openAiMetadata(response)))

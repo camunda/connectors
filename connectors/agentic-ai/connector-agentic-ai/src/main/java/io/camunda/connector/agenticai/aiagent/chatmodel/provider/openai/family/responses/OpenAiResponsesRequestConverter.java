@@ -246,10 +246,11 @@ public class OpenAiResponsesRequestConverter {
   }
 
   /**
-   * The SDK requires an {@code id} on a replayed assistant message item. This is a per-turn id, not
-   * a per-content-block one, so {@link AssistantMessage#messageId()} -- the id of the response this
-   * turn came from -- is already at the right scope; every OpenAI Responses assistant message
-   * carries one.
+   * The SDK requires an {@code id} on a replayed assistant message item, and validates it against
+   * the output-message ({@code msg_*}) namespace, not the response-envelope ({@code resp_*}) one.
+   * {@link AssistantMessage#messageId()} already carries the right one: {@code
+   * OpenAiResponsesResponseConverter#toAssistantMessage} captures it from the {@code message}
+   * output item itself, not {@code Response#id()}.
    */
   private String assistantMessageItemId(AssistantMessage assistant) {
     return Objects.requireNonNull(

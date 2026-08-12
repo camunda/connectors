@@ -130,7 +130,7 @@ class OpenAiResponsesResponseConverterTest {
     assertThat(result.assistantMessage().content())
         .containsExactly(TextContent.textContent("Hello there"));
     assertThat(result.assistantMessage().toolCalls()).isEmpty();
-    assertThat(result.assistantMessage().messageId()).isEqualTo("resp_123");
+    assertThat(result.assistantMessage().messageId()).isEqualTo("msg_1");
     assertThat(result.assistantMessage().modelId()).isEqualTo("gpt-5");
     assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.STOP);
   }
