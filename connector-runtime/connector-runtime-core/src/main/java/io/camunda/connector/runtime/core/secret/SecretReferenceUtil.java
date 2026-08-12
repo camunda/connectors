@@ -77,13 +77,14 @@ class SecretReferenceUtil {
    * (JSON-escaped) value; one in {@code refused} is left verbatim; one in neither throws {@link
    * ConnectorInputException}, matching how a missing legacy secret is handled. Both maps are keyed
    * by the whole reference, e.g. {@code "camunda.secrets.FOO"}.
+   *
+   * <p>Exactly one pass over {@code input}: {@link SecretUtil#replaceTokens} already finds every
+   * match in a single fixed string. A resolved value is never itself rescanned for references — it
+   * must stay opaque, or a secret whose value happens to contain matchable text could get corrupted
+   * or cause an unrelated, unrequested lookup to fail.
    */
   static String replaceReferences(String input, Map<String, String> resolved, Set<String> refused) {
-    var matcher = PATTERN.matcher(input);
-    while (matcher.find()) {
-      input = SecretUtil.replaceTokens(input, PATTERN, m -> resolveReference(m, resolved, refused));
-    }
-    return input;
+    return SecretUtil.replaceTokens(input, PATTERN, m -> resolveReference(m, resolved, refused));
   }
 
   private static String resolveReference(

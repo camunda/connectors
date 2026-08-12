@@ -80,6 +80,21 @@ class SecretReferenceUtilTest {
   }
 
   @Test
+  void replaceReferences_doesNotRescanASubstitutedValue() {
+    // A resolved value that happens to contain text matching the reference pattern must stay
+    // opaque - it must never be re-scanned as if it were another reference in the input.
+    String input = "X=camunda.secrets.A;Y=camunda.secrets.ALSO_PRESENT";
+    Map<String, String> resolved =
+        Map.of(
+            "camunda.secrets.A", "embedded-camunda.secrets.GHOST-text",
+            "camunda.secrets.ALSO_PRESENT", "fine");
+
+    String result = SecretReferenceUtil.replaceReferences(input, resolved, Set.of());
+
+    assertThat(result).isEqualTo("X=embedded-camunda.secrets.GHOST-text;Y=fine");
+  }
+
+  @Test
   void replaceReferences_valueIsJsonEscaped() throws Exception {
     // quote, backslash, carriage return and an attempted field-injection payload.
     String maliciousValue = "\"quote\\backslash\rcr, \"injected\": \"pwned";
