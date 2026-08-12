@@ -22,6 +22,8 @@ Deep architecture lives in the reference docs, linked instead of copied:
   `ai-agent.md §N`)
 - [`docs/reference/mcp.md`](docs/reference/mcp.md): MCP integration
 - [`docs/reference/a2a.md`](docs/reference/a2a.md): A2A integration
+- [`docs/reference/native-providers.md`](docs/reference/native-providers.md): per-provider specifics
+  for the native (non-LangChain4j) Anthropic/OpenAI chat model providers
 - [`docs/adr/`](docs/adr/): architecture decision records
 - Repo-root [`AGENTS.md`](../../AGENTS.md): repo-wide build, commit, PR, CI, spotless, license, and
   element-template conventions. These are not duplicated here.
@@ -55,6 +57,7 @@ Deep architecture lives in the reference docs, linked instead of copied:
 | Agent instance API (status, metrics, history reporting)                  | [§23](docs/reference/ai-agent.md#23-agent-instance-integration)                         |
 | **Architectural invariants (what you must not break)**                   | [§24](docs/reference/ai-agent.md#24-architectural-invariants)                           |
 | **Extension points** (add provider / contributor / store)                | [§25](docs/reference/ai-agent.md#25-extension-playbooks)                                |
+| Native provider specifics (Anthropic/OpenAI wire-format details)        | [`native-providers.md`](docs/reference/native-providers.md)                             |
 
 ## Mental model
 
@@ -335,7 +338,8 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 - **`AGENTS.md`** (this file): high-level orientation (mental model, navigation, glossary, gotchas,
   invariants, build/test commands, entry points).
 - **`docs/reference/ai-agent.md`**: core agent framework (orchestration, memory, tools, converters,
-  config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`.
+  config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`, native
+  provider (Anthropic/OpenAI) specifics → `native-providers.md`.
 - **`connector-agentic-ai/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new connectors
   (maintenance rules are in the Element templates section above).
 
