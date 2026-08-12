@@ -19,8 +19,6 @@ import com.openai.models.responses.ResponseInputFile;
 import com.openai.models.responses.ResponseInputImage;
 import com.openai.models.responses.ResponseInputText;
 import com.openai.models.responses.ResponseInputTextContent;
-import com.openai.models.responses.ResponseOutputMessage;
-import com.openai.models.responses.ResponseOutputText;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -87,32 +85,6 @@ public class OpenAiContentConverter {
       }
     }
     return parts;
-  }
-
-  /**
-   * Converts a domain assistant message's plain content into Responses {@code output_text} parts,
-   * for replaying it back as an assistant {@code message} input item. Unlike {@link
-   * #toResponsesContentParts}, whose {@code input_text}/{@code input_image}/{@code input_file}
-   * parts are only valid for user-authored content, the API rejects those types on an assistant
-   * message -- assistant content must be {@code output_text} or {@code refusal}.
-   */
-  public List<ResponseOutputMessage.Content> toResponsesOutputContentParts(List<Content> content) {
-    final List<ResponseOutputMessage.Content> parts = new ArrayList<>();
-    for (final Content c : content) {
-      switch (c) {
-        case TextContent text -> parts.add(outputTextPart(text.text()));
-        case ObjectContent obj -> parts.add(outputTextPart(writeAsJson(obj.content())));
-        // Documents/reasoning/provider content have no wire representation as assistant output
-        // text; fall back to a JSON reference so the switch stays exhaustive without crashing.
-        default -> parts.add(outputTextPart(writeAsJson(c)));
-      }
-    }
-    return parts;
-  }
-
-  private ResponseOutputMessage.Content outputTextPart(String text) {
-    return ResponseOutputMessage.Content.ofOutputText(
-        ResponseOutputText.builder().text(text).annotations(List.of()).build());
   }
 
   /**

@@ -279,10 +279,36 @@ class OpenAiResponsesRequestConverterTest {
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(1);
 
-    final var message = items.get(0).responseOutputMessage().orElseThrow();
-    assertThat(message.content()).hasSize(1);
-    assertThat(message.content().get(0).outputText().orElseThrow().text())
-        .isEqualTo("here's the answer");
+    final var easy = items.get(0).easyInputMessage().orElseThrow();
+    assertThat(easy.role()).isEqualTo(EasyInputMessage.Role.ASSISTANT);
+
+    final var parts = easy.content().asResponseInputMessageContentList();
+    assertThat(parts).hasSize(1);
+    assertThat(parts.get(0).inputText().orElseThrow().text()).isEqualTo("here's the answer");
+  }
+
+  @Test
+  void replaysAssistantTextContentWithoutRequiringAValidResponsesMessageId() {
+    // messageId is null (e.g. v1 LangChain4j-sourced history, or a legacy record) or namespaced
+    // for a different family/provider (e.g. OpenAI Completions' chatcmpl_*, or another provider's
+    // own id scheme, after a family/provider switch mid-conversation) -- EasyInputMessage has no
+    // id field, so replay must not depend on messageId being present or valid at all.
+    for (final String messageId : new String[] {null, "chatcmpl_1", "some-other-provider-id"}) {
+      final var snapshot =
+          new ConversationSnapshot(
+              List.of(
+                  AssistantMessage.builder()
+                      .content(List.of(TextContent.textContent("here's the answer")))
+                      .messageId(messageId)
+                      .build()),
+              List.of());
+
+      final var params = converter.toRequest(model(null), null, snapshot);
+
+      final var items = params.input().orElseThrow().asResponse();
+      assertThat(items).hasSize(1);
+      assertThat(items.get(0).easyInputMessage()).isPresent();
+    }
   }
 
   @Test
@@ -308,7 +334,7 @@ class OpenAiResponsesRequestConverterTest {
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(2);
 
-    assertThat(items.get(0).responseOutputMessage()).isPresent();
+    assertThat(items.get(0).easyInputMessage()).isPresent();
 
     final var functionCall = items.get(1).functionCall().orElseThrow();
     assertThat(functionCall.callId()).isEqualTo("call_1");
@@ -343,7 +369,7 @@ class OpenAiResponsesRequestConverterTest {
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(3);
     assertThat(items.get(0).reasoning()).isPresent();
-    assertThat(items.get(1).responseOutputMessage()).isPresent();
+    assertThat(items.get(1).easyInputMessage()).isPresent();
     assertThat(items.get(2).functionCall()).isPresent();
   }
 

@@ -135,10 +135,9 @@ public class OpenAiResponsesResponseConverter {
       if (item.message().isPresent()) {
         final ResponseOutputMessage message = item.message().get();
         // The first message item's own id (msg_*), not response.id() (resp_*, the envelope this
-        // turn came from) -- OpenAiResponsesRequestConverter#assistantMessageItemId replays this
-        // as a ResponseOutputMessage.id, which the API validates against the msg_* namespace. If
-        // a response ever produced more than one message item, only the first's id survives; the
-        // rest are lost the same way their items' content is already flattened into one list.
+        // turn came from). If a response ever produced more than one message item, only the
+        // first's id survives; the rest are lost the same way their items' content is already
+        // flattened into one list.
         if (assistantMessageId == null) {
           assistantMessageId = message.id();
         }

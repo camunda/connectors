@@ -51,7 +51,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -191,6 +190,16 @@ public class OpenAiResponsesRequestConverter {
    * before tool calls. No item is emitted when the assistant turn carries no plain content (e.g.
    * tool-calls-only or reasoning-only turns).
    *
+   * <p>Plain content is replayed via {@link EasyInputMessage} with {@link EasyInputMessage.Role
+   * #ASSISTANT} rather than the structured {@link ResponseOutputMessage} output-item shape: the
+   * latter requires an {@code id} in the output-message ({@code msg_*}) namespace, but {@link
+   * AssistantMessage#messageId()} isn't guaranteed to carry one -- it may be null (v1
+   * LangChain4j-sourced history), or namespaced for a different family/provider entirely (OpenAI
+   * Completions' {@code chatcmpl_*}, or another provider's own id scheme, after a family/provider
+   * switch mid-conversation). {@code EasyInputMessage} has no {@code id} field at all, and is the
+   * API's documented mechanism for replaying "generated in a previous interaction" content
+   * regardless of where it came from.
+   *
    * <p>The reasoning/provider-content payloads are replayed via the SDK's own {@link
    * ObjectMappers#jsonMapper()} rather than the injected app {@link ObjectMapper}: the captured
    * payload's Kotlin-generated absent-vs-null field tracking only round-trips correctly through
@@ -226,11 +235,12 @@ public class OpenAiResponsesRequestConverter {
     }
     if (!plainContent.isEmpty()) {
       items.add(
-          ResponseInputItem.ofResponseOutputMessage(
-              ResponseOutputMessage.builder()
-                  .id(assistantMessageItemId(assistant))
-                  .status(ResponseOutputMessage.Status.COMPLETED)
-                  .content(contentConverter.toResponsesOutputContentParts(plainContent))
+          ResponseInputItem.ofEasyInputMessage(
+              EasyInputMessage.builder()
+                  .role(EasyInputMessage.Role.ASSISTANT)
+                  .content(
+                      EasyInputMessage.Content.ofResponseInputMessageContentList(
+                          contentConverter.toResponsesContentParts(plainContent)))
                   .build()));
     }
     for (final ToolCall toolCall : assistant.toolCalls()) {
@@ -243,18 +253,6 @@ public class OpenAiResponsesRequestConverter {
                   .build()));
     }
     return items;
-  }
-
-  /**
-   * The SDK requires an {@code id} on a replayed assistant message item, and validates it against
-   * the output-message ({@code msg_*}) namespace, not the response-envelope ({@code resp_*}) one.
-   * {@link AssistantMessage#messageId()} already carries the right one: {@code
-   * OpenAiResponsesResponseConverter#toAssistantMessage} captures it from the {@code message}
-   * output item itself, not {@code Response#id()}.
-   */
-  private String assistantMessageItemId(AssistantMessage assistant) {
-    return Objects.requireNonNull(
-        assistant.messageId(), "expected assistant message to have a messageId");
   }
 
   /**
