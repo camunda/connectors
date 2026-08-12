@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
@@ -103,8 +104,9 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
       AnthropicOkHttpClient.Builder builder, AnthropicCustomBackend custom) {
     builder.baseUrl(custom.custom().endpoint());
 
-    if (custom.custom().authentication() instanceof ApiKeyAuthentication apiKeyAuth) {
-      builder.apiKey(apiKeyAuth.apiKey());
+    switch (custom.custom().authentication()) {
+      case ApiKeyAuthentication apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
+      case NoAuthentication ignored -> {}
     }
   }
 
