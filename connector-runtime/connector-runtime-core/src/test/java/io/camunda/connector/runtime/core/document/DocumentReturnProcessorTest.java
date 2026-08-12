@@ -125,14 +125,14 @@ class DocumentReturnProcessorTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "123 <html>error</html>", // valid JSON prefix, trailing markup
-        "true then text", // valid JSON prefix, trailing bare word
-        "{\"a\":1} trailing junk", // valid JSON prefix, trailing bare words
-        "[1,2,3] </body>", // valid JSON prefix, trailing markup
-        "<html>err</html>", // no JSON at all
-        "OK", // no JSON at all
-        "", // empty payload
-        "   \n\t " // whitespace only
+        "123 <html>error</html>",
+        "true then text",
+        "{\"a\":1} trailing junk",
+        "[1,2,3] </body>",
+        "<html>err</html>",
+        "OK",
+        "",
+        "   \n\t "
       })
   void jsonChoiceFailsForPayloadThatIsNotFullyValidJson(String body) {
     RawPayload payload = RawPayload.of(body.getBytes(StandardCharsets.UTF_8), null, null);
@@ -161,21 +161,19 @@ class DocumentReturnProcessorTest {
         Arguments.of("{\"a\":1}", Map.of("a", 1)),
         Arguments.of("[1,2,3]", List.of(1, 2, 3)),
         Arguments.of("123", 123),
-        // A root-level array is one value: it must not be unwrapped into its elements.
         Arguments.of("[{\"a\":1}]", List.of(Map.of("a", 1))),
         Arguments.of("true", true),
         Arguments.of("\"plain string\"", "plain string"),
-        // A pretty-printed value spans several lines but is still exactly one value.
         Arguments.of("{\n  \"a\": 1\n}", Map.of("a", 1)));
   }
 
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "{\"a\":1}\n{\"b\":2}", // newline-delimited (NDJSON)
-        "{\"a\":1} {\"b\":2}", // space-separated
-        "{\"a\":1}{\"b\":2}", // concatenated stream, no separator
-        "{\"a\":1}\r\n{\"b\":2}\r\n" // CRLF-delimited with trailing newline
+        "{\"a\":1}\n{\"b\":2}",
+        "{\"a\":1} {\"b\":2}",
+        "{\"a\":1}{\"b\":2}",
+        "{\"a\":1}\r\n{\"b\":2}\r\n"
       })
   void jsonChoiceCollectsMultiValueStreamIntoList(String body) {
     RawPayload payload =

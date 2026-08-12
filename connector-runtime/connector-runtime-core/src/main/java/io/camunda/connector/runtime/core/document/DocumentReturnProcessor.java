@@ -117,23 +117,8 @@ public class DocumentReturnProcessor {
     }
   }
 
-  /**
-   * Parses the payload as JSON, requiring it to be <em>fully</em> valid: the whole stream must
-   * consist of complete JSON values and nothing else. {@code ObjectMapper#readTree} would stop
-   * after the first value and silently drop whatever follows, so a body like {@code 123
-   * <html>error</html>} used to succeed as {@code 123}.
-   *
-   * <p>Multi-value streams (NDJSON / JSON Lines / concatenated values) are supported and yield a
-   * list; a body holding exactly one value yields that value unwrapped, so existing FEEL
-   * expressions over single-object responses keep working.
-   */
   private Object parseJson(byte[] bytes) throws IOException {
     List<Object> values = new ArrayList<>();
-    // Advancing the parser to the end of the input (rather than enabling FAIL_ON_TRAILING_TOKENS)
-    // is what makes trailing garbage fail while keeping legitimate NDJSON bodies readable.
-    // MappingIterator is deliberately not used here: it unwraps a root-level JSON array into its
-    // elements, which would both flatten `[{"a":1}]` into a single object and swallow whatever
-    // follows the array.
     ObjectReader reader = objectMapper.readerFor(Object.class);
     try (JsonParser parser = objectMapper.createParser(bytes)) {
       while (parser.nextToken() != null) {
