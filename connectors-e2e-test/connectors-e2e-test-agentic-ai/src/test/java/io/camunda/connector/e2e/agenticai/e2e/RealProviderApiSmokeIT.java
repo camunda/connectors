@@ -699,26 +699,26 @@ class RealProviderApiSmokeIT {
   }
 
   /**
-   * Asserts substrings on the agent's {@code responseText} read directly from the raw output map,
-   * without deserializing the whole response - the multimodal scenario's persisted agent context
-   * contains a {@link io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent}
-   * whose abstract {@code Document} the plain test ObjectMapper cannot reconstruct.
+   * Same completion-wait/one-shot-assertion split as {@link #assertAgentResponse}, but reads {@code
+   * responseText} directly off the raw output map instead of deserializing the whole response: the
+   * multimodal scenario's persisted agent context contains a {@link
+   * io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent} whose abstract
+   * {@code Document} the plain test {@code ObjectMapper} (no document-deserialization module
+   * registered) cannot reconstruct, so going through {@link AgentSubProcessResponseAssert} here
+   * isn't an option.
    */
   private void assertResponseTextContains(
       ProcessInstanceEvent instance, String... expectedSubstrings) {
+    final var responseTextRef = new AtomicReference<String>();
     assertThat(instance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
         .hasVariableSatisfies(
             AGENT_RESPONSE_VARIABLE,
             Map.class,
-            map -> {
-              final var responseText = String.valueOf(map.get("responseText"));
-              final var textAssert = Assertions.assertThat(responseText);
-              for (final String expected : expectedSubstrings) {
-                textAssert.contains(expected);
-              }
-            });
+            map -> responseTextRef.set(String.valueOf(map.get("responseText"))));
+
+    Assertions.assertThat(responseTextRef.get()).contains(expectedSubstrings);
   }
 
   private void stubPdfDownloads() {
