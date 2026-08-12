@@ -46,6 +46,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
@@ -675,18 +676,26 @@ class RealProviderApiSmokeIT {
         .join();
   }
 
+  /**
+   * Waits for the process instance to complete, capturing its response, then asserts on it exactly
+   * once. Deliberately not a single {@code hasVariableSatisfies} chain with the assertions inside:
+   * that treats the whole consumer as a polling predicate, so an assertion failure in it is retried
+   * for the full {@link #PROCESS_TIMEOUT} even though the instance is already completed and its
+   * variable is fixed -- retrying can't change either. The {@code hasVariableSatisfies} lambda here
+   * only captures the deserialized response; {@code assertions} runs once it returns.
+   */
   private void assertAgentResponse(
       ProcessInstanceEvent instance, ThrowingConsumer<AgentSubProcessResponse> assertions) {
+    final var responseRef = new AtomicReference<AgentSubProcessResponse>();
     assertThat(instance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
         .hasVariableSatisfies(
             AGENT_RESPONSE_VARIABLE,
             Map.class,
-            map -> {
-              var response = objectMapper.convertValue(map, AgentSubProcessResponse.class);
-              assertions.accept(response);
-            });
+            map -> responseRef.set(objectMapper.convertValue(map, AgentSubProcessResponse.class)));
+
+    Assertions.assertThat(responseRef.get()).satisfies(assertions);
   }
 
   /**
