@@ -25,9 +25,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * Native-OpenAI-Chat-Completions-only e2e coverage for prompt caching's wire behavior - mirrors
- * {@link AgentSubProcessAnthropicPromptCachingTests}' wiring, adapted to what OpenAI can actually
- * report.
+ * OpenAI-Chat-Completions-only e2e coverage for prompt caching's wire behavior - mirrors {@link
+ * AgentSubProcessAnthropicPromptCachingTests}' wiring, adapted to what OpenAI can actually report.
  *
  * <p>Unlike Anthropic, OpenAI's prompt caching is fully automatic server-side: there is no
  * request-side opt-in (no {@code promptCaching.enabled} template property, no {@code cache_control}
@@ -40,7 +39,7 @@ import org.junit.jupiter.api.Test;
  * case - never asserting a cache-creation count as non-zero, since OpenAI can never report one (see
  * {@code OpenAiCompletionsResponseConverter#toTokenUsage}).
  */
-class AgentSubProcessOpenAiCompletionsPromptCachingTests extends BaseOpenAiNativeSubProcessTest {
+class AgentSubProcessOpenAiCompletionsPromptCachingTests extends BaseOpenAiSubProcessTest {
 
   @Test
   void cacheReadTokensSurfaceIntoTokenUsageOnACacheHit() throws Exception {

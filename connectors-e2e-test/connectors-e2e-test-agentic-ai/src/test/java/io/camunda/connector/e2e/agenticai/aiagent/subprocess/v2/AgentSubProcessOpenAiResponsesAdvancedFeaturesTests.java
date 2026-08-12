@@ -37,12 +37,12 @@ import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 /**
- * Native-OpenAI-Responses-only e2e coverage for the {@code effort}/reasoning configuration surface
- * and the two round-trip guarantees the design spec calls out as load-bearing: a {@code reasoning}
- * output item carrying {@code encrypted_content} must reappear byte-identical on the follow-up
- * request, and an unmapped server-tool output item ({@code web_search_call}) must be captured and
- * replayed verbatim as {@code ProviderContent}. All three witnesses drive the real vendor SDK end
- * to end - the {@code ResponseAccumulator} on the response side ({@code
+ * OpenAI-Responses-only e2e coverage for the {@code effort}/reasoning configuration surface and the
+ * two round-trip guarantees the design spec calls out as load-bearing: a {@code reasoning} output
+ * item carrying {@code encrypted_content} must reappear byte-identical on the follow-up request,
+ * and an unmapped server-tool output item ({@code web_search_call}) must be captured and replayed
+ * verbatim as {@code ProviderContent}. All three witnesses drive the real vendor SDK end to end -
+ * the {@code ResponseAccumulator} on the response side ({@code
  * OpenAiResponsesStreamAssembler#accumulating()}, wired by default) and {@code
  * ResponseCreateParams}' own request construction on the request side - through the v2 element
  * template and {@code provider.openai.*} properties, mirroring {@code
@@ -67,7 +67,7 @@ import org.junit.jupiter.api.Test;
  * catch a reordering regression.
  */
 @SlowTest
-class AgentSubProcessNativeOpenAiResponsesAdvancedFeaturesTests extends BaseAgentSubProcessV2Test {
+class AgentSubProcessOpenAiResponsesAdvancedFeaturesTests extends BaseAgentSubProcessV2Test {
 
   private static final String DEFAULT_MODEL = "test-model";
   private static final ObjectMapper JSON = new ObjectMapper();

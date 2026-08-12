@@ -19,7 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess.v2;
 import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesChatModelStubs.MESSAGES_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.CHAT_COMPLETIONS_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,13 +30,21 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 
-abstract class BaseAnthropicNativeSubProcessTest extends BaseAgentSubProcessV2Test {
+/**
+ * Shared foundation for native-OpenAI-only v2 sub-process e2e coverage, mirroring {@link
+ * BaseAnthropicSubProcessTest}. Scoped to the Chat Completions API family only: {@link
+ * AgentSubProcessOpenAiResponsesAdvancedFeaturesTests} already covers the Responses family's
+ * effort/reasoning-round-trip surface, so the Completions-family tests built on top of this base
+ * (reasoning effort, prompt caching) drive {@code provider.openai.api.type=completions} rather than
+ * the Responses sibling's {@code responses}.
+ */
+abstract class BaseOpenAiSubProcessTest extends BaseAgentSubProcessV2Test {
 
-  private static final String DEFAULT_MODEL = "claude-sonnet-4-6";
+  private static final String DEFAULT_MODEL = "test-model";
 
   @Override
   protected Function<ElementTemplate, ElementTemplate> providerConfigurer() {
-    return this::configureAnthropicBackend;
+    return this::configureOpenAiCompletionsBackend;
   }
 
   /**
@@ -47,18 +55,15 @@ abstract class BaseAnthropicNativeSubProcessTest extends BaseAgentSubProcessV2Te
     return DEFAULT_MODEL;
   }
 
-  private ElementTemplate configureAnthropicBackend(ElementTemplate template) {
+  private ElementTemplate configureOpenAiCompletionsBackend(ElementTemplate template) {
     return template
-        .property("provider.type", "anthropic")
-        .property("provider.anthropic.backend.type", "custom")
-        .property("provider.anthropic.backend.custom.endpoint", wireMock.getHttpBaseUrl())
-        .property("provider.anthropic.backend.custom.authentication.type", "apiKey")
-        .property("provider.anthropic.backend.custom.authentication.apiKey", "dummy")
-        .property("provider.anthropic.model.model", defaultModel());
-  }
-
-  static Function<ElementTemplate, ElementTemplate> model(String modelId) {
-    return template -> template.property("provider.anthropic.model.model", modelId);
+        .property("provider.type", "openai")
+        .property("provider.openai.api.type", "completions")
+        .property("provider.openai.backend.type", "custom")
+        .property("provider.openai.backend.custom.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+        .property("provider.openai.backend.custom.authentication.type", "apiKey")
+        .property("provider.openai.backend.custom.authentication.apiKey", "dummy")
+        .property("provider.openai.model.model", defaultModel());
   }
 
   static LoggedRequest soleRecordedRequest() {
@@ -69,7 +74,7 @@ abstract class BaseAnthropicNativeSubProcessTest extends BaseAgentSubProcessV2Te
 
   static List<LoggedRequest> recordedLoggedRequests() {
     final List<LoggedRequest> requests =
-        new ArrayList<>(findAll(postRequestedFor(urlPathEqualTo(MESSAGES_PATH))));
+        new ArrayList<>(findAll(postRequestedFor(urlPathEqualTo(CHAT_COMPLETIONS_PATH))));
     requests.sort(Comparator.comparing(LoggedRequest::getLoggedDate));
     return requests;
   }
@@ -79,7 +84,7 @@ abstract class BaseAnthropicNativeSubProcessTest extends BaseAgentSubProcessV2Te
       return objectMapper.readTree(loggedRequest.getBodyAsString());
     } catch (Exception e) {
       throw new IllegalStateException(
-          "Failed to parse recorded Anthropic messages request body: "
+          "Failed to parse recorded OpenAI Chat Completions request body: "
               + loggedRequest.getBodyAsString(),
           e);
     }

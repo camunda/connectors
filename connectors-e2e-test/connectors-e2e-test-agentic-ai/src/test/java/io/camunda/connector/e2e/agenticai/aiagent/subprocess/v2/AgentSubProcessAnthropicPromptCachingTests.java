@@ -26,10 +26,10 @@ import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 /**
- * Native-Anthropic-only e2e coverage for prompt caching's wire behavior - mirrors {@link
+ * Anthropic-only e2e coverage for prompt caching's wire behavior - mirrors {@link
  * AgentSubProcessAnthropicReasoningEffortTests}' wiring.
  */
-class AgentSubProcessAnthropicPromptCachingTests extends BaseAnthropicNativeSubProcessTest {
+class AgentSubProcessAnthropicPromptCachingTests extends BaseAnthropicSubProcessTest {
 
   @Test
   void enablePromptCachingAddsCacheControlToTheWire() throws Exception {
