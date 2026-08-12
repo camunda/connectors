@@ -1942,12 +1942,15 @@ conversation state itself, so OpenAI-side state would only compete with the agen
 authority. `OpenAiResponsesResponseConverter` captures the returned `reasoning` output item as
 `ReasoningContent` whose `payload` is the **full raw item**, built with the SDK's own
 `com.openai.core.ObjectMappers.jsonMapper()` rather than the injected app `ObjectMapper` (the wrong
-mapper leaks a spurious field onto the wire), and replays it verbatim on the next turn. Unlike
-Anthropic — which lifts the human-readable thinking text out into `ReasoningContent.text` and merges it
-back before replay — OpenAI's reasoning summary stays inside the raw payload, so `text` is left `null`
-and replay is a straight `convertValue` with no reassembly step. There is no runtime validation that a
-chosen model supports effort; an unsupported combination surfaces as the provider's own API error, the
-same contract every other v2 model parameter has.
+mapper leaks a spurious field onto the wire). Mirroring Anthropic's `thinking` handling, a non-empty
+`summary` is also joined and lifted onto `ReasoningContent.text`; whether it is additionally *stripped*
+from `payload` depends on whether it can be reconstructed byte-identical from that joined string alone
+(exactly one summary entry, with no additional fields) — when it can, `text` is the sole copy and
+`OpenAiResponsesRequestConverter.mergeReasoningText` rebuilds `summary` on replay, otherwise `summary`
+is left untouched in `payload` (duplicated with `text`) since reconstructing it from a single string
+would be lossy. There is no runtime validation that a chosen model supports effort; an unsupported
+combination surfaces as the provider's own API error, the same contract every other v2 model parameter
+has.
 
 **Caching: automatic, read-only, unconfigured.** OpenAI caches prompt prefixes above roughly 1024
 tokens automatically, with nothing to enable and no analog to Anthropic's explicit cache-control
