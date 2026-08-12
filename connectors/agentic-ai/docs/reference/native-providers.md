@@ -57,11 +57,18 @@ Automatic and read-only — no config, no cache-write metric, so the acceptance 
 ### Tool-result documents
 
 Native `input_file`/`input_image` items on Responses (`OpenAiContentConverter.toToolResultOutputItems`);
-Completions' tool-role messages are text-only, so documents reach the model only through the synthetic
-`<doc/>` message `AgentConversationTurnInputComposerImpl` already appends. Neither converter carries a
-private fix for the shared tool-result double-send/reference-blob-leak issue (affects
-Anthropic/Bedrock Converse identically) — it deliberately mirrors Anthropic's behavior and inherits
-the fix from that PR on rebase.
+Completions' tool-role messages are text-only, so documents there reach the model only through the
+synthetic `<doc/>` message `AgentConversationTurnInputComposerImpl` already appends. A bare-document
+tool result never reaches that `DocumentContent` branch for a live turn — `ToolCallResultContent`
+always lifts it to `ObjectContent` (an opaque JSON reference) instead, a fix shared with (not
+duplicated per) Anthropic that also closed the identical Anthropic/Bedrock Converse double-send.
+
+One related gap remains, also shared rather than OpenAI-specific:
+`AgentContextSchemaMigration.ToolCallResultUpcaster.liftLegacyContent` still lifts a bare *legacy*
+(pre-schema-versioning) document reference straight to `DocumentContent` on migration. A conversation
+that predates that versioning and gets continued under a native provider therefore re-sends that
+document's bytes natively on every subsequent turn, on top of the `<doc/>` copy already sitting
+earlier in its history — the same bug, just still open in the migration path instead of the live one.
 
 ### Truncation
 
