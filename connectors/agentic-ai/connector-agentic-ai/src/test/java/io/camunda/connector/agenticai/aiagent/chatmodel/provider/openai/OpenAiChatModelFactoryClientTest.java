@@ -48,8 +48,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.ApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.NoAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;
@@ -199,29 +198,12 @@ class OpenAiChatModelFactoryClientTest {
                 Map.of("X-Custom-Header", "header-value"),
                 Map.of("custom-query-param", "query-value"),
                 null,
-                new NoAuthentication())));
+                new ApiKeyAuthentication("custom-secret-key"))));
 
     verify(
         postRequestedFor(urlPathEqualTo("/responses"))
             .withHeader("X-Custom-Header", equalTo("header-value"))
             .withQueryParam("custom-query-param", equalTo("query-value")));
-  }
-
-  @Test
-  void customBackendWithNoAuthenticationSendsPlaceholderAuthorizationHeader(
-      WireMockRuntimeInfo wireMock) {
-    // unlike the Anthropic SDK, the OpenAI SDK's client builder requires at least one credential
-    // source to build at all (see OpenAiChatModelFactory#NO_AUTH_PLACEHOLDER_API_KEY), so a
-    // "none" authentication custom backend still sends a (meaningless, ignored by a real
-    // OpenAI-compatible endpoint without authentication) Authorization header.
-    executeAgainst(
-        new OpenAiCustomBackend(
-            new CustomBackend(
-                wireMock.getHttpBaseUrl(), null, null, null, new NoAuthentication())));
-
-    verify(
-        postRequestedFor(urlPathEqualTo("/responses"))
-            .withHeader("Authorization", equalTo("Bearer not-required")));
   }
 
   @Test

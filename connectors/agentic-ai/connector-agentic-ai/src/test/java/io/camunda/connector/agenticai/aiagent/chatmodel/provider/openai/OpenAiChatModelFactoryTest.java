@@ -32,7 +32,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.NoAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.util.Map;
 import java.util.Optional;
@@ -123,7 +123,11 @@ class OpenAiChatModelFactoryTest {
             new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
             new OpenAiCustomBackend(
                 new CustomBackend(
-                    "https://custom.example.com", null, null, null, new NoAuthentication())),
+                    "https://custom.example.com",
+                    null,
+                    null,
+                    null,
+                    new ApiKeyAuthentication("sk-custom-test"))),
             new OpenAiModel(modelId),
             null));
   }

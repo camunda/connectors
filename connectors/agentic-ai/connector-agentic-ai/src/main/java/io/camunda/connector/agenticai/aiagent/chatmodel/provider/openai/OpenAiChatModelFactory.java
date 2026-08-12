@@ -19,7 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
@@ -35,14 +35,6 @@ import org.jspecify.annotations.Nullable;
  * inline shape rather than a separate client-factory class.
  */
 public class OpenAiChatModelFactory implements ChatModelFactory {
-
-  /**
-   * Placeholder API key sent for {@code custom} backends configured with no authentication. The SDK
-   * client builder requires at least one credential source (api key, workload identity, or admin
-   * api key) to build even though OpenAI-compatible endpoints without authentication ignore it
-   * entirely.
-   */
-  private static final String NO_AUTH_PLACEHOLDER_API_KEY = "not-required";
 
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final OpenAiApiFamilyStrategy completionsStrategy;
@@ -130,11 +122,9 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
     final var connection = custom.custom();
     builder.baseUrl(connection.endpoint());
 
-    final String apiKey =
-        connection.authentication() instanceof ApiKeyAuthentication apiKeyAuth
-            ? apiKeyAuth.apiKey()
-            : NO_AUTH_PLACEHOLDER_API_KEY;
-    builder.apiKey(apiKey);
+    switch (connection.authentication()) {
+      case ApiKeyAuthentication apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
+    }
   }
 
   /**

@@ -44,7 +44,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication.NoAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -590,7 +590,7 @@ class OpenAiResponsesRequestConverterTest {
                 null,
                 null,
                 Map.of("service_tier", "priority", "top_logprobs", 5),
-                new NoAuthentication()));
+                new ApiKeyAuthentication("test-key")));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
@@ -634,7 +634,7 @@ class OpenAiResponsesRequestConverterTest {
                 Map.of("X-Custom-Header", "header-value"),
                 Map.of("api-version", "2026-01-01"),
                 null,
-                new NoAuthentication()));
+                new ApiKeyAuthentication("test-key")));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);

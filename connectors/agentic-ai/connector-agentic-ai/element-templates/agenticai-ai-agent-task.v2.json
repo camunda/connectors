@@ -619,7 +619,7 @@
     "id" : "provider.openai.backend.custom.authentication.type",
     "label" : "Authentication",
     "description" : "Authentication for the compatible API.",
-    "value" : "none",
+    "value" : "apiKey",
     "group" : "provider",
     "binding" : {
       "name" : "provider.openai.backend.custom.authentication.type",
@@ -638,9 +638,6 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "None",
-      "value" : "none"
-    }, {
       "name" : "API key",
       "value" : "apiKey"
     } ]

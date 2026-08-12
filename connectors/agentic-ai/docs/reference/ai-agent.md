@@ -1924,8 +1924,13 @@ container field per the wrapping convention below.
 `toString` redacting the same four sensitive fields via `redactValues`. `OpenAiCustomBackend` targets
 any OpenAI-compatible endpoint: a required `endpoint` base URL (the SDK appends `/chat/completions` or
 `/responses` depending on the selected family), visible `headers`/`queryParameters`/`bodyProperties`
-in the same group, and the shared `CustomEndpointAuthentication` (`none`|`apiKey`). Headers, query
-parameters, and body properties are merged onto the request by `OpenAiRequestCustomizations` (shared
+in the same group, and `OpenAiCustomEndpointAuthentication` — required `apiKey` only, no `none`
+option. Unlike `AnthropicCustomEndpointAuthentication`, OpenAI has no genuine no-auth variant: the
+openai-java SDK client builder requires a credential source to build at all, so a "none" choice would
+silently send a placeholder credential rather than actually sending nothing — kept as its own
+polymorphic type (not a flat `apiKey` field) so a future OAuth 2.0 variant can be added without
+restructuring. Headers, query parameters, and body properties are merged onto the request by
+`OpenAiRequestCustomizations` (shared
 between `OpenAiCompletionsRequestConverter`/`OpenAiResponsesRequestConverter`) rather than the client
 builder, matching `AnthropicMessageRequestConverter`'s `RequestCustomizations`. Azure OpenAI is not a
 backend here, deferred exactly as Anthropic's Bedrock backend was deferred out of its own PR.
