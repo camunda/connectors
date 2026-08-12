@@ -56,19 +56,16 @@ Automatic and read-only — no config, no cache-write metric, so the acceptance 
 
 ### Tool-result documents
 
-Native `input_file`/`input_image` items on Responses (`OpenAiContentConverter.toToolResultOutputItems`);
-Completions' tool-role messages are text-only, so documents there reach the model only through the
-synthetic `<doc/>` message `AgentConversationTurnInputComposerImpl` already appends. A bare-document
-tool result never reaches that `DocumentContent` branch for a live turn — `ToolCallResultContent`
-always lifts it to `ObjectContent` (an opaque JSON reference) instead, a fix shared with (not
-duplicated per) Anthropic that also closed the identical Anthropic/Bedrock Converse double-send.
+A document inside a tool result is always rendered as a JSON reference
+(`OpenAiContentConverter.toToolResultOutputItems`), on both Responses and Completions, regardless
+of content type — never embedded natively as `input_image`/`input_file`. The document's actual
+bytes still reach the model, through the composer's synthetic `<doc/>` fallback message
+(`AgentConversationTurnInputComposerImpl`), which is the only delivery channel for a tool-result
+document today, matching v1's LangChain4j-backed path.
 
-One related gap remains, also shared rather than OpenAI-specific:
-`AgentContextSchemaMigration.ToolCallResultUpcaster.liftLegacyContent` still lifts a bare *legacy*
-(pre-schema-versioning) document reference straight to `DocumentContent` on migration. A conversation
-that predates that versioning and gets continued under a native provider therefore re-sends that
-document's bytes natively on every subsequent turn, on top of the `<doc/>` copy already sitting
-earlier in its history — the same bug, just still open in the migration path instead of the live one.
+Embedding it natively here as well — for parity with the general (non-tool-result) content
+converters — would need to be paired with suppressing that fallback message for the same turn, so
+the document isn't sent twice.
 
 ### Truncation
 
@@ -78,10 +75,3 @@ earlier in its history — the same bug, just still open in the migration path i
 [terminal-stop-reason guard](ai-agent.md#12-framework-abstraction), so `LENGTH` never fails the job.
 Unrecognized `finish_reason` values fall back to `StopReason.UnknownStopReason` with the raw value
 preserved.
-
-### Deferred
-
-Server tools (`web_search`, `code_interpreter` — capture/replay path exists, provisioning doesn't);
-the Azure OpenAI backend (own PR, like Anthropic's Bedrock); `store: true` server-side conversation
-state; generalizing `RESPONSE_TRUNCATED` into a cross-provider error (belongs in one core change, not
-a per-provider workaround).

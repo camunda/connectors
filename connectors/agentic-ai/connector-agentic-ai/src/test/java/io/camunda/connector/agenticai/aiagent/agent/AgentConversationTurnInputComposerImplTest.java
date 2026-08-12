@@ -406,11 +406,13 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void toolResultTurn_bareDocumentResult_deliversDocumentOnlyViaFallbackMessage() {
+  void toolResultTurn_bareDocumentResult_liftsToDocumentContentAndAlsoDeliversFallbackMessage() {
     // a tool call result whose whole content is a Document (not nested in an object): the
-    // ToolCallResultContent lift must not turn this into a first-class DocumentContent, since a
-    // native provider tool-result converter would then embed the same bytes a second time — the
-    // fallback <doc/> message stays the document's only delivery channel
+    // ToolCallResultContent lift turns this into a first-class DocumentContent, same as every
+    // other content-lift path; the fallback <doc/> message is still composed alongside it
+    // regardless — native provider tool-result converters are responsible for not embedding the
+    // same bytes a second time (see OpenAiContentConverter#toToolResultOutputItems /
+    // AnthropicContentConverter#toToolResultBlocks), not this provider-agnostic composition step
     var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
     var input =
         AgentInput.from(
@@ -439,7 +441,9 @@ class AgentConversationTurnInputComposerImplTest {
         .filteredOn(r -> "abcdef".equals(r.id()))
         .first()
         .satisfies(
-            r -> assertThat(r.content()).doesNotHaveAnyElementsOfTypes(DocumentContent.class));
+            r ->
+                assertThat(r.content())
+                    .containsExactly(DocumentContent.documentContent(weatherDoc)));
     assertThat(messages.get(1))
         .isInstanceOfSatisfying(
             UserMessage.class,

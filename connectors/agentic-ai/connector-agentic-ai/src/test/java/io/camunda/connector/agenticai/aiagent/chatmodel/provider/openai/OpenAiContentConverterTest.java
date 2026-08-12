@@ -21,6 +21,8 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +31,8 @@ import org.junit.jupiter.api.Test;
 
 class OpenAiContentConverterTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper =
+      new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
   private final OpenAiContentConverter converter = new OpenAiContentConverter(objectMapper);
 
   private static Document mockDocument(String contentType, String base64) {
@@ -38,6 +41,10 @@ class OpenAiContentConverterTest {
     when(document.metadata()).thenReturn(metadata);
     when(metadata.getContentType()).thenReturn(contentType);
     when(document.asBase64()).thenReturn(base64);
+    // stubbed so a reference-only fallback (tool-result documents) can serialize this mock via
+    // JacksonModuleDocumentSerializer, which dispatches on Document#reference()
+    when(document.reference())
+        .thenReturn(new ExternalDocumentReferenceModel("https://example.com/document", "document"));
     return document;
   }
 
@@ -171,45 +178,16 @@ class OpenAiContentConverterTest {
     }
 
     @Test
-    void mapsImageDocumentToInputImageItem() {
+    void mapsDocumentContentToInputTextReferenceItem() {
+      // never embedded natively here, regardless of content type - the composer's synthetic
+      // <doc/> fallback message already delivers the actual bytes for tool results, so this
+      // renders the same JSON reference ObjectContent would, avoiding a double-send
       final var doc = mockDocument("image/png", "QUJD");
 
       final var items = converter.toToolResultOutputItems(List.of(new DocumentContent(doc, null)));
 
       assertThat(items).hasSize(1);
-      assertThat(items.get(0).isInputImage()).isTrue();
-      assertThat(items.get(0).asInputImage().imageUrl()).hasValue("data:image/png;base64,QUJD");
-    }
-
-    @Test
-    void mapsPdfDocumentToInputFileItem() {
-      final var document = pdfDocument();
-
-      final var items =
-          converter.toToolResultOutputItems(List.of(new DocumentContent(document, null)));
-
-      assertThat(items).hasSize(1);
-      assertThat(items.get(0).isInputFile()).isTrue();
-      final var file = items.get(0).asInputFile();
-      assertThat(file.filename()).hasValue("report.pdf");
-      assertThat(file.fileData()).hasValue("data:application/pdf;base64,UERGQ09OVEVOVA==");
-    }
-
-    @Test
-    void mapsTextDocumentToInputTextItem() {
-      final var document = mock(Document.class);
-      final var metadata = mock(DocumentMetadata.class);
-      when(document.metadata()).thenReturn(metadata);
-      when(metadata.getContentType()).thenReturn("text/plain");
-      when(document.asByteArray())
-          .thenReturn("plain text content".getBytes(StandardCharsets.UTF_8));
-
-      final var items =
-          converter.toToolResultOutputItems(List.of(new DocumentContent(document, null)));
-
-      assertThat(items).hasSize(1);
       assertThat(items.get(0).isInputText()).isTrue();
-      assertThat(items.get(0).asInputText().text()).isEqualTo("plain text content");
     }
 
     @Test
@@ -242,17 +220,7 @@ class OpenAiContentConverterTest {
       assertThat(items).hasSize(2);
       assertThat(items.get(0).isInputText()).isTrue();
       assertThat(items.get(0).asInputText().text()).isEqualTo("see attached");
-      assertThat(items.get(1).isInputImage()).isTrue();
-    }
-
-    @Test
-    void throwsForUnsupportedDocumentContentType() {
-      final var document = mockDocument("audio/mpeg", "QUJD");
-
-      assertThatThrownBy(
-              () -> converter.toToolResultOutputItems(List.of(new DocumentContent(document, null))))
-          .isInstanceOf(ConnectorException.class)
-          .hasMessageContaining("audio/mpeg");
+      assertThat(items.get(1).isInputText()).isTrue();
     }
   }
 
@@ -369,14 +337,6 @@ class OpenAiContentConverterTest {
         converter.toResponsesContentParts(List.of(DocumentContent.documentContent(pngDocument())));
 
     assertThat(parts).singleElement().satisfies(p -> assertThat(p.inputImage()).isPresent());
-  }
-
-  @Test
-  void mapsPdfDocumentToNativeInputFileInToolResults() {
-    var items =
-        converter.toToolResultOutputItems(List.of(DocumentContent.documentContent(pdfDocument())));
-
-    assertThat(items).singleElement().satisfies(i -> assertThat(i.inputFile()).isPresent());
   }
 
   @Test

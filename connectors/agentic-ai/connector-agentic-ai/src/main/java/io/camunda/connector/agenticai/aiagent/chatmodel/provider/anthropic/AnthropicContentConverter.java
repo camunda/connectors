@@ -156,20 +156,24 @@ public class AnthropicContentConverter {
     return ObjectMappers.jsonMapper().convertValue(payload, ContentBlockParam.class);
   }
 
+  /**
+   * Converts a tool result's structured content into Anthropic tool-result blocks. Unlike {@link
+   * #toContentBlockParams}, a document here is flattened to a JSON reference rather than embedded
+   * natively as an image/document block: the composer's synthetic {@code <doc/>} fallback message
+   * already delivers the actual document bytes for tool results (see {@code
+   * AgentConversationTurnInputComposerImpl}), so embedding it here as well would send it to the
+   * model twice.
+   */
   public List<ToolResultBlockParam.Content.Block> toToolResultBlocks(List<Content> content) {
     final List<ToolResultBlockParam.Content.Block> blocks = new ArrayList<>();
     for (final Content c : content) {
       switch (c) {
         case TextContent text ->
             blocks.add(ToolResultBlockParam.Content.Block.ofText(toTextBlockParam(text)));
-        case DocumentContent doc -> {
-          final ContentBlockParam block = toDocumentBlockParam(doc);
-          block.image().ifPresent(i -> blocks.add(ToolResultBlockParam.Content.Block.ofImage(i)));
-          block
-              .document()
-              .ifPresent(d -> blocks.add(ToolResultBlockParam.Content.Block.ofDocument(d)));
-          block.text().ifPresent(t -> blocks.add(ToolResultBlockParam.Content.Block.ofText(t)));
-        }
+        case DocumentContent doc ->
+            blocks.add(
+                ToolResultBlockParam.Content.Block.ofText(
+                    TextBlockParam.builder().text(writeAsJson(doc.document())).build()));
         case ObjectContent obj ->
             blocks.add(ToolResultBlockParam.Content.Block.ofText(toTextBlockParam(obj)));
         default ->

@@ -16,9 +16,7 @@ import com.openai.models.chat.completions.ChatCompletionContentPartText;
 import com.openai.models.responses.ResponseFunctionCallOutputItem;
 import com.openai.models.responses.ResponseInputContent;
 import com.openai.models.responses.ResponseInputFile;
-import com.openai.models.responses.ResponseInputFileContent;
 import com.openai.models.responses.ResponseInputImage;
-import com.openai.models.responses.ResponseInputImageContent;
 import com.openai.models.responses.ResponseInputText;
 import com.openai.models.responses.ResponseInputTextContent;
 import com.openai.models.responses.ResponseOutputMessage;
@@ -118,11 +116,12 @@ public class OpenAiContentConverter {
   }
 
   /**
-   * Converts a tool result's structured content into Responses {@code function_call_output} items,
-   * the multimodal counterpart of {@link #toResponsesContentParts}: documents are emitted natively
-   * as {@code input_image} / {@code input_file} so the model can read them, rather than being
-   * flattened to an opaque JSON reference. Mirrors the Anthropic sibling's {@code
-   * toToolResultBlocks}.
+   * Converts a tool result's structured content into Responses {@code function_call_output} items.
+   * Unlike {@link #toResponsesContentParts}, a document here is flattened to a JSON reference
+   * rather than emitted natively as {@code input_image}/{@code input_file}: the composer's
+   * synthetic {@code <doc/>} fallback message already delivers the actual document bytes for tool
+   * results (see {@code AgentConversationTurnInputComposerImpl}), so embedding it here as well
+   * would send it to the model twice.
    */
   public List<ResponseFunctionCallOutputItem> toToolResultOutputItems(List<Content> content) {
     final List<ResponseFunctionCallOutputItem> items = new ArrayList<>();
@@ -132,7 +131,10 @@ public class OpenAiContentConverter {
             items.add(
                 ResponseFunctionCallOutputItem.ofInputText(
                     ResponseInputTextContent.builder().text(text.text()).build()));
-        case DocumentContent doc -> items.add(toolResultDocumentItem(doc));
+        case DocumentContent doc ->
+            items.add(
+                ResponseFunctionCallOutputItem.ofInputText(
+                    ResponseInputTextContent.builder().text(writeAsJson(doc.document())).build()));
         case ObjectContent obj ->
             items.add(
                 ResponseFunctionCallOutputItem.ofInputText(
@@ -188,28 +190,6 @@ public class OpenAiContentConverter {
       case TEXT ->
           ResponseInputContent.ofInputText(
               ResponseInputText.builder().text(decodeUtf8(doc.document())).build());
-      case UNSUPPORTED -> throw unsupportedContentType(contentType, doc);
-    };
-  }
-
-  private ResponseFunctionCallOutputItem toolResultDocumentItem(DocumentContent doc) {
-    final var contentType = contentType(doc.document());
-    return switch (classify(contentType)) {
-      case IMAGE ->
-          ResponseFunctionCallOutputItem.ofInputImage(
-              ResponseInputImageContent.builder()
-                  .imageUrl(dataUri(contentType, doc.document()))
-                  .detail(ResponseInputImageContent.Detail.AUTO)
-                  .build());
-      case PDF ->
-          ResponseFunctionCallOutputItem.ofInputFile(
-              ResponseInputFileContent.builder()
-                  .filename(fileName(doc.document()))
-                  .fileData(dataUri(contentType, doc.document()))
-                  .build());
-      case TEXT ->
-          ResponseFunctionCallOutputItem.ofInputText(
-              ResponseInputTextContent.builder().text(decodeUtf8(doc.document())).build());
       case UNSUPPORTED -> throw unsupportedContentType(contentType, doc);
     };
   }

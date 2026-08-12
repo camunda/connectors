@@ -50,6 +50,8 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -57,7 +59,8 @@ import org.junit.jupiter.api.Test;
 
 class OpenAiResponsesRequestConverterTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper =
+      new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
   private final OpenAiContentConverter contentConverter = new OpenAiContentConverter(objectMapper);
   private final OpenAiResponsesRequestConverter converter =
       new OpenAiResponsesRequestConverter(contentConverter, objectMapper);
@@ -216,13 +219,19 @@ class OpenAiResponsesRequestConverterTest {
   }
 
   @Test
-  void emitsNativeFileItemsForToolResultDocuments() {
+  void emitsJsonReferenceForToolResultDocuments() {
+    // never embedded natively as input_file/input_image for a tool result - the composer's
+    // synthetic <doc/> fallback message already delivers the actual bytes, so embedding it here
+    // as well would send it to the model twice; see OpenAiContentConverter#toToolResultOutputItems
     final var document = mock(Document.class);
     final var metadata = mock(DocumentMetadata.class);
     when(document.metadata()).thenReturn(metadata);
     when(metadata.getContentType()).thenReturn("application/pdf");
     when(metadata.getFileName()).thenReturn("report.pdf");
     when(document.asBase64()).thenReturn("UERGQ09OVEVOVA==");
+    when(document.reference())
+        .thenReturn(
+            new ExternalDocumentReferenceModel("https://example.com/report.pdf", "report.pdf"));
 
     final var snapshot =
         new ConversationSnapshot(
@@ -251,10 +260,7 @@ class OpenAiResponsesRequestConverterTest {
     assertThat(outputItems).hasSize(2);
     assertThat(outputItems.get(0).isInputText()).isTrue();
     assertThat(outputItems.get(0).asInputText().text()).isEqualTo("here is the report");
-    assertThat(outputItems.get(1).isInputFile()).isTrue();
-    final var file = outputItems.get(1).asInputFile();
-    assertThat(file.filename()).hasValue("report.pdf");
-    assertThat(file.fileData()).hasValue("data:application/pdf;base64,UERGQ09OVEVOVA==");
+    assertThat(outputItems.get(1).isInputText()).isTrue();
   }
 
   @Test
