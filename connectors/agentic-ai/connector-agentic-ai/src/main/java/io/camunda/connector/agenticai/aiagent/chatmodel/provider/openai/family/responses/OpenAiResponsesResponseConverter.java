@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.ObjectMappers;
@@ -28,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
+import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -69,7 +72,10 @@ import org.springframework.util.StringUtils;
  * LENGTH} / {@code REFUSAL -> CONTENT_FILTERED} mappings. Otherwise, a response containing one or
  * more {@code function_call} items maps to {@link StopReason#TOOL_USE}, and a normal completion
  * maps to {@link StopReason#STOP}. The Responses API otherwise has no equivalent of Anthropic's
- * {@code pause_turn} stop reason, so every call always surfaces as {@link ChatResult.Completed}.
+ * {@code pause_turn} stop reason, so every non-failed call surfaces as {@link
+ * ChatResult.Completed}. A top-level {@code status} of {@code failed} is handled separately, before
+ * any of the above -- see {@link #checkForFailure} -- since it carries no {@code
+ * incomplete_details} to normalize.
  *
  * <p>The raw vendor stop-reason string ({@code incomplete_details.reason}, falling back to the
  * response's top-level {@code status}) is always preserved under the {@code openai} provider-id key
@@ -90,10 +96,34 @@ public class OpenAiResponsesResponseConverter {
   }
 
   public ChatResult toResult(Response response, Duration executionTime) {
+    checkForFailure(response);
     final AssistantMessage assistantMessage = toAssistantMessage(response);
     final AgentMetrics metrics =
         toMetrics(response, assistantMessage.toolCalls().size(), executionTime);
     return new ChatResult.Completed(assistantMessage, metrics);
+  }
+
+  /**
+   * A {@code response.failed} terminal event carries this same {@link Response} shape, with {@code
+   * status: failed} and {@code error} populated instead of a normal completion -- it has neither
+   * {@code incomplete_details} nor (usually) tool calls, so {@link #mapStopReason} would otherwise
+   * fall through to a plain {@link StopReason#STOP}/{@link StopReason#TOOL_USE} and this converter
+   * would report a successful {@link ChatResult.Completed}. Surface it as a failed model call
+   * instead, mirroring how {@link
+   * io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModel} already
+   * reports transport/SDK-level failures under the same error code.
+   */
+  private void checkForFailure(Response response) {
+    if (response.status().filter(ResponseStatus.FAILED::equals).isEmpty()) {
+      return;
+    }
+    final String detail =
+        response
+            .error()
+            .map(error -> "%s: %s".formatted(error.code().asString(), error.message()))
+            .orElse("no error detail provided by OpenAI");
+    throw new ConnectorException(
+        ERROR_CODE_FAILED_MODEL_CALL, "OpenAI response failed: %s".formatted(detail));
   }
 
   AssistantMessage toAssistantMessage(Response response) {

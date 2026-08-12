@@ -6,7 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,8 +22,10 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
+import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Map;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -427,6 +431,29 @@ class OpenAiResponsesResponseConverterTest {
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(((ChatResult.Completed) result).assistantMessage().stopReason())
         .isEqualTo(StopReason.CONTENT_FILTERED);
+  }
+
+  @Test
+  void throwsConnectorExceptionOnFailedResponse() {
+    final Response response =
+        responseFromJson(
+            """
+            {
+              "id": "resp_failed", "object": "response", "created_at": 0, "model": "gpt-5",
+              "status": "failed",
+              "error": {"code": "server_error", "message": "the model produced no output"},
+              "output": [], "parallel_tool_calls": true, "tool_choice": "auto", "tools": []
+            }
+            """);
+
+    assertThatThrownBy(() -> converter.toResult(response, Duration.ofSeconds(1)))
+        .asInstanceOf(InstanceOfAssertFactories.type(ConnectorException.class))
+        .satisfies(
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
+              assertThat(e.getMessage())
+                  .isEqualTo("OpenAI response failed: server_error: the model produced no output");
+            });
   }
 
   @Test
