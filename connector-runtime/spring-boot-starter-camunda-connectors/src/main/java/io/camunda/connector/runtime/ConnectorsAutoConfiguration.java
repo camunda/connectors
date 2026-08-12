@@ -39,6 +39,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.secret.LegacySecretsDisabledProvider;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
@@ -147,10 +148,27 @@ public class ConnectorsAutoConfiguration {
     return cache;
   }
 
+  /**
+   * Builds the aggregator every legacy ({@code {{secrets.X}}} / bare {@code secrets.X}) lookup goes
+   * through — outbound, inbound and configuration validation all share this one bean. When {@code
+   * camunda.connector.secret-resolver.legacy.enabled} is {@code false}, none of the usual providers
+   * are consulted; every lookup throws instead, via {@link LegacySecretsDisabledProvider}. This has
+   * no effect on {@code camunda.secrets.<name>} resolution, which is a separate mechanism (see
+   * {@code SecretReferenceResolver}) and has no off switch.
+   */
   @Bean
   @ConditionalOnMissingBean
   public SecretProviderAggregator springSecretProviderAggregator(
-      Optional<List<SecretProvider>> secretProviderBeans) {
+      Optional<List<SecretProvider>> secretProviderBeans,
+      @Value("${" + LegacySecretsDisabledProvider.PROPERTY + ":true}")
+          boolean legacySecretsEnabled) {
+    if (!legacySecretsEnabled) {
+      LOG.info(
+          "Legacy secret resolution is disabled ({}=false); {{secrets.X}} and secrets.X will not"
+              + " resolve.",
+          LegacySecretsDisabledProvider.PROPERTY);
+      return new SecretProviderAggregator(List.of(new LegacySecretsDisabledProvider()));
+    }
     var secretProviders = secretProviderBeans.orElseGet(LinkedList::new);
     LOG.debug("Using secret providers discovered as Spring beans: {}", secretProviderBeans);
     if (secretProviderLookupEnabled != Boolean.FALSE) {

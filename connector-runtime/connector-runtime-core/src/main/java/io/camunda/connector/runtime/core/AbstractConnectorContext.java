@@ -20,6 +20,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretHandler;
+import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import org.jspecify.annotations.Nullable;
 
 public abstract class AbstractConnectorContext {
@@ -27,13 +28,27 @@ public abstract class AbstractConnectorContext {
   protected @Nullable SecretHandler secretHandler;
   protected final SecretProvider secretProvider;
   protected final SecretFilter secretFilter;
+  protected final SecretReferenceResolver referenceResolver;
 
   protected final ValidationProvider validationProvider;
 
+  /**
+   * Kept so subclasses that only pass three arguments keep compiling. Defaults the {@code
+   * camunda.secrets.<name>} resolver to {@link SecretReferenceResolver#noop()}, which is why {@code
+   * JobHandlerContext} (the only caller of this overload) is unaffected by this change.
+   */
   protected AbstractConnectorContext(
       final SecretProvider secretProvider,
       SecretFilter secretFilter,
       final ValidationProvider validationProvider) {
+    this(secretProvider, secretFilter, validationProvider, SecretReferenceResolver.noop());
+  }
+
+  protected AbstractConnectorContext(
+      final SecretProvider secretProvider,
+      SecretFilter secretFilter,
+      final ValidationProvider validationProvider,
+      final SecretReferenceResolver referenceResolver) {
     if (secretFilter == null) {
       throw new IllegalArgumentException(
           "Secret filter required in Connector context but was null");
@@ -48,11 +63,13 @@ public abstract class AbstractConnectorContext {
       throw new RuntimeException("Validation provider required in Connector context but was null");
     }
     this.validationProvider = validationProvider;
+    this.referenceResolver =
+        referenceResolver != null ? referenceResolver : SecretReferenceResolver.noop();
   }
 
   public SecretHandler getSecretHandler() {
     if (secretHandler == null) {
-      secretHandler = new SecretHandler(secretProvider, secretFilter);
+      secretHandler = new SecretHandler(secretProvider, secretFilter, referenceResolver);
     }
     return secretHandler;
   }

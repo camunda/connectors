@@ -109,6 +109,19 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_camundaSecretsFormInput_yieldsBareNameToo() throws IOException {
+    // An input mapping written "=camunda.secrets.NEW_FORM_SECRET" must still yield the bare name
+    // "NEW_FORM_SECRET" in the outbound allow-list, exactly as it did before this change added a
+    // lookbehind that stops the old bare pattern from matching inside it.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-camunda-secrets-form.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys).containsExactly("NEW_FORM_SECRET");
+  }
+
+  @Test
   void getSecretKeys_unknownElementId_returnsEmptyList() throws IOException {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-secrets.bpmn"));
 

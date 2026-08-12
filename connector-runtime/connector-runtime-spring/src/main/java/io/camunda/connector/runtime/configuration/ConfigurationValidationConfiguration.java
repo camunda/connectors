@@ -30,7 +30,9 @@ import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationService;
+import io.camunda.connector.runtime.core.secret.CamundaClientSecretResolver;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +99,25 @@ public class ConfigurationValidationConfiguration {
   }
 
   /**
+   * Builds the per-physical-tenant {@code camunda.secrets.<name>} resolver map, mirroring {@link
+   * #buildFeelExpressionEvaluatorsByPhysicalTenantId}: one {@link CamundaClientSecretResolver} per
+   * configured client, so out-of-band validation resolves secrets against the same engine its
+   * {@code credentialRef} was evaluated against.
+   */
+  private static Map<String, SecretReferenceResolver>
+      buildSecretReferenceResolversByPhysicalTenantId(
+          CamundaClientRegistry registry, CamundaClient legacyCamundaClient) {
+    return clientNames(registry, legacyCamundaClient).stream()
+        .collect(
+            toMapByPhysicalTenantId(
+                registry,
+                legacyCamundaClient,
+                name ->
+                    new CamundaClientSecretResolver(
+                        resolveClient(registry, name, legacyCamundaClient))));
+  }
+
+  /**
    * Builds the per-physical-tenant evaluator map via the plain (non-{@code @Bean}) {@code build*}
    * helper rather than declaring a {@code Map<String, FeelExpressionEvaluator>}-typed parameter or
    * calling the sibling {@code @Bean} method: Spring special-cases any {@code Map<String, X>}-typed
@@ -117,6 +138,7 @@ public class ConfigurationValidationConfiguration {
         configurationValidationRegistry,
         buildFeelExpressionEvaluatorsByPhysicalTenantId(registry, legacyCamundaClient),
         secretProviderAggregator,
+        buildSecretReferenceResolversByPhysicalTenantId(registry, legacyCamundaClient),
         validationProvider,
         objectMapper);
   }

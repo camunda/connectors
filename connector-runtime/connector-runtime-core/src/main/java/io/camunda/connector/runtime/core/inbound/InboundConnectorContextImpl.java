@@ -51,6 +51,7 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +79,10 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private Health health = Health.unknown();
   private @Nullable Map<String, Object> propertiesWithSecrets;
 
+  /**
+   * Kept so callers that only pass the original arguments keep compiling. Defaults the {@code
+   * camunda.secrets.<name>} resolver to {@link SecretReferenceResolver#noop()}.
+   */
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
@@ -88,7 +93,31 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       ObjectMapper objectMapper,
       ActivityLogWriter activityLogWriter,
       CamundaClient camundaClient) {
-    super(secretProvider, SecretFilter.allowAll(), validationProvider);
+    this(
+        secretProvider,
+        validationProvider,
+        documentFactory,
+        connectorDetails,
+        correlationHandler,
+        cancellationCallback,
+        objectMapper,
+        activityLogWriter,
+        camundaClient,
+        SecretReferenceResolver.noop());
+  }
+
+  public InboundConnectorContextImpl(
+      SecretProvider secretProvider,
+      ValidationProvider validationProvider,
+      DocumentFactory documentFactory,
+      ValidInboundConnectorDetails connectorDetails,
+      InboundCorrelationHandler correlationHandler,
+      Consumer<Throwable> cancellationCallback,
+      ObjectMapper objectMapper,
+      ActivityLogWriter activityLogWriter,
+      CamundaClient camundaClient,
+      SecretReferenceResolver referenceResolver) {
+    super(secretProvider, SecretFilter.allowAll(), validationProvider, referenceResolver);
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;

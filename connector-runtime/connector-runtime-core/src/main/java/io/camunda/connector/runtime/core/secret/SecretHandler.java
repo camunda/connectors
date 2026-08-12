@@ -20,20 +20,43 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Resolves both forms of secret in a connector's input, in this order: {@code
+ * camunda.secrets.<name>} first (new form, see {@link SecretReferenceUtil}), then {@code
+ * {{secrets.X}}} / bare {@code secrets.X} (legacy form, see {@link SecretUtil}). The two are
+ * unrelated mechanisms; neither falls back to the other.
+ */
 public class SecretHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(SecretHandler.class);
 
-  protected final SecretProvider secretProvider;
+  protected final SecretFilter secretFilter;
+  protected final SecretReferenceResolver referenceResolver;
 
-  protected SecretReplacer secretReplacer;
+  /** Legacy-only: looks up a bare secret name via the configured {@link SecretProvider}. */
+  protected SecretReplacer legacySecretReplacer;
 
+  /**
+   * Kept so callers that only pass two arguments keep compiling. Defaults the {@code
+   * camunda.secrets.<name>} resolver to {@link SecretReferenceResolver#noop()}; the outbound job
+   * path uses this overload, so it is unaffected by this change.
+   */
   public SecretHandler(final SecretProvider secretProvider, SecretFilter secretFilter) {
-    this.secretProvider = secretProvider;
-    secretReplacer =
+    this(secretProvider, secretFilter, SecretReferenceResolver.noop());
+  }
+
+  public SecretHandler(
+      final SecretProvider secretProvider,
+      SecretFilter secretFilter,
+      SecretReferenceResolver referenceResolver) {
+    this.secretFilter = secretFilter;
+    this.referenceResolver = referenceResolver;
+    legacySecretReplacer =
         (name, context) -> {
           if (secretFilter.isAllowed(name)) {
             return Optional.ofNullable(secretProvider.getSecret(name, context))
@@ -48,6 +71,28 @@ public class SecretHandler {
   }
 
   public String replaceSecrets(String input, SecretContext context) {
-    return SecretUtil.replaceSecrets(input, context, secretReplacer);
+    var withReferencesResolved = replaceCamundaSecretReferences(input, context);
+    return SecretUtil.replaceSecrets(withReferencesResolved, context, legacySecretReplacer);
+  }
+
+  /**
+   * Resolves every {@code camunda.secrets.<name>} reference, if any. A request with none never
+   * calls {@link #referenceResolver}, which is what keeps this free for connectors that only use
+   * the legacy form.
+   */
+  private String replaceCamundaSecretReferences(String input, SecretContext context) {
+    var references = SecretReferenceUtil.findReferences(input);
+    if (references.isEmpty()) {
+      return input;
+    }
+    // The filter is keyed by the bare secret name (what the outbound allow-list is built from),
+    // never by the whole reference.
+    Set<String> refused =
+        references.stream()
+            .filter(reference -> !secretFilter.isAllowed(SecretReferenceUtil.bareName(reference)))
+            .collect(Collectors.toSet());
+    var requested = references.stream().filter(reference -> !refused.contains(reference)).toList();
+    var resolved = referenceResolver.resolve(requested, context);
+    return SecretReferenceUtil.replaceReferences(input, resolved, refused);
   }
 }

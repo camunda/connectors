@@ -26,13 +26,20 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 
-/** Utility class to replace secrets in strings. */
+/**
+ * Replaces the LEGACY form of secret in a string: {@code {{secrets.X}}} and bare {@code secrets.X}.
+ * For the {@code camunda.secrets.<name>} form, see {@link SecretReferenceUtil} instead — the two
+ * are unrelated mechanisms that never fall back onto one another.
+ */
 public class SecretUtil {
 
   private static final JsonStringEncoder encoder = JsonStringEncoder.getInstance();
 
+  // Excludes a match starting right after "camunda." so this pattern never eats part of a
+  // camunda.secrets.<name> reference (see SecretReferenceUtil) — the two forms are resolved
+  // through entirely separate mechanisms and must stay that way.
   private static final Pattern SECRET_PATTERN_SECRETS =
-      Pattern.compile("secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
+      Pattern.compile("(?<!camunda\\.)secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
 
   private static final Pattern SECRET_PATTERN_PARENTHESES =
       Pattern.compile("\\{\\{\\s*secrets\\.(?<secret>\\S+?\\s*)}}");
@@ -103,10 +110,17 @@ public class SecretUtil {
     return output.toString();
   }
 
+  /**
+   * Returns the bare secret name for every legacy reference found in {@code input}: {@code
+   * {{secrets.X}}} and bare {@code secrets.X}. Also matches {@code camunda.secrets.X} and yields
+   * its bare name — not because this class resolves that form (it doesn't; see {@link
+   * SecretReferenceUtil}), but because the outbound allow-list is built from this method, and that
+   * allow-list must not shrink for a process using the new form. See ADR-0007.
+   */
   public static List<String> retrieveSecretKeysInInput(String input) {
     return Objects.isNull(input)
         ? List.of()
-        : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
+        : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS, SecretReferenceUtil.PATTERN)
             .map(pattern -> pattern.matcher(input))
             .flatMap(Matcher::results)
             .map(matchResult -> matchResult.group("secret"))

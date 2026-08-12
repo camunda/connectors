@@ -96,4 +96,12 @@ public class SecretUtilTests {
     String replacedContent = SecretUtil.replaceSecrets(content, secretContext, secretReplacer);
     assertThat(replacedContent).isEqualTo("Hello VALUE1 and VALUE2 and {{secrets.KEY3}}");
   }
+
+  @Test
+  void retrieveSecretKeysInInput_alsoYieldsBareNameOfNewForm() {
+    // An input mapping written "=camunda.secrets.X" must still yield the bare name "X", so the
+    // outbound allow-list built from this method doesn't shrink for a process using the new
+    // form. This method does not resolve that form - see SecretReferenceUtil for that.
+    assertThat(SecretUtil.retrieveSecretKeysInInput("=camunda.secrets.X")).contains("X");
+  }
 }

@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,11 +29,13 @@ import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidationResult.Status;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import jakarta.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 class ConfigurationValidationServiceTest {
@@ -152,10 +155,16 @@ class ConfigurationValidationServiceTest {
                 new ConstrainedValidator(),
                 new NullReturningValidator(),
                 recordingValidator));
+    // None of these tests exercise camunda.secrets.<name> resolution; noop() per physical tenant
+    // keeps the old-form ({{secrets.X}}) behaviour under test unchanged.
+    var resolversByPhysicalTenantId =
+        evaluatorsByPhysicalTenantId.keySet().stream()
+            .collect(Collectors.toMap(id -> id, id -> SecretReferenceResolver.noop()));
     return new ConfigurationValidationService(
         registry,
         evaluatorsByPhysicalTenantId,
         secretProvider,
+        resolversByPhysicalTenantId,
         ValidationUtil.discoverDefaultValidationProviderImplementation(),
         objectMapper);
   }
@@ -229,6 +238,53 @@ class ConfigurationValidationServiceTest {
             Map.of(
                 "engine-a", feelReturning("{\"value\":\"from-engine-a\"}"),
                 "engine-b", feelReturning("{\"value\":\"from-engine-b\"}")));
+
+    var result =
+        service.validate(
+            new ConfigurationValidationRequest("recording", "=ref", "tenant", "engine-b"));
+
+    assertThat(result.status()).isEqualTo(Status.SUCCESS);
+    assertThat(recordingValidator.seen.value()).isEqualTo("from-engine-b");
+  }
+
+  @Test
+  void rejectsMismatchedPhysicalTenantIdKeySets() {
+    // Both maps must be keyed identically; a mismatch is a wiring bug that must fail loudly at
+    // construction time rather than crash inside validate() the first time the missing key is hit.
+    var registry = new ConfigurationValidationRegistry(List.of());
+
+    assertThatThrownBy(
+            () ->
+                new ConfigurationValidationService(
+                    registry,
+                    Map.of("engine-a", feelReturning("{}")),
+                    new RecordingSecretProvider(),
+                    Map.of("engine-b", SecretReferenceResolver.noop()),
+                    ValidationUtil.discoverDefaultValidationProviderImplementation(),
+                    objectMapper))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void resolvesNewFormSecretsAgainstTheRequestedPhysicalTenantsResolver() {
+    // Guards the physical-tenant-id key built once in resolvePhysicalTenantIdKey and used to
+    // index both maps: if the FEEL evaluator and the camunda.secrets.<name> resolver ever came
+    // from different maps looked up independently, this would resolve against the wrong engine.
+    SecretReferenceResolver resolverA =
+        (references, context) -> Map.of("camunda.secrets.TOKEN", "from-engine-a");
+    SecretReferenceResolver resolverB =
+        (references, context) -> Map.of("camunda.secrets.TOKEN", "from-engine-b");
+    var registry = new ConfigurationValidationRegistry(List.of(recordingValidator));
+    var service =
+        new ConfigurationValidationService(
+            registry,
+            Map.of(
+                "engine-a", feelReturning("{\"value\":\"camunda.secrets.TOKEN\"}"),
+                "engine-b", feelReturning("{\"value\":\"camunda.secrets.TOKEN\"}")),
+            new RecordingSecretProvider(),
+            Map.of("engine-a", resolverA, "engine-b", resolverB),
+            ValidationUtil.discoverDefaultValidationProviderImplementation(),
+            objectMapper);
 
     var result =
         service.validate(

@@ -30,6 +30,7 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.core.secret.CamundaClientSecretResolver;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
 import io.camunda.connector.runtime.inbound.controller.InboundInstancesRestController;
@@ -118,6 +119,8 @@ public class InboundConnectorRuntimeConfiguration {
                       var physicalTenantId =
                           PhysicalTenantIds.resolvePhysicalTenantId(
                               registry, name, legacyCamundaClient);
+                      var client =
+                          PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient);
                       return new DefaultInboundConnectorContextFactory(
                           mapper,
                           correlationHandlersByPhysicalTenantId.get(physicalTenantId),
@@ -125,7 +128,8 @@ public class InboundConnectorRuntimeConfiguration {
                           validationProvider,
                           processInstanceClientsByPhysicalTenantId.get(physicalTenantId),
                           documentFactoriesByPhysicalTenantId.get(physicalTenantId),
-                          PhysicalTenantIds.resolveClient(registry, name, legacyCamundaClient));
+                          client,
+                          new CamundaClientSecretResolver(client));
                     }));
     return new PhysicalTenantIdRoutingInboundConnectorContextFactory(delegatesByPhysicalTenantId);
   }

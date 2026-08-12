@@ -27,6 +27,7 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogWriter;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Objects;
@@ -40,6 +41,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
   private final ProcessInstanceClient processInstanceClient;
   private final DocumentFactory documentFactory;
   private final CamundaClient camundaClient;
+  private final SecretReferenceResolver referenceResolver;
 
   public DefaultInboundConnectorContextFactory(
       final ObjectMapper mapper,
@@ -49,6 +51,26 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
       final ProcessInstanceClient processInstanceClient,
       final DocumentFactory documentFactory,
       final CamundaClient camundaClient) {
+    this(
+        mapper,
+        correlationHandler,
+        secretProviderAggregator,
+        validationProvider,
+        processInstanceClient,
+        documentFactory,
+        camundaClient,
+        SecretReferenceResolver.noop());
+  }
+
+  public DefaultInboundConnectorContextFactory(
+      final ObjectMapper mapper,
+      final InboundCorrelationHandler correlationHandler,
+      final SecretProviderAggregator secretProviderAggregator,
+      final ValidationProvider validationProvider,
+      final ProcessInstanceClient processInstanceClient,
+      final DocumentFactory documentFactory,
+      final CamundaClient camundaClient,
+      final SecretReferenceResolver referenceResolver) {
     this.objectMapper = mapper;
     this.correlationHandler = correlationHandler;
     this.secretProviderAggregator = secretProviderAggregator;
@@ -56,6 +78,8 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
     this.processInstanceClient = processInstanceClient;
     this.documentFactory = documentFactory;
     this.camundaClient = Objects.requireNonNull(camundaClient, "camundaClient must not be null");
+    this.referenceResolver =
+        referenceResolver != null ? referenceResolver : SecretReferenceResolver.noop();
   }
 
   @Override
@@ -75,7 +99,8 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
             cancellationCallback,
             objectMapper,
             logWriter,
-            camundaClient);
+            camundaClient,
+            referenceResolver);
 
     if (isIntermediateContext(executableClass)) {
       inboundContext =

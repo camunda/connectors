@@ -28,7 +28,9 @@ import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry.RegisteredValidator;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretHandler;
+import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +73,7 @@ public class ConfigurationValidationService {
 
   private final ConfigurationValidationRegistry registry;
   private final Map<String, FeelExpressionEvaluator> feelExpressionEvaluatorsByPhysicalTenantId;
-  private final SecretHandler secretHandler;
+  private final Map<String, SecretHandler> secretHandlersByPhysicalTenantId;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
 
@@ -79,12 +81,33 @@ public class ConfigurationValidationService {
       ConfigurationValidationRegistry registry,
       Map<String, FeelExpressionEvaluator> feelExpressionEvaluatorsByPhysicalTenantId,
       SecretProvider secretProvider,
+      Map<String, SecretReferenceResolver> secretReferenceResolversByPhysicalTenantId,
       ValidationProvider validationProvider,
       ObjectMapper objectMapper) {
+    if (!secretReferenceResolversByPhysicalTenantId
+        .keySet()
+        .equals(feelExpressionEvaluatorsByPhysicalTenantId.keySet())) {
+      throw new IllegalArgumentException(
+          "feelExpressionEvaluatorsByPhysicalTenantId and secretReferenceResolversByPhysicalTenantId"
+              + " must be keyed by the same physical tenant ids: "
+              + feelExpressionEvaluatorsByPhysicalTenantId.keySet()
+              + " vs "
+              + secretReferenceResolversByPhysicalTenantId.keySet());
+    }
     this.registry = registry;
     this.feelExpressionEvaluatorsByPhysicalTenantId = feelExpressionEvaluatorsByPhysicalTenantId;
-    // Out-of-band validation has no process/element scope, so no secret allow-list applies.
-    this.secretHandler = new SecretHandler(secretProvider, SecretFilter.allowAll());
+    // Out-of-band validation has no process/element scope, so no secret allow-list applies. One
+    // SecretHandler per physical tenant, each with its own camunda.secrets.<name> resolver. Built
+    // once here rather than looked up per request, so a mismatched key (caught by the check
+    // above) fails immediately at startup instead of crashing the first request that hits it.
+    this.secretHandlersByPhysicalTenantId =
+        secretReferenceResolversByPhysicalTenantId.entrySet().stream()
+            .collect(
+                Collectors.toMap(
+                    Map.Entry::getKey,
+                    entry ->
+                        new SecretHandler(
+                            secretProvider, SecretFilter.allowAll(), entry.getValue())));
     this.validationProvider = validationProvider;
     this.objectMapper = objectMapper;
   }
@@ -95,9 +118,9 @@ public class ConfigurationValidationService {
       return ConfigurationValidationResult.unsupported();
     }
 
-    final FeelExpressionEvaluator feelExpressionEvaluator;
+    final String physicalTenantIdKey;
     try {
-      feelExpressionEvaluator = resolveEvaluator(request.physicalTenantId());
+      physicalTenantIdKey = resolvePhysicalTenantIdKey(request.physicalTenantId());
     } catch (IllegalArgumentException e) {
       // Unlike everything downstream of secret replacement, this message is derived purely from
       // caller-supplied routing metadata and the runtime's own engine configuration — no resolved
@@ -106,11 +129,18 @@ public class ConfigurationValidationService {
       return ConfigurationValidationResult.failure(
           ErrorCode.RESOLUTION_ERROR, RESOLUTION_FAILURE_MESSAGE);
     }
+    // Both maps are keyed identically by physical tenant id, resolved once above, so the FEEL
+    // evaluator and the camunda.secrets.<name> resolver used below are guaranteed to belong to
+    // the same engine.
+    var feelExpressionEvaluator =
+        feelExpressionEvaluatorsByPhysicalTenantId.get(physicalTenantIdKey);
+    var secretHandler = secretHandlersByPhysicalTenantId.get(physicalTenantIdKey);
 
     final Object configuration;
     try {
       configuration =
-          resolveConfiguration(request, feelExpressionEvaluator, registered.configurationClass());
+          resolveConfiguration(
+              request, feelExpressionEvaluator, secretHandler, registered.configurationClass());
     } catch (Exception e) {
       // Log only the exception type, never the throwable: FEEL/secret/JSON error messages (and
       // stack-trace detail) can echo resolved secret material into the logs.
@@ -169,31 +199,32 @@ public class ConfigurationValidationService {
   }
 
   /**
-   * Selects the FEEL evaluator bound to the engine that holds the configuration. A {@code null}
-   * physical tenant (a single-engine deployment, or a caller that predates multi-engine support) is
-   * unambiguous only while one engine is configured; with several, the request is rejected rather
-   * than resolved against an arbitrary engine.
+   * Resolves the physical tenant id key naming the engine that holds the configuration - used to
+   * look up both {@link #feelExpressionEvaluatorsByPhysicalTenantId} and {@link
+   * #secretHandlersByPhysicalTenantId} so they always agree on which engine is in play. A {@code
+   * null} physical tenant (a single-engine deployment, or a caller that predates multi-engine
+   * support) is unambiguous only while one engine is configured; with several, the request is
+   * rejected rather than resolved against an arbitrary engine.
    */
-  private FeelExpressionEvaluator resolveEvaluator(String physicalTenantId) {
+  private String resolvePhysicalTenantIdKey(String physicalTenantId) {
     if (physicalTenantId != null) {
-      FeelExpressionEvaluator evaluator =
-          feelExpressionEvaluatorsByPhysicalTenantId.get(physicalTenantId);
-      if (evaluator == null) {
+      if (!feelExpressionEvaluatorsByPhysicalTenantId.containsKey(physicalTenantId)) {
         throw new IllegalArgumentException(
             "no engine configured for physical tenant '" + physicalTenantId + "'");
       }
-      return evaluator;
+      return physicalTenantId;
     }
     if (feelExpressionEvaluatorsByPhysicalTenantId.size() != 1) {
       throw new IllegalArgumentException(
           "physicalTenantId is required when several engines are configured.");
     }
-    return feelExpressionEvaluatorsByPhysicalTenantId.values().iterator().next();
+    return feelExpressionEvaluatorsByPhysicalTenantId.keySet().iterator().next();
   }
 
   private Object resolveConfiguration(
       ConfigurationValidationRequest request,
       FeelExpressionEvaluator feelExpressionEvaluator,
+      SecretHandler secretHandler,
       Class<?> configurationClass)
       throws Exception {
     String rawJson = feelExpressionEvaluator.evaluateToJson(request.credentialRef());

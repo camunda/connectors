@@ -79,3 +79,6 @@ element-template-generator/npm/src/connectors.js
 # Python bytecode from the AlwaysGreen scripts
 __pycache__/
 *.pyc
+
+# Graphify output
+/graphify-out/
