@@ -1298,14 +1298,19 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `SystemPromptComposerImpl.compose()` → Aggregates base prompt + contributions
 - `A2aSystemPromptContributor` → A2A protocol instructions (order 100)
 
-### Chat Model SPI & LangChain4j
+### Chat Model SPI
+
 - `ChatModelRegistryImpl.resolve()` → Provider resolution by `ChatModelFactory.supports()`, fail-loud on zero/multiple matches
-- `LangChain4JChatModel.execute()` → Main LLM call path (LangChain4j implementation)
+
+**v1 (LangChain4j-backed)**, all under `aiagent/chatmodel/provider/langchain4j/**`:
+- `LangChain4JChatModel.execute()` → Main LLM call path
 - `ChatMessageConverterImpl` → Message conversion chain
 - `ToolSpecificationConverterImpl` → Tool definition conversion
-- `AnthropicChatModelFactory`, `BedrockChatModelFactory`, `OpenAiChatModelFactory`, `OpenAiCompatibleChatModelFactory`, `AzureOpenAiChatModelFactory`, `GoogleVertexAiChatModelFactory` → Provider-specific `ChatModel` creation (`LangChain4JChatModelFactory` subclasses)
-- `AnthropicChatModelApiFactory` → Native (non-LangChain4J) Anthropic `ChatModel` creation for `AnthropicChatModelConfiguration` (v2, `aiagent/chatmodel/provider/anthropic/**`); `AnthropicChatModelApi.execute()` drives the Anthropic Java SDK's stable Messages client directly
-- `OpenAiChatModelFactory` → Native (non-LangChain4J) OpenAI `ChatModel` creation for `OpenAiChatModelConfiguration` (v2, `aiagent/chatmodel/provider/openai/**`); `OpenAiChatModel.execute()` drives the OpenAI Java SDK directly across both wire formats (Chat Completions, Responses) via the per-family `OpenAiApiFamilyStrategy` seam
+- `factory.AnthropicChatModelFactory`, `factory.BedrockChatModelFactory`, `factory.OpenAiChatModelFactory`, `factory.OpenAiCompatibleChatModelFactory`, `factory.AzureOpenAiChatModelFactory`, `factory.GoogleVertexAiChatModelFactory` → Provider-specific `ChatModel` creation (`LangChain4JChatModelFactory` subclasses)
+
+**v2 (fully native, no LangChain4j)**, one package per provider under `aiagent/chatmodel/provider/**`:
+- `anthropic.AnthropicChatModelFactory` / `anthropic.AnthropicChatModel.execute()` → Drives the Anthropic Java SDK's stable Messages client directly, for `AnthropicChatModelConfiguration`
+- `openai.OpenAiChatModelFactory` / `openai.OpenAiChatModel.execute()` → Drives the OpenAI Java SDK directly across both wire formats (Chat Completions, Responses) via the per-family `OpenAiApiFamilyStrategy` seam, for `OpenAiChatModelConfiguration`
 
 ### Configuration
 - `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
