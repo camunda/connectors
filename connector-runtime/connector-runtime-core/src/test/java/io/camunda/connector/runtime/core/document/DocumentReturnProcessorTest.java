@@ -33,7 +33,12 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class DocumentReturnProcessorTest {
 
@@ -115,6 +120,103 @@ class DocumentReturnProcessorTest {
     assertThatThrownBy(() -> processor.process(ret, format(DocumentReturnChoice.JSON)))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("not valid JSON");
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "123 <html>error</html>", // valid JSON prefix, trailing markup
+        "true then text", // valid JSON prefix, trailing bare word
+        "{\"a\":1} trailing junk", // valid JSON prefix, trailing bare words
+        "[1,2,3] </body>", // valid JSON prefix, trailing markup
+        "<html>err</html>", // no JSON at all
+        "OK", // no JSON at all
+        "", // empty payload
+        "   \n\t " // whitespace only
+      })
+  void jsonChoiceFailsForPayloadThatIsNotFullyValidJson(String body) {
+    RawPayload payload = RawPayload.of(body.getBytes(StandardCharsets.UTF_8), null, null);
+
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
+
+    assertThatThrownBy(() -> processor.process(ret, format(DocumentReturnChoice.JSON)))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("not valid JSON")
+        .hasMessageContaining("Document reference");
+  }
+
+  @ParameterizedTest
+  @MethodSource("singleJsonValues")
+  void jsonChoiceReturnsSingleValueUnwrapped(String body, Object expected) {
+    RawPayload payload =
+        RawPayload.of(body.getBytes(StandardCharsets.UTF_8), "application/json", null);
+
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
+
+    assertThat(processor.process(ret, format(DocumentReturnChoice.JSON))).isEqualTo(expected);
+  }
+
+  static Stream<Arguments> singleJsonValues() {
+    return Stream.of(
+        Arguments.of("{\"a\":1}", Map.of("a", 1)),
+        Arguments.of("[1,2,3]", List.of(1, 2, 3)),
+        Arguments.of("123", 123),
+        // A root-level array is one value: it must not be unwrapped into its elements.
+        Arguments.of("[{\"a\":1}]", List.of(Map.of("a", 1))),
+        Arguments.of("true", true),
+        Arguments.of("\"plain string\"", "plain string"),
+        // A pretty-printed value spans several lines but is still exactly one value.
+        Arguments.of("{\n  \"a\": 1\n}", Map.of("a", 1)));
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{\"a\":1}\n{\"b\":2}", // newline-delimited (NDJSON)
+        "{\"a\":1} {\"b\":2}", // space-separated
+        "{\"a\":1}{\"b\":2}", // concatenated stream, no separator
+        "{\"a\":1}\r\n{\"b\":2}\r\n" // CRLF-delimited with trailing newline
+      })
+  void jsonChoiceCollectsMultiValueStreamIntoList(String body) {
+    RawPayload payload =
+        RawPayload.of(body.getBytes(StandardCharsets.UTF_8), "application/x-ndjson", null);
+
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
+
+    assertThat(processor.process(ret, format(DocumentReturnChoice.JSON)))
+        .isEqualTo(List.of(Map.of("a", 1), Map.of("b", 2)));
+  }
+
+  @Test
+  void jsonChoiceCollectsMultiValueStreamOfScalars() {
+    RawPayload payload = RawPayload.of("1 2 3".getBytes(StandardCharsets.UTF_8), null, null);
+
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
+
+    assertThat(processor.process(ret, format(DocumentReturnChoice.JSON)))
+        .isEqualTo(List.of(1, 2, 3));
+  }
+
+  @Test
+  void jsonChoiceFailsWhenTrailingGarbageFollowsAMultiValueStream() {
+    RawPayload payload =
+        RawPayload.of("{\"a\":1}\n{\"b\":2}\noops".getBytes(StandardCharsets.UTF_8), null, null);
+
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
+
+    assertThatThrownBy(() -> processor.process(ret, format(DocumentReturnChoice.JSON)))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("not valid JSON");
+  }
+
+  @Test
+  void jsonChoiceAcceptsLiteralNull() {
+    RawPayload payload =
+        RawPayload.of("null".getBytes(StandardCharsets.UTF_8), "application/json", null);
+
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
+
+    assertThat(processor.process(ret, format(DocumentReturnChoice.JSON))).isNull();
   }
 
   @Test
