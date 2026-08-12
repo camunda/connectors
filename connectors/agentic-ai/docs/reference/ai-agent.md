@@ -1880,176 +1880,111 @@ reference implementation and its wiring for the current exact procedure, and res
 
 ### 25.1 Add an LLM provider
 
-Implement `ChatModelFactory` (`supports(ChatModelConfiguration)` / `create(ChatModelConfiguration)`)
-and register it as a Spring bean; `ChatModelRegistryImpl` auto-collects every `ChatModelFactory` bean
-and routes a request to the single one whose `supports` returns true ([§12](#12-framework-abstraction)).
-A provider going through LangChain4j extends the abstract `LangChain4JChatModelFactory<T extends
-ProviderConfiguration>` (the v1 `ProviderConfiguration`) instead — it only needs to supply
-`providerType()` and `createChatModel(T)`, plus the matching `ProviderConfiguration` subtype
-(`supports`/`create` are already implemented by the
-base class). Reference implementation: `AnthropicChatModelFactory` with
-`AnthropicProviderConfiguration`. The LangChain4j provider package
-(`aiagent/chatmodel/provider/langchain4j/**`) is the only place that may touch `dev.langchain4j`
-(invariant I1); a fully native provider implements `ChatModel`/`ChatModelFactory` directly with its own
-`ChatModelConfiguration` and stays out of that package. Two reference implementations exist for a
-fully native provider: `AnthropicChatModelApiFactory` (`aiagent/chatmodel/provider/anthropic/**`) with
-`AnthropicChatModelConfiguration` (`model/request/v2`) — drives the Anthropic Java SDK's stable
-Messages client directly (no LangChain4J), covering the request/response converter chain, transport,
-reasoning/effort/prompt-caching, and Spring registration end to end; and `OpenAiChatModelFactory`
-(`aiagent/chatmodel/provider/openai/**`) with `OpenAiChatModelConfiguration` (`model/request/v2`) —
-drives the OpenAI Java SDK directly across **two** wire formats, Chat Completions and Responses, each
-with its own request/response converters and stream assembler behind a per-family
-`OpenAiApiFamilyStrategy` seam. The two native providers diverge on several conventions worth reading
-before adding a third:
+**The SPI.** Implement `ChatModelFactory` (`supports(ChatModelConfiguration)` /
+`create(ChatModelConfiguration)`) and register it as a Spring bean; `ChatModelRegistryImpl`
+auto-collects every `ChatModelFactory` bean and routes each request to the one whose `supports`
+returns true ([§12](#12-framework-abstraction)).
 
-**Two orthogonal sealed axes, not one.** Anthropic models a single backend axis (which endpoint /
-auth); OpenAI models the wire format as a second, independent sealed axis alongside it —
-`OpenAiChatModelConfiguration.OpenAiApi` (`completions` | `responses`, default `responses`) and
-`OpenAiChatModelConfiguration.OpenAiBackend` (`openai-api` | `custom`, default `openai-api`) vary
-orthogonally, so any backend can serve either wire format. Modelling the wire format as a sealed
-discriminator rather than a flat enum field is deliberate: each family gets its own private namespace,
-so a family-specific knob needs no `condition` gating and cannot collide with the other family's field
-of the same name — today that is the differing max-token field name
-(`OpenAiCompletionsApi.CompletionsParameters.maxCompletionTokens` / `max_completion_tokens` vs.
-`OpenAiResponsesApi.ResponsesParameters.maxOutputTokens` / `max_output_tokens`), and it is where
-Responses-only knobs (`store`, `include`, `previous_response_id`, server tools) and Completions-only
-knobs (`n`, `logprobs`, `stop`) will land as they arrive, each still nested inside its own family's
-container field per the wrapping convention below.
+**v1: LangChain4j-backed.** Extend the abstract `LangChain4JChatModelFactory<T extends
+ProviderConfiguration>` (v1's `ProviderConfiguration`) — supply `providerType()` and
+`createChatModel(T)` plus a matching `ProviderConfiguration` subtype; `supports`/`create` are already
+implemented by the base class. Reference: `AnthropicChatModelFactory`
+(`aiagent/chatmodel/provider/langchain4j/factory`) with `AnthropicProviderConfiguration`. Only
+`aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*` (invariant I1).
 
-**Backends: `openai-api` and `custom`.** `OpenAiApiBackend` targets the OpenAI API itself (required
-`apiKey`, optional `organizationId`/`projectId`) plus a hidden override quartet —
-`endpoint`/`headers`/`queryParameters`/`bodyProperties`, all `PropertyType.Hidden` with
-`FeelMode.disabled`, grouped under `advanced-provider-options` — that mirrors
-`AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend` field-for-field, down to a
-`toString` redacting the same four sensitive fields via `redactValues`. `OpenAiCustomBackend` targets
-any OpenAI-compatible endpoint: a required `endpoint` base URL (the SDK appends `/chat/completions` or
-`/responses` depending on the selected family), visible `headers`/`queryParameters`/`bodyProperties`
-in the same group, and `OpenAiCustomEndpointAuthentication` — required `apiKey` only, no `none`
-option. Unlike `AnthropicCustomEndpointAuthentication`, OpenAI has no genuine no-auth variant: the
-openai-java SDK client builder requires a credential source to build at all, so a "none" choice would
-silently send a placeholder credential rather than actually sending nothing — kept as its own
-polymorphic type (not a flat `apiKey` field) so a future OAuth 2.0 variant can be added without
-restructuring. Headers, query parameters, and body properties are merged onto the request by
-`OpenAiRequestCustomizations` (shared
-between `OpenAiCompletionsRequestConverter`/`OpenAiResponsesRequestConverter`) rather than the client
-builder, matching `AnthropicMessageRequestConverter`'s `RequestCustomizations`. Azure OpenAI is not a
-backend here, deferred exactly as Anthropic's Bedrock backend was deferred out of its own PR.
+**v2: fully native.** Implement `ChatModel`/`ChatModelFactory` directly with your own
+`ChatModelConfiguration`, staying out of the `langchain4j` package. Two reference implementations:
+`AnthropicChatModelFactory` (`aiagent/chatmodel/provider/anthropic`) with
+`AnthropicChatModelConfiguration`, and `OpenAiChatModelFactory`
+(`aiagent/chatmodel/provider/openai`) with `OpenAiChatModelConfiguration` (both under
+`model/request/v2`) — see provider-specific notes below for how they differ. A v2 provider without a
+built-in factory falls through to `CustomProviderConfiguration` (`model/request/v2`, discriminator
+`custom`, Self-Managed/Hybrid only): it carries a user-chosen `providerType` (dispatch discriminator),
+a dedicated `model` field (so agent-instance reporting works without digging it out of opaque
+config), and an opaque `parameters` map understood only by your factory. `LangChain4JChatModelFactory`
+cannot be extended for it — it's bound to v1's `ProviderConfiguration`, a different sealed hierarchy —
+but its building block, `LangChain4JChatModel`, is a public, framework-agnostic `ChatModel` wrapper:
+build your own `dev.langchain4j.model.chat.ChatModel`, wrap it in a `CloseableChatModel`, and construct
+a `LangChain4JChatModel` directly if you want to reuse LangChain4j from a v2-native factory. No
+built-in factory ever matches `CustomProviderConfiguration`, so the registry fails with the ordinary
+"no factory registered" error until you register one.
 
-**Reasoning effort on both families; encrypted round-trip on Responses only.** A single nullable
-`OpenAiEffort` enum (`minimal`|`low`|`medium`|`high`|`xhigh`|`max`, serialized lowercase; unset omits
-the field and the model default applies) is exposed per family. `OpenAiCompletionsRequestConverter`
-maps it onto `ChatCompletionCreateParams.reasoningEffort` as an input-only knob — no reasoning content
-comes back on Completions, and `reasoning_tokens` is surfaced from `completion_tokens_details`
-instead. `OpenAiResponsesRequestConverter` maps it onto `Reasoning.builder().effort(...)` and,
-whenever effort is set, additionally sets `store(false)` and requests
-`include: ["reasoning.encrypted_content"]`; `store(false)` is correct because the connector persists
-conversation state itself, so OpenAI-side state would only compete with the agent context for
-authority. `OpenAiResponsesResponseConverter` captures the returned `reasoning` output item as
-`ReasoningContent` whose `payload` is the **full raw item**, built with the SDK's own
-`com.openai.core.ObjectMappers.jsonMapper()` rather than the injected app `ObjectMapper` (the wrong
-mapper leaks a spurious field onto the wire). Mirroring Anthropic's `thinking` handling, a non-empty
-`summary` is also joined and lifted onto `ReasoningContent.text`; whether it is additionally *stripped*
-from `payload` depends on whether it can be reconstructed byte-identical from that joined string alone
-(exactly one summary entry, with no additional fields) — when it can, `text` is the sole copy and
-`OpenAiResponsesRequestConverter.mergeReasoningText` rebuilds `summary` on replay, otherwise `summary`
-is left untouched in `payload` (duplicated with `text`) since reconstructing it from a single string
-would be lossy. There is no runtime validation that a chosen model supports effort; an unsupported
-combination surfaces as the provider's own API error, the same contract every other v2 model parameter
-has.
+Every new v2 provider backend must follow three conventions, regardless of provider:
 
-**Caching: automatic, read-only, unconfigured.** OpenAI caches prompt prefixes above roughly 1024
-tokens automatically, with nothing to enable and no analog to Anthropic's explicit cache-control
-breakpoints. It reports only a read metric (`cached_tokens`, surfaced through
-`TokenUsage.cacheReadTokenCount`) — there is no cache-*write* count, so the real-provider acceptance
-row sets `reportsCacheCreationTokens = false` rather than asserting a metric OpenAI can never report.
+- **Backend-subtype wrapping.** A backend is a sealed interface with one `@TemplateSubType` per
+  variant, discriminated by a `type` property (see `AnthropicChatModelConfiguration.AnthropicBackend`).
+  The template generator flat-validates that every generated property id is globally unique across the
+  whole template, with no awareness that sibling discriminator subtypes are mutually exclusive — so
+  two subtypes with a same-named field (e.g. both an `apiKey`) collide even though only one is ever
+  active. Fix: each subtype wraps all of its own fields inside a single container field, uniquely
+  named for that subtype (e.g. `anthropic`, `custom`) — the generator derives a container's id-path
+  prefix from the Java field name, so this makes every subtype's subtree collision-proof with no
+  per-leaf `id=` overrides. The wrapper name doesn't need to match the `@TemplateSubType` id verbatim
+  (ids may contain `-`, invalid in a Java identifier), only to differ from every sibling's. Extract
+  each subtype's discriminator string into a `public static final String` constant on that subtype's
+  own record, and reference it from all three places (the `@TemplateSubType` id / `@JsonSubTypes.Type`
+  name / `type()`) plus the discriminator's `defaultValue`.
+- **Provider-namespaced metadata.** Any provider-specific data a converter attaches outside a domain
+  object's mapped fields — on a content block's `metadata` ([§5](#5-data-model-agent-context)) or on
+  `AssistantMessage#metadata()` — must nest under a single provider key (`"anthropic"`, `"openai"`),
+  never as top-level entries. Keeps different providers' metadata from colliding and keeps the common
+  case metadata-free.
+- **Stamping `AssistantMessage#metadata()`.** Build it through
+  `AssistantMessageMetadata.withDefaults(providerMetadata)` (`aiagent/util`), passing only your own
+  provider-namespaced entries (or `Map.of()`); it adds the common `timestamp` entry. Never call
+  `AssistantMessage.builder().metadata(...)` with a raw map directly. Reference implementations:
+  `AnthropicMessageResponseConverter` (native) and `ChatMessageConverterImpl` (LangChain4j).
 
-**Tool-result documents: native items on Responses, synthetic `<doc/>` on Completions.**
-`OpenAiContentConverter.toToolResultOutputItems` emits Responses tool results as
-`FunctionCallOutput.Output.ofResponseFunctionCallOutputItemList(items)`, with documents classified and
-mapped onto native `input_file`/`input_image` items so the model can actually read the attachment —
-emitting a JSON string of the document *reference* instead is the failure mode this deliberately
-avoids. Chat Completions tool-role messages are genuinely text-only, so `OpenAiCompletionsRequestConverter`
-keeps tool results as text and documents reach the model only through the synthetic `<doc/>` user
-message `AgentConversationTurnInputComposerImpl` already appends. Neither converter carries a private
-fix for the shared tool-result double-send / reference-blob-leak issue that affects Anthropic and
-Bedrock Converse identically (a bare `Document` tool result is rendered as a native document block
-*and* independently re-appended in the synthetic `<doc/>` message); this provider deliberately mirrors
-the Anthropic converters' behavior here and inherits the fix from that PR on rebase rather than
-carrying a local workaround.
+**Anthropic v2 specifics.** One wire format (the Messages API), so a single backend axis covers
+everything: `AnthropicBackend` (`anthropic-api` | `aws-bedrock-mantle` | `custom`). Reasoning effort,
+extended thinking, and prompt caching are model parameters, not backend concerns — see
+`AnthropicChatModelConfiguration.AnthropicModel.AnthropicModelParameters`. `AnthropicMessageRequestConverter`/
+`AnthropicMessageResponseConverter` handle the whole request/response cycle uniformly across backends.
 
-**Truncation maps to `LENGTH`, and does not raise.** `finish_reason=length` (Completions) and an
-`incomplete_details.reason` of `max_output_tokens` (Responses) both map to the domain
-`StopReason.LENGTH`, mirroring `AnthropicMessageResponseConverter`'s `MAX_TOKENS -> LENGTH` mapping;
-normal completion maps to `STOP`, `tool_calls`/`function_call` (or one-or-more `function_call` output
-items on Responses) map to `TOOL_USE`, and `content_filter` maps to `CONTENT_FILTERED` on both
-families. The [terminal-stop-reason guard](#12-framework-abstraction) only throws for
-`CONTENT_FILTERED` (and `CONTEXT_WINDOW_EXCEEDED`, which neither family emits), so `LENGTH` is
-returned as an ordinary `ChatResult.Completed` and never fails the job — all native providers on this
-branch behave identically on truncation today. Any `finish_reason` this SDK version does not recognize
-falls back to `StopReason.UnknownStopReason`, carrying the raw vendor value verbatim, and any
-provider-specific metadata a converter attaches is nested under the `"openai"` key per the
-provider-namespaced metadata convention below.
+**OpenAI v2 specifics.** Two orthogonal sealed axes instead of one: `OpenAiApi` (`completions` |
+`responses`, default `responses`) and `OpenAiBackend` (`openai-api` | `custom`, default
+`openai-api`) vary independently, so any backend can serve either wire format. The wire format is a
+sealed discriminator rather than a flat enum so each family gets its own namespace for
+family-specific knobs — e.g. the differing max-token field name (`maxCompletionTokens` vs
+`maxOutputTokens`) — without `condition` gating or collisions.
 
-**Deferred**, so absence here is not oversight: server tools (`web_search`, `code_interpreter` — no
-config toggles and no request provisioning; the `ProviderContent` capture/replay path already exists,
-so a future provisioning layer only adds configuration); the Azure OpenAI backend (its own PR, as
-Anthropic's Bedrock backend was); `store: true` / server-side conversation state (an additive field
-under `provider.openai.api.responses.*` plus `previous_response_id` threading, dropping the
-encrypted-content `include`); and generalizing `RESPONSE_TRUNCATED` into a cross-provider error, which
-belongs in one core change covering every native provider at once rather than a per-provider
-workaround.
-
-**Backend-subtype wrapping convention (v2, mandatory for every new backend).** A v2 provider's
-backend is a sealed interface with one `@TemplateSubType` per backend variant, discriminated by a
-`type` property (see `AnthropicChatModelConfiguration.AnthropicBackend`). The element template
-generator flat-validates that every generated property id is globally unique across the whole
-template — it has no awareness that sibling discriminator subtypes are mutually exclusive, so two
-subtypes with a same-named field (e.g. both an `apiKey`, both an `endpoint`) collide even though only
-one is ever active at a time. The fix, applied uniformly to every subtype including the default: each
-subtype wraps **all** of its own fields inside a single container field, uniquely named for that
-subtype (e.g. `anthropic` for `AnthropicApiBackend`, `custom` for `AnthropicCustomBackend`) — since the
-generator derives a container's id-path prefix purely from the Java field name, this makes every
-subtype's whole subtree collision-proof regardless of what its siblings look like, with no per-leaf
-`id=` overrides needed. The wrapper field name does not need to match the subtype's `@TemplateSubType`
-id verbatim (ids may contain characters, such as `-`, invalid in a Java identifier) — it only needs to
-be distinct from every sibling's wrapper field name. Extract each subtype's discriminator string (the
-`@TemplateSubType` id / `@JsonSubTypes.Type` name / `type()` return value — all the same string) into a
-`public static final String` constant on that subtype's own record, and reference the constant from
-all three places plus the discriminator's `defaultValue`, so the string is defined once. Apply this
-convention to every new v2 provider backend (OpenAI, Gemini, Bedrock, etc.), not just Anthropic's.
-
-**Provider-namespaced metadata convention.** Any provider-specific data a converter attaches outside
-a domain object's mapped fields — whether on a content block (`TextContent`/`ToolCall`'s `metadata`,
-see [§5](#5-data-model-agent-context)) or on the message itself (`AssistantMessage#metadata()`, e.g.
-the raw vendor stop reason) — must be nested under a single provider-namespaced key (`"anthropic"`
-for the Anthropic converters, `"openai"` for the OpenAI converters), never written as top-level
-metadata entries. This keeps metadata from
-different providers (and future cross-provider fields) from colliding, and keeps the common,
-nothing-extra-to-preserve case metadata-free. Apply this to every new provider's converters.
-
-**Stamping `AssistantMessage#metadata()`.** Every response converter must build the assistant
-message's `metadata` map through `AssistantMessageMetadata.withDefaults(providerMetadata)`
-(`aiagent/util`), passing only its own provider-namespaced entries (or `Map.of()` if it has none) as
-`providerMetadata`. The util adds the common `timestamp` entry (when the model responded) so it can't
-be forgotten by a new provider and stays identically shaped across all of them; never call
-`AssistantMessage.builder().metadata(...)` with a raw `Map.of(...)` directly. Reference
-implementations: `AnthropicMessageResponseConverter` (native) and `ChatMessageConverterImpl`
-(LangChain4j).
-
-The v2 request's `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/
-Hybrid only) is the connector-facing entry point for this SPI: it carries a user-chosen `providerType`
-(dispatch discriminator), a dedicated `model` field (so agent-instance history/reporting works without
-digging it out of opaque config), and an opaque `parameters` map understood only by the user's factory.
-To use it, implement `ChatModelFactory` directly, matching your chosen discriminator string inside
-`supports(...)`, and register it as a Spring bean. `LangChain4JChatModelFactory` itself is
-bound to `ProviderConfiguration` and cannot be extended for `CustomProviderConfiguration`, but its
-building block, `LangChain4JChatModel`, is a public, framework-agnostic `ChatModel` wrapper: a custom
-factory that wants to reuse LangChain4J can build its own `dev.langchain4j.model.chat.ChatModel`, wrap it
-in a `CloseableChatModel`, and construct a `LangChain4JChatModel` directly. `ChatModelRegistryImpl` then
-dispatches `CustomProviderConfiguration` requests to the registered factory the
-same way it dispatches any other provider. No built-in factory ever matches `CustomProviderConfiguration`
-— it exists purely so the registry fails with the ordinary "no factory registered" error until the user
-registers one.
+- *Backends.* `OpenAiApiBackend` mirrors `AnthropicApiBackend` field-for-field (`apiKey` plus a hidden
+  `endpoint`/`headers`/`queryParameters`/`bodyProperties` override quartet). `OpenAiCustomBackend`
+  takes a required `endpoint` (the SDK appends `/chat/completions` or `/responses`) and
+  `OpenAiCustomEndpointAuthentication` — API key only, no no-auth option, because the openai-java SDK
+  client builder requires a credential source to build at all (unlike Anthropic's genuine no-auth
+  `AnthropicCustomEndpointAuthentication.NoAuthentication`); kept polymorphic for a future OAuth 2.0
+  variant. Headers/query/body are merged by `OpenAiRequestCustomizations` (shared between both
+  converters), not the client builder, matching `AnthropicMessageRequestConverter`'s
+  `RequestCustomizations`. Azure OpenAI is a deferred backend, same as Anthropic's Bedrock.
+- *Reasoning effort.* One nullable `OpenAiEffort` enum per family. Completions maps it to
+  `reasoningEffort` (input-only; no reasoning content returns — `reasoning_tokens` comes from
+  `completion_tokens_details` instead). Responses maps it to `Reasoning.builder().effort(...)` and,
+  when set, also sets `store(false)` and requests `include: ["reasoning.encrypted_content"]` (the
+  connector owns conversation state, so OpenAI-side state would only compete for authority).
+  `OpenAiResponsesResponseConverter` captures the `reasoning` item as `ReasoningContent` with the full
+  raw item as `payload` (built via the SDK's own `ObjectMappers.jsonMapper()` — the app `ObjectMapper`
+  leaks a spurious field). A non-empty `summary` is joined onto `ReasoningContent.text`; it's stripped
+  from `payload` only when reconstructible byte-identical on replay, otherwise both copies stay.
+- *Caching.* Automatic and read-only — no config, no cache-write metric, so the acceptance row sets
+  `reportsCacheCreationTokens = false`.
+- *Tool-result documents.* Native `input_file`/`input_image` items on Responses
+  (`OpenAiContentConverter.toToolResultOutputItems`); Completions' tool-role messages are text-only, so
+  documents reach the model only through the synthetic `<doc/>` message
+  `AgentConversationTurnInputComposerImpl` already appends. Neither converter carries a private fix
+  for the shared tool-result double-send/reference-blob-leak issue (affects Anthropic/Bedrock Converse
+  identically) — it deliberately mirrors Anthropic's behavior and inherits the fix from that PR on
+  rebase.
+- *Truncation.* `finish_reason=length` / `incomplete_details.reason=max_output_tokens` both map to
+  `StopReason.LENGTH` (mirrors Anthropic's `MAX_TOKENS`); normal completion maps to `STOP`, tool calls
+  to `TOOL_USE`, `content_filter` to `CONTENT_FILTERED`. Only `CONTENT_FILTERED` trips the
+  [terminal-stop-reason guard](#12-framework-abstraction), so `LENGTH` never fails the job.
+  Unrecognized `finish_reason` values fall back to `StopReason.UnknownStopReason` with the raw value
+  preserved.
+- *Deferred.* Server tools (`web_search`, `code_interpreter` — capture/replay path exists,
+  provisioning doesn't); the Azure OpenAI backend (own PR, like Anthropic's Bedrock); `store: true`
+  server-side conversation state; generalizing `RESPONSE_TRUNCATED` into a cross-provider error
+  (belongs in one core change, not a per-provider workaround).
 
 <a id="252-add-a-systempromptcontributor"></a>
 
