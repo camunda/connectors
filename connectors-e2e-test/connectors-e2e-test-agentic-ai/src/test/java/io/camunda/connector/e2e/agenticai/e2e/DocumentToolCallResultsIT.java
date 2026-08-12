@@ -91,7 +91,8 @@ import org.springframework.core.io.ResourceLoader;
       "camunda.process-test.judge.chat-model.region=eu-central-1",
       "camunda.process-test.judge.chat-model.credentials.access-key=${AWS_BEDROCK_ACCESS_KEY:NOT_SET}",
       "camunda.process-test.judge.chat-model.credentials.secret-key=${AWS_BEDROCK_SECRET_KEY:NOT_SET}",
-      "camunda.process-test.judge.threshold=0.6"
+      "camunda.process-test.judge.threshold=0.6",
+      "logging.level.io.camunda.connector.agenticai=TRACE"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest

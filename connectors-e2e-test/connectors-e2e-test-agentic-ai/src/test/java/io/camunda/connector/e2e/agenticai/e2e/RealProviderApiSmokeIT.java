@@ -71,7 +71,8 @@ import org.springframework.core.io.ResourceLoader;
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=false",
       "camunda.connector.polling.enabled=false",
-      "camunda.connector.agenticai.tools.process-definition.cache.enabled=false"
+      "camunda.connector.agenticai.tools.process-definition.cache.enabled=false",
+      "logging.level.io.camunda.connector.agenticai=TRACE"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
