@@ -131,6 +131,7 @@ class DocumentReturnProcessorTest {
         "[1,2,3] </body>",
         "<html>err</html>",
         "OK",
+        "{\"a\":1",
         "",
         "   \n\t "
       })
@@ -205,6 +206,28 @@ class DocumentReturnProcessorTest {
     assertThatThrownBy(() -> processor.process(ret, format(DocumentReturnChoice.JSON)))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("not valid JSON");
+  }
+
+  @Test
+  void textChoiceStillReturnsPayloadWithTrailingContentVerbatim() {
+    String body = "123 <html>error</html>";
+    RawPayload payload = RawPayload.of(body.getBytes(StandardCharsets.UTF_8), "text/html", null);
+
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
+
+    assertThat(processor.process(ret, format(DocumentReturnChoice.TEXT))).isEqualTo(body);
+  }
+
+  @Test
+  void documentChoiceStillAcceptsPayloadWithTrailingContent() {
+    RawPayload payload =
+        RawPayload.of(
+            "123 <html>error</html>".getBytes(StandardCharsets.UTF_8), "text/html", "err.html");
+
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
+
+    assertThat(processor.process(ret, format(DocumentReturnChoice.DOCUMENT)))
+        .isInstanceOf(Document.class);
   }
 
   @Test
