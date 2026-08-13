@@ -89,12 +89,22 @@ public class BedrockConverseContentConverter {
     return blocks;
   }
 
+  /**
+   * Converts tool-result content to Converse {@link ToolResultContentBlock}s.
+   *
+   * <p>A document is always flattened to the same {@code document-ref:} JSON reference an embedded
+   * document already gets here (see {@link BedrockDocuments}), never embedded natively: the
+   * composer echoes every tool-result document in a separate synthetic user message, which is the
+   * one place its real bytes are delivered. Embedding it here as well would send it twice and trip
+   * Converse's duplicate-document-name validation.
+   */
   public List<ToolResultContentBlock> toToolResultBlocks(List<Content> content) {
     final List<ToolResultContentBlock> blocks = new ArrayList<>();
     for (final Content c : content) {
       switch (c) {
         case TextContent text -> blocks.add(ToolResultContentBlock.fromText(text.text()));
-        case DocumentContent doc -> blocks.add(toToolResultDocumentBlock(doc));
+        case DocumentContent doc ->
+            blocks.add(ToolResultContentBlock.fromJson(toBedrockDocument(doc.document())));
         case ObjectContent obj ->
             blocks.add(ToolResultContentBlock.fromJson(toBedrockDocument(obj.content())));
         case ReasoningContent rc ->
@@ -153,22 +163,6 @@ public class BedrockConverseContentConverter {
               "Unsupported content type '%s' for document with reference '%s'"
                   .formatted(contentType, document.reference()));
     };
-  }
-
-  private ToolResultContentBlock toToolResultDocumentBlock(DocumentContent doc) {
-    final ContentBlock block = documentContentBlock(doc);
-    final ImageBlock image = block.image();
-    if (image != null) {
-      return ToolResultContentBlock.fromImage(image);
-    }
-    final DocumentBlock document = block.document();
-    if (document != null) {
-      return ToolResultContentBlock.fromDocument(document);
-    }
-    // documentContentBlock() only ever returns an image or a document ContentBlock, or throws for
-    // an unsupported content type, so this is unreachable.
-    throw new IllegalStateException(
-        "Unexpected content block produced for document content: " + block.type());
   }
 
   /**

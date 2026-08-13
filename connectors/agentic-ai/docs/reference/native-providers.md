@@ -97,6 +97,15 @@ capability matrix this module does not have yet.
 Opt-in per model (`BedrockModelParameters.promptCaching.enabled`, default `false`), expressed as
 Converse `cachePoint` blocks. Converse always reports a distinct cache-write count in `TokenUsage`.
 
+### Tool-result documents
+
+A document inside a tool result always renders as the same `document-ref:<id>` JSON reference an
+embedded document already gets (`BedrockConverseContentConverter.toToolResultBlocks`, see
+`BedrockDocuments`), never embedded natively, regardless of content type. The composer's `<doc/>`
+fallback message is the document's only delivery channel; embedding it here too would send the
+bytes twice and trip Converse's duplicate-document-name validation, since `DocumentHandle.idFor`
+produces the same name in both places.
+
 ### Truncation
 
 `stopReason` maps to the domain `StopReason`: `end_turn`/`stop_sequence` → `STOP`, `tool_use` →

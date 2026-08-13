@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import software.amazon.awssdk.services.bedrockruntime.model.CachePointBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.CachePointType;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
@@ -232,43 +234,28 @@ class BedrockConverseContentConverterTest {
       assertThat(blocks.get(0).text()).isEqualTo("hello");
     }
 
-    @Test
-    void mapsImageDocumentToImageBlock() {
-      final var doc = inlineDocument("fake-jpeg-bytes", "photo.jpg", "image/jpeg");
+    @ParameterizedTest
+    @CsvSource({
+      "photo.jpg, image/jpeg",
+      "report.pdf, application/pdf",
+      "notes.txt, text/plain",
+      "archive.zip, application/zip"
+    })
+    void mapsDocumentToJsonReferenceRegardlessOfContentType(String fileName, String contentType) {
+      // The composer echoes every tool-result document in a separate synthetic user message, which
+      // is where its real bytes are delivered; embedding it here as well would send it twice and
+      // trip Converse's duplicate-document-name validation. Content type is therefore irrelevant
+      // here - even one with no native block shape at all just becomes a reference.
+      final var doc = inlineDocument("fake-bytes", fileName, contentType);
 
       final var blocks = converter.toToolResultBlocks(List.of(new DocumentContent(doc, null)));
 
       assertThat(blocks).hasSize(1);
-      final var image = blocks.get(0).image();
-      assertThat(image).isNotNull();
-      assertThat(image.format()).isEqualTo(ImageFormat.JPEG);
-      assertThat(image.source().bytes().asByteArray())
-          .isEqualTo("fake-jpeg-bytes".getBytes(StandardCharsets.UTF_8));
-    }
-
-    @Test
-    void mapsNativeDocumentFormatToDocumentBlock() {
-      final var doc = inlineDocument("fake-pdf-bytes", "report.pdf", "application/pdf");
-
-      final var blocks = converter.toToolResultBlocks(List.of(new DocumentContent(doc, null)));
-
-      assertThat(blocks).hasSize(1);
-      final var document = blocks.get(0).document();
-      assertThat(document).isNotNull();
-      assertThat(document.format()).isEqualTo(DocumentFormat.PDF);
-      assertThat(document.name()).isEqualTo(DocumentHandle.idFor(doc));
-    }
-
-    @Test
-    void mapsTextIshDocumentToTxtFormatDocumentBlock() {
-      final var doc = inlineDocument("plain text content", "notes.txt", "text/plain");
-
-      final var blocks = converter.toToolResultBlocks(List.of(new DocumentContent(doc, null)));
-
-      assertThat(blocks).hasSize(1);
-      final var document = blocks.get(0).document();
-      assertThat(document).isNotNull();
-      assertThat(document.format()).isEqualTo(DocumentFormat.TXT);
+      assertThat(blocks.get(0).image()).isNull();
+      assertThat(blocks.get(0).document()).isNull();
+      final var json = blocks.get(0).json();
+      assertThat(json).isNotNull();
+      assertThat(json.asString()).isEqualTo("document-ref:" + DocumentHandle.idFor(doc));
     }
 
     @Test
@@ -348,17 +335,6 @@ class BedrockConverseContentConverterTest {
           .isEqualTo("document-ref:" + DocumentHandle.idFor(report));
       assertThat(json.asMap().get("metadata").asMap().get("cover").asString())
           .isEqualTo("document-ref:" + DocumentHandle.idFor(cover));
-    }
-
-    @Test
-    void throwsForUnsupportedDocumentContentType() {
-      final var doc = inlineDocument("zip-bytes", "archive.zip", "application/zip");
-
-      assertThatThrownBy(
-              () -> converter.toToolResultBlocks(List.of(new DocumentContent(doc, null))))
-          .isInstanceOf(ConnectorException.class)
-          .hasFieldOrPropertyWithValue("errorCode", "FAILED_MODEL_CALL")
-          .hasMessageContaining("application/zip");
     }
 
     @Test
