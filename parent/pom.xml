@@ -88,6 +88,10 @@ limitations under the License.</license.inlineheader>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.22.1</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.22.1</version.jackson-datatype-jsr310>
+    <!-- Jackson 3.x line (tools.jackson:*), separate from the legacy com.fasterxml.jackson:jackson-bom
+         above. Spring Boot 4.x defaults this to its own jackson-bom.version property, which does not
+         track the same fix cadence as the legacy line, so it must be pinned independently. -->
+    <version.jackson3-bom>3.1.5</version.jackson3-bom>
     <version.hibernate-validator>9.1.3.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.json>20250517</version.json>
@@ -221,6 +225,14 @@ limitations under the License.</license.inlineheader>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
         <version>${version.jackson-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- Jackson 3.x BOM -->
+      <dependency>
+        <groupId>tools.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${version.jackson3-bom}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -1132,6 +1144,23 @@ not just the property), remove the tomcat-embed-core/tomcat-embed-el/tomcat-embe
 tomcat-annotations-api dependencyManagement entries, the tomcat.version property, and this
 enforcer rule from parent/pom.xml.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-55955
+                </regexMessage>
+              </requireProperty>
+              <!-- CVE-2026-59889 guard: fails if version.spring-boot is bumped, as a reminder to
+                   check whether the jackson3-bom override can be removed (see version.jackson3-bom).
+                   spring-boot-dependencies manages tools.jackson:jackson-bom via its own
+                   jackson-bom.version property, separate from the legacy com.fasterxml.jackson:jackson-bom
+                   line already overridden above - it is not covered by that override. -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^4\.1\.0$</regex>
+                <regexMessage>
+version.spring-boot was changed! Check if the jackson3-bom CVE-2026-59889 override can be removed.
+If the new spring-boot-dependencies BOM ships tools.jackson:jackson-bom &gt;= 3.1.5 (confirm with
+`mvn dependency:tree -Dincludes=tools.jackson.core:jackson-databind`, not just the property),
+remove the version.jackson3-bom property, the tools.jackson:jackson-bom dependencyManagement entry,
+and this enforcer rule from parent/pom.xml.
+See: https://nvd.nist.gov/vuln/detail/CVE-2026-59889
                 </regexMessage>
               </requireProperty>
             </rules>
