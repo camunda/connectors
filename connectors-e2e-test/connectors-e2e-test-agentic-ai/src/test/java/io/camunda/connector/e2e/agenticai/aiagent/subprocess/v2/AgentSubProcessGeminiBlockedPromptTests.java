@@ -90,9 +90,10 @@ class AgentSubProcessGeminiBlockedPromptTests extends BaseGeminiNativeSubProcess
     // then rejected as terminal.
     assertContentFilteredIncident(zeebeTest);
 
-    assertThat(recordedLoggedRequests())
-        .as("a blocked prompt must not be retried at the model-call level")
-        .hasSize(1);
+    // One model call per job attempt, and FAIL_FAST allows exactly one attempt. Note this does NOT
+    // mean a blocked prompt is never re-sent: with the template's default retryCount of 3, each
+    // retry issues a fresh model call for a request that cannot succeed.
+    assertThat(recordedLoggedRequests()).as("model calls for the single job attempt").hasSize(1);
   }
 
   @Test
