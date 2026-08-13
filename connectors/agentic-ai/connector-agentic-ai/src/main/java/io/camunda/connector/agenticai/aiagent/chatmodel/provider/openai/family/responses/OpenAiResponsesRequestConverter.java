@@ -40,7 +40,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi.ResponsesParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
@@ -107,10 +106,10 @@ public class OpenAiResponsesRequestConverter {
   private @Nullable ResponsesParameters responsesParameters(OpenAiConnection connection) {
     return switch (connection.api()) {
       case OpenAiResponsesApi responsesApi -> responsesApi.responses();
-      case OpenAiApi.OpenAiCompletionsApi completionsApi ->
+      default ->
           throw new IllegalArgumentException(
               "OpenAiResponsesRequestConverter requires the 'responses' API family, but was configured with '%s'"
-                  .formatted(completionsApi.type()));
+                  .formatted(connection.api().type()));
     };
   }
 
