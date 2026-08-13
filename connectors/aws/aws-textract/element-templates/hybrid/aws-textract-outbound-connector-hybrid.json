@@ -167,10 +167,10 @@
     "tooltip" : "Where the document to be analyzed is stored.",
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Uploaded document",
+      "name" : "From Process or URL",
       "value" : "UPLOADED"
     }, {
-      "name" : "Amazon S3",
+      "name" : "From Amazon S3",
       "value" : "S3"
     } ]
   }, {
