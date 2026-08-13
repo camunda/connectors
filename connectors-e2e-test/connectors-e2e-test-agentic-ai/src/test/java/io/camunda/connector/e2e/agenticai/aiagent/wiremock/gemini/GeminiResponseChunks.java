@@ -110,8 +110,8 @@ public final class GeminiResponseChunks {
   public static final class Builder {
 
     private final List<Part> parts = new ArrayList<>();
-    // Not annotated @Nullable: a type annotation on a qualified nested type is a compile error
-    // here.
+    // Both nullable. Annotating a qualified nested type requires the FinishReason.@Nullable Known
+    // form, which is not worth the noise on a private field in a test builder.
     private FinishReason.Known finishReason;
     private BlockedReason.Known blockReason;
     private @Nullable String blockReasonMessage;

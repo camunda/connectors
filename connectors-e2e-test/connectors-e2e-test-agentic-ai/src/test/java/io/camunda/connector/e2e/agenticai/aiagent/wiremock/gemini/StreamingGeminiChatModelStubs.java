@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock.gemini;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
@@ -63,6 +64,11 @@ public final class StreamingGeminiChatModelStubs {
    */
   public static final String STREAM_GENERATE_CONTENT_PATH_PATTERN =
       "/v1beta/models/[^/]+:streamGenerateContent";
+
+  /** Query parameter the SDK appends to request SSE framing ({@code ?alt=sse}). */
+  public static final String ALT_QUERY_PARAM = "alt";
+
+  public static final String ALT_SSE = "sse";
 
   private static final String SCENARIO_NAME = "gemini-llm-conversation-sse";
 
@@ -147,6 +153,11 @@ public final class StreamingGeminiChatModelStubs {
 
       ScenarioMappingBuilder mapping =
           post(urlPathMatching(STREAM_GENERATE_CONTENT_PATH_PATTERN))
+              // Matching the query parameter too, not just the path: the SDK must request SSE
+              // framing explicitly (Gemini returns a buffered JSON array without it), so a
+              // regression that dropped `alt=sse` would leave this stub unmatched and fail a test
+              // rather than silently still matching.
+              .withQueryParam(ALT_QUERY_PARAM, equalTo(ALT_SSE))
               .inScenario(SCENARIO_NAME)
               .whenScenarioStateIs(fromState)
               .willReturn(sseResponse(bodies.get(i)));

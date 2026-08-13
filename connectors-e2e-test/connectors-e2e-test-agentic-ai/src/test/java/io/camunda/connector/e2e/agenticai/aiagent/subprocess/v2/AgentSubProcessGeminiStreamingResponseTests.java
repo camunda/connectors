@@ -89,7 +89,7 @@ class AgentSubProcessGeminiStreamingResponseTests extends BaseGeminiNativeSubPro
             GeminiResponseChunks.chunk()
                 .text("whisper.")
                 .finishReason(FinishReason.Known.STOP)
-                .usage(10, 20, 30, 0)
+                .usage(10, 20, 30, 7)
                 .build()));
     enqueueUserFeedback(userSatisfiedFeedback());
 
@@ -121,12 +121,22 @@ class AgentSubProcessGeminiStreamingResponseTests extends BaseGeminiNativeSubPro
                     })
                 // responseText only ever reflects the answer text, never the reasoning.
                 .hasResponseText("Endless waves whisper.")
-                // thoughtsTokenCount maps onto the domain reasoning counter.
                 .metricsSatisfy(
-                    metrics ->
-                        assertThat(metrics.tokenUsage().reasoningTokenCount())
-                            .as("reasoning token count from usageMetadata.thoughtsTokenCount")
-                            .isEqualTo(30)));
+                    metrics -> {
+                      // thoughtsTokenCount maps onto the domain reasoning counter.
+                      assertThat(metrics.tokenUsage().reasoningTokenCount())
+                          .as("reasoning token count from usageMetadata.thoughtsTokenCount")
+                          .isEqualTo(30);
+                      // Gemini's implicit caching reports cache READS only, mapped onto
+                      // cacheReadTokenCount; there is no cache-write counter, so
+                      // cacheCreationTokenCount stays at its default of 0.
+                      assertThat(metrics.tokenUsage().cacheReadTokenCount())
+                          .as("cache read token count from usageMetadata.cachedContentTokenCount")
+                          .isEqualTo(7);
+                      assertThat(metrics.tokenUsage().cacheCreationTokenCount())
+                          .as("Gemini reports no cache-write counter")
+                          .isZero();
+                    }));
   }
 
   @Test

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock.gemini;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
@@ -54,11 +55,19 @@ public final class GeminiStreamGenerateContentRequests {
 
   private GeminiStreamGenerateContentRequests() {}
 
-  /** All recorded model-call requests, oldest first. */
+  /**
+   * All recorded model-call requests, oldest first. Filters on the {@code alt=sse} query parameter
+   * as well as the path, matching {@link StreamingGeminiChatModelStubs}' stub: a regression that
+   * dropped SSE framing then surfaces as zero recorded requests instead of passing unnoticed.
+   */
   public static List<LoggedRequest> recorded() {
     final List<LoggedRequest> requests =
         new ArrayList<>(
-            findAll(postRequestedFor(urlPathMatching(STREAM_GENERATE_CONTENT_PATH_PATTERN))));
+            findAll(
+                postRequestedFor(urlPathMatching(STREAM_GENERATE_CONTENT_PATH_PATTERN))
+                    .withQueryParam(
+                        StreamingGeminiChatModelStubs.ALT_QUERY_PARAM,
+                        equalTo(StreamingGeminiChatModelStubs.ALT_SSE))));
     requests.sort(Comparator.comparing(LoggedRequest::getLoggedDate));
     return requests;
   }
