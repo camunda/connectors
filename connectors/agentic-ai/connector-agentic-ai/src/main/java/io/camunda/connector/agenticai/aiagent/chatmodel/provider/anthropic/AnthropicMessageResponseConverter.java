@@ -19,9 +19,13 @@ import com.anthropic.models.messages.ToolUseBlock;
 import com.anthropic.models.messages.Usage;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException.PartialResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -47,10 +51,14 @@ import org.springframework.util.StringUtils;
  * captured losslessly as {@link ProviderContent} rather than dropped.
  *
  * <p>The {@code pause_turn} stop reason surfaces as a {@link ChatResult.Continuation}; every other
- * stop reason surfaces as {@link ChatResult.Completed}. The raw vendor stop reason string is always
- * preserved under the {@code anthropic} provider-id key in {@link AssistantMessage#metadata()},
- * independent of how it normalizes to the domain {@code StopReason}; see {@link
- * AssistantMessageMetadata} for the {@code timestamp} entry every provider adds alongside it.
+ * stop reason surfaces as {@link ChatResult.Completed} - except {@code
+ * model_context_window_exceeded} and {@code refusal}, which throw {@link
+ * ContextWindowExceededException}/{@link ContentFilteredException} instead, carrying the assistant
+ * message and metrics already built for the turn as their {@link PartialResult}. The raw vendor
+ * stop reason string is always preserved under the {@code anthropic} provider-id key in {@link
+ * AssistantMessage#metadata()}, independent of how it normalizes to the domain {@code StopReason};
+ * see {@link AssistantMessageMetadata} for the {@code timestamp} entry every provider adds
+ * alongside it.
  */
 public class AnthropicMessageResponseConverter {
 
@@ -64,6 +72,19 @@ public class AnthropicMessageResponseConverter {
     final AssistantMessage assistantMessage = toAssistantMessage(message);
     final AgentMetrics metrics =
         toMetrics(message, assistantMessage.toolCalls().size(), executionTime);
+
+    if (assistantMessage.stopReason() instanceof UnknownStopReason unknown
+        && StopReason.MODEL_CONTEXT_WINDOW_EXCEEDED.asString().equals(unknown.value())) {
+      throw new ContextWindowExceededException(
+          "Model's context window was exceeded before it could finish generating a response.",
+          new PartialResult(assistantMessage, metrics));
+    }
+    if (assistantMessage.stopReason() instanceof UnknownStopReason unknown
+        && StopReason.REFUSAL.asString().equals(unknown.value())) {
+      throw new ContentFilteredException(
+          "Model response was blocked by provider content filtering.",
+          new PartialResult(assistantMessage, metrics));
+    }
 
     return isPaused(message)
         ? new ChatResult.Continuation(assistantMessage, metrics)
@@ -185,10 +206,9 @@ public class AnthropicMessageResponseConverter {
           io.camunda.connector.agenticai.aiagent.model.message.StopReason.STOP;
       case MAX_TOKENS -> io.camunda.connector.agenticai.aiagent.model.message.StopReason.LENGTH;
       case TOOL_USE -> io.camunda.connector.agenticai.aiagent.model.message.StopReason.TOOL_USE;
-      case REFUSAL ->
-          io.camunda.connector.agenticai.aiagent.model.message.StopReason.CONTENT_FILTERED;
-      case MODEL_CONTEXT_WINDOW_EXCEEDED ->
-          io.camunda.connector.agenticai.aiagent.model.message.StopReason.CONTEXT_WINDOW_EXCEEDED;
+      // MODEL_CONTEXT_WINDOW_EXCEEDED and REFUSAL never reach a returned ChatResult - toResult()
+      // throws before returning for both, using this same mapping's UnknownStopReason fallback
+      // only as the raw value stashed on the exception's partial AssistantMessage.
       default ->
           new io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason(
               stopReason.asString());

@@ -41,6 +41,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -56,7 +58,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
@@ -689,11 +690,9 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
-    final var filteredAssistantMessage =
-        AssistantMessage.builder().stopReason(StopReason.CONTENT_FILTERED).build();
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(any()))
-        .thenReturn(new ChatResult.Completed(filteredAssistantMessage, AgentMetrics.empty()));
+        .thenThrow(new ContentFilteredException("blocked by content filtering", null));
 
     assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
         .isInstanceOfSatisfying(
@@ -702,9 +701,9 @@ class AgentSubProcessRequestHandlerTest {
                 assertThat(e.getErrorCode())
                     .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED));
 
-    // the guard fires before ingest / history write: THINKING status + input-message history are
-    // sent before the model call, but the assistant-message history write and response handling
-    // never happen
+    // the provider throws before ingest / history write: THINKING status + input-message history
+    // are sent before the model call, but the assistant-message history write and response
+    // handling never happen
     verify(agentInstanceClient, never())
         .createHistoryForAssistantMessage(any(), any(), any(), any());
     verifyNoInteractions(responseHandler);
@@ -717,11 +716,9 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
-    final var truncatedAssistantMessage =
-        AssistantMessage.builder().stopReason(StopReason.CONTEXT_WINDOW_EXCEEDED).build();
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(any()))
-        .thenReturn(new ChatResult.Completed(truncatedAssistantMessage, AgentMetrics.empty()));
+        .thenThrow(new ContextWindowExceededException("context window exceeded", null));
 
     assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
         .isInstanceOfSatisfying(

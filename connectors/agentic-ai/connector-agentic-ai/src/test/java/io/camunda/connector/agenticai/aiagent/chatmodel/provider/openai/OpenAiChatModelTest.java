@@ -22,6 +22,7 @@ import com.openai.models.ErrorObject;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -115,9 +116,12 @@ class OpenAiChatModelTest {
     when(strategy.call(eq(client), eq(configuration), eq(request))).thenThrow(thrown);
 
     assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED);
+        .isInstanceOfSatisfying(
+            ContextWindowExceededException.class,
+            e -> {
+              assertThat(e.partialResult()).isNull();
+              assertThat(e.getCause()).isSameAs(thrown);
+            });
   }
 
   @Test

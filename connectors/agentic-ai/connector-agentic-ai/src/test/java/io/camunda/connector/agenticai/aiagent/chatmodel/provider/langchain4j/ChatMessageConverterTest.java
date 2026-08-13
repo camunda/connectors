@@ -563,7 +563,8 @@ class ChatMessageConverterTest {
         Arguments.of(FinishReason.STOP, StopReason.STOP),
         Arguments.of(FinishReason.LENGTH, StopReason.LENGTH),
         Arguments.of(FinishReason.TOOL_EXECUTION, StopReason.TOOL_USE),
-        Arguments.of(FinishReason.CONTENT_FILTER, StopReason.CONTENT_FILTERED),
+        Arguments.of(
+            FinishReason.CONTENT_FILTER, new StopReason.UnknownStopReason("CONTENT_FILTER")),
         Arguments.of(FinishReason.OTHER, new StopReason.UnknownStopReason("OTHER")));
   }
 

@@ -12,11 +12,14 @@ import com.openai.models.chat.completions.ChatCompletionMessage;
 import com.openai.models.chat.completions.ChatCompletionMessageFunctionToolCall;
 import com.openai.models.chat.completions.ChatCompletionMessageToolCall;
 import com.openai.models.completions.CompletionUsage;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException.PartialResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiToolCallArguments;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -40,8 +43,10 @@ import java.util.Map;
  * though no corresponding {@link ReasoningContent} exists on the message.
  *
  * <p>The domain {@link StopReason} is derived from the choice's {@code finish_reason}; see {@link
- * #mapStopReason} for the mapping. The Completions API has no equivalent of Anthropic's {@code
- * pause_turn} stop reason, so every call always surfaces as a {@link ChatResult.Completed}.
+ * #mapStopReason} for the mapping - except {@code content_filter}, which throws {@link
+ * ContentFilteredException} instead, carrying the assistant message and metrics already built for
+ * the turn as its {@link PartialResult}. The Completions API has no equivalent of Anthropic's
+ * {@code pause_turn} stop reason, so every other call surfaces as a {@link ChatResult.Completed}.
  *
  * <p>The raw vendor {@code finish_reason} string is always preserved under the {@code openai}
  * provider-id key in {@link AssistantMessage#metadata()}; see {@link AssistantMessageMetadata} for
@@ -61,6 +66,14 @@ public class OpenAiCompletionsResponseConverter {
     final AssistantMessage assistantMessage = toAssistantMessage(completion);
     final AgentMetrics metrics =
         toMetrics(completion, assistantMessage.toolCalls().size(), executionTime);
+
+    if (assistantMessage.stopReason() instanceof UnknownStopReason unknown
+        && ChatCompletion.Choice.FinishReason.CONTENT_FILTER.asString().equals(unknown.value())) {
+      throw new ContentFilteredException(
+          "Model response was blocked by provider content filtering.",
+          new PartialResult(assistantMessage, metrics));
+    }
+
     return new ChatResult.Completed(assistantMessage, metrics);
   }
 
@@ -96,16 +109,15 @@ public class OpenAiCompletionsResponseConverter {
   /**
    * Maps the Completions API's {@code finish_reason} to the domain {@link StopReason}: {@code stop}
    * maps to {@link StopReason#STOP}, {@code tool_calls}/{@code function_call} map to {@link
-   * StopReason#TOOL_USE}, {@code content_filter} maps to {@link StopReason#CONTENT_FILTERED}, and
-   * {@code length} maps to {@link StopReason#LENGTH} -- all returned as a normal completion rather
-   * than raised as an error (see the class Javadoc). An unrecognized value falls back to {@link
-   * StopReason.UnknownStopReason}, carrying the raw vendor value verbatim.
+   * StopReason#TOOL_USE}, and {@code length} maps to {@link StopReason#LENGTH} -- all returned as a
+   * normal completion rather than raised as an error (see the class Javadoc). An unrecognized value
+   * falls back to {@link StopReason.UnknownStopReason}, carrying the raw vendor value verbatim.
+   * {@code content_filter} never reaches this mapping - {@link #toResult} throws before calling it.
    */
   private StopReason mapStopReason(ChatCompletion.Choice.FinishReason finishReason) {
     return switch (finishReason.value()) {
       case STOP -> StopReason.STOP;
       case TOOL_CALLS, FUNCTION_CALL -> StopReason.TOOL_USE;
-      case CONTENT_FILTER -> StopReason.CONTENT_FILTERED;
       case LENGTH -> StopReason.LENGTH;
       default -> new StopReason.UnknownStopReason(finishReason.asString());
     };

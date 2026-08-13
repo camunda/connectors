@@ -43,10 +43,11 @@ composer's `<doc/>` fallback message already delivers aren't sent twice.
 ### Truncation
 
 `stop_reason` maps to the domain `StopReason`: `max_tokens` → `LENGTH`, `tool_use` → `TOOL_USE`,
-`refusal` → `CONTENT_FILTERED`, `model_context_window_exceeded` → `CONTEXT_WINDOW_EXCEEDED`,
 everything else → `STOP`. Unrecognized values fall back to `UnknownStopReason` with the raw value
-preserved. Only `CONTENT_FILTERED`/`CONTEXT_WINDOW_EXCEEDED` trip the
-[terminal-stop-reason guard](ai-agent.md#12-framework-abstraction).
+preserved. `refusal` and `model_context_window_exceeded` never reach this mapping: `toResult` throws
+`ContentFilteredException`/`ContextWindowExceededException` for them directly, carrying the
+assistant message and metrics already built for the turn as the exception's `PartialResult` (see
+[ai-agent.md §12](ai-agent.md#12-framework-abstraction)).
 
 ## OpenAI
 
@@ -88,12 +89,13 @@ content type — never embedded natively as `input_image`/`input_file`, so the b
 ### Truncation
 
 `finish_reason=length` / `incomplete_details.reason=max_output_tokens` both map to `StopReason.LENGTH`;
-normal completion maps to `STOP`, tool calls to `TOOL_USE`, `content_filter` to `CONTENT_FILTERED`.
-Unrecognized `finish_reason` values fall back to `StopReason.UnknownStopReason` with the raw value
-preserved. `CONTENT_FILTERED` is the only `StopReason` that trips the
-[terminal-stop-reason guard](ai-agent.md#12-framework-abstraction); `LENGTH` never fails the job.
+normal completion maps to `STOP`, tool calls to `TOOL_USE`. Unrecognized `finish_reason` values fall
+back to `StopReason.UnknownStopReason` with the raw value preserved. `content_filter` never reaches
+this mapping on either API family: `toResult` throws `ContentFilteredException` directly, carrying
+the assistant message and metrics already built for the turn as the exception's `PartialResult` (see
+[ai-agent.md §12](ai-agent.md#12-framework-abstraction)). `LENGTH` never fails the job.
 
 An over-length request is rejected outright with an HTTP 400 (`BadRequestException`,
 `code=context_length_exceeded`) on both API families, rather than completing with a stop reason;
-`OpenAiChatModel.execute` catches it directly and throws
-`ConnectorException(ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED)`.
+`OpenAiChatModel.execute` catches it directly and throws `ContextWindowExceededException` with no
+`PartialResult` (the request was rejected before any response body could be converted).

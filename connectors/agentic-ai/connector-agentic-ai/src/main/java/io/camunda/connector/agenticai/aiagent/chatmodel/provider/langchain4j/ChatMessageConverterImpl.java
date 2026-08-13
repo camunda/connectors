@@ -214,13 +214,16 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     return metadata.isEmpty() ? toolCall : toolCall.withMetadata(metadata);
   }
 
+  // CONTENT_FILTER never reaches this mapping as a normal StopReason value - LangChain4JChatModel
+  // throws a ContentFilteredException before returning a ChatResult built from it; the
+  // UnknownStopReason fallback below only surfaces as the raw value stashed on the partial
+  // AssistantMessage carried by that exception.
   private static StopReason toStopReason(FinishReason finishReason) {
     return switch (finishReason) {
       case STOP -> StopReason.STOP;
       case LENGTH -> StopReason.LENGTH;
       case TOOL_EXECUTION -> StopReason.TOOL_USE;
-      case CONTENT_FILTER -> StopReason.CONTENT_FILTERED;
-      case OTHER -> new StopReason.UnknownStopReason("OTHER");
+      default -> new StopReason.UnknownStopReason(finishReason.name());
     };
   }
 

@@ -20,7 +20,9 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * JSON string, see {@link #value()}) must remain backward compatible.
  *
  * <p>Continuation states (e.g. Anthropic {@code pause_turn}) are NOT represented here — see the
- * {@code ChatResult.Continuation} chat result.
+ * {@code ChatResult.Continuation} chat result. Context-window-exceeded and content-filtered
+ * conditions are NOT represented here either: a provider recognizing one throws {@code
+ * ChatModelRejectedException} directly instead of returning it as a normal finish reason.
  */
 public sealed interface StopReason
     permits StopReason.KnownStopReason, StopReason.UnknownStopReason {
@@ -28,8 +30,6 @@ public sealed interface StopReason
   StopReason STOP = KnownStopReason.STOP;
   StopReason LENGTH = KnownStopReason.LENGTH;
   StopReason TOOL_USE = KnownStopReason.TOOL_USE;
-  StopReason CONTENT_FILTERED = KnownStopReason.CONTENT_FILTERED;
-  StopReason CONTEXT_WINDOW_EXCEEDED = KnownStopReason.CONTEXT_WINDOW_EXCEEDED;
   StopReason GUARDRAIL = KnownStopReason.GUARDRAIL;
   StopReason ERROR = KnownStopReason.ERROR;
   StopReason ABORTED = KnownStopReason.ABORTED;
@@ -59,10 +59,6 @@ public sealed interface StopReason
     LENGTH,
     /** The model stopped to invoke one or more tools. */
     TOOL_USE,
-    /** The response was blocked or redacted by provider content filtering. */
-    CONTENT_FILTERED,
-    /** The model's total context window (input + output tokens) was exceeded. */
-    CONTEXT_WINDOW_EXCEEDED,
     /** The response was stopped by a provider-side guardrail policy. */
     GUARDRAIL,
     /** The provider reported an error while generating the response. */

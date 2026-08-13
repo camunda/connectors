@@ -19,11 +19,14 @@ import com.openai.models.responses.ResponseOutputMessage;
 import com.openai.models.responses.ResponseReasoningItem;
 import com.openai.models.responses.ResponseStatus;
 import com.openai.models.responses.ResponseUsage;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException.PartialResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiToolCallArguments;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -66,15 +69,15 @@ import org.springframework.util.StringUtils;
  *
  * <p>The domain {@link StopReason} is derived from the response shape rather than a single vendor
  * enum (the Responses API exposes none): an {@code incomplete_details.reason} of {@code
- * max_output_tokens} maps to {@link StopReason#LENGTH} and {@code content_filter} maps to {@link
- * StopReason#CONTENT_FILTERED} -- both still surfaced as a normal {@link ChatResult.Completed}
- * rather than thrown, mirroring {@code AnthropicMessageResponseConverter}'s {@code MAX_TOKENS ->
- * LENGTH} / {@code REFUSAL -> CONTENT_FILTERED} mappings. Otherwise, a response containing one or
- * more {@code function_call} items maps to {@link StopReason#TOOL_USE}, and a normal completion
- * maps to {@link StopReason#STOP}. The Responses API otherwise has no equivalent of Anthropic's
- * {@code pause_turn} stop reason, so every non-failed call surfaces as {@link
- * ChatResult.Completed}. A top-level {@code status} of {@code failed} is handled separately, before
- * any of the above -- see {@link #checkForFailure} -- since it carries no {@code
+ * max_output_tokens} maps to {@link StopReason#LENGTH}, returned as a normal completion rather than
+ * raised as an error - the caller decides whether/how to react to a truncated turn. A reason of
+ * {@code content_filter} instead throws {@link ContentFilteredException}, carrying the assistant
+ * message and metrics already built for the turn as its {@link PartialResult}. Otherwise, a
+ * response containing one or more {@code function_call} items maps to {@link StopReason#TOOL_USE},
+ * and a normal completion maps to {@link StopReason#STOP}. The Responses API otherwise has no
+ * equivalent of Anthropic's {@code pause_turn} stop reason, so every other non-failed call surfaces
+ * as {@link ChatResult.Completed}. A top-level {@code status} of {@code failed} is handled
+ * separately, before any of the above -- see {@link #checkForFailure} -- since it carries no {@code
  * incomplete_details} to normalize.
  *
  * <p>The raw vendor stop-reason string ({@code incomplete_details.reason}, falling back to the
@@ -100,6 +103,14 @@ public class OpenAiResponsesResponseConverter {
     final AssistantMessage assistantMessage = toAssistantMessage(response);
     final AgentMetrics metrics =
         toMetrics(response, assistantMessage.toolCalls().size(), executionTime);
+
+    if (assistantMessage.stopReason() instanceof UnknownStopReason unknown
+        && Response.IncompleteDetails.Reason.CONTENT_FILTER.asString().equals(unknown.value())) {
+      throw new ContentFilteredException(
+          "Model response was blocked by provider content filtering.",
+          new PartialResult(assistantMessage, metrics));
+    }
+
     return new ChatResult.Completed(assistantMessage, metrics);
   }
 
@@ -212,11 +223,10 @@ public class OpenAiResponsesResponseConverter {
    * Maps the Responses API's response shape to the domain {@link StopReason}: an {@code
    * incomplete_details.reason} of {@code max_output_tokens} maps to {@link StopReason#LENGTH}
    * (returned as a normal completion rather than raised as an error -- the caller decides
-   * whether/how to react to a truncated turn) and {@code content_filter} maps to {@link
-   * StopReason#CONTENT_FILTERED} -- mirroring {@code AnthropicMessageResponseConverter}'s {@code
-   * MAX_TOKENS -> LENGTH} / {@code REFUSAL -> CONTENT_FILTERED} mappings. Otherwise, a response
-   * containing one or more {@code function_call} items maps to {@link StopReason#TOOL_USE}, and a
-   * normal completion maps to {@link StopReason#STOP}.
+   * whether/how to react to a truncated turn). Otherwise, a response containing one or more {@code
+   * function_call} items maps to {@link StopReason#TOOL_USE}, and a normal completion maps to
+   * {@link StopReason#STOP}. {@code content_filter} never reaches this mapping -- {@link #toResult}
+   * throws before calling it.
    */
   private StopReason mapStopReason(Response response, boolean hasToolCalls) {
     final var incompleteReason =
@@ -225,7 +235,6 @@ public class OpenAiResponsesResponseConverter {
       final var reason = incompleteReason.get();
       return switch (reason.value()) {
         case MAX_OUTPUT_TOKENS -> StopReason.LENGTH;
-        case CONTENT_FILTER -> StopReason.CONTENT_FILTERED;
         default -> new StopReason.UnknownStopReason(reason.asString());
       };
     }

@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.ObjectMappers;
 import com.openai.models.responses.Response;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
@@ -425,12 +426,10 @@ class OpenAiResponsesResponseConverterTest {
   }
 
   @Test
-  void mapsContentFilteredResponseToContentFilteredWithoutThrowing() {
-    final ChatResult result = converter.toResult(contentFilteredResponse(), Duration.ofSeconds(1));
-
-    assertThat(result).isInstanceOf(ChatResult.Completed.class);
-    assertThat(((ChatResult.Completed) result).assistantMessage().stopReason())
-        .isEqualTo(StopReason.CONTENT_FILTERED);
+  void throwsContentFilteredExceptionForContentFilteredResponse() {
+    assertThatThrownBy(() -> converter.toResult(contentFilteredResponse(), Duration.ofSeconds(1)))
+        .isInstanceOfSatisfying(
+            ContentFilteredException.class, e -> assertThat(e.partialResult()).isNotNull());
   }
 
   @Test

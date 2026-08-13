@@ -7,13 +7,13 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED;
 
 import com.openai.client.OpenAIClient;
 import com.openai.errors.BadRequestException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
@@ -37,8 +37,8 @@ public class OpenAiChatModel implements ChatModel {
   private static final Logger LOG = LoggerFactory.getLogger(OpenAiChatModel.class);
 
   // OpenAI's error codes are plain strings, not modeled as an enum by the SDK (com.openai.errors);
-  // this is the only one requiring dedicated handling, since it maps to a distinct domain
-  // StopReason instead of the generic failed-model-call error code.
+  // this is the only one requiring dedicated handling, since it throws a distinct domain exception
+  // instead of the generic failed-model-call error code.
   private static final String OPENAI_ERROR_CODE_CONTEXT_LENGTH_EXCEEDED = "context_length_exceeded";
 
   private final OpenAIClient client;
@@ -64,10 +64,10 @@ public class OpenAiChatModel implements ChatModel {
       throw e;
     } catch (BadRequestException e) {
       // an over-length request is rejected outright with an HTTP 400, on both API families - this
-      // error code is the only signal for it.
+      // error code is the only signal for it. No partial result exists: the request was rejected
+      // before any response body could be converted.
       if (OPENAI_ERROR_CODE_CONTEXT_LENGTH_EXCEEDED.equals(e.code().orElse(null))) {
-        throw new ConnectorException(
-            ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED, failureMessage(e), e);
+        throw new ContextWindowExceededException(failureMessage(e), e, null);
       }
       throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
     } catch (Exception e) {

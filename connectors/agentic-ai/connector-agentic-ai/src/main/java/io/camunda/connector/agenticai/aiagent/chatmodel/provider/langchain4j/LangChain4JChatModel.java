@@ -13,13 +13,17 @@ import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException.PartialResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.ProviderConfiguration;
@@ -89,6 +93,14 @@ public class LangChain4JChatModel implements ChatModel {
     final AssistantMessage assistantMessage =
         chatMessageConverter.toAssistantMessage(chatResponse, providerConfiguration);
     final var metrics = buildMetrics(chatResponse, assistantMessage, executionTime);
+
+    if (assistantMessage.stopReason() instanceof UnknownStopReason unknown
+        && FinishReason.CONTENT_FILTER.name().equals(unknown.value())) {
+      throw new ContentFilteredException(
+          "Model response was blocked by provider content filtering.",
+          new PartialResult(assistantMessage, metrics));
+    }
+
     return new ChatResult.Completed(assistantMessage, metrics);
   }
 

@@ -1011,13 +1011,20 @@ invocation. The engine applies metric updates additively, so collapsing the roun
 keeps the counters correct while minimizing PATCH round-trips (and narrows the retry double-count
 window pending the API-level idempotency fix).
 
-### Normalized stop reasons & the terminal-stop-reason guard
+### Normalized stop reasons & ChatModelRejectedException
 
-`StopReason` is a sealed, provider-neutral finish reason living on `AssistantMessage`, mostly
-diagnostic. One exception: `BaseAgentRequestHandler.throwIfTerminalStopReason` checks it generically,
-before ingesting the response, and throws a dedicated error code for terminal reasons
-(`CONTENT_FILTERED`, `CONTEXT_WINDOW_EXCEEDED`) rather than every provider reimplementing the guard —
-see [Error Codes](#15-error-codes).
+`StopReason` is a sealed, provider-neutral finish reason living on `AssistantMessage`, purely
+diagnostic — it never drives control flow. Two conditions that were once modeled as `StopReason`
+values (content filtering, context-window-exceeded) are not: whichever provider recognizes one
+throws `ChatModelRejectedException` (`ContentFilteredException`/`ContextWindowExceededException`,
+a sealed pair) directly, at the point of detection, instead of returning it as normal finish-reason
+data for a caller to inspect afterwards. Each carries an optional `PartialResult` (the assistant
+message and metrics already built for the turn, when any exist — a provider that rejects the
+request outright before producing content, e.g. an HTTP 400, has none). `BaseAgentRequestHandler`
+catches the sealed exception around each `chatModel.execute(...)` call and maps it to the matching
+coded `ConnectorException` (`ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED` /
+`ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED`, see [Error Codes](#15-error-codes)) before ingesting
+anything, so a rejected turn is never persisted to conversation memory.
 
 ### LangChain4j Implementation
 

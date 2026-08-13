@@ -15,8 +15,12 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -30,10 +34,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
-import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
@@ -238,9 +240,7 @@ public abstract class BaseAgentRequestHandler<
 
       final var windowedSnapshot =
           workingConversation.window(agentConfiguration.contextWindowSize());
-      final var chatResult = chatModel.execute(new ChatRequest(executionContext, windowedSnapshot));
-
-      throwIfTerminalStopReason(chatResult.assistantMessage());
+      final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
 
       workingConversation =
           workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
@@ -264,16 +264,25 @@ public abstract class BaseAgentRequestHandler<
     return workingConversation;
   }
 
-  private void throwIfTerminalStopReason(AssistantMessage assistantMessage) {
-    if (assistantMessage.stopReason() == StopReason.CONTENT_FILTERED) {
-      throw new ConnectorException(
-          AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
-          "Model response was blocked by provider content filtering.");
-    }
-    if (assistantMessage.stopReason() == StopReason.CONTEXT_WINDOW_EXCEEDED) {
-      throw new ConnectorException(
-          AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED,
-          "Model's context window was exceeded before it could finish generating a response.");
+  /**
+   * Calls the chat model, translating a {@link ChatModelRejectedException} - thrown directly by the
+   * provider when it recognizes a known, unrecoverable-for-now condition - into the equivalent
+   * coded {@link ConnectorException}. Exhaustive over the sealed hierarchy, so a future subtype
+   * fails to compile here until handled.
+   */
+  private ChatResult executeChatModel(
+      ChatModel chatModel, AgentExecutionContext executionContext, ConversationSnapshot snapshot) {
+    try {
+      return chatModel.execute(new ChatRequest(executionContext, snapshot));
+    } catch (ChatModelRejectedException e) {
+      throw switch (e) {
+        case ContentFilteredException cfe ->
+            new ConnectorException(
+                AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED, cfe.getMessage(), cfe);
+        case ContextWindowExceededException cwe ->
+            new ConnectorException(
+                AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED, cwe.getMessage(), cwe);
+      };
     }
   }
 

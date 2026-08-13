@@ -7,12 +7,14 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.ObjectMappers;
 import com.openai.models.chat.completions.ChatCompletion;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -309,7 +311,7 @@ class OpenAiCompletionsResponseConverterTest {
   }
 
   @Test
-  void mapsContentFilterFinishReasonToContentFilteredWithoutThrowing() {
+  void throwsContentFilteredExceptionForContentFilterFinishReason() {
     final ChatCompletion completion =
         completionWithFinishReason(
             "content_filter",
@@ -317,10 +319,9 @@ class OpenAiCompletionsResponseConverterTest {
             {"role": "assistant", "content": null}
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofSeconds(1));
-
-    assertThat(result).isInstanceOf(ChatResult.Completed.class);
-    assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
+    assertThatThrownBy(() -> converter.toResult(completion, Duration.ofSeconds(1)))
+        .isInstanceOfSatisfying(
+            ContentFilteredException.class, e -> assertThat(e.partialResult()).isNotNull());
   }
 
   @Test
