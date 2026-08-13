@@ -19,10 +19,10 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * expected and non-breaking. It is part of the persisted message contract, so serialization (a bare
  * JSON string, see {@link #value()}) must remain backward compatible.
  *
- * <p>Continuation states (e.g. Anthropic {@code pause_turn}) are NOT represented here — see the
- * {@code ChatResult.Continuation} chat result. Context-window-exceeded and content-filtered
- * conditions are NOT represented here either: a provider recognizing one throws {@code
- * ChatModelRejectedException} directly instead of returning it as a normal finish reason.
+ * <p>Continuation states are NOT represented here — see the {@code ChatResult.Continuation} chat
+ * result. Terminal failure conditions a provider recognizes are NOT represented here either: since
+ * how a provider signals one varies (an HTTP-level error vs. a normal stop/finish reason value), it
+ * throws {@code ChatModelRejectedException} directly rather than returning it as a finish reason.
  */
 public sealed interface StopReason
     permits StopReason.KnownStopReason, StopReason.UnknownStopReason {
@@ -30,9 +30,6 @@ public sealed interface StopReason
   StopReason STOP = KnownStopReason.STOP;
   StopReason LENGTH = KnownStopReason.LENGTH;
   StopReason TOOL_USE = KnownStopReason.TOOL_USE;
-  StopReason GUARDRAIL = KnownStopReason.GUARDRAIL;
-  StopReason ERROR = KnownStopReason.ERROR;
-  StopReason ABORTED = KnownStopReason.ABORTED;
 
   /** The wire value: a known constant's name, or the verbatim vendor string when unrecognised. */
   @JsonValue
@@ -58,13 +55,7 @@ public sealed interface StopReason
     /** The response was truncated because a token/length limit was reached. */
     LENGTH,
     /** The model stopped to invoke one or more tools. */
-    TOOL_USE,
-    /** The response was stopped by a provider-side guardrail policy. */
-    GUARDRAIL,
-    /** The provider reported an error while generating the response. */
-    ERROR,
-    /** The request was aborted before the model could finish generating a response. */
-    ABORTED;
+    TOOL_USE;
 
     @Override
     public String value() {

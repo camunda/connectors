@@ -142,10 +142,10 @@ public class OpenAiResponsesResponseConverter {
     for (final ResponseOutputItem item : response.output()) {
       if (item.message().isPresent()) {
         final ResponseOutputMessage message = item.message().get();
-        // The first message item's own id (msg_*), not response.id() (resp_*, the envelope this
-        // turn came from). If a response ever produced more than one message item, only the
-        // first's id survives; the rest are lost the same way their items' content is already
-        // flattened into one list.
+        // The first message item's own id, not response.id() (the envelope this turn came from) --
+        // AwsAgentCoreConversationMapper persists this as a per-message identity. If a response
+        // ever produces more than one message item, only the first's id survives, the same way
+        // their content is already flattened into one list.
         if (assistantMessageId == null) {
           assistantMessageId = message.id();
         }
@@ -179,11 +179,8 @@ public class OpenAiResponsesResponseConverter {
       messageContent
           .outputText()
           .ifPresent(text -> content.add(TextContent.textContent(text.text())));
-      // A refusal has no dedicated domain content type. TextContent rather than ProviderContent:
-      // the latter is invisible to responseText (see AgentResponseHandlerImpl), which would hide
-      // the model's declination from the caller; toResult() throws ContentFilteredException once
-      // this message is fully built, carrying this text as part of the partial result rather than
-      // dropping it.
+      // A refusal has no dedicated domain content type; kept as TextContent so it survives into
+      // ContentFilteredException's partial result instead of being dropped (see hasRefusal).
       messageContent
           .refusal()
           .ifPresent(refusal -> content.add(TextContent.textContent(refusal.refusal())));
