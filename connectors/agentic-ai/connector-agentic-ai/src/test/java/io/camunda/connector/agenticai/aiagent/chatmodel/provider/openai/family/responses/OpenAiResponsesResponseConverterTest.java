@@ -141,25 +141,16 @@ class OpenAiResponsesResponseConverterTest {
   }
 
   @Test
-  void mapsRefusalContentToTextContentOnAssistantMessage() {
-    final Response response = responseWithRefusal();
-
-    final var assistantMessage = converter.toAssistantMessage(response);
-
-    assertThat(assistantMessage.content())
-        .containsExactly(TextContent.textContent("I can't help with that."));
-    assertThat(assistantMessage.toolCalls()).isEmpty();
-  }
-
-  @Test
   void throwsContentFilteredExceptionForRefusal() {
     assertThatThrownBy(() -> converter.toResult(responseWithRefusal(), Duration.ofMillis(100)))
         .isInstanceOfSatisfying(
             ContentFilteredException.class,
             e -> {
               assertThat(e.partialResult()).isNotNull();
-              assertThat(e.partialResult().assistantMessage().content())
+              final var assistantMessage = e.partialResult().assistantMessage();
+              assertThat(assistantMessage.content())
                   .containsExactly(TextContent.textContent("I can't help with that."));
+              assertThat(assistantMessage.toolCalls()).isEmpty();
             });
   }
 
@@ -289,7 +280,11 @@ class OpenAiResponsesResponseConverterTest {
     // SDK's own com.openai.core.ObjectMappers#jsonMapper()) to serialize the raw item leaked a
     // spurious "valid":true property (the Kotlin-generated isValid() property) onto the wire during
     // a real-API run. This must never come back.
-    final var content = converter.toAssistantMessage(responseWithReasoning()).content();
+    final var content =
+        converter
+            .toResult(responseWithReasoning(), Duration.ofMillis(100))
+            .assistantMessage()
+            .content();
 
     assertThat(content)
         .filteredOn(ReasoningContent.class::isInstance)

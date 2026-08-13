@@ -134,7 +134,7 @@ public class OpenAiResponsesResponseConverter {
         ERROR_CODE_FAILED_MODEL_CALL, "OpenAI response failed: %s".formatted(detail));
   }
 
-  AssistantMessage toAssistantMessage(Response response) {
+  private AssistantMessage toAssistantMessage(Response response) {
     final List<Content> content = new ArrayList<>();
     final List<ToolCall> toolCalls = new ArrayList<>();
     @Nullable String assistantMessageId = null;
@@ -149,36 +149,17 @@ public class OpenAiResponsesResponseConverter {
         if (assistantMessageId == null) {
           assistantMessageId = message.id();
         }
-        for (final ResponseOutputMessage.Content messageContent : message.content()) {
-          messageContent
-              .outputText()
-              .ifPresent(text -> content.add(TextContent.textContent(text.text())));
-          // A refusal has no dedicated domain content type. TextContent rather than
-          // ProviderContent: the latter is invisible to responseText (see
-          // AgentResponseHandlerImpl), which would hide the model's declination from the caller;
-          // toResult() throws ContentFilteredException once this message is fully built, carrying
-          // this text as part of the partial result rather than dropping it.
-          messageContent
-              .refusal()
-              .ifPresent(refusal -> content.add(TextContent.textContent(refusal.refusal())));
-        }
+        appendMessageContent(message, content);
       } else if (item.functionCall().isPresent()) {
-        final ResponseFunctionToolCall functionCall = item.functionCall().get();
-        toolCalls.add(
-            ToolCall.builder()
-                .id(functionCall.callId())
-                .name(functionCall.name())
-                .arguments(OpenAiToolCallArguments.parse(objectMapper, functionCall.arguments()))
-                .build());
+        toolCalls.add(toToolCall(item.functionCall().get()));
       } else if (item.reasoning().isPresent()) {
         content.add(toReasoningContent(item));
-      } else if (item.webSearchCall().isPresent() || item.codeInterpreterCall().isPresent()) {
-        content.add(ProviderContent.providerContent(OPENAI_PROVIDER, toRawMap(item)));
       } else {
-        // Any other output item kind not recognized by this SDK version has no provider-neutral
-        // representation. Preserve it losslessly and in original order as ProviderContent rather
-        // than silently dropping it; it is never a client tool call (the caller is never expected
-        // to act on it), so it is kept out of toolCalls.
+        // Any other output item kind (server-tool calls, or one not recognized by this SDK
+        // version) has no provider-neutral representation. Preserve it losslessly and in
+        // original order as ProviderContent rather than silently dropping it; it is never a
+        // client tool call (the caller is never expected to act on it), so it is kept out of
+        // toolCalls.
         content.add(ProviderContent.providerContent(OPENAI_PROVIDER, toRawMap(item)));
       }
     }
@@ -190,6 +171,30 @@ public class OpenAiResponsesResponseConverter {
         .modelId(modelId(response.model()))
         .stopReason(mapStopReason(response, !toolCalls.isEmpty()))
         .metadata(AssistantMessageMetadata.withDefaults(openAiMetadata(response)))
+        .build();
+  }
+
+  private void appendMessageContent(ResponseOutputMessage message, List<Content> content) {
+    for (final ResponseOutputMessage.Content messageContent : message.content()) {
+      messageContent
+          .outputText()
+          .ifPresent(text -> content.add(TextContent.textContent(text.text())));
+      // A refusal has no dedicated domain content type. TextContent rather than ProviderContent:
+      // the latter is invisible to responseText (see AgentResponseHandlerImpl), which would hide
+      // the model's declination from the caller; toResult() throws ContentFilteredException once
+      // this message is fully built, carrying this text as part of the partial result rather than
+      // dropping it.
+      messageContent
+          .refusal()
+          .ifPresent(refusal -> content.add(TextContent.textContent(refusal.refusal())));
+    }
+  }
+
+  private ToolCall toToolCall(ResponseFunctionToolCall functionCall) {
+    return ToolCall.builder()
+        .id(functionCall.callId())
+        .name(functionCall.name())
+        .arguments(OpenAiToolCallArguments.parse(objectMapper, functionCall.arguments()))
         .build();
   }
 

@@ -115,16 +115,6 @@ class OpenAiCompletionsResponseConverterTest {
   }
 
   @Test
-  void mapsRefusalToTextContentOnAssistantMessage() {
-    final ChatCompletion completion = completionWithRefusal();
-
-    final var assistantMessage = converter.toAssistantMessage(completion);
-
-    assertThat(assistantMessage.content())
-        .containsExactly(TextContent.textContent("I can't help with that."));
-  }
-
-  @Test
   void throwsContentFilteredExceptionForRefusal() {
     assertThatThrownBy(() -> converter.toResult(completionWithRefusal(), Duration.ofMillis(100)))
         .isInstanceOfSatisfying(

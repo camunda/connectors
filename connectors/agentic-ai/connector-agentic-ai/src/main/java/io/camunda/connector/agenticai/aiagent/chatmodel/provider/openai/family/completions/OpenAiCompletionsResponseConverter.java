@@ -90,7 +90,7 @@ public class OpenAiCompletionsResponseConverter {
     return completion.choices().get(0).message().refusal().isPresent();
   }
 
-  AssistantMessage toAssistantMessage(ChatCompletion completion) {
+  private AssistantMessage toAssistantMessage(ChatCompletion completion) {
     final ChatCompletion.Choice choice = completion.choices().get(0);
     final ChatCompletionMessage message = choice.message();
 
