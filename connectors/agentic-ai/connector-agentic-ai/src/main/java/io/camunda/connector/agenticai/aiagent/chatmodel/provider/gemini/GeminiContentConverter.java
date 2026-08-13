@@ -90,14 +90,18 @@ public class GeminiContentConverter {
    *
    * <p>The {@code functionResponse} parts built here deliberately omit {@code name}/{@code id}:
    * that correlating identity lives on the wrapping {@code ToolCallResultContent}, not on the
-   * individual {@link Content} items converted here -- mirroring {@code
-   * AnthropicContentConverter#toToolResultBlocks}, whose {@code ToolResultBlockParam.toolUseId} is
-   * likewise stamped by its caller one level up. The caller of this method is expected to rebuild
-   * each returned {@link FunctionResponse} via {@code toBuilder()} to add {@code name}/{@code id}
-   * before sending the request. This assumes one {@link Part} per tool call (the current shape of
-   * {@code ToolCallResultContent.content()}); if that list ever becomes multi-element for a single
-   * tool call, the caller must merge the results into a single {@code functionResponse} rather than
-   * emit sibling parts sharing one name/id.
+   * individual {@link Content} items converted here, and this method's signature (like {@code
+   * AnthropicContentConverter#toToolResultBlocks}'s) only receives the latter. For {@code id} this
+   * mirrors Anthropic exactly: its {@code ToolResultBlockParam.toolUseId} is likewise stamped by
+   * its caller one level up. {@code name} has no Anthropic equivalent to mirror -- {@code
+   * ToolResultBlockParam} has no {@code name} field at all -- but Gemini's {@link FunctionResponse}
+   * does carry one, so for consistency with {@code id} (and because neither is available at this
+   * layer) it is deferred to the same caller. The caller of this method is expected to rebuild each
+   * returned {@link FunctionResponse} via {@code toBuilder()} to add {@code name}/{@code id} before
+   * sending the request. This assumes one {@link Part} per tool call (the current shape of {@code
+   * ToolCallResultContent.content()}); if that list ever becomes multi-element for a single tool
+   * call, the caller must merge the results into a single {@code functionResponse} rather than emit
+   * sibling parts sharing one name/id.
    */
   public List<Part> toFunctionResponseParts(List<Content> content) {
     final List<Part> parts = new ArrayList<>();
