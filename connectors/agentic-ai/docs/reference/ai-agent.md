@@ -1013,18 +1013,15 @@ window pending the API-level idempotency fix).
 
 ### Normalized stop reasons & ChatModelRejectedException
 
-`StopReason` is a sealed, provider-neutral finish reason living on `AssistantMessage`, purely
-diagnostic — it never drives control flow. Two conditions that were once modeled as `StopReason`
-values (content filtering, context-window-exceeded) are not: whichever provider recognizes one
-throws `ChatModelRejectedException` (`ContentFilteredException`/`ContextWindowExceededException`,
-a sealed pair) directly, at the point of detection, instead of returning it as normal finish-reason
-data for a caller to inspect afterwards. Each carries an optional `PartialResult` (the assistant
-message and metrics already built for the turn, when any exist — a provider that rejects the
-request outright before producing content, e.g. an HTTP 400, has none). `BaseAgentRequestHandler`
-catches the sealed exception around each `chatModel.execute(...)` call and maps it to the matching
-coded `ConnectorException` (`ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED` /
-`ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED`, see [Error Codes](#15-error-codes)) before ingesting
-anything, so a rejected turn is never persisted to conversation memory.
+`StopReason` is a sealed, provider-neutral finish reason on `AssistantMessage`. A provider that
+recognizes an unrecoverable rejection condition throws `ChatModelRejectedException` (a sealed type,
+one concrete subtype per condition) directly, at the point of detection, rather than returning data
+for a caller to inspect. Each subtype carries an optional `PartialResult` — the assistant message
+and metrics already built for the turn, when any exist; a provider that rejects the request before
+producing any content has none. `BaseAgentRequestHandler` catches the sealed type around each
+`chatModel.execute(...)` call and maps it to the matching coded `ConnectorException` (see
+[Error Codes](#15-error-codes)) before ingesting anything, so a rejected turn is never persisted to
+conversation memory.
 
 ### LangChain4j Implementation
 
