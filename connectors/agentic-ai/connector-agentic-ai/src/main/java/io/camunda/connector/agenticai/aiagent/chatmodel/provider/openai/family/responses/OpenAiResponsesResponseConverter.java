@@ -72,6 +72,8 @@ import org.springframework.util.StringUtils;
 public class OpenAiResponsesResponseConverter {
 
   private static final String OPENAI_PROVIDER = "openai";
+  private static final String METADATA_RESPONSE_ID = "responseId";
+  private static final String METADATA_STOP_REASON = "stopReason";
 
   private final ObjectMapper objectMapper;
 
@@ -198,25 +200,22 @@ public class OpenAiResponsesResponseConverter {
 
   /**
    * Stamped under the {@code openai} provider-id key in {@link AssistantMessage#metadata()}. {@code
-   * responseId} is the envelope {@code response.id()} (distinct from {@link
-   * AssistantMessage#messageId()}, the {@code msg_*} output item id) -- unused today, since {@code
-   * OpenAiResponsesRequestConverter} sets {@code store(false)} and always replays full history
-   * rather than relying on OpenAI-side state, but it's the id {@code previous_response_id}-based
-   * continuation would need if that's ever adopted, so it's preserved regardless. {@code
-   * stopReason} is the raw vendor stop-reason string, independent of how it normalizes to the
-   * domain {@link StopReason}: an {@code incomplete_details.reason} is the most specific raw signal
-   * when present (truncation / content filtering); otherwise the response's top-level {@code
-   * status} (e.g. {@code completed}) is used as a fallback.
+   * responseId} is the envelope {@code response.id()}, distinct from {@link
+   * AssistantMessage#messageId()} (the {@code msg_*} output item id). {@code stopReason} is the raw
+   * vendor stop-reason string, independent of how it normalizes to the domain {@link StopReason}:
+   * an {@code incomplete_details.reason} is the most specific raw signal when present (truncation /
+   * content filtering); otherwise the response's top-level {@code status} (e.g. {@code completed})
+   * is used as a fallback.
    */
   private Map<String, Object> openAiMetadata(Response response) {
     final Map<String, Object> metadata = new LinkedHashMap<>();
-    metadata.put("responseId", response.id());
+    metadata.put(METADATA_RESPONSE_ID, response.id());
     response
         .incompleteDetails()
         .flatMap(Response.IncompleteDetails::reason)
         .map(Response.IncompleteDetails.Reason::asString)
         .or(() -> response.status().map(ResponseStatus::asString))
-        .ifPresent(sr -> metadata.put("stopReason", sr));
+        .ifPresent(sr -> metadata.put(METADATA_STOP_REASON, sr));
     return Map.of(OPENAI_PROVIDER, Map.copyOf(metadata));
   }
 
