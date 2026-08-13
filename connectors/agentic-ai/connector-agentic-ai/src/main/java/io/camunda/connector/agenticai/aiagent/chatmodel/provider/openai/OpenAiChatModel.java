@@ -7,8 +7,10 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED;
 
 import com.openai.client.OpenAIClient;
+import com.openai.errors.BadRequestException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
@@ -35,6 +37,11 @@ public class OpenAiChatModel implements ChatModel {
 
   private static final Logger LOG = LoggerFactory.getLogger(OpenAiChatModel.class);
 
+  // OpenAI's error codes are plain strings, not modeled as an enum by the SDK (com.openai.errors);
+  // this is the only one requiring dedicated handling, since it maps to a distinct domain
+  // StopReason instead of the generic failed-model-call error code.
+  private static final String OPENAI_ERROR_CODE_CONTEXT_LENGTH_EXCEEDED = "context_length_exceeded";
+
   private final OpenAIClient client;
   private final OpenAiChatModelConfiguration configuration;
   private final OpenAiApiFamilyStrategy strategy;
@@ -56,14 +63,26 @@ public class OpenAiChatModel implements ChatModel {
       // already coded (e.g. OpenAiContentConverter's unsupported content type); avoid
       // double-wrapping as a generic "Model call failed" below.
       throw e;
+    } catch (BadRequestException e) {
+      // unlike Anthropic, which returns stop_reason=model_context_window_exceeded in an otherwise
+      // successful response, OpenAI rejects an over-length request outright with an HTTP 400 - the
+      // only signal for it is this error code, on both API families.
+      if (OPENAI_ERROR_CODE_CONTEXT_LENGTH_EXCEEDED.equals(e.code().orElse(null))) {
+        throw new ConnectorException(
+            ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED, failureMessage(e), e);
+      }
+      throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
     } catch (Exception e) {
-      final String detail =
-          Optional.ofNullable(e.getMessage())
-              .filter(m -> !m.isBlank())
-              .orElseGet(() -> e.getClass().getSimpleName());
-      throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), e);
+      throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
     }
+  }
+
+  private static String failureMessage(Exception e) {
+    return "Model call failed: %s"
+        .formatted(
+            Optional.ofNullable(e.getMessage())
+                .filter(m -> !m.isBlank())
+                .orElseGet(() -> e.getClass().getSimpleName()));
   }
 
   @Override

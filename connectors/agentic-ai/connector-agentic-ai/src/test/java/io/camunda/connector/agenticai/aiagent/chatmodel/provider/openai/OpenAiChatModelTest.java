@@ -16,6 +16,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.openai.client.OpenAIClient;
+import com.openai.core.http.Headers;
+import com.openai.errors.BadRequestException;
+import com.openai.models.ErrorObject;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
@@ -91,6 +94,44 @@ class OpenAiChatModelTest {
   void wrapsUnexpectedSdkFailureAsConnectorException() {
     when(strategy.call(eq(client), eq(configuration), eq(request)))
         .thenThrow(new RuntimeException("boom"));
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOf(ConnectorException.class)
+        .extracting(e -> ((ConnectorException) e).getErrorCode())
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  }
+
+  @Test
+  void mapsContextLengthExceededBadRequestToContextWindowExceeded() {
+    final var error =
+        ErrorObject.builder()
+            .code("context_length_exceeded")
+            .message("This model's maximum context length is 128000 tokens.")
+            .param((String) null)
+            .type("invalid_request_error")
+            .build();
+    final var thrown =
+        BadRequestException.builder().headers(Headers.builder().build()).error(error).build();
+    when(strategy.call(eq(client), eq(configuration), eq(request))).thenThrow(thrown);
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOf(ConnectorException.class)
+        .extracting(e -> ((ConnectorException) e).getErrorCode())
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED);
+  }
+
+  @Test
+  void wrapsOtherBadRequestAsGenericFailedModelCall() {
+    final var error =
+        ErrorObject.builder()
+            .code("invalid_api_key")
+            .message("Incorrect API key provided.")
+            .param((String) null)
+            .type("invalid_request_error")
+            .build();
+    final var thrown =
+        BadRequestException.builder().headers(Headers.builder().build()).error(error).build();
+    when(strategy.call(eq(client), eq(configuration), eq(request))).thenThrow(thrown);
 
     assertThatThrownBy(() -> api.execute(request))
         .isInstanceOf(ConnectorException.class)

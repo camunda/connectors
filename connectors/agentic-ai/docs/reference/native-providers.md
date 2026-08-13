@@ -89,6 +89,10 @@ content type — never embedded natively as `input_image`/`input_file`, so the b
 
 `finish_reason=length` / `incomplete_details.reason=max_output_tokens` both map to `StopReason.LENGTH`;
 normal completion maps to `STOP`, tool calls to `TOOL_USE`, `content_filter` to `CONTENT_FILTERED`.
-Only `CONTENT_FILTERED` trips the [terminal-stop-reason guard](ai-agent.md#12-framework-abstraction),
-so `LENGTH` never fails the job. Unrecognized `finish_reason` values fall back to
-`StopReason.UnknownStopReason` with the raw value preserved.
+Unrecognized `finish_reason` values fall back to `StopReason.UnknownStopReason` with the raw value
+preserved. `CONTENT_FILTERED` is the only `StopReason` that trips the
+[terminal-stop-reason guard](ai-agent.md#12-framework-abstraction); `LENGTH` never fails the job.
+
+An over-length request is rejected outright with an HTTP 400 (`BadRequestException`,
+`code=context_length_exceeded`) on both API families, rather than completing with a stop reason;
+`OpenAiChatModel.execute` catches it directly and throws `ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED`.
