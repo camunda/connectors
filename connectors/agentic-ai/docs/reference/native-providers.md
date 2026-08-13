@@ -95,4 +95,5 @@ preserved. `CONTENT_FILTERED` is the only `StopReason` that trips the
 
 An over-length request is rejected outright with an HTTP 400 (`BadRequestException`,
 `code=context_length_exceeded`) on both API families, rather than completing with a stop reason;
-`OpenAiChatModel.execute` catches it directly and throws `ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED`.
+`OpenAiChatModel.execute` catches it directly and throws
+`ConnectorException(ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED)`.
