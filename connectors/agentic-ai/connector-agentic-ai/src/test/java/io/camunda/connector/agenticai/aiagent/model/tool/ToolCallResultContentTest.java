@@ -12,7 +12,6 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -61,10 +60,13 @@ class ToolCallResultContentTest {
     }
 
     @Test
-    void documentContentBecomesSingleDocumentContent() {
+    void documentContentBecomesSingleObjectContentPreservingTheDocument() {
+      // a bare Document is treated the same as any other object: only the composer's synthetic
+      // <doc/> fallback message embeds the actual bytes, so a native tool-result converter never
+      // sees a first-class DocumentContent here and can't double-send the document
       Document document = mock(Document.class);
       assertThat(ToolCallResultContent.contentFromObject(document))
-          .containsExactly(DocumentContent.documentContent(document));
+          .containsExactly(ObjectContent.objectContent(document));
     }
   }
 

@@ -12,6 +12,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 
 class ReasoningContentTest {
 
@@ -19,7 +21,7 @@ class ReasoningContentTest {
 
   @Test
   void rejectsNullPayload() {
-    assertThatThrownBy(() -> new ReasoningContent("anthropic", null, null))
+    assertThatThrownBy(() -> new ReasoningContent("anthropic", null, null, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Payload cannot be null");
   }
@@ -29,25 +31,76 @@ class ReasoningContentTest {
     final var payload =
         Map.of(
             "signature", "abc123", "nested", Map.of("thinking", "some internal reasoning trace"));
-    final var reasoningContent = new ReasoningContent("anthropic", payload, Map.of("foo", "bar"));
+    final var reasoningContent =
+        new ReasoningContent(
+            "anthropic", payload, "some internal reasoning trace", Map.of("foo", "bar"));
 
     final var serialized = objectMapper.writeValueAsString(reasoningContent);
-    final var deserialized = objectMapper.readValue(serialized, ReasoningContent.class);
 
-    assertThat(deserialized.payload()).isEqualTo(payload);
-    assertThat(deserialized.metadata()).isEqualTo(Map.of("foo", "bar"));
+    JSONAssert.assertEquals(
+        """
+        {
+          "type": "reasoning",
+          "provider": "anthropic",
+          "payload": {
+            "signature": "abc123",
+            "nested": {
+              "thinking": "some internal reasoning trace"
+            }
+          },
+          "text": "some internal reasoning trace",
+          "metadata": {
+            "foo": "bar"
+          }
+        }
+        """,
+        serialized,
+        JSONCompareMode.STRICT);
+
+    final var deserialized = objectMapper.readValue(serialized, ReasoningContent.class);
+    assertThat(deserialized).isEqualTo(reasoningContent);
   }
 
   @Test
   void omitsMetadataWhenNullOrEmpty() throws Exception {
-    final var nullMetadata = new ReasoningContent("anthropic", Map.of("signature", "abc123"), null);
+    final var nullMetadata =
+        new ReasoningContent("anthropic", Map.of("signature", "abc123"), null, null);
     final var emptyMetadata =
-        new ReasoningContent("anthropic", Map.of("signature", "abc123"), Map.of());
+        new ReasoningContent("anthropic", Map.of("signature", "abc123"), null, Map.of());
 
-    final var serializedNullMetadata = objectMapper.writeValueAsString(nullMetadata);
-    final var serializedEmptyMetadata = objectMapper.writeValueAsString(emptyMetadata);
+    final var expected =
+        """
+        {
+          "type": "reasoning",
+          "provider": "anthropic",
+          "payload": {
+            "signature": "abc123"
+          }
+        }
+        """;
 
-    assertThat(serializedNullMetadata).doesNotContain("metadata");
-    assertThat(serializedEmptyMetadata).doesNotContain("metadata");
+    JSONAssert.assertEquals(
+        expected, objectMapper.writeValueAsString(nullMetadata), JSONCompareMode.STRICT);
+    JSONAssert.assertEquals(
+        expected, objectMapper.writeValueAsString(emptyMetadata), JSONCompareMode.STRICT);
+  }
+
+  @Test
+  void omitsTextWhenNull() throws Exception {
+    final var withoutText =
+        new ReasoningContent("anthropic", Map.of("type", "redacted_thinking"), null, null);
+
+    JSONAssert.assertEquals(
+        """
+        {
+          "type": "reasoning",
+          "provider": "anthropic",
+          "payload": {
+            "type": "redacted_thinking"
+          }
+        }
+        """,
+        objectMapper.writeValueAsString(withoutText),
+        JSONCompareMode.STRICT);
   }
 }

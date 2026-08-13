@@ -122,6 +122,9 @@
           </execution>
         </executions>
         <configuration>
+          <!-- See https://github.com/camunda/connectors/issues/3808 -->
+          <repositoryLayout>flat</repositoryLayout>
+          <useWildcardClassPath>true</useWildcardClassPath>
           <programs>
             <program>
               <mainClass>io.camunda.connector.generator.cli.Main</mainClass>

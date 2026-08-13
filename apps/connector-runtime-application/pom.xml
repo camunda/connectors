@@ -5,13 +5,14 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-runtime-parent</artifactId>
+    <artifactId>connectors-bundle-parent</artifactId>
     <version>8.10.0-SNAPSHOT</version>
-    <relativePath>../pom.xml</relativePath>
+    <relativePath>../../pom.xml</relativePath>
   </parent>
 
   <artifactId>connector-runtime-application</artifactId>
   <name>Connector Runtime Application</name>
+  <description>Standalone Connector Runtime application, without any bundled Connector</description>
   <packaging>jar</packaging>
 
   <dependencies>
@@ -53,6 +54,33 @@
   <build>
     <plugins>
 
+      <!-- Kept in sync with connector-runtime/pom.xml: this module used to be a
+           connector-runtime submodule and inherited the ErrorProne/NullAway setup from there. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <release>${version.java}</release>
+          <compilerArgs>
+            <arg>-XDcompilePolicy=simple</arg>
+            <arg>-XDaddTypeAnnotationsToSymbol=true</arg>
+            <arg>--should-stop=ifError=FLOW</arg>
+            <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:WARN -XepOpt:NullAway:AnnotatedPackages=io.camunda.connector -XepExcludedPaths:.*/src/test/java/.*</arg>
+          </compilerArgs>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>com.google.errorprone</groupId>
+              <artifactId>error_prone_core</artifactId>
+              <version>${version.error-prone}</version>
+            </path>
+            <path>
+              <groupId>com.uber.nullaway</groupId>
+              <artifactId>nullaway</artifactId>
+              <version>${version.nullaway}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>

@@ -47,6 +47,7 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.CamundaAgentInstance
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -88,6 +89,7 @@ import org.springframework.context.annotation.Import;
 @EnableConfigurationProperties(AgenticAiConnectorsConfigurationProperties.class)
 @Import({
   AgenticAiLangChain4JFrameworkConfiguration.class,
+  AgenticAiNativeProvidersConfiguration.class,
   McpDiscoveryConfiguration.class,
   McpClientConfiguration.class,
   McpRemoteClientConfiguration.class,

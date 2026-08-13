@@ -15,6 +15,7 @@ import org.jspecify.annotations.Nullable;
 public record ReasoningContent(
     String provider,
     Object payload,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable String text,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
     implements Content {
 
@@ -25,6 +26,6 @@ public record ReasoningContent(
   }
 
   public static ReasoningContent reasoningContent(String provider, Object payload) {
-    return new ReasoningContent(provider, payload, Map.of());
+    return new ReasoningContent(provider, payload, null, Map.of());
   }
 }

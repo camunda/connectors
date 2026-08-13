@@ -5,7 +5,7 @@
   "description" : "Run a multi-step AI reasoning loop with dynamic tool selection",
   "keywords" : [ "AI", "AI Agent", "agentic orchestration" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/",
-  "version" : 11,
+  "version" : 12,
   "category" : {
     "id" : "aiTools",
     "name" : "AI Tools"
@@ -575,6 +575,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.googleVertexAi.endpoint",
+    "label" : "Endpoint",
+    "description" : "Optional custom API endpoint",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleVertexAi.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-vertex-ai",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.googleVertexAi.authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Google Vertex AI authentication strategy.",
@@ -621,6 +638,23 @@
         "equals" : "google-vertex-ai",
         "type" : "simple"
       } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleVertexAi.timeouts.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleVertexAi.timeouts.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-vertex-ai",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -1717,7 +1751,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "11",
+    "value" : "12",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

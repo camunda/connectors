@@ -164,8 +164,10 @@ public class SpringConnectorJobHandler implements JobHandler {
 
   @Override
   public void handle(JobClient client, ActivatedJob job) throws Exception {
-    CounterMetricsContext counterMetricsContext = ConnectorMetrics.counter(job);
-    TimerMetricsContext timerMetricsContext = ConnectorMetrics.timer(job);
+    // the physical tenant the worker was opened for — see ConnectorOutboundMetrics#physicalTenantId
+    var physicalTenantId = connectorsOutboundMetrics.physicalTenantId();
+    CounterMetricsContext counterMetricsContext = ConnectorMetrics.counter(job, physicalTenantId);
+    TimerMetricsContext timerMetricsContext = ConnectorMetrics.timer(job, physicalTenantId);
     connectorsOutboundMetrics.increaseActivated(counterMetricsContext);
     connectorsOutboundMetrics.executeWithTimer(
         timerMetricsContext,

@@ -165,17 +165,17 @@ jobs:
       - name: Lint Dockerfile - connector-runtime
         uses: hadolint/hadolint-action@v3.4.0
         with:
-          dockerfile: connector-runtime/connector-runtime-application/Dockerfile
+          dockerfile: apps/connector-runtime-application/Dockerfile
 
       - name: Lint Dockerfile - SaaS
         uses: hadolint/hadolint-action@v3.4.0
         with:
-          dockerfile: bundle/camunda-saas-bundle/Dockerfile
+          dockerfile: apps/bundle/camunda-saas-bundle/Dockerfile
 
       - name: Lint Dockerfile - default-bundle
         uses: hadolint/hadolint-action@v3.4.0
         with:
-          dockerfile: bundle/default-bundle/Dockerfile
+          dockerfile: apps/bundle/default-bundle/Dockerfile
 
       - name: Check element templates for forbidden links to /next/ documentation
         run: |
@@ -370,6 +370,8 @@ jobs:
         shell: bash
 
       - name: Check versioned element templates match main
+        env:
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref || github.ref_name }}
         run: |
           chmod +x ./.github/workflows/scripts/check_versioned_element_templates.sh
           ./.github/workflows/scripts/check_versioned_element_templates.sh

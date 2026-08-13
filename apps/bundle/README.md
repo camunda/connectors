@@ -7,7 +7,7 @@ and all [out-of-the-box Connectors](https://docs.camunda.io/docs/components/conn
 provided by Camunda. The image starts the Connector Runtime with all `jar`
 files provided in the `/opt/app` directory as classpath.
 
-To add more connectors to the image, follow the examples in the [Connector Runtime](../connector-runtime/README.md#adding-connectors).
+To add more connectors to the image, follow the examples in the [Connector Runtime](../../connector-runtime/README.md#adding-connectors).
 
 # Docker Compose
 

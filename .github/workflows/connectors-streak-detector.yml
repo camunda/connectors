@@ -123,6 +123,12 @@ jobs:
           while IFS= read -r name; do
             [[ -z "$name" ]] && continue
             case "$name" in
+              # First: the AlwaysGreen jobs themselves. Matched ahead of the stage
+              # patterns because "AlwaysGreen failure feedback (SM E2E)" failing means
+              # the feedback tooling broke, not the SM deploy — the deploy failure is a
+              # separate job and still routes to distro below.
+              *"AlwaysGreen"*)
+                mentions+=("${MEDIC_TEST_AUTOMATION}") ;;
               *"SaaS E2E"*|*"AI Agent"*)
                 mentions+=("${MEDIC_TEST_AUTOMATION}") ;;
               *"SM E2E"*|*"Helm chart"*|*"Integration"*)

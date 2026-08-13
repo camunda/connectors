@@ -664,6 +664,31 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
+  void throwsWhenModelContextWindowIsExceededBeforeIngestOrHistoryWrite() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var truncatedAssistantMessage =
+        AssistantMessage.builder().stopReason(StopReason.CONTEXT_WINDOW_EXCEEDED).build();
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(any()))
+        .thenReturn(new ChatResult.Completed(truncatedAssistantMessage, AgentMetrics.empty()));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED));
+
+    verify(agentInstanceClient, never())
+        .createHistoryForAssistantMessage(any(), any(), any(), any());
+    verifyNoInteractions(responseHandler);
+  }
+
+  @Test
   void proceedsThroughContinuationRoundsAsSeparatePersistedTurns() {
     // a provider Continuation (e.g. Anthropic pause_turn) is ingested as its own persisted turn,
     // and the loop keeps calling the chat model until a Completed result ends it

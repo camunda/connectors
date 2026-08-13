@@ -15,6 +15,17 @@
 # can be resolved for the three-dot diff below.
 set -e
 
+# Release branches (stable/*, alpha/*) accumulate their own versioned template
+# history independently of main and routinely diverge from it (e.g. main-only
+# template properties not yet backported). Comparing against main there
+# produces false-positive mismatches unrelated to the PR's actual change, so
+# the check only applies to PRs/pushes targeting main.
+TARGET_BRANCH="${TARGET_BRANCH:-main}"
+if [[ "$TARGET_BRANCH" =~ ^(stable|alpha)/ ]]; then
+  echo "Target branch '${TARGET_BRANCH}' is a release branch — skipping versioned element template check (only meaningful for main)."
+  exit 0
+fi
+
 BASE_REF="origin/main"
 ERRORS=0
 CHECKED=0

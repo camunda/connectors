@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -65,56 +66,60 @@ public class OutboundConnectorsRestController {
     }
   }
 
+  /**
+   * Returns every registered outbound connector, once per physical tenant (engine) it runs a job
+   * worker for.
+   *
+   * @param physicalTenantIds when non-empty, restricts the result to connectors running on one of
+   *     these physical tenants (engines) — a distinct dimension from the logical {@code tenantId}
+   *     exposed elsewhere on this API. Omitted or empty returns every physical tenant, matching the
+   *     pre-existing (unfiltered) behavior of this endpoint.
+   */
   @GetMapping
   public List<OutboundConnectorResponse> getOutboundConnectors(
       HttpServletRequest request,
-      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor) {
-    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
-        request,
-        forwardedFor,
-        () -> outboundConnectorsService.findAll(hostname),
-        new TypeReference<>() {});
-  }
-
-  @GetMapping("/{type}")
-  public List<OutboundConnectorResponse> getOutboundConnectorByType(
-      HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
-      @PathVariable(name = "type") String type) {
-    return Optional.ofNullable(
-            instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
-                request,
-                forwardedFor,
-                () -> outboundConnectorsService.findByType(type, hostname),
-                new TypeReference<>() {}))
-        .orElseThrow(() -> new DataNotFoundException(OutboundConnectorResponse.class, type));
-  }
-
-  /** Returns aggregated outbound connector metrics across all connector types. */
-  @GetMapping("/metrics")
-  public List<OutboundConnectorMetrics> getMetrics(
-      HttpServletRequest request,
-      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor) {
+      @RequestParam(required = false, value = "physicalTenantIds") List<String> physicalTenantIds) {
     return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
         request,
         forwardedFor,
-        () ->
-            meterRegistry == null
-                ? List.of()
-                : List.of(ConnectorMetricsAggregator.outbound(meterRegistry, null, hostname)),
+        () -> outboundConnectorsService.findAll(hostname, physicalTenantIds),
         new TypeReference<>() {});
   }
 
   /**
-   * Returns outbound connector metrics for a specific connector type.
-   *
-   * @param connectorType connector type (e.g. {@code io.camunda:http-json:1})
+   * @param physicalTenantIds see {@link #getOutboundConnectors}
    */
-  @GetMapping("/metrics/{connectorType}")
-  public List<OutboundConnectorMetrics> getMetricsByType(
+  @GetMapping("/{type}")
+  public List<OutboundConnectorResponse> getOutboundConnectorByType(
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
-      @PathVariable(name = "connectorType") String connectorType) {
+      @PathVariable(name = "type") String type,
+      @RequestParam(required = false, value = "physicalTenantIds") List<String> physicalTenantIds) {
+    return Optional.ofNullable(
+            instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+                request,
+                forwardedFor,
+                () -> outboundConnectorsService.findByType(type, hostname, physicalTenantIds),
+                new TypeReference<>() {}))
+        .orElseThrow(() -> new DataNotFoundException(OutboundConnectorResponse.class, type));
+  }
+
+  /**
+   * Returns aggregated outbound connector metrics across all connector types.
+   *
+   * @param physicalTenantIds when non-empty, restricts the aggregate to jobs executed for one of
+   *     these physical tenants (engines) — a distinct dimension from the logical {@code tenantId}
+   *     exposed elsewhere on this API. Omitted or empty sums across every physical tenant, matching
+   *     the pre-existing (unfiltered) behavior of this endpoint. Note that the {@code worker}
+   *     section is omitted from a filtered response: those counters are recorded by the Camunda
+   *     client itself, which does not tag them by physical tenant.
+   */
+  @GetMapping("/metrics")
+  public List<OutboundConnectorMetrics> getMetrics(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
+      @RequestParam(required = false, value = "physicalTenantIds") List<String> physicalTenantIds) {
     return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
         request,
         forwardedFor,
@@ -122,7 +127,32 @@ public class OutboundConnectorsRestController {
             meterRegistry == null
                 ? List.of()
                 : List.of(
-                    ConnectorMetricsAggregator.outbound(meterRegistry, connectorType, hostname)),
+                    ConnectorMetricsAggregator.outbound(
+                        meterRegistry, null, physicalTenantIds, hostname)),
+        new TypeReference<>() {});
+  }
+
+  /**
+   * Returns outbound connector metrics for a specific connector type.
+   *
+   * @param connectorType connector type (e.g. {@code io.camunda:http-json:1})
+   * @param physicalTenantIds see {@link #getMetrics}
+   */
+  @GetMapping("/metrics/{connectorType}")
+  public List<OutboundConnectorMetrics> getMetricsByType(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
+      @PathVariable(name = "connectorType") String connectorType,
+      @RequestParam(required = false, value = "physicalTenantIds") List<String> physicalTenantIds) {
+    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+        request,
+        forwardedFor,
+        () ->
+            meterRegistry == null
+                ? List.of()
+                : List.of(
+                    ConnectorMetricsAggregator.outbound(
+                        meterRegistry, connectorType, physicalTenantIds, hostname)),
         new TypeReference<>() {});
   }
 }

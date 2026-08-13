@@ -36,13 +36,34 @@ public class ConnectorOutboundMetrics {
 
   private final MetricsRecorder delegate;
   private final MeterRegistry meterRegistry;
+  private final String physicalTenantId;
   private final ConcurrentHashMap<String, AtomicLong> lastCompleted = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, AtomicLong> lastFailed = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, AtomicLong> allTimeMaxMs = new ConcurrentHashMap<>();
 
   public ConnectorOutboundMetrics(MetricsRecorder delegate, MeterRegistry meterRegistry) {
+    this(delegate, meterRegistry, null);
+  }
+
+  /**
+   * @param physicalTenantId the physical tenant (engine) whose job worker these metrics are
+   *     recorded for; every gauge is tagged with it, so that two engines running the same connector
+   *     type report separately instead of colliding on one shared, wrongly-attributed gauge. {@code
+   *     null} falls back to {@link ConnectorMetrics#DEFAULT_PHYSICAL_TENANT_ID}.
+   */
+  public ConnectorOutboundMetrics(
+      MetricsRecorder delegate, MeterRegistry meterRegistry, String physicalTenantId) {
     this.delegate = delegate;
     this.meterRegistry = meterRegistry;
+    this.physicalTenantId =
+        physicalTenantId == null || physicalTenantId.isBlank()
+            ? ConnectorMetrics.DEFAULT_PHYSICAL_TENANT_ID
+            : physicalTenantId;
+  }
+
+  /** The physical tenant (engine) every meter recorded through this instance is tagged with. */
+  public String physicalTenantId() {
+    return physicalTenantId;
   }
 
   // -------------------------------------------------------------------------
@@ -111,6 +132,7 @@ public class ConnectorOutboundMetrics {
           if (meterRegistry != null) {
             Gauge.builder(metricName, gauge, AtomicLong::doubleValue)
                 .tag(ConnectorMetrics.Tag.TYPE, type)
+                .tag(ConnectorMetrics.Tag.PHYSICAL_TENANT_ID, physicalTenantId)
                 .register(meterRegistry);
           }
           return gauge;

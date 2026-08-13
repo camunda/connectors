@@ -202,7 +202,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
     JobHandlerFactory jobHandlerFactory =
         ctx ->
             new SpringConnectorJobHandler(
-                new ConnectorOutboundMetrics(metricsRecorder, meterRegistry),
+                new ConnectorOutboundMetrics(metricsRecorder, meterRegistry, physicalTenantId),
                 jobCallbackCommandWrapperFactory,
                 secretProviderAggregator,
                 validationProvider,
