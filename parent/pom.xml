@@ -1146,6 +1146,23 @@ enforcer rule from parent/pom.xml.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-55955
                 </regexMessage>
               </requireProperty>
+              <!-- CVE-2026-59889 guard: fails if version.spring-boot is bumped, as a reminder to
+                   check whether the jackson3-bom override can be removed (see version.jackson3-bom).
+                   spring-boot-dependencies manages tools.jackson:jackson-bom via its own
+                   jackson-bom.version property, separate from the legacy com.fasterxml.jackson:jackson-bom
+                   line already overridden above - it is not covered by that override. -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^4\.1\.0$</regex>
+                <regexMessage>
+version.spring-boot was changed! Check if the jackson3-bom CVE-2026-59889 override can be removed.
+If the new spring-boot-dependencies BOM ships tools.jackson:jackson-bom &gt;= 3.1.5 (confirm with
+`mvn dependency:tree -Dincludes=tools.jackson.core:jackson-databind`, not just the property),
+remove the version.jackson3-bom property, the tools.jackson:jackson-bom dependencyManagement entry,
+and this enforcer rule from parent/pom.xml.
+See: https://nvd.nist.gov/vuln/detail/CVE-2026-59889
+                </regexMessage>
+              </requireProperty>
             </rules>
           </configuration>
           <executions>
