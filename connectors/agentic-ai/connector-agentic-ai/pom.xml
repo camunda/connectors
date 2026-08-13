@@ -369,12 +369,16 @@
       <artifactId>feel-engine</artifactId>
     </dependency>
 
-    <!-- Test dependencies -->
+    <!-- Compile-scoped (the natural transitive scope from google-genai, which returns Guava
+         types such as ImmutableList from GenerateContentResponse#parts()): main compilation runs
+         with -XDaddTypeAnnotationsToSymbol=true, and javac cannot complete those SDK types
+         without Guava's class files on the compile classpath. Also used directly by tests. -->
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <scope>test</scope>
     </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-object-mapper</artifactId>
@@ -495,6 +499,10 @@
                      anthropic-java-client-okhttp's AnthropicOkHttpClient at runtime, see the
                      dependency declaration above); the analyzer would otherwise flag it unused. -->
                 <ignoredDependency>com.squareup.okhttp3:okhttp-jvm</ignoredDependency>
+                <!-- guava is compile-scoped for javac's benefit only (see the dependency
+                     declaration above): main code never imports it, so the analyzer would
+                     otherwise flag it as a non-test scoped test-only dependency. -->
+                <ignoredDependency>com.google.guava:guava</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>
