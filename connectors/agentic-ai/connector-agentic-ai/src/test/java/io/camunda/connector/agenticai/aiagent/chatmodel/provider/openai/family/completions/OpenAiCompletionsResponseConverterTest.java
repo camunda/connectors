@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -21,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
+import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -80,6 +82,24 @@ class OpenAiCompletionsResponseConverterTest {
         }
         """
             .formatted(finishReason, messageJson, usageJson));
+  }
+
+  @Test
+  void throwsConnectorExceptionWhenNoChoicesReturned() {
+    final ChatCompletion completion =
+        completionFromJson(
+            """
+            {
+              "id": "chatcmpl_123", "object": "chat.completion", "created": 0, "model": "gpt-4o",
+              "choices": [],
+              "usage": null
+            }
+            """);
+
+    assertThatThrownBy(() -> converter.toResult(completion, Duration.ofMillis(100)))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_MODEL_CALL));
   }
 
   @Test

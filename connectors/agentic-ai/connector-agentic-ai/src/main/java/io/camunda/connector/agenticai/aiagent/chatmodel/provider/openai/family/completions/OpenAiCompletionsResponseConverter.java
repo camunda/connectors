@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionMessage;
@@ -25,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
+import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,11 +67,12 @@ public class OpenAiCompletionsResponseConverter {
   }
 
   public ChatResult toResult(ChatCompletion completion, Duration executionTime) {
-    final AssistantMessage assistantMessage = toAssistantMessage(completion);
+    final ChatCompletion.Choice choice = firstChoice(completion);
+    final AssistantMessage assistantMessage = toAssistantMessage(completion, choice);
     final AgentMetrics metrics =
         toMetrics(completion, assistantMessage.toolCalls().size(), executionTime);
 
-    if (hasRefusal(completion)
+    if (hasRefusal(choice)
         || (assistantMessage.stopReason() instanceof UnknownStopReason unknown
             && ChatCompletion.Choice.FinishReason.CONTENT_FILTER
                 .asString()
@@ -82,16 +86,31 @@ public class OpenAiCompletionsResponseConverter {
   }
 
   /**
+   * OpenAI's own default is exactly one choice per completion ({@code n=1}); this connector never
+   * configures {@code n}, so a well-formed response always has one -- langchain4j's {@code
+   * OpenAiChatModel} makes the same assumption, but guards it explicitly (throwing on an empty
+   * {@code choices} list) rather than indexing blindly, which is what this does too.
+   */
+  private ChatCompletion.Choice firstChoice(ChatCompletion completion) {
+    final List<ChatCompletion.Choice> choices = completion.choices();
+    if (choices.isEmpty()) {
+      throw new ConnectorException(
+          ERROR_CODE_FAILED_MODEL_CALL, "OpenAI response contained no choices");
+    }
+    return choices.get(0);
+  }
+
+  /**
    * A refusal carries no {@code finish_reason} signal of its own -- mirrors the Responses sibling's
    * {@code hasRefusal}, treating it the same as {@code content_filter} for a uniform "blocked"
    * outcome across both mechanisms.
    */
-  private boolean hasRefusal(ChatCompletion completion) {
-    return completion.choices().get(0).message().refusal().isPresent();
+  private boolean hasRefusal(ChatCompletion.Choice choice) {
+    return choice.message().refusal().isPresent();
   }
 
-  private AssistantMessage toAssistantMessage(ChatCompletion completion) {
-    final ChatCompletion.Choice choice = completion.choices().get(0);
+  private AssistantMessage toAssistantMessage(
+      ChatCompletion completion, ChatCompletion.Choice choice) {
     final ChatCompletionMessage message = choice.message();
 
     final List<Content> content = new ArrayList<>();
