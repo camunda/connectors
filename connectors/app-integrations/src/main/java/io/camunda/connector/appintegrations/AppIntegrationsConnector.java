@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 @ElementTemplate(
     id = "io.camunda.connectors.AppIntegrations.v1",
     name = "App Integrations Connector",
-    version = 2,
+    version = 1,
     description = "Send notifications and manage channels via Microsoft Teams and Slack",
     keywords = {
       "teams",
