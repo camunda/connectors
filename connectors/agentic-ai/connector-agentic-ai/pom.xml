@@ -180,10 +180,12 @@
 
     <!--
       OkHttp 5 split into multi-platform modules: the `okhttp` artifact's pom is now an empty
-      shell (classes ship in `okhttp-jvm`), see the comment in parent/pom.xml.
-      anthropic-java-client-okhttp only depends on the empty `okhttp` shell, so
-      AnthropicOkHttpClient.builder().build() throws NoClassDefFoundError at runtime unless we
-      add `okhttp-jvm` explicitly (same pattern as connectors/slack and connectors/microsoft/common).
+      shell (classes ship in `okhttp-jvm`), see the comment in parent/pom.xml. Both anthropic-java
+      and openai-java's okhttp clients (Stainless-generated) only depend on the empty `okhttp`
+      shell, so their builders throw NoClassDefFoundError at runtime unless we add `okhttp-jvm`
+      explicitly (same pattern as connectors/slack and connectors/microsoft/common). openai-java is
+      declared directly below rather than via the com.openai:openai-java aggregator, so the OkHttp
+      client artifact and the models core stay independently visible.
     -->
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
@@ -191,12 +193,6 @@
       <version>${version.okhttp}</version>
     </dependency>
 
-    <!--
-      openai-java mirrors anthropic-java's structure (both Stainless-generated): declared directly
-      rather than via the com.openai:openai-java aggregator, so the OkHttp client artifact and the
-      models core stay independently visible. okhttp-jvm is already declared above (OkHttp 5's
-      `okhttp` artifact is an empty shell) and covers this client too.
-    -->
     <dependency>
       <groupId>com.openai</groupId>
       <artifactId>openai-java-core</artifactId>
