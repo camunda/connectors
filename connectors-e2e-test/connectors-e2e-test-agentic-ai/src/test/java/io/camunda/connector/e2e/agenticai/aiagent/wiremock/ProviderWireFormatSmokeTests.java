@@ -78,11 +78,11 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
   static Stream<ProviderWireFormatFixture> fixtures() {
     return Stream.of(
         new OpenAiCompletionsV1WireFormatFixture(),
+        new OpenAiCompletionsV2WireFormatFixture(),
         new AnthropicMessagesV1WireFormatFixture(),
         new AnthropicMessagesV2WireFormatFixture(),
         new BedrockConverseWireFormatFixture(),
         new AzureOpenAiCompletionsWireFormatFixture(),
-        new OpenAiCompletionsV2WireFormatFixture(),
         new OpenAiResponsesV2WireFormatFixture());
   }
 
