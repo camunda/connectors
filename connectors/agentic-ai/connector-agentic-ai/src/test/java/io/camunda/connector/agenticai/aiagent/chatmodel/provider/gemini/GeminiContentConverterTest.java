@@ -52,6 +52,52 @@ class GeminiContentConverterTest {
 
       assertThat(parts).hasSize(1);
       assertThat(parts.get(0).text()).contains("hello world");
+      assertThat(parts.get(0).thoughtSignature()).isEmpty();
+    }
+
+    @Test
+    void mapsTextContentWithSignatureMetadataToTextPartCarryingTheSignature() {
+      // Gemini attaches a thoughtSignature to whichever part carries the reasoning continuity,
+      // including a plain answer text part - it must survive the replay, not just on thought parts.
+      final var signatureBytes = "sig-bytes".getBytes(StandardCharsets.UTF_8);
+      final var metadata =
+          Map.<String, Object>of(
+              "thoughtSignature", Base64.getEncoder().encodeToString(signatureBytes));
+
+      final var parts = converter.toParts(List.of(new TextContent("the answer", metadata)));
+
+      assertThat(parts).hasSize(1);
+      final var part = parts.get(0);
+      assertThat(part.text()).contains("the answer");
+      assertThat(part.thought()).isEmpty();
+      assertThat(part.thoughtSignature().orElseThrow()).isEqualTo(signatureBytes);
+    }
+
+    @Test
+    void mapsTextContentWithRawByteArraySignatureMetadataPassesThrough() {
+      // Same tolerance as the reasoning path: the in-process conversation store can hand back the
+      // raw byte[] with no JSON round trip in between.
+      final var signatureBytes = "sig-bytes".getBytes(StandardCharsets.UTF_8);
+
+      final var parts =
+          converter.toParts(
+              List.of(
+                  new TextContent(
+                      "the answer", Map.of("thoughtSignature", (Object) signatureBytes))));
+
+      assertThat(parts).hasSize(1);
+      assertThat(parts.get(0).thoughtSignature().orElseThrow()).isEqualTo(signatureBytes);
+    }
+
+    @Test
+    void mapsTextContentWithUnrelatedMetadataWithoutSettingASignature() {
+      final var parts =
+          converter.toParts(
+              List.of(new TextContent("the answer", Map.of("somethingElse", "value"))));
+
+      assertThat(parts).hasSize(1);
+      assertThat(parts.get(0).text()).contains("the answer");
+      assertThat(parts.get(0).thoughtSignature()).isEmpty();
     }
 
     @Test

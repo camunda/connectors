@@ -108,8 +108,11 @@ public class GeminiContentResponseConverter {
       final ToolCall toolCall = toToolCall(part);
       if (toolCall != null) {
         toolCalls.add(toolCall);
-      } else {
-        content.add(toContent(part));
+        continue;
+      }
+      final Content converted = toContent(part);
+      if (converted != null) {
+        content.add(converted);
       }
     }
 
@@ -221,19 +224,32 @@ public class GeminiContentResponseConverter {
         .orElse(null);
   }
 
-  private Content toContent(Part part) {
+  /**
+   * Maps a single non-tool-call {@link Part} to its domain {@link Content}, or returns {@code null}
+   * for a part that carries nothing worth keeping (blank text and no other field) — {@link
+   * TextContent} rejects blank text, and the stream assembler can pass an empty-text part straight
+   * through from real SSE traffic.
+   */
+  private @Nullable Content toContent(Part part) {
     if (part.thought().orElse(false)) {
       return toReasoningContent(part);
     }
 
-    final String text = part.text().orElse(null);
+    // A thoughtSignature is not exclusive to thinking/function-call parts: Gemini attaches it to
+    // whichever part the reasoning continuity belongs to, including a plain answer text part. Since
+    // every assistant message is replayed back into the next request, dropping it here would break
+    // the same follow-up requests the function-call handling above protects.
+    final String text = part.text().filter(StringUtils::hasText).orElse(null);
     if (text != null) {
-      return TextContent.textContent(text);
+      return new TextContent(text, thoughtSignatureMetadata(part));
     }
 
-    // Fallback for any Gemini part shape not explicitly handled above: preserve it losslessly, in
-    // original order, as ProviderContent
-    return new ProviderContent(GOOGLE_GEMINI_ID, rawPart(part), null);
+    // Fallback for any Gemini part shape not explicitly handled above (including a signature-only
+    // part with blank text): preserve it losslessly, in original order, as ProviderContent.
+    final Map<String, Object> raw = rawPart(part);
+    final Map<String, Object> withoutText = new LinkedHashMap<>(raw);
+    withoutText.remove("text");
+    return withoutText.isEmpty() ? null : new ProviderContent(GOOGLE_GEMINI_ID, raw, null);
   }
 
   /**
@@ -251,13 +267,21 @@ public class GeminiContentResponseConverter {
       raw.remove("text");
     }
 
-    final Map<String, Object> metadata =
-        part.thoughtSignature()
-            .<Map<String, Object>>map(
-                signature -> Map.of(THOUGHT_SIGNATURE_METADATA_KEY, encodeSignature(signature)))
-            .orElse(null);
+    return new ReasoningContent(GOOGLE_GEMINI_ID, raw, text, thoughtSignatureMetadata(part));
+  }
 
-    return new ReasoningContent(GOOGLE_GEMINI_ID, raw, text, metadata);
+  /**
+   * The base64-encoded {@code thoughtSignature} as {@link Content#metadata()}, flat under {@link
+   * GeminiContentConverter#THOUGHT_SIGNATURE_METADATA_KEY} — the exact shape {@link
+   * GeminiContentConverter#toParts(List)} reads back on replay. No provider namespace is needed
+   * here (unlike on a {@link ToolCall}): every {@link Content} carrying this already names its
+   * provider as a first-class field.
+   */
+  private @Nullable Map<String, Object> thoughtSignatureMetadata(Part part) {
+    return part.thoughtSignature()
+        .<Map<String, Object>>map(
+            signature -> Map.of(THOUGHT_SIGNATURE_METADATA_KEY, encodeSignature(signature)))
+        .orElse(null);
   }
 
   /**

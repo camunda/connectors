@@ -75,7 +75,7 @@ public class GeminiContentConverter {
     final List<Part> parts = new ArrayList<>();
     for (final Content c : content) {
       switch (c) {
-        case TextContent text -> parts.add(Part.fromText(text.text()));
+        case TextContent text -> parts.add(toTextPart(text));
         case DocumentContent doc -> parts.add(toDocumentPart(doc));
         case ObjectContent obj -> parts.add(Part.fromText(writeAsJson(obj.content())));
         case ReasoningContent rc -> parts.add(toThoughtPart(rc));
@@ -120,6 +120,19 @@ public class GeminiContentConverter {
     return Part.builder()
         .functionResponse(FunctionResponse.builder().response(Map.of("output", value)).build())
         .build();
+  }
+
+  /**
+   * A {@code thoughtSignature} is not exclusive to thinking parts: Gemini attaches it to whichever
+   * part the reasoning continuity belongs to, a plain answer text part included. The response
+   * converter therefore records it on {@link TextContent#metadata()} under the same {@link
+   * #THOUGHT_SIGNATURE_METADATA_KEY}, and it must be restored here verbatim or Gemini 3 rejects the
+   * follow-up request that replays this message.
+   */
+  private Part toTextPart(TextContent text) {
+    final Part part = Part.fromText(text.text());
+    final byte @Nullable [] signature = thoughtSignature(text.metadata());
+    return signature == null ? part : part.toBuilder().thoughtSignature(signature).build();
   }
 
   private Part toThoughtPart(ReasoningContent rc) {

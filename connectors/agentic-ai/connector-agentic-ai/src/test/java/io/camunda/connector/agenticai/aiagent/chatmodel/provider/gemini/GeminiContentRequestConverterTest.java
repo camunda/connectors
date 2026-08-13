@@ -108,6 +108,8 @@ class GeminiContentRequestConverterTest {
     assertThat(config.thinkingConfig()).isPresent();
     assertThat(config.thinkingConfig().orElseThrow().thinkingBudget()).contains(2048);
     assertThat(config.thinkingConfig().orElseThrow().thinkingLevel()).isEmpty();
+    // without includeThoughts, thinking would be billed but never returned
+    assertThat(config.thinkingConfig().orElseThrow().includeThoughts()).contains(true);
   }
 
   @Test
@@ -123,6 +125,7 @@ class GeminiContentRequestConverterTest {
     assertThat(config.thinkingConfig().orElseThrow().thinkingBudget()).isEmpty();
     assertThat(config.thinkingConfig().orElseThrow().thinkingLevel().orElseThrow().toString())
         .isEqualToIgnoringCase("high");
+    assertThat(config.thinkingConfig().orElseThrow().includeThoughts()).contains(true);
   }
 
   @Test

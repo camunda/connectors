@@ -154,6 +154,79 @@ class GeminiContentResponseConverterTest {
   }
 
   @Test
+  void preservesAThoughtSignatureCarriedOnAPlainTextPart() {
+    // Gemini attaches a thoughtSignature to whichever part the reasoning continuity belongs to,
+    // including a non-thought answer part. Every assistant message is replayed into the next
+    // request, so dropping it here breaks follow-ups exactly like dropping it on a functionCall.
+    final var textPart =
+        Part.builder().text("the answer").thoughtSignature(THOUGHT_SIGNATURE).build();
+
+    final var content =
+        converter
+            .toAssistantMessage(response(candidate(FinishReason.Known.STOP, textPart)))
+            .content();
+
+    assertThat(content)
+        .containsExactly(
+            new TextContent(
+                "the answer", Map.of(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE_BASE64)));
+  }
+
+  @Test
+  void writesATextPartThoughtSignatureTheRequestConverterReadsBackVerbatim() {
+    final var textPart =
+        Part.builder().text("the answer").thoughtSignature(THOUGHT_SIGNATURE).build();
+
+    final var content =
+        converter
+            .toAssistantMessage(response(candidate(FinishReason.Known.STOP, textPart)))
+            .content();
+
+    assertThat(new GeminiContentConverter(new ObjectMapper()).toParts(content))
+        .singleElement()
+        .satisfies(
+            part -> {
+              assertThat(part.text()).contains("the answer");
+              assertThat(part.thought()).isEmpty();
+              assertThat(part.thoughtSignature()).contains(THOUGHT_SIGNATURE);
+            });
+  }
+
+  @Test
+  void skipsAnEmptyTextPartRatherThanRejectingIt() {
+    // TextContent rejects blank text, and the stream assembler passes empty-text parts straight
+    // through from real SSE traffic - this must not blow up the whole conversion.
+    final var response =
+        response(
+            candidate(
+                FinishReason.Known.STOP,
+                Part.fromText(""),
+                Part.fromText("   "),
+                Part.fromText("the answer")));
+
+    final var assistantMessage = converter.toAssistantMessage(response);
+
+    assertThat(assistantMessage.content()).containsExactly(TextContent.textContent("the answer"));
+  }
+
+  @Test
+  void keepsASignatureOnlyPartWithBlankTextAsProviderContent() {
+    // A blank-text part is only skippable when it carries nothing else; a signature must survive.
+    final var signatureOnlyPart =
+        Part.builder().text("").thoughtSignature(THOUGHT_SIGNATURE).build();
+
+    final var content =
+        converter
+            .toAssistantMessage(response(candidate(FinishReason.Known.STOP, signatureOnlyPart)))
+            .content();
+
+    assertThat(content).singleElement().isInstanceOf(ProviderContent.class);
+    assertThat(new GeminiContentConverter(new ObjectMapper()).toParts(content))
+        .singleElement()
+        .satisfies(part -> assertThat(part.thoughtSignature()).contains(THOUGHT_SIGNATURE));
+  }
+
+  @Test
   void mapsCandidateWithoutContentToAnEmptyMessage() {
     // The real shape of a SAFETY-filtered (and of some MAX_TOKENS) candidate: no content at all.
     final var response =

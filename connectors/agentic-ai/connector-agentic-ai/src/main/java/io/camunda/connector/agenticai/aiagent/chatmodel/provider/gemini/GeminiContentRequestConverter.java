@@ -159,7 +159,13 @@ public class GeminiContentRequestConverter {
       return;
     }
 
-    final var thinkingConfigBuilder = ThinkingConfig.builder();
+    // Thoughts are not returned unless explicitly asked for (per ThinkingConfig#includeThoughts:
+    // "If true, thoughts are returned only if the model supports thought and thoughts are
+    // available"), so configuring a budget/level without this would enable thinking the connector
+    // could never surface. Not configurable: the config record has no separate toggle, and this
+    // matches Anthropic, which always returns thinking content once thinking is enabled and only
+    // lets ThinkingDisplay control how it is formatted.
+    final var thinkingConfigBuilder = ThinkingConfig.builder().includeThoughts(true);
     if (budget != null) {
       thinkingConfigBuilder.thinkingBudget(budget);
     } else if (level != null) {
