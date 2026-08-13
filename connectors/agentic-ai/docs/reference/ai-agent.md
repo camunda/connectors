@@ -998,7 +998,7 @@ loud rather than resolving implicitly.
 ### Turn-based continuation loop
 
 `BaseAgentRequestHandler.proceed` drives the SPI in a `do { … } while (continued)` loop: each
-iteration calls `chatModel.execute(request)`, enforces the content-filter guard (below), ingests the
+iteration calls `chatModel.execute(request)`, catches `ChatModelRejectedException` (below), ingests the
 assistant message into the turn, and — only if the result was a `Continuation` — checks the
 model-call limit and starts the next continuation round on a fresh turn before looping. A `Completed`
 result ends the loop. LangChain4j always returns `Completed`, so the loop runs exactly once for it —
@@ -1272,7 +1272,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 
 ### Core Agent Logic
 - `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → load + reconstruct → compose → rehydrate → LLM (continuation loop) → ingest → persist → complete
-- `BaseAgentRequestHandler.proceed()` → `do { chatModel.execute() → content-filter guard → ingest → … } while (continued)` — the turn-based continuation loop ([§12](#12-framework-abstraction))
+- `BaseAgentRequestHandler.proceed()` → `do { chatModel.execute() → ChatModelRejectedException handling → ingest → … } while (continued)` — the turn-based continuation loop ([§12](#12-framework-abstraction))
 - `AgentInitializerImpl.initializeAgent()` → State machine / initialization
 - `TurnReconstructor.reconstruct()` → Rebuilds turns + system message from the stored flat message list
 - `AgentConversationTurnInputComposerImpl.compose()` → Turn input assembly (tool results, events, user prompt) → `AgentInput`
