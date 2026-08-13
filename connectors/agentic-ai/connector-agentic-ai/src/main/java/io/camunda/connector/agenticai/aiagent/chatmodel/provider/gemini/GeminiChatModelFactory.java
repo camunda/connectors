@@ -55,7 +55,13 @@ public class GeminiChatModelFactory implements ChatModelFactory {
   public ChatModel create(ChatModelConfiguration configuration) {
     final var model = (GeminiChatModelConfiguration) configuration;
     final var connection = model.googleGemini();
-    final var timeout = connection.timeouts() != null ? connection.timeouts().timeout() : null;
+    final var configuredTimeout =
+        connection.timeouts() != null ? connection.timeouts().timeout() : null;
+    // a non-positive configured timeout (e.g. PT0S, or a negative FEEL result) falls back to
+    // the SDK default rather than being passed through - see toGeminiTimeoutMillis, which
+    // would otherwise clamp it to an unusable 1ms call timeout
+    final var timeout =
+        configuredTimeout != null && configuredTimeout.isPositive() ? configuredTimeout : null;
 
     final var client = buildClient(connection.backend(), timeout, httpProxySupport);
     return new GeminiChatModel(client, model, requestConverter, responseConverter);

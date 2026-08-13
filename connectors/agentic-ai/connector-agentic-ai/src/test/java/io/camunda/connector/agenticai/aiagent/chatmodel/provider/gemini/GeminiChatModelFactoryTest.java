@@ -129,6 +129,19 @@ class GeminiChatModelFactoryTest {
   }
 
   @Test
+  void createIgnoresNonPositiveConfiguredTimeout() {
+    noProxyConfigured();
+
+    final ChatModel zeroTimeoutModel = factory.create(apiConfig(null, Duration.ZERO));
+    assertThat(httpOptionsOf(zeroTimeoutModel).timeout()).isEmpty();
+    zeroTimeoutModel.close();
+
+    final ChatModel negativeTimeoutModel = factory.create(apiConfig(null, Duration.ofSeconds(-1)));
+    assertThat(httpOptionsOf(negativeTimeoutModel).timeout()).isEmpty();
+    negativeTimeoutModel.close();
+  }
+
+  @Test
   void createThrowsWhenTimeoutExceedsMaximumSupportedMillis() {
     final GeminiChatModelConfiguration config =
         apiConfig(null, Duration.ofMillis(Integer.MAX_VALUE).plusMillis(1));
