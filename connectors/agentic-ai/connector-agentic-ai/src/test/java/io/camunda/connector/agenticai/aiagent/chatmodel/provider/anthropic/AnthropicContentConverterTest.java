@@ -205,6 +205,17 @@ class AnthropicContentConverterTest {
     }
 
     @Test
+    void throwsWhenDocumentContentTypeIsUnset() {
+      final var doc = mockDocument(null, "UEsDBA==");
+
+      assertThatThrownBy(
+              () -> converter.toContentBlockParams(List.of(new DocumentContent(doc, null))))
+          .isInstanceOf(ConnectorException.class)
+          .hasMessageContaining("Content type is unset")
+          .hasMessageContaining("https://example.com/document");
+    }
+
+    @Test
     void dropsReasoningContentFromAForeignProvider() {
       final var payload = Map.<String, Object>of("type", "reasoning", "id", "rs_1");
 

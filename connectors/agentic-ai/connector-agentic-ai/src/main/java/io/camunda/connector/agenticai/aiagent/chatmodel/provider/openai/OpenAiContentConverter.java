@@ -19,6 +19,7 @@ import com.openai.models.responses.ResponseInputFile;
 import com.openai.models.responses.ResponseInputImage;
 import com.openai.models.responses.ResponseInputText;
 import com.openai.models.responses.ResponseInputTextContent;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -30,8 +31,8 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import org.apache.hc.core5.http.ContentType;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Converts the domain {@link Content} model to OpenAI SDK content parts, for both the Responses API
@@ -42,27 +43,6 @@ import org.apache.hc.core5.http.ContentType;
 public class OpenAiContentConverter {
 
   private static final String DEFAULT_FILE_NAME = "document";
-
-  private static final List<ContentType> PDF_CONTENT_TYPES = List.of(ContentType.APPLICATION_PDF);
-
-  private static final List<ContentType> IMAGE_CONTENT_TYPES =
-      List.of(
-          ContentType.IMAGE_JPEG,
-          ContentType.IMAGE_PNG,
-          ContentType.IMAGE_GIF,
-          ContentType.IMAGE_WEBP);
-
-  /**
-   * Mirrors the legacy LangChain4j path's base allowlist ({@code DocumentToContentConverterImpl}),
-   * extended with {@code application/x-yaml} for consistency with the {@code application/yaml}
-   * entry already here; shared verbatim with the Anthropic sibling.
-   */
-  private static final List<ContentType> ADDITIONAL_TEXT_FILE_CONTENT_TYPES =
-      List.of(
-          ContentType.APPLICATION_JSON,
-          ContentType.APPLICATION_XML,
-          ContentType.create("application/yaml"),
-          ContentType.create("application/x-yaml"));
 
   private final ObjectMapper objectMapper;
 
@@ -160,8 +140,8 @@ public class OpenAiContentConverter {
   }
 
   private ResponseInputContent responsesDocumentPart(DocumentContent doc) {
-    final var contentType = contentType(doc.document());
-    return switch (classify(contentType)) {
+    final var contentType = DocumentMimeTypes.requireContentType(doc.document());
+    return switch (classify(DocumentMimeTypes.parse(contentType))) {
       case IMAGE ->
           ResponseInputContent.ofInputImage(
               ResponseInputImage.builder()
@@ -182,8 +162,8 @@ public class OpenAiContentConverter {
   }
 
   private ChatCompletionContentPart completionsDocumentPart(DocumentContent doc) {
-    final var contentType = contentType(doc.document());
-    return switch (classify(contentType)) {
+    final var contentType = DocumentMimeTypes.requireContentType(doc.document());
+    return switch (classify(DocumentMimeTypes.parse(contentType))) {
       case IMAGE ->
           ChatCompletionContentPart.ofImageUrl(
               ChatCompletionContentPartImage.builder()
@@ -227,12 +207,6 @@ public class OpenAiContentConverter {
     return name != null ? name : DEFAULT_FILE_NAME;
   }
 
-  private static String contentType(Document document) {
-    final var metadata = document.metadata();
-    final var type = metadata != null ? metadata.getContentType() : null;
-    return type != null ? type : "application/octet-stream";
-  }
-
   private static String decodeUtf8(Document document) {
     return new String(document.asByteArray(), StandardCharsets.UTF_8);
   }
@@ -248,7 +222,7 @@ public class OpenAiContentConverter {
   /**
    * Coarse content-type buckets driving the document-part builder methods' choice of OpenAI part
    * shape. Unknown/blank/unparseable types map conservatively to {@link #UNSUPPORTED}, which fails
-   * the request. Mirrors {@code AnthropicContentConverter}'s {@code DocumentBlockKind}.
+   * the request.
    */
   private enum DocumentPartKind {
     IMAGE,
@@ -257,43 +231,19 @@ public class OpenAiContentConverter {
     UNSUPPORTED
   }
 
-  private static DocumentPartKind classify(String contentType) {
-    if (contentType.isBlank()) {
+  private static DocumentPartKind classify(@Nullable ContentType contentType) {
+    if (contentType == null) {
       return DocumentPartKind.UNSUPPORTED;
     }
-
-    final ContentType parsed;
-    try {
-      parsed = ContentType.parse(contentType.trim().toLowerCase(Locale.ROOT));
-    } catch (RuntimeException e) {
-      return DocumentPartKind.UNSUPPORTED;
-    }
-    if (parsed == null) {
-      return DocumentPartKind.UNSUPPORTED;
-    }
-
-    if (isCompatibleWithAnyOf(parsed, IMAGE_CONTENT_TYPES)) {
+    if (DocumentMimeTypes.isImage(contentType)) {
       return DocumentPartKind.IMAGE;
     }
-    if (isCompatibleWithAnyOf(parsed, PDF_CONTENT_TYPES)) {
+    if (DocumentMimeTypes.isPdf(contentType)) {
       return DocumentPartKind.PDF;
     }
-
-    final var mime = parsed.getMimeType();
-    if (mime.startsWith("text/")
-        || isCompatibleWithAnyOf(parsed, ADDITIONAL_TEXT_FILE_CONTENT_TYPES)
-        // RFC 6839 structured syntax suffixes (e.g. application/problem+json,
-        // application/atom+xml) aren't caught by the exact-MIME-type check above:
-        // ContentType#isSameMimeType compares the whole type, not by suffix.
-        || mime.endsWith("+json")
-        || mime.endsWith("+xml")) {
+    if (DocumentMimeTypes.isTextIsh(contentType)) {
       return DocumentPartKind.TEXT;
     }
     return DocumentPartKind.UNSUPPORTED;
-  }
-
-  private static boolean isCompatibleWithAnyOf(
-      ContentType contentType, List<ContentType> contentTypes) {
-    return contentTypes.stream().anyMatch(contentType::isSameMimeType);
   }
 }

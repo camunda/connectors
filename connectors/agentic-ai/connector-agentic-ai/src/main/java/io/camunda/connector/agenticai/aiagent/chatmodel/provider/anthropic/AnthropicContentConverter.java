@@ -18,6 +18,7 @@ import com.anthropic.models.messages.TextBlockParam;
 import com.anthropic.models.messages.ToolResultBlockParam;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -30,9 +31,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.hc.core5.http.ContentType;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Converts the domain {@link Content} model to Anthropic SDK content blocks, both for
@@ -40,27 +42,6 @@ import org.apache.hc.core5.http.ContentType;
  * ToolResultBlockParam.Content.Block}).
  */
 public class AnthropicContentConverter {
-
-  private static final List<ContentType> PDF_CONTENT_TYPES = List.of(ContentType.APPLICATION_PDF);
-
-  private static final List<ContentType> IMAGE_CONTENT_TYPES =
-      List.of(
-          ContentType.IMAGE_JPEG,
-          ContentType.IMAGE_PNG,
-          ContentType.IMAGE_GIF,
-          ContentType.IMAGE_WEBP);
-
-  /**
-   * Mirrors the legacy LangChain4j path's base allowlist ({@code DocumentToContentConverterImpl}),
-   * extended with {@code application/x-yaml} for consistency with the {@code application/yaml}
-   * entry already here; shared verbatim with the OpenAI sibling.
-   */
-  private static final List<ContentType> ADDITIONAL_TEXT_FILE_CONTENT_TYPES =
-      List.of(
-          ContentType.APPLICATION_JSON,
-          ContentType.APPLICATION_XML,
-          ContentType.create("application/yaml"),
-          ContentType.create("application/x-yaml"));
 
   private final ObjectMapper objectMapper;
 
@@ -96,8 +77,9 @@ public class AnthropicContentConverter {
   }
 
   private ContentBlockParam toDocumentBlockParam(DocumentContent doc) {
-    final var contentType = contentType(doc.document());
-    return switch (classify(contentType)) {
+    final var contentType = DocumentMimeTypes.requireContentType(doc.document());
+    final var parsed = DocumentMimeTypes.parse(contentType);
+    return switch (classify(parsed)) {
       case IMAGE ->
           ContentBlockParam.ofImage(
               ImageBlockParam.builder()
@@ -105,7 +87,8 @@ public class AnthropicContentConverter {
                       Base64ImageSource.builder()
                           .data(doc.document().asBase64())
                           .mediaType(
-                              Base64ImageSource.MediaType.of(normalizedMimeType(contentType)))
+                              Base64ImageSource.MediaType.of(
+                                  Objects.requireNonNull(parsed).getMimeType()))
                           .build())
                   .build());
       case PDF ->
@@ -184,12 +167,6 @@ public class AnthropicContentConverter {
     return blocks;
   }
 
-  private static String contentType(Document document) {
-    final var metadata = document.metadata();
-    final var type = metadata != null ? metadata.getContentType() : null;
-    return type != null ? type : "application/octet-stream";
-  }
-
   private static String decodeUtf8(Document document) {
     return new String(document.asByteArray(), StandardCharsets.UTF_8);
   }
@@ -214,53 +191,19 @@ public class AnthropicContentConverter {
     UNSUPPORTED
   }
 
-  private static DocumentBlockKind classify(String contentType) {
-    if (contentType.isBlank()) {
+  private static DocumentBlockKind classify(@Nullable ContentType contentType) {
+    if (contentType == null) {
       return DocumentBlockKind.UNSUPPORTED;
     }
-
-    final ContentType parsed;
-    try {
-      parsed = ContentType.parse(contentType.trim().toLowerCase(Locale.ROOT));
-    } catch (RuntimeException e) {
-      return DocumentBlockKind.UNSUPPORTED;
-    }
-    if (parsed == null) {
-      return DocumentBlockKind.UNSUPPORTED;
-    }
-
-    if (isCompatibleWithAnyOf(parsed, IMAGE_CONTENT_TYPES)) {
+    if (DocumentMimeTypes.isImage(contentType)) {
       return DocumentBlockKind.IMAGE;
     }
-    if (isCompatibleWithAnyOf(parsed, PDF_CONTENT_TYPES)) {
+    if (DocumentMimeTypes.isPdf(contentType)) {
       return DocumentBlockKind.PDF;
     }
-
-    final var mime = parsed.getMimeType();
-    if (mime.startsWith("text/")
-        || isCompatibleWithAnyOf(parsed, ADDITIONAL_TEXT_FILE_CONTENT_TYPES)
-        // RFC 6839 structured syntax suffixes (e.g. application/problem+json,
-        // application/atom+xml) aren't caught by the exact-MIME-type check above:
-        // ContentType#isSameMimeType compares the whole type, not by suffix.
-        || mime.endsWith("+json")
-        || mime.endsWith("+xml")) {
+    if (DocumentMimeTypes.isTextIsh(contentType)) {
       return DocumentBlockKind.TEXT;
     }
     return DocumentBlockKind.UNSUPPORTED;
-  }
-
-  private static boolean isCompatibleWithAnyOf(
-      ContentType contentType, List<ContentType> contentTypes) {
-    return contentTypes.stream().anyMatch(contentType::isSameMimeType);
-  }
-
-  /**
-   * Strips parameters (e.g. {@code ; charset=UTF-8}) from a content type, matching the
-   * normalization {@link #classify(String)} already applies before comparing MIME types.
-   * Anthropic's image media type is a closed enum of exact values, so a parameterized content type
-   * has to be normalized before being sent on the wire, not just before classification.
-   */
-  private static String normalizedMimeType(String contentType) {
-    return ContentType.parse(contentType.trim().toLowerCase(Locale.ROOT)).getMimeType();
   }
 }
