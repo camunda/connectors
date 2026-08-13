@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockModel.BedrockModelParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;

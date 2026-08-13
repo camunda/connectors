@@ -22,10 +22,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockModel;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.AwsAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
