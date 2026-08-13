@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -23,10 +24,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import org.apache.hc.core5.http.ContentType;
 import org.jspecify.annotations.Nullable;
 import software.amazon.awssdk.core.SdkBytes;
@@ -50,24 +49,34 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolResultContentBlo
  */
 public class BedrockConverseContentConverter {
 
-  private static final Set<String> IMAGE_MIME_TYPES =
-      Set.of("image/png", "image/jpeg", "image/gif", "image/webp");
+  private static final Map<ContentType, ImageFormat> IMAGE_FORMATS =
+      Map.of(
+          ContentType.IMAGE_PNG, ImageFormat.PNG,
+          ContentType.IMAGE_JPEG, ImageFormat.JPEG,
+          ContentType.IMAGE_GIF, ImageFormat.GIF,
+          ContentType.IMAGE_WEBP, ImageFormat.WEBP);
 
   /**
    * Content types with a native Bedrock {@link DocumentFormat}. These are sent as-is ({@code
    * source.bytes}) rather than downgraded to a text fallback.
    */
-  private static final Set<String> NATIVE_DOCUMENT_MIME_TYPES =
-      Set.of(
-          "application/pdf",
-          "text/csv",
-          "application/msword",
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          "application/vnd.ms-excel",
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "text/html",
-          "text/plain",
-          "text/markdown");
+  private static final Map<ContentType, DocumentFormat> NATIVE_DOCUMENT_FORMATS =
+      Map.ofEntries(
+          Map.entry(ContentType.APPLICATION_PDF, DocumentFormat.PDF),
+          Map.entry(ContentType.create("text/csv"), DocumentFormat.CSV),
+          Map.entry(ContentType.create("application/msword"), DocumentFormat.DOC),
+          Map.entry(
+              ContentType.create(
+                  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+              DocumentFormat.DOCX),
+          Map.entry(ContentType.create("application/vnd.ms-excel"), DocumentFormat.XLS),
+          Map.entry(
+              ContentType.create(
+                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+              DocumentFormat.XLSX),
+          Map.entry(ContentType.TEXT_HTML, DocumentFormat.HTML),
+          Map.entry(ContentType.TEXT_PLAIN, DocumentFormat.TXT),
+          Map.entry(ContentType.create("text/markdown"), DocumentFormat.MD));
 
   private final ObjectMapper objectMapper;
 
@@ -134,19 +143,19 @@ public class BedrockConverseContentConverter {
    */
   private ContentBlock documentContentBlock(DocumentContent doc) {
     final Document document = doc.document();
-    final String contentType = contentType(document);
-    final String mime = parseMimeType(contentType);
-    return switch (classify(mime)) {
+    final String rawContentType = DocumentMimeTypes.requireContentType(document);
+    final ContentType contentType = DocumentMimeTypes.parse(rawContentType);
+    return switch (classify(contentType)) {
       case IMAGE ->
           ContentBlock.fromImage(
               ImageBlock.builder()
-                  .format(imageFormat(Objects.requireNonNull(mime)))
+                  .format(lookup(IMAGE_FORMATS, Objects.requireNonNull(contentType)))
                   .source(s -> s.bytes(SdkBytes.fromByteArray(document.asByteArray())))
                   .build());
       case DOCUMENT_NATIVE ->
           ContentBlock.fromDocument(
               DocumentBlock.builder()
-                  .format(nativeDocumentFormat(Objects.requireNonNull(mime)))
+                  .format(lookup(NATIVE_DOCUMENT_FORMATS, Objects.requireNonNull(contentType)))
                   .name(DocumentHandle.idFor(document))
                   .source(s -> s.bytes(SdkBytes.fromByteArray(document.asByteArray())))
                   .build());
@@ -161,7 +170,7 @@ public class BedrockConverseContentConverter {
           throw new ConnectorException(
               ERROR_CODE_FAILED_MODEL_CALL,
               "Unsupported content type '%s' for document with reference '%s'"
-                  .formatted(contentType, document.reference()));
+                  .formatted(rawContentType, document.reference()));
     };
   }
 
@@ -224,12 +233,6 @@ public class BedrockConverseContentConverter {
     return BedrockDocuments.toDocument(value, objectMapper);
   }
 
-  private static String contentType(Document document) {
-    final var metadata = document.metadata();
-    final var type = metadata != null ? metadata.getContentType() : null;
-    return type != null ? type : "application/octet-stream";
-  }
-
   private static String decodeUtf8(Document document) {
     return new String(document.asByteArray(), StandardCharsets.UTF_8);
   }
@@ -254,73 +257,31 @@ public class BedrockConverseContentConverter {
     UNSUPPORTED
   }
 
-  private static DocumentBlockKind classify(@Nullable String mime) {
-    if (mime == null) {
+  private static DocumentBlockKind classify(@Nullable ContentType contentType) {
+    if (contentType == null) {
       return DocumentBlockKind.UNSUPPORTED;
     }
-    if (IMAGE_MIME_TYPES.contains(mime)) {
+    if (DocumentMimeTypes.isImage(contentType)) {
       return DocumentBlockKind.IMAGE;
     }
-    if (NATIVE_DOCUMENT_MIME_TYPES.contains(mime)) {
+    if (lookup(NATIVE_DOCUMENT_FORMATS, contentType) != null) {
       return DocumentBlockKind.DOCUMENT_NATIVE;
     }
-    if (isTextIsh(mime)) {
+    if (DocumentMimeTypes.isTextIsh(contentType)) {
       return DocumentBlockKind.TEXT_FALLBACK;
     }
     return DocumentBlockKind.UNSUPPORTED;
   }
 
-  private static boolean isTextIsh(String mime) {
-    return mime.startsWith("text/")
-        || mime.equals("application/json")
-        || mime.equals("application/xml")
-        || mime.equals("application/yaml")
-        || mime.equals("application/x-yaml")
-        || mime.endsWith("+json")
-        || mime.endsWith("+xml");
-  }
-
-  private static @Nullable String parseMimeType(String contentType) {
-    if (contentType.isBlank()) {
-      return null;
-    }
-    final ContentType parsed;
-    try {
-      parsed = ContentType.parse(contentType.trim().toLowerCase(Locale.ROOT));
-    } catch (RuntimeException e) {
-      return null;
-    }
-    return parsed != null ? parsed.getMimeType() : null;
-  }
-
-  private static ImageFormat imageFormat(String mime) {
-    return switch (mime) {
-      case "image/png" -> ImageFormat.PNG;
-      case "image/jpeg" -> ImageFormat.JPEG;
-      case "image/gif" -> ImageFormat.GIF;
-      case "image/webp" -> ImageFormat.WEBP;
-      default ->
-          throw new IllegalStateException(
-              "Unexpected image content type after classification: " + mime);
-    };
-  }
-
-  private static DocumentFormat nativeDocumentFormat(String mime) {
-    return switch (mime) {
-      case "application/pdf" -> DocumentFormat.PDF;
-      case "text/csv" -> DocumentFormat.CSV;
-      case "application/msword" -> DocumentFormat.DOC;
-      case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ->
-          DocumentFormat.DOCX;
-      case "application/vnd.ms-excel" -> DocumentFormat.XLS;
-      case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ->
-          DocumentFormat.XLSX;
-      case "text/html" -> DocumentFormat.HTML;
-      case "text/plain" -> DocumentFormat.TXT;
-      case "text/markdown" -> DocumentFormat.MD;
-      default ->
-          throw new IllegalStateException(
-              "Unexpected native document content type after classification: " + mime);
-    };
+  /**
+   * Looks a content type up in one of the format tables via {@link ContentType#isSameMimeType}
+   * rather than map equality, so parameters and casing on the incoming type don't cause a miss.
+   */
+  private static <T> @Nullable T lookup(Map<ContentType, T> formats, ContentType contentType) {
+    return formats.entrySet().stream()
+        .filter(entry -> contentType.isSameMimeType(entry.getKey()))
+        .map(Map.Entry::getValue)
+        .findFirst()
+        .orElse(null);
   }
 }
