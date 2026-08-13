@@ -141,8 +141,7 @@ class RealProviderApiSmokeIT {
     STRUCTURED_OUTPUT,
     REASONING,
     PROMPT_CACHING,
-    MULTIMODAL_USER_MESSAGE,
-    MULTIMODAL_TOOL_RESULT
+    MULTIMODAL_USER_MESSAGE
   }
 
   /**
@@ -297,7 +296,6 @@ class RealProviderApiSmokeIT {
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING,
                         Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
                     Capability.REASONING,
@@ -312,7 +310,6 @@ class RealProviderApiSmokeIT {
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING,
                         Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
                     Capability.REASONING,
@@ -327,7 +324,6 @@ class RealProviderApiSmokeIT {
                 "claude-sonnet-5",
                 Map.of(
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING,
                         Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
                     Capability.REASONING,
@@ -341,7 +337,6 @@ class RealProviderApiSmokeIT {
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING, Map.of(),
                     Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
             // REASONING omitted: Completions never returns a ReasoningContent block to assert on.
@@ -350,7 +345,6 @@ class RealProviderApiSmokeIT {
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
             // An older model, on both API families, for completeness.
             openAiResponsesApi(
@@ -358,14 +352,12 @@ class RealProviderApiSmokeIT {
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
             openAiCompletionsApi(
                 "gpt-4.1",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())))
         .filter(Provider::isEnabled);
   }
@@ -384,10 +376,6 @@ class RealProviderApiSmokeIT {
 
   static Stream<Provider> providersWithMultimodalUserMessage() {
     return providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE));
-  }
-
-  static Stream<Provider> providersWithMultimodalToolResult() {
-    return providers().filter(p -> p.supports(Capability.MULTIMODAL_TOOL_RESULT));
   }
 
   private static String envOrPlaceholder(String envVar) {
@@ -594,7 +582,7 @@ class RealProviderApiSmokeIT {
   }
 
   @ParameterizedTest(name = "{0}")
-  @MethodSource("providersWithMultimodalToolResult")
+  @MethodSource("providersWithMultimodalUserMessage")
   void documentInToolResultIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
     stubPdfDownloads();
 
