@@ -74,13 +74,16 @@ except in compliance with the proprietary license.</license.inlineheader>
       <scope>test</scope>
     </dependency>
 
-    <!-- used directly in golden-JSON shape tests to serialize with the production ObjectMapper
-         and assert against the expected JsonNode tree; otherwise only a transitive compile
-         dependency via connector-aws-base -->
+    <!-- Not a new dependency: jackson-databind already reaches this module at compile scope
+         transitively via connector-aws-base. The previous <scope>test</scope> on this direct
+         declaration narrowed that transitive scope, which main code did not need until now.
+         TextractConnectorFunction#applyReturnFormat serializes the analysis result via
+         ObjectMapperSupplier.getMapperInstance() for the DOCUMENT return format, so the compile
+         classpath needs it; the golden-JSON shape tests use the same mapper. Dropping the test
+         scope restores the transitive compile scope rather than adding a dependency. -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <scope>test</scope>
     </dependency>
 
   </dependencies>

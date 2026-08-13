@@ -6,9 +6,14 @@
  */
 package io.camunda.connector.textract;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.document.DocumentReturn;
+import io.camunda.connector.api.document.DocumentReturnChoice;
+import io.camunda.connector.api.document.DocumentReturnFormat;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.textract.caller.AsyncTextractCaller;
@@ -27,6 +32,7 @@ import software.amazon.awssdk.services.textract.TextractClient;
       "document",
       "input",
       "advanced",
+      "documentReturnFormat",
       "awsCredential"
     },
     type = "io.camunda:aws-textract:1")
@@ -92,22 +98,34 @@ public class TextractConnectorFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
     TextractRequest request = context.bindVariables(TextractRequest.class);
-    return switch (request.getInput().executionType()) {
-      case SYNC -> {
-        try (TextractClient client = clientSupplier.getSyncTextractClient(request)) {
-          yield syncTextractCaller.call(request.getInput(), client);
-        }
-      }
-      case POLLING -> {
-        try (TextractAsyncClient client = clientSupplier.getAsyncTextractClient(request)) {
-          yield pollingTextractCaller.call(request.getInput(), client);
-        }
-      }
-      case ASYNC -> {
-        try (TextractAsyncClient client = clientSupplier.getAsyncTextractClient(request)) {
-          yield asyncTextractCaller.call(request.getInput(), client);
-        }
-      }
-    };
+    Object result =
+        switch (request.getInput().executionType()) {
+          case SYNC -> {
+            try (TextractClient client = clientSupplier.getSyncTextractClient(request)) {
+              yield syncTextractCaller.call(request.getInput(), client);
+            }
+          }
+          case POLLING -> {
+            try (TextractAsyncClient client = clientSupplier.getAsyncTextractClient(request)) {
+              yield pollingTextractCaller.call(request.getInput(), client);
+            }
+          }
+          case ASYNC -> {
+            try (TextractAsyncClient client = clientSupplier.getAsyncTextractClient(request)) {
+              yield asyncTextractCaller.call(request.getInput(), client);
+            }
+          }
+        };
+    return applyReturnFormat(context, result);
+  }
+
+  private Object applyReturnFormat(OutboundConnectorContext context, Object result)
+      throws JsonProcessingException {
+    var choice = context.readDocumentReturnFormat().map(DocumentReturnFormat::choice).orElse(null);
+    if (choice != DocumentReturnChoice.DOCUMENT) {
+      return result;
+    }
+    byte[] analysis = ObjectMapperSupplier.getMapperInstance().writeValueAsBytes(result);
+    return DocumentReturn.of(analysis, "application/json", null, (converted, ignored) -> converted);
   }
 }

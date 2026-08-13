@@ -23,8 +23,12 @@ import java.lang.annotation.Target;
 
 /**
  * Marks a {@code Document} or {@code List<Document>} field as a document input. The element
- * template generator will produce a structured source-dropdown UI (Camunda Document / Inline
- * Content / From URL) plus a hidden FEEL composer that assembles the runtime document JSON.
+ * template generator will produce a structured source-dropdown UI plus a hidden FEEL composer that
+ * assembles the runtime document JSON.
+ *
+ * <p>The dropdown offers every source listed by {@link #sources()}, which defaults to all of {@link
+ * DocumentSource} (Camunda Document / Inline Content / From URL). Connectors that cannot accept a
+ * particular source narrow the list — see {@link #sources()}.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT})
@@ -55,6 +59,19 @@ public @interface TemplateDocumentProperty {
 
   /** Tooltip for the property. */
   String tooltip() default "";
+
+  /**
+   * Document sources this input accepts. Defaults to all of them, so connectors that impose no
+   * restriction are unaffected. Narrow the list when a source cannot work for the connector — for
+   * example AWS Textract omits {@link DocumentSource#INLINE}, whose UTF-8 text bytes it rejects.
+   *
+   * <p>Declaration order is significant: the first entry becomes the dropdown's default value, and
+   * the generated FEEL composer evaluates its source branches in the same order. Duplicates are
+   * ignored. Declaring an empty list is a configuration error.
+   */
+  DocumentSource[] sources() default {
+    DocumentSource.CAMUNDA, DocumentSource.INLINE, DocumentSource.EXTERNAL
+  };
 
   /** Visibility of the {@code fileName} sub-property. Applies to inline and external sources. */
   FieldVisibility fileName() default FieldVisibility.OPTIONAL;

@@ -7,7 +7,10 @@
 package io.camunda.connector.textract.model;
 
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.generator.java.annotation.DocumentSource;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.FieldVisibility;
+import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
@@ -16,8 +19,8 @@ import org.apache.commons.lang3.StringUtils;
 public record TextractRequestData(
     @TemplateProperty(
             group = "document",
-            label = "Document source",
-            tooltip = "Source of the input document to be analyzed.",
+            label = "Document location",
+            tooltip = "Where the document to be analyzed is stored.",
             feel = FeelMode.disabled,
             type = TemplateProperty.PropertyType.Dropdown,
             defaultValue = "S3")
@@ -52,17 +55,16 @@ public record TextractRequestData(
                     property = "input.documentLocationType",
                     equals = "S3"))
         String documentVersion,
-    @TemplateProperty(
+    @TemplateDocumentProperty(
             group = "document",
-            label = "Camunda Document",
-            tooltip = "The Camunda document to be analyzed.",
-            feel = FeelMode.required,
-            type = TemplateProperty.PropertyType.String,
+            tooltip = "The document to be analyzed.",
+            sources = {DocumentSource.CAMUNDA, DocumentSource.EXTERNAL},
+            fileName = FieldVisibility.HIDDEN,
+            contentType = FieldVisibility.HIDDEN,
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.documentLocationType",
-                    equals = "UPLOADED"),
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+                    equals = "UPLOADED"))
         Document document,
     @TemplateProperty(
             label = "Execution type",

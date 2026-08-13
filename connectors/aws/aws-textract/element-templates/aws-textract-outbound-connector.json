@@ -151,7 +151,7 @@
     "type" : "Hidden"
   }, {
     "id" : "input.documentLocationType",
-    "label" : "Document source",
+    "label" : "Document location",
     "optional" : false,
     "value" : "S3",
     "group" : "document",
@@ -159,13 +159,13 @@
       "name" : "input.documentLocationType",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Source of the input document to be analyzed.",
+    "tooltip" : "Where the document to be analyzed is stored.",
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Camunda Document",
+      "name" : "From Process or URL",
       "value" : "UPLOADED"
     }, {
-      "name" : "S3",
+      "name" : "From Amazon S3",
       "value" : "S3"
     } ]
   }, {
@@ -226,13 +226,79 @@
     "tooltip" : "Version of the document to be analyzed in the S3 bucket.",
     "type" : "String"
   }, {
-    "id" : "input.document",
-    "label" : "Camunda Document",
-    "optional" : false,
+    "id" : "input.document_documentSource",
+    "label" : "Document source",
+    "value" : "camunda",
+    "group" : "document",
+    "binding" : {
+      "name" : "input.document_documentSource",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.documentLocationType",
+      "equals" : "UPLOADED",
+      "type" : "simple"
+    },
+    "tooltip" : "The document to be analyzed.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Camunda Document",
+      "value" : "camunda"
+    }, {
+      "name" : "From URL",
+      "value" : "external"
+    } ]
+  }, {
+    "id" : "input.document_camundaReference",
+    "label" : "Camunda document",
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "required",
+    "group" : "document",
+    "binding" : {
+      "name" : "input.document_camundaReference",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.documentLocationType",
+        "equals" : "UPLOADED",
+        "type" : "simple"
+      }, {
+        "property" : "input.document_documentSource",
+        "equals" : "camunda",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.document_external_url",
+    "label" : "URL",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "input.document_external_url",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.documentLocationType",
+        "equals" : "UPLOADED",
+        "type" : "simple"
+      }, {
+        "property" : "input.document_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.document__composer",
+    "value" : "=if input.document_documentSource = \"camunda\" then input.document_camundaReference else if input.document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: input.document_external_url, name: input.document_external_fileName } else null",
     "group" : "document",
     "binding" : {
       "name" : "input.document",
@@ -243,8 +309,7 @@
       "equals" : "UPLOADED",
       "type" : "simple"
     },
-    "tooltip" : "The Camunda document to be analyzed.",
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "input.executionType",
     "label" : "Execution type",
@@ -434,6 +499,29 @@
     },
     "tooltip" : "The prefix of the object key that the output will be saved to.",
     "type" : "String"
+  }, {
+    "id" : "documentReturnFormat",
+    "label" : "Response format",
+    "value" : "JSON",
+    "group" : "input",
+    "binding" : {
+      "name" : "documentReturnFormat.choice",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.outputConfigS3Bucket",
+      "isActive" : false,
+      "type" : "simple"
+    },
+    "tooltip" : "How the analysis result should be returned. JSON returns the result directly in the process variables; Document reference uploads it to the document store and returns the reference.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "as JSON",
+      "value" : "JSON"
+    }, {
+      "name" : "Document reference",
+      "value" : "DOCUMENT"
+    } ]
   }, {
     "id" : "input.clientRequestToken",
     "label" : "Client request token",
