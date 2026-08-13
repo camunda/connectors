@@ -103,6 +103,22 @@ class GeminiContentStreamAssemblerTest {
   }
 
   @Test
+  void passesThroughAPartialFunctionCallWithoutThrowing() {
+    final Part partial =
+        Part.builder()
+            .functionCall(
+                FunctionCall.builder().name("myTool").args(Map.of()).willContinue(true).build())
+            .build();
+
+    final GenerateContentResponse assembled = assembler.assemble(streamOf(chunk(partial)));
+
+    assertThat(partsOf(assembled))
+        .singleElement()
+        .satisfies(
+            part -> assertThat(part.functionCall().orElseThrow().willContinue()).contains(true));
+  }
+
+  @Test
   void mergesThoughtRunAndCarriesThoughtSignatureOver() {
     final GenerateContentResponse assembled =
         assembler.assemble(
@@ -141,8 +157,8 @@ class GeminiContentStreamAssemblerTest {
   }
 
   @Test
-  void takesUsageMetadataAndFinishReasonFromTheFinalChunk() {
-    final GenerateContentResponse intermediate =
+  void takesUsageMetadataFromTheLastChunkReportingItAndFinishReasonFromTheFinalChunk() {
+    final GenerateContentResponse first =
         chunk(textPart("partial")).toBuilder()
             .usageMetadata(
                 GenerateContentResponseUsageMetadata.builder()
@@ -150,18 +166,25 @@ class GeminiContentStreamAssemblerTest {
                     .candidatesTokenCount(2)
                     .totalTokenCount(12))
             .build();
-    final GenerateContentResponse last =
+    final GenerateContentResponse middle =
         GenerateContentResponse.builder()
-            .candidates(
-                Candidate.builder().finishReason(new FinishReason(FinishReason.Known.MAX_TOKENS)))
             .usageMetadata(
                 GenerateContentResponseUsageMetadata.builder()
                     .promptTokenCount(10)
                     .candidatesTokenCount(42)
                     .totalTokenCount(52))
             .build();
+    // The final chunk deliberately omits usageMetadata, so the assembled result can only end up
+    // with the middle chunk's usage by falling back to the last chunk that actually reported it
+    // (`chunk.usageMetadata().orElse(...)` in the assembler) rather than the final chunk supplying
+    // its own value or the fallback overwriting it with nothing.
+    final GenerateContentResponse last =
+        GenerateContentResponse.builder()
+            .candidates(
+                Candidate.builder().finishReason(new FinishReason(FinishReason.Known.MAX_TOKENS)))
+            .build();
 
-    final GenerateContentResponse assembled = assembler.assemble(streamOf(intermediate, last));
+    final GenerateContentResponse assembled = assembler.assemble(streamOf(first, middle, last));
 
     final GenerateContentResponseUsageMetadata usage = assembled.usageMetadata().orElseThrow();
     assertThat(usage.candidatesTokenCount()).contains(42);

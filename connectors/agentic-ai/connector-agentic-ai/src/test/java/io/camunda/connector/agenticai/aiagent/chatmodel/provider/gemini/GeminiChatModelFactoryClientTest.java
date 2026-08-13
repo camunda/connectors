@@ -173,10 +173,8 @@ class GeminiChatModelFactoryClientTest {
 
   private static AgenticAiHttpProxySupport noProxy() {
     final var httpProxySupport = mock(AgenticAiHttpProxySupport.class);
-    final var proxyConfiguration = mock(ProxyConfiguration.class);
+    final ProxyConfiguration proxyConfiguration = scheme -> Optional.empty();
     when(httpProxySupport.getProxyConfiguration()).thenReturn(proxyConfiguration);
-    when(proxyConfiguration.getProxyDetails(org.mockito.ArgumentMatchers.anyString()))
-        .thenReturn(Optional.empty());
     return httpProxySupport;
   }
 

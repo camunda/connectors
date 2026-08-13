@@ -1317,6 +1317,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `anthropic.AnthropicChatModelFactory` / `anthropic.AnthropicChatModel.execute()` → Drives the Anthropic Java SDK's stable Messages client directly, for `AnthropicChatModelConfiguration`
 - `bedrock.BedrockConverseChatModelFactory` / `bedrock.BedrockConverseChatModel.execute()` → Drives the AWS SDK's async `converseStream` operation (the synchronous `BedrockRuntimeClient` has no streaming operation), assembling the streamed events into a `ConverseResponse` via `BedrockConverseStreamAssembler`, for `BedrockConverseChatModelConfiguration`
 - `openai.OpenAiChatModelFactory` / `openai.OpenAiChatModel.execute()` → Drives the OpenAI Java SDK directly across both wire formats (Chat Completions, Responses) via the per-family `OpenAiApiFamilyStrategy` seam, for `OpenAiChatModelConfiguration`
+- `gemini.GeminiChatModelFactory` / `gemini.GeminiChatModel.execute()` → Drives the Google GenAI Java SDK's streaming `generateContentStream` directly, for `GeminiChatModelConfiguration`
 
 ### Configuration
 - `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions

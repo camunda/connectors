@@ -90,9 +90,17 @@ public class GeminiChatModel implements ChatModel {
       final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
       return responseConverter.toResult(response, executionTime);
     } catch (ApiException e) {
+      final String status =
+          Optional.ofNullable(e.status())
+              .filter(s -> !s.isBlank())
+              .orElseGet(() -> e.getClass().getSimpleName());
+      final String message =
+          Optional.ofNullable(e.message())
+              .filter(m -> !m.isBlank())
+              .orElseGet(() -> e.getClass().getSimpleName());
       throw new ConnectorException(
           ERROR_CODE_FAILED_MODEL_CALL,
-          "Model call failed with HTTP %d (%s): %s".formatted(e.code(), e.status(), e.message()),
+          "Model call failed with HTTP %d (%s): %s".formatted(e.code(), status, message),
           e);
     } catch (Exception e) {
       final String detail =

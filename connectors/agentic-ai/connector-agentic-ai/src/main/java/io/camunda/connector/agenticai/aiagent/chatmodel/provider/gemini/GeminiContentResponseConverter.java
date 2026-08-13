@@ -58,8 +58,10 @@ import org.springframework.util.StringUtils;
  *       StopReason#TOOL_USE} whenever the response produced tool calls. The raw vendor value is
  *       preserved unchanged under the {@code google-gemini} metadata key regardless.
  *   <li><b>A blocked prompt has no candidate.</b> The response then carries only {@code
- *       promptFeedback}, which is surfaced as a {@link StopReason#CONTENT_FILTERED} message
- *       explaining the block instead of an empty message or an exception.
+ *       promptFeedback}, which is converted into a well-formed {@link StopReason#CONTENT_FILTERED}
+ *       message (the block reason preserved as content and under {@code blockReason} metadata)
+ *       instead of an empty message or a converter crash, so the terminal stop-reason guard
+ *       downstream receives a message it can act on rather than something it chokes on.
  * </ul>
  *
  * <p>Every result is a {@link ChatResult.Completed}: Gemini has no equivalent of Anthropic's {@code
@@ -133,8 +135,10 @@ public class GeminiContentResponseConverter {
   /**
    * Builds the message for a response Gemini returned without any candidate, which is what a prompt
    * blocked by input-side filtering looks like. Never throws: the block reason (when reported) is
-   * lifted into an explanatory {@link TextContent} so the blocked turn is visible in the
-   * conversation rather than silently empty.
+   * preserved as an explanatory {@link TextContent} and under {@code blockReason} metadata, so the
+   * message is well-formed rather than silently empty. The {@link StopReason#CONTENT_FILTERED} stop
+   * reason this message carries is still terminal downstream, by design shared with every other
+   * provider — this only avoids an empty message or a converter crash, not the eventual incident.
    */
   private AssistantMessage blockedPromptMessage(GenerateContentResponse response) {
     final String blockReason =

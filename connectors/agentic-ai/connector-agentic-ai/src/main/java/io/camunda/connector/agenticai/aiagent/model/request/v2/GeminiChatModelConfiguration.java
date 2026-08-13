@@ -136,6 +136,7 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                 optional = true)
             @Nullable Integer maxTokens,
         @DecimalMin("0.0")
+            @DecimalMax("2.0")
             @TemplateProperty(
                 group = "model-options",
                 label = "Temperature",

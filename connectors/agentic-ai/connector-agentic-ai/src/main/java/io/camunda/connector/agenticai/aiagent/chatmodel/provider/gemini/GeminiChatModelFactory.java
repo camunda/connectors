@@ -71,8 +71,7 @@ public class GeminiChatModelFactory implements ChatModelFactory {
       GeminiBackend backend,
       @Nullable Duration timeout,
       AgenticAiHttpProxySupport httpProxySupport) {
-    // Only one backend variant exists today (google-gemini-api); a Vertex AI backend is tracked
-    // separately in #8066.
+    // Only one backend variant exists today (google-gemini-api), so this cast is safe.
     final var apiBackend = (GeminiApiBackend) backend;
     final var googleGeminiApi = apiBackend.googleGeminiApi();
     final String endpoint = googleGeminiApi.endpoint();
