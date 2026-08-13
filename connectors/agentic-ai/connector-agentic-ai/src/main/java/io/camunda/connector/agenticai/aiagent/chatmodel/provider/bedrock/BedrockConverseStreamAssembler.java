@@ -46,7 +46,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
  * {@code metadata}) emitted by {@code BedrockRuntimeAsyncClient.converseStream} into a {@link
  * ConverseResponse} equivalent to what the non-streaming {@code converse} operation would have
  * returned, so that {@link BedrockConverseResponseConverter} can be reused unchanged on the
- * assembled result (design spec &sect;4).
+ * assembled result.
  *
  * <p>One instance is created per streamed call and registered as the {@link
  * ConverseStreamResponseHandler.Visitor} (e.g. via {@code

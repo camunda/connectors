@@ -143,7 +143,7 @@ class BedrockConverseResponseConverterTest {
   void capturesSiblingFieldsAlongsideTextAsResidualMetadataForReplay() {
     // Bedrock's `text` union member is a bare String with no sibling fields on the current API, so
     // this scenario is not reachable through the real SDK today -- it exercises the generic
-    // residual-metadata mechanism's forward-compatibility (design spec §5.4) by manually setting a
+    // residual-metadata mechanism's forward-compatibility by manually setting a
     // second field on the same builder alongside `text` (allowed at the Java level; only the
     // *derived* type() becomes ambiguous, which this converter's `block.text() != null` check never
     // consults).
@@ -166,7 +166,7 @@ class BedrockConverseResponseConverterTest {
   }
 
   @Test
-  void mapsToolUseTypeIntoToolCallMetadataUnlikeAnthropic() {
+  void mapsToolUseTypeIntoToolCallMetadata() {
     final var response =
         response(
             List.of(
@@ -353,8 +353,7 @@ class BedrockConverseResponseConverterTest {
     assertThat(tokenUsage.outputTokenCount()).isEqualTo(50);
     assertThat(tokenUsage.cacheReadTokenCount()).isEqualTo(3);
     assertThat(tokenUsage.cacheCreationTokenCount()).isEqualTo(4);
-    // Converse's TokenUsage has no reasoning-token field at all, unlike Anthropic's
-    // output_tokens_details.thinking_tokens.
+    // Converse's TokenUsage has no reasoning-token field at all.
     assertThat(tokenUsage.reasoningTokenCount()).isEqualTo(0);
   }
 
@@ -366,7 +365,7 @@ class BedrockConverseResponseConverterTest {
     final var metrics = converter.toResult(response, EXECUTION_TIME).metrics();
 
     // ConverseMetrics.latencyMs on the fixture is 999_999ms; the converter must ignore it entirely
-    // and use the externally-measured wall-clock duration instead (design spec §5.5).
+    // and use the externally-measured wall-clock duration instead.
     assertThat(metrics.executionTime()).isEqualTo(EXECUTION_TIME);
     assertThat(metrics.executionTime()).isNotEqualTo(Duration.ofMillis(999_999L));
   }

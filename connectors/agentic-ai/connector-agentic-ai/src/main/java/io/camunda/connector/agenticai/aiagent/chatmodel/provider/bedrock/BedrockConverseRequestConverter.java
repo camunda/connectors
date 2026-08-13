@@ -92,7 +92,7 @@ public class BedrockConverseRequestConverter {
     final List<Tool> tools = buildTools(snapshot.toolDefinitions());
 
     // Mutates system/tools/messages in place before they're attached to the builder below, so the
-    // checkpoint placement (design spec §3.5) can inspect the fully-built prefix - a single
+    // checkpoint placement can inspect the fully-built prefix - a single
     // sequential pass of builder calls can't express "checkpoint at the end of whichever of
     // system/tools is present" without first knowing both are final.
     applyPromptCaching(params, system, tools, messages);
@@ -112,7 +112,7 @@ public class BedrockConverseRequestConverter {
     return builder.build();
   }
 
-  // temperature()/topP() narrow Double -> Float at this mapping site (design spec §3.2); maxTokens
+  // temperature()/topP() narrow Double -> Float at this mapping site; maxTokens
   // stays Integer -> Integer. Each is applied only when non-null, independently of the others.
   private void applyInferenceConfig(
       ConverseStreamRequest.Builder builder, @Nullable BedrockModelParameters params) {
@@ -225,13 +225,13 @@ public class BedrockConverseRequestConverter {
   }
 
   /**
-   * Applies the prompt-caching checkpoint placement per design spec &sect;3.5: since checkpoints
-   * chain {@code tools -> system -> messages} and the minimum-token-count is cumulative across all
-   * three, a single checkpoint at the end of {@code system[]} already caches the whole {@code
-   * [tools][system]} prefix; a checkpoint at the end of {@code tools[]} is only emitted when there
-   * is no system prompt to anchor to. Independently, a second, moving checkpoint is placed at the
-   * end of the last message's content so the growing conversation prefix is cached each turn. When
-   * prompt caching is disabled (or unset), no checkpoint is emitted anywhere.
+   * Applies the prompt-caching checkpoint placement: since checkpoints chain {@code tools -> system
+   * -> messages} and the minimum-token-count is cumulative across all three, a single checkpoint at
+   * the end of {@code system[]} already caches the whole {@code [tools][system]} prefix; a
+   * checkpoint at the end of {@code tools[]} is only emitted when there is no system prompt to
+   * anchor to. Independently, a second, moving checkpoint is placed at the end of the last
+   * message's content so the growing conversation prefix is cached each turn. When prompt caching
+   * is disabled (or unset), no checkpoint is emitted anywhere.
    */
   private void applyPromptCaching(
       @Nullable BedrockModelParameters params,
@@ -264,12 +264,10 @@ public class BedrockConverseRequestConverter {
    * rejects a {@code cachePoint} block in any message that contains a {@code toolUse}, {@code
    * toolResult}, or {@code reasoningContent} block -- only messages made entirely of {@code
    * text}/{@code image}/{@code document} content qualify. This matches every placement example in
-   * AWS's own docs (cachePoint only ever follows {@code text}/{@code image}) and LangChain4j's
-   * Bedrock integration, which independently arrives at the same rule by only ever targeting a
-   * genuine {@code UserMessage}, never a {@code ToolExecutionResultMessage} or an {@code AiMessage}
-   * carrying a tool call. In an agentic loop this means the checkpoint cannot advance past a tool
-   * round-trip -- it stays pinned to the last plain-text message -- but it still moves for
-   * multi-turn conversations without tool calls in between.
+   * AWS's own docs, where a cachePoint only ever follows {@code text}/{@code image}. In an agentic
+   * loop this means the checkpoint cannot advance past a tool round-trip -- it stays pinned to the
+   * last plain-text message -- but it still moves for multi-turn conversations without tool calls
+   * in between.
    */
   private static int lastCacheableMessageIndex(List<Message> messages) {
     for (int i = messages.size() - 1; i >= 0; i--) {
@@ -295,7 +293,7 @@ public class BedrockConverseRequestConverter {
 
   /**
    * Maps a {@link JsonResponseFormatConfiguration} onto Converse's native structured-output
-   * mechanism (design spec &sect;3.6). {@link
+   * mechanism. {@link
    * io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration}
    * (and a null {@code response}) emits nothing - {@code parseJson} is client-side.
    */

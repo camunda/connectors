@@ -132,14 +132,13 @@ public class BedrockConverseContentConverter {
   }
 
   /**
-   * Builds the {@link ContentBlock} for a {@link DocumentContent}, classifying by content type per
-   * the design spec (images -> {@link ImageBlock}; native {@link DocumentFormat} types and
-   * remaining text-ish types -> {@link DocumentBlock}; anything else throws).
+   * Builds the {@link ContentBlock} for a {@link DocumentContent}, classifying by content type:
+   * images -> {@link ImageBlock}; native {@link DocumentFormat} types and remaining text-ish types
+   * -> {@link DocumentBlock}; anything else throws.
    *
-   * <p>Every {@link DocumentBlock} is named via {@link DocumentHandle#idFor(Document)}. This must
-   * stay deterministic: LangChain4j's v1 Bedrock integration names every {@code DocumentBlock} with
-   * {@code UUID.randomUUID()}, which is cache-hostile, since a fresh name per request means no
-   * prefix containing a document ever matches and prompt caching silently never hits.
+   * <p>Every {@link DocumentBlock} is named via {@link DocumentHandle#idFor(Document)}. That name
+   * must stay deterministic across requests: a fresh name each time means no prefix containing a
+   * document ever matches, and prompt caching silently never hits.
    */
   private ContentBlock documentContentBlock(DocumentContent doc) {
     final Document document = doc.document();
@@ -200,9 +199,9 @@ public class BedrockConverseContentConverter {
 
   /**
    * Replays a {@code bedrock} {@link ProviderContent} payload back into its native {@link
-   * ContentBlock} via the generic codec (design spec &sect;5.4, {@link BedrockSdkPojoCodec}). Any
-   * {@code ContentBlock} member beyond the typed three ({@code text}, {@code toolUse}, {@code
-   * reasoningContent}) round-trips through this mechanism, never silently dropped.
+   * ContentBlock} via the generic {@link BedrockSdkPojoCodec}. Any {@code ContentBlock} member
+   * beyond the typed three ({@code text}, {@code toolUse}, {@code reasoningContent}) round-trips
+   * through this mechanism, never silently dropped.
    */
   private ContentBlock replayProviderContentBlock(ProviderContent pc) {
     final Map<String, Object> payload = asPayloadMap(pc.payload(), "provider content");

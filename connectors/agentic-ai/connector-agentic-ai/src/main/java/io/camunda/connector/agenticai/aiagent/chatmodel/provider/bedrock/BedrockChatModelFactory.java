@@ -120,7 +120,7 @@ public class BedrockChatModelFactory implements ChatModelFactory {
       case AwsAuthentication.AwsApiKeyAuthentication apiKeyAuth ->
           // Native "Bedrock API keys" support. Forces httpBearerAuth ahead of sigv4 (listed first
           // by default and always resolvable via the default credentials chain), otherwise the
-          // token would never be sent. Anthropic's Bedrock Mantle backend handles this internally.
+          // token would never be sent.
           builder
               .tokenProvider(StaticTokenProvider.create(apiKeyAuth::apiKey))
               .authSchemeProvider(

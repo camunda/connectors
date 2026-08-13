@@ -31,10 +31,10 @@ import software.amazon.awssdk.services.bedrockruntime.model.WebLocation;
  * BedrockSdkPojoCodec#replay(Map, java.util.function.Supplier) replay} the captured map, and assert
  * the replayed instance is equal to the original per {@code ContentBlock}'s own {@code
  * equalsBySdkFields()}. Covers every {@code ContentBlock} member reachable without a capability
- * matrix (design spec &sect;5.4): {@code text}, {@code toolUse} (with a non-trivial {@link
- * Document} input exercising every {@code Document} value kind), {@code reasoningContent} with a
- * {@code reasoningText}, {@code reasoningContent} with {@code redactedContent}, and {@code
- * citationsContent} (the deepest nesting: recursive unions and lists).
+ * matrix: {@code text}, {@code toolUse} (with a non-trivial {@link Document} input exercising every
+ * {@code Document} value kind), {@code reasoningContent} with a {@code reasoningText}, {@code
+ * reasoningContent} with {@code redactedContent}, and {@code citationsContent} (the deepest
+ * nesting: recursive unions and lists).
  */
 class BedrockSdkPojoCodecTest {
 

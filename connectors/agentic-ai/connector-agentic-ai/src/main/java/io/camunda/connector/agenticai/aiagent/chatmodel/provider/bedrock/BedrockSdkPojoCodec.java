@@ -34,7 +34,7 @@ import software.amazon.awssdk.utils.builder.Buildable;
  * <p><strong>Why generic instead of typed per-type mapping.</strong> {@code ContentBlock} is a
  * 15-member union dragging in 15-20 nested types; walking {@link SdkPojo#sdkFields()} reflectively
  * is far smaller than hand-writing a converter per type and stays correct across AWS SDK version
- * bumps (design spec &sect;5.4).
+ * bumps.
  *
  * <p><strong>Capture direction ({@link #capture(SdkPojo)}).</strong> Walks {@code
  * pojo.sdkFields()}; for every field with a non-null value ({@link

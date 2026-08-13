@@ -36,11 +36,10 @@ import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamRespon
  * BedrockConverseResponseConverter} to translate to/from the domain model.
  *
  * <p>A fresh {@link BedrockConverseStreamAssembler} is obtained from {@code streamAssemblerFactory}
- * for every {@link #execute(ChatRequest)} call (it accumulates mutable per-call stream state, so it
- * cannot be shared across calls the way Anthropic's stateless {@code
- * AnthropicMessageStreamAssembler} is), unlike the {@link BedrockRuntimeAsyncClient}, which is
- * built once by the factory and owned for the lifetime of this instance (one agent request, across
- * all continuation rounds); {@link #close()} closes it once.
+ * for every {@link #execute(ChatRequest)} call, since it accumulates mutable per-call stream state.
+ * The {@link BedrockRuntimeAsyncClient}, by contrast, is built once by the factory and owned for
+ * the lifetime of this instance (one agent request, across all continuation rounds); {@link
+ * #close()} closes it once.
  */
 public class BedrockChatModel implements ChatModel {
 

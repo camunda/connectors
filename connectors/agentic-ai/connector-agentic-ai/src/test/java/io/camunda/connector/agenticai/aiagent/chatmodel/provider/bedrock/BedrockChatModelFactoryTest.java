@@ -56,11 +56,11 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClientB
 import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntimeAuthSchemeProvider;
 
 /**
- * Mirrors {@code BedrockChatModelFactoryTest} (the v1 langchain4j equivalent): a real, non-mocked
- * {@link AgenticAiHttpProxySupport} (backed by {@link ProxyConfiguration#NONE}) builds a real Netty
- * HTTP client builder, and only the top-level {@link BedrockRuntimeAsyncClient#builder()} factory
- * method is static-mocked so the spy can assert exactly which builder methods were called, while
- * still letting {@code build()} run for real via {@link ResultCaptor}.
+ * A real, non-mocked {@link AgenticAiHttpProxySupport} (backed by {@link ProxyConfiguration#NONE})
+ * builds a real Netty HTTP client builder, and only the top-level {@link
+ * BedrockRuntimeAsyncClient#builder()} factory method is static-mocked so the spy can assert
+ * exactly which builder methods were called, while still letting {@code build()} run for real via
+ * {@link ResultCaptor}.
  */
 @ExtendWith(MockitoExtension.class)
 class BedrockChatModelFactoryTest {

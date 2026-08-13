@@ -28,11 +28,9 @@ import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Test;
 
 /**
- * Native-Bedrock-only e2e coverage for prompt caching's wire behavior (design spec &sect;3.5) -
- * mirrors {@link AgentSubProcessAnthropicPromptCachingTests}' wiring, adapted to Bedrock's {@code
- * cachePoint} content-block placement instead of Anthropic's top-level {@code cache_control} field:
- * one checkpoint at the end of {@code system[]} (since a system prompt is always present here), one
- * at the end of the last message's content, and none in {@code tools[]}.
+ * Native-Bedrock-only e2e coverage for prompt caching's wire behavior: {@code cachePoint} blocks
+ * are placed one at the end of {@code system[]} (a system prompt is always present here), one at
+ * the end of the last message's content, and none in {@code tools[]}.
  */
 class AgentSubProcessBedrockPromptCachingTests extends BaseBedrockNativeSubProcessTest {
 

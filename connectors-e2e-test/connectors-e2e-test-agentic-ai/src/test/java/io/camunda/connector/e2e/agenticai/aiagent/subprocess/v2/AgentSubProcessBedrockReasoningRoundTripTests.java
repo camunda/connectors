@@ -33,11 +33,8 @@ import org.junit.jupiter.api.Test;
  * cryptographic signature survives the round trip: parsed out of the {@code ConverseStream} event
  * sequence by {@code BedrockConverseStreamAssembler}/{@code BedrockConverseResponseConverter} into
  * a domain {@code ReasoningContent}, persisted, then replayed by {@code
- * BedrockConverseContentConverter} onto the wire of the *next* request ahead of the {@code toolUse}
- * block - mirrors {@code AgentSubProcessAnthropicReasoningEffortTests
- * #roundTripsSignedThinkingBlockBeforeToolResultOnFollowUpRequest}, adapted to Bedrock's generic
- * {@code sdkFields()} capture/replay mechanism (design spec &sect;5.4) rather than a typed
- * reasoning configuration - Bedrock has none (design spec &sect;3.4), so no {@code bodyProperties}
+ * BedrockConverseContentConverter} onto the wire of the *next* request, ahead of the {@code
+ * toolUse} block. Reasoning has no typed configuration on Bedrock, so no {@code bodyProperties}
  * toggle is needed for the block to appear; the stub simply streams one.
  */
 class AgentSubProcessBedrockReasoningRoundTripTests extends BaseBedrockNativeSubProcessTest {

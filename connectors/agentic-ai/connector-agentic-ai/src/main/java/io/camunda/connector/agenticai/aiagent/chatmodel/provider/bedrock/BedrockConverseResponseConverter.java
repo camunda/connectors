@@ -143,8 +143,8 @@ public class BedrockConverseResponseConverter {
                 + "the SDK surfaces no field data for it, so it cannot be captured or replayed.");
       } else {
         // Fallback for any Bedrock content block member not explicitly handled above: preserve it
-        // losslessly, in original order, as ProviderContent -- see BedrockSdkPojoCodec (design spec
-        // §5.4). Never skipped, since silently dropping a block would change the conversation.
+        // losslessly, in original order, as ProviderContent -- see BedrockSdkPojoCodec. Never
+        // skipped, since silently dropping a block would change the conversation.
         content.add(new ProviderContent(BEDROCK_ID, BedrockSdkPojoCodec.capture(block), null));
       }
     }
@@ -166,12 +166,8 @@ public class BedrockConverseResponseConverter {
   /**
    * Maps a {@code toolUse} block to a domain {@link ToolCall}.
    *
-   * <p><strong>Deliberate divergence from the Anthropic converters:</strong> {@link
-   * ToolCall#metadata()} is populated here from {@link ToolUseBlock}'s unmapped fields (most
-   * notably {@code type}, used by Bedrock's server-tool-use feature), whereas the Anthropic
-   * converters never populate it, since they don't map an equivalent {@code caller} field. Both are
-   * correct for their own vendor shape; this connector simply has a field worth preserving that
-   * Anthropic's doesn't.
+   * <p>{@link ToolCall#metadata()} is populated from {@link ToolUseBlock}'s unmapped fields, most
+   * notably {@code type}, which Converse's server-tool-use feature sets.
    */
   private ToolCall toToolCall(ToolUseBlock toolUse) {
     // Captured once and reused for both arguments and residual metadata below, rather than each
@@ -261,8 +257,7 @@ public class BedrockConverseResponseConverter {
             .outputTokenCount(orZero(usage.outputTokens()))
             .cacheReadTokenCount(orZero(usage.cacheReadInputTokens()))
             .cacheCreationTokenCount(orZero(usage.cacheWriteInputTokens()))
-            // Converse's TokenUsage carries no reasoning-token breakdown (unlike Anthropic's
-            // output_tokens_details.thinking_tokens), so this is always 0.
+            // Converse's TokenUsage carries no reasoning-token breakdown, so this is always 0.
             .reasoningTokenCount(0)
             .build();
 
@@ -271,7 +266,7 @@ public class BedrockConverseResponseConverter {
         .toolCalls(toolCalls)
         .tokenUsage(tokenUsage)
         // The passed-in wall-clock duration, not ConverseMetrics.latencyMs: that figure is
-        // server-side only and excludes network time, same rationale as the Anthropic provider.
+        // server-side only and excludes network time.
         .executionTime(executionTime)
         .build();
   }
