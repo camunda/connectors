@@ -37,14 +37,14 @@ import java.util.function.Function;
  *       applies to every process instance;
  *   <li>from {@code BaseAnthropicNativeSubProcessTest}: the native-provider wiring shape — the
  *       provider properties pointed at WireMock via the hidden {@code endpoint} field, an
- *       overridable {@code defaultModel()}, a {@code model(String)} per-test override, and the
- *       recorded-request helpers.
+ *       overridable {@code defaultModel()}, and the recorded-request helpers.
  * </ul>
  *
- * <p>It is an exact mirror of {@code BaseGeminiNativeSubProcessTest} apart from its superclass; the
- * recorded-request helpers both delegate to {@link GeminiStreamGenerateContentRequests} rather than
- * being duplicated, which is why that helper lives in the wiremock package instead of on a base
- * class the way Anthropic's single base class could afford to.
+ * <p>It mirrors {@code BaseGeminiNativeSubProcessTest} apart from its superclass, carrying only the
+ * helpers the Task-flavor tests actually use. Both bases delegate their recorded-request helpers to
+ * {@link GeminiStreamGenerateContentRequests} rather than duplicating them, which is why that
+ * helper lives in the wiremock package instead of on a base class the way Anthropic's single base
+ * class could afford to.
  */
 abstract class BaseGeminiNativeTaskV2Test extends BaseAgentTaskV2Test {
 
@@ -71,18 +71,6 @@ abstract class BaseGeminiNativeTaskV2Test extends BaseAgentTaskV2Test {
             "provider.googleGemini.backend.googleGeminiApi.endpoint", wireMock.getHttpBaseUrl())
         .property("provider.googleGemini.backend.googleGeminiApi.apiKey", "dummy")
         .property("provider.googleGemini.model.model", defaultModel());
-  }
-
-  static Function<ElementTemplate, ElementTemplate> model(String modelId) {
-    return template -> template.property("provider.googleGemini.model.model", modelId);
-  }
-
-  static LoggedRequest soleRecordedRequest() {
-    return GeminiStreamGenerateContentRequests.sole();
-  }
-
-  static List<LoggedRequest> recordedLoggedRequests() {
-    return GeminiStreamGenerateContentRequests.recorded();
   }
 
   static List<LoggedRequest> recordedLoggedRequests(int expectedCount) {

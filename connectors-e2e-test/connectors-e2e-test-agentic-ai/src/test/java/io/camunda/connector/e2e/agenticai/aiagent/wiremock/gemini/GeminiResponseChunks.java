@@ -116,8 +116,6 @@ public final class GeminiResponseChunks {
     private BlockedReason.Known blockReason;
     private @Nullable String blockReasonMessage;
     private @Nullable GenerateContentResponseUsageMetadata usageMetadata;
-    private @Nullable String responseId;
-    private @Nullable String modelVersion;
 
     private Builder() {}
 
@@ -137,20 +135,6 @@ public final class GeminiResponseChunks {
     /** A {@code thought}-flagged text part, i.e. streamed reasoning. */
     public Builder thought(String text) {
       parts.add(Part.builder().text(text).thought(true).build());
-      return this;
-    }
-
-    /**
-     * A {@code thought}-flagged text part carrying its {@code thoughtSignature}. A signature closes
-     * its text run in the assembler, so this is also how a test forces a run boundary.
-     */
-    public Builder thought(String text, String signatureBase64) {
-      parts.add(
-          Part.builder()
-              .text(text)
-              .thought(true)
-              .thoughtSignature(decodeSignature(signatureBase64))
-              .build());
       return this;
     }
 
@@ -231,24 +215,8 @@ public final class GeminiResponseChunks {
       return this;
     }
 
-    public Builder responseId(String responseId) {
-      this.responseId = responseId;
-      return this;
-    }
-
-    public Builder modelVersion(String modelVersion) {
-      this.modelVersion = modelVersion;
-      return this;
-    }
-
     public GenerateContentResponse build() {
       final var response = GenerateContentResponse.builder();
-      if (responseId != null) {
-        response.responseId(responseId);
-      }
-      if (modelVersion != null) {
-        response.modelVersion(modelVersion);
-      }
       if (usageMetadata != null) {
         response.usageMetadata(usageMetadata);
       }
