@@ -103,7 +103,7 @@
       "name" : "Anthropic",
       "value" : "anthropic"
     }, {
-      "name" : "Amazon Bedrock",
+      "name" : "AWS Bedrock",
       "value" : "bedrock"
     }, {
       "name" : "OpenAI",
@@ -1460,7 +1460,7 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
-    "tooltip" : "Enables Amazon Bedrock automatic prompt caching. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" target=\"_blank\">documentation</a>.",
+    "tooltip" : "Enables AWS Bedrock automatic prompt caching. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" target=\"_blank\">documentation</a>.",
     "type" : "Boolean"
   }, {
     "id" : "provider.openai.api.completions.effort",

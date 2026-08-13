@@ -25,7 +25,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
-@TemplateSubType(id = BedrockChatModelConfiguration.BEDROCK_ID, label = "Amazon Bedrock")
+@TemplateSubType(id = BedrockChatModelConfiguration.BEDROCK_ID, label = "AWS Bedrock")
 public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection bedrock)
     implements ProviderConfiguration {
 
@@ -42,7 +42,7 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
     return bedrock.model().model();
   }
 
-  /** All Amazon Bedrock-specific configuration, nested under the {@code bedrock} wire key. */
+  /** All AWS Bedrock-specific configuration, nested under the {@code bedrock} wire key. */
   public record BedrockConnection(
       @NotBlank
           @TemplateProperty(
@@ -191,7 +191,7 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
     }
 
     /**
-     * Amazon Bedrock automatic prompt caching. A record rather than a bare boolean so it stays
+     * AWS Bedrock automatic prompt caching. A record rather than a bare boolean so it stays
      * extensible: a TTL field could be added later without changing this property's wire shape.
      */
     public record BedrockPromptCaching(
@@ -199,7 +199,7 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
                 group = "model",
                 label = "Enable prompt caching",
                 tooltip =
-                    "Enables Amazon Bedrock automatic prompt caching. See the <a "
+                    "Enables AWS Bedrock automatic prompt caching. See the <a "
                         + "href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" "
                         + "target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Boolean,
