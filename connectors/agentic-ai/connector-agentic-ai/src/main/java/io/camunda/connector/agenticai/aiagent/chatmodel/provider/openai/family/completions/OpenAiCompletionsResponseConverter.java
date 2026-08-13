@@ -87,9 +87,8 @@ public class OpenAiCompletionsResponseConverter {
 
   /**
    * OpenAI's own default is exactly one choice per completion ({@code n=1}); this connector never
-   * configures {@code n}, so a well-formed response always has one -- langchain4j's {@code
-   * OpenAiChatModel} makes the same assumption, but guards it explicitly (throwing on an empty
-   * {@code choices} list) rather than indexing blindly, which is what this does too.
+   * configures {@code n}, so a well-formed response always has one. The SDK doesn't enforce this as
+   * a non-empty guarantee, so guard explicitly rather than index blindly.
    */
   private ChatCompletion.Choice firstChoice(ChatCompletion completion) {
     final List<ChatCompletion.Choice> choices = completion.choices();
