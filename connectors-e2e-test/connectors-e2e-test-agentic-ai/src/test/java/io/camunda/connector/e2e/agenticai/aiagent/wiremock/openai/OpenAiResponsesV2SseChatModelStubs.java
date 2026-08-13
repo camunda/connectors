@@ -91,23 +91,6 @@ public final class OpenAiResponsesV2SseChatModelStubs {
     stubScenario(bodies);
   }
 
-  /**
-   * Wires a scenario chain whose first turn is a {@link ServerToolTurnStub} (a {@code
-   * web_search_call} server-tool item alongside assistant text), followed by any number of ordinary
-   * {@link TurnStub} turns - mirrors the native-Anthropic sibling's {@code
-   * stubServerToolUseConversation}, just for OpenAI's {@code web_search_call} item instead of
-   * Anthropic's {@code server_tool_use}/{@code code_execution_tool_result} block pair.
-   */
-  public static void stubServerToolConversation(
-      ServerToolTurnStub serverToolTurn, TurnStub... followUpTurns) {
-    final List<String> bodies = new ArrayList<>();
-    bodies.add(serverToolSseBody(serverToolTurn));
-    for (final TurnStub turn : followUpTurns) {
-      bodies.add(sseBody(turn));
-    }
-    stubScenario(bodies);
-  }
-
   /** Shared scenario-chaining plumbing: returns each pre-rendered SSE body in order. */
   private static void stubScenario(List<String> bodies) {
     for (int i = 0; i < bodies.size(); i++) {
@@ -150,11 +133,11 @@ public final class OpenAiResponsesV2SseChatModelStubs {
    * followed by one or more client {@code function_call} items - the shape a reasoning-enabled
    * model returns when it reasons before calling a tool.
    *
-   * <p>Exists so e2e coverage can prove the Task 4 round-trip end to end through the REAL {@code
-   * ResponseAccumulator}: the resulting {@code ReasoningContent}'s raw {@code providerPayload}
-   * (captured by {@code OpenAiResponsesResponseConverter#toReasoningContent}) must be replayed
-   * byte-identical - same {@code encrypted_content} value, positioned before the function_call item
-   * - on the follow-up model call once the tool result is available (see {@code
+   * <p>Exists so e2e coverage can prove the encrypted-reasoning round-trip end to end through the
+   * REAL {@code ResponseAccumulator}: the resulting {@code ReasoningContent}'s raw {@code
+   * providerPayload} (captured by {@code OpenAiResponsesResponseConverter#toReasoningContent}) must
+   * be replayed byte-identical - same {@code encrypted_content} value, positioned before the
+   * function_call item - on the follow-up model call once the tool result is available (see {@code
    * OpenAiResponsesRequestConverter#assistantInputItems}).
    */
   public record ReasoningTurnStub(
@@ -191,51 +174,6 @@ public final class OpenAiResponsesV2SseChatModelStubs {
         + ",\"encrypted_content\":"
         + quote(encryptedContent)
         + ",\"summary\":[]}";
-  }
-
-  /**
-   * A turn whose response contains a {@code web_search_call} server-tool item alongside assistant
-   * text - the shape a real {@code enableWebSearch}-enabled turn returns. Unlike a client {@code
-   * function_call}, a server-tool item is resolved server-side by OpenAI itself and is never
-   * dispatched back to the caller, so this turn carries no client tool call at all - matching how
-   * {@code OpenAiResponsesResponseConverter} captures it as {@code ProviderContent}, never {@code
-   * toolCalls}.
-   */
-  public record ServerToolTurnStub(
-      String text, String webSearchCallId, String searchQuery, int inputTokens, int outputTokens) {}
-
-  private static String serverToolSseBody(ServerToolTurnStub turn) {
-    final int id = TURN_COUNTER.getAndIncrement();
-    final StringBuilder output = new StringBuilder("[");
-    boolean first = true;
-    if (turn.text() != null && !turn.text().isBlank()) {
-      output.append(messageItemJson(id, turn.text()));
-      first = false;
-    }
-    if (!first) {
-      output.append(',');
-    }
-    output.append(webSearchCallItemJson(turn.webSearchCallId(), turn.searchQuery()));
-    output.append(']');
-
-    return frame(
-        "{\"id\":"
-            + quote("resp-test-" + id)
-            + ",\"object\":\"response\",\"created_at\":0,\"model\":\"test-model\","
-            + "\"status\":\"completed\",\"parallel_tool_calls\":true,\"tool_choice\":\"auto\","
-            + "\"tools\":[],\"output\":"
-            + output
-            + ",\"usage\":"
-            + usageJson(turn.inputTokens(), turn.outputTokens())
-            + "}");
-  }
-
-  private static String webSearchCallItemJson(String id, String searchQuery) {
-    return "{\"type\":\"web_search_call\",\"id\":"
-        + quote(id)
-        + ",\"status\":\"completed\",\"action\":{\"type\":\"search\",\"query\":"
-        + quote(searchQuery)
-        + "}}";
   }
 
   /**

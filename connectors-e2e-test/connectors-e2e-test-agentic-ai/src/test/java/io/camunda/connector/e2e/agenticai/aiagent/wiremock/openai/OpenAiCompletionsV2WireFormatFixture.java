@@ -28,23 +28,14 @@ import java.util.function.Function;
 
 /**
  * Plugs the native (own-LLM-layer) OpenAI Chat Completions wire format into the provider-agnostic
- * {@link ProviderWireFormatFixture} SPI, driving the connector through the v2 native OpenAI
- * provider - see {@code OpenAiChatModelFactory}. The *request* wire is the standard Chat
- * Completions body - identical to the legacy langchain4j-bridge fixture's - so request recording is
- * reused via {@link OpenAiCompletionsRecordedConversation} / {@link
- * OpenAiCompletionsRecordedChatRequestAdapter} rather than duplicating the parsing logic (mirrors
- * how the reference pilot branch's streaming Completions fixture reused the same non-streaming
- * request parser). The *response* wire differs (native streams SSE, the legacy bridge buffers
- * JSON), so {@link #stubConversation} uses {@link OpenAiCompletionsV2SseChatModelStubs}.
+ * {@link ProviderWireFormatFixture} SPI. The request wire is the standard Chat Completions body, so
+ * request recording is reused via {@link OpenAiCompletionsRecordedConversation} / {@link
+ * OpenAiCompletionsRecordedChatRequestAdapter}; the response wire differs (native streams SSE), so
+ * {@link #stubConversation} uses {@link OpenAiCompletionsV2SseChatModelStubs} instead.
  *
- * <p>Drives the v2 element template with {@code provider.openai.*} property ids, via the {@code
- * custom} backend (the only OpenAI backend with a configurable endpoint) pointed at the WireMock
- * host with a trailing {@code /v1} so the SDK's {@code /chat/completions} path resolves to the
- * recorded path - the native SDK client's {@code custom} backend does not re-append {@code /v1}
- * itself, it appends only the relative operation path onto whatever base URL is configured (see
- * {@code OpenAiChatModelFactory} and the {@code CustomBackend.endpoint} template property
- * description: "Base URL of the OpenAI-compatible API; /chat/completions or /responses will be
- * appended").
+ * <p>Drives the v2 element template via the {@code custom} backend, pointed at the WireMock host
+ * with a trailing {@code /v1} so the SDK's {@code /chat/completions} path resolves to the recorded
+ * path.
  */
 public final class OpenAiCompletionsV2WireFormatFixture implements ProviderWireFormatFixture {
 

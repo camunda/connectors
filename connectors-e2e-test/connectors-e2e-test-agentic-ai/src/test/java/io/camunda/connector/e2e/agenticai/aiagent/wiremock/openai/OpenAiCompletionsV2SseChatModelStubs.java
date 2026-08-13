@@ -23,10 +23,19 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.CHAT_COMPLETIONS_PATH;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import com.openai.core.ObjectMappers;
+import com.openai.models.chat.completions.ChatCompletionChunk;
+import com.openai.models.chat.completions.ChatCompletionChunk.Choice;
+import com.openai.models.chat.completions.ChatCompletionChunk.Choice.Delta;
+import com.openai.models.chat.completions.ChatCompletionChunk.Choice.Delta.Role;
+import com.openai.models.chat.completions.ChatCompletionChunk.Choice.Delta.ToolCall;
+import com.openai.models.chat.completions.ChatCompletionChunk.Choice.FinishReason;
+import com.openai.models.completions.CompletionUsage;
+import com.openai.models.completions.CompletionUsage.CompletionTokensDetails;
+import com.openai.models.completions.CompletionUsage.PromptTokensDetails;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.util.ArrayList;
@@ -38,15 +47,19 @@ import java.util.concurrent.atomic.AtomicInteger;
  * /v1/chat/completions}, {@code stream: true}) with real Server-Sent-Events framing, for the native
  * (own-LLM-layer) OpenAI provider, which always drives {@code
  * client.chat().completions().createStreaming(params)} and feeds the chunks to the vendor SDK's
- * {@code ChatCompletionAccumulator}. The legacy langchain4j-bridge fixture ({@link
- * OpenAiCompletionsChatModelStubs}) returns a single buffered JSON body instead, which the native
- * streaming parser cannot consume - hence this separate SSE stub.
+ * {@code ChatCompletionAccumulator}. The legacy fixture ({@link OpenAiCompletionsChatModelStubs})
+ * returns a single buffered JSON body instead, which the native streaming parser cannot consume -
+ * hence this separate SSE stub.
  *
- * <p>Each turn's body is a chain of {@code data: <ChatCompletionChunk JSON>\n\n} lines terminated
- * by {@code data: [DONE]\n\n}: a role/content delta chunk, one tool-call delta chunk per tool call,
- * a finish-reason chunk (empty delta), and a trailing usage-only chunk ({@code "choices":[]} with
- * the final {@code usage}) - mirroring the real behavior of {@code
- * stream_options.include_usage=true}, which the native provider's request converter always sets.
+ * <p>Each chunk is built using the vendor SDK's own {@link ChatCompletionChunk} builder (rather
+ * than hand-rolled JSON) and serialized with the SDK's own {@link ObjectMappers#jsonMapper()}, so
+ * the bytes are guaranteed to parse exactly as real OpenAI would send them - mirroring how {@code
+ * StreamingAnthropicMessagesSseChatModelStubs} builds its events. Each turn's body is a chain of
+ * {@code data: <ChatCompletionChunk JSON>\n\n} lines terminated by {@code data: [DONE]\n\n}: a
+ * role/content delta chunk, one tool-call delta chunk per tool call, a finish-reason chunk (empty
+ * delta), and a trailing usage-only chunk ({@code choices: []} with the final {@code usage}) -
+ * mirroring real {@code stream_options.include_usage=true} behavior, which the native provider's
+ * request converter always sets.
  *
  * <p>{@link #stubConversation(TurnStub...)} always renders {@code prompt_tokens_details} / {@code
  * completion_tokens_details} with zero-valued sub-fields, since the generic {@link TurnStub} SPI
@@ -56,7 +69,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class OpenAiCompletionsV2SseChatModelStubs {
 
   private static final String SCENARIO_NAME = "llm-conversation-native-openai-completions-sse";
-  private static final ObjectMapper JSON = new ObjectMapper();
   private static final AtomicInteger TURN_COUNTER = new AtomicInteger(0);
 
   private OpenAiCompletionsV2SseChatModelStubs() {}
@@ -90,16 +102,14 @@ public final class OpenAiCompletionsV2SseChatModelStubs {
    * generic {@link TurnStub} SPI (shared with every other provider's stubs) has no dial for these
    * fields, so {@link #stubConversation(TurnStub...)} always renders them as absent-equivalent
    * (mirroring real OpenAI behavior when a call has no cache hit / no reasoning spend); this
-   * dedicated single-turn stub exists purely so e2e coverage can exercise the non-zero case (see
-   * {@code OpenAiCompletionsResponseConverter#toTokenUsage}).
+   * dedicated single-turn stub exists purely so e2e coverage can exercise the non-zero case.
    *
    * <p>{@code inputTokens} is the expected <strong>post-subtraction, non-cached</strong> count -
-   * i.e. what {@code AgentMetrics.TokenUsage#inputTokenCount()} should end up holding once the
-   * converter subtracts {@code cachedTokens} from the wire's raw prompt total - not the raw wire
-   * {@code prompt_tokens} value itself. {@link #sseBody(UsageDetailsTurnStub)} grosses it back up
-   * ({@code inputTokens + cachedTokens}) when building the wire body, since cached tokens are
-   * always a subset of the real API's {@code prompt_tokens} and a wire body with {@code
-   * prompt_tokens < cached_tokens} is a combination OpenAI can never actually produce.
+   * what {@code AgentMetrics.TokenUsage#inputTokenCount()} should end up holding once the converter
+   * subtracts {@code cachedTokens} from the wire's raw prompt total - not the raw wire {@code
+   * prompt_tokens} value itself. {@link #sseBody(UsageDetailsTurnStub)} grosses it back up ({@code
+   * inputTokens + cachedTokens}) when building the wire body, since cached tokens are always a
+   * subset of the real API's {@code prompt_tokens}.
    */
   public record UsageDetailsTurnStub(
       String text, int inputTokens, int outputTokens, long cachedTokens, long reasoningTokens) {}
@@ -112,15 +122,15 @@ public final class OpenAiCompletionsV2SseChatModelStubs {
     final String id = "chatcmpl-test-" + TURN_COUNTER.getAndIncrement();
 
     final StringBuilder body = new StringBuilder();
-    body.append(dataLine(chunkJson(id, deltaWithContent(turn.text()), null)));
-    body.append(dataLine(chunkJson(id, "{}", "stop")));
+    body.append(dataLine(chunk(id, contentDelta(turn.text()), null)));
+    body.append(dataLine(chunk(id, Delta.builder().build(), FinishReason.STOP)));
     body.append(
         dataLine(
-            usageChunkJson(
+            usageChunk(
                 id,
                 // gross the non-cached inputTokens back up to a realistic raw wire
                 // prompt_tokens total: cached tokens are always a subset of it.
-                Math.toIntExact(turn.inputTokens() + turn.cachedTokens()),
+                turn.inputTokens() + turn.cachedTokens(),
                 turn.outputTokens(),
                 turn.cachedTokens(),
                 turn.reasoningTokens())));
@@ -145,80 +155,91 @@ public final class OpenAiCompletionsV2SseChatModelStubs {
     final boolean hasToolCalls = !toolCalls.isEmpty();
 
     final StringBuilder body = new StringBuilder();
-    // 1. role + content delta (content optional/empty when there are only tool calls)
-    body.append(dataLine(chunkJson(id, deltaWithContent(text), null)));
-    // 2. one tool-call delta chunk per tool call (index i, id, function{name, arguments})
+    // 1. role + content delta (content omitted when there are only tool calls)
+    body.append(dataLine(chunk(id, contentDelta(text), null)));
+    // 2. one tool-call delta chunk per tool call
     int i = 0;
     for (final ToolCallStub tc : toolCalls) {
-      body.append(dataLine(chunkJson(id, toolCallDelta(i++, tc), null)));
+      body.append(dataLine(chunk(id, toolCallDelta(i++, tc), null)));
     }
     // 3. finish-reason chunk (empty delta)
-    body.append(dataLine(chunkJson(id, "{}", hasToolCalls ? "tool_calls" : "stop")));
+    body.append(
+        dataLine(
+            chunk(
+                id,
+                Delta.builder().build(),
+                hasToolCalls ? FinishReason.TOOL_CALLS : FinishReason.STOP)));
     // 4. usage-only chunk (empty choices), mirroring real OpenAI stream_options.include_usage
-    body.append(dataLine(usageChunkJson(id, promptTokens, completionTokens)));
+    body.append(dataLine(usageChunk(id, promptTokens, completionTokens, 0L, 0L)));
     body.append("data: [DONE]\n\n");
     return body.toString();
   }
 
-  private static String deltaWithContent(String text) {
-    if (text == null || text.isBlank()) {
-      return "{\"role\":\"assistant\"}";
+  private static Delta contentDelta(String text) {
+    final Delta.Builder delta = Delta.builder().role(Role.ASSISTANT);
+    if (text != null && !text.isBlank()) {
+      delta.content(text);
     }
-    return "{\"role\":\"assistant\",\"content\":" + quote(text) + "}";
+    return delta.build();
   }
 
-  private static String toolCallDelta(int index, ToolCallStub tc) {
-    return "{\"tool_calls\":[{\"index\":"
-        + index
-        + ",\"id\":"
-        + quote(tc.id())
-        + ",\"type\":\"function\",\"function\":{\"name\":"
-        + quote(tc.name())
-        + ",\"arguments\":"
-        + quote(tc.argumentsJson())
-        + "}}]}";
+  private static Delta toolCallDelta(int index, ToolCallStub tc) {
+    return Delta.builder()
+        .toolCalls(
+            List.of(
+                ToolCall.builder()
+                    .index(index)
+                    .id(tc.id())
+                    .type(ToolCall.Type.FUNCTION)
+                    .function(
+                        ToolCall.Function.builder()
+                            .name(tc.name())
+                            .arguments(tc.argumentsJson())
+                            .build())
+                    .build()))
+        .build();
   }
 
-  private static String chunkJson(String id, String deltaJson, String finishReason) {
-    return "{\"id\":"
-        + quote(id)
-        + ",\"object\":\"chat.completion.chunk\",\"created\":0,\"model\":\"test-model\","
-        + "\"choices\":[{\"index\":0,\"delta\":"
-        + deltaJson
-        + ",\"finish_reason\":"
-        + (finishReason == null ? "null" : quote(finishReason))
-        + "}]}";
+  private static ChatCompletionChunk chunk(String id, Delta delta, FinishReason finishReason) {
+    return ChatCompletionChunk.builder()
+        .id(id)
+        .created(0L)
+        .model("test-model")
+        .choices(List.of(Choice.builder().index(0).delta(delta).finishReason(finishReason).build()))
+        .build();
   }
 
-  private static String usageChunkJson(String id, int promptTokens, int completionTokens) {
-    return usageChunkJson(id, promptTokens, completionTokens, 0L, 0L);
+  private static ChatCompletionChunk usageChunk(
+      String id,
+      long promptTokens,
+      long completionTokens,
+      long cachedTokens,
+      long reasoningTokens) {
+    return ChatCompletionChunk.builder()
+        .id(id)
+        .created(0L)
+        .model("test-model")
+        .choices(List.of())
+        .usage(
+            CompletionUsage.builder()
+                .promptTokens(promptTokens)
+                .completionTokens(completionTokens)
+                .totalTokens(promptTokens + completionTokens)
+                .promptTokensDetails(
+                    PromptTokensDetails.builder().cachedTokens(cachedTokens).build())
+                .completionTokensDetails(
+                    CompletionTokensDetails.builder().reasoningTokens(reasoningTokens).build())
+                .build())
+        .build();
   }
 
-  private static String usageChunkJson(
-      String id, int promptTokens, int completionTokens, long cachedTokens, long reasoningTokens) {
-    return "{\"id\":"
-        + quote(id)
-        + ",\"object\":\"chat.completion.chunk\",\"created\":0,\"model\":\"test-model\","
-        + "\"choices\":[],\"usage\":{\"prompt_tokens\":"
-        + promptTokens
-        + ",\"completion_tokens\":"
-        + completionTokens
-        + ",\"total_tokens\":"
-        + (promptTokens + completionTokens)
-        + ",\"prompt_tokens_details\":{\"cached_tokens\":"
-        + cachedTokens
-        + "},\"completion_tokens_details\":{\"reasoning_tokens\":"
-        + reasoningTokens
-        + "}}}";
+  private static String dataLine(ChatCompletionChunk chunk) {
+    return "data: " + serialize(chunk) + "\n\n";
   }
 
-  private static String dataLine(String json) {
-    return "data: " + json + "\n\n";
-  }
-
-  private static String quote(String raw) {
+  private static String serialize(ChatCompletionChunk chunk) {
     try {
-      return JSON.writeValueAsString(raw);
+      return ObjectMappers.jsonMapper().writeValueAsString(chunk);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
