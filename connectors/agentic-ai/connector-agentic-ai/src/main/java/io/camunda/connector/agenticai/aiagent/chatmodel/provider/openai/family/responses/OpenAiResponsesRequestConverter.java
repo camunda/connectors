@@ -209,10 +209,10 @@ public class OpenAiResponsesRequestConverter {
    * extraction on {@code OpenAiResponsesResponseConverter#toReasoningContent}.
    *
    * <p>Only blocks tagged with this provider's id are replayed; a {@link ReasoningContent}/{@link
-   * ProviderContent} left over from a different provider (e.g. a prior turn on Anthropic, after a
-   * provider switch) carries a payload shaped for that other vendor's SDK -- convertValue-ing it
-   * against {@link ResponseInputItem} would either throw or silently produce garbage, so it's
-   * dropped instead.
+   * ProviderContent} left over from a different provider (e.g. a prior turn before a provider
+   * switch) carries a payload shaped for that other vendor's SDK -- convertValue-ing it against
+   * {@link ResponseInputItem} would either throw or silently produce garbage, so it's dropped
+   * instead.
    */
   private List<ResponseInputItem> assistantInputItems(AssistantMessage assistant) {
     final List<ResponseInputItem> items = new ArrayList<>();

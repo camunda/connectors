@@ -235,12 +235,11 @@ public class OpenAiCompletionsRequestConverter {
   /**
    * Flattens a message's structured content to a single text blob: {@link TextContent} is
    * concatenated verbatim, {@link ObjectContent} is unwrapped to its raw {@code content()} before
-   * being serialized to JSON (matching {@code AnthropicContentConverter}'s and {@link
-   * OpenAiContentConverter}'s handling -- otherwise the polymorphic {@link Content} envelope
-   * itself, including its {@code type} discriminator, would leak onto the wire), anything else
-   * (documents) falls back to serializing the whole content value. Tool results are always
-   * text-only on the Completions family, so this is the sole tool-result serialization path (unlike
-   * the Responses sibling, there is no multimodal item-list shape).
+   * being serialized to JSON (otherwise the polymorphic {@link Content} envelope itself, including
+   * its {@code type} discriminator, would leak onto the wire), anything else (documents) falls back
+   * to serializing the whole content value. Tool results are always text-only on the Completions
+   * family, so this is the sole tool-result serialization path (unlike the Responses sibling, there
+   * is no multimodal item-list shape).
    */
   private String toTextOutput(List<Content> content) {
     return content.stream()

@@ -45,8 +45,8 @@ import java.util.Map;
  * <p>The domain {@link StopReason} is derived from the choice's {@code finish_reason}; see {@link
  * #mapStopReason} for the mapping - except {@code content_filter}, which throws {@link
  * ContentFilteredException} instead, carrying the assistant message and metrics already built for
- * the turn as its {@link PartialResult}. The Completions API has no equivalent of Anthropic's
- * {@code pause_turn} stop reason, so every other call surfaces as a {@link ChatResult.Completed}.
+ * the turn as its {@link PartialResult}. Every other call surfaces as a {@link
+ * ChatResult.Completed}.
  *
  * <p>The raw vendor {@code finish_reason} string is always preserved under the {@code openai}
  * provider-id key in {@link AssistantMessage#metadata()}; see {@link AssistantMessageMetadata} for

@@ -30,9 +30,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * {@link ChatModelFactory} for the native OpenAI provider's {@code openai-api} (API key) and {@code
  * custom} (OpenAI-compatible endpoint) backends, for both the Responses and Chat Completions API
- * families. Client construction is folded in here, mirroring {@link
- * io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory}'s
- * inline shape rather than a separate client-factory class.
+ * families. Client construction is folded in here rather than a separate client-factory class.
  */
 public class OpenAiChatModelFactory implements ChatModelFactory {
 

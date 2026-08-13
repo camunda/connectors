@@ -50,41 +50,25 @@ import org.springframework.util.StringUtils;
  * Maps an accumulated OpenAI Responses API SDK {@link Response} to the domain {@link
  * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatResult}.
  *
- * <p>Content mapping is on the response side: an output {@code message} item's {@code output_text}
- * parts become {@link TextContent}, {@code function_call} items become {@link ToolCall}s, and
- * {@code reasoning} items become {@link ReasoningContent} whose {@code payload} carries the
- * <strong>full raw item</strong> (a {@code Map<String, Object>} produced via the SDK's own {@link
- * ObjectMappers#jsonMapper()} -- {@code id}/{@code summary}/{@code encrypted_content}/... -- unlike
- * Anthropic's thinking blocks, this always includes {@code encrypted_content} rather than a
- * signature); see {@link #toReasoningContent} for when the summary text is instead lifted onto
- * {@link ReasoningContent#text()}. This raw payload IS re-emitted back to OpenAI on the request
- * side (see {@code OpenAiResponsesRequestConverter}), so reasoning round-trips losslessly.
+ * <p>An output {@code message} item's {@code output_text} parts become {@link TextContent}, {@code
+ * function_call} items become {@link ToolCall}s, and {@code reasoning} items become {@link
+ * ReasoningContent} whose {@code payload} carries the full raw item so it round-trips losslessly
+ * back onto the request; see {@link #toReasoningContent}. Any provider-specific or unrecognized
+ * output item is captured losslessly as {@link ProviderContent} (kept inline in original order) and
+ * never added to {@code toolCalls}, since the caller is never expected to act on it.
  *
- * <p>Server-tool items ({@code web_search_call}, {@code code_interpreter_call}) have no
- * provider-neutral representation and are captured losslessly as {@link ProviderContent} (the raw
- * item map already carries its own {@code type} discriminator), kept inline in original order, and
- * never added to {@code toolCalls} since these are server-side items the caller is never expected
- * to act on. Any future/unknown output item kind not recognized by this SDK version falls back to
- * the same {@link ProviderContent} treatment rather than being silently dropped.
+ * <p>The domain {@link StopReason} is derived from the response shape: an {@code
+ * incomplete_details.reason} of {@code max_output_tokens} maps to {@link StopReason#LENGTH} as a
+ * normal completion; {@code content_filter} instead throws {@link ContentFilteredException},
+ * carrying the assistant message and metrics already built for the turn as its {@link
+ * PartialResult}. Otherwise, one or more {@code function_call} items map to {@link
+ * StopReason#TOOL_USE}, and a normal completion maps to {@link StopReason#STOP}. A top-level {@code
+ * status} of {@code failed} is handled separately, before any of the above -- see {@link
+ * #checkForFailure}.
  *
- * <p>The domain {@link StopReason} is derived from the response shape rather than a single vendor
- * enum (the Responses API exposes none): an {@code incomplete_details.reason} of {@code
- * max_output_tokens} maps to {@link StopReason#LENGTH}, returned as a normal completion rather than
- * raised as an error - the caller decides whether/how to react to a truncated turn. A reason of
- * {@code content_filter} instead throws {@link ContentFilteredException}, carrying the assistant
- * message and metrics already built for the turn as its {@link PartialResult}. Otherwise, a
- * response containing one or more {@code function_call} items maps to {@link StopReason#TOOL_USE},
- * and a normal completion maps to {@link StopReason#STOP}. The Responses API otherwise has no
- * equivalent of Anthropic's {@code pause_turn} stop reason, so every other non-failed call surfaces
- * as {@link ChatResult.Completed}. A top-level {@code status} of {@code failed} is handled
- * separately, before any of the above -- see {@link #checkForFailure} -- since it carries no {@code
- * incomplete_details} to normalize.
- *
- * <p>The raw vendor stop-reason string ({@code incomplete_details.reason}, falling back to the
- * response's top-level {@code status}) is always preserved under the {@code openai} provider-id key
+ * <p>The raw vendor stop-reason string is always preserved under the {@code openai} provider-id key
  * in {@link AssistantMessage#metadata()}, independent of how it normalizes to the domain {@link
- * StopReason}; see {@link AssistantMessageMetadata} for the {@code timestamp} entry every provider
- * adds alongside it.
+ * StopReason}.
  */
 public class OpenAiResponsesResponseConverter {
 
@@ -203,8 +187,7 @@ public class OpenAiResponsesResponseConverter {
   /**
    * The raw vendor stop-reason string preserved under the {@code openai} provider-id key in {@link
    * AssistantMessage#metadata()}, independent of how it normalizes to the domain {@link
-   * StopReason}; mirrors {@code AnthropicMessageResponseConverter}'s handling of {@code
-   * Optional<StopReason>}. The Responses API has no single stop-reason enum: an {@code
+   * StopReason}. The Responses API has no single stop-reason enum: an {@code
    * incomplete_details.reason} is the most specific raw signal when present (truncation / content
    * filtering); otherwise the response's top-level {@code status} (e.g. {@code completed}) is used
    * as a fallback raw signal.
@@ -262,14 +245,13 @@ public class OpenAiResponsesResponseConverter {
 
   /**
    * Builds the {@link ReasoningContent} for a reasoning output item. The human-readable summary
-   * text is always lifted out of {@code summary} into {@link ReasoningContent#text()}, mirroring
-   * the Anthropic sibling's {@code thinking} handling. Whether {@code summary} is also stripped
-   * from {@code payload} depends on {@link #canReconstructSummaryFromText}: when it holds, {@code
-   * text()} is the sole copy and {@link OpenAiResponsesRequestConverter#mergeReasoningText}
-   * rebuilds {@code summary} from it before replay; otherwise {@code summary} is left untouched in
-   * {@code payload} -- deliberately duplicated with {@code text()} -- since reconstructing it from
-   * a single joined string would be lossy (multiple entries, or an entry carrying fields this
-   * domain model doesn't model).
+   * text is always lifted out of {@code summary} into {@link ReasoningContent#text()}. Whether
+   * {@code summary} is also stripped from {@code payload} depends on {@link
+   * #canReconstructSummaryFromText}: when it holds, {@code text()} is the sole copy and {@link
+   * OpenAiResponsesRequestConverter#mergeReasoningText} rebuilds {@code summary} from it before
+   * replay; otherwise {@code summary} is left untouched in {@code payload} -- deliberately
+   * duplicated with {@code text()} -- since reconstructing it from a single joined string would be
+   * lossy (multiple entries, or an entry carrying fields this domain model doesn't model).
    */
   private ReasoningContent toReasoningContent(ResponseOutputItem item) {
     final Map<String, Object> raw = new LinkedHashMap<>(toRawMap(item));
@@ -295,9 +277,9 @@ public class OpenAiResponsesResponseConverter {
   /**
    * Holds only when {@code summary} can be reconstructed byte-identical from {@link #summaryText}'s
    * joined string alone: exactly one entry, with no additional/unknown fields on it. This is safe
-   * to check conservatively: unlike Anthropic's {@code thinking} signature, {@code summary} plays
-   * no role in verifying reasoning continuity (only {@code encrypted_content}/{@code id} do), so
-   * leaving it un-stripped costs nothing but the deduplication.
+   * to check conservatively: {@code summary} plays no role in verifying reasoning continuity (only
+   * {@code encrypted_content}/{@code id} do), so leaving it un-stripped costs nothing but the
+   * deduplication.
    */
   private boolean canReconstructSummaryFromText(ResponseReasoningItem reasoning) {
     final List<ResponseReasoningItem.Summary> summary = reasoning.summary();
@@ -309,8 +291,7 @@ public class OpenAiResponsesResponseConverter {
    * ObjectMapper}: only it knows how to serialize the raw item's {@code JsonValue}/{@code
    * JsonField} internals faithfully (e.g. omitting genuinely-absent optional fields instead of
    * materializing them as explicit {@code null}, and not leaking the Kotlin-generated {@code
-   * isValid()} property as a spurious {@code valid} key) -- mirrors the Anthropic sibling's raw
-   * block capture.
+   * isValid()} property as a spurious {@code valid} key).
    */
   private Map<String, Object> toRawMap(ResponseOutputItem item) {
     return ObjectMappers.jsonMapper()

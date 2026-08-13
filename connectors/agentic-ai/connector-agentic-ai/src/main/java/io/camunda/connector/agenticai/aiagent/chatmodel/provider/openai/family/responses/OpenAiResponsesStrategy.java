@@ -25,10 +25,9 @@ import org.slf4j.LoggerFactory;
 /**
  * {@link OpenAiApiFamilyStrategy} for the OpenAI Responses API: builds the {@link
  * ResponseCreateParams} via {@link OpenAiResponsesRequestConverter}, drives the vendor SDK's
- * streaming Responses endpoint uniformly (mirroring the Anthropic sibling's approach of always
- * streaming to accumulate the same shape the non-streaming API would return), and translates the
- * assembled {@link Response} back to the domain {@link ChatResult} via {@link
- * OpenAiResponsesResponseConverter}.
+ * streaming Responses endpoint uniformly (always streaming to accumulate the same shape the
+ * non-streaming API would return), and translates the assembled {@link Response} back to the domain
+ * {@link ChatResult} via {@link OpenAiResponsesResponseConverter}.
  */
 public class OpenAiResponsesStrategy implements OpenAiApiFamilyStrategy {
 

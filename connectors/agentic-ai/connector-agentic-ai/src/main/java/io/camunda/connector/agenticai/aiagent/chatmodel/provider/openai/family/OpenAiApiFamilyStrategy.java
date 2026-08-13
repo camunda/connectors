@@ -15,8 +15,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
  * Performs one streaming vendor call for a specific OpenAI API family (Responses or Chat
  * Completions) and translates the result to the domain {@link ChatResult}. Kept as its own seam so
  * {@code OpenAiChatModel} stays family-agnostic and dispatches to whichever family the resolved
- * model configuration selects; unlike {@code AnthropicChatModelApi} (which owns a single fixed
- * configuration for its lifetime), a family strategy instance is shared across every OpenAI model
+ * model configuration selects. A family strategy instance is shared across every OpenAI model
  * configuration selecting that family, so the resolved {@link OpenAiChatModelConfiguration} is
  * passed per call rather than fixed at construction.
  */

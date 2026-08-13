@@ -214,9 +214,6 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     return metadata.isEmpty() ? toolCall : toolCall.withMetadata(metadata);
   }
 
-  // CONTENT_FILTER maps to UnknownStopReason like any other unrecognized value below;
-  // LangChain4JChatModel then throws ContentFilteredException before returning a ChatResult built
-  // from it, so this value only ever surfaces via that exception's partial AssistantMessage.
   private static StopReason toStopReason(FinishReason finishReason) {
     return switch (finishReason) {
       case STOP -> StopReason.STOP;
