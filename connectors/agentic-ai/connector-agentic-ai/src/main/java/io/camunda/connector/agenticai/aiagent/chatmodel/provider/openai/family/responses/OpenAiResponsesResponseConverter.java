@@ -42,8 +42,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 /**
@@ -61,18 +59,17 @@ import org.springframework.util.StringUtils;
  * incomplete_details.reason} of {@code max_output_tokens} maps to {@link StopReason#LENGTH} as a
  * normal completion; {@code content_filter} instead throws {@link ContentFilteredException},
  * carrying the assistant message and metrics already built for the turn as its {@link
- * PartialResult}. Otherwise, one or more {@code function_call} items map to {@link
- * StopReason#TOOL_USE}, and a normal completion maps to {@link StopReason#STOP}. A top-level {@code
- * status} of {@code failed} is handled separately, before any of the above -- see {@link
- * #checkForFailure}.
+ * PartialResult} -- see {@link #hasRefusal} for the same treatment of a refusal message, which
+ * carries no stop-reason signal of its own. Otherwise, one or more {@code function_call} items map
+ * to {@link StopReason#TOOL_USE}, and a normal completion maps to {@link StopReason#STOP}. A
+ * top-level {@code status} of {@code failed} is handled separately, before any of the above -- see
+ * {@link #checkForFailure}.
  *
  * <p>The raw vendor stop-reason string is always preserved under the {@code openai} provider-id key
  * in {@link AssistantMessage#metadata()}, independent of how it normalizes to the domain {@link
  * StopReason}.
  */
 public class OpenAiResponsesResponseConverter {
-
-  private static final Logger LOG = LoggerFactory.getLogger(OpenAiResponsesResponseConverter.class);
 
   private static final String OPENAI_PROVIDER = "openai";
 
@@ -88,14 +85,30 @@ public class OpenAiResponsesResponseConverter {
     final AgentMetrics metrics =
         toMetrics(response, assistantMessage.toolCalls().size(), executionTime);
 
-    if (assistantMessage.stopReason() instanceof UnknownStopReason unknown
-        && Response.IncompleteDetails.Reason.CONTENT_FILTER.asString().equals(unknown.value())) {
+    if (hasRefusal(response)
+        || (assistantMessage.stopReason() instanceof UnknownStopReason unknown
+            && Response.IncompleteDetails.Reason.CONTENT_FILTER
+                .asString()
+                .equals(unknown.value()))) {
       throw new ContentFilteredException(
           "Model response was blocked by provider content filtering.",
           new PartialResult(assistantMessage, metrics));
     }
 
     return new ChatResult.Completed(assistantMessage, metrics);
+  }
+
+  /**
+   * A refusal carries no {@code incomplete_details}/{@code status} signal of its own -- the
+   * response is a normal {@code completed} turn, just one where the model's answer is a declination
+   * instead of the requested content. Treated the same as {@code content_filter} here for a uniform
+   * "blocked" outcome across both mechanisms.
+   */
+  private boolean hasRefusal(Response response) {
+    return response.output().stream()
+        .flatMap(item -> item.message().stream())
+        .flatMap(message -> message.content().stream())
+        .anyMatch(content -> content.refusal().isPresent());
   }
 
   /**
@@ -140,8 +153,11 @@ public class OpenAiResponsesResponseConverter {
           messageContent
               .outputText()
               .ifPresent(text -> content.add(TextContent.textContent(text.text())));
-          // A refusal has no dedicated domain content type; surface its text as visible
-          // assistant text rather than silently dropping it.
+          // A refusal has no dedicated domain content type. TextContent rather than
+          // ProviderContent: the latter is invisible to responseText (see
+          // AgentResponseHandlerImpl), which would hide the model's declination from the caller;
+          // toResult() throws ContentFilteredException once this message is fully built, carrying
+          // this text as part of the partial result rather than dropping it.
           messageContent
               .refusal()
               .ifPresent(refusal -> content.add(TextContent.textContent(refusal.refusal())));
@@ -159,18 +175,11 @@ public class OpenAiResponsesResponseConverter {
       } else if (item.webSearchCall().isPresent() || item.codeInterpreterCall().isPresent()) {
         content.add(ProviderContent.providerContent(OPENAI_PROVIDER, toRawMap(item)));
       } else {
-        // Server-tool / provider-specific items not recognized by this SDK version have no
-        // provider-neutral representation. Preserve them losslessly and in original order as
-        // ProviderContent rather than silently dropping them; they are never client tool calls
-        // (the caller is never expected to act on them), so they are kept out of toolCalls.
-        final Map<String, Object> raw = toRawMap(item);
-        if (LOG.isTraceEnabled()) {
-          LOG.trace(
-              "OpenAI server-side output item preserved as ProviderContent: type={}, payload={}",
-              raw.get("type"),
-              raw);
-        }
-        content.add(ProviderContent.providerContent(OPENAI_PROVIDER, raw));
+        // Any other output item kind not recognized by this SDK version has no provider-neutral
+        // representation. Preserve it losslessly and in original order as ProviderContent rather
+        // than silently dropping it; it is never a client tool call (the caller is never expected
+        // to act on it), so it is kept out of toolCalls.
+        content.add(ProviderContent.providerContent(OPENAI_PROVIDER, toRawMap(item)));
       }
     }
 
@@ -227,20 +236,12 @@ public class OpenAiResponsesResponseConverter {
 
   /**
    * {@link ResponsesModel} is a three-way union (a bare string, a {@code ChatModel} enum member, or
-   * a Responses-only enum member): the wire value {@code "gpt-5"} deserializes into the {@code
-   * ChatModel} variant (it matches a known enum member) rather than the bare-string variant, so
-   * {@code asString()} cannot be called unconditionally -- the matching variant must be resolved
-   * first.
+   * a Responses-only enum member) purely as a typed-SDK convenience for known model names -- on the
+   * wire {@code model} is always a plain string, so {@link ResponsesModel#_json()} (populated
+   * regardless of which variant matched) sidesteps resolving the variant entirely.
    */
   private String modelId(ResponsesModel model) {
-    if (model.isString()) {
-      return model.asString();
-    } else if (model.isChat()) {
-      return model.asChat().asString();
-    } else if (model.isOnly()) {
-      return model.asOnly().asString();
-    }
-    return model.toString();
+    return model._json().map(json -> json.convert(String.class)).orElseGet(model::toString);
   }
 
   /**

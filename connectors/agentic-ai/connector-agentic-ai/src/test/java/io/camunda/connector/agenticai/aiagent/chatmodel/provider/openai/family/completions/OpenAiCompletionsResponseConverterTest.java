@@ -115,17 +115,32 @@ class OpenAiCompletionsResponseConverterTest {
   }
 
   @Test
-  void mapsRefusalToTextContent() {
-    final ChatCompletion completion =
-        baseCompletion(
-            """
-            {"role": "assistant", "content": null, "refusal": "I can't help with that."}
-            """);
+  void mapsRefusalToTextContentOnAssistantMessage() {
+    final ChatCompletion completion = completionWithRefusal();
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+    final var assistantMessage = converter.toAssistantMessage(completion);
 
-    assertThat(result.assistantMessage().content())
+    assertThat(assistantMessage.content())
         .containsExactly(TextContent.textContent("I can't help with that."));
+  }
+
+  @Test
+  void throwsContentFilteredExceptionForRefusal() {
+    assertThatThrownBy(() -> converter.toResult(completionWithRefusal(), Duration.ofMillis(100)))
+        .isInstanceOfSatisfying(
+            ContentFilteredException.class,
+            e -> {
+              assertThat(e.partialResult()).isNotNull();
+              assertThat(e.partialResult().assistantMessage().content())
+                  .containsExactly(TextContent.textContent("I can't help with that."));
+            });
+  }
+
+  private static ChatCompletion completionWithRefusal() {
+    return baseCompletion(
+        """
+        {"role": "assistant", "content": null, "refusal": "I can't help with that."}
+        """);
   }
 
   @Test

@@ -45,8 +45,9 @@ import java.util.Map;
  * <p>The domain {@link StopReason} is derived from the choice's {@code finish_reason}; see {@link
  * #mapStopReason} for the mapping - except {@code content_filter}, which throws {@link
  * ContentFilteredException} instead, carrying the assistant message and metrics already built for
- * the turn as its {@link PartialResult}. Every other call surfaces as a {@link
- * ChatResult.Completed}.
+ * the turn as its {@link PartialResult} -- see {@link #hasRefusal} for the same treatment of a
+ * refusal message, which carries no {@code finish_reason} signal of its own. Every other call
+ * surfaces as a {@link ChatResult.Completed}.
  *
  * <p>The raw vendor {@code finish_reason} string is always preserved under the {@code openai}
  * provider-id key in {@link AssistantMessage#metadata()}; see {@link AssistantMessageMetadata} for
@@ -67,14 +68,26 @@ public class OpenAiCompletionsResponseConverter {
     final AgentMetrics metrics =
         toMetrics(completion, assistantMessage.toolCalls().size(), executionTime);
 
-    if (assistantMessage.stopReason() instanceof UnknownStopReason unknown
-        && ChatCompletion.Choice.FinishReason.CONTENT_FILTER.asString().equals(unknown.value())) {
+    if (hasRefusal(completion)
+        || (assistantMessage.stopReason() instanceof UnknownStopReason unknown
+            && ChatCompletion.Choice.FinishReason.CONTENT_FILTER
+                .asString()
+                .equals(unknown.value()))) {
       throw new ContentFilteredException(
           "Model response was blocked by provider content filtering.",
           new PartialResult(assistantMessage, metrics));
     }
 
     return new ChatResult.Completed(assistantMessage, metrics);
+  }
+
+  /**
+   * A refusal carries no {@code finish_reason} signal of its own -- mirrors the Responses sibling's
+   * {@code hasRefusal}, treating it the same as {@code content_filter} for a uniform "blocked"
+   * outcome across both mechanisms.
+   */
+  private boolean hasRefusal(ChatCompletion completion) {
+    return completion.choices().get(0).message().refusal().isPresent();
   }
 
   AssistantMessage toAssistantMessage(ChatCompletion completion) {
@@ -86,8 +99,9 @@ public class OpenAiCompletionsResponseConverter {
         .content()
         .filter(text -> !text.isBlank())
         .ifPresent(text -> content.add(TextContent.textContent(text)));
-    // A refusal has no dedicated domain content type; surface its text as visible assistant text
-    // rather than silently dropping it, mirroring the Responses sibling's refusal handling.
+    // A refusal has no dedicated domain content type; kept as TextContent so the declination stays
+    // visible in the partial result once toResult() throws ContentFilteredException for it (see
+    // hasRefusal).
     message.refusal().ifPresent(refusal -> content.add(TextContent.textContent(refusal)));
 
     final List<ToolCall> toolCalls = new ArrayList<>();

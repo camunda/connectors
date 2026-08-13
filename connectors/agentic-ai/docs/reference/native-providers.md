@@ -93,7 +93,9 @@ normal completion maps to `STOP`, tool calls to `TOOL_USE`. Unrecognized `finish
 back to `StopReason.UnknownStopReason` with the raw value preserved. `content_filter` never reaches
 this mapping on either API family: `toResult` throws `ContentFilteredException` directly, carrying
 the assistant message and metrics already built for the turn as the exception's `PartialResult` (see
-[ai-agent.md §12](ai-agent.md#12-framework-abstraction)). `LENGTH` never fails the job.
+[ai-agent.md §12](ai-agent.md#12-framework-abstraction)). A refusal (a message content item, not a
+stop reason) throws the same exception, since it carries no completion signal of its own to key off.
+`LENGTH` never fails the job.
 
 An over-length request is rejected outright with an HTTP 400 (`BadRequestException`,
 `code=context_length_exceeded`) on both API families, rather than completing with a stop reason;

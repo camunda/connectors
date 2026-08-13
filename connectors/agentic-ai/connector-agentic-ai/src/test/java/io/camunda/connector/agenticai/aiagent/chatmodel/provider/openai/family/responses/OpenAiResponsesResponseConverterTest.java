@@ -141,28 +141,43 @@ class OpenAiResponsesResponseConverterTest {
   }
 
   @Test
-  void mapsRefusalContentToTextContent() {
-    final Response response =
-        baseResponse(
-            """
-            [
-              {
-                "type": "message",
-                "id": "msg_1",
-                "role": "assistant",
-                "status": "completed",
-                "content": [
-                  {"type": "refusal", "refusal": "I can't help with that."}
-                ]
-              }
-            ]
-            """);
+  void mapsRefusalContentToTextContentOnAssistantMessage() {
+    final Response response = responseWithRefusal();
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+    final var assistantMessage = converter.toAssistantMessage(response);
 
-    assertThat(result.assistantMessage().content())
+    assertThat(assistantMessage.content())
         .containsExactly(TextContent.textContent("I can't help with that."));
-    assertThat(result.assistantMessage().toolCalls()).isEmpty();
+    assertThat(assistantMessage.toolCalls()).isEmpty();
+  }
+
+  @Test
+  void throwsContentFilteredExceptionForRefusal() {
+    assertThatThrownBy(() -> converter.toResult(responseWithRefusal(), Duration.ofMillis(100)))
+        .isInstanceOfSatisfying(
+            ContentFilteredException.class,
+            e -> {
+              assertThat(e.partialResult()).isNotNull();
+              assertThat(e.partialResult().assistantMessage().content())
+                  .containsExactly(TextContent.textContent("I can't help with that."));
+            });
+  }
+
+  private static Response responseWithRefusal() {
+    return baseResponse(
+        """
+        [
+          {
+            "type": "message",
+            "id": "msg_1",
+            "role": "assistant",
+            "status": "completed",
+            "content": [
+              {"type": "refusal", "refusal": "I can't help with that."}
+            ]
+          }
+        ]
+        """);
   }
 
   @Test
