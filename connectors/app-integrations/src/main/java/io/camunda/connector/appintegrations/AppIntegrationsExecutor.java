@@ -93,9 +93,12 @@ class AppIntegrationsExecutor {
     this.getenv = getenv;
   }
 
-  SendMessageResult sendMessage(SendMessageRequest request, String formResourceKey) {
+  SendMessageResult sendMessage(
+      SendMessageRequest request, String formResourceKey, String processDefinitionId) {
     return post(
-        SEND_MESSAGE_PATH, messagePayload(request, formResourceKey), SendMessageResult.class);
+        SEND_MESSAGE_PATH,
+        messagePayload(request, formResourceKey, processDefinitionId),
+        SendMessageResult.class);
   }
 
   CreateChannelResult createChannel(CreateChannelRequest request) {
@@ -109,8 +112,13 @@ class AppIntegrationsExecutor {
    *
    * <p>{@code message} is independent of the additional content — the backend accepts both at once,
    * so a text message and a card can be sent together.
+   *
+   * <p>{@code processDefinitionId} identifies the process the job came from, so the backend can
+   * match notification rules scoped to it. Zeebe calls this the BPMN process ID; it is the same
+   * value the rules store as {@code process_definition_id}.
    */
-  private MessagePayload messagePayload(SendMessageRequest request, String formResourceKey) {
+  private MessagePayload messagePayload(
+      SendMessageRequest request, String formResourceKey, String processDefinitionId) {
     String platform;
     String email = null;
     List<String> candidateUsers = null;
@@ -156,6 +164,7 @@ class AppIntegrationsExecutor {
 
     return new MessagePayload(
         platform,
+        blankToNull(processDefinitionId),
         email,
         candidateUsers,
         candidateGroups,
@@ -438,6 +447,7 @@ class AppIntegrationsExecutor {
   @JsonInclude(Include.NON_NULL)
   private record MessagePayload(
       String platform,
+      String processDefinitionId,
       String email,
       List<String> candidateUsers,
       List<String> candidateGroups,

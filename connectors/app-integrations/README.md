@@ -116,21 +116,27 @@ The connector flattens the switchable input onto the backend's flat wire contrac
 `platform` discriminator — Teams and Slack both address a "channel", so the field shape alone is
 ambiguous. Unset fields are omitted entirely.
 
+Every message also carries `processDefinitionId`, the BPMN process ID of the process the job came
+from, so the backend can match notification rules scoped to a specific process.
+
 `POST /api/connector/message`:
 
 ```json
-{ "platform": "camunda", "email": "a@b.c", "candidateUsers": ["alice"],
-  "candidateGroups": ["approvers"], "message": "Please review" }
+{ "platform": "camunda", "processDefinitionId": "order-process", "email": "a@b.c",
+  "candidateUsers": ["alice"], "candidateGroups": ["approvers"], "message": "Please review" }
 
-{ "platform": "camunda", "email": "a@b.c", "message": "Please approve", "formResourceKey": "12345" }
+{ "platform": "camunda", "processDefinitionId": "order-process", "email": "a@b.c",
+  "message": "Please approve", "formResourceKey": "12345" }
 
-{ "platform": "teams", "channelId": "19:abc@thread.tacv2", "message": "Deploy done",
+{ "platform": "teams", "processDefinitionId": "order-process", "channelId": "19:abc@thread.tacv2",
+  "message": "Deploy done",
   "adaptiveCard": { "type": "AdaptiveCard", "version": "1.5", "body": [] } }
 
-{ "platform": "slack", "channelId": "C0123456789", "message": "Deploy done",
-  "blocks": [ { "type": "section" } ] }
+{ "platform": "slack", "processDefinitionId": "order-process", "channelId": "C0123456789",
+  "message": "Deploy done", "blocks": [ { "type": "section" } ] }
 
-{ "platform": "slack", "userId": "U0123456789", "message": "Ping" }
+{ "platform": "slack", "processDefinitionId": "order-process", "userId": "U0123456789",
+  "message": "Ping" }
 ```
 
 `POST /api/connector/channel`:

@@ -63,6 +63,7 @@ class AppIntegrationsConnectorTest {
   private static final String TOKEN_ENDPOINT = "https://auth.example.com/oauth/token";
   private static final String CARD = "{\"type\":\"AdaptiveCard\",\"version\":\"1.5\"}";
   private static final String BLOCKS = "[{\"type\":\"section\"}]";
+  private static final String PROCESS_DEFINITION_ID = "order-process";
 
   private static final Map<String, String> API_KEY_ENV =
       Map.of("APP_INTEGRATIONS_BASE_URL", BASE_URL, "APP_INTEGRATIONS_API_KEY", "test-key");
@@ -96,6 +97,7 @@ class AppIntegrationsConnectorTest {
     connector = connectorWith(API_KEY_ENV);
     when(context.getJobContext()).thenReturn(jobContext);
     when(jobContext.getCustomHeaders()).thenReturn(Map.of());
+    when(jobContext.getBpmnProcessId()).thenReturn(PROCESS_DEFINITION_ID);
   }
 
   @AfterEach
@@ -173,6 +175,41 @@ class AppIntegrationsConnectorTest {
     assertThat(body).contains("\"message\":\"Please review\"");
     assertThat(body)
         .doesNotContain("channelId", "userId", "adaptiveCard", "blocks", "formResourceKey");
+  }
+
+  // --- process context ---
+
+  @Test
+  void sendMessage_carriesProcessDefinitionIdOfTheRunningProcess() {
+    // Notification rules can be scoped to a process, so the backend needs to know which one the
+    // job came from. Sent for every recipient, not just Camunda, so a rule scoped to a process
+    // can also match a message addressed to Teams or Slack.
+    stubOk();
+
+    connector.sendMessage(camundaText("user@example.com", "Please review"), context);
+
+    assertThat(captureBody()).contains("\"processDefinitionId\":\"order-process\"");
+  }
+
+  @Test
+  void sendMessage_teamsRecipient_alsoCarriesProcessDefinitionId() {
+    stubOk();
+
+    connector.sendMessage(
+        teams("19:abc@thread.tacv2", "Deploy done", new AdditionalContent.None()), context);
+
+    assertThat(captureBody()).contains("\"processDefinitionId\":\"order-process\"");
+  }
+
+  @Test
+  void sendMessage_withoutProcessDefinitionId_omitsTheField() {
+    // A job always carries one in practice; a blank value must not travel as an empty string.
+    when(jobContext.getBpmnProcessId()).thenReturn("  ");
+    stubOk();
+
+    connector.sendMessage(camundaText("user@example.com", "Please review"), context);
+
+    assertThat(captureBody()).doesNotContain("processDefinitionId");
   }
 
   @Test

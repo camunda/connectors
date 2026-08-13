@@ -66,6 +66,7 @@ class AppIntegrationsConnectorWireMockTest {
     var jobContext = mock(JobContext.class);
     when(context.getJobContext()).thenReturn(jobContext);
     when(jobContext.getCustomHeaders()).thenReturn(Map.of());
+    when(jobContext.getBpmnProcessId()).thenReturn("order-process");
   }
 
   @BeforeEach
@@ -204,6 +205,7 @@ class AppIntegrationsConnectorWireMockTest {
                     """
                     {
                       "platform": "camunda",
+                      "processDefinitionId": "order-process",
                       "email": "user@example.com",
                       "candidateUsers": ["alice", "bob"],
                       "candidateGroups": ["approvers"],
@@ -240,6 +242,7 @@ class AppIntegrationsConnectorWireMockTest {
                     """
                     {
                       "platform": "slack",
+                      "processDefinitionId": "order-process",
                       "channelId": "C0123456789",
                       "message": "Deploy done",
                       "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "hi"}}]

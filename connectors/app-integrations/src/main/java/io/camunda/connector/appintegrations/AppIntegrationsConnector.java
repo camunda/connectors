@@ -113,7 +113,8 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
       }
     }
 
-    return executor.sendMessage(request, formResourceKey);
+    return executor.sendMessage(
+        request, formResourceKey, context.getJobContext().getBpmnProcessId());
   }
 
   @Operation(
