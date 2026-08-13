@@ -16,6 +16,10 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.Bedrock
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentRequestConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiFoundryCredentialResolver;
@@ -101,5 +105,16 @@ public class AgenticAiNativeProvidersConfiguration {
             OpenAiResponsesStreamAssembler.accumulating());
     return new OpenAiChatModelFactory(
         httpProxySupport, completionsStrategy, responsesStrategy, openAiFoundryCredentialResolver);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public GeminiChatModelFactory aiAgentGeminiChatModelFactory(
+      AgenticAiHttpProxySupport httpProxySupport,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    final var contentConverter = new GeminiContentConverter(objectMapper);
+    final var requestConverter = new GeminiContentRequestConverter(contentConverter);
+    final var responseConverter = new GeminiContentResponseConverter();
+    return new GeminiChatModelFactory(httpProxySupport, requestConverter, responseConverter);
   }
 }
