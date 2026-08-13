@@ -22,14 +22,6 @@ import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * {@link OpenAiApiFamilyStrategy} for the OpenAI Chat Completions API: builds the {@link
- * ChatCompletionCreateParams} via {@link OpenAiCompletionsRequestConverter}, drives the vendor
- * SDK's streaming Chat Completions endpoint uniformly (mirroring the Anthropic sibling's approach
- * of always streaming to accumulate the same shape the non-streaming API would return), and
- * translates the assembled {@link ChatCompletion} back to the domain {@link ChatResult} via {@link
- * OpenAiCompletionsResponseConverter}.
- */
 public class OpenAiCompletionsStrategy implements OpenAiApiFamilyStrategy {
 
   private static final Logger LOG = LoggerFactory.getLogger(OpenAiCompletionsStrategy.class);

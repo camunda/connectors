@@ -13,12 +13,6 @@ import java.util.Map;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
-/**
- * The resolved headers/queryParameters/bodyProperties for the currently selected backend
- * (openai-api or custom), normalized to non-null maps. Shared between the Completions and Responses
- * request converters (Task 5/8) so the per-backend switch isn't duplicated; mirrors {@code
- * AnthropicMessageRequestConverter}'s {@code RequestCustomizations}.
- */
 public record OpenAiRequestCustomizations(
     Map<String, String> headers,
     Map<String, String> queryParameters,

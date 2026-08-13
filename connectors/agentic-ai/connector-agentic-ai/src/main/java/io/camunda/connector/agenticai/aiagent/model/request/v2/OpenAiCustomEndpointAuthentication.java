@@ -18,9 +18,9 @@ import jakarta.validation.constraints.NotBlank;
  * Authentication strategies for OpenAI's {@code custom}-backend endpoint. Unlike Anthropic, there
  * is no genuine no-auth option here: the openai-java SDK requires a credential source to build a
  * client at all, so an apparent "no auth" choice would silently send a placeholder credential
- * instead of actually sending nothing. API key is therefore the only, required variant today.
- * Deliberately kept polymorphic (not a flat {@code @NotBlank String apiKey} field) so a future
- * OAuth 2.0 variant can be added without restructuring this type or its call sites.
+ * instead of actually sending nothing. API key is therefore the only, required variant today,
+ * modeled as a sealed interface rather than a flat {@code @NotBlank String apiKey} field to stay
+ * consistent with the backend-subtype wrapping convention used throughout this provider's config.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
