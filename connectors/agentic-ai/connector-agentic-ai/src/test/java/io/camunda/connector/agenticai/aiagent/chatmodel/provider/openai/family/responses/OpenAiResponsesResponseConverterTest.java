@@ -471,7 +471,7 @@ class OpenAiResponsesResponseConverterTest {
 
     assertThat(result.assistantMessage().metadata())
         .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY)
-        .containsEntry("openai", Map.of("stopReason", "max_output_tokens"));
+        .containsEntry("openai", Map.of("responseId", "resp_1", "stopReason", "max_output_tokens"));
   }
 
   @Test
@@ -490,16 +490,17 @@ class OpenAiResponsesResponseConverterTest {
 
     assertThat(result.assistantMessage().metadata())
         .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY)
-        .containsEntry("openai", Map.of("stopReason", "completed"));
+        .containsEntry("openai", Map.of("responseId", "resp_status", "stopReason", "completed"));
   }
 
   @Test
-  void stampsOnlyTimestampMetadataWhenNoRawStopReasonAvailable() {
+  void stampsResponseIdWithoutStopReasonWhenNoneAvailable() {
     final Response response = baseResponse("[]");
 
     final ChatResult result = converter.toResult(response, Duration.ofMillis(10));
 
     assertThat(result.assistantMessage().metadata())
-        .containsOnlyKeys(AssistantMessageMetadata.TIMESTAMP_KEY);
+        .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY)
+        .containsEntry("openai", Map.of("responseId", "resp_123"));
   }
 }
