@@ -478,6 +478,9 @@ class OpenAiCompletionsRequestConverterTest {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     assertThatThrownBy(() -> converter.toRequest(responsesFamilyModel(), null, snapshot))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "OpenAiCompletionsRequestConverter requires the 'completions' API family, but was"
+                + " configured with 'responses'");
   }
 }
