@@ -50,11 +50,17 @@ public class AnthropicContentConverter {
           ContentType.IMAGE_GIF,
           ContentType.IMAGE_WEBP);
 
+  /**
+   * Mirrors the legacy LangChain4j path's base allowlist ({@code DocumentToContentConverterImpl}),
+   * extended with {@code application/x-yaml} for consistency with the {@code application/yaml}
+   * entry already here; shared verbatim with the OpenAI sibling.
+   */
   private static final List<ContentType> ADDITIONAL_TEXT_FILE_CONTENT_TYPES =
       List.of(
           ContentType.APPLICATION_JSON,
           ContentType.APPLICATION_XML,
-          ContentType.create("application/yaml"));
+          ContentType.create("application/yaml"),
+          ContentType.create("application/x-yaml"));
 
   private final ObjectMapper objectMapper;
 
@@ -69,20 +75,13 @@ public class AnthropicContentConverter {
         case TextContent text -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(text)));
         case DocumentContent doc -> blocks.add(toDocumentBlockParam(doc));
         case ObjectContent obj -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(obj)));
-        // A ReasoningContent/ProviderContent block from a different provider (e.g. a prior turn
-        // on OpenAI, left behind by a provider switch) carries a payload shaped for that other
-        // vendor's SDK; convertValue-ing it against Anthropic's ContentBlockParam would either
-        // throw or silently produce garbage, so it's dropped rather than replayed.
+        // Foreign-provider content (left behind by a provider switch) is dropped, not replayed.
         case ReasoningContent rc when ANTHROPIC_ID.equals(rc.provider()) ->
             blocks.add(toReasoningContentBlockParam(rc));
-        case ReasoningContent rc -> {
-          // dropped: foreign provider, see comment above
-        }
+        case ReasoningContent ignored -> {} // dropped: foreign provider
         case ProviderContent pc when ANTHROPIC_ID.equals(pc.provider()) ->
             blocks.add(toProviderContentBlockParam(pc));
-        case ProviderContent pc -> {
-          // dropped: foreign provider, see comment above
-        }
+        case ProviderContent ignored -> {} // dropped: foreign provider
       }
     }
     return blocks;
@@ -240,7 +239,9 @@ public class AnthropicContentConverter {
     final var mime = parsed.getMimeType();
     if (mime.startsWith("text/")
         || isCompatibleWithAnyOf(parsed, ADDITIONAL_TEXT_FILE_CONTENT_TYPES)
-        || mime.equals("application/x-yaml")
+        // RFC 6839 structured syntax suffixes (e.g. application/problem+json,
+        // application/atom+xml) aren't caught by the exact-MIME-type check above:
+        // ContentType#isSameMimeType compares the whole type, not by suffix.
         || mime.endsWith("+json")
         || mime.endsWith("+xml")) {
       return DocumentBlockKind.TEXT;

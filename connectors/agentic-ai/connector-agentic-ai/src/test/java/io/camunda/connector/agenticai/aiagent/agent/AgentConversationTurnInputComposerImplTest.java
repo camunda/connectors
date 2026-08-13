@@ -411,7 +411,7 @@ class AgentConversationTurnInputComposerImplTest {
     // ToolCallResultContent lift turns this into a first-class DocumentContent, same as every
     // other content-lift path; the fallback <doc/> message is still composed alongside it
     // regardless — native provider tool-result converters are responsible for not embedding the
-    // same bytes a second time (see OpenAiContentConverter#toToolResultOutputItems /
+    // same bytes a second time (see OpenAiContentConverter#toResponsesToolResultOutputItems /
     // AnthropicContentConverter#toToolResultBlocks), not this provider-agnostic composition step
     var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
     var input =

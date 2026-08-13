@@ -22,6 +22,8 @@ import com.openai.models.responses.ResponseInputTextContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
@@ -50,11 +52,17 @@ public class OpenAiContentConverter {
           ContentType.IMAGE_GIF,
           ContentType.IMAGE_WEBP);
 
+  /**
+   * Mirrors the legacy LangChain4j path's base allowlist ({@code DocumentToContentConverterImpl}),
+   * extended with {@code application/x-yaml} for consistency with the {@code application/yaml}
+   * entry already here; shared verbatim with the Anthropic sibling.
+   */
   private static final List<ContentType> ADDITIONAL_TEXT_FILE_CONTENT_TYPES =
       List.of(
           ContentType.APPLICATION_JSON,
           ContentType.APPLICATION_XML,
-          ContentType.create("application/yaml"));
+          ContentType.create("application/yaml"),
+          ContentType.create("application/x-yaml"));
 
   private final ObjectMapper objectMapper;
 
@@ -75,13 +83,18 @@ public class OpenAiContentConverter {
             parts.add(
                 ResponseInputContent.ofInputText(
                     ResponseInputText.builder().text(writeAsJson(obj.content())).build()));
-        // Reasoning/provider content have no wire representation in this converter (their replay
-        // is handled by the request converters); fall back to a JSON reference so the switch
-        // stays exhaustive without crashing on unsupported content in a message/tool-result body.
-        default ->
+        // ReasoningContent/ProviderContent's actual wire-shaped replay is handled by the request
+        // converters before this method is ever called with an assistant's plain content; if one
+        // still reaches here, it is added as a single JSON-reference text part rather than lost or
+        // duplicated - not its native shape, but not dropped either.
+        case ReasoningContent reasoning ->
             parts.add(
                 ResponseInputContent.ofInputText(
-                    ResponseInputText.builder().text(writeAsJson(c)).build()));
+                    ResponseInputText.builder().text(writeAsJson(reasoning)).build()));
+        case ProviderContent providerContent ->
+            parts.add(
+                ResponseInputContent.ofInputText(
+                    ResponseInputText.builder().text(writeAsJson(providerContent)).build()));
       }
     }
     return parts;
@@ -89,13 +102,15 @@ public class OpenAiContentConverter {
 
   /**
    * Converts a tool result's structured content into Responses {@code function_call_output} items.
-   * Unlike {@link #toResponsesContentParts}, a document here is flattened to a JSON reference
-   * rather than emitted natively as {@code input_image}/{@code input_file}: the composer's
-   * synthetic {@code <doc/>} fallback message already delivers the actual document bytes for tool
-   * results (see {@code AgentConversationTurnInputComposerImpl}), so embedding it here as well
-   * would send it to the model twice.
+   * Responses-only: the Completions family has no equivalent structured tool-result item shape (see
+   * {@link #toCompletionsContentParts}). Unlike {@link #toResponsesContentParts}, a document here
+   * is flattened to a JSON reference rather than emitted natively as {@code input_image}/{@code
+   * input_file}: the composer's synthetic {@code <doc/>} fallback message already delivers the
+   * actual document bytes for tool results (see {@code AgentConversationTurnInputComposerImpl}), so
+   * embedding it here as well would send it to the model twice.
    */
-  public List<ResponseFunctionCallOutputItem> toToolResultOutputItems(List<Content> content) {
+  public List<ResponseFunctionCallOutputItem> toResponsesToolResultOutputItems(
+      List<Content> content) {
     final List<ResponseFunctionCallOutputItem> items = new ArrayList<>();
     for (final Content c : content) {
       switch (c) {
@@ -267,7 +282,9 @@ public class OpenAiContentConverter {
     final var mime = parsed.getMimeType();
     if (mime.startsWith("text/")
         || isCompatibleWithAnyOf(parsed, ADDITIONAL_TEXT_FILE_CONTENT_TYPES)
-        || mime.equals("application/x-yaml")
+        // RFC 6839 structured syntax suffixes (e.g. application/problem+json,
+        // application/atom+xml) aren't caught by the exact-MIME-type check above:
+        // ContentType#isSameMimeType compares the whole type, not by suffix.
         || mime.endsWith("+json")
         || mime.endsWith("+xml")) {
       return DocumentPartKind.TEXT;

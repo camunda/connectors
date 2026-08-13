@@ -212,7 +212,8 @@ class OpenAiResponsesRequestConverterTest {
     final var items = params.input().orElseThrow().asResponse();
     final var functionCallOutput = items.get(1).functionCallOutput().orElseThrow();
     // Must be the raw unwrapped value ("24"), not the polymorphic Content envelope
-    // ("{"type":"object","content":24}") - see OpenAiContentConverter#toToolResultOutputItems.
+    // ("{"type":"object","content":24}") - see
+    // OpenAiContentConverter#toResponsesToolResultOutputItems.
     final var outputItems = functionCallOutput.output().asResponseFunctionCallOutputItemList();
     assertThat(outputItems).hasSize(1);
     assertThat(outputItems.get(0).asInputText().text()).isEqualTo("24");
@@ -222,7 +223,8 @@ class OpenAiResponsesRequestConverterTest {
   void emitsJsonReferenceForToolResultDocuments() {
     // never embedded natively as input_file/input_image for a tool result - the composer's
     // synthetic <doc/> fallback message already delivers the actual bytes, so embedding it here
-    // as well would send it to the model twice; see OpenAiContentConverter#toToolResultOutputItems
+    // as well would send it to the model twice; see
+    // OpenAiContentConverter#toResponsesToolResultOutputItems
     final var document = mock(Document.class);
     final var metadata = mock(DocumentMetadata.class);
     when(document.metadata()).thenReturn(metadata);

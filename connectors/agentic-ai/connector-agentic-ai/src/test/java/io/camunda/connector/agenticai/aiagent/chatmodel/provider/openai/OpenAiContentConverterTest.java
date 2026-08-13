@@ -165,12 +165,12 @@ class OpenAiContentConverterTest {
   }
 
   @Nested
-  class ToToolResultOutputItems {
+  class ToResponsesToolResultOutputItems {
 
     @Test
     void mapsTextContentToInputTextItem() {
       final var items =
-          converter.toToolResultOutputItems(List.of(new TextContent("hello world", null)));
+          converter.toResponsesToolResultOutputItems(List.of(new TextContent("hello world", null)));
 
       assertThat(items).hasSize(1);
       assertThat(items.get(0).isInputText()).isTrue();
@@ -184,7 +184,8 @@ class OpenAiContentConverterTest {
       // renders the same JSON reference ObjectContent would, avoiding a double-send
       final var doc = mockDocument("image/png", "QUJD");
 
-      final var items = converter.toToolResultOutputItems(List.of(new DocumentContent(doc, null)));
+      final var items =
+          converter.toResponsesToolResultOutputItems(List.of(new DocumentContent(doc, null)));
 
       assertThat(items).hasSize(1);
       assertThat(items.get(0).isInputText()).isTrue();
@@ -193,7 +194,7 @@ class OpenAiContentConverterTest {
     @Test
     void mapsObjectContentToInputTextItem() {
       final var items =
-          converter.toToolResultOutputItems(
+          converter.toResponsesToolResultOutputItems(
               List.of(new ObjectContent(Map.of("key", "value"), null)));
 
       assertThat(items).hasSize(1);
@@ -203,7 +204,8 @@ class OpenAiContentConverterTest {
 
     @Test
     void unwrapsObjectContentRatherThanSerializingTheEnvelope() {
-      final var items = converter.toToolResultOutputItems(List.of(ObjectContent.objectContent(24)));
+      final var items =
+          converter.toResponsesToolResultOutputItems(List.of(ObjectContent.objectContent(24)));
 
       assertThat(items).hasSize(1);
       assertThat(items.get(0).inputText().orElseThrow().text()).isEqualTo("24");
@@ -214,7 +216,7 @@ class OpenAiContentConverterTest {
       final var doc = mockDocument("image/png", "QUJD");
 
       final var items =
-          converter.toToolResultOutputItems(
+          converter.toResponsesToolResultOutputItems(
               List.of(new TextContent("see attached", null), new DocumentContent(doc, null)));
 
       assertThat(items).hasSize(2);
