@@ -255,8 +255,8 @@
     "type" : "String"
   }, {
     "id" : "sendMessage:recipient.slackTarget.user",
-    "label" : "User",
-    "description" : "Slack user email address or member ID, e.g. U0123456789.",
+    "label" : "User ID",
+    "description" : "Slack user ID, e.g. U0123456789.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true

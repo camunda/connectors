@@ -46,8 +46,8 @@ public sealed interface SlackTarget {
       @NotBlank
           @TemplateProperty(
               group = "recipient",
-              label = "User",
-              description = "Slack user email address or member ID, e.g. U0123456789.")
+              label = "User ID",
+              description = "Slack user ID, e.g. U0123456789.")
           String user)
       implements SlackTarget {}
 }

@@ -68,8 +68,8 @@ the additional content below, or fill both to send text *and* a card in one mess
 - **Camunda** — any combination of assignee email, candidate users and candidate groups (at least one
   is required). The candidate fields are FEEL lists, e.g. `= ["alice", "bob"]`.
 - **Microsoft Teams** — a channel ID, e.g. `19:xxx@thread.tacv2`.
-- **Slack** — a second switch, **Slack target**: a channel ID (`C0123456789`) or a user (email address
-  or member ID, e.g. `U0123456789`).
+- **Slack** — a second switch, **Slack target**: a channel ID (`C0123456789`) or a user ID
+  (`U0123456789`).
 
 **Additional content** is a second switch whose options depend on the recipient, because the formats
 each platform accepts differ:
