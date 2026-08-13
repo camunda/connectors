@@ -1,0 +1,27 @@
+name: Vault Access Check - qa/ci/common
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - '.github/workflows/vault-access-check-qa-common.yaml'
+  workflow_dispatch:
+
+jobs:
+  check-vault-access:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Attempt to read secret/data/products/qa/ci/common
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/products/qa/ci/common SLACK_BOT_USER_OAUTH_TOKEN ;
+
+      - name: Report success
+        run: echo "Vault read of secret/data/products/qa/ci/common succeeded."
