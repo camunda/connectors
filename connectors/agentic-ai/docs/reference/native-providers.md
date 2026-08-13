@@ -97,6 +97,20 @@ capability matrix this module does not have yet.
 Opt-in per model (`BedrockModelParameters.promptCaching.enabled`, default `false`), expressed as
 Converse `cachePoint` blocks. Converse always reports a distinct cache-write count in `TokenUsage`.
 
+### Truncation
+
+`stopReason` maps to the domain `StopReason`: `end_turn`/`stop_sequence` → `STOP`, `tool_use` →
+`TOOL_USE`, `max_tokens` → `LENGTH`. Unrecognized values fall back to `UnknownStopReason` with the
+raw value preserved.
+
+Four stop reasons never reach that mapping's result, because `toResult` throws before returning.
+`content_filtered`, `guardrail_intervened` and `model_context_window_exceeded` throw
+`ContentFilteredException`/`GuardrailInterventionException`/`ContextWindowExceededException`,
+carrying the assistant message and metrics already built for the turn as the exception's
+`PartialResult` (see [ai-agent.md §12](ai-agent.md#12-framework-abstraction)).
+`malformed_model_output` and `malformed_tool_use` are a generation failure rather than a policy
+decision, so they fail the call with `ERROR_CODE_FAILED_MODEL_CALL` instead.
+
 ## OpenAI
 
 Two orthogonal sealed axes: `OpenAiApi` (`completions` | `responses`, default `responses`) and

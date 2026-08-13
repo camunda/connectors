@@ -9,7 +9,12 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BEDROCK_ID;
 
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException.PartialResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
@@ -47,8 +52,12 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
  * BedrockSdkPojoCodec} rather than dropped. Only {@link ContentBlock.Type#UNKNOWN_TO_SDK_VERSION}
  * cannot be captured (the SDK surfaces no field data for it), so it fails the call instead.
  *
- * <p>Converse has no {@code pause_turn} equivalent, so this converter always produces a {@link
- * ChatResult.Completed}, never a {@link ChatResult.Continuation}. The raw vendor stop reason string
+ * <p>Converse has no {@code pause_turn} equivalent, so a usable response always produces a {@link
+ * ChatResult.Completed}, never a {@link ChatResult.Continuation}. The stop reasons that mean the
+ * response is unusable never return at all: {@code content_filtered}, {@code guardrail_intervened}
+ * and {@code model_context_window_exceeded} throw the matching {@link ChatModelRejectedException}
+ * subtype, carrying the assistant message and metrics already built for the turn as their {@link
+ * PartialResult}, and malformed output fails the call outright. The raw vendor stop reason string
  * is always preserved under the {@value #BEDROCK_METADATA_KEY} key in {@link
  * AssistantMessage#metadata()}, independent of how it normalizes to the domain {@code StopReason}.
  */
@@ -61,9 +70,44 @@ public class BedrockConverseResponseConverter {
     final AgentMetrics metrics =
         toMetrics(response, assistantMessage.toolCalls().size(), executionTime);
 
+    throwIfRejected(response.stopReason(), new PartialResult(assistantMessage, metrics));
+
     // Converse has no pause_turn (or similar mid-turn continuation) stop reason, so a Bedrock
     // response always finishes the round-trip.
     return new ChatResult.Completed(assistantMessage, metrics);
+  }
+
+  /**
+   * Fails the turn for the stop reasons that mean the response is unusable, rather than returning
+   * it as a normal result: the blocking ones become a {@link ChatModelRejectedException} carrying
+   * whatever content was already built as its {@link PartialResult}, while malformed output is a
+   * generation failure rather than a policy decision and fails the call outright.
+   */
+  private void throwIfRejected(@Nullable StopReason stopReason, PartialResult partialResult) {
+    if (stopReason == null) {
+      return;
+    }
+
+    switch (stopReason) {
+      case CONTENT_FILTERED ->
+          throw new ContentFilteredException(
+              "Model response was blocked by provider content filtering.", partialResult);
+      case GUARDRAIL_INTERVENED ->
+          throw new GuardrailInterventionException(
+              "Model response was blocked by a provider-side guardrail policy.", partialResult);
+      case MODEL_CONTEXT_WINDOW_EXCEEDED ->
+          throw new ContextWindowExceededException(
+              "Model's context window was exceeded before it could finish generating a response.",
+              partialResult);
+      case MALFORMED_MODEL_OUTPUT, MALFORMED_TOOL_USE ->
+          throw new ConnectorException(
+              ERROR_CODE_FAILED_MODEL_CALL,
+              "The model produced malformed output (stop reason '%s')."
+                  .formatted(stopReason.toString()));
+      default -> {
+        // every remaining stop reason describes a usable response
+      }
+    }
   }
 
   AssistantMessage toAssistantMessage(ConverseResponse response) {
@@ -241,14 +285,10 @@ public class BedrockConverseResponseConverter {
       case END_TURN, STOP_SEQUENCE ->
           io.camunda.connector.agenticai.aiagent.model.message.StopReason.STOP;
       case TOOL_USE -> io.camunda.connector.agenticai.aiagent.model.message.StopReason.TOOL_USE;
-      case MAX_TOKENS, MODEL_CONTEXT_WINDOW_EXCEEDED ->
-          io.camunda.connector.agenticai.aiagent.model.message.StopReason.LENGTH;
-      case CONTENT_FILTERED ->
-          io.camunda.connector.agenticai.aiagent.model.message.StopReason.CONTENT_FILTERED;
-      case GUARDRAIL_INTERVENED ->
-          io.camunda.connector.agenticai.aiagent.model.message.StopReason.GUARDRAIL;
-      case MALFORMED_MODEL_OUTPUT, MALFORMED_TOOL_USE ->
-          io.camunda.connector.agenticai.aiagent.model.message.StopReason.ERROR;
+      case MAX_TOKENS -> io.camunda.connector.agenticai.aiagent.model.message.StopReason.LENGTH;
+      // The rejected stop reasons never reach a returned ChatResult - toResult() throws before
+      // returning for them, using this mapping's UnknownStopReason fallback only as the raw value
+      // stashed on the exception's partial AssistantMessage.
       default ->
           new io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason(
               // Fallback for NullAway; rawStopReason always mirrors stopReason here.

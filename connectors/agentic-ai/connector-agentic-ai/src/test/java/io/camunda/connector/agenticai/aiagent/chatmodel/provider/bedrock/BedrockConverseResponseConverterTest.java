@@ -6,11 +6,16 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -24,6 +29,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.document.Document;
@@ -380,27 +386,7 @@ class BedrockConverseResponseConverterTest {
         Arguments.of(
             StopReason.MAX_TOKENS,
             "max_tokens",
-            io.camunda.connector.agenticai.aiagent.model.message.StopReason.LENGTH),
-        Arguments.of(
-            StopReason.MODEL_CONTEXT_WINDOW_EXCEEDED,
-            "model_context_window_exceeded",
-            io.camunda.connector.agenticai.aiagent.model.message.StopReason.LENGTH),
-        Arguments.of(
-            StopReason.CONTENT_FILTERED,
-            "content_filtered",
-            io.camunda.connector.agenticai.aiagent.model.message.StopReason.CONTENT_FILTERED),
-        Arguments.of(
-            StopReason.GUARDRAIL_INTERVENED,
-            "guardrail_intervened",
-            io.camunda.connector.agenticai.aiagent.model.message.StopReason.GUARDRAIL),
-        Arguments.of(
-            StopReason.MALFORMED_MODEL_OUTPUT,
-            "malformed_model_output",
-            io.camunda.connector.agenticai.aiagent.model.message.StopReason.ERROR),
-        Arguments.of(
-            StopReason.MALFORMED_TOOL_USE,
-            "malformed_tool_use",
-            io.camunda.connector.agenticai.aiagent.model.message.StopReason.ERROR));
+            io.camunda.connector.agenticai.aiagent.model.message.StopReason.LENGTH));
   }
 
   @ParameterizedTest
@@ -417,6 +403,63 @@ class BedrockConverseResponseConverterTest {
     assertThat(assistantMessage.stopReason()).isEqualTo(expected);
     assertThat(assistantMessage.metadata())
         .containsEntry("bedrock", Map.of("stopReason", rawValue));
+  }
+
+  static Stream<Arguments> rejectedStopReasons() {
+    return Stream.of(
+        Arguments.of(
+            StopReason.CONTENT_FILTERED,
+            ContentFilteredException.class,
+            "Model response was blocked by provider content filtering."),
+        Arguments.of(
+            StopReason.GUARDRAIL_INTERVENED,
+            GuardrailInterventionException.class,
+            "Model response was blocked by a provider-side guardrail policy."),
+        Arguments.of(
+            StopReason.MODEL_CONTEXT_WINDOW_EXCEEDED,
+            ContextWindowExceededException.class,
+            "Model's context window was exceeded before it could finish generating a response."));
+  }
+
+  @ParameterizedTest
+  @MethodSource("rejectedStopReasons")
+  void throwsRejectionCarryingThePartialResult(
+      StopReason vendorStopReason,
+      Class<? extends ChatModelRejectedException> expectedType,
+      String expectedMessage) {
+    final var response =
+        response(List.of(ContentBlock.fromText("as far as I got")), vendorStopReason, usage(7, 3));
+
+    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+        .isInstanceOfSatisfying(
+            expectedType,
+            e -> {
+              assertThat(e.getMessage()).isEqualTo(expectedMessage);
+              assertThat(e.partialResult()).isNotNull();
+              assertThat(e.partialResult().assistantMessage().content())
+                  .containsExactly(TextContent.textContent("as far as I got"));
+              assertThat(e.partialResult().metrics().tokenUsage().inputTokenCount()).isEqualTo(7);
+            });
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = StopReason.class,
+      names = {"MALFORMED_MODEL_OUTPUT", "MALFORMED_TOOL_USE"})
+  void failsTheCallOnMalformedModelOutput(StopReason vendorStopReason) {
+    final var response =
+        response(List.of(ContentBlock.fromText("x")), vendorStopReason, usage(1, 1));
+
+    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
+              assertThat(e.getMessage())
+                  .isEqualTo(
+                      "The model produced malformed output (stop reason '%s')."
+                          .formatted(vendorStopReason.toString()));
+            });
   }
 
   @Test
