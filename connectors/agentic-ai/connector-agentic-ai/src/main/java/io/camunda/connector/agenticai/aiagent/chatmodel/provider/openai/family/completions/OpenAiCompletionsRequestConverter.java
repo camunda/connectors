@@ -161,8 +161,12 @@ public class OpenAiCompletionsRequestConverter {
         case SystemMessage system ->
             items.add(ChatCompletionMessageParam.ofSystem(systemMessage(system)));
         case UserMessage user -> items.add(ChatCompletionMessageParam.ofUser(userMessage(user)));
-        case AssistantMessage assistant ->
-            items.add(ChatCompletionMessageParam.ofAssistant(assistantMessage(assistant)));
+        case AssistantMessage assistant -> {
+          final ChatCompletionAssistantMessageParam assistantMessage = assistantMessage(assistant);
+          if (assistantMessage != null) {
+            items.add(ChatCompletionMessageParam.ofAssistant(assistantMessage));
+          }
+        }
         case ToolCallResultMessage toolResults -> items.addAll(toolResultMessages(toolResults));
         default ->
             throw new IllegalArgumentException(
@@ -191,14 +195,24 @@ public class OpenAiCompletionsRequestConverter {
    * Completions family (reasoning is input-only via {@code reasoning_effort}, with no
    * reasoning-item or server-tool replay mechanism at all, see the class Javadoc) and are silently
    * dropped; everything else (text/document/object) is flattened to a single text blob.
+   *
+   * <p>Returns {@code null} when nothing representable remains after that drop and there are no
+   * tool calls either -- a reasoning-only/server-tool-only turn replayed from a different family
+   * (e.g. Responses) after a mid-conversation family switch. The Completions API requires an
+   * assistant message to carry {@code content} unless it carries a tool/function call, so such a
+   * message is omitted entirely rather than sent empty.
    */
-  private ChatCompletionAssistantMessageParam assistantMessage(AssistantMessage assistant) {
-    final var builder = ChatCompletionAssistantMessageParam.builder();
-
+  private @Nullable ChatCompletionAssistantMessageParam assistantMessage(
+      AssistantMessage assistant) {
     final List<Content> plainContent =
         assistant.content().stream()
             .filter(c -> !(c instanceof ReasoningContent) && !(c instanceof ProviderContent))
             .toList();
+    if (plainContent.isEmpty() && assistant.toolCalls().isEmpty()) {
+      return null;
+    }
+
+    final var builder = ChatCompletionAssistantMessageParam.builder();
     if (!plainContent.isEmpty()) {
       builder.content(toTextOutput(plainContent));
     }

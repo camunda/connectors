@@ -21,6 +21,8 @@ import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
@@ -212,6 +214,30 @@ class OpenAiCompletionsRequestConverterTest {
     final var assistant = params.messages().get(0).asAssistant();
     assertThat(assistant.content().orElseThrow().asText()).isEqualTo("here's the answer");
     assertThat(assistant.toolCalls()).isEmpty();
+  }
+
+  @Test
+  void omitsAssistantMessageWithNoPlainContentAndNoToolCalls() {
+    // e.g. a reasoning-only/server-tool-only turn replayed from the Responses family after a
+    // mid-conversation family switch -- ReasoningContent/ProviderContent are dropped on this
+    // family (see OpenAiCompletionsRequestConverter#assistantMessage), and with no tool calls
+    // either, nothing representable remains.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            ReasoningContent.reasoningContent(
+                                "openai", Map.of("type", "reasoning")),
+                            ProviderContent.providerContent(
+                                "openai", Map.of("type", "web_search_call"))))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    assertThat(params.messages()).isEmpty();
   }
 
   @Test
