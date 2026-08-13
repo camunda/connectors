@@ -11,18 +11,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -31,9 +30,8 @@ import org.junit.jupiter.api.Test;
 
 class OpenAiContentConverterTest {
 
-  private final ObjectMapper objectMapper =
-      new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
-  private final OpenAiContentConverter converter = new OpenAiContentConverter(objectMapper);
+  private final OpenAiContentConverter converter =
+      new OpenAiContentConverter(TestObjectMapperSupplier.INSTANCE);
 
   private static Document mockDocument(String contentType, String base64) {
     final var document = mock(Document.class);

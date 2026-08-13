@@ -12,18 +12,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.anthropic.models.messages.Base64ImageSource;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -32,9 +31,8 @@ import org.junit.jupiter.api.Test;
 
 class AnthropicContentConverterTest {
 
-  private final ObjectMapper objectMapper =
-      new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
-  private final AnthropicContentConverter converter = new AnthropicContentConverter(objectMapper);
+  private final AnthropicContentConverter converter =
+      new AnthropicContentConverter(TestObjectMapperSupplier.INSTANCE);
 
   private static Document mockDocument(String contentType, String base64) {
     final var document = mock(Document.class);
@@ -273,6 +271,10 @@ class AnthropicContentConverterTest {
 
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isText()).isTrue();
+      assertThat(blocks.get(0).text().orElseThrow().text())
+          .isEqualTo(
+              "{\"url\":\"https://example.com/document\",\"name\":\"document\","
+                  + "\"camunda.document.type\":\"external\"}");
     }
 
     @Test
