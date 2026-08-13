@@ -142,10 +142,11 @@ public class OpenAiResponsesResponseConverter {
     for (final ResponseOutputItem item : response.output()) {
       if (item.message().isPresent()) {
         final ResponseOutputMessage message = item.message().get();
-        // The first message item's own id, not response.id() (the envelope this turn came from) --
-        // AwsAgentCoreConversationMapper persists this as a per-message identity. If a response
-        // ever produces more than one message item, only the first's id survives, the same way
-        // their content is already flattened into one list.
+        // The first message item's own id, not response.id() (the envelope this turn came from).
+        // The API gives no guarantee of at most one message item per response (its own docs warn
+        // against assuming the first output item is the message), so if it ever produces more
+        // than one, only the first's id survives, the same way their content is already
+        // flattened into one list.
         if (assistantMessageId == null) {
           assistantMessageId = message.id();
         }
