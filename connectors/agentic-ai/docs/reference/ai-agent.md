@@ -1898,51 +1898,43 @@ implemented by the base class. Reference: `AnthropicChatModelFactory`
 `aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*` (invariant I1).
 
 **v2: fully native.** Implement `ChatModel`/`ChatModelFactory` directly with your own
-`ChatModelConfiguration`, staying out of the `langchain4j` package. Two reference implementations:
+`ChatModelConfiguration`, staying out of the `langchain4j` package. Reference implementation:
 `AnthropicChatModelFactory` (`aiagent/chatmodel/provider/anthropic`) with
-`AnthropicChatModelConfiguration`, and `OpenAiChatModelFactory`
-(`aiagent/chatmodel/provider/openai`) with `OpenAiChatModelConfiguration` (both under
-`model/request/v2`) — see provider-specific notes below for how they differ. A v2 provider without a
-built-in factory falls through to `CustomProviderConfiguration` (`model/request/v2`, discriminator
-`custom`, Self-Managed/Hybrid only): it carries a user-chosen `providerType` (dispatch discriminator),
-a dedicated `model` field (so agent-instance reporting works without digging it out of opaque
-config), and an opaque `parameters` map understood only by your factory. `LangChain4JChatModelFactory`
-cannot be extended for it — it's bound to v1's `ProviderConfiguration`, a different sealed hierarchy —
-but its building block, `LangChain4JChatModel`, is a public, framework-agnostic `ChatModel` wrapper:
-build your own `dev.langchain4j.model.chat.ChatModel`, wrap it in a `CloseableChatModel`, and construct
-a `LangChain4JChatModel` directly if you want to reuse LangChain4j from a v2-native factory. No
-built-in factory ever matches `CustomProviderConfiguration`, so the registry fails with the ordinary
-"no factory registered" error until you register one.
+`AnthropicChatModelConfiguration` (`model/request/v2`); the other native providers under
+`aiagent/chatmodel/provider/**` follow the same shape. A v2 provider without a built-in factory falls
+through to `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/Hybrid
+only): it carries a user-chosen `providerType` (dispatch discriminator), a dedicated `model` field (so
+agent-instance reporting works without digging it out of opaque config), and an opaque `parameters` map
+understood only by your factory. `LangChain4JChatModelFactory` cannot be extended for it — it's bound
+to v1's `ProviderConfiguration`, a different sealed hierarchy — but its building block,
+`LangChain4JChatModel`, is a public, framework-agnostic `ChatModel` wrapper: build your own
+`dev.langchain4j.model.chat.ChatModel`, wrap it in a `CloseableChatModel`, and construct a
+`LangChain4JChatModel` directly if you want to reuse LangChain4j from a v2-native factory. No built-in
+factory ever matches `CustomProviderConfiguration`, so the registry fails with the ordinary "no factory
+registered" error until you register one.
 
 Every new v2 provider backend must follow three conventions, regardless of provider:
 
 - **Backend-subtype wrapping.** A backend is a sealed interface with one `@TemplateSubType` per
   variant, discriminated by a `type` property (see `AnthropicChatModelConfiguration.AnthropicBackend`).
-  The template generator flat-validates that every generated property id is globally unique across the
-  whole template, with no awareness that sibling discriminator subtypes are mutually exclusive — so
-  two subtypes with a same-named field (e.g. both an `apiKey`) collide even though only one is ever
-  active. Fix: each subtype wraps all of its own fields inside a single container field, uniquely
-  named for that subtype (e.g. `anthropic`, `custom`) — the generator derives a container's id-path
-  prefix from the Java field name, so this makes every subtype's subtree collision-proof with no
-  per-leaf `id=` overrides. The wrapper name doesn't need to match the `@TemplateSubType` id verbatim
-  (ids may contain `-`, invalid in a Java identifier), only to differ from every sibling's. Extract
-  each subtype's discriminator string into a `public static final String` constant on that subtype's
-  own record, and reference it from all three places (the `@TemplateSubType` id / `@JsonSubTypes.Type`
-  name / `type()`) plus the discriminator's `defaultValue`.
-- **Provider-namespaced metadata.** Any provider-specific data a converter attaches outside a domain
+  The template generator only validates property-id uniqueness across the whole template, not per
+  discriminator subtype, so two subtypes with a same-named field (e.g. both an `apiKey`) collide even
+  though only one is ever active. Fix: wrap each subtype's fields inside a single container field
+  uniquely named for that subtype (e.g. `anthropic`, `custom`) — the generator derives the id-path
+  prefix from the Java field name, making the subtree collision-proof with no per-leaf `id=` overrides.
+  Extract each subtype's discriminator string into a `public static final String` constant on its own
+  record, and reference it from the `@TemplateSubType` id, `@JsonSubTypes.Type` name, `type()`, and the
+  discriminator's `defaultValue`.
+- **Provider-namespaced metadata.** Provider-specific data a converter attaches outside a domain
   object's mapped fields — on a content block's `metadata` ([§5](#5-data-model-agent-context)) or on
-  `AssistantMessage#metadata()` — must nest under a single provider key (`"anthropic"`, `"openai"`),
-  never as top-level entries. Keeps different providers' metadata from colliding and keeps the common
-  case metadata-free.
+  `AssistantMessage#metadata()` — must nest under a single provider key, never as top-level entries.
 - **Stamping `AssistantMessage#metadata()`.** Build it through
   `AssistantMessageMetadata.withDefaults(providerMetadata)` (`aiagent/util`), passing only your own
   provider-namespaced entries (or `Map.of()`); it adds the common `timestamp` entry. Never call
-  `AssistantMessage.builder().metadata(...)` with a raw map directly. Reference implementations:
-  `AnthropicMessageResponseConverter` (native) and `ChatMessageConverterImpl` (LangChain4j).
+  `AssistantMessage.builder().metadata(...)` with a raw map directly.
 
-**Provider-specific decisions** — what's special about a particular native provider's converters and
-configuration, and why — live in [`native-providers.md`](native-providers.md), one section per
-provider, rather than here: read it before adding a third native provider.
+Provider-specific converter/configuration decisions live in [`native-providers.md`](native-providers.md),
+one section per provider, rather than here.
 
 <a id="252-add-a-systempromptcontributor"></a>
 
