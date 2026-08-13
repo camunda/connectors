@@ -31,14 +31,11 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Shared foundation for native-OpenAI-only v2 sub-process e2e coverage, mirroring {@link
- * BaseAnthropicSubProcessTest}. Scoped to the Chat Completions API family only: {@link
- * AgentSubProcessOpenAiResponsesAdvancedFeaturesTests} already covers the Responses family's
- * effort/reasoning-round-trip surface, so the Completions-family tests built on top of this base
- * (reasoning effort, prompt caching) drive {@code provider.openai.api.type=completions} rather than
- * the Responses sibling's {@code responses}.
+ * Shared foundation for native-OpenAI-only v2 sub-process e2e coverage, scoped to the Chat
+ * Completions API family - the sibling of {@link BaseOpenAiResponsesSubProcessTest} for Responses,
+ * mirroring {@link BaseAnthropicSubProcessTest}.
  */
-abstract class BaseOpenAiSubProcessTest extends BaseAgentSubProcessV2Test {
+abstract class BaseOpenAiCompletionsSubProcessTest extends BaseAgentSubProcessV2Test {
 
   private static final String DEFAULT_MODEL = "test-model";
 

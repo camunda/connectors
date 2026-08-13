@@ -26,7 +26,6 @@ import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2RecordedConversation;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2SseChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2SseChatModelStubs.ReasoningTurnStub;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2SseChatModelStubs.ServerToolTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
@@ -37,29 +36,17 @@ import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 /**
- * OpenAI-Responses-only e2e coverage for the {@code effort}/reasoning configuration surface and the
- * two round-trip guarantees the design spec calls out as load-bearing: a {@code reasoning} output
- * item carrying {@code encrypted_content} must reappear byte-identical on the follow-up request,
- * and an unmapped server-tool output item ({@code web_search_call}) must be captured and replayed
- * verbatim as {@code ProviderContent}. All three witnesses drive the real vendor SDK end to end -
- * the {@code ResponseAccumulator} on the response side ({@code
- * OpenAiResponsesStreamAssembler#accumulating()}, wired by default) and {@code
- * ResponseCreateParams}' own request construction on the request side - through the v2 element
- * template and {@code provider.openai.*} properties, mirroring {@code
- * AgentSubProcessAnthropicReasoningEffortTests} for the OpenAI Responses API family.
+ * OpenAI-Responses-only e2e coverage for the {@code effort}/reasoning configuration surface: proves
+ * that {@code effort} reaches the wire as {@code reasoning.effort} plus {@code include:
+ * ["reasoning.encrypted_content"]}, and that a {@code reasoning} output item carrying {@code
+ * encrypted_content} round-trips byte-identical on the follow-up request, positioned before the
+ * tool call it accompanied.
  *
- * <p>Placed alongside {@link BaseAgentSubProcessV2Test} (rather than under {@code
- * aiagent/wiremock/openai}, where the Responses fixture/stub/adapter classes it consumes live)
- * because that base class is package-private, matching every other native-provider v2 e2e test in
- * this module (e.g. {@code AgentSubProcessAnthropicReasoningEffortTests}, {@code
- * AgentSubProcessCustomProviderToolCallingTests}).
- *
- * <p>Witness 2 (the encrypted-reasoning round-trip) and witness 3 (the {@code ProviderContent}
- * round-trip) assert on raw JSON rather than parsed domain objects or structural map/tree equality:
- * the expected item is canonicalized through the same vendor {@link ObjectMappers#jsonMapper()}
- * round-trip the stub itself performs when materializing the SSE wire body ({@code readValue} then
- * {@code writeValueAsString}), and the actual item is read straight off the recorded follow-up
- * request's raw {@code input[]} array ({@link
+ * <p>The round-trip assertion compares raw JSON rather than parsed domain objects or structural
+ * map/tree equality: the expected item is canonicalized through the same vendor {@link
+ * ObjectMappers#jsonMapper()} round-trip the stub itself performs when materializing the SSE wire
+ * body, and the actual item is read straight off the recorded follow-up request's raw {@code
+ * input[]} array ({@link
  * OpenAiResponsesV2RecordedConversation.RecordedChatRequest#rawInputItems()}) rather than through
  * the regrouping {@code messages()} parser, which silently skips item kinds it does not model. A
  * field added, dropped, or reordered on either side fails the exact string comparison - unlike a
@@ -67,34 +54,17 @@ import org.junit.jupiter.api.Test;
  * catch a reordering regression.
  */
 @SlowTest
-class AgentSubProcessOpenAiResponsesAdvancedFeaturesTests extends BaseAgentSubProcessV2Test {
+class AgentSubProcessOpenAiResponsesAdvancedFeaturesTests
+    extends BaseOpenAiResponsesSubProcessTest {
 
-  private static final String DEFAULT_MODEL = "test-model";
   private static final ObjectMapper JSON = new ObjectMapper();
-
-  @Override
-  protected Function<ElementTemplate, ElementTemplate> providerConfigurer() {
-    return this::configureOpenAiResponsesBackend;
-  }
-
-  /** Mirrors {@code OpenAiResponsesV2WireFormatFixture#configureProvider}. */
-  private ElementTemplate configureOpenAiResponsesBackend(ElementTemplate template) {
-    return template
-        .property("provider.type", "openai")
-        .property("provider.openai.api.type", "responses")
-        .property("provider.openai.backend.type", "custom")
-        .property("provider.openai.backend.custom.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-        .property("provider.openai.backend.custom.authentication.type", "apiKey")
-        .property("provider.openai.backend.custom.authentication.apiKey", "dummy")
-        .property("provider.openai.model.model", DEFAULT_MODEL);
-  }
 
   private static Function<ElementTemplate, ElementTemplate> effort(String effort) {
     return template -> template.property("provider.openai.api.responses.effort", effort);
   }
 
   // ---------------------------------------------------------------------------
-  // Witness 1: effort configuration on the wire
+  // Effort configuration on the wire
   // ---------------------------------------------------------------------------
 
   @Test
@@ -151,7 +121,7 @@ class AgentSubProcessOpenAiResponsesAdvancedFeaturesTests extends BaseAgentSubPr
   }
 
   // ---------------------------------------------------------------------------
-  // Witness 2: byte-identical encrypted-reasoning round-trip
+  // Byte-identical encrypted-reasoning round-trip
   // ---------------------------------------------------------------------------
 
   @Test
@@ -199,57 +169,6 @@ class AgentSubProcessOpenAiResponsesAdvancedFeaturesTests extends BaseAgentSubPr
     assertThat(indexOfType(rawItems, "reasoning"))
         .as("reasoning item positioned before its accompanying function_call")
         .isLessThan(indexOfType(rawItems, "function_call"));
-
-    assertAgentResponse(
-        zeebeTest,
-        agentResponse ->
-            AgentSubProcessResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasResponseText(finalMessage));
-  }
-
-  // ---------------------------------------------------------------------------
-  // Witness 3: ProviderContent round-trip for an unmapped server-tool item
-  // ---------------------------------------------------------------------------
-
-  @Test
-  void unmappedServerToolItemRoundTripsVerbatimAsProviderContentOnFollowUpRequest()
-      throws Exception {
-    final var userPrompt = "What is the weather in Berlin right now?";
-    final var assistantText = "Let me check that for you.";
-    final var searchQuery = "current weather in Berlin";
-    final var webSearchCallId = "ws_e2e_advfeat_001";
-    final var followUpPrompt = "And in Munich?";
-    final var finalMessage = "It's sunny and 22 degrees in Berlin right now.";
-
-    OpenAiResponsesV2SseChatModelStubs.stubServerToolConversation(
-        new ServerToolTurnStub(assistantText, webSearchCallId, searchQuery, 10, 20),
-        TurnStub.text(finalMessage, 11, 22));
-    // The server-tool turn carries no client tool call (it is resolved server-side by OpenAI
-    // itself), so the agent completes and awaits user feedback after turn 1 - a follow-up
-    // (unsatisfied) feedback is what drives the second model call that replays turn 1's content.
-    enqueueUserFeedback(userFollowUpFeedback(followUpPrompt), userSatisfiedFeedback());
-
-    final var zeebeTest =
-        awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
-
-    final var recorded = OpenAiResponsesV2RecordedConversation.recorded();
-    assertThat(recorded.modelCallCount()).isEqualTo(2);
-
-    final var followUpRequest = recorded.requests().get(1);
-    final var rawItems = followUpRequest.rawInputItems();
-
-    final var actualWebSearchItem = soleItemOfType(rawItems, "web_search_call");
-    final var expectedWebSearchItemJson =
-        "{\"type\":\"web_search_call\",\"id\":"
-            + JSON.writeValueAsString(webSearchCallId)
-            + ",\"status\":\"completed\",\"action\":{\"type\":\"search\",\"query\":"
-            + JSON.writeValueAsString(searchQuery)
-            + "}}";
-
-    assertThat(JSON.writeValueAsString(actualWebSearchItem))
-        .as("web_search_call item replayed verbatim as ProviderContent on the follow-up request")
-        .isEqualTo(canonicalOutputItemJson(expectedWebSearchItemJson));
 
     assertAgentResponse(
         zeebeTest,

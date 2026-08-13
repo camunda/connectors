@@ -30,21 +30,13 @@ import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 /**
- * OpenAI-Chat-Completions-only e2e coverage for the {@code effort} configuration surface, scoped to
- * what {@link AgentSubProcessOpenAiResponsesAdvancedFeaturesTests} does not already cover for the
- * sibling Responses family: the Completions family has no reasoning-content round-trip to test at
- * all (per the design spec, Completions is input-only via {@code reasoning_effort} - no {@code
- * encrypted_content}, no reasoning-item replay), so this class's scope is (1) confirming the {@code
- * effort} dial reaches the wire as {@code reasoning_effort}, and (2) confirming the sub-process's
- * {@code TokenUsage} correctly surfaces {@code completion_tokens_details.reasoning_tokens}, even
- * though no corresponding reasoning content is ever emitted (see {@code
- * OpenAiCompletionsResponseConverter}).
- *
- * <p>Uses the v2 element template, {@code provider.openai.*} properties (Chat Completions family),
- * and {@link OpenAiCompletionsV2SseChatModelStubs} for the streamed SSE response - mirrors {@link
- * AgentSubProcessAnthropicReasoningEffortTests}' wiring for the Completions API family.
+ * OpenAI-Chat-Completions-only e2e coverage for the {@code effort} configuration surface: the
+ * Completions family is input-only via {@code reasoning_effort} - no reasoning content is ever
+ * emitted, only the {@code reasoning_tokens} count. Confirms the {@code effort} dial reaches the
+ * wire, and that {@code TokenUsage} surfaces the reasoning-token count regardless.
  */
-class AgentSubProcessOpenAiCompletionsReasoningEffortTests extends BaseOpenAiSubProcessTest {
+class AgentSubProcessOpenAiCompletionsReasoningEffortTests
+    extends BaseOpenAiCompletionsSubProcessTest {
 
   private static Function<ElementTemplate, ElementTemplate> effort(String effort) {
     return template -> template.property("provider.openai.api.completions.effort", effort);

@@ -25,21 +25,14 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * OpenAI-Chat-Completions-only e2e coverage for prompt caching's wire behavior - mirrors {@link
- * AgentSubProcessAnthropicPromptCachingTests}' wiring, adapted to what OpenAI can actually report.
- *
- * <p>Unlike Anthropic, OpenAI's prompt caching is fully automatic server-side: there is no
- * request-side opt-in (no {@code promptCaching.enabled} template property, no {@code cache_control}
- * on the wire - see {@code OpenAiCompletionsRequestConverter}, which has no caching-related method
- * at all) and, critically, <b>no cache-write/cache-creation metric is ever reported</b> - only a
- * cache-*read* count ({@code prompt_tokens_details.cached_tokens}) on a cache hit. So this class
- * asserts only the response side: that a non-zero {@code cached_tokens} value surfaces into {@link
+ * OpenAI-Chat-Completions-only e2e coverage for prompt caching: OpenAI's caching is automatic
+ * server-side, with no request-side opt-in and no cache-write metric - only a cache-*read* count
+ * ({@code prompt_tokens_details.cached_tokens}) on a hit. Asserts that value surfaces into {@link
  * AgentMetrics.TokenUsage#cacheReadTokenCount()}, and that {@link
- * AgentMetrics.TokenUsage#cacheCreationTokenCount()} stays {@code 0} in both the hit and the miss
- * case - never asserting a cache-creation count as non-zero, since OpenAI can never report one (see
- * {@code OpenAiCompletionsResponseConverter#toTokenUsage}).
+ * AgentMetrics.TokenUsage#cacheCreationTokenCount()} stays {@code 0} in both the hit and miss case.
  */
-class AgentSubProcessOpenAiCompletionsPromptCachingTests extends BaseOpenAiSubProcessTest {
+class AgentSubProcessOpenAiCompletionsPromptCachingTests
+    extends BaseOpenAiCompletionsSubProcessTest {
 
   @Test
   void cacheReadTokensSurfaceIntoTokenUsageOnACacheHit() throws Exception {
