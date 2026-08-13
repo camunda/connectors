@@ -89,7 +89,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   group = "model-options",
                   label = "Max completion tokens",
                   tooltip =
-                      "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
+                      "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = FeelMode.required,
                   optional = true)
@@ -100,7 +100,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   description = "Leave unset to use the model default.",
                   tooltip =
                       "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models."
-                          + "<br><br>See the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-reasoning_effort\" target=\"_blank\">Chat Completions API reference</a>.",
+                          + "<br><br>See the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">Chat Completions API reference</a>.",
                   type = TemplateProperty.PropertyType.Dropdown,
                   choices = {
                     @DropdownPropertyChoice(value = "minimal", label = "minimal"),
@@ -118,7 +118,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   group = "model-options",
                   label = "Temperature",
                   tooltip =
-                      "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
+                      "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = FeelMode.required,
                   optional = true)
@@ -129,7 +129,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   group = "model-options",
                   label = "top P",
                   tooltip =
-                      "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
+                      "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = FeelMode.required,
                   optional = true)
@@ -153,7 +153,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   group = "model-options",
                   label = "Max output tokens",
                   tooltip =
-                      "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-max_output_tokens\" target=\"_blank\">documentation</a>.",
+                      "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = FeelMode.required,
                   optional = true)
@@ -164,7 +164,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   description = "Leave unset to use the model default.",
                   tooltip =
                       "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models."
-                          + "<br><br>See the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-reasoning\" target=\"_blank\">Responses API reference</a>.",
+                          + "<br><br>See the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">Responses API reference</a>.",
                   type = TemplateProperty.PropertyType.Dropdown,
                   choices = {
                     @DropdownPropertyChoice(value = "minimal", label = "minimal"),
@@ -182,7 +182,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   group = "model-options",
                   label = "Temperature",
                   tooltip =
-                      "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-temperature\" target=\"_blank\">documentation</a>.",
+                      "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = FeelMode.required,
                   optional = true)
@@ -193,7 +193,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   group = "model-options",
                   label = "top P",
                   tooltip =
-                      "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-top_p\" target=\"_blank\">documentation</a>.",
+                      "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = FeelMode.required,
                   optional = true)

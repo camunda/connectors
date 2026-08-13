@@ -1230,7 +1230,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models.<br><br>See the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-reasoning_effort\" target=\"_blank\">Chat Completions API reference</a>.",
+    "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models.<br><br>See the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">Chat Completions API reference</a>.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "minimal",
@@ -1272,7 +1272,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models.<br><br>See the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-reasoning\" target=\"_blank\">Responses API reference</a>.",
+    "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models.<br><br>See the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">Responses API reference</a>.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "minimal",
@@ -1423,7 +1423,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.openai.api.completions.temperature",
@@ -1446,7 +1446,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
+    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.openai.api.completions.topP",
@@ -1469,7 +1469,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.openai.api.responses.maxOutputTokens",
@@ -1492,7 +1492,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-max_output_tokens\" target=\"_blank\">documentation</a>.",
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.openai.api.responses.temperature",
@@ -1515,7 +1515,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-temperature\" target=\"_blank\">documentation</a>.",
+    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.openai.api.responses.topP",
@@ -1538,7 +1538,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/responses/create#responses-create-top_p\" target=\"_blank\">documentation</a>.",
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "data.systemPrompt.prompt",
