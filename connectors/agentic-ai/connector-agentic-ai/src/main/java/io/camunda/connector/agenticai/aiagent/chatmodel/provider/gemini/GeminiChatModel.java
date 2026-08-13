@@ -1,0 +1,115 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
+
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+
+import com.google.genai.Client;
+import com.google.genai.ResponseStream;
+import com.google.genai.errors.ApiException;
+import com.google.genai.types.Content;
+import com.google.genai.types.GenerateContentConfig;
+import com.google.genai.types.GenerateContentResponse;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration;
+import io.camunda.connector.api.error.ConnectorException;
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Gemini {@link ChatModel}: drives the vendor SDK's streaming {@code generateContentStream} for
+ * every call, accumulates the chunks via a {@link GeminiContentStreamAssembler} into the single
+ * {@link GenerateContentResponse} shape a non-streaming call would have returned, then delegates to
+ * {@link GeminiContentRequestConverter} and {@link GeminiContentResponseConverter} to translate
+ * to/from the domain model.
+ *
+ * <p>The {@link Client} is built once by the factory and owned for the lifetime of this instance
+ * (one agent request, across all continuation rounds); {@link #close()} closes it once.
+ */
+public class GeminiChatModel implements ChatModel {
+
+  private static final Logger LOG = LoggerFactory.getLogger(GeminiChatModel.class);
+
+  private final Client client;
+  private final GeminiChatModelConfiguration configuration;
+  private final GeminiContentRequestConverter requestConverter;
+  private final GeminiContentResponseConverter responseConverter;
+  private final GeminiContentStreamAssembler streamAssembler;
+
+  public GeminiChatModel(
+      Client client,
+      GeminiChatModelConfiguration configuration,
+      GeminiContentRequestConverter requestConverter,
+      GeminiContentResponseConverter responseConverter) {
+    this(
+        client,
+        configuration,
+        requestConverter,
+        responseConverter,
+        new GeminiContentStreamAssemblerImpl());
+  }
+
+  GeminiChatModel(
+      Client client,
+      GeminiChatModelConfiguration configuration,
+      GeminiContentRequestConverter requestConverter,
+      GeminiContentResponseConverter responseConverter,
+      GeminiContentStreamAssembler streamAssembler) {
+    this.client = client;
+    this.configuration = configuration;
+    this.requestConverter = requestConverter;
+    this.responseConverter = responseConverter;
+    this.streamAssembler = streamAssembler;
+  }
+
+  @Override
+  public ChatResult execute(ChatRequest request) {
+    final GenerateContentConfig config =
+        requestConverter.toGenerateContentConfig(
+            configuration,
+            request.executionContext().configuration().response(),
+            request.snapshot());
+    final List<Content> contents = requestConverter.toContents(request.snapshot());
+
+    final long startNanos = System.nanoTime();
+    try {
+      final GenerateContentResponse response;
+      try (ResponseStream<GenerateContentResponse> stream =
+          client.models.generateContentStream(configuration.model(), contents, config)) {
+        response = streamAssembler.assemble(stream);
+      }
+      final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
+      return responseConverter.toResult(response, executionTime);
+    } catch (ApiException e) {
+      throw new ConnectorException(
+          ERROR_CODE_FAILED_MODEL_CALL,
+          "Model call failed with HTTP %d (%s): %s".formatted(e.code(), e.status(), e.message()),
+          e);
+    } catch (Exception e) {
+      final String detail =
+          Optional.ofNullable(e.getMessage())
+              .filter(m -> !m.isBlank())
+              .orElseGet(() -> e.getClass().getSimpleName());
+      throw new ConnectorException(
+          ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), e);
+    }
+  }
+
+  @Override
+  public void close() {
+    try {
+      client.close();
+    } catch (Exception e) {
+      LOG.warn("Failed to close Gemini Client", e);
+    }
+  }
+}
