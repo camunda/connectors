@@ -44,7 +44,7 @@ public sealed interface ChannelPlatform {
   /** The channel name, whose constraints differ per platform. */
   String displayName();
 
-  @TemplateSubType(id = "teams", label = "Microsoft Teams")
+  @TemplateSubType(id = TeamsChannelPlatform.TYPE, label = "Microsoft Teams")
   record TeamsChannelPlatform(
       @NotBlank
           @Size(max = 50)
@@ -85,6 +85,9 @@ public sealed interface ChannelPlatform {
       implements ChannelPlatform {
 
     @TemplateProperty(ignore = true)
+    public static final String TYPE = "teams";
+
+    @TemplateProperty(ignore = true)
     public static final String DEFAULT_MEMBERSHIP_TYPE = "standard";
 
     public TeamsChannelPlatform {
@@ -123,7 +126,7 @@ public sealed interface ChannelPlatform {
     }
   }
 
-  @TemplateSubType(id = "slack", label = "Slack")
+  @TemplateSubType(id = SlackChannelPlatform.TYPE, label = "Slack")
   record SlackChannelPlatform(
       @NotBlank
           @Size(max = 80)
@@ -152,5 +155,9 @@ public sealed interface ChannelPlatform {
               type = PropertyType.Boolean,
               optional = true)
           Boolean isPrivate)
-      implements ChannelPlatform {}
+      implements ChannelPlatform {
+
+    @TemplateProperty(ignore = true)
+    public static final String TYPE = "slack";
+  }
 }

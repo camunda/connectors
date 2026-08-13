@@ -82,12 +82,6 @@ class AppIntegrationsExecutor {
 
   static final String NOT_CONFIGURED_ERROR_CODE = "APP_INTEGRATIONS_NOT_CONFIGURED";
 
-  // Sent as an explicit discriminator: Teams and Slack both address a "channel", so the field shape
-  // alone does not tell the backend which platform to target.
-  private static final String PLATFORM_CAMUNDA = "camunda";
-  private static final String PLATFORM_TEAMS = "teams";
-  private static final String PLATFORM_SLACK = "slack";
-
   private final ObjectMapper objectMapper;
   private final HttpClient httpClient;
   private final UnaryOperator<String> getenv;
@@ -125,17 +119,17 @@ class AppIntegrationsExecutor {
     String userId = null;
     switch (request.recipient()) {
       case Recipient.CamundaRecipient camunda -> {
-        platform = PLATFORM_CAMUNDA;
+        platform = Recipient.CamundaRecipient.TYPE;
         email = blankToNull(camunda.email());
         candidateUsers = emptyToNull(camunda.candidateUsers());
         candidateGroups = emptyToNull(camunda.candidateGroups());
       }
       case Recipient.TeamsRecipient teams -> {
-        platform = PLATFORM_TEAMS;
+        platform = Recipient.TeamsRecipient.TYPE;
         channelId = blankToNull(teams.channelId());
       }
       case Recipient.SlackRecipient slack -> {
-        platform = PLATFORM_SLACK;
+        platform = Recipient.SlackRecipient.TYPE;
         switch (slack.slackTarget()) {
           case SlackTarget.SlackChannelTarget channel ->
               channelId = blankToNull(channel.channelId());
@@ -177,7 +171,7 @@ class AppIntegrationsExecutor {
     return switch (request.platform()) {
       case ChannelPlatform.TeamsChannelPlatform teams ->
           new CreateChannelPayload(
-              PLATFORM_TEAMS,
+              ChannelPlatform.TeamsChannelPlatform.TYPE,
               teams.displayName(),
               blankToNull(request.description()),
               teams.teamId(),
@@ -186,7 +180,7 @@ class AppIntegrationsExecutor {
               null);
       case ChannelPlatform.SlackChannelPlatform slack ->
           new CreateChannelPayload(
-              PLATFORM_SLACK,
+              ChannelPlatform.SlackChannelPlatform.TYPE,
               slack.displayName(),
               blankToNull(request.description()),
               null,
@@ -437,6 +431,10 @@ class AppIntegrationsExecutor {
   /** Exactly one of {@code apiKey} / {@code oauth} is non-null. */
   private record EffectiveConfig(String baseUrl, String apiKey, OAuthAuthentication oauth) {}
 
+  /**
+   * {@code platform} is an explicit discriminator: Teams and Slack both address a "channel", so the
+   * field shape alone does not tell the backend which platform to target.
+   */
   @JsonInclude(Include.NON_NULL)
   private record MessagePayload(
       String platform,
