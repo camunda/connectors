@@ -253,10 +253,14 @@ class DocumentToolCallResultsIT {
             // Anthropic (v2), AWS Bedrock Mantle backend
             anthropicBedrockMantleV2("claude-sonnet-5"),
             anthropicBedrockMantleV2("claude-haiku-4-5"),
-            // AWS Bedrock (Anthropic models via cross-region inference)
+            // AWS Bedrock, v1 (Anthropic models via cross-region inference)
             bedrockV1("eu.anthropic.claude-sonnet-4-20250514-v1:0"),
             bedrockV1("global.anthropic.claude-sonnet-4-6"),
             bedrockV1("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
+            // AWS Bedrock, v2 (native Converse API)
+            bedrockV2("eu.anthropic.claude-sonnet-4-20250514-v1:0"),
+            bedrockV2("global.anthropic.claude-sonnet-4-6"),
+            bedrockV2("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
             // Docker Model Runner (OpenAI-compatible)
             dockerModelRunnerV1("ai/gemma4:latest").disabled(),
             dockerModelRunnerV1("ai/qwen3.6:latest").disabled(),
@@ -386,6 +390,27 @@ class DocumentToolCallResultsIT {
         "bedrock/" + model,
         List.of("AWS_BEDROCK_ACCESS_KEY", "AWS_BEDROCK_SECRET_KEY"),
         AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "bedrock",
+            "provider.bedrock.authentication.type",
+            "credentials",
+            "provider.bedrock.authentication.accessKey",
+            envOrPlaceholder("AWS_BEDROCK_ACCESS_KEY"),
+            "provider.bedrock.authentication.secretKey",
+            envOrPlaceholder("AWS_BEDROCK_SECRET_KEY"),
+            "provider.bedrock.region",
+            "eu-central-1",
+            "provider.bedrock.model.model",
+            model));
+  }
+
+  /** AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference. */
+  static ProviderConfig bedrockV2(String model) {
+    return new ProviderConfig(
+        "bedrock-v2/" + model,
+        List.of("AWS_BEDROCK_ACCESS_KEY", "AWS_BEDROCK_SECRET_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
         Map.of(
             "provider.type",
             "bedrock",

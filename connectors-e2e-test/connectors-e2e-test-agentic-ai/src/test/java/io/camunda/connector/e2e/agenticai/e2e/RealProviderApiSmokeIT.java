@@ -73,6 +73,8 @@ import org.springframework.core.io.ResourceLoader;
       "camunda.connector.webhook.enabled=false",
       "camunda.connector.polling.enabled=false",
       "camunda.connector.agenticai.tools.process-definition.cache.enabled=false",
+      // Kept below PROCESS_TIMEOUT so a real timeout surfaces cleanly instead of racing it.
+      "camunda.connector.agenticai.aiagent.chat-model.api.default-timeout=PT2M",
       "logging.level.io.camunda.connector.agenticai=TRACE"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
