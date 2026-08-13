@@ -30,8 +30,7 @@ import org.slf4j.LoggerFactory;
  * <p>The {@link OpenAIClient} is built once by the factory and owned for the lifetime of this
  * instance (one agent request, across all continuation rounds); {@link #close()} closes it once.
  * {@link OpenAIClient#close()} is a plain, unchecked {@code void} method (the vendor SDK's client
- * interface does not implement {@link AutoCloseable}), so it is closed explicitly and guarded,
- * mirroring the Anthropic sibling's handling of {@code AnthropicClient}.
+ * interface does not implement {@link AutoCloseable}), so it is closed explicitly and guarded.
  */
 public class OpenAiChatModel implements ChatModel {
 
@@ -64,9 +63,8 @@ public class OpenAiChatModel implements ChatModel {
       // double-wrapping as a generic "Model call failed" below.
       throw e;
     } catch (BadRequestException e) {
-      // unlike Anthropic, which returns stop_reason=model_context_window_exceeded in an otherwise
-      // successful response, OpenAI rejects an over-length request outright with an HTTP 400 - the
-      // only signal for it is this error code, on both API families.
+      // an over-length request is rejected outright with an HTTP 400, on both API families - this
+      // error code is the only signal for it.
       if (OPENAI_ERROR_CODE_CONTEXT_LENGTH_EXCEEDED.equals(e.code().orElse(null))) {
         throw new ConnectorException(
             ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED, failureMessage(e), e);
