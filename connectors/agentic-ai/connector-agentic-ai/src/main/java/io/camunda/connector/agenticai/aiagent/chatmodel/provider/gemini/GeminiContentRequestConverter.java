@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION;
 
 import com.google.genai.types.Content;
@@ -35,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -232,17 +234,62 @@ public class GeminiContentRequestConverter {
   private List<Part> assistantParts(AssistantMessage assistant) {
     final List<Part> parts = new ArrayList<>(contentConverter.toParts(assistant.content()));
     for (final ToolCall toolCall : assistant.toolCalls()) {
-      parts.add(
-          Part.builder()
-              .functionCall(
-                  FunctionCall.builder()
-                      .id(toolCall.id())
-                      .name(toolCall.name())
-                      .args(toolCall.arguments())
-                      .build())
-              .build());
+      parts.add(toFunctionCallPart(toolCall));
     }
     return parts;
+  }
+
+  /**
+   * Rebuilds a {@code functionCall} {@link Part} for replay, restoring the {@code thoughtSignature}
+   * Gemini 3 stamps on the original call -- Gemini 3 rejects a follow-up tool-calling request whose
+   * replayed {@code functionCall} dropped it. {@code
+   * GeminiContentResponseConverter#toolCallMetadata} captures that signature onto {@link
+   * ToolCall#metadata()}, namespaced under {@link GeminiChatModelConfiguration#GOOGLE_GEMINI_ID}
+   * exactly like {@code ToolCallMetadataDecorator} does for the langchain4j path; this reads it
+   * back from that same key. Absent for a Gemini 2.5 response (no signature to begin with) or a
+   * conversation persisted before this was captured -- the field is omitted rather than failing in
+   * that case.
+   */
+  private Part toFunctionCallPart(ToolCall toolCall) {
+    final Part part =
+        Part.builder()
+            .functionCall(
+                FunctionCall.builder()
+                    .id(toolCall.id())
+                    .name(toolCall.name())
+                    .args(toolCall.arguments())
+                    .build())
+            .build();
+
+    final byte @Nullable [] signature = thoughtSignatureBytes(toolCall.metadata());
+    return signature == null ? part : part.toBuilder().thoughtSignature(signature).build();
+  }
+
+  private byte @Nullable [] thoughtSignatureBytes(@Nullable Map<String, Object> toolCallMetadata) {
+    if (toolCallMetadata == null) {
+      return null;
+    }
+    final Object namespaced = toolCallMetadata.get(GeminiChatModelConfiguration.GOOGLE_GEMINI_ID);
+    if (!(namespaced instanceof Map<?, ?> namespacedMetadata)) {
+      return null;
+    }
+    final Object signature =
+        namespacedMetadata.get(GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY);
+    if (signature == null) {
+      return null;
+    }
+    if (signature instanceof byte[] bytes) {
+      return bytes;
+    }
+    if (signature instanceof String base64) {
+      return Base64.getDecoder().decode(base64);
+    }
+    throw new ConnectorException(
+        ERROR_CODE_FAILED_MODEL_CALL,
+        "Unsupported %s metadata value type '%s'"
+            .formatted(
+                GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY,
+                signature.getClass().getSimpleName()));
   }
 
   private List<Part> toolResultParts(ToolCallResultMessage message) {

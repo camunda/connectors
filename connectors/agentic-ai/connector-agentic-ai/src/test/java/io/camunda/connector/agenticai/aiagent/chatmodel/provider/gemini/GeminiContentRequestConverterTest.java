@@ -35,6 +35,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -228,6 +229,60 @@ class GeminiContentRequestConverterTest {
     assertThat(functionCall.id()).contains("call-1");
     assertThat(functionCall.name()).contains("getWeather");
     assertThat(functionCall.args().orElseThrow()).isEqualTo(Map.of("city", "Berlin"));
+  }
+
+  @Test
+  void restoresThoughtSignatureOnReplayedFunctionCallPartWhenPresentOnToolCallMetadata() {
+    final var signatureBytes = "sig-bytes".getBytes(StandardCharsets.UTF_8);
+    final var metadata =
+        Map.<String, Object>of(
+            GeminiChatModelConfiguration.GOOGLE_GEMINI_ID,
+            Map.of(
+                GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY,
+                Base64.getEncoder().encodeToString(signatureBytes)));
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .toolCalls(
+                        List.of(
+                            ToolCall.builder()
+                                .id("call-1")
+                                .name("getWeather")
+                                .arguments(Map.of("city", "Berlin"))
+                                .metadata(metadata)
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var contents = converter.toContents(snapshot);
+
+    final var functionCallPart = contents.get(0).parts().orElseThrow().get(0);
+    assertThat(functionCallPart.functionCall()).isPresent();
+    assertThat(functionCallPart.thoughtSignature().orElseThrow()).isEqualTo(signatureBytes);
+  }
+
+  @Test
+  void omitsThoughtSignatureOnReplayedFunctionCallPartWhenAbsentFromToolCallMetadata() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .toolCalls(
+                        List.of(
+                            ToolCall.builder()
+                                .id("call-1")
+                                .name("getWeather")
+                                .arguments(Map.of("city", "Berlin"))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var contents = converter.toContents(snapshot);
+
+    final var functionCallPart = contents.get(0).parts().orElseThrow().get(0);
+    assertThat(functionCallPart.functionCall()).isPresent();
+    assertThat(functionCallPart.thoughtSignature()).isEmpty();
   }
 
   @Test
