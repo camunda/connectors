@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -58,12 +59,14 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
  * and {@code model_context_window_exceeded} throw the matching {@link ChatModelRejectedException}
  * subtype, carrying the assistant message and metrics already built for the turn as their {@link
  * PartialResult}, and malformed output fails the call outright. The raw vendor stop reason string
- * is always preserved under the {@value #BEDROCK_METADATA_KEY} key in {@link
- * AssistantMessage#metadata()}, independent of how it normalizes to the domain {@code StopReason}.
+ * is always preserved under the {@code bedrock} provider-id key in {@link
+ * AssistantMessage#metadata()}, independent of how it normalizes to the domain {@code StopReason};
+ * see {@link AssistantMessageMetadata} for the {@code timestamp} entry every provider adds
+ * alongside it.
  */
 public class BedrockConverseResponseConverter {
 
-  private static final String BEDROCK_METADATA_KEY = "bedrock";
+  private static final String METADATA_STOP_REASON = "stopReason";
 
   public ChatResult toResult(ConverseResponse response, Duration executionTime) {
     final AssistantMessage assistantMessage = toAssistantMessage(response);
@@ -110,7 +113,7 @@ public class BedrockConverseResponseConverter {
     }
   }
 
-  AssistantMessage toAssistantMessage(ConverseResponse response) {
+  private AssistantMessage toAssistantMessage(ConverseResponse response) {
     final List<Content> content = new ArrayList<>();
     final List<ToolCall> toolCalls = new ArrayList<>();
 
@@ -147,15 +150,17 @@ public class BedrockConverseResponseConverter {
     }
 
     final String rawStopReason = response.stopReasonAsString();
-    final var builder =
-        AssistantMessage.builder()
-            .content(content)
-            .toolCalls(toolCalls)
-            .stopReason(mapStopReason(response.stopReason(), rawStopReason));
-    if (rawStopReason != null) {
-      builder.metadata(Map.of(BEDROCK_METADATA_KEY, Map.of("stopReason", rawStopReason)));
-    }
-    return builder.build();
+    final Map<String, Object> bedrockMetadata =
+        rawStopReason != null
+            ? Map.of(BEDROCK_ID, Map.of(METADATA_STOP_REASON, rawStopReason))
+            : Map.of();
+
+    return AssistantMessage.builder()
+        .content(content)
+        .toolCalls(toolCalls)
+        .stopReason(mapStopReason(response.stopReason(), rawStopReason))
+        .metadata(AssistantMessageMetadata.withDefaults(bedrockMetadata))
+        .build();
   }
 
   /**
@@ -228,7 +233,7 @@ public class BedrockConverseResponseConverter {
   /**
    * Preserves any field of {@code pojo} not already mapped to a domain object (e.g.
    * toolUseId/name/input on {@link ToolCall}, or any sibling field alongside {@code text} on a text
-   * {@link ContentBlock}) under {@value #BEDROCK_METADATA_KEY}, so replaying it reproduces the
+   * {@link ContentBlock}) under the {@code bedrock} provider-id key, so replaying it reproduces the
    * response verbatim and an unmapped Bedrock field doesn't silently lose data.
    */
   private @Nullable Map<String, Object> residualMetadata(SdkPojo pojo, String... mappedKeys) {
@@ -245,7 +250,7 @@ public class BedrockConverseResponseConverter {
       Map<String, Object> captured, String... mappedKeys) {
     final Map<String, Object> raw = new LinkedHashMap<>(captured);
     raw.keySet().removeAll(Set.of(mappedKeys));
-    return raw.isEmpty() ? null : Map.of(BEDROCK_METADATA_KEY, raw);
+    return raw.isEmpty() ? null : Map.of(BEDROCK_ID, raw);
   }
 
   private AgentMetrics toMetrics(ConverseResponse response, int toolCalls, Duration executionTime) {

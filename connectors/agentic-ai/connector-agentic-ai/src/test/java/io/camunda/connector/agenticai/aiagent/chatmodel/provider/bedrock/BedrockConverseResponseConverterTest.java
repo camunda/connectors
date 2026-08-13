@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.List;
@@ -114,7 +115,8 @@ class BedrockConverseResponseConverterTest {
     assertThat(assistantMessage.stopReason())
         .isEqualTo(io.camunda.connector.agenticai.aiagent.model.message.StopReason.TOOL_USE);
     assertThat(assistantMessage.metadata())
-        .containsEntry("bedrock", Map.of("stopReason", "tool_use"));
+        .containsEntry("bedrock", Map.of("stopReason", "tool_use"))
+        .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY);
 
     final var metrics = result.metrics();
     assertThat(metrics.modelCalls()).isEqualTo(1);
