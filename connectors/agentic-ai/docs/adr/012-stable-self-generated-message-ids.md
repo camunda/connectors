@@ -82,6 +82,14 @@ connector rather than borrowed from a provider that may not supply one.
   history items today — one per result — so a single parent-message id would collide across all of
   them and defeat per-item dedup. Those items keep using the existing per-result correlation id
   instead, unchanged by this decision.
+- **The batched tool-result message's own id is deliberately not derived from the tool calls it
+  carries.** It doesn't need to be: no supported provider assigns an identity to a batch of tool
+  results in the first place — only one provider integration even keeps such a batch together as a
+  single unit on the wire, and it doesn't give that unit an id either; every other integration
+  splits the batch into independent, per-call units before it ever reaches the provider. Identity
+  for a tool result always lives at the per-call level, which is already covered by the existing
+  correlation id above. The batched message's own id stays what it is for every other message
+  type: a connector-internal identifier for the persisted record, useful only to us.
 - **No plumbing added anywhere the id has nowhere to go yet.** The agent-instance-reporting layer
   already receives the full message objects it needs, so they carry the new id the moment this
   ships, with no interface change required. Threading the id further down into the wire-level
