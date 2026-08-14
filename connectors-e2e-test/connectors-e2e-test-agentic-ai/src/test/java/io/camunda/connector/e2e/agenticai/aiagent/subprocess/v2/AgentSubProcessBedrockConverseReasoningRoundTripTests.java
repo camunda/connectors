@@ -37,7 +37,8 @@ import org.junit.jupiter.api.Test;
  * toolUse} block. Reasoning has no typed configuration on Bedrock, so no {@code bodyProperties}
  * toggle is needed for the block to appear; the stub simply streams one.
  */
-class AgentSubProcessBedrockReasoningRoundTripTests extends BaseBedrockNativeSubProcessTest {
+class AgentSubProcessBedrockConverseReasoningRoundTripTests
+    extends BaseBedrockConverseNativeSubProcessTest {
 
   @Test
   void roundTripsSignedReasoningContentBlockBeforeToolResultOnFollowUpRequest() throws Exception {
@@ -90,7 +91,7 @@ class AgentSubProcessBedrockReasoningRoundTripTests extends BaseBedrockNativeSub
     final var contentBlocks = assistantMessage.path("content");
     final var contentBlockKinds =
         StreamSupport.stream(contentBlocks.spliterator(), false)
-            .map(AgentSubProcessBedrockReasoningRoundTripTests::blockKind)
+            .map(AgentSubProcessBedrockConverseReasoningRoundTripTests::blockKind)
             .toList();
     assertThat(contentBlockKinds)
         .as("assistant history content block kinds, in order")

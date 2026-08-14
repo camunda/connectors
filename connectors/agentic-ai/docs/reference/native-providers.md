@@ -53,7 +53,7 @@ assistant message and metrics already built for the turn as the exception's `Par
 
 One wire format (the Bedrock Runtime Converse API), reaching every model family Bedrock hosts (Amazon
 Nova, Anthropic Claude, Llama, Mistral, DeepSeek, Cohere, Gemma, gpt-oss). There is no backend axis:
-`BedrockChatModelConfiguration` carries a region, an `AwsAuthentication` (static credentials, API key,
+`BedrockConverseChatModelConfiguration` carries a region, an `AwsAuthentication` (static credentials, API key,
 or the default credentials chain) and an optional custom endpoint.
 
 ### Streaming transport
@@ -70,7 +70,7 @@ Apache-based builder its other AWS SDK usage keeps.
 ### Residual capture
 
 AWS SDK v2 generated types are not Jackson-serializable — they implement `SdkPojo`/`SdkField` with a
-`MarshallingType` per field. `BedrockSdkPojoCodec` is a generic bidirectional
+`MarshallingType` per field. `BedrockConverseSdkPojoCodec` is a generic bidirectional
 `capture(SdkPojo) → Map<String,Object>` / `replay(Map, Supplier<SdkPojo>) → SdkPojo` codec that walks
 `sdkFields()` reflectively, used both for unmapped `ContentBlock` members (preserved as
 `ProviderContent`) and as the residual-metadata mechanism for the three typed blocks (`text`,
@@ -101,7 +101,7 @@ Converse `cachePoint` blocks. Converse always reports a distinct cache-write cou
 
 A document inside a tool result always renders as the same `document-ref:<id>` JSON reference an
 embedded document already gets (`BedrockConverseContentConverter.toToolResultBlocks`, see
-`BedrockDocuments`), never embedded natively, regardless of content type. The composer's `<doc/>`
+`BedrockConverseDocuments`), never embedded natively, regardless of content type. The composer's `<doc/>`
 fallback message is the document's only delivery channel; embedding it here too would send the
 bytes twice and trip Converse's duplicate-document-name validation, since `DocumentHandle.idFor`
 produces the same name in both places.

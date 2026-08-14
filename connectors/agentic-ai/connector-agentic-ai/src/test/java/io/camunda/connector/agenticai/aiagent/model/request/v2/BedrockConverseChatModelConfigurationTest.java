@@ -9,9 +9,9 @@ package io.camunda.connector.agenticai.aiagent.model.request.v2;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockModel;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockModel.BedrockModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConverseModelParameters;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -29,7 +29,7 @@ import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
 @ExtendWith({SpringExtension.class, SystemStubsExtension.class})
 @Import(ValidationAutoConfiguration.class)
-class BedrockChatModelConfigurationTest {
+class BedrockConverseChatModelConfigurationTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
 
@@ -65,18 +65,19 @@ class BedrockChatModelConfigurationTest {
 
     final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
 
-    assertThat(parsed).isInstanceOf(BedrockChatModelConfiguration.class);
+    assertThat(parsed).isInstanceOf(BedrockConverseChatModelConfiguration.class);
     assertThat(parsed.provider()).isEqualTo("bedrock");
     assertThat(parsed.model()).isEqualTo("us.amazon.nova-2-lite-v1:0");
 
-    final BedrockChatModelConfiguration bedrock = (BedrockChatModelConfiguration) parsed;
+    final BedrockConverseChatModelConfiguration bedrock =
+        (BedrockConverseChatModelConfiguration) parsed;
     assertThat(bedrock.bedrock().region()).isEqualTo("eu-central-1");
     assertThat(bedrock.bedrock().endpoint()).isNull();
     assertThat(bedrock.bedrock().authentication())
         .isEqualTo(
             new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA123", "secret123"));
 
-    final BedrockModelParameters parameters = bedrock.bedrock().model().parameters();
+    final BedrockConverseModelParameters parameters = bedrock.bedrock().model().parameters();
     assertThat(parameters).isNotNull();
     assertThat(parameters.promptCaching().enabled()).isTrue();
     assertThat(parameters.maxTokens()).isEqualTo(1024);
@@ -102,8 +103,8 @@ class BedrockChatModelConfigurationTest {
         }
         """;
 
-    final BedrockChatModelConfiguration parsed =
-        (BedrockChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+    final BedrockConverseChatModelConfiguration parsed =
+        (BedrockConverseChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed.bedrock().endpoint()).isEqualTo("https://vpce-example.vpce.amazonaws.com");
     assertThat(parsed.bedrock().authentication())
@@ -116,7 +117,7 @@ class BedrockChatModelConfigurationTest {
   @Test
   void bedrockConnectionRedactsHeadersQueryParametersAndBodyPropertiesInToString() {
     final var connection =
-        new BedrockConnection(
+        new BedrockConverseConnection(
             "eu-central-1",
             null,
             new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA123", "secret123"),
@@ -124,7 +125,7 @@ class BedrockChatModelConfigurationTest {
             Map.of("some-query-param", "some-query-value"),
             Map.of("some-body-param", "some-body-value"),
             null,
-            new BedrockModel("us.amazon.nova-2-lite-v1:0", null));
+            new BedrockConverseModel("us.amazon.nova-2-lite-v1:0", null));
 
     assertThat(connection.toString())
         .doesNotContain("some-header-value")
@@ -138,8 +139,8 @@ class BedrockChatModelConfigurationTest {
   @Test
   void requiredBedrockFieldsAreEnforced() {
     final var config =
-        new BedrockChatModelConfiguration(
-            new BedrockConnection(
+        new BedrockConverseChatModelConfiguration(
+            new BedrockConverseConnection(
                 "",
                 null,
                 new AwsAuthentication.AwsStaticCredentialsAuthentication("", ""),
@@ -147,7 +148,7 @@ class BedrockChatModelConfigurationTest {
                 null,
                 null,
                 null,
-                new BedrockModel("us.amazon.nova-2-lite-v1:0", null)));
+                new BedrockConverseModel("us.amazon.nova-2-lite-v1:0", null)));
 
     final var violations = validator.validate(config);
 
@@ -188,8 +189,8 @@ class BedrockChatModelConfigurationTest {
   @Test
   void bedrockModelRejectsBlankModelId() {
     final var config =
-        new BedrockChatModelConfiguration(
-            new BedrockConnection(
+        new BedrockConverseChatModelConfiguration(
+            new BedrockConverseConnection(
                 "eu-central-1",
                 null,
                 new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
@@ -197,7 +198,7 @@ class BedrockChatModelConfigurationTest {
                 null,
                 null,
                 null,
-                new BedrockModel("", null)));
+                new BedrockConverseModel("", null)));
 
     final var violations = validator.validate(config);
 
@@ -240,7 +241,7 @@ class BedrockChatModelConfigurationTest {
 
   @Test
   void temperatureAcceptsValuesAboveOneWithNoUpperBound() {
-    final var parameters = new BedrockModelParameters(null, null, 1.5, null);
+    final var parameters = new BedrockConverseModelParameters(null, null, 1.5, null);
     final var config = bedrockConfigWithParameters(parameters);
 
     assertThat(validator.validate(config)).isEmpty();
@@ -248,7 +249,7 @@ class BedrockChatModelConfigurationTest {
 
   @Test
   void temperatureRejectsValuesBelowZero() {
-    final var parameters = new BedrockModelParameters(null, null, -0.1, null);
+    final var parameters = new BedrockConverseModelParameters(null, null, -0.1, null);
     final var config = bedrockConfigWithParameters(parameters);
 
     final var violations = validator.validate(config);
@@ -264,7 +265,7 @@ class BedrockChatModelConfigurationTest {
 
   @Test
   void topPRejectsValuesAboveOne() {
-    final var parameters = new BedrockModelParameters(null, null, null, 1.5);
+    final var parameters = new BedrockConverseModelParameters(null, null, null, 1.5);
     final var config = bedrockConfigWithParameters(parameters);
 
     final var violations = validator.validate(config);
@@ -279,7 +280,7 @@ class BedrockChatModelConfigurationTest {
 
   @Test
   void maxTokensRejectsZero() {
-    final var parameters = new BedrockModelParameters(null, 0, null, null);
+    final var parameters = new BedrockConverseModelParameters(null, 0, null, null);
     final var config = bedrockConfigWithParameters(parameters);
 
     final var violations = validator.validate(config);
@@ -301,9 +302,10 @@ class BedrockChatModelConfigurationTest {
     assertThat(validator.validate(config)).isEmpty();
   }
 
-  private static BedrockChatModelConfiguration bedrockConfig(AwsAuthentication authentication) {
-    return new BedrockChatModelConfiguration(
-        new BedrockConnection(
+  private static BedrockConverseChatModelConfiguration bedrockConfig(
+      AwsAuthentication authentication) {
+    return new BedrockConverseChatModelConfiguration(
+        new BedrockConverseConnection(
             "eu-central-1",
             null,
             authentication,
@@ -311,13 +313,13 @@ class BedrockChatModelConfigurationTest {
             null,
             null,
             null,
-            new BedrockModel("us.amazon.nova-2-lite-v1:0", null)));
+            new BedrockConverseModel("us.amazon.nova-2-lite-v1:0", null)));
   }
 
-  private static BedrockChatModelConfiguration bedrockConfigWithParameters(
-      BedrockModelParameters parameters) {
-    return new BedrockChatModelConfiguration(
-        new BedrockConnection(
+  private static BedrockConverseChatModelConfiguration bedrockConfigWithParameters(
+      BedrockConverseModelParameters parameters) {
+    return new BedrockConverseChatModelConfiguration(
+        new BedrockConverseConnection(
             "eu-central-1",
             null,
             new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
@@ -325,6 +327,6 @@ class BedrockChatModelConfigurationTest {
             null,
             null,
             null,
-            new BedrockModel("us.amazon.nova-2-lite-v1:0", parameters)));
+            new BedrockConverseModel("us.amazon.nova-2-lite-v1:0", parameters)));
   }
 }

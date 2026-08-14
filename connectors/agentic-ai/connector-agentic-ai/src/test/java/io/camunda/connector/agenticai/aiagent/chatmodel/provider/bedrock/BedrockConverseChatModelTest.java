@@ -27,9 +27,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -46,7 +46,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamReques
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamResponseHandler;
 
 @ExtendWith(MockitoExtension.class)
-class BedrockChatModelTest {
+class BedrockConverseChatModelTest {
 
   private static final String MODEL_ID = "us.amazon.nova-2-lite-v1:0";
 
@@ -58,9 +58,9 @@ class BedrockChatModelTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  private final BedrockChatModelConfiguration configuration =
-      new BedrockChatModelConfiguration(
-          new BedrockConnection(
+  private final BedrockConverseChatModelConfiguration configuration =
+      new BedrockConverseChatModelConfiguration(
+          new BedrockConverseConnection(
               "eu-central-1",
               null,
               new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
@@ -68,20 +68,20 @@ class BedrockChatModelTest {
               null,
               null,
               null,
-              new BedrockModel(MODEL_ID, null)));
+              new BedrockConverseModel(MODEL_ID, null)));
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
 
   private final ChatRequest request =
       new ChatRequest(executionContext, new ConversationSnapshot(List.of(), List.of()));
 
-  private BedrockChatModel api;
+  private BedrockConverseChatModel api;
 
   @BeforeEach
   void setUp() {
     when(executionContext.configuration()).thenReturn(mock(AgentConfiguration.class));
     api =
-        new BedrockChatModel(
+        new BedrockConverseChatModel(
             client,
             configuration,
             requestConverter,

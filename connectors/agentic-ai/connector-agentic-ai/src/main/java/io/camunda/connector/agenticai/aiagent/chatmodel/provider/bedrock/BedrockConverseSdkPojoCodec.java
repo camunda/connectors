@@ -63,9 +63,9 @@ import software.amazon.awssdk.utils.builder.Buildable;
  * codec, because the AWS SDK surfaces no field data for it at all; every other member - typed or
  * not - captures and replays faithfully.
  */
-final class BedrockSdkPojoCodec {
+final class BedrockConverseSdkPojoCodec {
 
-  private BedrockSdkPojoCodec() {}
+  private BedrockConverseSdkPojoCodec() {}
 
   /**
    * Captures every non-null field of {@code pojo} into a plain {@code Map<String,Object>}, keyed by

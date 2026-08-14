@@ -14,8 +14,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.net.URI;
@@ -34,11 +34,12 @@ import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntime
 
 /**
  * Builds the AWS SDK async client backing the native Bedrock Converse provider and wraps it, along
- * with the request/response converters, in a {@link BedrockChatModel}.
+ * with the request/response converters, in a {@link BedrockConverseChatModel}.
  */
-public class BedrockChatModelFactory implements ChatModelFactory {
+public class BedrockConverseChatModelFactory implements ChatModelFactory {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(BedrockChatModelFactory.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(BedrockConverseChatModelFactory.class);
 
   private final ChatModelProperties config;
   private final AgenticAiHttpProxySupport httpProxySupport;
@@ -46,7 +47,7 @@ public class BedrockChatModelFactory implements ChatModelFactory {
   private final BedrockConverseResponseConverter responseConverter;
   private final ObjectMapper objectMapper;
 
-  public BedrockChatModelFactory(
+  public BedrockConverseChatModelFactory(
       ChatModelProperties config,
       AgenticAiHttpProxySupport httpProxySupport,
       BedrockConverseRequestConverter requestConverter,
@@ -61,14 +62,15 @@ public class BedrockChatModelFactory implements ChatModelFactory {
 
   @Override
   public boolean supports(ChatModelConfiguration configuration) {
-    return configuration instanceof BedrockChatModelConfiguration;
+    return configuration instanceof BedrockConverseChatModelConfiguration;
   }
 
   @Override
   public ChatModel create(ChatModelConfiguration configuration) {
-    final var model = (BedrockChatModelConfiguration) configuration;
+    final var model = (BedrockConverseChatModelConfiguration) configuration;
     final var client = buildAsyncClient(model.bedrock());
-    return new BedrockChatModel(client, model, requestConverter, responseConverter, objectMapper);
+    return new BedrockConverseChatModel(
+        client, model, requestConverter, responseConverter, objectMapper);
   }
 
   /**
@@ -77,9 +79,9 @@ public class BedrockChatModelFactory implements ChatModelFactory {
    * <p>Package-private seam: exposed so tests can verify client construction (region, endpoint
    * override, credentials per {@link AwsAuthentication} variant, proxy, timeouts) independently of
    * {@link #create(ChatModelConfiguration)}, which wires the client this returns into a {@link
-   * BedrockChatModel}.
+   * BedrockConverseChatModel}.
    */
-  BedrockRuntimeAsyncClient buildAsyncClient(BedrockConnection connection) {
+  BedrockRuntimeAsyncClient buildAsyncClient(BedrockConverseConnection connection) {
     final var apiTimeout =
         deriveTimeoutSetting("Bedrock model call", config, connection.timeouts(), LOGGER);
 

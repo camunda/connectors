@@ -26,26 +26,27 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.WebLocation;
 
 /**
- * Round-trip property test for {@link BedrockSdkPojoCodec}: build a populated {@code ContentBlock},
- * {@link BedrockSdkPojoCodec#capture(software.amazon.awssdk.core.SdkPojo) capture} it, {@link
- * BedrockSdkPojoCodec#replay(Map, java.util.function.Supplier) replay} the captured map, and assert
- * the replayed instance is equal to the original per {@code ContentBlock}'s own {@code
- * equalsBySdkFields()}. Covers every {@code ContentBlock} member reachable without a capability
- * matrix: {@code text}, {@code toolUse} (with a non-trivial {@link Document} input exercising every
- * {@code Document} value kind), {@code reasoningContent} with a {@code reasoningText}, {@code
- * reasoningContent} with {@code redactedContent}, and {@code citationsContent} (the deepest
- * nesting: recursive unions and lists).
+ * Round-trip property test for {@link BedrockConverseSdkPojoCodec}: build a populated {@code
+ * ContentBlock}, {@link BedrockConverseSdkPojoCodec#capture(software.amazon.awssdk.core.SdkPojo)
+ * capture} it, {@link BedrockConverseSdkPojoCodec#replay(Map, java.util.function.Supplier) replay}
+ * the captured map, and assert the replayed instance is equal to the original per {@code
+ * ContentBlock}'s own {@code equalsBySdkFields()}. Covers every {@code ContentBlock} member
+ * reachable without a capability matrix: {@code text}, {@code toolUse} (with a non-trivial {@link
+ * Document} input exercising every {@code Document} value kind), {@code reasoningContent} with a
+ * {@code reasoningText}, {@code reasoningContent} with {@code redactedContent}, and {@code
+ * citationsContent} (the deepest nesting: recursive unions and lists).
  */
-class BedrockSdkPojoCodecTest {
+class BedrockConverseSdkPojoCodecTest {
 
   @Test
   void roundTripsText() {
     final ContentBlock original = ContentBlock.fromText("Here is my response.");
 
-    final Map<String, Object> captured = BedrockSdkPojoCodec.capture(original);
+    final Map<String, Object> captured = BedrockConverseSdkPojoCodec.capture(original);
     assertThat(captured).containsOnlyKeys("text").containsEntry("text", "Here is my response.");
 
-    final ContentBlock replayed = BedrockSdkPojoCodec.replay(captured, ContentBlock::builder);
+    final ContentBlock replayed =
+        BedrockConverseSdkPojoCodec.replay(captured, ContentBlock::builder);
     assertThat(replayed).isEqualTo(original);
   }
 
@@ -70,10 +71,11 @@ class BedrockSdkPojoCodecTest {
         ContentBlock.fromToolUse(
             ToolUseBlock.builder().toolUseId("tooluse-1").name("getWeather").input(input).build());
 
-    final Map<String, Object> captured = BedrockSdkPojoCodec.capture(original);
+    final Map<String, Object> captured = BedrockConverseSdkPojoCodec.capture(original);
     assertThat(captured).containsOnlyKeys("toolUse");
 
-    final ContentBlock replayed = BedrockSdkPojoCodec.replay(captured, ContentBlock::builder);
+    final ContentBlock replayed =
+        BedrockConverseSdkPojoCodec.replay(captured, ContentBlock::builder);
     assertThat(replayed).isEqualTo(original);
     assertThat(replayed.toolUse().input()).isEqualTo(input);
   }
@@ -88,10 +90,11 @@ class BedrockSdkPojoCodecTest {
                     .signature("sig-9f3a7c21")
                     .build()));
 
-    final Map<String, Object> captured = BedrockSdkPojoCodec.capture(original);
+    final Map<String, Object> captured = BedrockConverseSdkPojoCodec.capture(original);
     assertThat(captured).containsOnlyKeys("reasoningContent");
 
-    final ContentBlock replayed = BedrockSdkPojoCodec.replay(captured, ContentBlock::builder);
+    final ContentBlock replayed =
+        BedrockConverseSdkPojoCodec.replay(captured, ContentBlock::builder);
     assertThat(replayed).isEqualTo(original);
   }
 
@@ -102,10 +105,11 @@ class BedrockSdkPojoCodecTest {
             ReasoningContentBlock.fromRedactedContent(
                 SdkBytes.fromUtf8String("opaque-encrypted-reasoning-payload")));
 
-    final Map<String, Object> captured = BedrockSdkPojoCodec.capture(original);
+    final Map<String, Object> captured = BedrockConverseSdkPojoCodec.capture(original);
     assertThat(captured).containsOnlyKeys("reasoningContent");
 
-    final ContentBlock replayed = BedrockSdkPojoCodec.replay(captured, ContentBlock::builder);
+    final ContentBlock replayed =
+        BedrockConverseSdkPojoCodec.replay(captured, ContentBlock::builder);
     assertThat(replayed).isEqualTo(original);
   }
 
@@ -134,10 +138,11 @@ class BedrockSdkPojoCodecTest {
 
     final ContentBlock original = ContentBlock.fromCitationsContent(citationsContentBlock);
 
-    final Map<String, Object> captured = BedrockSdkPojoCodec.capture(original);
+    final Map<String, Object> captured = BedrockConverseSdkPojoCodec.capture(original);
     assertThat(captured).containsOnlyKeys("citationsContent");
 
-    final ContentBlock replayed = BedrockSdkPojoCodec.replay(captured, ContentBlock::builder);
+    final ContentBlock replayed =
+        BedrockConverseSdkPojoCodec.replay(captured, ContentBlock::builder);
     assertThat(replayed).isEqualTo(original);
     assertThat(replayed.citationsContent()).isEqualTo(citationsContentBlock);
   }

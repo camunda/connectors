@@ -19,9 +19,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockModel.BedrockModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConverseModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -76,7 +76,7 @@ public class BedrockConverseRequestConverter {
   }
 
   public ConverseStreamRequest toConverseStreamRequest(
-      BedrockChatModelConfiguration configuration,
+      BedrockConverseChatModelConfiguration configuration,
       @Nullable ResponseConfiguration response,
       ConversationSnapshot snapshot) {
     final var connection = configuration.bedrock();
@@ -115,7 +115,7 @@ public class BedrockConverseRequestConverter {
   // temperature()/topP() narrow Double -> Float at this mapping site; maxTokens
   // stays Integer -> Integer. Each is applied only when non-null, independently of the others.
   private void applyInferenceConfig(
-      ConverseStreamRequest.Builder builder, @Nullable BedrockModelParameters params) {
+      ConverseStreamRequest.Builder builder, @Nullable BedrockConverseModelParameters params) {
     if (params == null) {
       return;
     }
@@ -234,7 +234,7 @@ public class BedrockConverseRequestConverter {
    * is disabled (or unset), no checkpoint is emitted anywhere.
    */
   private void applyPromptCaching(
-      @Nullable BedrockModelParameters params,
+      @Nullable BedrockConverseModelParameters params,
       List<SystemContentBlock> system,
       List<Tool> tools,
       List<Message> messages) {
@@ -316,7 +316,7 @@ public class BedrockConverseRequestConverter {
   }
 
   private void applyAdditionalModelRequestFields(
-      ConverseStreamRequest.Builder builder, BedrockConnection connection) {
+      ConverseStreamRequest.Builder builder, BedrockConverseConnection connection) {
     final Map<String, Object> bodyProperties = connection.bodyProperties();
     if (bodyProperties == null || bodyProperties.isEmpty()) {
       return;
@@ -326,7 +326,7 @@ public class BedrockConverseRequestConverter {
 
   /** Merges the escape-hatch {@code headers} and {@code queryParameters} onto the request. */
   private void applyOverrideConfiguration(
-      ConverseStreamRequest.Builder builder, BedrockConnection connection) {
+      ConverseStreamRequest.Builder builder, BedrockConverseConnection connection) {
     final Map<String, String> headers = connection.headers();
     final Map<String, String> queryParameters = connection.queryParameters();
     if ((headers == null || headers.isEmpty())
@@ -358,14 +358,14 @@ public class BedrockConverseRequestConverter {
    * deserialization: maps, lists, strings, numbers, booleans, null, or an arbitrary POJO) into the
    * AWS SDK's generic {@code Document} value tree, used for tool input schemas ({@link
    * ToolInputSchema#fromJson}) and {@code additionalModelRequestFields}. See {@link
-   * BedrockDocuments} for the conversion policy shared with the other Bedrock Converse converters;
-   * a value that policy cannot make sense of either is reported here as an unsupported model
-   * configuration, since both call sites of this method (tool input schemas and request parameters)
-   * originate from the connector's own configuration/tool definitions.
+   * BedrockConverseDocuments} for the conversion policy shared with the other Bedrock Converse
+   * converters; a value that policy cannot make sense of either is reported here as an unsupported
+   * model configuration, since both call sites of this method (tool input schemas and request
+   * parameters) originate from the connector's own configuration/tool definitions.
    */
   private software.amazon.awssdk.core.document.Document toDocument(@Nullable Object value) {
     try {
-      return BedrockDocuments.toDocument(value, objectMapper);
+      return BedrockConverseDocuments.toDocument(value, objectMapper);
     } catch (RuntimeException e) {
       throw new ConnectorException(
           ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION,

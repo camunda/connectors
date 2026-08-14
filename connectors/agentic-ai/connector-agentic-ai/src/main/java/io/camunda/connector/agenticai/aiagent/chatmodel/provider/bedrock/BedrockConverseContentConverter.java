@@ -102,7 +102,7 @@ public class BedrockConverseContentConverter {
    * Converts tool-result content to Converse {@link ToolResultContentBlock}s.
    *
    * <p>A document is always flattened to the same {@code document-ref:} JSON reference an embedded
-   * document already gets here (see {@link BedrockDocuments}), never embedded natively: the
+   * document already gets here (see {@link BedrockConverseDocuments}), never embedded natively: the
    * composer echoes every tool-result document in a separate synthetic user message, which is the
    * one place its real bytes are delivered. Embedding it here as well would send it twice and trip
    * Converse's duplicate-document-name validation.
@@ -177,10 +177,10 @@ public class BedrockConverseContentConverter {
    * Reconstructs the native {@code reasoningContent} block from a {@link ReasoningContent}. The
    * human-readable reasoning text is lifted out of the payload's {@code reasoningText.text} into
    * {@link ReasoningContent#text()} when a response is received, so it isn't persisted twice; here
-   * it is merged back into the payload before replay via {@link BedrockSdkPojoCodec}, so the
-   * resulting block is byte-identical to the one originally returned by the API. This is mandatory,
-   * not optional: AWS requires the signature and all previous reasoning blocks to be included
-   * verbatim in subsequent Converse requests.
+   * it is merged back into the payload before replay via {@link BedrockConverseSdkPojoCodec}, so
+   * the resulting block is byte-identical to the one originally returned by the API. This is
+   * mandatory, not optional: AWS requires the signature and all previous reasoning blocks to be
+   * included verbatim in subsequent Converse requests.
    */
   private ContentBlock toReasoningContentBlock(ReasoningContent rc) {
     final Map<String, Object> payload = asPayloadMap(rc.payload(), "reasoning content");
@@ -193,19 +193,19 @@ public class BedrockConverseContentConverter {
       payload.put("reasoningText", reasoningText);
     }
     final ReasoningContentBlock block =
-        BedrockSdkPojoCodec.replay(payload, ReasoningContentBlock::builder);
+        BedrockConverseSdkPojoCodec.replay(payload, ReasoningContentBlock::builder);
     return ContentBlock.fromReasoningContent(block);
   }
 
   /**
    * Replays a {@code bedrock} {@link ProviderContent} payload back into its native {@link
-   * ContentBlock} via the generic {@link BedrockSdkPojoCodec}. Any {@code ContentBlock} member
-   * beyond the typed three ({@code text}, {@code toolUse}, {@code reasoningContent}) round-trips
-   * through this mechanism, never silently dropped.
+   * ContentBlock} via the generic {@link BedrockConverseSdkPojoCodec}. Any {@code ContentBlock}
+   * member beyond the typed three ({@code text}, {@code toolUse}, {@code reasoningContent})
+   * round-trips through this mechanism, never silently dropped.
    */
   private ContentBlock replayProviderContentBlock(ProviderContent pc) {
     final Map<String, Object> payload = asPayloadMap(pc.payload(), "provider content");
-    return BedrockSdkPojoCodec.replay(payload, ContentBlock::builder);
+    return BedrockConverseSdkPojoCodec.replay(payload, ContentBlock::builder);
   }
 
   private static Map<String, Object> asPayloadMap(@Nullable Object payload, String description) {
@@ -225,11 +225,11 @@ public class BedrockConverseContentConverter {
    * Normalizes an arbitrary Java value (as produced by {@code
    * ToolCallResultContent.contentFromObject}, i.e. already-deserialized JSON: maps, lists, strings,
    * numbers, booleans, null, or an arbitrary POJO) into the AWS SDK's generic {@code Document}
-   * value tree, used by {@code ToolResultContentBlock.json}. See {@link BedrockDocuments} for the
-   * conversion policy shared with the other Bedrock Converse converters.
+   * value tree, used by {@code ToolResultContentBlock.json}. See {@link BedrockConverseDocuments}
+   * for the conversion policy shared with the other Bedrock Converse converters.
    */
   private software.amazon.awssdk.core.document.Document toBedrockDocument(@Nullable Object value) {
-    return BedrockDocuments.toDocument(value, objectMapper);
+    return BedrockConverseDocuments.toDocument(value, objectMapper);
   }
 
   private static String decodeUtf8(Document document) {

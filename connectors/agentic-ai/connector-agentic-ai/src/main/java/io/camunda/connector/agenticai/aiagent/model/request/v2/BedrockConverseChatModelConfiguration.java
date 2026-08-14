@@ -25,16 +25,18 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
-@TemplateSubType(id = BedrockChatModelConfiguration.BEDROCK_ID, label = "AWS Bedrock")
-public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection bedrock)
-    implements ProviderConfiguration {
+@TemplateSubType(
+    id = BedrockConverseChatModelConfiguration.BEDROCK_CONVERSE_ID,
+    label = "AWS Bedrock")
+public record BedrockConverseChatModelConfiguration(
+    @Valid @NotNull BedrockConverseConnection bedrock) implements ProviderConfiguration {
 
   @TemplateProperty(ignore = true)
-  public static final String BEDROCK_ID = "bedrock";
+  public static final String BEDROCK_CONVERSE_ID = "bedrock";
 
   @Override
   public String provider() {
-    return BEDROCK_ID;
+    return BEDROCK_CONVERSE_ID;
   }
 
   @Override
@@ -43,7 +45,7 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
   }
 
   /** All AWS Bedrock-specific configuration, nested under the {@code bedrock} wire key. */
-  public record BedrockConnection(
+  public record BedrockConverseConnection(
       @NotBlank
           @TemplateProperty(
               group = "provider",
@@ -92,7 +94,7 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
               optional = true)
           @Nullable Map<String, Object> bodyProperties,
       @Valid @Nullable TimeoutConfiguration timeouts,
-      @Valid @NotNull BedrockModel model) {
+      @Valid @NotNull BedrockConverseModel model) {
 
     @JsonIgnore
     @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
@@ -103,7 +105,7 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
 
     @Override
     public String toString() {
-      return "BedrockConnection{region="
+      return "BedrockConverseConnection{region="
           + region
           + ", endpoint="
           + endpoint
@@ -123,7 +125,7 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
     }
   }
 
-  public record BedrockModel(
+  public record BedrockConverseModel(
       @NotBlank
           @TemplateProperty(
               group = "model",
@@ -137,10 +139,10 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
               placeholder = "us.amazon.nova-2-lite-v1:0",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String model,
-      @Valid @Nullable BedrockModelParameters parameters) {
+      @Valid @Nullable BedrockConverseModelParameters parameters) {
 
-    public record BedrockModelParameters(
-        @Valid @Nullable BedrockPromptCaching promptCaching,
+    public record BedrockConverseModelParameters(
+        @Valid @Nullable BedrockConversePromptCaching promptCaching,
         @Min(1)
             @TemplateProperty(
                 group = "model-options",
@@ -178,7 +180,7 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
 
       @Override
       public String toString() {
-        return "BedrockModelParameters{promptCaching="
+        return "BedrockConverseModelParameters{promptCaching="
             + promptCaching
             + ", maxTokens="
             + maxTokens
@@ -194,7 +196,7 @@ public record BedrockChatModelConfiguration(@Valid @NotNull BedrockConnection be
      * AWS Bedrock automatic prompt caching. A record rather than a bare boolean so it stays
      * extensible: a TTL field could be added later without changing this property's wire shape.
      */
-    public record BedrockPromptCaching(
+    public record BedrockConversePromptCaching(
         @TemplateProperty(
                 group = "model",
                 label = "Enable prompt caching",

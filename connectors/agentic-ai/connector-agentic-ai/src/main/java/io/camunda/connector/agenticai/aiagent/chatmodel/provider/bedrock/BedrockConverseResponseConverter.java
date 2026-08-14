@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
-import static io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BEDROCK_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BEDROCK_CONVERSE_ID;
 
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException.PartialResult;
@@ -50,8 +50,9 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
  * block as payload (re-emitted verbatim on the request side, see {@link
  * BedrockConverseContentConverter}, so reasoning round-trips losslessly), and every other block
  * type is captured losslessly as {@link ProviderContent} via the generic {@link
- * BedrockSdkPojoCodec} rather than dropped. Only {@link ContentBlock.Type#UNKNOWN_TO_SDK_VERSION}
- * cannot be captured (the SDK surfaces no field data for it), so it fails the call instead.
+ * BedrockConverseSdkPojoCodec} rather than dropped. Only {@link
+ * ContentBlock.Type#UNKNOWN_TO_SDK_VERSION} cannot be captured (the SDK surfaces no field data for
+ * it), so it fails the call instead.
  *
  * <p>Converse has no {@code pause_turn} equivalent, so a usable response always produces a {@link
  * ChatResult.Completed}, never a {@link ChatResult.Continuation}. The stop reasons that mean the
@@ -143,16 +144,19 @@ public class BedrockConverseResponseConverter {
                 + "the SDK surfaces no field data for it, so it cannot be captured or replayed.");
       } else {
         // Fallback for any Bedrock content block member not explicitly handled above: preserve it
-        // losslessly, in original order, as ProviderContent -- see BedrockSdkPojoCodec. Never
+        // losslessly, in original order, as ProviderContent -- see BedrockConverseSdkPojoCodec.
+        // Never
         // skipped, since silently dropping a block would change the conversation.
-        content.add(new ProviderContent(BEDROCK_ID, BedrockSdkPojoCodec.capture(block), null));
+        content.add(
+            new ProviderContent(
+                BEDROCK_CONVERSE_ID, BedrockConverseSdkPojoCodec.capture(block), null));
       }
     }
 
     final String rawStopReason = response.stopReasonAsString();
     final Map<String, Object> bedrockMetadata =
         rawStopReason != null
-            ? Map.of(BEDROCK_ID, Map.of(METADATA_STOP_REASON, rawStopReason))
+            ? Map.of(BEDROCK_CONVERSE_ID, Map.of(METADATA_STOP_REASON, rawStopReason))
             : Map.of();
 
     return AssistantMessage.builder()
@@ -171,8 +175,9 @@ public class BedrockConverseResponseConverter {
    */
   private ToolCall toToolCall(ToolUseBlock toolUse) {
     // Captured once and reused for both arguments and residual metadata below, rather than each
-    // independently walking the same ToolUseBlock's sdkFields() via BedrockSdkPojoCodec.capture().
-    final Map<String, Object> captured = BedrockSdkPojoCodec.capture(toolUse);
+    // independently walking the same ToolUseBlock's sdkFields() via
+    // BedrockConverseSdkPojoCodec.capture().
+    final Map<String, Object> captured = BedrockConverseSdkPojoCodec.capture(toolUse);
     final Map<String, Object> arguments = toolUseArguments(captured);
     final Map<String, Object> metadata =
         residualMetadataFromCapture(captured, "toolUseId", "name", "input");
@@ -180,11 +185,11 @@ public class BedrockConverseResponseConverter {
   }
 
   /**
-   * Converts the {@code input} entry of an already-{@link BedrockSdkPojoCodec#capture(SdkPojo)
-   * captured} {@link ToolUseBlock} (a generic AWS {@code Document}) to the domain {@code arguments}
-   * map. Numbers survive round-trip precision because the capture already used {@link
-   * java.math.BigDecimal} as the plain-Java stand-in for a Document number (see {@link
-   * BedrockSdkPojoCodec} for why).
+   * Converts the {@code input} entry of an already-{@link
+   * BedrockConverseSdkPojoCodec#capture(SdkPojo) captured} {@link ToolUseBlock} (a generic AWS
+   * {@code Document}) to the domain {@code arguments} map. Numbers survive round-trip precision
+   * because the capture already used {@link java.math.BigDecimal} as the plain-Java stand-in for a
+   * Document number (see {@link BedrockConverseSdkPojoCodec} for why).
    */
   private Map<String, Object> toolUseArguments(Map<String, Object> captured) {
     final Object input = captured.get("input");
@@ -212,7 +217,7 @@ public class BedrockConverseResponseConverter {
    */
   private ReasoningContent toReasoningContent(ReasoningContentBlock reasoningContentBlock) {
     final Map<String, Object> payload =
-        new LinkedHashMap<>(BedrockSdkPojoCodec.capture(reasoningContentBlock));
+        new LinkedHashMap<>(BedrockConverseSdkPojoCodec.capture(reasoningContentBlock));
 
     String text = null;
     if (payload.get("reasoningText") instanceof Map<?, ?> reasoningTextValue) {
@@ -223,7 +228,7 @@ public class BedrockConverseResponseConverter {
       payload.put("reasoningText", reasoningText);
     }
 
-    return new ReasoningContent(BEDROCK_ID, payload, text, null);
+    return new ReasoningContent(BEDROCK_CONVERSE_ID, payload, text, null);
   }
 
   /**
@@ -233,20 +238,20 @@ public class BedrockConverseResponseConverter {
    * response verbatim and an unmapped Bedrock field doesn't silently lose data.
    */
   private @Nullable Map<String, Object> residualMetadata(SdkPojo pojo, String... mappedKeys) {
-    return residualMetadataFromCapture(BedrockSdkPojoCodec.capture(pojo), mappedKeys);
+    return residualMetadataFromCapture(BedrockConverseSdkPojoCodec.capture(pojo), mappedKeys);
   }
 
   /**
    * Same as {@link #residualMetadata(SdkPojo, String...)}, but starting from an already-{@link
-   * BedrockSdkPojoCodec#capture(SdkPojo) captured} map, so a caller that also needs the capture for
-   * another purpose (e.g. {@link #toToolCall(ToolUseBlock)} extracting {@code input}) doesn't walk
-   * the same pojo's {@code sdkFields()} twice.
+   * BedrockConverseSdkPojoCodec#capture(SdkPojo) captured} map, so a caller that also needs the
+   * capture for another purpose (e.g. {@link #toToolCall(ToolUseBlock)} extracting {@code input})
+   * doesn't walk the same pojo's {@code sdkFields()} twice.
    */
   private @Nullable Map<String, Object> residualMetadataFromCapture(
       Map<String, Object> captured, String... mappedKeys) {
     final Map<String, Object> raw = new LinkedHashMap<>(captured);
     raw.keySet().removeAll(Set.of(mappedKeys));
-    return raw.isEmpty() ? null : Map.of(BEDROCK_ID, raw);
+    return raw.isEmpty() ? null : Map.of(BEDROCK_CONVERSE_ID, raw);
   }
 
   private AgentMetrics toMetrics(ConverseResponse response, int toolCalls, Duration executionTime) {

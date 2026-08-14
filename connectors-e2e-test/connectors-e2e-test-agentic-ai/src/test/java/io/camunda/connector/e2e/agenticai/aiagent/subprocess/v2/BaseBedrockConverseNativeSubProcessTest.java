@@ -37,7 +37,7 @@ import java.util.function.Function;
  * io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.StreamingBedrockConverseEventStreamChatModelStubs}
  * in the wire-format smoke suite).
  */
-abstract class BaseBedrockNativeSubProcessTest extends BaseAgentSubProcessV2Test {
+abstract class BaseBedrockConverseNativeSubProcessTest extends BaseAgentSubProcessV2Test {
 
   private static final String DEFAULT_MODEL = "test-model";
 

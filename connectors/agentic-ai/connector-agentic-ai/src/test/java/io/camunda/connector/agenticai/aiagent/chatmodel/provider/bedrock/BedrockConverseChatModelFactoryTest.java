@@ -23,9 +23,9 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration.BedrockModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
@@ -63,7 +63,7 @@ import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntime
  * {@link ResultCaptor}.
  */
 @ExtendWith(MockitoExtension.class)
-class BedrockChatModelFactoryTest {
+class BedrockConverseChatModelFactoryTest {
 
   private static final String MODEL_ID = "us.amazon.nova-2-lite-v1:0";
   private static final String REGION = "eu-central-1";
@@ -83,8 +83,8 @@ class BedrockChatModelFactoryTest {
   private final BedrockConverseResponseConverter responseConverter =
       new BedrockConverseResponseConverter();
 
-  private final BedrockChatModelFactory factory =
-      new BedrockChatModelFactory(
+  private final BedrockConverseChatModelFactory factory =
+      new BedrockConverseChatModelFactory(
           config, proxySupport, requestConverter, responseConverter, new ObjectMapper());
 
   @Captor private ArgumentCaptor<AwsCredentialsProvider> credentialsProviderCaptor;
@@ -119,7 +119,7 @@ class BedrockChatModelFactoryTest {
       final var bedrockConfig = bedrockConfig(defaultCredentialsAuth(), null);
       final ChatModel chatModel = factory.create(bedrockConfig);
       try {
-        assertThat(chatModel).isInstanceOf(BedrockChatModel.class);
+        assertThat(chatModel).isInstanceOf(BedrockConverseChatModel.class);
       } finally {
         chatModel.close();
       }
@@ -208,11 +208,11 @@ class BedrockChatModelFactoryTest {
   void appliesDerivedTimeoutToApiCallTimeout(
       TimeoutConfiguration timeouts, Duration expectedTimeout) {
     final var connection =
-        new BedrockConnection(
+        new BedrockConverseConnection(
             REGION, null, defaultCredentialsAuth(), null, null, null, timeouts, model());
 
     testBuilder(
-        new BedrockChatModelConfiguration(connection),
+        new BedrockConverseChatModelConfiguration(connection),
         (clientBuilder) -> {
           final var overrideConfigurationCaptor =
               ArgumentCaptor.forClass(ClientOverrideConfiguration.class);
@@ -230,7 +230,7 @@ class BedrockChatModelFactoryTest {
   }
 
   private void testBuilder(
-      BedrockChatModelConfiguration bedrockConfig,
+      BedrockConverseChatModelConfiguration bedrockConfig,
       ThrowingBuilderConsumer<BedrockRuntimeAsyncClientBuilder> assertions) {
     final var clientBuilder = spy(BedrockRuntimeAsyncClient.builder());
     doAnswer(new ResultCaptor<>()).when(clientBuilder).build();
@@ -248,10 +248,11 @@ class BedrockChatModelFactoryTest {
     }
   }
 
-  private static BedrockChatModelConfiguration bedrockConfig(
+  private static BedrockConverseChatModelConfiguration bedrockConfig(
       AwsAuthentication authentication, String endpoint) {
-    return new BedrockChatModelConfiguration(
-        new BedrockConnection(REGION, endpoint, authentication, null, null, null, null, model()));
+    return new BedrockConverseChatModelConfiguration(
+        new BedrockConverseConnection(
+            REGION, endpoint, authentication, null, null, null, null, model()));
   }
 
   private static AwsAuthentication.AwsDefaultCredentialsChainAuthentication
@@ -259,8 +260,8 @@ class BedrockChatModelFactoryTest {
     return new AwsAuthentication.AwsDefaultCredentialsChainAuthentication();
   }
 
-  private static BedrockModel model() {
-    return new BedrockModel(MODEL_ID, null);
+  private static BedrockConverseModel model() {
+    return new BedrockConverseModel(MODEL_ID, null);
   }
 
   @FunctionalInterface

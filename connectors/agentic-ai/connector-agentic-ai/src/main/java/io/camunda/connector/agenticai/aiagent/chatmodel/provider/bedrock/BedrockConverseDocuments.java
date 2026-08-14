@@ -55,9 +55,9 @@ import software.amazon.awssdk.core.document.Document;
  * generic failure into its own {@code ConnectorException} with its own appropriate error code,
  * rather than this shared helper picking one error code for all of them.
  */
-final class BedrockDocuments {
+final class BedrockConverseDocuments {
 
-  private BedrockDocuments() {}
+  private BedrockConverseDocuments() {}
 
   static Document toDocument(@Nullable Object value, ObjectMapper objectMapper) {
     if (value == null) {

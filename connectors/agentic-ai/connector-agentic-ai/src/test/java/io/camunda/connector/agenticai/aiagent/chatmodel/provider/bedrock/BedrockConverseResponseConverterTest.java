@@ -226,7 +226,7 @@ class BedrockConverseResponseConverterTest {
     assertThat(content)
         .containsExactly(
             TextContent.textContent("before"),
-            new ProviderContent("bedrock", BedrockSdkPojoCodec.capture(cachePoint), null),
+            new ProviderContent("bedrock", BedrockConverseSdkPojoCodec.capture(cachePoint), null),
             TextContent.textContent("after"));
   }
 
@@ -235,7 +235,8 @@ class BedrockConverseResponseConverterTest {
     // No content-block member is set at all; per ContentBlock's own union bookkeeping this resolves
     // type() to UNKNOWN_TO_SDK_VERSION, the same value the SDK produces for a genuinely
     // unrecognised
-    // wire member -- the one case BedrockSdkPojoCodec cannot capture, since the SDK surfaces no
+    // wire member -- the one case BedrockConverseSdkPojoCodec cannot capture, since the SDK
+    // surfaces no
     // field
     // data for it.
     final ContentBlock emptyUnion = ContentBlock.builder().build();

@@ -190,7 +190,7 @@ class BedrockConverseContentConverterTest {
       final var original =
           ContentBlock.fromCachePoint(
               CachePointBlock.builder().type(CachePointType.DEFAULT).build());
-      final var payload = BedrockSdkPojoCodec.capture(original);
+      final var payload = BedrockConverseSdkPojoCodec.capture(original);
 
       final var blocks =
           converter.toContentBlocks(List.of(new ProviderContent("bedrock", payload, null)));

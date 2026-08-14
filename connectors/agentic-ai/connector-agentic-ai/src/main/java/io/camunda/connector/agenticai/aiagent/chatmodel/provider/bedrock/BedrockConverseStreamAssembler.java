@@ -240,13 +240,13 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
 
   /**
    * Converts the parsed streamed tool-use input JSON value tree into an AWS {@link Document}. See
-   * {@link BedrockDocuments} for the conversion policy shared with the other Bedrock Converse
-   * converters; a value that policy cannot make sense of either is reported here as a failed model
-   * call, since it originates from the model's own (malformed) streamed response.
+   * {@link BedrockConverseDocuments} for the conversion policy shared with the other Bedrock
+   * Converse converters; a value that policy cannot make sense of either is reported here as a
+   * failed model call, since it originates from the model's own (malformed) streamed response.
    */
   private Document toDocument(@Nullable Object value) {
     try {
-      return BedrockDocuments.toDocument(value, objectMapper);
+      return BedrockConverseDocuments.toDocument(value, objectMapper);
     } catch (RuntimeException e) {
       throw new ConnectorException(
           ERROR_CODE_FAILED_MODEL_CALL,

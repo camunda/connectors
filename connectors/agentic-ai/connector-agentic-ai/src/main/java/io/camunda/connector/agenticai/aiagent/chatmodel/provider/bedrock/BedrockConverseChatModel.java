@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
@@ -41,20 +41,20 @@ import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamRespon
  * the lifetime of this instance (one agent request, across all continuation rounds); {@link
  * #close()} closes it once.
  */
-public class BedrockChatModel implements ChatModel {
+public class BedrockConverseChatModel implements ChatModel {
 
-  private static final Logger LOG = LoggerFactory.getLogger(BedrockChatModel.class);
+  private static final Logger LOG = LoggerFactory.getLogger(BedrockConverseChatModel.class);
 
   private final BedrockRuntimeAsyncClient client;
-  private final BedrockChatModelConfiguration configuration;
+  private final BedrockConverseChatModelConfiguration configuration;
   private final BedrockConverseRequestConverter requestConverter;
   private final BedrockConverseResponseConverter responseConverter;
   private final ObjectMapper objectMapper;
   private final Supplier<BedrockConverseStreamAssembler> streamAssemblerFactory;
 
-  public BedrockChatModel(
+  public BedrockConverseChatModel(
       BedrockRuntimeAsyncClient client,
-      BedrockChatModelConfiguration configuration,
+      BedrockConverseChatModelConfiguration configuration,
       BedrockConverseRequestConverter requestConverter,
       BedrockConverseResponseConverter responseConverter,
       ObjectMapper objectMapper) {
@@ -67,9 +67,9 @@ public class BedrockChatModel implements ChatModel {
         () -> new BedrockConverseStreamAssembler(objectMapper));
   }
 
-  BedrockChatModel(
+  BedrockConverseChatModel(
       BedrockRuntimeAsyncClient client,
-      BedrockChatModelConfiguration configuration,
+      BedrockConverseChatModelConfiguration configuration,
       BedrockConverseRequestConverter requestConverter,
       BedrockConverseResponseConverter responseConverter,
       ObjectMapper objectMapper,
