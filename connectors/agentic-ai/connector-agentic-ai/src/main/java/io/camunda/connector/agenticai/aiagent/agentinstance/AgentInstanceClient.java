@@ -81,8 +81,10 @@ public interface AgentInstanceClient {
    * complete. Called from the composer's {@code Deferred} path. Skips silently when {@code
    * agentInstanceKey} is {@code null}.
    *
-   * <p>Callers MUST filter {@code toolCallResults} to ids present in {@code previousTurn}'s tool
-   * calls first: a non-matching id fails, same as {@link #createHistoryForInputMessages}.
+   * <p>{@code toolCallResults} MUST already be correlated to {@code previousTurn}'s tool calls and
+   * gateway (MCP/A2A) transformed by the caller (see {@code AgentConversationTurnInputComposer}'s
+   * {@code Deferred} result) — this method does not transform or filter them itself. A non-matching
+   * id fails, same as {@link #createHistoryForInputMessages}.
    *
    * <p>Duplicates the eventual batch-complete write; accepted until the redesigned API supports
    * dedup by id.

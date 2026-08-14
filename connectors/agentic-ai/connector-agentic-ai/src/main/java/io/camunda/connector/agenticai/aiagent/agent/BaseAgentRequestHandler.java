@@ -120,10 +120,10 @@ public abstract class BaseAgentRequestHandler<
       final var compositionResult =
           agentInputComposer.compose(configuration, agentContext, previousConversation, agentInput);
       return switch (compositionResult) {
-        case CompositionResult.Deferred ignored -> {
+        case CompositionResult.Deferred(var arrivedResults) -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
           reportArrivedToolCallResults(
-              executionContext, agentContext, agentInput, previousConversation);
+              executionContext, agentContext, arrivedResults, previousConversation);
           yield handleNoOp(executionContext);
         }
         case CompositionResult.NoInput ignored -> {
@@ -138,33 +138,24 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
-   * Reports tool call results that have arrived but aren't a complete batch yet. MUST filter to ids
-   * in the previous turn's tool calls first: {@link
-   * AgentInstanceClient#createHistoryForToolCallResults} fails on a non-correlating id, and this
-   * path must stay a no-op for stray or redelivered ids, unlike the final batch write.
+   * Reports tool call results that have arrived but aren't a complete batch yet. {@code
+   * arrivedResults} is already correlated and gateway-transformed by the composer (see {@link
+   * CompositionResult.Deferred}); this path must still stay a no-op when nothing arrived yet or
+   * there is no previous turn to correlate against.
    */
   private void reportArrivedToolCallResults(
       C executionContext,
       AgentContext agentContext,
-      AgentInput agentInput,
+      List<ToolCallResult> arrivedResults,
       PreviousConversation previousConversation) {
-    if (previousConversation.turns().isEmpty()) {
-      return;
-    }
-    final var previousTurn = previousConversation.turns().getLast();
-    final var toolCallsById = previousTurn.toolCallsById();
-    final var arrivedResults =
-        agentInput.toolCallResults().stream()
-            .filter(result -> toolCallsById.containsKey(result.id()))
-            .toList();
-    if (arrivedResults.isEmpty()) {
+    if (arrivedResults.isEmpty() || previousConversation.turns().isEmpty()) {
       return;
     }
     agentInstanceClient.createHistoryForToolCallResults(
         executionContext,
         AgentInstanceKey.from(agentContext.metadata()),
         arrivedResults,
-        previousTurn);
+        previousConversation.turns().getLast());
   }
 
   private R proceed(

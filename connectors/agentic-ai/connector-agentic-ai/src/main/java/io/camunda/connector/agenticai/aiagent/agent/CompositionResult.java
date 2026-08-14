@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
 
 /**
@@ -15,8 +16,18 @@ import java.util.List;
  */
 public sealed interface CompositionResult {
 
-  /** No messages ready yet — wait for more tool results before proceeding. */
-  record Deferred() implements CompositionResult {}
+  /**
+   * No messages ready yet — wait for more tool results before proceeding.
+   *
+   * @param arrivedResults the tool call results that have arrived so far for the pending turn,
+   *     already correlated to a tool call this turn is waiting on and gateway (MCP/A2A) transformed
+   *     — safe to report to agent instance history as-is (ADR 011)
+   */
+  record Deferred(List<ToolCallResult> arrivedResults) implements CompositionResult {
+    public Deferred {
+      arrivedResults = List.copyOf(arrivedResults);
+    }
+  }
 
   /**
    * No input could be composed for this turn (no user prompt, documents or events to add). Carries

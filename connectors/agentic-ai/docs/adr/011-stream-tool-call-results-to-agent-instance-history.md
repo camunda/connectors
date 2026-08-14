@@ -48,17 +48,17 @@ instance history immediately on the no-op path, accepting that the same result i
 once the turn completes. This duplication is temporary and expected to resolve once the redesigned
 agent instance history API supports dedup by id.
 
-Results are only reported once correlated to a tool call the agent is actually waiting on;
-uncorrelated results (stray or redelivered) are silently skipped rather than failing the job.
-Gateway (MCP/A2A) result transformation is intentionally skipped on this path, so gateway tool
-results appear in their raw envelope shape on the early write, versus unwrapped on the final one.
-Failure on this path is strict and fails the job, matching the semantics of the other agent
-instance client calls it sits alongside.
+Results are only reported once correlated to a tool call the agent is actually waiting on and
+gateway (MCP/A2A) transformed, matching the shape of the eventual batch write; uncorrelated results
+(stray or redelivered) are silently skipped rather than failing the job. Correlation and
+transformation happen once, in the composer that already produces the deferred/proceed decision,
+so both the early and final writes go through the same logic. Failure on this path is strict and
+fails the job, matching the semantics of the other agent instance client calls it sits alongside.
 
 ### Positive Consequences
 
 * Agent instance history shows tool-call progress as it happens, not only once the slowest tool in
-  a turn finishes.
+  a turn finishes, in the same shape as the eventual batch write.
 * No new persisted state, no change to job-completion cadence, no change to when the LLM is
   invoked.
 
@@ -66,13 +66,10 @@ instance client calls it sits alongside.
 
 * Every early-reported tool result is written to history twice until the redesigned API supports
   dedup by id.
-* Gateway (MCP/A2A) tool results show their pre-unwrap envelope shape on the early write, a
-  cosmetic divergence.
 
 ## Out of Scope
 
 * Any dedup mechanism — owned by the redesigned agent instance history API
   ([camunda/camunda#58789](https://github.com/camunda/camunda/issues/58789)); this ADR only
   prepares the connector to report early.
-* Gateway (MCP/A2A) result transformation on this path.
 * Changes to job-completion cadence or when the LLM is invoked.

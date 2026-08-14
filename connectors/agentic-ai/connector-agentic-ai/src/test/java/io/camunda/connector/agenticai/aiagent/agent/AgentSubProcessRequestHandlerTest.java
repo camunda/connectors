@@ -376,7 +376,7 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(new CompositionResult.Deferred());
+        .thenReturn(new CompositionResult.Deferred(List.of()));
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
     assertThat(response.variables()).isEmpty();
@@ -390,15 +390,15 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void reportsOnlyCorrelatingArrivedToolCallResultsOnDeferredNoOp() {
+  void reportsArrivedToolCallResultsFromComposerOnDeferredNoOp() {
     reset(conversationStoreRegistry);
     ConversationStore conversationStore = spy(new InProcessConversationStore());
     doReturn(conversationStore)
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
 
-    // given: previous turn requested TOOL_CALLS ("abcdef", "fedcba"); "abcdef" arrived, plus a
-    // stray result for an id ("stray-id") this turn isn't waiting on
+    // given: previous turn requested TOOL_CALLS ("abcdef", "fedcba"); the composer reports
+    // "abcdef" as already arrived, correlated and gateway-transformed
     final var priorAssistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
     final var agentContextWithHistory =
         AgentContext.builder()
@@ -409,16 +409,13 @@ class AgentSubProcessRequestHandlerTest {
                     .messages(List.of(USER_MESSAGE, priorAssistantMessage))
                     .build())
             .build();
-    final var matchingResult =
+    final var arrivedResult =
         ToolCallResult.builder().id("abcdef").name("getWeather").content("Sunny").build();
-    final var strayResult =
-        ToolCallResult.builder().id("stray-id").name("unrelated").content("noise").build();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(
-            new ReadyToConverse(agentContextWithHistory, List.of(matchingResult, strayResult)));
+        .thenReturn(new ReadyToConverse(agentContextWithHistory, List.of(arrivedResult)));
     when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(new CompositionResult.Deferred());
+        .thenReturn(new CompositionResult.Deferred(List.of(arrivedResult)));
 
     // when
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -428,13 +425,13 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.completionConditionFulfilled()).isFalse();
     verifyNoInteractions(chatModelRegistry, chatModel);
 
-    // and: only the correlating result is reported
+    // and: the arrived result is reported as-is
     @SuppressWarnings("unchecked")
     final ArgumentCaptor<List<ToolCallResult>> resultsCaptor = ArgumentCaptor.forClass(List.class);
     verify(agentInstanceClient)
         .createHistoryForToolCallResults(
             eq(agentExecutionContext), any(), resultsCaptor.capture(), any());
-    assertThat(resultsCaptor.getValue()).containsExactly(matchingResult);
+    assertThat(resultsCaptor.getValue()).containsExactly(arrivedResult);
   }
 
   @Test

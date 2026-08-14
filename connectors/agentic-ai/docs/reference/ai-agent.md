@@ -807,8 +807,8 @@ The method checks each tool call from the last assistant message against the ava
 
 ```java
 return switch (compositionResult) {
-    case CompositionResult.Deferred ignored -> {
-        reportArrivedToolCallResults(...);     // ADR 011 — report what's arrived so far
+    case CompositionResult.Deferred(var arrivedResults) -> {
+        reportArrivedToolCallResults(..., arrivedResults, ...); // ADR 011 — report what's arrived so far
         yield handleNoOp(executionContext);    // wait for more tool results
     }
     case CompositionResult.NoInput ignored ->
@@ -827,19 +827,17 @@ throws a `ConnectorException` with `ERROR_CODE_NO_USER_MESSAGE_CONTENT`.
 
 ### Streaming Arrived Results to Agent Instance History (ADR 011)
 
-The `Deferred` branch is no longer a pure no-op: before completing the job,
-`reportArrivedToolCallResults` reports whatever tool call results have arrived so far to agent
-instance history via `AgentInstanceClient.createHistoryForToolCallResults`, so history shows
-progress before the slowest tool call in a turn finishes — instead of only once the whole batch
-completes and `proceed()` runs. See [ADR 011](../adr/011-stream-tool-call-results-to-agent-instance-history.md)
-for the full design.
+`CompositionResult.Deferred` carries `arrivedResults`: the tool call results correlated and
+gateway-transformed by `AgentConversationTurnInputComposerImpl.resolveOrderedToolCallResults`
+before it determined the batch was still incomplete. `BaseAgentRequestHandler.reportArrivedToolCallResults`
+reports these to agent instance history via `AgentInstanceClient.createHistoryForToolCallResults`
+before completing the job, so history shows progress before the slowest tool call in a turn
+finishes — instead of only once the whole batch completes and `proceed()` runs. See
+[ADR 011](../adr/011-stream-tool-call-results-to-agent-instance-history.md) for the full design.
 
-- **Filtered to correlating results only.** `agentInput.toolCallResults()` (already partitioned to
-  non-null ids, excluding event results) is filtered to ids present in
-  `previousConversation.turns().getLast().toolCallsById()` before being reported. A stray or
-  redelivered id that doesn't correlate to anything is silently dropped here — the same id would
-  make `AgentInstanceHistoryMapper.argumentsForResult` throw on the final batch write, but that's
-  an invariant violation there (results are already validated/ordered by then), not here.
+- **Correlation and gateway (MCP/A2A) transformation happen once**, in the composer, for both the
+  `Deferred` and `NextTurn` paths. A stray or redelivered id that doesn't correlate to a tool call
+  the turn is waiting on never makes it into `arrivedResults`.
 - **Duplicated by design.** The same result gets written to history twice: once here, once again
   by `createHistoryForInputMessages` once the batch completes. Accepted until the redesigned agent
   instance history API (camunda/camunda#58789) supports dedup by id.
@@ -848,9 +846,6 @@ for the full design.
 - **Strict failure.** Unlike the metrics-update listener (which fires after job completion and
   swallows failures), this call runs before completion and a failure fails the job, same as the
   other `AgentInstanceClient` history calls.
-- **Gateway (MCP/A2A) transformation is skipped** on this path — results are reported in their
-  pre-unwrap shape. `completedAt` and `elementId` are both still resolved correctly (see ADR 011
-  for why); only the content shape for gateway tools differs from the final batch write.
 
 ---
 
