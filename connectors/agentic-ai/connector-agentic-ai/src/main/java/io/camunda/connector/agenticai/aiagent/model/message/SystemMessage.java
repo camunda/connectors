@@ -11,12 +11,14 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
+import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.List;
 import java.util.Map;
 
 @AgenticAiRecord
 @JsonDeserialize(builder = SystemMessage.SystemMessageJacksonProxyBuilder.class)
 public record SystemMessage(
+    @RecordBuilder.Initializer(source = MessageUtil.class, value = "generateId") MessageId id,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements SystemMessageBuilder.With, Message, ContentMessage {

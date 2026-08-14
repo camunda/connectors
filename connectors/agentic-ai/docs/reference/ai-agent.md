@@ -442,6 +442,21 @@ static window filter:
     `ToolCallResultMessage` entries (some providers error on orphaned tool results)
   - Also evicts follow-up tool-call-document user messages attached to evicted results
 
+### Message Identity
+
+Every `Message` (`SystemMessage`, `UserMessage`, `AssistantMessage`, `ToolCallResultMessage`)
+carries a self-generated `id()` of type `MessageId`, independent of any provider-issued id (see
+[ADR 012](../adr/012-stable-self-generated-message-ids.md)). A UUIDv7 value is generated once, at
+first construction (`@RecordBuilder.Initializer(source = MessageUtil.class, value =
+"generateId")`), and stays stable thereafter because it round-trips through persistence rather
+than being re-derived. `MessageId` serializes as a bare JSON string and accepts any valid UUID on
+parse, not only v7. Messages persisted before this field existed get backfilled with a fresh id
+the first time they're deserialized — the same initializer mechanism, no separate migration step.
+`AwsAgentCoreConversationStore` round-trips it explicitly via a dedicated property
+(`AwsAgentCoreConversationMapper.PROPERTY_ID`), since it doesn't go through Jackson like the other
+two stores. `AssistantMessage.messageId()` (provider-sourced) and `ToolCall.id` (provider- or
+gateway-sourced) are separate, untouched identities — see the ADR for why they don't merge.
+
 ### ConversationStore Implementations
 
 **InProcessConversationStore** (`type = "in-process"`):

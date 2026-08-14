@@ -152,6 +152,7 @@ leading to the following result
       "type" : "text",
       "text" : "This is a sample response text from the AI agent."
     } ],
+    "id" : "01a00023-829e-723b-8cae-8bd1bb11c25b",
     "metadata" : {
       "framework" : {
         "finishReason" : "STOP",

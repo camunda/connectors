@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import java.io.IOException;
 import java.util.List;
+import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
 import org.junit.jupiter.api.Test;
 
 class MessageSerializationTest {
@@ -30,16 +31,20 @@ class MessageSerializationTest {
 
     assertThat(deserialized.messages())
         .usingRecursiveFieldByFieldElementComparator()
-        .containsExactlyElementsOf(TestMessagesFixture.testMessages());
+        .containsExactlyElementsOf(wrapper.messages());
   }
 
   @Test
   void messagesCanBeDeserializedFromFixture() throws IOException {
-    // test that representation stored in fixture file is stable
+    // fixture predates Message#id(); ids are backfilled on load, so ignore them in the content
+    // comparison below, but still assert every message actually got one.
     final var fromFile = TestMessagesFixture.testMessagesFromFile();
 
+    assertThat(fromFile).allSatisfy(message -> assertThat(message.id()).isNotNull());
+
     assertThat(fromFile)
-        .usingRecursiveFieldByFieldElementComparator()
+        .usingRecursiveFieldByFieldElementComparator(
+            RecursiveComparisonConfiguration.builder().withIgnoredFields("id").build())
         .containsExactlyElementsOf(TestMessagesFixture.testMessages());
   }
 
