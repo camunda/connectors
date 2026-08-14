@@ -18,5 +18,9 @@ import java.util.Map;
   @JsonSubTypes.Type(value = ToolCallResultMessage.class, name = "tool_call_result"),
 })
 public interface Message {
+
+  /** Self-generated id, independent of any provider id. Stable across persistence. */
+  String id();
+
   Map<String, Object> metadata();
 }

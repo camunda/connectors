@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DE
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.testutil.MessageAssertions.assertMessagesEqualIgnoringSystemMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -195,15 +196,13 @@ class AgentTaskRequestHandlerTest {
     final var assistantMessage = assistantMessage(assistantMessageText);
     mockChatModelExecution(assistantMessage);
 
-    final var expectedStoredMessages = List.of(SYSTEM_MESSAGE, USER_MESSAGE, assistantMessage);
-
     mockResponseHandler();
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     // snapshot is captured before the assistant message is ingested
-    assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
-        .containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
+    assertMessagesEqualIgnoringSystemMessageId(
+        chatModelRequestCaptor.getValue().snapshot().messages(), SYSTEM_MESSAGE, USER_MESSAGE);
 
     var agentResponse = response.agentResponse();
     assertThat(agentResponse).isNotNull();
@@ -214,7 +213,9 @@ class AgentTaskRequestHandlerTest {
         .isNotNull()
         .isInstanceOfSatisfying(
             InProcessConversationContext.class,
-            c -> assertThat(c.messages()).containsExactlyElementsOf(expectedStoredMessages));
+            c ->
+                assertMessagesEqualIgnoringSystemMessageId(
+                    c.messages(), SYSTEM_MESSAGE, USER_MESSAGE, assistantMessage));
 
     assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
     assertThat(agentResponse.responseText()).isEqualTo(assistantMessageText);
@@ -233,14 +234,12 @@ class AgentTaskRequestHandlerTest {
     final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
     mockChatModelExecution(assistantMessage);
 
-    final var expectedStoredMessages = List.of(SYSTEM_MESSAGE, USER_MESSAGE, assistantMessage);
-
     mockResponseHandler();
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
-        .containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
+    assertMessagesEqualIgnoringSystemMessageId(
+        chatModelRequestCaptor.getValue().snapshot().messages(), SYSTEM_MESSAGE, USER_MESSAGE);
 
     var agentResponse = response.agentResponse();
     assertThat(agentResponse).isNotNull();
@@ -251,7 +250,9 @@ class AgentTaskRequestHandlerTest {
         .isNotNull()
         .isInstanceOfSatisfying(
             InProcessConversationContext.class,
-            c -> assertThat(c.messages()).containsExactlyElementsOf(expectedStoredMessages));
+            c ->
+                assertMessagesEqualIgnoringSystemMessageId(
+                    c.messages(), SYSTEM_MESSAGE, USER_MESSAGE, assistantMessage));
 
     assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
     assertThat(agentResponse.responseText()).isNull();

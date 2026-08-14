@@ -667,6 +667,11 @@ class ChatMessageConverterTest {
     Message unknownMessage =
         new Message() {
           @Override
+          public String id() {
+            return "unknown-message-id";
+          }
+
+          @Override
           public Map<String, Object> metadata() {
             return Collections.emptyMap();
           }

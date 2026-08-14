@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
+import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -18,6 +19,7 @@ import org.jspecify.annotations.Nullable;
 @AgenticAiRecord
 @JsonDeserialize(builder = UserMessage.UserMessageJacksonProxyBuilder.class)
 public record UserMessage(
+    @RecordBuilder.Initializer(source = MessageUtil.class, value = "generateId") String id,
     @Nullable String name,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)

@@ -10,9 +10,17 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public class MessageUtil {
   private MessageUtil() {}
+
+  /**
+   * Builder default for {@link Message#id()}; also backfills ids on pre-existing persisted data.
+   */
+  public static String generateId() {
+    return UUID.randomUUID().toString();
+  }
 
   public static List<Content> singleTextContent(String text) {
     return List.of(TextContent.textContent(text));
