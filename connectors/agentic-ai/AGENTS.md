@@ -307,10 +307,14 @@ scatter "accepted as a tradeoff until X" across every file the change touches �
 it's observed, and point once at the ADR for the reasoning.
 
 **Code comments and javadoc state their own contract, not another module's rationale.** A method's
-doc should describe what it does and what it requires of its own parameters — never lean on another
-package's types (`AgentConversationTurnInputComposer`, `CompositionResult.Deferred`, ...) or an
-ADR's decision history to explain why. If a precondition can only be understood by reading the
-caller, that coupling belongs in the ADR or the reference doc, not the method signature's javadoc.
+doc should describe what it does and what it requires of its own parameters, including the precise
+state or trigger a caller must observe — even when a sibling type in the same package expresses that
+most precisely (e.g. `handleNoInput`'s link to `CompositionResult.NoInput`). Draw the line at the
+package/module boundary: don't pull in a different module's internal types or decision history just
+to justify a precondition (e.g. an `agentinstance`-package method explaining its own contract via
+the `agent`-package composer's internals). If a precondition can only be understood by reading a
+caller in a different module, that coupling belongs in the ADR or the reference doc, not the method
+signature's javadoc.
 
 ## Keeping documentation up to date
 
