@@ -18,13 +18,11 @@ package io.camunda.connector.runtime.core.secret;
 
 import com.google.common.collect.Lists;
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.api.secret.SecretContext;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,8 +45,7 @@ public class CamundaClientSecretResolver implements SecretReferenceResolver {
   }
 
   @Override
-  public Map<String, String> resolve(
-      Collection<String> references, @Nullable SecretContext context) {
+  public Map<String, String> resolve(Collection<String> references) {
     var distinctReferences = List.copyOf(new LinkedHashSet<>(references));
     Map<String, String> resolved = new HashMap<>();
     for (List<String> chunk : Lists.partition(distinctReferences, MAX_REFERENCES_PER_CALL)) {

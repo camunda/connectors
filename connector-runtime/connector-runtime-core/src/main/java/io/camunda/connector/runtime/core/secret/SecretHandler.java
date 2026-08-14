@@ -71,7 +71,7 @@ public class SecretHandler {
   }
 
   public String replaceSecrets(String input, SecretContext context) {
-    var withReferencesResolved = replaceCamundaSecretReferences(input, context);
+    var withReferencesResolved = replaceCamundaSecretReferences(input);
     return SecretUtil.replaceSecrets(withReferencesResolved, context, legacySecretReplacer);
   }
 
@@ -80,7 +80,7 @@ public class SecretHandler {
    * calls {@link #referenceResolver}, which is what keeps this free for connectors that only use
    * the legacy form.
    */
-  private String replaceCamundaSecretReferences(String input, SecretContext context) {
+  private String replaceCamundaSecretReferences(String input) {
     var references = SecretReferenceUtil.findReferences(input);
     if (references.isEmpty()) {
       return input;
@@ -92,7 +92,7 @@ public class SecretHandler {
             .filter(reference -> !secretFilter.isAllowed(SecretReferenceUtil.bareName(reference)))
             .collect(Collectors.toSet());
     var requested = references.stream().filter(reference -> !refused.contains(reference)).toList();
-    var resolved = referenceResolver.resolve(requested, context);
+    var resolved = referenceResolver.resolve(requested);
     return SecretReferenceUtil.replaceReferences(input, resolved, refused);
   }
 }

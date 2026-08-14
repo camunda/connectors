@@ -271,9 +271,9 @@ class ConfigurationValidationServiceTest {
     // index both maps: if the FEEL evaluator and the camunda.secrets.<name> resolver ever came
     // from different maps looked up independently, this would resolve against the wrong engine.
     SecretReferenceResolver resolverA =
-        (references, context) -> Map.of("camunda.secrets.TOKEN", "from-engine-a");
+        references -> Map.of("camunda.secrets.TOKEN", "from-engine-a");
     SecretReferenceResolver resolverB =
-        (references, context) -> Map.of("camunda.secrets.TOKEN", "from-engine-b");
+        references -> Map.of("camunda.secrets.TOKEN", "from-engine-b");
     var registry = new ConfigurationValidationRegistry(List.of(recordingValidator));
     var service =
         new ConfigurationValidationService(

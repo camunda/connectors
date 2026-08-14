@@ -16,30 +16,30 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
-import io.camunda.connector.api.secret.SecretContext;
 import java.util.Collection;
 import java.util.Map;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Resolves {@code camunda.secrets.<name>} references against the orchestration cluster's secret
  * stores, via {@code POST /v2/secrets/resolve}. Deliberately separate from {@link
  * io.camunda.connector.api.secret.SecretProvider}: the two forms of secret are resolved from
- * different places and must not fall back onto one another (see ADR-0007).
+ * different places and must not fall back onto one another (see ADR-0007). Unlike {@code
+ * SecretProvider}, this takes no {@code SecretContext}: an instance is already scoped to one
+ * physical tenant's client (see {@link CamundaClientSecretResolver}), and the cluster works out the
+ * rest from the caller's own token.
  */
 public interface SecretReferenceResolver {
 
   /**
    * @param references whole {@code "camunda.secrets.<name>"} strings to resolve
-   * @param context the scope to resolve them in; {@code null} is tolerated
    * @return a map from each resolved reference to its value; a reference absent from the map has no
    *     value, whether because it wasn't found, wasn't permitted, or the resolver never called out
    *     (see {@link #noop()})
    */
-  Map<String, String> resolve(Collection<String> references, @Nullable SecretContext context);
+  Map<String, String> resolve(Collection<String> references);
 
   /** A resolver with no cluster to call: always returns no values, for no cost. */
   static SecretReferenceResolver noop() {
-    return (references, context) -> Map.of();
+    return references -> Map.of();
   }
 }

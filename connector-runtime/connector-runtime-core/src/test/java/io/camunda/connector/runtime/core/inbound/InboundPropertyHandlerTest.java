@@ -202,7 +202,7 @@ public class InboundPropertyHandlerTest {
           }
         };
     SecretReferenceResolver resolver =
-        (references, context) -> Map.of("camunda.secrets.TOKEN", "resolved-value");
+        references -> Map.of("camunda.secrets.TOKEN", "resolved-value");
     var secretHandler = new SecretHandler(secretProvider, SecretFilter.allowAll(), resolver);
     Map<String, Object> properties = Map.of("auth", "camunda.secrets.TOKEN");
 

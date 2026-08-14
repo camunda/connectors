@@ -18,10 +18,8 @@ package io.camunda.connector.runtime.core.secret;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -43,7 +41,7 @@ class SecretHandlerTest {
   @Test
   void references_areDedupedAndBatchedIntoOneCall() {
     SecretReferenceResolver resolver = mock(SecretReferenceResolver.class);
-    when(resolver.resolve(anyCollection(), any()))
+    when(resolver.resolve(anyCollection()))
         .thenReturn(Map.of("camunda.secrets.A", "va", "camunda.secrets.B", "vb"));
     var secretHandler = new SecretHandler(noopProvider(), SecretFilter.allowAll(), resolver);
     String input = "camunda.secrets.A camunda.secrets.B camunda.secrets.A";
@@ -53,14 +51,14 @@ class SecretHandlerTest {
     assertThat(result).isEqualTo("va vb va");
     @SuppressWarnings("unchecked")
     ArgumentCaptor<Collection<String>> captor = ArgumentCaptor.forClass(Collection.class);
-    verify(resolver, times(1)).resolve(captor.capture(), any());
+    verify(resolver, times(1)).resolve(captor.capture());
     assertThat(captor.getValue())
         .containsExactlyInAnyOrder("camunda.secrets.A", "camunda.secrets.B");
   }
 
   @Test
   void unresolvedReference_throwsConnectorInputException() {
-    SecretReferenceResolver resolver = (references, context) -> Map.of();
+    SecretReferenceResolver resolver = references -> Map.of();
     var secretHandler = new SecretHandler(noopProvider(), SecretFilter.allowAll(), resolver);
 
     assertThatThrownBy(() -> secretHandler.replaceSecrets("camunda.secrets.MISSING", null))
@@ -76,8 +74,7 @@ class SecretHandlerTest {
     var allowList = new ArrayList<>(SecretUtil.retrieveSecretKeysInInput(input));
     allowList.remove("REFUSED");
     var filter = SecretFilter.allowOnly(allowList);
-    SecretReferenceResolver resolver =
-        (references, context) -> Map.of("camunda.secrets.ALLOWED", "value-a");
+    SecretReferenceResolver resolver = references -> Map.of("camunda.secrets.ALLOWED", "value-a");
     var secretHandler = new SecretHandler(noopProvider(), filter, resolver);
 
     String result = secretHandler.replaceSecrets(input, null);
@@ -89,22 +86,23 @@ class SecretHandlerTest {
   void filterIsKeyedByBareName() {
     var filter = SecretFilter.allowOnly(List.of("FOO"));
     SecretReferenceResolver resolver = mock(SecretReferenceResolver.class);
-    when(resolver.resolve(anyCollection(), any()))
-        .thenReturn(Map.of("camunda.secrets.FOO", "value"));
+    when(resolver.resolve(anyCollection())).thenReturn(Map.of("camunda.secrets.FOO", "value"));
     var secretHandler = new SecretHandler(noopProvider(), filter, resolver);
 
     String result = secretHandler.replaceSecrets("camunda.secrets.FOO", null);
 
     assertThat(result).isEqualTo("value");
     // the resolver was asked for the WHOLE reference; only the filter check used the bare name
-    verify(resolver).resolve(eq(List.of("camunda.secrets.FOO")), any());
+    verify(resolver).resolve(eq(List.of("camunda.secrets.FOO")));
   }
 
   @Test
   void nullSecretContext_isTolerated() {
+    // The SecretContext still flows to the legacy SecretProvider and SecretUtil - only the
+    // camunda.secrets.<name> resolver dropped it, since it's already scoped to one physical
+    // tenant's client and never used it (see SecretReferenceResolver).
     SecretReferenceResolver resolver = mock(SecretReferenceResolver.class);
-    when(resolver.resolve(anyCollection(), isNull()))
-        .thenReturn(Map.of("camunda.secrets.FOO", "v"));
+    when(resolver.resolve(anyCollection())).thenReturn(Map.of("camunda.secrets.FOO", "v"));
     var secretHandler = new SecretHandler(noopProvider(), SecretFilter.allowAll(), resolver);
 
     String result = secretHandler.replaceSecrets("camunda.secrets.FOO", null);

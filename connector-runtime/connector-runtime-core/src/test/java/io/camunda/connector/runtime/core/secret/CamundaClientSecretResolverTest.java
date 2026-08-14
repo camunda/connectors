@@ -69,7 +69,7 @@ class CamundaClientSecretResolverTest {
     when(response.getErrors()).thenReturn(List.of());
     when(future.join()).thenReturn(response);
 
-    var result = resolver.resolve(List.of("camunda.secrets.A", "camunda.secrets.B"), null);
+    var result = resolver.resolve(List.of("camunda.secrets.A", "camunda.secrets.B"));
 
     assertThat(result)
         .containsExactlyInAnyOrderEntriesOf(
@@ -84,7 +84,7 @@ class CamundaClientSecretResolverTest {
     when(emptyResponse.getErrors()).thenReturn(List.of());
     when(future.join()).thenReturn(emptyResponse);
 
-    resolver.resolve(references, null);
+    resolver.resolve(references);
 
     verify(camundaClient, times(2)).newResolveSecretsCommand();
     @SuppressWarnings("unchecked")
@@ -107,7 +107,7 @@ class CamundaClientSecretResolverTest {
     when(response.getErrors()).thenReturn(List.of(error));
     when(future.join()).thenReturn(response);
 
-    var result = resolver.resolve(List.of("camunda.secrets.FOO"), null);
+    var result = resolver.resolve(List.of("camunda.secrets.FOO"));
 
     assertThat(result).doesNotContainKey("camunda.secrets.FOO");
   }
@@ -116,7 +116,7 @@ class CamundaClientSecretResolverTest {
   void transportFailureOrOlderClusterDegradesToPartialMap() {
     when(future.join()).thenThrow(new RuntimeException("simulated transport failure / 404"));
 
-    var result = resolver.resolve(List.of("camunda.secrets.FOO"), null);
+    var result = resolver.resolve(List.of("camunda.secrets.FOO"));
 
     assertThat(result).isEmpty();
   }
