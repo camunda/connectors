@@ -52,6 +52,7 @@ import jakarta.validation.ConstraintValidatorFactory;
 import jakarta.validation.Validation;
 import java.net.URL;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -67,6 +68,7 @@ import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
@@ -86,6 +88,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class ConnectorsAutoConfiguration {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectorsAutoConfiguration.class);
+
+  // Shared by springSecretProviderAggregator's @Bean name and
+  // secretProviderAggregatorLegacySwitchGuard's bypass check, so the two can never drift apart.
+  private static final String DEFAULT_AGGREGATOR_BEAN_NAME = "springSecretProviderAggregator";
 
   private final ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider;
 
@@ -156,7 +162,7 @@ public class ConnectorsAutoConfiguration {
    * no effect on {@code camunda.secrets.<name>} resolution, which is a separate mechanism (see
    * {@code SecretReferenceResolver}) and has no off switch.
    */
-  @Bean
+  @Bean(DEFAULT_AGGREGATOR_BEAN_NAME)
   @ConditionalOnMissingBean
   public SecretProviderAggregator springSecretProviderAggregator(
       Optional<List<SecretProvider>> secretProviderBeans,
@@ -178,6 +184,40 @@ public class ConnectorsAutoConfiguration {
     }
     return new SecretProviderAggregator(secretProviders);
   }
+
+  /**
+   * Fails startup if {@code camunda.connector.secret-resolver.legacy.enabled=false} is combined
+   * with a custom {@link SecretProviderAggregator} bean supplied by the application: such a bean
+   * bypasses {@link #springSecretProviderAggregator} entirely (it only exists thanks to
+   * {@code @ConditionalOnMissingBean}, so it never runs once a custom bean is present), which means
+   * the off switch would otherwise be silently ignored instead of enforced. This bean has no
+   * conditions, so it always runs and can catch that combination regardless of which bean provided
+   * the actual {@link SecretProviderAggregator}.
+   */
+  @Bean
+  public SecretProviderAggregatorLegacySwitchGuard secretProviderAggregatorLegacySwitchGuard(
+      ApplicationContext applicationContext,
+      @Value("${" + LegacySecretsDisabledProvider.PROPERTY + ":true}")
+          boolean legacySecretsEnabled) {
+    if (!legacySecretsEnabled) {
+      var customAggregatorBeanNames =
+          Arrays.stream(applicationContext.getBeanNamesForType(SecretProviderAggregator.class))
+              .filter(name -> !name.equals(DEFAULT_AGGREGATOR_BEAN_NAME))
+              .toList();
+      if (!customAggregatorBeanNames.isEmpty()) {
+        throw new IllegalStateException(
+            ("%s=false cannot be enforced together with the custom SecretProviderAggregator"
+                    + " bean(s) %s: that bean bypasses the auto-configured aggregator this switch"
+                    + " gates, so legacy secret resolution would keep working through it. Remove"
+                    + " the custom bean, or leave legacy secret resolution enabled.")
+                .formatted(LegacySecretsDisabledProvider.PROPERTY, customAggregatorBeanNames));
+      }
+    }
+    return new SecretProviderAggregatorLegacySwitchGuard();
+  }
+
+  /** Marker return type for {@link #secretProviderAggregatorLegacySwitchGuard}. */
+  public static final class SecretProviderAggregatorLegacySwitchGuard {}
 
   @Bean
   @ConditionalOnProperty(
