@@ -67,8 +67,14 @@ connector rather than borrowed from a provider that may not supply one.
   response. The two coexisting costs a few extra bytes per message — accepted, since collapsing
   them would conflate two identities with different lifetimes and different owners (us vs. the
   provider).
-- **Generation mechanism**: each message type defaults its id to a fresh random value whenever one
-  isn't explicitly supplied at construction. This means:
+- **The id is a dedicated value type, not a raw string.** Wrapping it puts the format/parsing
+  contract in one place instead of leaving it to convention. It still serializes as a bare JSON
+  string, so the wire and storage shape is exactly what a plain string id would have been.
+- **Generation mechanism**: each message type defaults its id to a fresh UUIDv7 (RFC 9562) value,
+  generated via a small, established third-party library rather than hand-rolled, whenever one
+  isn't explicitly supplied at construction. UUIDv7 is chosen over a plain random UUID for its
+  time-ordering property, which benefits storage-backend index locality; parsing accepts any valid
+  UUID, not only v7, so ids from outside this generation path deserialize the same way. This means:
   - Building a message without setting an id generates a fresh one inline.
   - Deserializing persisted data that already has an id binds that exact value, so the id survives
     every store/reload round trip unchanged.
@@ -131,6 +137,9 @@ connector rather than borrowed from a provider that may not supply one.
   historical data at risk in practice. Worth a proper fix (e.g. an explicit backfill write, or
   deriving an id from that platform's own stable event identity) before this store is considered
   production-ready independent of this ADR.
+- This is the first UUID-generation library dependency added anywhere in the connectors monorepo.
+  Accepted because the chosen library carries commercial support backing and comes from the same
+  maintainer lineage as Jackson, which this codebase already depends on and trusts.
 
 ## Out of Scope
 
@@ -140,5 +149,3 @@ connector rather than borrowed from a provider that may not supply one.
   are today.
 - Deterministic/re-derived ids (rejected Option B above).
 - A durable fix for AWS AgentCore's historical (pre-this-change) data — see Negative Consequences.
-- Choosing a specific id format (e.g. a time-sortable variant) over a plain random one — postponed;
-  revisit if storage-backend index locality becomes a real concern.
