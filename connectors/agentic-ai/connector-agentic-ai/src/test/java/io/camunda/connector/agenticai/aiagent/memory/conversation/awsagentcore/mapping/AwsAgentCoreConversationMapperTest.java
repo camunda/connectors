@@ -128,6 +128,21 @@ class AwsAgentCoreConversationMapperTest {
   }
 
   @Test
+  void shouldRoundTripUserMessageId() {
+    // given
+    UserMessage original =
+        UserMessage.builder().id("user-msg-1").content(List.of(textContent("Hello"))).build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    assertThat(message.id()).isEqualTo("user-msg-1");
+  }
+
+  @Test
   void shouldRoundTripUserMessageWithName() {
     // given
     UserMessage original =
@@ -341,6 +356,24 @@ class AwsAgentCoreConversationMapperTest {
   }
 
   @Test
+  void shouldRoundTripAssistantMessageId() {
+    // given
+    AssistantMessage original =
+        AssistantMessage.builder()
+            .id("assistant-msg-1")
+            .content(List.of(textContent("Here's the answer")))
+            .build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    assertThat(message.id()).isEqualTo("assistant-msg-1");
+  }
+
+  @Test
   void shouldRoundTripAssistantMessageWithUnknownStopReason() {
     // given
     AssistantMessage original =
@@ -452,6 +485,28 @@ class AwsAgentCoreConversationMapperTest {
     // then - summary should be valid JSON matching the original map
     String summary = payloads.get(0).conversational().content().text();
     JSONAssert.assertEquals("{\"items\":[\"a\",\"b\"],\"count\":2}", summary, false);
+  }
+
+  @Test
+  void shouldRoundTripToolCallResultMessageId() {
+    // given
+    ToolCallResultMessage original =
+        ToolCallResultMessage.builder()
+            .id("tool-msg-1")
+            .results(
+                List.of(
+                    ToolCallResultContent.builder()
+                        .content(List.of(TextContent.textContent("Result")))
+                        .build()))
+            .build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    assertThat(message.id()).isEqualTo("tool-msg-1");
   }
 
   @Test
