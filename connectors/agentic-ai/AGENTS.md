@@ -97,8 +97,11 @@ High-frequency traps (detail behind each link):
 
 - **Job supersession / `NOT_FOUND`**: a completing tool creates a new job; the stale in-flight job may be rejected.
   `ai-agent.md` §10.
-- **Partial tool results → no-op**: incomplete results make the composer return `Deferred` and the worker complete
-  without an LLM call. Expected, not a bug. `ai-agent.md` §9.
+- **Partial tool results → no-op (but not silent)**: incomplete results make the composer return `Deferred` and the
+  worker completes without an LLM call — expected, not a bug — but it now also reports whichever results have
+  arrived so far to agent instance history first (ADR 011). E2e tests asserting `verifyNoMoreInteractions` on
+  `AgentInstanceClient` for a multi-tool-call turn with staggered completion times must account for this call.
+  `ai-agent.md` §9.
 - **Write-ahead, pointer-based store contract**: `storeMessages` writes a new location; `loadMessages` follows the
   `AgentContext` pointer. Never overwrite what the current pointer references. `ai-agent.md` §6.
 - **Sub-process config frozen at AHSP entry**: input mappings evaluate once, so config/migration changes don't reach a
