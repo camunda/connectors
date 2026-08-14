@@ -82,7 +82,6 @@
   }, {
     "id" : "createChannel:configuration.baseUrl",
     "label" : "Base URL",
-    "description" : "App Integrations backend URL.",
     "optional" : false,
     "feel" : "optional",
     "group" : "configuration",
@@ -97,12 +96,11 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Tip: store the URL as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.",
+    "tooltip" : "App Integrations backend URL. Tip: store this as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.",
     "type" : "String"
   }, {
     "id" : "sendMessage:configuration.baseUrl",
     "label" : "Base URL",
-    "description" : "App Integrations backend URL.",
     "optional" : false,
     "feel" : "optional",
     "group" : "configuration",
@@ -117,7 +115,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Tip: store the URL as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.",
+    "tooltip" : "App Integrations backend URL. Tip: store this as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.",
     "type" : "String"
   }, {
     "id" : "createChannel:configuration.authentication.type",
@@ -147,7 +145,6 @@
   }, {
     "id" : "createChannel:configuration.authentication.apiKey",
     "label" : "API key",
-    "description" : "Shared API key for authenticating to the App Integrations backend (self-managed).",
     "optional" : false,
     "feel" : "optional",
     "group" : "authentication",
@@ -166,12 +163,11 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Tip: store the API key as a secret, e.g. <code>{{secrets.APP_INTEGRATIONS_API_KEY}}</code>.",
+    "tooltip" : "Shared API key for authenticating to the App Integrations backend (self-managed). Tip: store this as a secret, e.g. <code>{{secrets.APP_INTEGRATIONS_API_KEY}}</code>.",
     "type" : "String"
   }, {
     "id" : "createChannel:configuration.authentication.oauthTokenEndpoint",
     "label" : "OAuth 2.0 token endpoint",
-    "description" : "The OAuth token endpoint",
     "optional" : false,
     "constraints" : {
       "pattern" : {
@@ -200,7 +196,6 @@
   }, {
     "id" : "createChannel:configuration.authentication.clientId",
     "label" : "Client ID",
-    "description" : "Your application's client ID from the OAuth client",
     "optional" : false,
     "feel" : "optional",
     "group" : "authentication",
@@ -219,11 +214,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Your application's client ID from the OAuth client",
     "type" : "String"
   }, {
     "id" : "createChannel:configuration.authentication.clientSecret",
     "label" : "Client secret",
-    "description" : "Your application's client secret from the OAuth client",
     "optional" : false,
     "feel" : "optional",
     "group" : "authentication",
@@ -242,11 +237,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Your application's client secret from the OAuth client",
     "type" : "String"
   }, {
     "id" : "createChannel:configuration.authentication.audience",
     "label" : "Audience",
-    "description" : "The unique identifier of the target API you want to access",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -265,11 +260,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The unique identifier of the target API you want to access",
     "type" : "String"
   }, {
     "id" : "createChannel:configuration.authentication.clientAuthentication",
     "label" : "Client authentication",
-    "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "optional" : false,
     "value" : "credentialsBody",
     "group" : "authentication",
@@ -288,6 +283,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Send client credentials in body",
@@ -299,7 +295,6 @@
   }, {
     "id" : "createChannel:configuration.authentication.scopes",
     "label" : "Scopes",
-    "description" : "The scopes which you want to request authorization for (e.g. read:contacts)",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -318,6 +313,8 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The scopes you want to request authorization for.",
+    "placeholder" : "read:contacts",
     "type" : "String"
   }, {
     "id" : "sendMessage:configuration.authentication.type",
@@ -347,7 +344,6 @@
   }, {
     "id" : "sendMessage:configuration.authentication.apiKey",
     "label" : "API key",
-    "description" : "Shared API key for authenticating to the App Integrations backend (self-managed).",
     "optional" : false,
     "feel" : "optional",
     "group" : "authentication",
@@ -366,12 +362,11 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Tip: store the API key as a secret, e.g. <code>{{secrets.APP_INTEGRATIONS_API_KEY}}</code>.",
+    "tooltip" : "Shared API key for authenticating to the App Integrations backend (self-managed). Tip: store this as a secret, e.g. <code>{{secrets.APP_INTEGRATIONS_API_KEY}}</code>.",
     "type" : "String"
   }, {
     "id" : "sendMessage:configuration.authentication.oauthTokenEndpoint",
     "label" : "OAuth 2.0 token endpoint",
-    "description" : "The OAuth token endpoint",
     "optional" : false,
     "constraints" : {
       "pattern" : {
@@ -400,7 +395,6 @@
   }, {
     "id" : "sendMessage:configuration.authentication.clientId",
     "label" : "Client ID",
-    "description" : "Your application's client ID from the OAuth client",
     "optional" : false,
     "feel" : "optional",
     "group" : "authentication",
@@ -419,11 +413,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Your application's client ID from the OAuth client",
     "type" : "String"
   }, {
     "id" : "sendMessage:configuration.authentication.clientSecret",
     "label" : "Client secret",
-    "description" : "Your application's client secret from the OAuth client",
     "optional" : false,
     "feel" : "optional",
     "group" : "authentication",
@@ -442,11 +436,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Your application's client secret from the OAuth client",
     "type" : "String"
   }, {
     "id" : "sendMessage:configuration.authentication.audience",
     "label" : "Audience",
-    "description" : "The unique identifier of the target API you want to access",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -465,11 +459,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The unique identifier of the target API you want to access",
     "type" : "String"
   }, {
     "id" : "sendMessage:configuration.authentication.clientAuthentication",
     "label" : "Client authentication",
-    "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "optional" : false,
     "value" : "credentialsBody",
     "group" : "authentication",
@@ -488,6 +482,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Send client credentials in body",
@@ -499,7 +494,6 @@
   }, {
     "id" : "sendMessage:configuration.authentication.scopes",
     "label" : "Scopes",
-    "description" : "The scopes which you want to request authorization for (e.g. read:contacts)",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -518,11 +512,12 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The scopes you want to request authorization for.",
+    "placeholder" : "read:contacts",
     "type" : "String"
   }, {
     "id" : "sendMessage:email",
     "label" : "User Email",
-    "description" : "Email address of the recipient. Use a FEEL expression to reference a process variable, e.g. =assigneeEmail.",
     "optional" : true,
     "feel" : "optional",
     "group" : "message",
@@ -537,11 +532,12 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Email address of the recipient. Use a FEEL expression to reference a process variable.",
+    "placeholder" : "=assigneeEmail",
     "type" : "String"
   }, {
     "id" : "sendMessage:channelId",
     "label" : "Channel ID",
-    "description" : "Microsoft Teams channel ID to send to directly, e.g. 19:xxx@thread.tacv2. Use when sending to a channel rather than a user.",
     "optional" : true,
     "feel" : "optional",
     "group" : "message",
@@ -556,11 +552,12 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Microsoft Teams channel ID to send to directly. Use when sending to a channel rather than a user.",
+    "placeholder" : "19:xxx@thread.tacv2",
     "type" : "String"
   }, {
     "id" : "sendMessage:message",
     "label" : "Message",
-    "description" : "Plain text content to send. Provide either this, an adaptive card, or link a form.",
     "optional" : true,
     "feel" : "optional",
     "group" : "message",
@@ -575,11 +572,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Plain text content to send. Provide either this, an adaptive card, or link a form.",
     "type" : "Text"
   }, {
     "id" : "sendMessage:adaptiveCardJson",
     "label" : "Adaptive card",
-    "description" : "JSON payload for a custom Teams adaptive card. Provide either this, a plain text message, or link a form.",
     "optional" : true,
     "feel" : "optional",
     "group" : "message",
@@ -594,6 +591,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "JSON payload for a custom Teams adaptive card. Provide either this, a plain text message, or link a form.",
     "type" : "Text"
   }, {
     "id" : "sendMessage:formDefinition.include",
@@ -722,7 +720,6 @@
   }, {
     "id" : "createChannel:teamId",
     "label" : "Team ID",
-    "description" : "ID of the Microsoft Teams team, or a full Teams URL (the groupId query parameter will be extracted automatically).",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -740,11 +737,12 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "ID of the Microsoft Teams team, or a full Teams URL (the groupId query parameter will be extracted automatically).",
     "type" : "String"
   }, {
     "id" : "createChannel:displayName",
     "label" : "Channel name",
-    "description" : "Display name for the new channel (max 50 characters).",
+    "description" : "Max 50 characters.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true,
@@ -764,11 +762,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Display name for the new channel.",
     "type" : "String"
   }, {
     "id" : "createChannel:description",
     "label" : "Description",
-    "description" : "Optional description for the channel.",
     "optional" : true,
     "feel" : "optional",
     "group" : "channel",
@@ -787,7 +785,6 @@
   }, {
     "id" : "createChannel:membershipType",
     "label" : "Channel type",
-    "description" : "Membership type: standard (visible to all), private (invite-only), or shared.",
     "optional" : false,
     "value" : "standard",
     "feel" : "optional",
@@ -803,6 +800,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Membership type: standard (visible to all), private (invite-only), or shared.",
     "type" : "String"
   }, {
     "id" : "version",

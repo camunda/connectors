@@ -28,21 +28,23 @@ public record SendMessageRequest(
     @TemplateProperty(
             group = "message",
             label = "User Email",
-            description =
-                "Email address of the recipient. Use a FEEL expression to reference a process variable, e.g. =assigneeEmail.",
+            tooltip =
+                "Email address of the recipient. Use a FEEL expression to reference a process variable.",
+            placeholder = "=assigneeEmail",
             optional = true)
         String email,
     @TemplateProperty(
             group = "message",
             label = "Channel ID",
-            description =
-                "Microsoft Teams channel ID to send to directly, e.g. 19:xxx@thread.tacv2. Use when sending to a channel rather than a user.",
+            tooltip =
+                "Microsoft Teams channel ID to send to directly. Use when sending to a channel rather than a user.",
+            placeholder = "19:xxx@thread.tacv2",
             optional = true)
         String channelId,
     @TemplateProperty(
             group = "message",
             label = "Message",
-            description =
+            tooltip =
                 "Plain text content to send. Provide either this, an adaptive card, or link a form.",
             type = PropertyType.Text,
             optional = true)
@@ -50,7 +52,7 @@ public record SendMessageRequest(
     @TemplateProperty(
             group = "message",
             label = "Adaptive card",
-            description =
+            tooltip =
                 "JSON payload for a custom Teams adaptive card. Provide either this, a plain text message, or link a form.",
             type = PropertyType.Text,
             optional = true)

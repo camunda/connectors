@@ -14,8 +14,7 @@ public record AppIntegrationsConfiguration(
     @TemplateProperty(
             group = "configuration",
             label = "Base URL",
-            description = "App Integrations backend URL.",
             tooltip =
-                "Tip: store the URL as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.")
+                "App Integrations backend URL. Tip: store this as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.")
         String baseUrl,
     @Valid AppIntegrationsAuthentication authentication) {}

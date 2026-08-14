@@ -22,7 +22,7 @@ public record CreateChannelRequest(
         @TemplateProperty(
             group = "channel",
             label = "Team ID",
-            description =
+            tooltip =
                 "ID of the Microsoft Teams team, or a full Teams URL"
                     + " (the groupId query parameter will be extracted automatically).")
         String teamId,
@@ -31,18 +31,14 @@ public record CreateChannelRequest(
         @TemplateProperty(
             group = "channel",
             label = "Channel name",
-            description = "Display name for the new channel (max 50 characters).")
+            tooltip = "Display name for the new channel.",
+            description = "Max 50 characters.")
         String displayName,
-    @TemplateProperty(
-            group = "channel",
-            label = "Description",
-            description = "Optional description for the channel.",
-            optional = true)
-        String description,
+    @TemplateProperty(group = "channel", label = "Description", optional = true) String description,
     @TemplateProperty(
             group = "channel",
             label = "Channel type",
-            description =
+            tooltip =
                 "Membership type: standard (visible to all), private (invite-only), or shared.",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(label = "Standard", value = "standard"),

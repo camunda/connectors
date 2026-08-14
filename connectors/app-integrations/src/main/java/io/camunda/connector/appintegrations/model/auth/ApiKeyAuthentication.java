@@ -14,10 +14,10 @@ public record ApiKeyAuthentication(
     @TemplateProperty(
             group = "authentication",
             label = "API key",
-            description =
-                "Shared API key for authenticating to the App Integrations backend (self-managed).",
             tooltip =
-                "Tip: store the API key as a secret, e.g. <code>{{secrets.APP_INTEGRATIONS_API_KEY}}</code>.")
+                "Shared API key for authenticating to the App Integrations backend (self-managed)."
+                    + " Tip: store this as a secret, e.g."
+                    + " <code>{{secrets.APP_INTEGRATIONS_API_KEY}}</code>.")
         String apiKey)
     implements AppIntegrationsAuthentication {
 
