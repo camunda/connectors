@@ -288,6 +288,30 @@ Follow the structure of existing ADRs (see [ADR 001](docs/adr/001-replace-mcp-cl
 Title, Deciders/Date, Status, Context & Problem, Decision Drivers, Considered Options, Decision
 Outcome.
 
+**Keep it at decision altitude.** An ADR states the problem, the drivers, the options, and the
+choice. It is not a mechanism walkthrough: no code excerpts, no line-number citations, no
+class-by-class narration of how the implementation works. That level of detail belongs in the code
+itself or in the reference docs, and it rots as the code changes while the decision doesn't. If a
+paragraph explains *how* something works rather than *why* it was chosen this way, cut it.
+
+**ADRs own the why; reference docs own the current state.** `ai-agent.md` and friends describe the
+system as it is today, not how it got there. Don't write "this used to be a no-op, but now..." in a
+reference doc — state the current behavior plainly and, if the history matters, link to the ADR
+that made the change. Conversely, don't restate current implementation detail in the ADR beyond
+what's needed to justify the decision.
+
+**Known gaps get a named Follow-up, not a repeated disclaimer.** If a decision leaves a rough edge
+(a duplicate write, a cosmetic divergence, a missing feature blocked on something external), say so
+once, in a `## Follow-up` section, with the concrete condition and mechanism that closes it. Don't
+scatter "accepted as a tradeoff until X" across every file the change touches — state the fact where
+it's observed, and point once at the ADR for the reasoning.
+
+**Code comments and javadoc state their own contract, not another module's rationale.** A method's
+doc should describe what it does and what it requires of its own parameters — never lean on another
+package's types (`AgentConversationTurnInputComposer`, `CompositionResult.Deferred`, ...) or an
+ADR's decision history to explain why. If a precondition can only be understood by reading the
+caller, that coupling belongs in the ADR or the reference doc, not the method signature's javadoc.
+
 ## Keeping documentation up to date
 
 When a change touches documented structure (classes, interfaces, data-model records, config
