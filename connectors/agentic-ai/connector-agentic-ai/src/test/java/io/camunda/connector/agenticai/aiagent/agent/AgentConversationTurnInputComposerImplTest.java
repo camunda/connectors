@@ -135,6 +135,27 @@ class AgentConversationTurnInputComposerImplTest {
     var history = TurnReconstructor.reconstruct(storedMessages);
     var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    // the arrived result is carried on Deferred so the caller can report it early (ADR 011)
+    assertThat(((CompositionResult.Deferred) result).arrivedResults())
+        .containsExactly(TOOL_CALL_RESULTS.getFirst());
+  }
+
+  @Test
+  void toolResultTurn_missingResults_deferredCarriesOnlyCorrelatingResult() {
+    // a stray/redelivered result for an id this turn isn't waiting on must not appear in
+    // Deferred's arrivedResults, and must not cause a failure either
+    var strayResult = ToolCallResult.builder().id("stray-id").name("unrelated").build();
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(TOOL_CALL_RESULTS.getFirst(), strayResult));
+    List<Message> storedMessages =
+        List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
+    var history = TurnReconstructor.reconstruct(storedMessages);
+    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    assertThat(((CompositionResult.Deferred) result).arrivedResults())
+        .containsExactly(TOOL_CALL_RESULTS.getFirst());
   }
 
   @Test
@@ -264,6 +285,8 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
 
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    assertThat(((CompositionResult.Deferred) result).arrivedResults())
+        .containsExactly(TOOL_CALL_RESULTS.getFirst());
   }
 
   @Test
@@ -288,6 +311,8 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
 
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    assertThat(((CompositionResult.Deferred) result).arrivedResults())
+        .containsExactly(TOOL_CALL_RESULTS.getFirst());
   }
 
   @Test

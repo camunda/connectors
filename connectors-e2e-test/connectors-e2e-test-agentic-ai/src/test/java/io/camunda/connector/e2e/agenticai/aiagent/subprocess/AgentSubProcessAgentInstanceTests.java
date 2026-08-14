@@ -21,9 +21,16 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
 
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -31,6 +38,7 @@ import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceClientVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
@@ -201,21 +209,78 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
                 .isReady()
                 .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 2)));
 
-    AgentInstanceClientVerifier.verify(agentInstanceClient)
-        .createdInstance()
-        .toolCallTurn(
-            new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 2),
-            turn ->
-                turn.fromUserPrompt("Calculate the superflux product and download a file")
-                    .callingTools("SuperfluxProduct", "Download_A_File"))
-        .finalAnswerTurn(
-            new AgentMetrics(1, new AgentMetrics.TokenUsage(15, 25), 0),
-            turn -> {
-              turn.fromToolResults().answering("Done.");
-              assertThat(turn.toolResultCompletedAt("fast-001"))
-                  .as("fast tool completed before slow tool")
-                  .isBefore(turn.toolResultCompletedAt("slow-001").minus(Duration.ofSeconds(2)));
-            })
-        .noMoreInteractions();
+    final var verifier =
+        AgentInstanceClientVerifier.verify(agentInstanceClient)
+            .createdInstance()
+            .toolCallTurn(
+                new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 2),
+                turn ->
+                    turn.fromUserPrompt("Calculate the superflux product and download a file")
+                        .callingTools("SuperfluxProduct", "Download_A_File"))
+            .finalAnswerTurn(
+                new AgentMetrics(1, new AgentMetrics.TokenUsage(15, 25), 0),
+                turn -> {
+                  turn.fromToolResults().answering("Done.");
+                  assertThat(turn.toolResultCompletedAt("fast-001"))
+                      .as("fast tool completed before slow tool")
+                      .isBefore(
+                          turn.toolResultCompletedAt("slow-001").minus(Duration.ofSeconds(2)));
+                });
+
+    // staggered completion also triggers the early-report path; account for it before
+    // noMoreInteractions()
+    verify(agentInstanceClient)
+        .createHistoryForToolCallResults(
+            any(AgentExecutionContext.class),
+            any(AgentInstanceKey.class),
+            argThat(
+                (List<ToolCallResult> results) ->
+                    results.stream().anyMatch(r -> "fast-001".equals(r.id()))),
+            any(AgentConversationTurn.class));
+
+    verifier.noMoreInteractions();
+  }
+
+  /**
+   * The fast tool's result MUST reach agent instance history via {@link
+   * AgentInstanceClient#createHistoryForToolCallResults} while the slow tool is still in flight.
+   * That call only originates from the composer's {@code Deferred} path, so its occurrence proves
+   * early visibility.
+   */
+  @Test
+  void shouldReportFastToolResultToHistoryWhileSlowToolStillInFlight() throws Exception {
+    final var slowFileUrl = wireMock.getHttpBaseUrl() + "/slow-test-streaming.pdf";
+    stubFor(
+        get(urlPathEqualTo("/slow-test-streaming.pdf"))
+            .atPriority(1)
+            .willReturn(
+                aResponse()
+                    .withBodyFile("test.pdf")
+                    .withHeader("Content-Type", "application/pdf")
+                    .withFixedDelay(3000)));
+
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            null,
+            10,
+            20,
+            ToolCall.of("fast-002", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"),
+            ToolCall.of("slow-002", "Download_A_File", "{\"url\": \"%s\"}".formatted(slowFileUrl))),
+        Turn.text("Done.", 15, 25));
+
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    awaitProcessCompletion(
+        createProcessInstance(
+            Map.of("userPrompt", "Calculate the superflux product and download a file")));
+
+    verify(agentInstanceClient)
+        .createHistoryForToolCallResults(
+            any(AgentExecutionContext.class),
+            any(AgentInstanceKey.class),
+            argThat(
+                (List<ToolCallResult> results) ->
+                    results.stream().anyMatch(r -> "fast-002".equals(r.id()))),
+            any(AgentConversationTurn.class));
   }
 }

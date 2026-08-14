@@ -100,17 +100,17 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
       final var toolCalls = previousConversation.turns().getLast().toolCalls();
 
-      final var orderedToolCallResults =
+      final var resolution =
           resolveOrderedToolCallResults(
               agentContext, toolCalls, agentInput.toolCallResults(), interruptMissingToolCalls);
 
       // either we have all results or we interrupted the missing tool calls
-      // if empty, we wait on further tool call results to be added
-      if (orderedToolCallResults.isEmpty()) {
-        return new CompositionResult.Deferred();
+      // if incomplete, we wait on further tool call results to be added
+      if (!resolution.complete()) {
+        return new CompositionResult.Deferred(resolution.results());
       }
 
-      final var toolCallResults = orderedToolCallResults.get();
+      final var toolCallResults = resolution.results();
       final var toolCallResultMessage =
           ToolCallResultMessage.builder()
               .results(toolCallResults.stream().map(ToolCallResultContent::from).toList())
@@ -158,7 +158,14 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     return UserMessage.builder().content(content).metadata(defaultMessageMetadata()).build();
   }
 
-  private Optional<List<ToolCallResult>> resolveOrderedToolCallResults(
+  /**
+   * @param results the currently resolved, correlated and gateway-transformed results, in tool-call
+   *     order; partial (arrived-so-far) when {@code complete} is {@code false}
+   * @param complete whether every tool call has a result (or was cancelled via interrupt)
+   */
+  private record ToolCallResultsResolution(List<ToolCallResult> results, boolean complete) {}
+
+  private ToolCallResultsResolution resolveOrderedToolCallResults(
       AgentContext agentContext,
       List<ToolCall> toolCalls,
       List<ToolCallResult> toolCallResults,
@@ -188,17 +195,17 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           }
         });
 
-    // no results to return, not interrupting due to events -> we wait for more tool call results
+    // some results still missing, not interrupting due to events -> we wait for more to arrive
     if (!missingToolCalls.isEmpty() && !interruptMissingToolCalls) {
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug(
             "Not adding tool call result message as tool call IDs {} were missing in tool call results.",
             missingToolCalls.stream().map(ToolCall::id).toList());
       }
-      return Optional.empty();
+      return new ToolCallResultsResolution(orderedToolCallResults, false);
     }
 
-    return Optional.of(orderedToolCallResults);
+    return new ToolCallResultsResolution(orderedToolCallResults, true);
   }
 
   private @Nullable UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {

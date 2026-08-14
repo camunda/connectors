@@ -8,8 +8,10 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
@@ -73,4 +75,23 @@ public interface AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
       OffsetDateTime producedAt);
+
+  /**
+   * Appends one {@code TOOL_RESULT} history item per result, for a turn whose tool-call batch is
+   * not yet complete. Skips silently when {@code agentInstanceKey} is {@code null}.
+   *
+   * <p>Each result's id must correspond to a tool call in {@code previousTurn}; a non-matching id
+   * fails. {@link #createHistoryForInputMessages} writes the same result again once the batch
+   * completes.
+   *
+   * @param previousTurn supplies the correlating tool calls and a best-effort iteration key ({@code
+   *     previousTurn.iterationKey() + 1}); the batch write's key is authoritative
+   * @throws ConnectorException with code AGENT_INSTANCE_HISTORY_ITEM_FAILED when retries are
+   *     exhausted or a non-retryable error occurs
+   */
+  void createHistoryForToolCallResults(
+      AgentExecutionContext executionContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
+      List<ToolCallResult> toolCallResults,
+      AgentConversationTurn previousTurn);
 }

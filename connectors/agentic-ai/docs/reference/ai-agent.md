@@ -782,23 +782,26 @@ In `AgentConversationTurnInputComposerImpl.compose`, when the last reconstructed
 `AssistantMessage` that has tool calls (`history.turns().getLast().hasToolCalls()`):
 
 ```java
-final var orderedToolCallResults =
+final var resolution =
     resolveOrderedToolCallResults(
         agentContext, toolCalls, agentInput.toolCallResults(), interruptMissingToolCalls);
 
 // either we have all results or we interrupted the missing tool calls
-// if empty, we wait on further tool call results to be added
-if (orderedToolCallResults.isEmpty()) {
-    return new CompositionResult.Deferred();
+// if incomplete, we wait on further tool call results to be added
+if (!resolution.complete()) {
+    return new CompositionResult.Deferred(resolution.results());
 }
 ```
 
-The method checks each tool call from the last assistant message against the available results
-(`Optional<List<ToolCallResult>>`):
-- If all present: returns the results ordered to match the original tool call order; `compose` then
-  builds the `ToolCallResultMessage` from them
-- If missing and NOT interrupting: returns `Optional.empty()` → `compose` returns `CompositionResult.Deferred` → handler completes as a no-op
-- If missing and interrupting (due to event): creates cancelled results for missing tools, returned alongside the present ones
+The method correlates and gateway (MCP/A2A) transforms the available results, then checks each tool
+call from the last assistant message against them (`ToolCallResultsResolution(results, complete)`):
+- If all present: `complete` is `true`; `compose` builds the `ToolCallResultMessage` from `results`,
+  ordered to match the original tool call order
+- If missing and NOT interrupting: `complete` is `false`; `results` holds only the ones that arrived
+  so far → `compose` returns `CompositionResult.Deferred(results)` (ADR 011) → handler reports them
+  to agent instance history and completes as a no-op
+- If missing and interrupting (due to event): `complete` is `true`; cancelled results are added for
+  the missing tool calls, alongside the present ones
 
 ### No-Op Detection in BaseAgentRequestHandler
 
@@ -807,8 +810,10 @@ The method checks each tool call from the last assistant message against the ava
 
 ```java
 return switch (compositionResult) {
-    case CompositionResult.Deferred ignored ->
-        handleNoOp(executionContext);          // wait for more tool results
+    case CompositionResult.Deferred(var arrivedResults) -> {
+        reportArrivedToolCallResults(..., arrivedResults, ...); // ADR 011 — report what's arrived so far
+        yield handleNoOp(executionContext);    // wait for more tool results
+    }
     case CompositionResult.NoInput ignored ->
         handleNoInput(executionContext);       // nothing to add; handler decides
     case CompositionResult.NextTurn(var newMessages) ->
@@ -822,6 +827,31 @@ more results). When no input (user prompt, documents or events) is available at 
 `CompositionResult.NoInput`. This variant carries no error semantics — each handler decides: the job
 worker's `handleNoInput` completes without a response, while the outbound connector's `handleNoInput`
 throws a `ConnectorException` with `ERROR_CODE_NO_USER_MESSAGE_CONTENT`.
+
+### Streaming Arrived Results to Agent Instance History (ADR 011)
+
+`CompositionResult.Deferred` carries `arrivedResults`: the tool call results correlated and
+gateway-transformed by `AgentConversationTurnInputComposerImpl.resolveOrderedToolCallResults`
+before it determined the batch was still incomplete. `BaseAgentRequestHandler.reportArrivedToolCallResults`
+reports these to agent instance history via `AgentInstanceClient.createHistoryForToolCallResults`
+before completing the job, so history shows progress before the slowest tool call in a turn
+finishes — instead of only once the whole batch completes and `proceed()` runs. See
+[ADR 011](../adr/011-stream-tool-call-results-to-agent-instance-history.md) for the full design.
+
+- **Correlation and gateway (MCP/A2A) transformation happen once**, in the composer, for both the
+  `Deferred` and `NextTurn` paths. A stray or redelivered id that doesn't correlate to a tool call
+  the turn is waiting on never makes it into `arrivedResults`.
+- **Written once per job that still observes it.** `arrivedResults` is the full cumulative
+  correlated set on every call, since Zeebe's `toolCallResults` variable is cumulative across jobs
+  (§9) and there is no state to track what an earlier job already reported. A result that arrives
+  while other tool calls in the same turn are still outstanding is reported by every subsequent
+  incomplete job that still observes it, plus once more by `createHistoryForInputMessages` once
+  the batch completes — for a turn with `N` staggered tool calls, up to `N(N+1)/2` writes in total.
+- **No new persisted state.** The `Deferred` path touches neither `AgentContext` nor the
+  `ConversationStore` — reporting to agent instance history is its only side effect.
+- **Strict failure.** Unlike the metrics-update listener (which fires after job completion and
+  swallows failures), this call runs before completion and a failure fails the job, same as the
+  other `AgentInstanceClient` history calls.
 
 ---
 
@@ -1756,6 +1786,15 @@ observing job completion (`jobLease` enforcement is a planned follow-up, camunda
 
 Failures to write a history item are **fatal** to the turn (propagated after retries), unlike the
 best-effort metrics updates.
+
+**Streamed early (ADR 011).** A third call, `createHistoryForToolCallResults`, fires from
+`BaseAgentRequestHandler.converse`'s `Deferred` branch — before the turn's tool-call batch is
+complete — reporting whichever results have arrived and correlate to the previous turn's tool
+calls so far, one `TOOL_RESULT` item per result, same mapping as above. Its iteration key
+(`previousTurn.iterationKey() + 1`) is best-effort, not authoritative — the batch-complete write's
+key is. These items duplicate what `createHistoryForInputMessages` writes again once the batch
+completes. See [§9](#9-tool-completion) and
+[ADR 011](../adr/011-stream-tool-call-results-to-agent-instance-history.md).
 
 ---
 

@@ -22,7 +22,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.FailureReason;
@@ -284,6 +287,39 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         toolCalls,
         historyMapper.historyMetrics(turn.metrics()),
         producedAt);
+  }
+
+  @Override
+  public void createHistoryForToolCallResults(
+      AgentExecutionContext executionContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
+      List<ToolCallResult> toolCallResults,
+      AgentConversationTurn previousTurn) {
+    if (agentInstanceKey == null) {
+      LOGGER.debug(
+          "Skipping agent instance history items (arrived tool call results): no agent instance key");
+      return;
+    }
+    final var syntheticMessage =
+        ToolCallResultMessage.builder()
+            .results(toolCallResults.stream().map(ToolCallResultContent::from).toList())
+            .build();
+    final var toolCallsById = previousTurn.toolCallsById();
+    final var iteration = previousTurn.iterationKey() + 1;
+    // turnIngestionTimestamp is unused for TOOL_RESULT items — each uses its own resolved
+    // completedAt
+    for (final var item :
+        historyMapper.inputHistoryItems(syntheticMessage, toolCallsById, OffsetDateTime.now())) {
+      createHistoryItem(
+          executionContext,
+          agentInstanceKey.value(),
+          item.role(),
+          item.content(),
+          iteration,
+          item.toolCalls(),
+          null,
+          item.producedAt());
+    }
   }
 
   private void createHistoryItem(

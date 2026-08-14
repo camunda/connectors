@@ -120,8 +120,10 @@ public abstract class BaseAgentRequestHandler<
       final var compositionResult =
           agentInputComposer.compose(configuration, agentContext, previousConversation, agentInput);
       return switch (compositionResult) {
-        case CompositionResult.Deferred ignored -> {
+        case CompositionResult.Deferred(var arrivedResults) -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
+          reportArrivedToolCallResults(
+              executionContext, agentContext, arrivedResults, previousConversation);
           yield handleNoOp(executionContext);
         }
         case CompositionResult.NoInput ignored -> {
@@ -133,6 +135,25 @@ public abstract class BaseAgentRequestHandler<
                 executionContext, agentContext, previousConversation, newMessages, session, store);
       };
     }
+  }
+
+  /**
+   * Reports {@code arrivedResults} to agent instance history. No-ops when empty or when there is no
+   * previous turn to correlate against.
+   */
+  private void reportArrivedToolCallResults(
+      C executionContext,
+      AgentContext agentContext,
+      List<ToolCallResult> arrivedResults,
+      PreviousConversation previousConversation) {
+    if (arrivedResults.isEmpty() || previousConversation.turns().isEmpty()) {
+      return;
+    }
+    agentInstanceClient.createHistoryForToolCallResults(
+        executionContext,
+        AgentInstanceKey.from(agentContext.metadata()),
+        arrivedResults,
+        previousConversation.turns().getLast());
   }
 
   private R proceed(
