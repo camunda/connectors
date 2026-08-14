@@ -49,6 +49,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -439,6 +441,36 @@ class AppIntegrationsConnectorTest {
                     new ChannelPlatform.TeamsChannelPlatform("My Channel", "  ", "standard"),
                     null)))
         .isNotEmpty();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"private", "shared", "Private", "SHARED"})
+  void teamsChannelType_postponedValues_failValidation(String membershipType) {
+    // Not offered in Modeler, but a hand-written variable could still carry one, so the request is
+    // refused before the backend is called.
+    var request =
+        new CreateChannelRequest(
+            new ChannelPlatform.TeamsChannelPlatform("My Channel", "g-1", membershipType), null);
+
+    assertThat(VALIDATOR.validate(request))
+        .extracting(v -> v.getMessage())
+        .anySatisfy(message -> assertThat(message).contains("Only 'standard'"));
+  }
+
+  @Test
+  void teamsChannelType_standardAndBlank_passValidation() {
+    assertThat(
+            VALIDATOR.validate(
+                new CreateChannelRequest(
+                    new ChannelPlatform.TeamsChannelPlatform("My Channel", "g-1", "standard"),
+                    null)))
+        .isEmpty();
+    // Blank falls back to the default rather than tripping the postponed-type check.
+    assertThat(
+            VALIDATOR.validate(
+                new CreateChannelRequest(
+                    new ChannelPlatform.TeamsChannelPlatform("My Channel", "g-1", "  "), null)))
+        .isEmpty();
   }
 
   @Test

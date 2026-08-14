@@ -12,6 +12,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -19,6 +20,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * Where a channel is created, and everything that differs by platform — including the channel name,
@@ -71,14 +74,12 @@ public sealed interface ChannelPlatform {
               group = "channel",
               label = "Channel type",
               description =
-                  "Membership type: standard (visible to all), private (invite-only), or shared.",
+                  "Membership type. Only standard (visible to all) is supported for now — private and shared channels follow in a later version.",
               // Without an explicit Dropdown type the generator keeps a String field and silently
               // drops the choices, since membershipType is not an enum.
               type = PropertyType.Dropdown,
               choices = {
-                @TemplateProperty.DropdownPropertyChoice(label = "Standard", value = "standard"),
-                @TemplateProperty.DropdownPropertyChoice(label = "Private", value = "private"),
-                @TemplateProperty.DropdownPropertyChoice(label = "Shared", value = "shared")
+                @TemplateProperty.DropdownPropertyChoice(label = "Standard", value = "standard")
               },
               defaultValue = DEFAULT_MEMBERSHIP_TYPE)
           String membershipType)
@@ -90,6 +91,16 @@ public sealed interface ChannelPlatform {
     @TemplateProperty(ignore = true)
     public static final String DEFAULT_MEMBERSHIP_TYPE = "standard";
 
+    /**
+     * Channel types Microsoft has not stabilised, and whose behaviour we have not established. They
+     * are switched off rather than removed: the field, the wire contract and the backend call are
+     * unchanged, the values are simply not offered in Modeler and are refused here, so a
+     * hand-written variable cannot reach a path nobody has exercised. Re-enabling means moving a
+     * value out of this set and back into the dropdown's choices.
+     */
+    @TemplateProperty(ignore = true)
+    public static final Set<String> POSTPONED_MEMBERSHIP_TYPES = Set.of("private", "shared");
+
     public TeamsChannelPlatform {
       teamId = extractGroupId(teamId);
       // Single runtime source of the channel-type default; the template's defaultValue only
@@ -98,6 +109,13 @@ public sealed interface ChannelPlatform {
       if (membershipType == null || membershipType.isBlank()) {
         membershipType = DEFAULT_MEMBERSHIP_TYPE;
       }
+    }
+
+    @AssertTrue(
+        message =
+            "Only 'standard' Microsoft Teams channels are supported for now; 'private' and 'shared' follow in a later version")
+    public boolean isMembershipTypeSupported() {
+      return !POSTPONED_MEMBERSHIP_TYPES.contains(membershipType.toLowerCase(Locale.ROOT));
     }
 
     /**

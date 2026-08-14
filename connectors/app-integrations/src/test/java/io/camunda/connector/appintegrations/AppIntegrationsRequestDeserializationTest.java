@@ -132,12 +132,12 @@ class AppIntegrationsRequestDeserializationTest {
         channel(
             """
             {"platform":{"type":"teams","displayName":"Releases","teamId":"group-1",
-                         "membershipType":"private"},
+                         "membershipType":"standard"},
              "description":"Automated releases"}""");
     var teamsPlatform = (ChannelPlatform.TeamsChannelPlatform) teams.platform();
     assertThat(teamsPlatform.displayName()).isEqualTo("Releases");
     assertThat(teamsPlatform.teamId()).isEqualTo("group-1");
-    assertThat(teamsPlatform.membershipType()).isEqualTo("private");
+    assertThat(teamsPlatform.membershipType()).isEqualTo("standard");
     assertThat(teams.description()).isEqualTo("Automated releases");
 
     var slack =

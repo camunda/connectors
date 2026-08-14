@@ -880,7 +880,7 @@
   }, {
     "id" : "createChannel:platform.membershipType",
     "label" : "Channel type",
-    "description" : "Membership type: standard (visible to all), private (invite-only), or shared.",
+    "description" : "Membership type. Only standard (visible to all) is supported for now — private and shared channels follow in a later version.",
     "optional" : false,
     "value" : "standard",
     "group" : "channel",
@@ -903,12 +903,6 @@
     "choices" : [ {
       "name" : "Standard",
       "value" : "standard"
-    }, {
-      "name" : "Private",
-      "value" : "private"
-    }, {
-      "name" : "Shared",
-      "value" : "shared"
     } ]
   }, {
     "id" : "createChannel:platform.slackChannelName",

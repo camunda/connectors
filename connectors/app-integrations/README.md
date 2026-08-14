@@ -98,9 +98,11 @@ header is ignored for any other selection.
 
 **Platform** switches between Microsoft Teams and Slack. Only `Description` is shared:
 
-- **Microsoft Teams** — `Channel name` (max 50 characters), `Team ID` (a raw `groupId` or a full Teams
-  URL, whose `groupId` query parameter is extracted automatically), and `Channel type` (`standard`,
-  `private`, `shared`; defaults to `standard`).
+- **Microsoft Teams** — `Channel name` (max 50 characters), `Team ID` (a raw group ID or a full Teams
+  URL, whose `groupId` query parameter is extracted automatically), and `Channel type`. Only
+  `standard` is available for now: private and shared channels are not yet stable on Microsoft's
+  side, so they are switched off and will follow in a later version. A request carrying `private` or
+  `shared` is rejected before the backend is called.
 - **Slack** — `Channel name` (max 80 characters, lowercase letters/digits/hyphens/underscores only),
   an optional `Workspace ID` (falls back to the backend's configured workspace), and a `Private
   channel` flag.
