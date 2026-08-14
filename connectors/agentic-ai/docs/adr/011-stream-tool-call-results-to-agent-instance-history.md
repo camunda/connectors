@@ -64,8 +64,8 @@ fails the job, matching the semantics of the other agent instance client calls i
 
 ### Negative Consequences
 
-* Write volume is O(N²) in the number of tool calls per turn, not a flat 2x: for `N` staggered tool
-  calls, up to `N(N+1)/2` history-item writes occur before dedup; see [Follow-up](#follow-up).
+* Write volume is O(N²) in the number of tool calls per turn: for `N` staggered tool calls, up to
+  `N(N+1)/2` history-item writes occur before dedup; see [Follow-up](#follow-up).
 
 ## Out of Scope
 
@@ -77,6 +77,4 @@ Once the redesigned agent instance history API
 ([camunda/camunda#58789](https://github.com/camunda/camunda/issues/58789)) supports dedup by id,
 wire both this path and the batch-complete write to supply that id, using the stable per-role
 message ids from [ADR 012](012-stable-self-generated-message-ids.md). That closes the duplicate-write
-gap without further design changes here — worth prioritizing once the API lands, since the O(N²)
-write volume (not a flat 2x) makes it more than a cosmetic cleanup for turns with several tool
-calls.
+gap without further design changes here.
