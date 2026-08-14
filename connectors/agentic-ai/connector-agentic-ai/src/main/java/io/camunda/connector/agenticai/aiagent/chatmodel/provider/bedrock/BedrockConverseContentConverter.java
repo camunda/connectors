@@ -101,11 +101,11 @@ public class BedrockConverseContentConverter {
   /**
    * Converts tool-result content to Converse {@link ToolResultContentBlock}s.
    *
-   * <p>A document is always flattened to the same {@code document-ref:} JSON reference an embedded
-   * document already gets here (see {@link BedrockConverseDocuments}), never embedded natively: the
-   * composer echoes every tool-result document in a separate synthetic user message, which is the
-   * one place its real bytes are delivered. Embedding it here as well would send it twice and trip
-   * Converse's duplicate-document-name validation.
+   * <p>A document is always flattened to the same serialized JSON reference an embedded document
+   * already gets here (see {@link BedrockConverseDocuments}), never embedded as a native {@code
+   * DocumentBlock}: the composer echoes every tool-result document in a separate synthetic user
+   * message, which is the one place its real bytes are delivered. Embedding it here as well would
+   * send it twice and trip Converse's duplicate-document-name validation.
    */
   public List<ToolResultContentBlock> toToolResultBlocks(List<Content> content) {
     final List<ToolResultContentBlock> blocks = new ArrayList<>();

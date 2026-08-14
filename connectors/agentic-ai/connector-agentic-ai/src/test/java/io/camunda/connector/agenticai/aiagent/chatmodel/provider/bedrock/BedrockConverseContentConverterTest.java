@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectConten
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.runtime.core.document.InlineDocument;
@@ -35,12 +36,29 @@ import software.amazon.awssdk.services.bedrockruntime.model.ImageFormat;
 
 class BedrockConverseContentConverterTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = TestObjectMapperSupplier.INSTANCE;
   private final BedrockConverseContentConverter converter =
       new BedrockConverseContentConverter(objectMapper);
 
   private static Document inlineDocument(String content, String name, String contentType) {
     return new InlineDocument(content, name, contentType);
+  }
+
+  /**
+   * Asserts the given JSON value is the standard serialized reference of an inline document - the
+   * exact shape the runtime's {@code DocumentSerializer} writes, and therefore the shape the {@code
+   * <doc/>} tag of the composer's synthetic message correlates against.
+   */
+  private static void assertInlineDocumentReference(
+      software.amazon.awssdk.core.document.Document json,
+      String content,
+      String fileName,
+      String contentType) {
+    assertThat(json.isMap()).isTrue();
+    assertThat(json.asMap())
+        .extractingByKeys("camunda.document.type", "content", "name", "contentType")
+        .extracting(software.amazon.awssdk.core.document.Document::asString)
+        .containsExactly("inline", content, fileName, contentType);
   }
 
   @Nested
@@ -255,7 +273,7 @@ class BedrockConverseContentConverterTest {
       assertThat(blocks.get(0).document()).isNull();
       final var json = blocks.get(0).json();
       assertThat(json).isNotNull();
-      assertThat(json.asString()).isEqualTo("document-ref:" + DocumentHandle.idFor(doc));
+      assertInlineDocumentReference(json, "fake-bytes", fileName, contentType);
     }
 
     @Test
@@ -289,15 +307,15 @@ class BedrockConverseContentConverterTest {
     }
 
     @Test
-    void mapsObjectContentWithEmbeddedDocumentToJsonBlockWithReferencePlaceholder() {
+    void mapsObjectContentWithEmbeddedDocumentToJsonBlockWithSerializedReference() {
       // A tool result whose value isn't a plain string is lifted into a single ObjectContent
       // wrapping the raw tree verbatim (ToolCallResultContent#contentFromObject) - documents
       // embedded inside it (e.g. a FEEL-composed {attachments: [doc]}) are never split out
       // beforehand, so they arrive here as raw Document instances nested in the tree. The actual
       // document content reaches the model separately, via the provider-agnostic synthetic
-      // document-echo message (AgentConversationTurnInputComposerImpl) - inlining it here too would
-      // send it twice and trip Bedrock's "duplicate document names" validation, so this converter
-      // only ever emits a reference placeholder for it.
+      // document-echo message (AgentConversationTurnInputComposerImpl) - inlining it here as a
+      // native document block too would send it twice and trip Bedrock's "duplicate document
+      // names" validation, so this converter only ever emits the serialized reference.
       final var doc = inlineDocument("fake-pdf-bytes", "report.pdf", "application/pdf");
 
       final var blocks =
@@ -309,13 +327,13 @@ class BedrockConverseContentConverterTest {
       assertThat(json).isNotNull();
       final var attachments = json.asMap().get("attachments").asList();
       assertThat(attachments).hasSize(1);
-      assertThat(attachments.get(0).asString())
-          .isEqualTo("document-ref:" + DocumentHandle.idFor(doc));
+      assertInlineDocumentReference(
+          attachments.get(0), "fake-pdf-bytes", "report.pdf", "application/pdf");
     }
 
     @Test
     void
-        mapsObjectContentWithMultipleNestedEmbeddedDocumentsToReferencePlaceholdersWithoutRecursing() {
+        mapsObjectContentWithMultipleNestedEmbeddedDocumentsToSerializedReferencesWithoutRecursing() {
       final var cover = inlineDocument("fake-png-bytes", "cover.png", "image/png");
       final var report = inlineDocument("fake-pdf-bytes", "report.pdf", "application/pdf");
 
@@ -331,10 +349,16 @@ class BedrockConverseContentConverterTest {
       assertThat(blocks).hasSize(1);
       final var json = blocks.get(0).json();
       assertThat(json).isNotNull();
-      assertThat(json.asMap().get("attachments").asList().get(0).asString())
-          .isEqualTo("document-ref:" + DocumentHandle.idFor(report));
-      assertThat(json.asMap().get("metadata").asMap().get("cover").asString())
-          .isEqualTo("document-ref:" + DocumentHandle.idFor(cover));
+      assertInlineDocumentReference(
+          json.asMap().get("attachments").asList().get(0),
+          "fake-pdf-bytes",
+          "report.pdf",
+          "application/pdf");
+      assertInlineDocumentReference(
+          json.asMap().get("metadata").asMap().get("cover"),
+          "fake-png-bytes",
+          "cover.png",
+          "image/png");
     }
 
     @Test

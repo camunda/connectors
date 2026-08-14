@@ -99,12 +99,16 @@ Converse `cachePoint` blocks. Converse always reports a distinct cache-write cou
 
 ### Tool-result documents
 
-A document inside a tool result always renders as the same `document-ref:<id>` JSON reference an
-embedded document already gets (`BedrockConverseContentConverter.toToolResultBlocks`, see
-`BedrockConverseDocuments`), never embedded natively, regardless of content type. The composer's `<doc/>`
-fallback message is the document's only delivery channel; embedding it here too would send the
-bytes twice and trip Converse's duplicate-document-name validation, since `DocumentHandle.idFor`
-produces the same name in both places.
+A document inside a tool result always renders as the JSON reference the runtime's standard
+`DocumentSerializer` writes — the same shape an embedded document gets
+(`BedrockConverseContentConverter.toToolResultBlocks`, see `BedrockConverseDocuments`) and the same
+fields the composer's `<doc/>` tag carries, so the model can correlate the two 1:1 — never embedded
+as a native `DocumentBlock`, regardless of content type. The composer's `<doc/>` fallback message is
+the document's only bytes-delivery channel; embedding it here too would send the bytes twice and trip
+Converse's duplicate-document-name validation, since `DocumentHandle.idFor` produces the same
+`DocumentBlock.name` in both places. The nested Camunda document is serialized, never round-tripped
+through Jackson deserialization: an `Object.class` target reconstructs another `Document` and would
+recurse forever.
 
 ### Truncation
 
