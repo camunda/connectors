@@ -49,12 +49,12 @@ preserved. `refusal` and `model_context_window_exceeded` never reach this mappin
 assistant message and metrics already built for the turn as the exception's `PartialResult` (see
 [ai-agent.md §12](ai-agent.md#12-framework-abstraction)).
 
-## Bedrock
+## Bedrock Converse
 
-One wire format (the Bedrock Runtime Converse API), reaching every model family Bedrock hosts (Amazon
-Nova, Anthropic Claude, Llama, Mistral, DeepSeek, Cohere, Gemma, gpt-oss). There is no backend axis:
-`BedrockConverseChatModelConfiguration` carries a region, an `AwsAuthentication` (static credentials, API key,
-or the default credentials chain) and an optional custom endpoint.
+One wire format (the Bedrock Runtime Converse API), reaching every model family Bedrock hosts
+(Amazon Nova, Anthropic Claude, Llama, Mistral, DeepSeek, Cohere, Gemma, gpt-oss). There is no
+backend axis: `BedrockConverseChatModelConfiguration` carries a region, an `AwsAuthentication`
+(static credentials, API key, or the default credentials chain) and an optional custom endpoint.
 
 ### Streaming transport
 
@@ -94,8 +94,9 @@ capability matrix this module does not have yet.
 
 ### Caching
 
-Opt-in per model (`BedrockModelParameters.promptCaching.enabled`, default `false`), expressed as
-Converse `cachePoint` blocks. Converse always reports a distinct cache-write count in `TokenUsage`.
+Opt-in per model (`BedrockConverseModelParameters.promptCaching.enabled`, default `false`),
+expressed as Converse `cachePoint` blocks. Converse always reports a distinct cache-write count in
+`TokenUsage`.
 
 ### Tool-result documents
 
@@ -104,8 +105,8 @@ A document inside a tool result always renders as the JSON reference the runtime
 (`BedrockConverseContentConverter.toToolResultBlocks`, see `BedrockConverseDocuments`) and the same
 fields the composer's `<doc/>` tag carries, so the model can correlate the two 1:1 — never embedded
 as a native `DocumentBlock`, regardless of content type. The composer's `<doc/>` fallback message is
-the document's only bytes-delivery channel; embedding it here too would send the bytes twice and trip
-Converse's duplicate-document-name validation, since `DocumentHandle.idFor` produces the same
+the document's only bytes-delivery channel; embedding it here too would send the bytes twice and
+trip Converse's duplicate-document-name validation, since `DocumentHandle.idFor` produces the same
 `DocumentBlock.name` in both places. The nested Camunda document is serialized, never round-tripped
 through Jackson deserialization: an `Object.class` target reconstructs another `Document` and would
 recurse forever.

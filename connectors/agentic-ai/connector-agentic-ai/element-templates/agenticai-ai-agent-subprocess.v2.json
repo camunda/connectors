@@ -126,7 +126,7 @@
       "name" : "Anthropic",
       "value" : "anthropic"
     }, {
-      "name" : "AWS Bedrock",
+      "name" : "AWS Bedrock Converse",
       "value" : "bedrock"
     }, {
       "name" : "OpenAI",
