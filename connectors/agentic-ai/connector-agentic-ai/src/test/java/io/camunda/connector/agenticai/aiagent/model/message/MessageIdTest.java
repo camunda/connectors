@@ -8,11 +8,39 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class MessageIdTest {
+
+  private final ObjectMapper objectMapper = new ObjectMapper();
+
+  @Test
+  void systemMessageBackfillsIdWhenDeserializedWithoutOne() throws Exception {
+    var message = objectMapper.readValue("{\"role\":\"system\",\"content\":[]}", Message.class);
+    assertThat(message.id()).isNotBlank();
+  }
+
+  @Test
+  void userMessageBackfillsIdWhenDeserializedWithoutOne() throws Exception {
+    var message = objectMapper.readValue("{\"role\":\"user\",\"content\":[]}", Message.class);
+    assertThat(message.id()).isNotBlank();
+  }
+
+  @Test
+  void assistantMessageBackfillsIdWhenDeserializedWithoutOne() throws Exception {
+    var message = objectMapper.readValue("{\"role\":\"assistant\",\"content\":[]}", Message.class);
+    assertThat(message.id()).isNotBlank();
+  }
+
+  @Test
+  void toolCallResultMessageBackfillsIdWhenDeserializedWithoutOne() throws Exception {
+    var message =
+        objectMapper.readValue("{\"role\":\"tool_call_result\",\"results\":[]}", Message.class);
+    assertThat(message.id()).isNotBlank();
+  }
 
   @Test
   void systemMessageGetsRandomIdWhenNotSet() {
