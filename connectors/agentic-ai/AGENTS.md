@@ -112,6 +112,11 @@ High-frequency traps (detail behind each link):
 - **Gateway `transformToolCallResults` must carry `completedAt` forward**: MCP/A2A handlers rebuild a
   new `ToolCallResult` when unwrapping the gateway envelope; unlike `elementId`, `completedAt` has no
   fallback resolution and is silently dropped if not copied explicitly. `ai-agent.md` §19, §23.
+- **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
+  messages with identical content have *different* ids. Stability only holds once a message has
+  been persisted and reloaded (or the exact same instance is reused) — tests that independently
+  construct an "expected" message and compare it for equality against one built by the code under
+  test will fail on `id` alone. `ai-agent.md` §6, [ADR 012](docs/adr/012-stable-self-generated-message-ids.md).
 
 ## Architectural invariants
 
