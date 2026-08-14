@@ -77,14 +77,11 @@ public interface AgentInstanceClient {
       OffsetDateTime producedAt);
 
   /**
-   * Appends one {@code TOOL_RESULT} item per result for a turn whose tool-call batch is not yet
-   * complete. Called from the composer's {@code Deferred} path. Skips silently when {@code
-   * agentInstanceKey} is {@code null}.
+   * Appends one {@code TOOL_RESULT} history item per result, for a turn whose tool-call batch is
+   * not yet complete. Skips silently when {@code agentInstanceKey} is {@code null}.
    *
-   * <p>{@code toolCallResults} MUST already be correlated to {@code previousTurn}'s tool calls and
-   * gateway (MCP/A2A) transformed by the caller (see {@code AgentConversationTurnInputComposer}'s
-   * {@code Deferred} result) — this method does not transform or filter them itself. A non-matching
-   * id fails, same as {@link #createHistoryForInputMessages}.
+   * <p>Each result's id must correspond to a tool call in {@code previousTurn}; a non-matching id
+   * fails, same as {@link #createHistoryForInputMessages}.
    *
    * <p>Duplicates the eventual batch-complete write; accepted until the redesigned API supports
    * dedup by id.

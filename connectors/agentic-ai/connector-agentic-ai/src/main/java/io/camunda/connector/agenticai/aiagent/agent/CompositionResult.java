@@ -21,7 +21,6 @@ public sealed interface CompositionResult {
    *
    * @param arrivedResults the tool call results that have arrived so far for the pending turn,
    *     already correlated to a tool call this turn is waiting on and gateway (MCP/A2A) transformed
-   *     — safe to report to agent instance history as-is (ADR 011)
    */
   record Deferred(List<ToolCallResult> arrivedResults) implements CompositionResult {
     public Deferred {
