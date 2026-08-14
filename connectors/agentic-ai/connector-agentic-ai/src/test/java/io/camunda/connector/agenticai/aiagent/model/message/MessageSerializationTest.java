@@ -40,7 +40,7 @@ class MessageSerializationTest {
     // comparison below, but still assert every message actually got one.
     final var fromFile = TestMessagesFixture.testMessagesFromFile();
 
-    assertThat(fromFile).allSatisfy(message -> assertThat(message.id()).isNotBlank());
+    assertThat(fromFile).allSatisfy(message -> assertThat(message.id()).isNotNull());
 
     assertThat(fromFile)
         .usingRecursiveFieldByFieldElementComparator(

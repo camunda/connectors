@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -258,7 +259,7 @@ public class AwsAgentCoreConversationMapper {
         var builder = UserMessage.builder().content(content).metadata(metadata);
         if (properties != null) {
           if (properties.get(PROPERTY_ID) instanceof String id) {
-            builder.id(id);
+            builder.id(MessageId.of(id));
           }
           if (properties.get(PROPERTY_USER_NAME) instanceof String name) {
             builder.name(name);
@@ -271,7 +272,7 @@ public class AwsAgentCoreConversationMapper {
             AssistantMessage.builder().content(content).toolCalls(toolCalls).metadata(metadata);
         if (properties != null) {
           if (properties.get(PROPERTY_ID) instanceof String id) {
-            assistantBuilder.id(id);
+            assistantBuilder.id(MessageId.of(id));
           }
           if (properties.get(PROPERTY_MODEL_ID) instanceof String modelId) {
             assistantBuilder.modelId(modelId);
@@ -293,7 +294,7 @@ public class AwsAgentCoreConversationMapper {
         var toolBuilder =
             ToolCallResultMessage.builder().results(toolCallResults).metadata(metadata);
         if (properties != null && properties.get(PROPERTY_ID) instanceof String id) {
-          toolBuilder.id(id);
+          toolBuilder.id(MessageId.of(id));
         }
         yield Optional.of(toolBuilder.build());
       }

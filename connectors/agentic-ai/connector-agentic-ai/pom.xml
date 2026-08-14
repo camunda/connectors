@@ -25,6 +25,7 @@
     <version.errorprone>2.50.0</version.errorprone>
     <version.nullaway>0.13.8</version.nullaway>
     <version.anthropic-java>2.53.0</version.anthropic-java>
+    <version.java-uuid-generator>5.2.0</version.java-uuid-generator>
   </properties>
 
   <licenses>
@@ -100,6 +101,12 @@
       <artifactId>record-builder-core</artifactId>
       <version>${version.record-builder}</version>
       <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.uuid</groupId>
+      <artifactId>java-uuid-generator</artifactId>
+      <version>${version.java-uuid-generator}</version>
     </dependency>
 
     <dependency>

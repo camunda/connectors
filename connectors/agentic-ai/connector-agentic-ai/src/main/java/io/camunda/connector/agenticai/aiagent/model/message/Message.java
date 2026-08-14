@@ -19,8 +19,8 @@ import java.util.Map;
 })
 public interface Message {
 
-  /** Self-generated id, independent of any provider id. Stable across persistence. */
-  String id();
+  /** Self-generated id (UUIDv7), independent of any provider id. Stable across persistence. */
+  MessageId id();
 
   Map<String, Object> metadata();
 }

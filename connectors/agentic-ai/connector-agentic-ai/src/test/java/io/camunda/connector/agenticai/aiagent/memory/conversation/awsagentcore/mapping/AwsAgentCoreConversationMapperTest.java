@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -30,6 +31,7 @@ import io.camunda.connector.runtime.test.document.TestDocumentFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -130,8 +132,9 @@ class AwsAgentCoreConversationMapperTest {
   @Test
   void shouldRoundTripUserMessageId() {
     // given
+    MessageId id = MessageId.of(UUID.randomUUID());
     UserMessage original =
-        UserMessage.builder().id("user-msg-1").content(List.of(textContent("Hello"))).build();
+        UserMessage.builder().id(id).content(List.of(textContent("Hello"))).build();
 
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
@@ -139,7 +142,7 @@ class AwsAgentCoreConversationMapperTest {
     Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(message.id()).isEqualTo("user-msg-1");
+    assertThat(message.id()).isEqualTo(id);
   }
 
   @Test
@@ -358,9 +361,10 @@ class AwsAgentCoreConversationMapperTest {
   @Test
   void shouldRoundTripAssistantMessageId() {
     // given
+    MessageId id = MessageId.of(UUID.randomUUID());
     AssistantMessage original =
         AssistantMessage.builder()
-            .id("assistant-msg-1")
+            .id(id)
             .content(List.of(textContent("Here's the answer")))
             .build();
 
@@ -370,7 +374,7 @@ class AwsAgentCoreConversationMapperTest {
     Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(message.id()).isEqualTo("assistant-msg-1");
+    assertThat(message.id()).isEqualTo(id);
   }
 
   @Test
@@ -490,9 +494,10 @@ class AwsAgentCoreConversationMapperTest {
   @Test
   void shouldRoundTripToolCallResultMessageId() {
     // given
+    MessageId id = MessageId.of(UUID.randomUUID());
     ToolCallResultMessage original =
         ToolCallResultMessage.builder()
-            .id("tool-msg-1")
+            .id(id)
             .results(
                 List.of(
                     ToolCallResultContent.builder()
@@ -506,7 +511,7 @@ class AwsAgentCoreConversationMapperTest {
     Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(message.id()).isEqualTo("tool-msg-1");
+    assertThat(message.id()).isEqualTo(id);
   }
 
   @Test

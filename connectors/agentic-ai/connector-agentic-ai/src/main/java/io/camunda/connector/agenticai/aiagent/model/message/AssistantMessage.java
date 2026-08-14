@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
 @AgenticAiRecord
 @JsonDeserialize(builder = AssistantMessage.AssistantMessageJacksonProxyBuilder.class)
 public record AssistantMessage(
-    @RecordBuilder.Initializer(source = MessageUtil.class, value = "generateId") String id,
+    @RecordBuilder.Initializer(source = MessageUtil.class, value = "generateId") MessageId id,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCall> toolCalls,
     @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable String modelId,

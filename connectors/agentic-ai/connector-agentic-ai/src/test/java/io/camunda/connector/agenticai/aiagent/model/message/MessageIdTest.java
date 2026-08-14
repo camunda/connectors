@@ -11,72 +11,75 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class MessageIdTest {
+
+  private static final MessageId EXPLICIT_ID = MessageId.of(UUID.randomUUID());
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
   void systemMessageBackfillsIdWhenDeserializedWithoutOne() throws Exception {
     var message = objectMapper.readValue("{\"role\":\"system\",\"content\":[]}", Message.class);
-    assertThat(message.id()).isNotBlank();
+    assertThat(message.id()).isNotNull();
   }
 
   @Test
   void userMessageBackfillsIdWhenDeserializedWithoutOne() throws Exception {
     var message = objectMapper.readValue("{\"role\":\"user\",\"content\":[]}", Message.class);
-    assertThat(message.id()).isNotBlank();
+    assertThat(message.id()).isNotNull();
   }
 
   @Test
   void assistantMessageBackfillsIdWhenDeserializedWithoutOne() throws Exception {
     var message = objectMapper.readValue("{\"role\":\"assistant\",\"content\":[]}", Message.class);
-    assertThat(message.id()).isNotBlank();
+    assertThat(message.id()).isNotNull();
   }
 
   @Test
   void toolCallResultMessageBackfillsIdWhenDeserializedWithoutOne() throws Exception {
     var message =
         objectMapper.readValue("{\"role\":\"tool_call_result\",\"results\":[]}", Message.class);
-    assertThat(message.id()).isNotBlank();
+    assertThat(message.id()).isNotNull();
   }
 
   @Test
   void systemMessageGetsRandomIdWhenNotSet() {
-    assertThat(SystemMessage.builder().build().id()).isNotBlank();
+    assertThat(SystemMessage.builder().build().id()).isNotNull();
   }
 
   @Test
   void systemMessagePreservesExplicitlySetId() {
-    assertThat(SystemMessage.builder().id("explicit-id").build().id()).isEqualTo("explicit-id");
+    assertThat(SystemMessage.builder().id(EXPLICIT_ID).build().id()).isEqualTo(EXPLICIT_ID);
   }
 
   @Test
   void userMessageGetsRandomIdWhenNotSet() {
-    assertThat(UserMessage.builder().build().id()).isNotBlank();
+    assertThat(UserMessage.builder().build().id()).isNotNull();
   }
 
   @Test
   void userMessagePreservesExplicitlySetId() {
-    assertThat(UserMessage.builder().id("explicit-id").build().id()).isEqualTo("explicit-id");
+    assertThat(UserMessage.builder().id(EXPLICIT_ID).build().id()).isEqualTo(EXPLICIT_ID);
   }
 
   @Test
   void assistantMessageGetsRandomIdWhenNotSet() {
-    assertThat(AssistantMessage.builder().build().id()).isNotBlank();
+    assertThat(AssistantMessage.builder().build().id()).isNotNull();
   }
 
   @Test
   void assistantMessagePreservesExplicitlySetId() {
-    assertThat(AssistantMessage.builder().id("explicit-id").build().id()).isEqualTo("explicit-id");
+    assertThat(AssistantMessage.builder().id(EXPLICIT_ID).build().id()).isEqualTo(EXPLICIT_ID);
   }
 
   @Test
   void toolCallResultMessageGetsRandomIdWhenNotSet() {
     assertThat(
             ToolCallResultMessage.builder().results(List.<ToolCallResultContent>of()).build().id())
-        .isNotBlank();
+        .isNotNull();
   }
 
   @Test
@@ -84,10 +87,10 @@ class MessageIdTest {
     assertThat(
             ToolCallResultMessage.builder()
                 .results(List.<ToolCallResultContent>of())
-                .id("explicit-id")
+                .id(EXPLICIT_ID)
                 .build()
                 .id())
-        .isEqualTo("explicit-id");
+        .isEqualTo(EXPLICIT_ID);
   }
 
   @Test
@@ -96,5 +99,10 @@ class MessageIdTest {
     var second = SystemMessage.builder().build().id();
 
     assertThat(first).isNotEqualTo(second);
+  }
+
+  @Test
+  void generatedIdIsUuidVersion7() {
+    assertThat(SystemMessage.builder().build().id().value().version()).isEqualTo(7);
   }
 }

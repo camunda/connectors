@@ -19,7 +19,7 @@ import org.jspecify.annotations.Nullable;
 @AgenticAiRecord
 @JsonDeserialize(builder = UserMessage.UserMessageJacksonProxyBuilder.class)
 public record UserMessage(
-    @RecordBuilder.Initializer(source = MessageUtil.class, value = "generateId") String id,
+    @RecordBuilder.Initializer(source = MessageUtil.class, value = "generateId") MessageId id,
     @Nullable String name,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)

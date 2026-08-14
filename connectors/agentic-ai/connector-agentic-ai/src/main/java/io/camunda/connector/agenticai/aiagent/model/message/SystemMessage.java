@@ -18,7 +18,7 @@ import java.util.Map;
 @AgenticAiRecord
 @JsonDeserialize(builder = SystemMessage.SystemMessageJacksonProxyBuilder.class)
 public record SystemMessage(
-    @RecordBuilder.Initializer(source = MessageUtil.class, value = "generateId") String id,
+    @RecordBuilder.Initializer(source = MessageUtil.class, value = "generateId") MessageId id,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements SystemMessageBuilder.With, Message, ContentMessage {
