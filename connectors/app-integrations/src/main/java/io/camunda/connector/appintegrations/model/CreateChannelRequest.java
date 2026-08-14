@@ -17,9 +17,5 @@ import jakarta.validation.constraints.NotNull;
  */
 public record CreateChannelRequest(
     @NotNull @Valid ChannelPlatform platform,
-    @TemplateProperty(
-            group = "channel",
-            label = "Description",
-            description = "Optional description for the channel.",
-            optional = true)
+    @TemplateProperty(group = "channel", label = "Description", optional = true)
         String description) {}

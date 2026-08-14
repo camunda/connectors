@@ -50,7 +50,7 @@ public sealed interface AdditionalContent permits CamundaExtra, TeamsExtra, Slac
           @TemplateProperty(
               group = "message",
               label = "Adaptive card",
-              description =
+              tooltip =
                   "Adaptive Card as JSON. Paste a card, or use a FEEL expression to reference one built"
                       + " earlier, e.g. <code>= approvalCard</code>.",
               type = PropertyType.Text,
@@ -65,7 +65,7 @@ public sealed interface AdditionalContent permits CamundaExtra, TeamsExtra, Slac
           @TemplateProperty(
               group = "message",
               label = "Block Kit blocks",
-              description =
+              tooltip =
                   "Slack Block Kit <code>blocks</code> array as JSON. Paste it, or use a FEEL expression"
                       + " to reference one built earlier, e.g. <code>= approvalBlocks</code>.",
               type = PropertyType.Text,

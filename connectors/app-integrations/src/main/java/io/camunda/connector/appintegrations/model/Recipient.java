@@ -43,7 +43,7 @@ import java.util.List;
     name = "type",
     group = "recipient",
     label = "Recipient source",
-    description =
+    tooltip =
         "Choose whether the recipient comes from Camunda, or is a Microsoft Teams or Slack destination",
     defaultValue = "camunda")
 public sealed interface Recipient {
@@ -60,22 +60,22 @@ public sealed interface Recipient {
       @TemplateProperty(
               group = "recipient",
               label = "Assignee email",
-              description =
-                  "Email address of the recipient. Use a FEEL expression to reference a process variable, e.g. =assigneeEmail.",
+              tooltip =
+                  "Email address of the recipient. Use a FEEL expression to reference a process variable.",
+              placeholder = "=assigneeEmail",
               optional = true)
           String email,
       @TemplateProperty(
               group = "recipient",
               label = "Candidate users",
-              description =
-                  "List of candidate usernames, e.g. <code>= [\"alice\", \"bob\"]</code>.",
+              tooltip = "List of candidate usernames, e.g. <code>= [\"alice\", \"bob\"]</code>.",
               feel = FeelMode.required,
               optional = true)
           List<@NotBlank String> candidateUsers,
       @TemplateProperty(
               group = "recipient",
               label = "Candidate groups",
-              description = "List of candidate group names, e.g. <code>= [\"approvers\"]</code>.",
+              tooltip = "List of candidate group names, e.g. <code>= [\"approvers\"]</code>.",
               feel = FeelMode.required,
               optional = true)
           List<@NotBlank String> candidateGroups,
@@ -133,7 +133,7 @@ public sealed interface Recipient {
       @TemplateProperty(
               group = "recipient",
               label = "Thread",
-              description =
+              tooltip =
                   "Message ID of a previous send, to reply in its thread instead of posting a new message",
               optional = true)
           String threadTs,

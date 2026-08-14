@@ -66,7 +66,7 @@ public record SendMessageRequest(
     @TemplateProperty(
             group = "message",
             label = "Message",
-            description =
+            tooltip =
                 "Plain text to send. Optional — leave it empty to send only the additional content below.",
             type = PropertyType.Text,
             optional = true)

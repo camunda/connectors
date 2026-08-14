@@ -74,7 +74,6 @@
   }, {
     "id" : "sendMessage:recipient.type",
     "label" : "Recipient source",
-    "description" : "Choose whether the recipient comes from Camunda, or is a Microsoft Teams or Slack destination",
     "value" : "camunda",
     "group" : "recipient",
     "binding" : {
@@ -88,6 +87,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Choose whether the recipient comes from Camunda, or is a Microsoft Teams or Slack destination",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Camunda",
@@ -102,7 +102,6 @@
   }, {
     "id" : "sendMessage:recipient.email",
     "label" : "Assignee email",
-    "description" : "Email address of the recipient. Use a FEEL expression to reference a process variable, e.g. =assigneeEmail.",
     "optional" : true,
     "feel" : "optional",
     "group" : "recipient",
@@ -121,11 +120,12 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Email address of the recipient. Use a FEEL expression to reference a process variable.",
+    "placeholder" : "=assigneeEmail",
     "type" : "String"
   }, {
     "id" : "sendMessage:recipient.candidateUsers",
     "label" : "Candidate users",
-    "description" : "List of candidate usernames, e.g. <code>= [\"alice\", \"bob\"]</code>.",
     "optional" : true,
     "feel" : "required",
     "group" : "recipient",
@@ -144,11 +144,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "List of candidate usernames, e.g. <code>= [\"alice\", \"bob\"]</code>.",
     "type" : "String"
   }, {
     "id" : "sendMessage:recipient.candidateGroups",
     "label" : "Candidate groups",
-    "description" : "List of candidate group names, e.g. <code>= [\"approvers\"]</code>.",
     "optional" : true,
     "feel" : "required",
     "group" : "recipient",
@@ -167,11 +167,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "List of candidate group names, e.g. <code>= [\"approvers\"]</code>.",
     "type" : "String"
   }, {
     "id" : "sendMessage:recipient.teamsTarget.type",
     "label" : "Teams target",
-    "description" : "Post into a channel, send directly to a person, or reply in a conversation a previous send returned",
     "value" : "channel",
     "group" : "recipient",
     "binding" : {
@@ -189,6 +189,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Post into a channel, send directly to a person, or reply in a conversation a previous send returned",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Channel",
@@ -203,7 +204,6 @@
   }, {
     "id" : "sendMessage:recipient.teamsTarget.channelId",
     "label" : "Channel ID",
-    "description" : "Microsoft Teams channel ID, e.g. 19:xxx@thread.tacv2.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -229,11 +229,11 @@
         "type" : "simple"
       } ]
     },
+    "placeholder" : "19:xxx@thread.tacv2",
     "type" : "String"
   }, {
     "id" : "sendMessage:recipient.teamsTarget.teamsUser",
     "label" : "User ID",
-    "description" : "Microsoft Entra object ID of the recipient — they must have connected the app.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -259,11 +259,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Microsoft Entra object ID of the recipient — they must have connected the app.",
     "type" : "String"
   }, {
     "id" : "sendMessage:recipient.teamsTarget.conversationId",
     "label" : "Conversation",
-    "description" : "Conversation returned by a previous send; the message is posted as a reply in it.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -289,11 +289,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Conversation returned by a previous send; the message is posted as a reply in it.",
     "type" : "String"
   }, {
     "id" : "sendMessage:recipient.slackTarget.type",
     "label" : "Slack target",
-    "description" : "Send to a Slack channel or directly to a person",
     "value" : "channel",
     "group" : "recipient",
     "binding" : {
@@ -311,6 +311,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Send to a Slack channel or directly to a person",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Channel",
@@ -322,7 +323,6 @@
   }, {
     "id" : "sendMessage:recipient.slackTarget.channelId",
     "label" : "Channel ID",
-    "description" : "Slack channel ID, e.g. C0123456789.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -348,11 +348,11 @@
         "type" : "simple"
       } ]
     },
+    "placeholder" : "C0123456789",
     "type" : "String"
   }, {
     "id" : "sendMessage:recipient.slackTarget.user",
     "label" : "User ID",
-    "description" : "Slack user ID, e.g. U0123456789.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -378,11 +378,11 @@
         "type" : "simple"
       } ]
     },
+    "placeholder" : "U0123456789",
     "type" : "String"
   }, {
     "id" : "sendMessage:recipient.threadTs",
     "label" : "Thread",
-    "description" : "Message ID of a previous send, to reply in its thread instead of posting a new message",
     "optional" : true,
     "feel" : "optional",
     "group" : "recipient",
@@ -401,11 +401,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Message ID of a previous send, to reply in its thread instead of posting a new message",
     "type" : "String"
   }, {
     "id" : "sendMessage:recipient.camundaExtra.type",
     "label" : "Additional content",
-    "description" : "Content sent alongside the message. A Camunda recipient supports a linked form.",
     "value" : "none",
     "group" : "message",
     "binding" : {
@@ -423,6 +423,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Content sent alongside the message. A Camunda recipient supports a linked form.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "None",
@@ -434,7 +435,6 @@
   }, {
     "id" : "sendMessage:recipient.teamsExtra.type",
     "label" : "Additional content",
-    "description" : "Content sent alongside the message. Microsoft Teams supports an Adaptive Card or a linked form.",
     "value" : "none",
     "group" : "message",
     "binding" : {
@@ -452,6 +452,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Content sent alongside the message. Microsoft Teams supports an Adaptive Card or a linked form.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "None",
@@ -466,7 +467,6 @@
   }, {
     "id" : "sendMessage:recipient.teamsExtra.adaptiveCard",
     "label" : "Adaptive card",
-    "description" : "Adaptive Card as JSON. Paste a card, or use a FEEL expression to reference one built earlier, e.g. <code>= approvalCard</code>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -492,11 +492,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Adaptive Card as JSON. Paste a card, or use a FEEL expression to reference one built earlier, e.g. <code>= approvalCard</code>.",
     "type" : "Text"
   }, {
     "id" : "sendMessage:recipient.slackExtra.type",
     "label" : "Additional content",
-    "description" : "Content sent alongside the message. Slack supports Block Kit or a linked form.",
     "value" : "none",
     "group" : "message",
     "binding" : {
@@ -514,6 +514,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Content sent alongside the message. Slack supports Block Kit or a linked form.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "None",
@@ -528,7 +529,6 @@
   }, {
     "id" : "sendMessage:recipient.slackExtra.blocks",
     "label" : "Block Kit blocks",
-    "description" : "Slack Block Kit <code>blocks</code> array as JSON. Paste it, or use a FEEL expression to reference one built earlier, e.g. <code>= approvalBlocks</code>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -554,11 +554,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Slack Block Kit <code>blocks</code> array as JSON. Paste it, or use a FEEL expression to reference one built earlier, e.g. <code>= approvalBlocks</code>.",
     "type" : "Text"
   }, {
     "id" : "sendMessage:message",
     "label" : "Message",
-    "description" : "Plain text to send. Optional — leave it empty to send only the additional content below.",
     "optional" : true,
     "feel" : "optional",
     "group" : "message",
@@ -573,6 +573,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Plain text to send. Optional — leave it empty to send only the additional content below.",
     "type" : "Text"
   }, {
     "value" : "form",
@@ -925,7 +926,6 @@
   }, {
     "id" : "createChannel:platform.type",
     "label" : "Platform",
-    "description" : "Where to create the channel",
     "value" : "teams",
     "group" : "channel",
     "binding" : {
@@ -939,6 +939,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Where to create the channel",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Microsoft Teams",
@@ -950,7 +951,7 @@
   }, {
     "id" : "createChannel:platform.teamsChannelName",
     "label" : "Channel name",
-    "description" : "Display name for the new channel (max 50 characters).",
+    "description" : "Max 50 characters.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true,
@@ -974,11 +975,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Display name for the new channel.",
     "type" : "String"
   }, {
     "id" : "createChannel:platform.teamId",
     "label" : "Team ID",
-    "description" : "ID of the Microsoft Teams team, or a full Teams URL (the groupId query parameter will be extracted automatically).",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1000,11 +1001,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "ID of the Microsoft Teams team, or a full Teams URL (the groupId query parameter will be extracted automatically).",
     "type" : "String"
   }, {
     "id" : "createChannel:platform.membershipType",
     "label" : "Channel type",
-    "description" : "Membership type. Only standard (visible to all) is supported for now — private and shared channels follow in a later version.",
     "optional" : false,
     "value" : "standard",
     "group" : "channel",
@@ -1023,6 +1024,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Membership type. Only standard (visible to all) is supported for now — private and shared channels follow in a later version.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Standard",
@@ -1031,7 +1033,7 @@
   }, {
     "id" : "createChannel:platform.slackChannelName",
     "label" : "Channel name",
-    "description" : "Display name for the new channel: lowercase letters, digits, hyphens and underscores only (max 80 characters).",
+    "description" : "Lowercase letters, digits, hyphens and underscores only. Max 80 characters.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true,
@@ -1059,11 +1061,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Display name for the new channel.",
     "type" : "String"
   }, {
     "id" : "createChannel:platform.workspaceId",
     "label" : "Workspace ID",
-    "description" : "Slack workspace (team) ID. Leave empty to use the workspace the backend is configured for.",
     "optional" : true,
     "feel" : "optional",
     "group" : "channel",
@@ -1082,11 +1084,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Slack workspace (team) ID. Leave empty to use the workspace the backend is configured for.",
     "type" : "String"
   }, {
     "id" : "createChannel:platform.isPrivate",
     "label" : "Private channel",
-    "description" : "Create the channel as private rather than public.",
     "optional" : true,
     "feel" : "static",
     "group" : "channel",
@@ -1105,11 +1107,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Create the channel as private rather than public.",
     "type" : "Boolean"
   }, {
     "id" : "createChannel:description",
     "label" : "Description",
-    "description" : "Optional description for the channel.",
     "optional" : true,
     "feel" : "optional",
     "group" : "channel",

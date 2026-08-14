@@ -29,7 +29,7 @@ import jakarta.validation.constraints.NotBlank;
     name = "type",
     group = "recipient",
     label = "Teams target",
-    description =
+    tooltip =
         "Post into a channel, send directly to a person, or reply in a conversation a previous send returned",
     defaultValue = "channel")
 public sealed interface TeamsTarget {
@@ -40,7 +40,7 @@ public sealed interface TeamsTarget {
           @TemplateProperty(
               group = "recipient",
               label = "Channel ID",
-              description = "Microsoft Teams channel ID, e.g. 19:xxx@thread.tacv2.")
+              placeholder = "19:xxx@thread.tacv2")
           String channelId)
       implements TeamsTarget {}
 
@@ -50,7 +50,7 @@ public sealed interface TeamsTarget {
           @TemplateProperty(
               group = "recipient",
               label = "User ID",
-              description =
+              tooltip =
                   "Microsoft Entra object ID of the recipient — they must have connected the app.")
           String teamsUser)
       implements TeamsTarget {}
@@ -61,7 +61,7 @@ public sealed interface TeamsTarget {
           @TemplateProperty(
               group = "recipient",
               label = "Conversation",
-              description =
+              tooltip =
                   "Conversation returned by a previous send; the message is posted as a reply in it.")
           String conversationId)
       implements TeamsTarget {}

@@ -21,7 +21,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     name = "type",
     group = "message",
     label = "Additional content",
-    description =
+    tooltip =
         "Content sent alongside the message. Microsoft Teams supports an Adaptive Card or a linked form.",
     defaultValue = "none")
 public sealed interface TeamsExtra extends AdditionalContent

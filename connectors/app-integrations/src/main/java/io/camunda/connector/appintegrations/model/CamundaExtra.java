@@ -23,7 +23,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     name = "type",
     group = "message",
     label = "Additional content",
-    description = "Content sent alongside the message. A Camunda recipient supports a linked form.",
+    tooltip = "Content sent alongside the message. A Camunda recipient supports a linked form.",
     defaultValue = "none")
 public sealed interface CamundaExtra extends AdditionalContent
     permits AdditionalContent.None, AdditionalContent.Form {}

@@ -21,7 +21,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     name = "type",
     group = "message",
     label = "Additional content",
-    description = "Content sent alongside the message. Slack supports Block Kit or a linked form.",
+    tooltip = "Content sent alongside the message. Slack supports Block Kit or a linked form.",
     defaultValue = "none")
 public sealed interface SlackExtra extends AdditionalContent
     permits AdditionalContent.None, AdditionalContent.BlockKit, AdditionalContent.Form {}

@@ -27,27 +27,21 @@ import jakarta.validation.constraints.NotBlank;
     name = "type",
     group = "recipient",
     label = "Slack target",
-    description = "Send to a Slack channel or directly to a person",
+    tooltip = "Send to a Slack channel or directly to a person",
     defaultValue = "channel")
 public sealed interface SlackTarget {
 
   @TemplateSubType(id = "channel", label = "Channel")
   record SlackChannelTarget(
       @NotBlank
-          @TemplateProperty(
-              group = "recipient",
-              label = "Channel ID",
-              description = "Slack channel ID, e.g. C0123456789.")
+          @TemplateProperty(group = "recipient", label = "Channel ID", placeholder = "C0123456789")
           String channelId)
       implements SlackTarget {}
 
   @TemplateSubType(id = "user", label = "User")
   record SlackUserTarget(
       @NotBlank
-          @TemplateProperty(
-              group = "recipient",
-              label = "User ID",
-              description = "Slack user ID, e.g. U0123456789.")
+          @TemplateProperty(group = "recipient", label = "User ID", placeholder = "U0123456789")
           String user)
       implements SlackTarget {}
 }

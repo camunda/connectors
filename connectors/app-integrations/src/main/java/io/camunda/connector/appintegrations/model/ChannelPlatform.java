@@ -40,7 +40,7 @@ import java.util.Set;
     name = "type",
     group = "channel",
     label = "Platform",
-    description = "Where to create the channel",
+    tooltip = "Where to create the channel",
     defaultValue = "teams")
 public sealed interface ChannelPlatform {
 
@@ -60,20 +60,21 @@ public sealed interface ChannelPlatform {
               id = "teamsChannelName",
               group = "channel",
               label = "Channel name",
-              description = "Display name for the new channel (max 50 characters).")
+              tooltip = "Display name for the new channel.",
+              description = "Max 50 characters.")
           String displayName,
       @NotBlank
           @TemplateProperty(
               group = "channel",
               label = "Team ID",
-              description =
+              tooltip =
                   "ID of the Microsoft Teams team, or a full Teams URL"
                       + " (the groupId query parameter will be extracted automatically).")
           String teamId,
       @TemplateProperty(
               group = "channel",
               label = "Channel type",
-              description =
+              tooltip =
                   "Membership type. Only standard (visible to all) is supported for now — private and shared channels follow in a later version.",
               // Without an explicit Dropdown type the generator keeps a String field and silently
               // drops the choices, since membershipType is not an enum.
@@ -156,20 +157,21 @@ public sealed interface ChannelPlatform {
               id = "slackChannelName",
               group = "channel",
               label = "Channel name",
+              tooltip = "Display name for the new channel.",
               description =
-                  "Display name for the new channel: lowercase letters, digits, hyphens and underscores only (max 80 characters).")
+                  "Lowercase letters, digits, hyphens and underscores only. Max 80 characters.")
           String displayName,
       @TemplateProperty(
               group = "channel",
               label = "Workspace ID",
-              description =
+              tooltip =
                   "Slack workspace (team) ID. Leave empty to use the workspace the backend is configured for.",
               optional = true)
           String workspaceId,
       @TemplateProperty(
               group = "channel",
               label = "Private channel",
-              description = "Create the channel as private rather than public.",
+              tooltip = "Create the channel as private rather than public.",
               type = PropertyType.Boolean,
               optional = true)
           Boolean isPrivate)
