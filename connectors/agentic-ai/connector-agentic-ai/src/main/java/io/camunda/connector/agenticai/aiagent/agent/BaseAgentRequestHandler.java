@@ -122,6 +122,8 @@ public abstract class BaseAgentRequestHandler<
       return switch (compositionResult) {
         case CompositionResult.Deferred ignored -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
+          reportArrivedToolCallResults(
+              executionContext, agentContext, agentInput, previousConversation);
           yield handleNoOp(executionContext);
         }
         case CompositionResult.NoInput ignored -> {
@@ -133,6 +135,36 @@ public abstract class BaseAgentRequestHandler<
                 executionContext, agentContext, previousConversation, newMessages, session, store);
       };
     }
+  }
+
+  /**
+   * Reports tool call results that have arrived but aren't a complete batch yet. MUST filter to ids
+   * in the previous turn's tool calls first: {@link
+   * AgentInstanceClient#createHistoryForToolCallResults} fails on a non-correlating id, and this
+   * path must stay a no-op for stray or redelivered ids, unlike the final batch write.
+   */
+  private void reportArrivedToolCallResults(
+      C executionContext,
+      AgentContext agentContext,
+      AgentInput agentInput,
+      PreviousConversation previousConversation) {
+    if (previousConversation.turns().isEmpty()) {
+      return;
+    }
+    final var previousTurn = previousConversation.turns().getLast();
+    final var toolCallsById = previousTurn.toolCallsById();
+    final var arrivedResults =
+        agentInput.toolCallResults().stream()
+            .filter(result -> toolCallsById.containsKey(result.id()))
+            .toList();
+    if (arrivedResults.isEmpty()) {
+      return;
+    }
+    agentInstanceClient.createHistoryForToolCallResults(
+        executionContext,
+        AgentInstanceKey.from(agentContext.metadata()),
+        arrivedResults,
+        previousTurn);
   }
 
   private R proceed(

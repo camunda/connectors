@@ -385,6 +385,56 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.elementActivations()).isEmpty();
 
     verifyNoInteractions(chatModelRegistry, chatModel);
+    // no tool call results arrived at all — nothing to report
+    verifyNoInteractions(agentInstanceClient);
+  }
+
+  @Test
+  void reportsOnlyCorrelatingArrivedToolCallResultsOnDeferredNoOp() {
+    reset(conversationStoreRegistry);
+    ConversationStore conversationStore = spy(new InProcessConversationStore());
+    doReturn(conversationStore)
+        .when(conversationStoreRegistry)
+        .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
+
+    // given: previous turn requested TOOL_CALLS ("abcdef", "fedcba"); "abcdef" arrived, plus a
+    // stray result for an id ("stray-id") this turn isn't waiting on
+    final var priorAssistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
+    final var agentContextWithHistory =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .toolDefinitions(TOOL_DEFINITIONS)
+            .conversation(
+                InProcessConversationContext.builder("conv-1")
+                    .messages(List.of(USER_MESSAGE, priorAssistantMessage))
+                    .build())
+            .build();
+    final var matchingResult =
+        ToolCallResult.builder().id("abcdef").name("getWeather").content("Sunny").build();
+    final var strayResult =
+        ToolCallResult.builder().id("stray-id").name("unrelated").content("noise").build();
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(
+            new ReadyToConverse(agentContextWithHistory, List.of(matchingResult, strayResult)));
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.Deferred());
+
+    // when
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // then: still a no-op completion
+    assertThat(response.variables()).isEmpty();
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    verifyNoInteractions(chatModelRegistry, chatModel);
+
+    // and: only the correlating result is reported
+    @SuppressWarnings("unchecked")
+    final ArgumentCaptor<List<ToolCallResult>> resultsCaptor = ArgumentCaptor.forClass(List.class);
+    verify(agentInstanceClient)
+        .createHistoryForToolCallResults(
+            eq(agentExecutionContext), any(), resultsCaptor.capture(), any());
+    assertThat(resultsCaptor.getValue()).containsExactly(matchingResult);
   }
 
   @Test
