@@ -40,7 +40,7 @@ Support `camunda.secrets.<name>` **for inbound connectors and configuration vali
 
 9. **Do nothing yet about hiding secrets from error output.** Values in the new form can only appear where this decision resolves them, and the only place the runtime hides secrets from errors is on the outbound path, which this does not touch (Context §2 and the scope above). Two gaps are recorded as separate work rather than addressed here: inbound has never hidden secrets from error output, and once the engine substitutes a value into job variables the reference is gone, leaving nothing for the outbound masking to recognise — which already applies today and needs information the job does not currently carry, so it belongs upstream.
 
-10. **The old form keeps working, indefinitely, with no switch.** This is purely an addition. No setting is introduced to enable or disable it, because a request without the new form never reaches the new code.
+10. **The old form keeps working by default, with an explicit off switch.** Set `camunda.connector.secret-resolver.legacy.enabled` to `false` to disable resolution of `{{secrets.X}}` and bare `secrets.X`. This setting does not affect `camunda.secrets.<name>`, which uses the separate cluster-backed resolver.
 
 **Not covered here.** The hybrid Connector Runtime keeps resolving secrets locally in this release, as the epic decided, since routing it through the orchestration cluster would defeat the point of keeping secrets self-hosted. Restricting which secrets an inbound connector may read stays with [#7730](https://github.com/camunda/connectors/issues/7730) — inbound applies no such restriction today and this does not add one. Making element templates emit the new form (Context §3) is separate work.
 
