@@ -841,9 +841,8 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
 - **Correlation and gateway (MCP/A2A) transformation happen once**, in the composer, for both the
   `Deferred` and `NextTurn` paths. A stray or redelivered id that doesn't correlate to a tool call
   the turn is waiting on never makes it into `arrivedResults`.
-- **Duplicated by design.** The same result gets written to history twice: once here, once again
-  by `createHistoryForInputMessages` once the batch completes. Accepted until the redesigned agent
-  instance history API (camunda/camunda#58789) supports dedup by id.
+- **Written twice.** The same result gets written to history once here, once again by
+  `createHistoryForInputMessages` once the batch completes.
 - **No new persisted state.** The `Deferred` path touches neither `AgentContext` nor the
   `ConversationStore` — reporting to agent instance history is its only side effect.
 - **Strict failure.** Unlike the metrics-update listener (which fires after job completion and
@@ -1790,8 +1789,8 @@ complete — reporting whichever results have arrived and correlate to the previ
 calls so far, one `TOOL_RESULT` item per result, same mapping as above. Its iteration key
 (`previousTurn.iterationKey() + 1`) is best-effort, not authoritative — the batch-complete write's
 key is. These items duplicate what `createHistoryForInputMessages` writes again once the batch
-completes; accepted until the redesigned agent instance history API supports dedup by id. See
-[§9](#9-tool-completion) and [ADR 011](../adr/011-stream-tool-call-results-to-agent-instance-history.md).
+completes. See [§9](#9-tool-completion) and
+[ADR 011](../adr/011-stream-tool-call-results-to-agent-instance-history.md).
 
 ---
 

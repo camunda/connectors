@@ -81,10 +81,8 @@ public interface AgentInstanceClient {
    * not yet complete. Skips silently when {@code agentInstanceKey} is {@code null}.
    *
    * <p>Each result's id must correspond to a tool call in {@code previousTurn}; a non-matching id
-   * fails, same as {@link #createHistoryForInputMessages}.
-   *
-   * <p>Duplicates the eventual batch-complete write; accepted until the redesigned API supports
-   * dedup by id.
+   * fails. {@link #createHistoryForInputMessages} writes the same result again once the batch
+   * completes.
    *
    * @param previousTurn supplies the correlating tool calls and a best-effort iteration key ({@code
    *     previousTurn.iterationKey() + 1}); the batch write's key is authoritative

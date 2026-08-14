@@ -44,9 +44,8 @@ on it.
 ## Decision Outcome
 
 **Option A** — report each turn's currently-arrived, currently-relevant tool call results to agent
-instance history immediately on the no-op path, accepting that the same result is written again
-once the turn completes. This duplication is temporary and expected to resolve once the redesigned
-agent instance history API supports dedup by id.
+instance history immediately on the no-op path. The same result is written again once the turn
+completes; see [Follow-up](#follow-up).
 
 Results are only reported once correlated to a tool call the agent is actually waiting on and
 gateway (MCP/A2A) transformed, matching the shape of the eventual batch write; uncorrelated results
@@ -64,12 +63,16 @@ fails the job, matching the semantics of the other agent instance client calls i
 
 ### Negative Consequences
 
-* Every early-reported tool result is written to history twice until the redesigned API supports
-  dedup by id.
+* Every early-reported tool result is written to history twice; see [Follow-up](#follow-up).
 
 ## Out of Scope
 
-* Any dedup mechanism — owned by the redesigned agent instance history API
-  ([camunda/camunda#58789](https://github.com/camunda/camunda/issues/58789)); this ADR only
-  prepares the connector to report early.
 * Changes to job-completion cadence or when the LLM is invoked.
+
+## Follow-up
+
+Once the redesigned agent instance history API
+([camunda/camunda#58789](https://github.com/camunda/camunda/issues/58789)) supports dedup by id,
+wire both this path and the batch-complete write to supply that id, using the stable per-role
+message ids from [ADR 012](012-stable-self-generated-message-ids.md). That closes the duplicate-write
+gap without further design changes here.
