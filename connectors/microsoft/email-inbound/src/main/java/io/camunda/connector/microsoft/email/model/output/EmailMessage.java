@@ -6,13 +6,20 @@
  */
 package io.camunda.connector.microsoft.email.model.output;
 
-import static io.camunda.connector.microsoft.email.model.output.GraphApiMapper.toEmailMessage;
-
-import com.microsoft.graph.models.Message;
 import io.camunda.connector.api.document.Document;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+/**
+ * An inbound email as it flows through the connector.
+ *
+ * <p>{@code attachmentMetadata} is resolved at poll time, before the activation condition is
+ * evaluated, so conditions can filter on attachment properties such as file type without
+ * downloading the attachment content. {@code attachments} is empty at that point and only populated
+ * with the downloaded {@link Document documents} once the condition has matched, mirroring how the
+ * runtime's internal re-check of the same condition against the correlation variables expects
+ * {@code attachmentMetadata} to still be present.
+ */
 public record EmailMessage(
     String id,
     String conversationId,
@@ -24,45 +31,10 @@ public record EmailMessage(
     String body,
     String bodyContentType,
     OffsetDateTime receivedDateTime,
+    List<EmailAttachmentMetadata> attachmentMetadata,
     List<Document> attachments) {
-  public EmailMessage(Message message) {
-    this(message, List.of());
-  }
 
-  public EmailMessage(Message message, List<Document> documents) {
-    this(toEmailMessage(message, documents));
-  }
-
-  private EmailMessage(EmailMessage message) {
-    this(
-        message.id,
-        message.conversationId,
-        message.sender,
-        message.recipients,
-        message.cc,
-        message.bcc,
-        message.subject,
-        message.body,
-        message.bodyContentType,
-        message.receivedDateTime,
-        message.attachments);
-  }
-
-  public EmailMessage(EmailMessage message, List<Document> documents) {
-    this(
-        message.id,
-        message.conversationId,
-        message.sender,
-        message.recipients,
-        message.cc,
-        message.bcc,
-        message.subject,
-        message.body,
-        message.bodyContentType,
-        message.receivedDateTime,
-        documents);
-  }
-
+  /** OData {@code $select} fields for the message list query. */
   public static String[] getSelect() {
     return new String[] {
       "id",
@@ -73,7 +45,8 @@ public record EmailMessage(
       "bccRecipients",
       "subject",
       "body",
-      "receivedDateTime"
+      "receivedDateTime",
+      "hasAttachments"
     };
   }
 }
