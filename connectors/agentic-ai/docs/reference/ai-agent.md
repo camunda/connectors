@@ -841,8 +841,12 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
 - **Correlation and gateway (MCP/A2A) transformation happen once**, in the composer, for both the
   `Deferred` and `NextTurn` paths. A stray or redelivered id that doesn't correlate to a tool call
   the turn is waiting on never makes it into `arrivedResults`.
-- **Written twice.** The same result gets written to history once here, once again by
-  `createHistoryForInputMessages` once the batch completes.
+- **Written repeatedly, not just twice.** `arrivedResults` is the full cumulative correlated set on
+  every call, since Zeebe's `toolCallResults` variable is cumulative across jobs (§9) and there is
+  no state to track what an earlier job already reported. A result that arrives while other tool
+  calls in the same turn are still outstanding gets re-reported by every subsequent incomplete job
+  that still observes it, plus once more by `createHistoryForInputMessages` once the batch
+  completes — for a turn with `N` staggered tool calls, up to `N(N+1)/2` writes in total.
 - **No new persisted state.** The `Deferred` path touches neither `AgentContext` nor the
   `ConversationStore` — reporting to agent instance history is its only side effect.
 - **Strict failure.** Unlike the metrics-update listener (which fires after job completion and
