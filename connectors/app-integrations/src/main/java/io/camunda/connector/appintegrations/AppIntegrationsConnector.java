@@ -84,7 +84,9 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
       // significant word from the template name ("App Integrations") to appear in every leaf step.
       description =
           "Send an App Integrations message to Microsoft Teams, Slack, or a Camunda recipient —"
-              + " plain text plus an optional adaptive card, Block Kit payload, or form",
+              + " plain text plus an optional adaptive card, Block Kit payload, or form. The result"
+              + " lists every destination reached, so a single conversation is"
+              + " deliveries[1].conversation",
       keywords = {
         "send message",
         "post message",

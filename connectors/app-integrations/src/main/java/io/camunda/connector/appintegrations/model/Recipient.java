@@ -19,7 +19,8 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 /**
- * Who the message is sent to: a Camunda-side identity, a Microsoft Teams channel, or Slack.
+ * Who the message is sent to: a Camunda-side identity, a Microsoft Teams destination, or a Slack
+ * destination.
  *
  * <p>Each subtype also carries its own "Additional content" switch, because the rich-content
  * formats a platform accepts differ (Teams takes an Adaptive Card, Slack takes Block Kit, Camunda
@@ -103,17 +104,13 @@ public sealed interface Recipient {
     }
   }
 
-  /** A Microsoft Teams channel, addressed by its channel ID. */
+  /**
+   * A Microsoft Teams destination — a channel, a person, or an existing conversation, see {@link
+   * TeamsTarget}.
+   */
   @TemplateSubType(id = TeamsRecipient.TYPE, label = "Microsoft Teams")
   record TeamsRecipient(
-      @NotBlank
-          @TemplateProperty(
-              group = "recipient",
-              label = "Channel ID",
-              description =
-                  "Microsoft Teams channel ID to send to, e.g. 19:xxx@thread.tacv2. Use when sending to a channel rather than a user.")
-          String channelId,
-      @NotNull @Valid TeamsExtra teamsExtra)
+      @NotNull @Valid TeamsTarget teamsTarget, @NotNull @Valid TeamsExtra teamsExtra)
       implements Recipient {
 
     @TemplateProperty(ignore = true)
@@ -125,10 +122,22 @@ public sealed interface Recipient {
     }
   }
 
-  /** A Slack destination — either a channel or a person, see {@link SlackTarget}. */
+  /**
+   * A Slack destination — either a channel or a person, see {@link SlackTarget}. {@code threadTs}
+   * sits on the recipient rather than inside the target because a Slack thread is an anchor within
+   * either kind of target, not an address of its own.
+   */
   @TemplateSubType(id = SlackRecipient.TYPE, label = "Slack")
   record SlackRecipient(
-      @NotNull @Valid SlackTarget slackTarget, @NotNull @Valid SlackExtra slackExtra)
+      @NotNull @Valid SlackTarget slackTarget,
+      @TemplateProperty(
+              group = "recipient",
+              label = "Thread",
+              description =
+                  "Message ID of a previous send, to reply in its thread instead of posting a new message",
+              optional = true)
+          String threadTs,
+      @NotNull @Valid SlackExtra slackExtra)
       implements Recipient {
 
     @TemplateProperty(ignore = true)

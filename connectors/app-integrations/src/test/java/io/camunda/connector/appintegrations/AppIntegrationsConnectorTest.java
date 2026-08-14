@@ -29,10 +29,10 @@ import io.camunda.connector.appintegrations.model.CreateChannelRequest;
 import io.camunda.connector.appintegrations.model.CreateChannelResult;
 import io.camunda.connector.appintegrations.model.Recipient;
 import io.camunda.connector.appintegrations.model.SendMessageRequest;
-import io.camunda.connector.appintegrations.model.SendMessageResult;
 import io.camunda.connector.appintegrations.model.SlackExtra;
 import io.camunda.connector.appintegrations.model.SlackTarget;
 import io.camunda.connector.appintegrations.model.TeamsExtra;
+import io.camunda.connector.appintegrations.model.TeamsTarget;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
@@ -80,6 +80,9 @@ class AppIntegrationsConnectorTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
+  private static final String DELIVERED_BODY =
+      "{\"deliveries\":[{\"platform\":\"teams\",\"conversation\":\"conv-1\",\"messageId\":\"m-1\"}],\"failures\":[]}";
+
   private static final Validator VALIDATOR =
       Validation.byDefaultProvider()
           .configure()
@@ -124,7 +127,7 @@ class AppIntegrationsConnectorTest {
   }
 
   private void stubOk() {
-    doReturn(httpResponse(201, "{\"conversation\":null}"))
+    doReturn(httpResponse(201, DELIVERED_BODY))
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
   }
@@ -147,11 +150,20 @@ class AppIntegrationsConnectorTest {
   }
 
   private static SendMessageRequest teams(String channelId, String message, TeamsExtra extra) {
-    return new SendMessageRequest(new Recipient.TeamsRecipient(channelId, extra), message);
+    return teams(new TeamsTarget.TeamsChannelTarget(channelId), message, extra);
+  }
+
+  private static SendMessageRequest teams(TeamsTarget target, String message, TeamsExtra extra) {
+    return new SendMessageRequest(new Recipient.TeamsRecipient(target, extra), message);
   }
 
   private static SendMessageRequest slack(SlackTarget target, String message, SlackExtra extra) {
-    return new SendMessageRequest(new Recipient.SlackRecipient(target, extra), message);
+    return slack(target, null, message, extra);
+  }
+
+  private static SendMessageRequest slack(
+      SlackTarget target, String threadTs, String message, SlackExtra extra) {
+    return new SendMessageRequest(new Recipient.SlackRecipient(target, threadTs, extra), message);
   }
 
   private static SendMessageRequest camundaText(String email, String message) {
@@ -246,7 +258,42 @@ class AppIntegrationsConnectorTest {
     assertThat(body).contains("\"message\":\"Deploy done\"");
     // Sent as real JSON, not a string.
     assertThat(body).contains("\"adaptiveCard\":{\"type\":\"AdaptiveCard\"");
-    assertThat(body).doesNotContain("blocks", "formResourceKey", "email");
+    assertThat(body).doesNotContain("blocks", "formResourceKey", "email", "conversationId");
+  }
+
+  @Test
+  void teams_userTarget_sendsUserIdNotChannelId() {
+    stubOk();
+
+    connector.sendMessage(
+        teams(
+            new TeamsTarget.TeamsUserTarget("6b1e0f9a-1f3d-4a2b-9d0e-4c1b2a3d4e5f"),
+            "Ping",
+            new AdditionalContent.None()),
+        context);
+
+    var body = captureBody();
+    assertThat(body).contains("\"platform\":\"teams\"");
+    assertThat(body).contains("\"userId\":\"6b1e0f9a-1f3d-4a2b-9d0e-4c1b2a3d4e5f\"");
+    assertThat(body).doesNotContain("channelId", "conversationId");
+  }
+
+  @Test
+  void teams_conversationTarget_sendsConversationIdOnly() {
+    // The backend replays a conversation id verbatim, so it must not also see a channel or a user.
+    stubOk();
+
+    connector.sendMessage(
+        teams(
+            new TeamsTarget.TeamsConversationTarget("19:abc@thread.tacv2;messageid=17123456789"),
+            "Following up",
+            new AdditionalContent.None()),
+        context);
+
+    var body = captureBody();
+    assertThat(body).contains("\"platform\":\"teams\"");
+    assertThat(body).contains("\"conversationId\":\"19:abc@thread.tacv2;messageid=17123456789\"");
+    assertThat(body).doesNotContain("\"channelId\"", "\"userId\"");
   }
 
   @Test
@@ -279,7 +326,40 @@ class AppIntegrationsConnectorTest {
     var body = captureBody();
     assertThat(body).contains("\"platform\":\"slack\"");
     assertThat(body).contains("\"userId\":\"U0123456789\"");
-    assertThat(body).doesNotContain("channelId");
+    assertThat(body).doesNotContain("channelId", "threadTs");
+  }
+
+  @Test
+  void slack_threadTs_travelsAlongsideEitherTarget() {
+    // The anchor sits on the recipient, not the target, so it applies to a channel and a DM alike.
+    stubOk();
+
+    connector.sendMessage(
+        slack(
+            new SlackTarget.SlackUserTarget("U0123456789"),
+            "1712345678.000100",
+            "In thread",
+            new AdditionalContent.None()),
+        context);
+
+    var body = captureBody();
+    assertThat(body).contains("\"userId\":\"U0123456789\"");
+    assertThat(body).contains("\"threadTs\":\"1712345678.000100\"");
+  }
+
+  @Test
+  void slack_blankThreadTs_isOmitted() {
+    stubOk();
+
+    connector.sendMessage(
+        slack(
+            new SlackTarget.SlackChannelTarget("C0123456789"),
+            "  ",
+            "Deploy done",
+            new AdditionalContent.None()),
+        context);
+
+    assertThat(captureBody()).doesNotContain("threadTs");
   }
 
   @Test
@@ -489,8 +569,26 @@ class AppIntegrationsConnectorTest {
   }
 
   @Test
+  void teamsUserAndConversationTargets_blank_failValidation() {
+    assertThat(
+            VALIDATOR.validate(
+                teams(new TeamsTarget.TeamsUserTarget(""), "Hello", new AdditionalContent.None())))
+        .isNotEmpty();
+    assertThat(
+            VALIDATOR.validate(
+                teams(
+                    new TeamsTarget.TeamsConversationTarget("  "),
+                    "Hello",
+                    new AdditionalContent.None())))
+        .isNotEmpty();
+  }
+
+  @Test
   void nullNestedAdditionalContent_failsValidation() {
-    var request = new SendMessageRequest(new Recipient.TeamsRecipient("19:abc", null), "Hello");
+    var request =
+        new SendMessageRequest(
+            new Recipient.TeamsRecipient(new TeamsTarget.TeamsChannelTarget("19:abc"), null),
+            "Hello");
 
     assertThat(VALIDATOR.validate(request)).isNotEmpty();
   }
@@ -605,14 +703,14 @@ class AppIntegrationsConnectorTest {
   void sendMessage_oauth401_invalidatesTokenAndRetries() {
     OAuthTokenCacheHolder.set(tokenCache);
     doThrow(new ConnectorException("401", "Unauthorized"))
-        .doReturn(httpResponse(201, "{\"conversation\":null}"))
+        .doReturn(httpResponse(201, DELIVERED_BODY))
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
 
     var result =
         connectorWith(OAUTH_ENV).sendMessage(camundaText("user@example.com", "Hi"), context);
 
-    assertThat(result.conversation()).isNull();
+    assertThat(result.deliveries()).hasSize(1);
     verify(tokenCache)
         .invalidate(any(io.camunda.connector.http.client.model.auth.OAuthAuthentication.class));
     verify(httpClient, times(2)).execute(any(HttpClientRequest.class), any());
@@ -649,7 +747,15 @@ class AppIntegrationsConnectorTest {
 
     var result = connector.sendMessage(camundaText("user@example.com", "Hello"), context);
 
-    assertThat(result).isInstanceOf(SendMessageResult.class);
+    assertThat(result.deliveries())
+        .singleElement()
+        .satisfies(
+            delivery -> {
+              assertThat(delivery.platform()).isEqualTo("teams");
+              assertThat(delivery.conversation()).isEqualTo("conv-1");
+              assertThat(delivery.messageId()).isEqualTo("m-1");
+            });
+    assertThat(result.failures()).isEmpty();
     var req = captureRequest();
     assertThat(req.getUrl()).endsWith("/api/connector/message");
     assertThat(req.getHeader("X-API-KEY")).hasValue("test-key");

@@ -16,6 +16,7 @@ import io.camunda.connector.appintegrations.model.Recipient;
 import io.camunda.connector.appintegrations.model.SendMessageRequest;
 import io.camunda.connector.appintegrations.model.SendMessageResult;
 import io.camunda.connector.appintegrations.model.SlackTarget;
+import io.camunda.connector.appintegrations.model.TeamsTarget;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import org.junit.jupiter.api.Test;
 
@@ -73,22 +74,55 @@ class AppIntegrationsRequestDeserializationTest {
   }
 
   @Test
-  void teamsRecipientWithAdaptiveCard() throws Exception {
+  void teamsChannelRecipientWithAdaptiveCard() throws Exception {
     var request =
         message(
             """
-            {"recipient":{"type":"teams","channelId":"19:abc@thread.tacv2",
+            {"recipient":{"type":"teams",
+                          "teamsTarget":{"type":"channel","channelId":"19:abc@thread.tacv2"},
                           "teamsExtra":{"type":"adaptiveCard",
                                         "adaptiveCard":{"type":"AdaptiveCard","version":"1.5"}}},
              "message":"Deploy done"}""");
 
     assertThat(request.recipient()).isInstanceOf(Recipient.TeamsRecipient.class);
-    assertThat(((Recipient.TeamsRecipient) request.recipient()).channelId())
+    var teams = (Recipient.TeamsRecipient) request.recipient();
+    assertThat(((TeamsTarget.TeamsChannelTarget) teams.teamsTarget()).channelId())
         .isEqualTo("19:abc@thread.tacv2");
     var card = (AdditionalContent.AdaptiveCard) request.recipient().additionalContent();
     // Arrives as a parsed object, not a string: the engine evaluates the FEEL expression.
     assertThat(card.adaptiveCard().isObject()).isTrue();
     assertThat(card.adaptiveCard().get("type").asText()).isEqualTo("AdaptiveCard");
+  }
+
+  @Test
+  void teamsUserAndConversationRecipients() throws Exception {
+    var user =
+        message(
+            """
+            {"recipient":{"type":"teams",
+                          "teamsTarget":{"type":"user",
+                                         "teamsUser":"6b1e0f9a-1f3d-4a2b-9d0e-4c1b2a3d4e5f"},
+                          "teamsExtra":{"type":"none"}},
+             "message":"Ping"}""");
+
+    var userTarget =
+        (TeamsTarget.TeamsUserTarget) ((Recipient.TeamsRecipient) user.recipient()).teamsTarget();
+    assertThat(userTarget.teamsUser()).isEqualTo("6b1e0f9a-1f3d-4a2b-9d0e-4c1b2a3d4e5f");
+
+    var conversation =
+        message(
+            """
+            {"recipient":{"type":"teams",
+                          "teamsTarget":{"type":"conversation",
+                                         "conversationId":"19:abc@thread.tacv2;messageid=17123456789"},
+                          "teamsExtra":{"type":"none"}},
+             "message":"Following up"}""");
+
+    var conversationTarget =
+        (TeamsTarget.TeamsConversationTarget)
+            ((Recipient.TeamsRecipient) conversation.recipient()).teamsTarget();
+    assertThat(conversationTarget.conversationId())
+        .isEqualTo("19:abc@thread.tacv2;messageid=17123456789");
   }
 
   @Test
@@ -98,6 +132,7 @@ class AppIntegrationsRequestDeserializationTest {
             """
             {"recipient":{"type":"slack",
                           "slackTarget":{"type":"channel","channelId":"C0123456789"},
+                          "threadTs":"1712345678.000100",
                           "slackExtra":{"type":"blockKit","blocks":[{"type":"section"}]}},
              "message":"Deploy done"}""");
 
@@ -105,6 +140,7 @@ class AppIntegrationsRequestDeserializationTest {
     assertThat(slack.slackTarget()).isInstanceOf(SlackTarget.SlackChannelTarget.class);
     assertThat(((SlackTarget.SlackChannelTarget) slack.slackTarget()).channelId())
         .isEqualTo("C0123456789");
+    assertThat(slack.threadTs()).isEqualTo("1712345678.000100");
     var blockKit = (AdditionalContent.BlockKit) request.recipient().additionalContent();
     assertThat(blockKit.blocks().isArray()).isTrue();
   }
@@ -120,6 +156,7 @@ class AppIntegrationsRequestDeserializationTest {
 
     var slack = (Recipient.SlackRecipient) request.recipient();
     assertThat(((SlackTarget.SlackUserTarget) slack.slackTarget()).user()).isEqualTo("U0123456789");
+    assertThat(slack.threadTs()).isNull();
     assertThat(request.recipient().additionalContent()).isInstanceOf(AdditionalContent.Form.class);
   }
 
@@ -151,12 +188,42 @@ class AppIntegrationsRequestDeserializationTest {
   }
 
   @Test
+  void sendMessageResultCarriesDeliveriesAndFailures() throws Exception {
+    var result =
+        MAPPER.readValue(
+            """
+            {"deliveries":[{"platform":"teams",
+                            "conversation":"19:abc@thread.tacv2;messageid=17123456789",
+                            "messageId":"17123456789"}],
+             "failures":[{"platform":"slack","conversation":"C0123","reason":"not_in_channel"}]}""",
+            SendMessageResult.class);
+
+    assertThat(result.deliveries())
+        .singleElement()
+        .satisfies(
+            delivery -> {
+              assertThat(delivery.platform()).isEqualTo("teams");
+              assertThat(delivery.conversation())
+                  .isEqualTo("19:abc@thread.tacv2;messageid=17123456789");
+              assertThat(delivery.messageId()).isEqualTo("17123456789");
+            });
+    assertThat(result.failures())
+        .singleElement()
+        .satisfies(
+            failure -> {
+              assertThat(failure.conversation()).isEqualTo("C0123");
+              assertThat(failure.reason()).isEqualTo("not_in_channel");
+            });
+  }
+
+  @Test
   void unknownResponseFieldsAreIgnored() throws Exception {
     // FAIL_ON_UNKNOWN_PROPERTIES is disabled, so the backend can add response fields freely.
     var result =
         MAPPER.readValue(
-            "{\"conversation\":\"conv-1\",\"addedLater\":true}", SendMessageResult.class);
+            "{\"deliveries\":[],\"failures\":[],\"addedLater\":true}", SendMessageResult.class);
 
-    assertThat(result.conversation()).isEqualTo("conv-1");
+    assertThat(result.deliveries()).isEmpty();
+    assertThat(result.failures()).isEmpty();
   }
 }

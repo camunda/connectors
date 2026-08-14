@@ -21,6 +21,7 @@ import io.camunda.connector.appintegrations.model.Recipient;
 import io.camunda.connector.appintegrations.model.SendMessageRequest;
 import io.camunda.connector.appintegrations.model.SendMessageResult;
 import io.camunda.connector.appintegrations.model.SlackTarget;
+import io.camunda.connector.appintegrations.model.TeamsTarget;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.client.HttpClient;
@@ -125,6 +126,8 @@ class AppIntegrationsExecutor {
     List<String> candidateGroups = null;
     String channelId = null;
     String userId = null;
+    String conversationId = null;
+    String threadTs = null;
     switch (request.recipient()) {
       case Recipient.CamundaRecipient camunda -> {
         platform = Recipient.CamundaRecipient.TYPE;
@@ -134,10 +137,17 @@ class AppIntegrationsExecutor {
       }
       case Recipient.TeamsRecipient teams -> {
         platform = Recipient.TeamsRecipient.TYPE;
-        channelId = blankToNull(teams.channelId());
+        switch (teams.teamsTarget()) {
+          case TeamsTarget.TeamsChannelTarget channel ->
+              channelId = blankToNull(channel.channelId());
+          case TeamsTarget.TeamsUserTarget user -> userId = blankToNull(user.teamsUser());
+          case TeamsTarget.TeamsConversationTarget conversation ->
+              conversationId = blankToNull(conversation.conversationId());
+        }
       }
       case Recipient.SlackRecipient slack -> {
         platform = Recipient.SlackRecipient.TYPE;
+        threadTs = blankToNull(slack.threadTs());
         switch (slack.slackTarget()) {
           case SlackTarget.SlackChannelTarget channel ->
               channelId = blankToNull(channel.channelId());
@@ -170,6 +180,8 @@ class AppIntegrationsExecutor {
         candidateGroups,
         channelId,
         userId,
+        conversationId,
+        threadTs,
         blankToNull(request.message()),
         adaptiveCard,
         blocks,
@@ -453,6 +465,8 @@ class AppIntegrationsExecutor {
       List<String> candidateGroups,
       String channelId,
       String userId,
+      String conversationId,
+      String threadTs,
       String message,
       JsonNode adaptiveCard,
       JsonNode blocks,

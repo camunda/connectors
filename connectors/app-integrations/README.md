@@ -5,8 +5,8 @@ Integrations backend (Microsoft Teams and Slack).
 
 It exposes two operations:
 
-- **Send Message** — post plain text to a Camunda-side recipient, a Microsoft Teams channel, or Slack,
-  optionally alongside an [Adaptive Card](https://adaptivecards.io/), a
+- **Send Message** — post plain text to a Camunda-side recipient, a Microsoft Teams channel, user or
+  conversation, or Slack, optionally alongside an [Adaptive Card](https://adaptivecards.io/), a
   [Block Kit](https://api.slack.com/block-kit) payload, or a Camunda form.
 - **Create Channel** — create a channel in Microsoft Teams or Slack.
 
@@ -67,9 +67,13 @@ the additional content below, or fill both to send text *and* a card in one mess
 
 - **Camunda** — any combination of assignee email, candidate users and candidate groups (at least one
   is required). The candidate fields are FEEL lists, e.g. `= ["alice", "bob"]`.
-- **Microsoft Teams** — a channel ID, e.g. `19:xxx@thread.tacv2`.
+- **Microsoft Teams** — a second switch, **Teams target**: a channel ID (`19:xxx@thread.tacv2`), a
+  user (the recipient's Microsoft Entra object ID; they must have connected the app), or a
+  conversation returned by a previous send, which posts the message as a reply in it.
 - **Slack** — a second switch, **Slack target**: a channel ID (`C0123456789`) or a user ID
-  (`U0123456789`).
+  (`U0123456789`), plus an optional **Thread** — the message ID of a previous send, to reply in its
+  thread instead of posting a new message. A Slack thread is an anchor within either target rather
+  than an address of its own, which is why it sits beside the switch rather than inside it.
 
 **Additional content** is a second switch whose options depend on the recipient, because the formats
 each platform accepts differ:
@@ -134,12 +138,20 @@ from, so the backend can match notification rules scoped to a specific process.
   "message": "Deploy done",
   "adaptiveCard": { "type": "AdaptiveCard", "version": "1.5", "body": [] } }
 
+{ "platform": "teams", "processDefinitionId": "order-process",
+  "userId": "6b1e0f9a-1f3d-4a2b-9d0e-4c1b2a3d4e5f", "message": "Ping" }
+
+{ "platform": "teams", "processDefinitionId": "order-process",
+  "conversationId": "19:abc@thread.tacv2;messageid=17123456789", "message": "Following up" }
+
 { "platform": "slack", "processDefinitionId": "order-process", "channelId": "C0123456789",
   "message": "Deploy done", "blocks": [ { "type": "section" } ] }
 
 { "platform": "slack", "processDefinitionId": "order-process", "userId": "U0123456789",
-  "message": "Ping" }
+  "threadTs": "1712345678.000100", "message": "Ping" }
 ```
+
+The backend requires **exactly one** Teams target (`channelId`, `userId` or `conversationId`).
 
 `POST /api/connector/channel`:
 
@@ -155,6 +167,19 @@ from, so the backend can match notification rules scoped to a specific process.
 Both operations return the backend's JSON response (e.g. the created channel for *Create Channel*), or
 `null` for an acknowledged call with no body. Any response with status `>= 400` is surfaced as a
 `ConnectorException` whose error code is the HTTP status.
+
+*Send Message* reports **every** destination the message resolved to, and every one it did not:
+
+```json
+{ "deliveries": [ { "platform": "teams", "conversation": "19:abc@thread.tacv2;messageid=17123456789",
+                    "messageId": "17123456789" } ],
+  "failures": [ { "platform": "slack", "conversation": "C0123", "reason": "not_in_channel" } ] }
+```
+
+A single delivery is a one-element list, read as `deliveries[1].conversation` (FEEL is 1-indexed).
+`failures` is non-empty on a partial success, so a process that must not proceed on an incomplete
+fan-out can check it. To reply to a delivery, pass `conversation` back as the Slack channel target
+with `messageId` as **Thread**, or as the Teams conversation target.
 
 ## Regenerating the element template
 

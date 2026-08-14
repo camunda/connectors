@@ -169,9 +169,41 @@
     },
     "type" : "String"
   }, {
-    "id" : "sendMessage:recipient.channelId",
+    "id" : "sendMessage:recipient.teamsTarget.type",
+    "label" : "Teams target",
+    "description" : "Post into a channel, send directly to a person, or reply in a conversation a previous send returned",
+    "value" : "channel",
+    "group" : "recipient",
+    "binding" : {
+      "name" : "recipient.teamsTarget.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Channel",
+      "value" : "channel"
+    }, {
+      "name" : "User",
+      "value" : "user"
+    }, {
+      "name" : "Conversation",
+      "value" : "conversation"
+    } ]
+  }, {
+    "id" : "sendMessage:recipient.teamsTarget.channelId",
     "label" : "Channel ID",
-    "description" : "Microsoft Teams channel ID to send to, e.g. 19:xxx@thread.tacv2. Use when sending to a channel rather than a user.",
+    "description" : "Microsoft Teams channel ID, e.g. 19:xxx@thread.tacv2.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -179,13 +211,77 @@
     "feel" : "optional",
     "group" : "recipient",
     "binding" : {
-      "name" : "recipient.channelId",
+      "name" : "recipient.teamsTarget.channelId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
         "property" : "operation",
         "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.teamsTarget.type",
+        "equals" : "channel",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:recipient.teamsTarget.teamsUser",
+    "label" : "User ID",
+    "description" : "Microsoft Entra object ID of the recipient — they must have connected the app.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "recipient",
+    "binding" : {
+      "name" : "recipient.teamsTarget.teamsUser",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.teamsTarget.type",
+        "equals" : "user",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:recipient.teamsTarget.conversationId",
+    "label" : "Conversation",
+    "description" : "Conversation returned by a previous send; the message is posted as a reply in it.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "recipient",
+    "binding" : {
+      "name" : "recipient.teamsTarget.conversationId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.teamsTarget.type",
+        "equals" : "conversation",
         "type" : "simple"
       }, {
         "property" : "sendMessage:recipient.type",
@@ -275,6 +371,29 @@
       }, {
         "property" : "sendMessage:recipient.slackTarget.type",
         "equals" : "user",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:recipient.threadTs",
+    "label" : "Thread",
+    "description" : "Message ID of a previous send, to reply in its thread instead of posting a new message",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "recipient",
+    "binding" : {
+      "name" : "recipient.threadTs",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
         "type" : "simple"
       }, {
         "property" : "sendMessage:recipient.type",
@@ -1102,7 +1221,7 @@
     "presetId" : "operation_createChannel"
   }, {
     "name" : "Send Message",
-    "description" : "Send an App Integrations message to Microsoft Teams, Slack, or a Camunda recipient — plain text plus an optional adaptive card, Block Kit payload, or form",
+    "description" : "Send an App Integrations message to Microsoft Teams, Slack, or a Camunda recipient — plain text plus an optional adaptive card, Block Kit payload, or form. The result lists every destination reached, so a single conversation is deliveries[1].conversation",
     "keywords" : [ "send message", "post message", "notify user", "send adaptive card", "send block kit", "send form", "teams notification", "slack notification" ],
     "presetId" : "operation_sendMessage"
   } ],

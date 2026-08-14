@@ -33,7 +33,9 @@ import io.camunda.connector.appintegrations.model.ChannelPlatform;
 import io.camunda.connector.appintegrations.model.CreateChannelRequest;
 import io.camunda.connector.appintegrations.model.Recipient;
 import io.camunda.connector.appintegrations.model.SendMessageRequest;
+import io.camunda.connector.appintegrations.model.SendMessageResult;
 import io.camunda.connector.appintegrations.model.SlackTarget;
+import io.camunda.connector.appintegrations.model.TeamsTarget;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
@@ -183,7 +185,13 @@ class AppIntegrationsConnectorWireMockTest {
   void sendMessage_realClient_candidateUsersAndGroups_sentAsJsonArrays(WireMockRuntimeInfo wm) {
     stubFor(
         post(urlPathEqualTo(MESSAGE_PATH))
-            .willReturn(okJson("{\"conversation\":\"conv-1\"}").withStatus(201)));
+            .willReturn(
+                okJson(
+                        """
+                        {"deliveries":[{"platform":"slack","conversation":"D0123","messageId":"1712345678.000100"},
+                                       {"platform":"teams","conversation":"conv-2","messageId":"m-2"}],
+                         "failures":[{"platform":"slack","conversation":"C0999","reason":"not_in_channel"}]}""")
+                    .withStatus(201)));
 
     var request =
         new SendMessageRequest(
@@ -196,7 +204,12 @@ class AppIntegrationsConnectorWireMockTest {
 
     var result = apiKeyConnector(wm).sendMessage(request, context);
 
-    assertThat(result.conversation()).isEqualTo("conv-1");
+    assertThat(result.deliveries())
+        .extracting(SendMessageResult.Delivery::conversation)
+        .containsExactly("D0123", "conv-2");
+    assertThat(result.failures())
+        .singleElement()
+        .satisfies(failure -> assertThat(failure.reason()).isEqualTo("not_in_channel"));
     verify(
         postRequestedFor(urlPathEqualTo(MESSAGE_PATH))
             .withHeader("X-API-KEY", equalTo("test-key"))
@@ -219,7 +232,10 @@ class AppIntegrationsConnectorWireMockTest {
       throws Exception {
     stubFor(
         post(urlPathEqualTo(MESSAGE_PATH))
-            .willReturn(okJson("{\"conversation\":\"conv-2\"}").withStatus(201)));
+            .willReturn(
+                okJson(
+                        "{\"deliveries\":[{\"platform\":\"slack\",\"conversation\":\"C0123456789\",\"messageId\":\"1712345678.000200\"}],\"failures\":[]}")
+                    .withStatus(201)));
 
     var blocks =
         ConnectorsObjectMapperSupplier.getCopy()
@@ -228,12 +244,15 @@ class AppIntegrationsConnectorWireMockTest {
         new SendMessageRequest(
             new Recipient.SlackRecipient(
                 new SlackTarget.SlackChannelTarget("C0123456789"),
+                "1712345678.000100",
                 new AdditionalContent.BlockKit(blocks)),
             "Deploy done");
 
     var result = apiKeyConnector(wm).sendMessage(request, context);
 
-    assertThat(result.conversation()).isEqualTo("conv-2");
+    assertThat(result.deliveries())
+        .singleElement()
+        .satisfies(delivery -> assertThat(delivery.messageId()).isEqualTo("1712345678.000200"));
     // blocks must arrive as a real JSON array, not a string containing JSON.
     verify(
         postRequestedFor(urlPathEqualTo(MESSAGE_PATH))
@@ -244,8 +263,45 @@ class AppIntegrationsConnectorWireMockTest {
                       "platform": "slack",
                       "processDefinitionId": "order-process",
                       "channelId": "C0123456789",
+                      "threadTs": "1712345678.000100",
                       "message": "Deploy done",
                       "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "hi"}}]
+                    }
+                    """)));
+  }
+
+  @Test
+  void sendMessage_realClient_teamsConversationTarget_sentAsConversationId(WireMockRuntimeInfo wm) {
+    stubFor(
+        post(urlPathEqualTo(MESSAGE_PATH))
+            .willReturn(
+                okJson(
+                        "{\"deliveries\":[{\"platform\":\"teams\",\"conversation\":\"19:abc@thread.tacv2;messageid=17123456789\",\"messageId\":\"17123456790\"}],\"failures\":[]}")
+                    .withStatus(201)));
+
+    var request =
+        new SendMessageRequest(
+            new Recipient.TeamsRecipient(
+                new TeamsTarget.TeamsConversationTarget(
+                    "19:abc@thread.tacv2;messageid=17123456789"),
+                new AdditionalContent.None()),
+            "Following up");
+
+    var result = apiKeyConnector(wm).sendMessage(request, context);
+
+    assertThat(result.deliveries())
+        .singleElement()
+        .satisfies(delivery -> assertThat(delivery.messageId()).isEqualTo("17123456790"));
+    verify(
+        postRequestedFor(urlPathEqualTo(MESSAGE_PATH))
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {
+                      "platform": "teams",
+                      "processDefinitionId": "order-process",
+                      "conversationId": "19:abc@thread.tacv2;messageid=17123456789",
+                      "message": "Following up"
                     }
                     """)));
   }
