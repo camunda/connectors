@@ -782,23 +782,26 @@ In `AgentConversationTurnInputComposerImpl.compose`, when the last reconstructed
 `AssistantMessage` that has tool calls (`history.turns().getLast().hasToolCalls()`):
 
 ```java
-final var orderedToolCallResults =
+final var resolution =
     resolveOrderedToolCallResults(
         agentContext, toolCalls, agentInput.toolCallResults(), interruptMissingToolCalls);
 
 // either we have all results or we interrupted the missing tool calls
-// if empty, we wait on further tool call results to be added
-if (orderedToolCallResults.isEmpty()) {
-    return new CompositionResult.Deferred();
+// if incomplete, we wait on further tool call results to be added
+if (!resolution.complete()) {
+    return new CompositionResult.Deferred(resolution.results());
 }
 ```
 
-The method checks each tool call from the last assistant message against the available results
-(`Optional<List<ToolCallResult>>`):
-- If all present: returns the results ordered to match the original tool call order; `compose` then
-  builds the `ToolCallResultMessage` from them
-- If missing and NOT interrupting: returns `Optional.empty()` → `compose` returns `CompositionResult.Deferred` → handler completes as a no-op
-- If missing and interrupting (due to event): creates cancelled results for missing tools, returned alongside the present ones
+The method correlates and gateway (MCP/A2A) transforms the available results, then checks each tool
+call from the last assistant message against them (`ToolCallResultsResolution(results, complete)`):
+- If all present: `complete` is `true`; `compose` builds the `ToolCallResultMessage` from `results`,
+  ordered to match the original tool call order
+- If missing and NOT interrupting: `complete` is `false`; `results` holds only the ones that arrived
+  so far → `compose` returns `CompositionResult.Deferred(results)` (ADR 011) → handler reports them
+  to agent instance history and completes as a no-op
+- If missing and interrupting (due to event): `complete` is `true`; cancelled results are added for
+  the missing tool calls, alongside the present ones
 
 ### No-Op Detection in BaseAgentRequestHandler
 
@@ -841,8 +844,8 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
 - **Duplicated by design.** The same result gets written to history twice: once here, once again
   by `createHistoryForInputMessages` once the batch completes. Accepted until the redesigned agent
   instance history API (camunda/camunda#58789) supports dedup by id.
-- **No new persisted state.** No `AgentContext` or `ConversationStore` change — this is purely an
-  additional engine call on a path that previously touched neither.
+- **No new persisted state.** The `Deferred` path touches neither `AgentContext` nor the
+  `ConversationStore` — reporting to agent instance history is its only side effect.
 - **Strict failure.** Unlike the metrics-update listener (which fires after job completion and
   swallows failures), this call runs before completion and a failure fails the job, same as the
   other `AgentInstanceClient` history calls.
