@@ -36,9 +36,19 @@ class SecretReferenceUtil {
 
   private static final JsonStringEncoder encoder = JsonStringEncoder.getInstance();
 
-  // Mirrors the engine's own SecretReference.REFERENCE_PATTERN exactly, so detection cannot drift
-  // from what the engine itself recognizes. Package-visible: SecretUtil.retrieveSecretKeysInInput
-  // also matches this pattern, purely to keep the outbound allow-list the right size (see there).
+  // The same regex as the engine's SecretReference.REFERENCE_PATTERN, which the engine uses only
+  // where it has no parsed FEEL expression to work from: its deployment-time literal check and its
+  // cluster-variable scanner. Where the engine does have one, it detects references on the parsed
+  // AST, which is stricter than this regex in two ways worth knowing.
+  //
+  // A reference must be exactly three segments there, so `camunda.secrets.token.length` is a
+  // longer qualified name and not a reference at all; this pattern matches the first three
+  // segments of it and substitutes. And a reference inside a string literal is left alone there,
+  // because it is not a variable reference; this pattern does not distinguish the two.
+  //
+  // So "same pattern" does not mean "same detection". Package-visible:
+  // SecretUtil.retrieveSecretKeysInInput also matches this pattern, purely to keep the outbound
+  // allow-list the right size (see there).
   static final Pattern PATTERN = Pattern.compile("camunda\\.secrets\\.(?<secret>[\\p{Alnum}_]+)");
 
   private SecretReferenceUtil() {}
