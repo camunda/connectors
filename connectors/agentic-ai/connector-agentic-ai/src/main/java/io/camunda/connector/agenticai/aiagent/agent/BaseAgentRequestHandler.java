@@ -138,10 +138,8 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
-   * Reports tool call results that have arrived but aren't a complete batch yet. {@code
-   * arrivedResults} is already correlated and gateway-transformed by the composer (see {@link
-   * CompositionResult.Deferred}); this path must still stay a no-op when nothing arrived yet or
-   * there is no previous turn to correlate against.
+   * Reports {@code arrivedResults} to agent instance history. No-ops when empty or when there is no
+   * previous turn to correlate against.
    */
   private void reportArrivedToolCallResults(
       C executionContext,
