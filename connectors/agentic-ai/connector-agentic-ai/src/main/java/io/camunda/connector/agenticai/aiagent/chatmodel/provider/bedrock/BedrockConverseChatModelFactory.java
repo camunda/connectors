@@ -41,6 +41,9 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(BedrockConverseChatModelFactory.class);
 
+  private static final String SIGV4_AUTH_SCHEME = "sigv4";
+  private static final String BEARER_AUTH_SCHEME = "httpBearerAuth";
+
   private final ChatModelProperties config;
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final BedrockConverseRequestConverter requestConverter;
@@ -112,23 +115,51 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
     return builder.build();
   }
 
+  /**
+   * Wires the credential source the user configured, and pins the auth scheme that source can
+   * actually satisfy.
+   *
+   * <p>The scheme is pinned in every branch, not just the API-key one: left unset, the SDK resolves
+   * the scheme preference from the environment ({@code AWS_AUTH_SCHEME_PREFERENCE}, {@code
+   * aws.authSchemePreference}, or the profile's {@code auth_scheme_preference}), which could push a
+   * scheme the configured credentials cannot satisfy to the front - e.g. an environment preferring
+   * {@code httpBearerAuth} would make an explicitly configured access key/secret lose to the SDK's
+   * default token provider. Explicit connector configuration wins over ambient environment either
+   * way.
+   *
+   * <p>Only the scheme is pinned, never the identity: sigv4 resolves its credentials from the
+   * provider set here, and the default credentials chain is built only for the branch that asks for
+   * it (the SDK falls back to it solely when no credentials provider was set at all).
+   */
   private static void applyAuthentication(
       AwsAuthentication authentication, BedrockRuntimeAsyncClientBuilder builder) {
     switch (authentication) {
       case AwsAuthentication.AwsStaticCredentialsAuthentication staticAuth ->
-          builder.credentialsProvider(
-              StaticCredentialsProvider.create(
-                  AwsBasicCredentials.create(staticAuth.accessKey(), staticAuth.secretKey())));
+          builder
+              .credentialsProvider(
+                  StaticCredentialsProvider.create(
+                      AwsBasicCredentials.create(staticAuth.accessKey(), staticAuth.secretKey())))
+              .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
       case AwsAuthentication.AwsApiKeyAuthentication apiKeyAuth ->
-          // Native "Bedrock API keys" support. Forces httpBearerAuth ahead of sigv4 (listed first
-          // by default and always resolvable via the default credentials chain), otherwise the
-          // token would never be sent.
+          // Native "Bedrock API keys" support: a bearer token, not sigv4 credentials. Without the
+          // pin, sigv4 stays ahead of httpBearerAuth (the SDK's default order) and the token would
+          // never be sent.
           builder
               .tokenProvider(StaticTokenProvider.create(apiKeyAuth::apiKey))
-              .authSchemeProvider(
-                  BedrockRuntimeAuthSchemeProvider.defaultProvider(List.of("httpBearerAuth")));
+              .authSchemeProvider(preferring(BEARER_AUTH_SCHEME));
       case AwsAuthentication.AwsDefaultCredentialsChainAuthentication ignored ->
-          builder.credentialsProvider(DefaultCredentialsProvider.builder().build());
+          builder
+              .credentialsProvider(DefaultCredentialsProvider.builder().build())
+              .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
     }
+  }
+
+  /**
+   * An auth scheme provider resolving the given scheme ahead of the operation's other candidates,
+   * which stay in the list as fallbacks. The SDK picks the first candidate whose identity is
+   * resolvable.
+   */
+  private static BedrockRuntimeAuthSchemeProvider preferring(String authSchemeName) {
+    return BedrockRuntimeAuthSchemeProvider.defaultProvider(List.of(authSchemeName));
   }
 }

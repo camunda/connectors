@@ -53,6 +53,7 @@ import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClientBuilder;
+import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntimeAuthSchemeParams;
 import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntimeAuthSchemeProvider;
 
 /**
@@ -68,6 +69,8 @@ class BedrockConverseChatModelFactoryTest {
   private static final String MODEL_ID = "us.amazon.nova-2-lite-v1:0";
   private static final String REGION = "eu-central-1";
   private static final Region AWS_REGION = Region.of(REGION);
+  private static final String SIGV4_SCHEME_ID = "aws.auth#sigv4";
+  private static final String BEARER_SCHEME_ID = "smithy.api#httpBearerAuth";
 
   private final ProxyConfiguration proxyConfiguration = ProxyConfiguration.NONE;
   private final AgenticAiHttpProxySupport proxySupport =
@@ -143,6 +146,8 @@ class BedrockConverseChatModelFactoryTest {
           final var credentials = credentialsProvider.resolveCredentials();
           assertThat(credentials.accessKeyId()).isEqualTo("AKIA");
           assertThat(credentials.secretAccessKey()).isEqualTo("secret");
+
+          assertPreferredAuthScheme(clientBuilder, SIGV4_SCHEME_ID);
         });
   }
 
@@ -154,6 +159,8 @@ class BedrockConverseChatModelFactoryTest {
           verify(clientBuilder).credentialsProvider(credentialsProviderCaptor.capture());
           assertThat(credentialsProviderCaptor.getValue())
               .isInstanceOf(DefaultCredentialsProvider.class);
+
+          assertPreferredAuthScheme(clientBuilder, SIGV4_SCHEME_ID);
         });
   }
 
@@ -171,7 +178,7 @@ class BedrockConverseChatModelFactoryTest {
           assertThat(tokenProviderCaptor.getValue().resolveToken().token())
               .isEqualTo("bedrock-key");
 
-          verify(clientBuilder).authSchemeProvider(any(BedrockRuntimeAuthSchemeProvider.class));
+          assertPreferredAuthScheme(clientBuilder, BEARER_SCHEME_ID);
 
           final var overrideConfigurationCaptor =
               ArgumentCaptor.forClass(ClientOverrideConfiguration.class);
@@ -227,6 +234,29 @@ class BedrockConverseChatModelFactoryTest {
         Arguments.of(new TimeoutConfiguration(Duration.ofSeconds(45)), Duration.ofSeconds(45)),
         Arguments.of(null, Duration.ofMinutes(3)),
         Arguments.of(new TimeoutConfiguration(null), Duration.ofMinutes(3)));
+  }
+
+  /**
+   * Resolves the auth scheme the way the SDK does before signing a request and asserts which scheme
+   * the client would actually pick, rather than only that some provider was configured.
+   */
+  private static void assertPreferredAuthScheme(
+      BedrockRuntimeAsyncClientBuilder clientBuilder, String expectedSchemeId) {
+    final var authSchemeProviderCaptor =
+        ArgumentCaptor.forClass(BedrockRuntimeAuthSchemeProvider.class);
+    verify(clientBuilder).authSchemeProvider(authSchemeProviderCaptor.capture());
+
+    final var resolvedSchemes =
+        authSchemeProviderCaptor
+            .getValue()
+            .resolveAuthScheme(
+                BedrockRuntimeAuthSchemeParams.builder()
+                    .operation("ConverseStream")
+                    .region(AWS_REGION)
+                    .build());
+
+    assertThat(resolvedSchemes).isNotEmpty();
+    assertThat(resolvedSchemes.getFirst().schemeId()).isEqualTo(expectedSchemeId);
   }
 
   private void testBuilder(
