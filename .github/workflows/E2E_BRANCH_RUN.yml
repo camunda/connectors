@@ -146,14 +146,6 @@ jobs:
             secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
             secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
 
-      - name: Restore cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
       - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
@@ -200,7 +192,7 @@ jobs:
       # Run only this module's tests. No -am: base/connector SNAPSHOTs come from the downloaded
       # artifact, so nothing upstream is rebuilt.
       - name: Test e2e module
-        run: ./mvnw --batch-mode -T1C test -pl "${{ matrix.entry.module }}" -f connectors-e2e-test/pom.xml
+        run: ./mvnw --batch-mode test -pl "${{ matrix.entry.module }}" -f connectors-e2e-test/pom.xml
 
       - name: Publish Test Report
         if: always()
