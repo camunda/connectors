@@ -48,6 +48,32 @@ class SecretReferenceUtilTest {
   }
 
   @Test
+  void wholeValueReference_acceptsAValueThatIsExactlyAReferenceExpression() {
+    assertThat(SecretReferenceUtil.wholeValueReference("=camunda.secrets.FOO"))
+        .contains("camunda.secrets.FOO");
+    // Whitespace a FEEL evaluator would trim must not change the answer.
+    assertThat(SecretReferenceUtil.wholeValueReference("  =  camunda.secrets.FOO  "))
+        .contains("camunda.secrets.FOO");
+  }
+
+  @Test
+  void wholeValueReference_rejectsEverythingElse() {
+    // No leading '=' - the unpoliced bare form ADR-0007 §11 drops.
+    assertThat(SecretReferenceUtil.wholeValueReference("camunda.secrets.FOO")).isEmpty();
+    // Embedded in a longer value.
+    assertThat(SecretReferenceUtil.wholeValueReference("=x?key=camunda.secrets.FOO")).isEmpty();
+    // Mixed into a larger expression (ADR-0007 §13).
+    assertThat(SecretReferenceUtil.wholeValueReference("=\"Bearer \" + camunda.secrets.FOO"))
+        .isEmpty();
+    // A trailing path access is a longer qualified name, not a reference.
+    assertThat(SecretReferenceUtil.wholeValueReference("=camunda.secrets.FOO.length")).isEmpty();
+    // Quoted, which the engine rejects at deployment for an input mapping.
+    assertThat(SecretReferenceUtil.wholeValueReference("=\"camunda.secrets.FOO\"")).isEmpty();
+    assertThat(SecretReferenceUtil.wholeValueReference("")).isEmpty();
+    assertThat(SecretReferenceUtil.wholeValueReference(null)).isEmpty();
+  }
+
+  @Test
   void bareName_stripsPrefix() {
     assertThat(SecretReferenceUtil.bareName("camunda.secrets.FOO")).isEqualTo("FOO");
   }

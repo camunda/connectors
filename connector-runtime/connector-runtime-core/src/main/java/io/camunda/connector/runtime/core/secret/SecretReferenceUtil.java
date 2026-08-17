@@ -21,6 +21,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -62,6 +63,28 @@ class SecretReferenceUtil {
     return Objects.isNull(input)
         ? List.of()
         : PATTERN.matcher(input).results().map(MatchResult::group).distinct().toList();
+  }
+
+  /**
+   * The reference a property value <em>is</em>, when the whole value is one written as an
+   * expression: {@code "=camunda.secrets.FOO"} gives {@code "camunda.secrets.FOO"}. Anything else
+   * gives nothing — a reference embedded in a longer value, or written without the leading {@code
+   * =}, is not a supported form on inbound (ADR-0007 §11).
+   *
+   * <p>Surrounding whitespace and whitespace after the {@code =} are tolerated, matching how {@code
+   * LocalFeelExpressionEvaluator} trims an expression before evaluating it, so a value that FEEL
+   * would accept is not rejected here on spacing alone.
+   */
+  static Optional<String> wholeValueReference(String value) {
+    if (value == null) {
+      return Optional.empty();
+    }
+    var trimmed = value.trim();
+    if (!trimmed.startsWith("=")) {
+      return Optional.empty();
+    }
+    var expression = trimmed.substring(1).trim();
+    return PATTERN.matcher(expression).matches() ? Optional.of(expression) : Optional.empty();
   }
 
   /**
