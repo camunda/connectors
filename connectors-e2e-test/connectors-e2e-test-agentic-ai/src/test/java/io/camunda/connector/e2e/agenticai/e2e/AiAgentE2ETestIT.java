@@ -24,6 +24,7 @@ import static org.awaitility.Awaitility.await;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.BpmnUtil;
@@ -32,12 +33,16 @@ import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.time.format.TextStyle;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -57,30 +62,24 @@ import org.springframework.test.context.ActiveProfiles;
  * cd apps/bundle/default-bundle && docker build -t camunda/connectors-bundle:local .
  *
  * export CONNECTORS_IMAGE_NAME=camunda/connectors-bundle CONNECTORS_IMAGE_VERSION=local
- * export OPENAI_API_KEY=...                  # the OpenAI row, and the judge for every row
+ * export OPENAI_API_KEY=...                  # the OpenAI row
  * export GOOGLE_VERTEX_AI_PROJECT_ID=... GOOGLE_VERTEX_AI_REGION=... \
  *        GOOGLE_VERTEX_AI_SERVICE_ACCOUNT="$(cat sa-key.json)"   # the Vertex AI rows
  *
  * ./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -Pit-real-llm
  * }</pre>
  *
- * <p>The service account variable holds the whole key file verbatim — it is parsed as a credentials
- * stream, not read as a path.
+ * <p>The service account variable holds the whole key file verbatim. Each row skips itself when its
+ * own credentials are absent, so a partial credential set runs a subset.
  *
- * <p>{@code OPENAI_API_KEY} is required whichever rows run, not just for the OpenAI one: the
- * assertions go through CPT's LLM judge, which {@code application-it-real-llm.yml} configures
- * against OpenAI for every provider. Hence the class-level gate on it. The remaining rows skip
- * themselves when their own credentials are absent, so a partial credential set runs a subset.
- *
- * <p>A full run is a dozen real LLM conversations — narrow it with {@code
- * -Dit.test='AiAgentE2ETestIT#someScenario'} and {@link ProviderRow#disabled()}. Requires {@code
- * element-templates-cli} on the PATH at the version pinned in {@code
- * .github/workflows/package.json}.
+ * <p>Narrow a run with {@code -Dit.test='AiAgentE2ETestIT#someScenario'} and {@link
+ * ProviderRow#disabled()}. Requires {@code element-templates-cli} on the PATH at the version pinned
+ * in {@code .github/workflows/package.json}.
  */
 @SpringBootTest(classes = AiAgentE2ETestApplication.class)
 @CamundaSpringProcessTest
 @ActiveProfiles("it-real-llm")
-@EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
+@EnabledIf("hasConfiguredProvider")
 public class AiAgentE2ETestIT {
 
   private static final String BPMN_RESOURCE = "classpath:ai-agent-e2e.bpmn";
@@ -88,9 +87,16 @@ public class AiAgentE2ETestIT {
   private static final String PROCESS_ID = "ai-agent-e2e";
 
   private static final String HTTP_JSON_JOB_TYPE = "io.camunda:http-json:1";
+  private static final String DATE_TIME_JOB_TYPE = "io.camunda.e2e:date-time:1";
 
-  private static final String JOKE_1 =
+  private static final String JOKE =
       "Why did the AI cross the road? To process the chicken on the other side.";
+
+  /** Fragment of {@link #JOKE} distinctive enough that only a retold joke can contain it. */
+  private static final String JOKE_FRAGMENT = "process the chicken";
+
+  /** Name of the second entry in {@link #knownUsers()}, which the lookup scenario asks for. */
+  private static final String SECOND_USER_NAME = "Ervin Howell";
 
   private static final String ORDER_STATUS_TRACKING_NUMBER = "1Z999AA10123456784";
 
@@ -102,11 +108,24 @@ public class AiAgentE2ETestIT {
 
   private static final Duration USER_TASK_TIMEOUT = Duration.ofMinutes(3);
 
+  /**
+   * What {@code GetDateAndTime} reports. Fixed so scenarios can assert on it — a Saturday, so the
+   * weekday is a token the model either echoes from the tool result or derives from the ISO date,
+   * landing on the same value either way.
+   */
+  private static final ZonedDateTime DEFAULT_DATE_AND_TIME =
+      ZonedDateTime.parse("2026-03-14T15:09:26+01:00[Europe/Berlin]");
+
+  private static final String DEFAULT_DAY_OF_WEEK = dayOfWeek(DEFAULT_DATE_AND_TIME);
+
   @Autowired private CamundaClient camundaClient;
   @Autowired private CamundaProcessTestContext processTestContext;
   @Autowired private ResourceLoader resourceLoader;
 
   @TempDir private File tempDir;
+
+  /** Reassign before starting an instance to run a scenario against a different point in time. */
+  private ZonedDateTime dateAndTime;
 
   @BeforeAll
   static void setUp() {
@@ -114,7 +133,21 @@ public class AiAgentE2ETestIT {
   }
 
   @BeforeEach
-  void mockHttpTools() {
+  void mockTools() {
+    dateAndTime = DEFAULT_DATE_AND_TIME;
+
+    // GetDateAndTime runs on a job type no connector in the bundle implements, so the job is ours
+    // by construction and the tool result is fixed rather than the real wall clock.
+    processTestContext
+        .mockJobWorker(DATE_TIME_JOB_TYPE)
+        .withHandler(
+            (jobClient, job) ->
+                jobClient
+                    .newCompleteCommand(job)
+                    .variable("toolCallResult", dateAndTime())
+                    .send()
+                    .join());
+
     // Intercept ListUsers, Jokes_API and GetOrderStatus HTTP jobs — the HTTP connector is disabled
     // in the Docker bundle via CONNECTOR_OUTBOUND_DISABLED so these jobs stay open for the test to
     // complete. Matching is done by element id (a single job worker per job type, dispatching on
@@ -126,7 +159,7 @@ public class AiAgentE2ETestIT {
               var result =
                   switch (job.getElementId()) {
                     case "ListUsers" -> knownUsers();
-                    case "Jokes_API" -> JOKE_1;
+                    case "Jokes_API" -> JOKE;
                     case "GetOrderStatus" -> orderStatus();
                     default -> null;
                   };
@@ -153,17 +186,14 @@ public class AiAgentE2ETestIT {
     var processInstance =
         deployAndStart(
             provider,
-            "Use your user lookup tool to list available users and tell me the name of the first"
-                + " user you find");
+            "Use your user lookup tool to list the available users and tell me the name of the"
+                + " second user in the list. Reply with that name only.");
 
     completeUserTask(awaitUserTask(processInstance), true, null);
 
     assertThatProcessInstance(processInstance).isCompleted();
-    assertThatProcessInstance(processInstance)
-        .hasVariableSatisfiesJudge(
-            "agent",
-            "The agent variable contains a responseText field that names one of the known users:"
-                + " Leanne Graham or Ervin Howell, proving the ListUsers tool was invoked");
+    assertThatProcessInstance(processInstance).hasCompletedElement("ListUsers", 1);
+    assertThat(responseText(processInstance)).contains(SECOND_USER_NAME);
   }
 
   /** Requests two tools in a single prompt, so the model has to emit both calls in one turn. */
@@ -173,19 +203,17 @@ public class AiAgentE2ETestIT {
     var processInstance =
         deployAndStart(
             provider,
-            "I need two things: use your date and time tool to tell me the current time, and also"
-                + " use your jokes API tool to fetch a random joke for me");
+            "I need two things: use your date and time tool to tell me which day of the week it is,"
+                + " and also use your jokes API tool to fetch a random joke for me");
 
     completeUserTask(awaitUserTask(processInstance), true, null);
 
     assertThatProcessInstance(processInstance).isCompleted();
-    assertThatProcessInstance(processInstance)
-        .hasVariableSatisfiesJudge(
-            "agent",
-            "The agent variable contains a responseText field with a specific current time"
-                + " (including hours and minutes) from the GetDateAndTime tool AND a complete"
-                + " joke with a punchline from the Jokes_API tool, proving both tools were"
-                + " invoked");
+    assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
+    assertThatProcessInstance(processInstance).hasCompletedElement("Jokes_API", 1);
+    assertThat(responseText(processInstance))
+        .contains(DEFAULT_DAY_OF_WEEK)
+        .containsIgnoringCase(JOKE_FRAGMENT);
   }
 
   /**
@@ -205,18 +233,14 @@ public class AiAgentE2ETestIT {
     completeUserTask(
         firstTaskKey,
         false,
-        "Based on the time you just looked up, is it currently daytime or nighttime?");
+        "Based on the date and time you just looked up, which day of the week was that? Reply with"
+            + " the weekday only.");
 
     completeUserTask(awaitNextUserTask(processInstance, firstTaskKey), true, null);
 
     assertThatProcessInstance(processInstance).isCompleted();
     assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
-    assertThatProcessInstance(processInstance)
-        .hasVariableSatisfiesJudge(
-            "agent",
-            "The agent variable contains a responseText that says whether it is daytime or"
-                + " nighttime AND includes a specific time value (hours and minutes) from the"
-                + " GetDateAndTime tool, proving conversation context was retained");
+    assertThat(responseText(processInstance)).contains(DEFAULT_DAY_OF_WEEK);
   }
 
   /**
@@ -234,18 +258,24 @@ public class AiAgentE2ETestIT {
     completeUserTask(awaitUserTask(processInstance), true, null);
 
     assertThatProcessInstance(processInstance).isCompleted();
-    assertThatProcessInstance(processInstance)
-        .hasVariableSatisfiesJudge(
-            "agent",
-            "The agent variable contains a responseText field that references the order status"
-                + " 'shipped' and the tracking number "
-                + ORDER_STATUS_TRACKING_NUMBER
-                + " for order ORD-1001, proving the GetOrderStatus tool was invoked");
+    assertThatProcessInstance(processInstance).hasCompletedElement("GetOrderStatus", 1);
+    assertThat(responseText(processInstance))
+        .containsIgnoringCase("shipped")
+        .contains(ORDER_STATUS_TRACKING_NUMBER);
   }
 
   // ---------------------------------------------------------------------------
   // Provider rows
   // ---------------------------------------------------------------------------
+
+  /**
+   * Guards the class rather than the individual rows: with no credentials at all {@link
+   * #providers()} is empty, and an empty {@code @MethodSource} is a JUnit configuration error
+   * rather than a skip.
+   */
+  static boolean hasConfiguredProvider() {
+    return providers().findAny().isPresent();
+  }
 
   static Stream<ProviderRow> providers() {
     return Stream.of(
@@ -324,10 +354,25 @@ public class AiAgentE2ETestIT {
   // Fixtures and helpers
   // ---------------------------------------------------------------------------
 
+  /** The first five users the real {@code jsonplaceholder.typicode.com/users} endpoint returns. */
   private static List<Map<String, Object>> knownUsers() {
     return List.of(
         Map.of("id", 1, "name", "Leanne Graham", "username", "Bret"),
-        Map.of("id", 2, "name", "Ervin Howell", "username", "Antonette"));
+        Map.of("id", 2, "name", SECOND_USER_NAME, "username", "Antonette"),
+        Map.of("id", 3, "name", "Clementine Bauch", "username", "Samantha"),
+        Map.of("id", 4, "name", "Patricia Lebsack", "username", "Karianne"),
+        Map.of("id", 5, "name", "Chelsey Dietrich", "username", "Kamren"));
+  }
+
+  private Map<String, Object> dateAndTime() {
+    return Map.of(
+        "iso", dateAndTime.toOffsetDateTime().toString(),
+        "dayOfWeek", dayOfWeek(dateAndTime),
+        "timeZone", dateAndTime.getZone().getId());
+  }
+
+  private static String dayOfWeek(ZonedDateTime dateTime) {
+    return dateTime.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
   }
 
   private static Map<String, Object> orderStatus() {
@@ -383,6 +428,19 @@ public class AiAgentE2ETestIT {
     } catch (Exception e) {
       throw new RuntimeException("Failed to build BPMN model for " + provider.id(), e);
     }
+  }
+
+  /**
+   * Reads {@code responseText} off the completed instance. The {@code hasVariableSatisfies} lambda
+   * only captures — CamundaAssert treats it as a polling predicate, so an assertion raised inside
+   * it would be retried for the full assertion timeout even though the instance is already
+   * completed and the variable value can no longer change.
+   */
+  private String responseText(ProcessInstanceEvent instance) {
+    var response = new AtomicReference<AgentResponse>();
+    assertThatProcessInstance(instance)
+        .hasVariableSatisfies("agent", AgentResponse.class, response::set);
+    return response.get().responseText();
   }
 
   private long awaitUserTask(ProcessInstanceEvent instance) {

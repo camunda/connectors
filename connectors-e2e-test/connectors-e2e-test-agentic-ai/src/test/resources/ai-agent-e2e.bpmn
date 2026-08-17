@@ -57,12 +57,13 @@
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_16otfp1</bpmn:incoming>
       <bpmn:outgoing>Flow_0m7etfk</bpmn:outgoing>
-      <bpmn:scriptTask id="GetDateAndTime" name="Get Date and Time">
-        <bpmn:documentation>Returns the current date and time including the timezone.</bpmn:documentation>
+      <bpmn:serviceTask id="GetDateAndTime" name="Get Date and Time">
+        <bpmn:documentation>Returns the current date and time, including the day of the week and
+          the timezone.</bpmn:documentation>
         <bpmn:extensionElements>
-          <zeebe:script expression="=now()" resultVariable="toolCallResult" />
+          <zeebe:taskDefinition type="io.camunda.e2e:date-time:1" retries="3" />
         </bpmn:extensionElements>
-      </bpmn:scriptTask>
+      </bpmn:serviceTask>
       <bpmn:serviceTask id="ListUsers" name="List users"
         zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="12">
         <bpmn:documentation>Lists all available users. More contact details (such as e-mail

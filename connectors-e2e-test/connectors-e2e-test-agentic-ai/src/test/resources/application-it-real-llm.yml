@@ -12,14 +12,9 @@ camunda:
     # Disable the HTTP connector in the Docker bundle so test mocks intercept tool calls instead
     connectors-env-vars:
       CONNECTOR_OUTBOUND_DISABLED: "io.camunda:http-json:1"
+    # Each provider row gates itself on its own credentials, so all of these are optional
     connectors-secrets:
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:}
       GOOGLE_VERTEX_AI_SERVICE_ACCOUNT: ${GOOGLE_VERTEX_AI_SERVICE_ACCOUNT:}
       GOOGLE_VERTEX_AI_PROJECT_ID: ${GOOGLE_VERTEX_AI_PROJECT_ID:}
       GOOGLE_VERTEX_AI_REGION: ${GOOGLE_VERTEX_AI_REGION:}
-    judge:
-      chat-model:
-        provider: openai
-        api-key: ${OPENAI_API_KEY}
-        model: gpt-5-nano
-      threshold: 0.7
