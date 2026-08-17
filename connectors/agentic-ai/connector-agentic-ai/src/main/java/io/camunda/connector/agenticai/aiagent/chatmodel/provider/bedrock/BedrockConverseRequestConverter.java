@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
@@ -29,7 +30,6 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import software.amazon.awssdk.services.bedrockruntime.model.CachePointBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.CachePointType;
@@ -139,19 +139,22 @@ public class BedrockConverseRequestConverter {
   }
 
   private List<SystemContentBlock> buildSystemPrompt(ConversationSnapshot snapshot) {
-    final List<SystemContentBlock> system = new ArrayList<>();
     final var systemMessage = MessageUtil.leadingSystemMessage(snapshot.messages());
     if (systemMessage.isEmpty()) {
-      return system;
+      return List.of();
     }
 
-    final String text =
-        systemMessage.get().content().stream()
-            .filter(TextContent.class::isInstance)
-            .map(c -> ((TextContent) c).text())
-            .collect(Collectors.joining("\n"));
-    if (!text.isBlank()) {
-      system.add(SystemContentBlock.fromText(text));
+    final List<SystemContentBlock> system = new ArrayList<>();
+    for (final Content content : systemMessage.get().content()) {
+      if (!(content instanceof TextContent text)) {
+        throw new ConnectorException(
+            ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION,
+            "Unsupported content type '%s' for system message"
+                .formatted(content.getClass().getSimpleName()));
+      }
+      if (!text.text().isBlank()) {
+        system.add(SystemContentBlock.fromText(text.text()));
+      }
     }
     return system;
   }

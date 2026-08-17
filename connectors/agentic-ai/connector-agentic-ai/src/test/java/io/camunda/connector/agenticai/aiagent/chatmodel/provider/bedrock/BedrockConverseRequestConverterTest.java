@@ -7,13 +7,16 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
@@ -27,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseCh
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -188,6 +192,42 @@ class BedrockConverseRequestConverterTest {
       final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
 
       assertThat(request.hasSystem()).isFalse();
+    }
+
+    @Test
+    void mapsEachTextContentBlockToItsOwnSystemContentBlock() {
+      final var snapshot =
+          new ConversationSnapshot(
+              List.of(
+                  SystemMessage.builder()
+                      .content(
+                          List.of(
+                              TextContent.textContent("sys one"),
+                              TextContent.textContent("sys two")))
+                      .build()),
+              List.of());
+
+      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+
+      assertThat(request.system()).hasSize(2);
+      assertThat(request.system().get(0).text()).isEqualTo("sys one");
+      assertThat(request.system().get(1).text()).isEqualTo("sys two");
+    }
+
+    @Test
+    void throwsOnNonTextContentInSystemMessage() {
+      final var snapshot =
+          new ConversationSnapshot(
+              List.of(
+                  SystemMessage.builder()
+                      .content(List.of(ObjectContent.objectContent(Map.of("k", "v"))))
+                      .build()),
+              List.of());
+
+      assertThatThrownBy(() -> converter.toConverseStreamRequest(model(null), null, snapshot))
+          .isInstanceOf(ConnectorException.class)
+          .extracting(e -> ((ConnectorException) e).getErrorCode())
+          .isEqualTo(AgentErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION);
     }
   }
 
