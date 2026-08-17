@@ -103,9 +103,8 @@ public class BedrockConverseContentConverter {
    *
    * <p>A document is always flattened to the same serialized JSON reference an embedded document
    * already gets here (see {@link BedrockConverseDocuments}), never embedded as a native {@code
-   * DocumentBlock}: the composer echoes every tool-result document in a separate synthetic user
-   * message, which is the one place its real bytes are delivered. Embedding it here as well would
-   * send it twice and trip Converse's duplicate-document-name validation.
+   * DocumentBlock}: its real bytes are delivered elsewhere, so embedding it here as well would send
+   * it twice and trip Converse's duplicate-document-name validation.
    */
   public List<ToolResultContentBlock> toToolResultBlocks(List<Content> content) {
     final List<ToolResultContentBlock> blocks = new ArrayList<>();
@@ -125,7 +124,7 @@ public class BedrockConverseContentConverter {
             throw new ConnectorException(
                 ERROR_CODE_FAILED_MODEL_CALL,
                 "Unsupported content type 'provider' for tool result: provider content is only "
-                    + "ever produced from assistant message content, never from a tool result.");
+                    + "ever produced from assistant message content.");
       }
     }
     return blocks;

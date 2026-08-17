@@ -40,42 +40,16 @@ import software.amazon.eventstream.MessageBuilder;
 
 /**
  * Stubs the AWS Bedrock {@code ConverseStream} endpoint ({@code POST
- * /model/test-model/converse-stream}) so the native v2 Bedrock provider drives the conversation
- * loop against a mock HTTP endpoint, using real AWS EventStream binary framing.
+ * /model/test-model/converse-stream}) using real AWS EventStream binary framing, so the native v2
+ * Bedrock provider drives its conversation loop against a mock HTTP endpoint.
  *
- * <p>Each event is built as a JSON payload matching the vendor SDK's own event POJOs' wire field
- * names ({@code role}, {@code contentBlockIndex}, {@code delta}, {@code start}, ...; verified
- * against the {@code bedrockruntime} model classes' {@code SdkField} location names, not guessed)
- * and framed with {@link software.amazon.eventstream.MessageBuilder} - the same library class the
- * AWS SDK's own {@code EventStreamAsyncResponseTransformer} decodes frames with - so the bytes are
- * guaranteed to parse exactly as real Bedrock would send them. Each frame carries the {@code
- * :message-type} ({@code "event"}), {@code :event-type} (the {@code ConverseStreamOutput} union
- * member name, e.g. {@code "contentBlockDelta"}) and {@code :content-type} ({@code
- * "application/json"}) headers the SDK's {@code EventStreamAsyncResponseTransformer} keys its
- * dispatch on; the frames for one turn are concatenated into a single {@code byte[]} response body
- * served with the overall {@code Content-Type: application/vnd.amazon.eventstream} header - no
- * hand-crafted bytes, and chunked delivery is unnecessary since the SDK reads the body as a stream
- * regardless.
- *
- * <p>The per-turn data (assistant text, tool_use calls, input/output token usage, stop reason)
- * mirrors {@link BedrockConverseChatModelStubs.Turn} exactly, just framed as delta-based
- * EventStream events instead of one buffered JSON object:
- *
- * <ol>
- *   <li>{@code messageStart} - {@code {"role": "assistant"}}.
- *   <li>Per content block (text first, then each tool call, matching the buffered stub's ordering):
- *       {@code contentBlockStart} (bare {@code {"contentBlockIndex": n}} for a text block -
- *       Bedrock's {@code ContentBlockStart} union has no text/reasoning member, only {@code
- *       toolUse}/{@code toolResult}/{@code image} - or {@code {"contentBlockIndex": n, "start":
- *       {"toolUse": {"toolUseId": ..., "name": ...}}}} for a tool-use block) + one {@code
- *       contentBlockDelta} ({@code {"delta": {"text": "..."}}} or {@code {"delta": {"toolUse":
- *       {"input": "..."}}}} carrying the full arguments JSON as a single string fragment) + {@code
- *       contentBlockStop}.
- *   <li>{@code messageStop} - {@code {"stopReason": "tool_use"}} if there were tool calls, else
- *       {@code {"stopReason": "end_turn"}}.
- *   <li>{@code metadata} - {@code {"usage": {"inputTokens": ..., "outputTokens": ...,
- *       "totalTokens": ...}, "metrics": {"latencyMs": ...}}}.
- * </ol>
+ * <p>Each event is a JSON payload matching the vendor SDK's own event POJOs' wire field names
+ * (verified against the {@code bedrockruntime} model classes' {@code SdkField} location names, not
+ * guessed), framed via {@link software.amazon.eventstream.MessageBuilder} - the same library class
+ * the AWS SDK's own {@code EventStreamAsyncResponseTransformer} decodes frames with - so the bytes
+ * parse exactly as real Bedrock would send them. The per-turn data mirrors {@link
+ * BedrockConverseChatModelStubs.Turn}, just framed as delta-based events instead of one buffered
+ * JSON object.
  */
 public final class StreamingBedrockConverseEventStreamChatModelStubs {
 

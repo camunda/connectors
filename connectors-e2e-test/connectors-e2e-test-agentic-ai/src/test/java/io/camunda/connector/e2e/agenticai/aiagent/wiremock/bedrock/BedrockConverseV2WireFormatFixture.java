@@ -35,9 +35,8 @@ import java.util.function.Function;
  * calls the AWS SDK's async {@code converseStream} operation, which expects a real AWS EventStream
  * binary body at {@code POST /model/test-model/converse-stream}, whereas the v1 fixture's client
  * issues a plain {@code converse} POST and expects a single buffered JSON body at {@code POST
- * /model/test-model/converse}. {@link #stubConversation(TurnStub...)} is overridden here to stub
- * the former via {@link StreamingBedrockConverseEventStreamChatModelStubs} instead of inheriting
- * {@link AbstractBedrockConverseWireFormatFixture}'s buffered-JSON default.
+ * /model/test-model/converse}. {@link #stubConversation(TurnStub...)} stubs the former via {@link
+ * StreamingBedrockConverseEventStreamChatModelStubs}.
  *
  * <p>Drives the v2 element template ({@link
  * AgentTestFixtures#AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH}). Unlike Anthropic's v1/v2

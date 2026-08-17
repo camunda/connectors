@@ -41,35 +41,20 @@ import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 
 /**
- * Accumulates the delta-based {@code ConverseStream} event sequence ({@code messageStart}, {@code
- * contentBlockStart}, {@code contentBlockDelta}, {@code contentBlockStop}, {@code messageStop},
- * {@code metadata}) emitted by {@code BedrockRuntimeAsyncClient.converseStream} into a {@link
- * ConverseResponse} equivalent to what the non-streaming {@code converse} operation would have
- * returned, so that {@link BedrockConverseResponseConverter} can be reused unchanged on the
- * assembled result.
+ * Accumulates the delta-based {@code ConverseStream} event sequence into a {@link ConverseResponse}
+ * equivalent to what the non-streaming {@code converse} operation would have returned, so {@link
+ * BedrockConverseResponseConverter} can be reused unchanged on the assembled result.
  *
  * <p>One instance is created per streamed call and registered as the {@link
- * ConverseStreamResponseHandler.Visitor} (e.g. via {@code
- * ConverseStreamResponseHandler.builder().subscriber(assembler)}); once the stream completes,
- * {@link #converseResponse()} returns the assembled result.
- *
- * <p><strong>Ordering.</strong> Content blocks are keyed by {@code contentBlockIndex} in a {@link
- * TreeMap}, so the assembled {@link Message#content()} is always emitted in index order regardless
- * of the arrival order of interleaved block events.
- *
- * <p><strong>Tool-use input.</strong> {@code toolUse} deltas carry {@code input} as successive JSON
- * string fragments (see {@link
- * software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlockDelta#input()}); this assembler
- * concatenates them per block and parses the result into an AWS {@link Document} at {@code
- * contentBlockStop}, exactly once per block.
- *
- * <p><strong>Reasoning content.</strong> {@code reasoningContent} deltas carry {@code text}, {@code
- * signature} and {@code redactedContent} as three independent delta shapes (see {@link
- * ReasoningContentBlockDelta}); each is accumulated separately (text/signature as strings,
- * redactedContent as bytes) and only combined into one {@link ReasoningContentBlock} at {@code
- * contentBlockStop}. A block with any {@code redactedContent} bytes is assembled as a redacted
- * block; otherwise it is assembled as a {@code reasoningText} block (matching the Converse API's
- * mutually-exclusive {@code reasoningText}/{@code redactedContent} union).
+ * ConverseStreamResponseHandler.Visitor}; once the stream completes, {@link #converseResponse()}
+ * returns the assembled result. Content blocks are keyed by {@code contentBlockIndex} in a {@link
+ * TreeMap}, so they're emitted in index order regardless of arrival order. Tool-use input arrives
+ * as successive JSON string fragments, concatenated per block and parsed into a {@link Document} at
+ * {@code contentBlockStop}. Reasoning content arrives as three independent delta shapes ({@code
+ * text}, {@code signature}, {@code redactedContent}; see {@link ReasoningContentBlockDelta}), each
+ * accumulated separately and combined into one {@link ReasoningContentBlock} at {@code
+ * contentBlockStop} - redacted if any {@code redactedContent} bytes arrived, else a {@code
+ * reasoningText} block.
  */
 public final class BedrockConverseStreamAssembler implements ConverseStreamResponseHandler.Visitor {
 

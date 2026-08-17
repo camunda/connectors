@@ -41,29 +41,19 @@ import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 
 /**
- * Maps a Bedrock Converse SDK {@link ConverseResponse} (plus an externally-measured wall-clock
- * {@link Duration}) to the domain {@link AssistantMessage}, its {@link AgentMetrics}, and a {@link
- * ChatResult}.
+ * {@code text} blocks become {@link TextContent}, {@code toolUse} blocks become {@link ToolCall}s,
+ * {@code reasoningContent} blocks become {@link ReasoningContent} carrying the full raw block as
+ * payload so it round-trips losslessly (see {@link BedrockConverseContentConverter}), and every
+ * other block type is captured as {@link ProviderContent} via {@link BedrockConverseSdkPojoCodec}
+ * rather than dropped. Only {@link ContentBlock.Type#UNKNOWN_TO_SDK_VERSION} cannot be captured
+ * (the SDK surfaces no field data for it), so it fails the call instead.
  *
- * <p>{@code text} blocks become {@link TextContent}, {@code toolUse} blocks become {@link
- * ToolCall}s, {@code reasoningContent} blocks become {@link ReasoningContent} carrying the full raw
- * block as payload (re-emitted verbatim on the request side, see {@link
- * BedrockConverseContentConverter}, so reasoning round-trips losslessly), and every other block
- * type is captured losslessly as {@link ProviderContent} via the generic {@link
- * BedrockConverseSdkPojoCodec} rather than dropped. Only {@link
- * ContentBlock.Type#UNKNOWN_TO_SDK_VERSION} cannot be captured (the SDK surfaces no field data for
- * it), so it fails the call instead.
- *
- * <p>Converse has no {@code pause_turn} equivalent, so a usable response always produces a {@link
- * ChatResult.Completed}, never a {@link ChatResult.Continuation}. The stop reasons that mean the
- * response is unusable never return at all: {@code content_filtered}, {@code guardrail_intervened}
- * and {@code model_context_window_exceeded} throw the matching {@link ChatModelRejectedException}
- * subtype, carrying the assistant message and metrics already built for the turn as their {@link
- * PartialResult}, and malformed output fails the call outright. The raw vendor stop reason string
- * is always preserved under the {@code bedrock} provider-id key in {@link
- * AssistantMessage#metadata()}, independent of how it normalizes to the domain {@code StopReason};
- * see {@link AssistantMessageMetadata} for the {@code timestamp} entry every provider adds
- * alongside it.
+ * <p>Some stop reasons reject the turn instead of completing it, throwing a matching {@link
+ * ChatModelRejectedException} subtype with the assistant message and metrics already built for the
+ * turn as its {@link PartialResult}; see {@link #throwIfRejected}. The raw vendor stop reason
+ * string is always preserved under the {@code bedrock} provider-id key in {@link
+ * AssistantMessage#metadata()}; see {@link AssistantMessageMetadata} for the {@code timestamp}
+ * entry every provider adds alongside it.
  */
 public class BedrockConverseResponseConverter {
 
@@ -76,8 +66,6 @@ public class BedrockConverseResponseConverter {
 
     throwIfRejected(response.stopReason(), new PartialResult(assistantMessage, metrics));
 
-    // Converse has no pause_turn (or similar mid-turn continuation) stop reason, so a Bedrock
-    // response always finishes the round-trip.
     return new ChatResult.Completed(assistantMessage, metrics);
   }
 
@@ -270,8 +258,6 @@ public class BedrockConverseResponseConverter {
         .modelCalls(1)
         .toolCalls(toolCalls)
         .tokenUsage(tokenUsage)
-        // The passed-in wall-clock duration, not ConverseMetrics.latencyMs: that figure is
-        // server-side only and excludes network time.
         .executionTime(executionTime)
         .build();
   }
