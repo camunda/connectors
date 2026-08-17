@@ -72,8 +72,7 @@ public record BedrockConverseChatModelConfiguration(
               group = "advanced-provider-options",
               label = "HTTP headers",
               description = "Map of HTTP headers to add to the request.",
-              type = TemplateProperty.PropertyType.Hidden,
-              feel = FeelMode.disabled,
+              feel = FeelMode.required,
               optional = true)
           @Nullable Map<String, String> headers,
       @Valid
@@ -81,16 +80,14 @@ public record BedrockConverseChatModelConfiguration(
               group = "advanced-provider-options",
               label = "Query parameters",
               description = "Map of query parameters to add to the request URL.",
-              type = TemplateProperty.PropertyType.Hidden,
-              feel = FeelMode.disabled,
+              feel = FeelMode.required,
               optional = true)
           @Nullable Map<@NotBlank String, String> queryParameters,
       @TemplateProperty(
               group = "advanced-provider-options",
               label = "Body properties",
               description = "Map of additional properties to include in the request body.",
-              type = TemplateProperty.PropertyType.Hidden,
-              feel = FeelMode.disabled,
+              feel = FeelMode.required,
               optional = true)
           @Nullable Map<String, Object> bodyProperties,
       @Valid @Nullable TimeoutConfiguration timeouts,

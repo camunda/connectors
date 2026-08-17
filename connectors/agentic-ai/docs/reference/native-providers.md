@@ -56,6 +56,17 @@ One wire format (the Bedrock Runtime Converse API), reaching every model family 
 backend axis: `BedrockConverseChatModelConfiguration` carries a region, an `AwsAuthentication`
 (static credentials, API key, or the default credentials chain) and an optional custom endpoint.
 
+### HTTP overrides
+
+`headers`, `queryParameters` and `bodyProperties` are user-configurable on every connection, in the
+same `advanced-provider-options` template group Anthropic/OpenAI use for their `custom` backend.
+There's no backend axis here, so unlike those two the escape hatch is never gated behind a `custom`
+variant. `headers`/`queryParameters` merge onto the SDK request via `overrideConfiguration`
+(`BedrockConverseRequestConverter.applyOverrideConfiguration`); `bodyProperties` merges into the
+model-specific `additionalModelRequestFields` document instead of a generic top-level request body -
+Converse's wire shape has no top-level body to merge onto the way Anthropic/OpenAI's custom backends
+do (see Reasoning below).
+
 ### Streaming transport
 
 Every call goes through the async `BedrockRuntimeAsyncClient.converseStream`, streaming or not: the

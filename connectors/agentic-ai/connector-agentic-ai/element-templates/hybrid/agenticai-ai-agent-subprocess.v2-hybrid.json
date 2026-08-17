@@ -1125,6 +1125,7 @@
     "label" : "HTTP headers",
     "description" : "Map of HTTP headers to add to the request.",
     "optional" : true,
+    "feel" : "required",
     "group" : "advanced-provider-options",
     "binding" : {
       "name" : "provider.bedrock.headers",
@@ -1135,12 +1136,13 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "provider.bedrock.queryParameters",
     "label" : "Query parameters",
     "description" : "Map of query parameters to add to the request URL.",
     "optional" : true,
+    "feel" : "required",
     "group" : "advanced-provider-options",
     "binding" : {
       "name" : "provider.bedrock.queryParameters",
@@ -1151,12 +1153,13 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "provider.bedrock.bodyProperties",
     "label" : "Body properties",
     "description" : "Map of additional properties to include in the request body.",
     "optional" : true,
+    "feel" : "required",
     "group" : "advanced-provider-options",
     "binding" : {
       "name" : "provider.bedrock.bodyProperties",
@@ -1167,7 +1170,7 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "provider.openai.backend.openai.headers",
     "label" : "Headers",
