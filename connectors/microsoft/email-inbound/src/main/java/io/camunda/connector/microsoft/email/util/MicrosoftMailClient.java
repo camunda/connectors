@@ -21,10 +21,12 @@ import com.microsoft.graph.serviceclient.GraphServiceClient;
 import com.microsoft.graph.users.item.UserItemRequestBuilder;
 import com.microsoft.graph.users.item.messages.item.MessageItemRequestBuilder;
 import com.microsoft.graph.users.item.messages.item.move.MovePostRequestBody;
+import com.microsoft.kiota.ApiException;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.microsoft.common.auth.BearerAuthentication;
 import io.camunda.connector.microsoft.common.auth.ClientCredentialsAuthentication;
 import io.camunda.connector.microsoft.common.auth.GraphServiceClientSupplier;
@@ -50,9 +52,12 @@ public class MicrosoftMailClient implements MailClient {
 
   private final Supplier<GraphServiceClient> clientSupplier;
   private final String userId;
+  private final InboundConnectorContext context;
 
-  public MicrosoftMailClient(MicrosoftAuthentication authentication, String userId) {
+  public MicrosoftMailClient(
+      MicrosoftAuthentication authentication, String userId, InboundConnectorContext context) {
     this.userId = userId;
+    this.context = context;
     this.clientSupplier = createClientSupplier(authentication);
   }
 
@@ -204,10 +209,10 @@ public class MicrosoftMailClient implements MailClient {
 
   @Override
   public List<Document> fetchAttachments(InboundConnectorContext context, EmailMessage msg) {
-    var messageBuilder = constructCommonMessage(msg);
-    if (messageBuilder.attachments().count().get() == 0) {
+    if (msg.attachmentMetadata().isEmpty()) {
       return List.of();
     }
+    var messageBuilder = constructCommonMessage(msg);
     var docs = new ArrayList<Document>();
     for (var attachment : Objects.requireNonNull(messageBuilder.attachments().get().getValue())) {
       if (attachment instanceof FileAttachment file) {
@@ -242,13 +247,40 @@ public class MicrosoftMailClient implements MailClient {
   private boolean processMessageItem(Message msg, Consumer<EmailMessage> handler) {
     // Resolve lightweight attachment metadata (no content download) before the activation
     // condition is evaluated, so conditions can filter on attachment properties such as file type.
-    List<EmailAttachmentMetadata> attachmentMetadata =
-        Boolean.TRUE.equals(msg.getHasAttachments())
-            ? fetchAttachmentMetadata(msg.getId())
-            : List.of();
+    List<EmailAttachmentMetadata> attachmentMetadata;
+    try {
+      attachmentMetadata =
+          Boolean.TRUE.equals(msg.getHasAttachments())
+              ? fetchAttachmentMetadata(msg.getId())
+              : List.of();
+    } catch (TransientMetadataLookupException e) {
+      // A throttled/unavailable Graph call must not be mistaken for "no attachments": that would
+      // make the activation condition silently miss and the email could get postprocessed
+      // (marked read/moved/deleted) as if it never matched. Leave the message untouched so it is
+      // re-evaluated on the next poll cycle instead.
+      LOGGER.warn(
+          "Transient failure resolving attachment metadata for message {}, will retry on next poll",
+          msg.getId(),
+          e.getCause());
+      context.log(
+          activity ->
+              activity
+                  .withSeverity(Severity.WARNING)
+                  .withTag("attachment-metadata-lookup")
+                  .withMessage(
+                      "Could not resolve attachment metadata for email "
+                          + msg.getId()
+                          + " (transient Graph error), will retry on next poll"));
+      return true;
+    }
     var myMsg = GraphApiMapper.toEmailMessage(msg, attachmentMetadata);
     handler.accept(myMsg);
     return true;
+  }
+
+  private static boolean isTransient(ApiException e) {
+    int status = e.getResponseStatusCode();
+    return status == 429 || status >= 500;
   }
 
   private List<EmailAttachmentMetadata> fetchAttachmentMetadata(String messageId) {
@@ -269,6 +301,12 @@ public class MicrosoftMailClient implements MailClient {
       }
       var metadata = new ArrayList<EmailAttachmentMetadata>();
       for (var attachment : response.getValue()) {
+        if (!(attachment instanceof FileAttachment)) {
+          // Mirrors fetchAttachments(), which only ever converts FileAttachment: keeping the two
+          // lists in sync prevents a condition matching on attachmentMetadata for an
+          // ItemAttachment/ReferenceAttachment that then has no corresponding Document.
+          continue;
+        }
         metadata.add(
             new EmailAttachmentMetadata(
                 attachment.getId(),
@@ -278,11 +316,29 @@ public class MicrosoftMailClient implements MailClient {
                 attachment.getIsInline()));
       }
       return metadata;
-    } catch (Exception e) {
-      // Degrade gracefully: a metadata lookup failure must not abort polling or trigger an
+    } catch (ApiException e) {
+      if (isTransient(e)) {
+        throw new TransientMetadataLookupException(messageId, e);
+      }
+      // Degrade gracefully: a permanent lookup failure must not abort polling or trigger an
       // endless retry loop. The email is processed as if it had no resolvable attachment metadata.
       LOGGER.warn("Failed to resolve attachment metadata for message {}", messageId, e);
       return List.of();
+    } catch (Exception e) {
+      LOGGER.warn("Failed to resolve attachment metadata for message {}", messageId, e);
+      return List.of();
+    }
+  }
+
+  /**
+   * Signals a transient (throttled/unavailable) Graph failure while resolving attachment metadata,
+   * as opposed to a permanent one. Callers must not treat this the same as "no attachments"
+   * degrade, since doing so risks a false negative on the activation condition.
+   */
+  private static final class TransientMetadataLookupException extends RuntimeException {
+    TransientMetadataLookupException(String messageId, Throwable cause) {
+      super(
+          "Transient Graph failure resolving attachment metadata for message " + messageId, cause);
     }
   }
 }

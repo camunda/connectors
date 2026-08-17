@@ -19,6 +19,10 @@ import java.util.List;
  * with the downloaded {@link Document documents} once the condition has matched, mirroring how the
  * runtime's internal re-check of the same condition against the correlation variables expects
  * {@code attachmentMetadata} to still be present.
+ *
+ * <p>Inline attachments (e.g. signature images embedded in the email body) are included in both
+ * lists like any other file attachment. A condition that only cares about attachments a user
+ * intentionally added should filter on {@code isInline = false}.
  */
 public record EmailMessage(
     String id,
