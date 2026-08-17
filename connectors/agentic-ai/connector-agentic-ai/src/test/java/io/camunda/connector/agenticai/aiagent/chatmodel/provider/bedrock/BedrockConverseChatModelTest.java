@@ -36,6 +36,7 @@ import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
@@ -53,8 +54,6 @@ class BedrockConverseChatModelTest {
   @Mock private BedrockRuntimeAsyncClient client;
   @Mock private BedrockConverseRequestConverter requestConverter;
   @Mock private BedrockConverseResponseConverter responseConverter;
-  @Mock private BedrockConverseStreamAssembler streamAssembler;
-  @Mock private ConverseResponse assembledResponse;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -82,12 +81,7 @@ class BedrockConverseChatModelTest {
     when(executionContext.configuration()).thenReturn(mock(AgentConfiguration.class));
     api =
         new BedrockConverseChatModel(
-            client,
-            configuration,
-            requestConverter,
-            responseConverter,
-            objectMapper,
-            () -> streamAssembler);
+            client, configuration, requestConverter, responseConverter, objectMapper);
   }
 
   @Test
@@ -101,8 +95,7 @@ class BedrockConverseChatModelTest {
         .thenReturn(converseStreamRequest);
     when(client.converseStream(eq(converseStreamRequest), any(ConverseStreamResponseHandler.class)))
         .thenReturn(CompletableFuture.completedFuture(null));
-    when(streamAssembler.converseResponse()).thenReturn(assembledResponse);
-    when(responseConverter.toResult(eq(assembledResponse), any())).thenReturn(expected);
+    when(responseConverter.toResult(any(ConverseResponse.class), any())).thenReturn(expected);
 
     final var result = api.execute(request);
 
@@ -112,7 +105,15 @@ class BedrockConverseChatModelTest {
             configuration, executionContext.configuration().response(), request.snapshot());
     verify(client)
         .converseStream(eq(converseStreamRequest), any(ConverseStreamResponseHandler.class));
-    verify(streamAssembler).converseResponse();
+
+    // client.converseStream is mocked and never drives the handler, so the assembler passed to
+    // responseConverter is the untouched, freshly-created one for this call.
+    final ArgumentCaptor<ConverseResponse> responseCaptor =
+        ArgumentCaptor.forClass(ConverseResponse.class);
+    verify(responseConverter).toResult(responseCaptor.capture(), any());
+    assertThat(responseCaptor.getValue().stopReason()).isNull();
+    assertThat(responseCaptor.getValue().output().message().content()).isEmpty();
+
     verify(client, never()).close();
   }
 

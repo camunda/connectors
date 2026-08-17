@@ -18,7 +18,6 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
-import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
@@ -36,11 +35,11 @@ import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamRespon
  * returned), then delegates to {@link BedrockConverseRequestConverter} and {@link
  * BedrockConverseResponseConverter} to translate to/from the domain model.
  *
- * <p>A fresh {@link BedrockConverseStreamAssembler} is obtained from {@code streamAssemblerFactory}
- * for every {@link #execute(ChatRequest)} call, since it accumulates mutable per-call stream state.
- * The {@link BedrockRuntimeAsyncClient}, by contrast, is built once by the factory and owned for
- * the lifetime of this instance (one agent request, across all continuation rounds); {@link
- * #close()} closes it once.
+ * <p>A fresh {@link BedrockConverseStreamAssembler} is created for every {@link
+ * #execute(ChatRequest)} call, since it accumulates mutable per-call stream state. The {@link
+ * BedrockRuntimeAsyncClient}, by contrast, is built once by the factory and owned for the lifetime
+ * of this instance (one agent request, across all continuation rounds); {@link #close()} closes it
+ * once.
  */
 public class BedrockConverseChatModel implements ChatModel {
 
@@ -51,7 +50,6 @@ public class BedrockConverseChatModel implements ChatModel {
   private final BedrockConverseRequestConverter requestConverter;
   private final BedrockConverseResponseConverter responseConverter;
   private final ObjectMapper objectMapper;
-  private final Supplier<BedrockConverseStreamAssembler> streamAssemblerFactory;
 
   public BedrockConverseChatModel(
       BedrockRuntimeAsyncClient client,
@@ -59,28 +57,11 @@ public class BedrockConverseChatModel implements ChatModel {
       BedrockConverseRequestConverter requestConverter,
       BedrockConverseResponseConverter responseConverter,
       ObjectMapper objectMapper) {
-    this(
-        client,
-        configuration,
-        requestConverter,
-        responseConverter,
-        objectMapper,
-        () -> new BedrockConverseStreamAssembler(objectMapper));
-  }
-
-  BedrockConverseChatModel(
-      BedrockRuntimeAsyncClient client,
-      BedrockConverseChatModelConfiguration configuration,
-      BedrockConverseRequestConverter requestConverter,
-      BedrockConverseResponseConverter responseConverter,
-      ObjectMapper objectMapper,
-      Supplier<BedrockConverseStreamAssembler> streamAssemblerFactory) {
     this.client = client;
     this.configuration = configuration;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
     this.objectMapper = objectMapper;
-    this.streamAssemblerFactory = streamAssemblerFactory;
   }
 
   @Override
@@ -94,7 +75,8 @@ public class BedrockConverseChatModel implements ChatModel {
 
     final long startNanos = System.nanoTime();
     try {
-      final BedrockConverseStreamAssembler streamAssembler = streamAssemblerFactory.get();
+      final BedrockConverseStreamAssembler streamAssembler =
+          new BedrockConverseStreamAssembler(objectMapper);
       final ConverseStreamResponseHandler handler =
           ConverseStreamResponseHandler.builder().subscriber(streamAssembler).build();
       client.converseStream(converseStreamRequest, handler).join();
