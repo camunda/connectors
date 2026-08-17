@@ -27,10 +27,17 @@ import java.util.Set;
  * <p>A reference earns its place one of two ways (ADR-0007 §12):
  *
  * <ul>
- *   <li>it is written in a raw property, as that property's whole value: {@code
- *       =camunda.secrets.NAME};
+ *   <li>the model writes it in a raw property, anywhere in the value;
  *   <li>a {@code SECRET_REFERENCE} cluster variable that a raw property names declares it.
  * </ul>
+ *
+ * <p>Being on the list is not the same as being resolvable, and the first source is deliberately
+ * wider than what any one pass can substitute. A reference is permitted because the model declared
+ * it — authored model text is not a way in, since whoever can deploy a model can already name any
+ * secret. Where it can actually be substituted is a separate question: {@link
+ * #resolvableInProperties()} is the subset the pass over the raw properties handles (ADR-0007 §11),
+ * and a reference mixed into a larger expression is permitted here but only resolves once the
+ * cluster returns it from evaluation (ADR-0007 §13).
  *
  * <p>The list only ever permits. Failing to find a reference that should have been on it means a
  * secret does not resolve and the connector fails where the reference was used — never that a wrong
@@ -40,14 +47,18 @@ import java.util.Set;
 public final class SecretReferenceAllowList {
 
   private static final SecretReferenceAllowList EMPTY =
-      new SecretReferenceAllowList(Set.of(), Set.of());
+      new SecretReferenceAllowList(Set.of(), Set.of(), Set.of());
 
-  private final Set<String> writtenInProperties;
+  private final Set<String> resolvableInProperties;
+  private final Set<String> declaredInProperties;
   private final Set<String> declaredByClusterVariables;
 
   private SecretReferenceAllowList(
-      Set<String> writtenInProperties, Set<String> declaredByClusterVariables) {
-    this.writtenInProperties = Set.copyOf(writtenInProperties);
+      Set<String> resolvableInProperties,
+      Set<String> declaredInProperties,
+      Set<String> declaredByClusterVariables) {
+    this.resolvableInProperties = Set.copyOf(resolvableInProperties);
+    this.declaredInProperties = Set.copyOf(declaredInProperties);
     this.declaredByClusterVariables = Set.copyOf(declaredByClusterVariables);
   }
 
@@ -68,43 +79,48 @@ public final class SecretReferenceAllowList {
     if (rawPropertyValues == null || rawPropertyValues.isEmpty()) {
       return EMPTY;
     }
-    Set<String> written = new LinkedHashSet<>();
+    Set<String> resolvable = new LinkedHashSet<>();
+    Set<String> declared = new LinkedHashSet<>();
     Set<ClusterVariableReference> clusterVariables = new LinkedHashSet<>();
     for (var value : rawPropertyValues) {
-      SecretReferenceUtil.wholeValueReference(value).ifPresent(written::add);
+      SecretReferenceUtil.wholeValueReference(value).ifPresent(resolvable::add);
+      declared.addAll(SecretReferenceUtil.findReferences(value));
       clusterVariables.addAll(ClusterVariableReference.findAll(value));
     }
     if (clusterVariables.isEmpty()) {
-      return written.isEmpty() ? EMPTY : new SecretReferenceAllowList(written, Set.of());
+      return declared.isEmpty()
+          ? EMPTY
+          : new SecretReferenceAllowList(resolvable, declared, Set.of());
     }
     return new SecretReferenceAllowList(
-        written, reader.declaredReferences(clusterVariables, tenantId));
+        resolvable, declared, reader.declaredReferences(clusterVariables, tenantId));
   }
 
   /**
    * @param reference a whole {@code "camunda.secrets.<name>"} string
    */
   public boolean allows(String reference) {
-    return writtenInProperties.contains(reference)
+    return declaredInProperties.contains(reference)
         || declaredByClusterVariables.contains(reference);
   }
 
   /** Whether nothing at all may be resolved, so callers can skip the resolve call entirely. */
   public boolean isEmpty() {
-    return writtenInProperties.isEmpty() && declaredByClusterVariables.isEmpty();
+    return declaredInProperties.isEmpty() && declaredByClusterVariables.isEmpty();
   }
 
   /**
-   * The references written directly in the properties. These are the ones a pass over the raw
-   * properties resolves, before anything is evaluated.
+   * The subset the pass over the raw properties substitutes: a reference that is a property's whole
+   * value, written as an expression (ADR-0007 §11). Always a subset of what {@link #allows(String)}
+   * permits.
    */
-  public Set<String> writtenInProperties() {
-    return writtenInProperties;
+  public Set<String> resolvableInProperties() {
+    return resolvableInProperties;
   }
 
   /** Every reference on the list, whichever way it got there. */
   public Set<String> all() {
-    Set<String> all = new LinkedHashSet<>(writtenInProperties);
+    Set<String> all = new LinkedHashSet<>(declaredInProperties);
     all.addAll(declaredByClusterVariables);
     return all;
   }

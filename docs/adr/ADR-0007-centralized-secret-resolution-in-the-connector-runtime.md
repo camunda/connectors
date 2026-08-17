@@ -49,12 +49,18 @@ Support `camunda.secrets.<name>` **for inbound connectors and configuration vali
 
 11. **On inbound, a reference is only recognised as a whole property value written as an expression:** `=camunda.secrets.NAME`. That is the form the engine mandates wherever it polices the syntax (Context §3, §7), so inbound follows the same convention rather than inventing a second one. The leading `=` is consumed and the property replaced by the value; the property is *not* evaluated as FEEL, because FEEL evaluation on inbound is opt-in per field via `@FEEL` and several connectors' credential fields are plain strings — RabbitMQ's and the email connector's among them — so routing this through the FEEL path would silently do nothing for exactly the fields that hold secrets.
 
-   Embedded text is not a supported form. A reference occurring inside a longer value, or without the leading `=`, is left untouched. Consequently nothing scans arbitrary property text for references, and a value that merely happens to contain a reference-shaped string is never resolved — the injection-safety property the engine gets from parsing the FEEL AST, obtained here by narrowing what counts as a reference instead.
+   A reference written without the leading `=` is not resolved. `Bearer camunda.secrets.TOKEN` as a plain property value stays as it is, even though replacing it would be harmless — inbound follows the engine's convention rather than keeping a second one alive.
+
+   This governs what the pass over the raw properties *resolves*, which is narrower than what the allow-list of Decision §12 *permits*. A reference the modeller wrote anywhere in a property — including inside a larger expression — is declared by the model, and belongs on the allow-list even where this pass cannot substitute it. Authored model text is not a way in: whoever can deploy a model can already name any secret.
+
+   Note the surface this covers. These are element properties, what a modeller types into the model. Secret references inside a *configuration* are different: they live in cluster-variable data, are bare marker strings by design, and are covered by Decision §12.
 
 12. **A reference that arrives as data is resolved only if something declared it.** A `SECRET_REFERENCE` cluster variable carries reference text in a value that no property wrote, and that text does not exist until the cluster has answered. So resolution also runs on the result of expression evaluation. It does not resolve whatever it happens to find there. Before anything is evaluated, the runtime builds an allow-list of the references it is willing to resolve:
 
-   - every reference written in the raw property values, and
+   - every reference the model writes in a raw property value, wherever in the value it appears, and
    - every reference inside a `SECRET_REFERENCE` cluster variable that those raw values name.
+
+   The first source is deliberately wider than what Decision §11 resolves. A reference is on the list because the model declared it; whether, and at which pass, it can be substituted is a separate question.
 
    The second part costs one call. The `camunda.vars.<scope>.<name>` occurrences in the raw values give the variable names; a single search filtered by those names and by kind returns just the variables allowed to declare secrets (Context §10), and their values are scanned for references.
 
@@ -64,7 +70,11 @@ Support `camunda.secrets.<name>` **for inbound connectors and configuration vali
 
    Configuration validation has no raw properties. It evaluates a `credentialRef` and reads secrets only out of what comes back, so its allow-list comes from the cluster-variable half alone.
 
-13. **A reference mixed into a larger expression is rejected, for now.** `="Bearer " + camunda.secrets.TOKEN` cannot be resolved before evaluation without splicing a secret value into expression text, where a quote or an operator in the value would silently change what the expression means; and it cannot be resolved after evaluation, because the endpoint returns nothing for it (Context §8). It fails with a message naming the supported form rather than resolving to something surprising. If the engine installs its placeholder context on the expression endpoint (see *Asks on the engine*), these become ordinary cases of Decision §12 and the restriction lifts — as does the need for Decision §11's special handling of the `=` form.
+13. **A reference mixed into a larger expression is supported, and works as soon as the cluster returns the placeholder.** `="Bearer " + camunda.secrets.TOKEN` is not an edge case to be refused: it is the shape the engine built the feature around — the primary case in its own activation test, which deploys exactly that input mapping and expects `Bearer <value>` to reach the worker. Refusing it here would diverge from the engine, and would also be a step back from the old form, where `Bearer {{secrets.TOKEN}}` works today and keeps working. Anyone migrating that would hit a wall.
+
+   The runtime cannot make it work on its own. Substituting before evaluation would splice a secret value into expression text, where a quote or an operator in the value silently changes what the expression means. Substituting after evaluation needs the reference to survive evaluation, and today the endpoint has no `secrets` namespace, so the expression evaluates to nothing at all (Context §8).
+
+   So nothing is rejected and no workaround is built. The reference is on the allow-list (Decision §12), the pass after evaluation is in place, and the only missing piece is the cluster returning the reference text — the ask below. Until it does, such a property evaluates to nothing and the connector fails on it, reported against the reference rather than as an unexplained empty value. When it lands, these become ordinary cases of Decision §12 and start working with no change here.
 
 14. **Do the extra work once, not for every event.** Which references and which cluster variables a set of properties names is fixed for as long as the element is registered, so that scan runs once rather than on every event. Only the contents of the `SECRET_REFERENCE` variables can change while a connector runs, so only the part of the allow-list derived from them is fetched again, and it is cached the same way the outbound allow-list already is (`ProcessDefinitionSecretKeyCache`, keyed per physical tenant and process definition). Properties naming no secret and no cluster variable cost nothing: no call, no cache lookup. This matters because the element-scoped binding path runs for every correlated event, not once per connector.
 

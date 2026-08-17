@@ -34,26 +34,37 @@ class SecretReferenceAllowListTest {
             List.of("=camunda.secrets.TOKEN"), ClusterVariableSecretReader.noop(), TENANT);
 
     assertThat(allowList.allows("camunda.secrets.TOKEN")).isTrue();
-    assertThat(allowList.writtenInProperties()).containsExactly("camunda.secrets.TOKEN");
+    assertThat(allowList.resolvableInProperties()).containsExactly("camunda.secrets.TOKEN");
   }
 
   @Test
-  void doesNotAllowAReferenceEmbeddedInALongerValue() {
-    // ADR-0007 §11: only a whole property value counts. Embedded text is not a supported form, so
-    // it must not even reach the allow-list.
+  void allowsAReferenceTheModelWroteAnywhereButOnlyResolvesTheWholeValueForm() {
+    // ADR-0007 §11 and §13: the model declared all of these, so all are permitted. Only the whole
+    // value written as an expression can be substituted by the pass over the raw properties; the
+    // one mixed into a larger expression waits for the cluster to return it from evaluation.
     var allowList =
         SecretReferenceAllowList.from(
             List.of(
-                "https://api.example.com?key=camunda.secrets.TOKEN",
-                "camunda.secrets.BARE",
-                "=\"Bearer \" + camunda.secrets.MIXED"),
+                "=camunda.secrets.WHOLE",
+                "=\"Bearer \" + camunda.secrets.MIXED",
+                "camunda.secrets.BARE"),
             ClusterVariableSecretReader.noop(),
             TENANT);
 
-    assertThat(allowList.isEmpty()).isTrue();
-    assertThat(allowList.allows("camunda.secrets.TOKEN")).isFalse();
-    assertThat(allowList.allows("camunda.secrets.BARE")).isFalse();
-    assertThat(allowList.allows("camunda.secrets.MIXED")).isFalse();
+    assertThat(allowList.allows("camunda.secrets.WHOLE")).isTrue();
+    assertThat(allowList.allows("camunda.secrets.MIXED")).isTrue();
+    assertThat(allowList.allows("camunda.secrets.BARE")).isTrue();
+
+    assertThat(allowList.resolvableInProperties()).containsExactly("camunda.secrets.WHOLE");
+  }
+
+  @Test
+  void permitsNothingItWasNotShown() {
+    var allowList =
+        SecretReferenceAllowList.from(
+            List.of("=camunda.secrets.DECLARED"), ClusterVariableSecretReader.noop(), TENANT);
+
+    assertThat(allowList.allows("camunda.secrets.SOMETHING_ELSE")).isFalse();
   }
 
   @Test
@@ -71,7 +82,7 @@ class SecretReferenceAllowListTest {
 
     assertThat(allowList.allows("camunda.secrets.FROM_VARIABLE")).isTrue();
     // It came from a variable, not from the properties, so the raw-property pass must not claim it.
-    assertThat(allowList.writtenInProperties()).isEmpty();
+    assertThat(allowList.resolvableInProperties()).isEmpty();
   }
 
   @Test
