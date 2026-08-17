@@ -1,0 +1,1183 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Databricks",
+  "id" : "io.camunda.connectors.databricks.rest.v1",
+  "version" : 1,
+  "description" : "Call the Databricks SQL Statement Execution, SQL Warehouses, Jobs, Model Serving, and Vector Search REST APIs from a BPMN process.",
+  "keywords" : [
+    "databricks",
+    "sql statement execution",
+    "sql warehouse",
+    "jobs",
+    "run job",
+    "model serving",
+    "llm inference",
+    "vector search",
+    "lakehouse",
+    "unity catalog",
+    "oauth m2m",
+    "service principal"
+  ],
+  "documentationRef" : "https://docs.databricks.com/api/workspace/introduction",
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [
+    "bpmn:Task"
+  ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTc5IiBoZWlnaHQ9IjMyMyIgdmlld0JveD0iMCAwIDU3OSAzMjMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xOTg0XzczMCkiPgo8cGF0aCBkPSJNMzU5LjQgNzUuM0wyODQgMTE3LjdMMjAzLjMgNzIuM0wxOTkuNSA3NC41VjEwNy41TDI4NCAxNTVMMzU5LjQgMTEyLjVWMTMwLjFMMjg0IDE3Mi41TDIwMy4zIDEyNy4yTDE5OS41IDEyOS4zVjEzNC45TDI4NCAxODIuNEwzNjguNSAxMzQuOVYxMDEuOUwzNjQuNiA5OS44TDI4NCAxNDUuMUwyMDguNSAxMDIuN1Y4NS4yTDI4NCAxMjcuNkwzNjguNSA4MC4xVjQ3LjZMMzY0LjIgNDUuMkwyODQgOTAuM0wyMTIuNSA1MC4xTDI4NCA5LjlMMzQyLjggNDNMMzQ4LjEgNDAuMVYzNi4xTDI4NCAwTDE5OS41IDQ3LjZWNTIuN0wyODQgMTAwLjJMMzU5LjQgNTcuN1Y3NS4zWiIgZmlsbD0iI0ZGMzYyMSIvPgo8cGF0aCBkPSJNNjYuNiAzMjAuN1YyMzAuN0g1Mi43VjI2NC40QzUyLjcgMjY0LjkgNTIuNCAyNjUuMyA1MS45IDI2NS41QzUxLjQgMjY1LjcgNTAuOSAyNjUuNSA1MC42IDI2NS4yQzQ1LjkgMjU5LjcgMzguNiAyNTYuNSAzMC41IDI1Ni41QzEzLjQgMjU2LjUgMCAyNzAuOSAwIDI4OS40QzAgMjk4LjQgMy4xIDMwNi44IDguOCAzMTIuOUMxNC41IDMxOSAyMi4yIDMyMi4zIDMwLjYgMzIyLjNDMzguNSAzMjIuMyA0NS44IDMxOSA1MC43IDMxMy4zQzUxIDMxMi45IDUxLjYgMzEyLjggNTIgMzEyLjlDNTIuNSAzMTMuMSA1Mi44IDMxMy41IDUyLjggMzE0VjMyMC43SDY2LjZaTTMzLjcgMzA5LjdDMjIuNyAzMDkuNyAxNCAzMDAuOCAxNCAyODkuNEMxNCAyNzggMjIuNyAyNjkuMSAzMy43IDI2OS4xQzQ0LjcgMjY5LjEgNTMuNCAyNzggNTMuNCAyODkuNEM1My40IDMwMC44IDQ0LjcgMzA5LjcgMzMuNyAzMDkuN1pNMTQwLjcgMzIwLjZWMjU4SDEyN1YyNjQuM0MxMjcgMjY0LjggMTI2LjcgMjY1LjIgMTI2LjIgMjY1LjRDMTI1LjcgMjY1LjYgMTI1LjIgMjY1LjQgMTI0LjkgMjY1QzEyMC4yIDI1OS40IDExMy4xIDI1Ni40IDEwNC44IDI1Ni40Qzg3LjcgMjU2LjQgNzQuMiAyNzAuOSA3NC4yIDI4OS4zQzc0LjIgMzA3LjcgODcuNiAzMjIuMiAxMDQuOCAzMjIuMkMxMTIuNyAzMjIuMiAxMjAuMSAzMTguOSAxMjQuOSAzMTMuMUMxMjUuMiAzMTIuNyAxMjUuOCAzMTIuNiAxMjYuMiAzMTIuN0MxMjYuNyAzMTIuOSAxMjcgMzEzLjMgMTI3IDMxMy44VjMyMC42SDE0MC43Wk0xMDcuOSAzMDkuN0M5Ni45IDMwOS43IDg4LjIgMzAwLjggODguMiAyODkuNEM4OC4yIDI3OCA5Ni45IDI2OS4xIDEwNy45IDI2OS4xQzExOC45IDI2OS4xIDEyNy42IDI3OCAxMjcuNiAyODkuNEMxMjcuNiAzMDAuOCAxMTguOSAzMDkuNyAxMDcuOSAzMDkuN1pNMjU4LjIgMzIwLjZWMjU4SDI0NC41VjI2NC4zQzI0NC41IDI2NC44IDI0NC4yIDI2NS4yIDI0My43IDI2NS40QzI0My4yIDI2NS42IDI0Mi43IDI2NS40IDI0Mi40IDI2NUMyMzcuNyAyNTkuNCAyMzAuNiAyNTYuNCAyMjIuMyAyNTYuNEMyMDUuMiAyNTYuNCAxOTEuNyAyNzAuOSAxOTEuNyAyODkuM0MxOTEuNyAzMDcuNyAyMDUuMSAzMjIuMiAyMjIuMyAzMjIuMkMyMzAuMiAzMjIuMiAyMzcuNiAzMTguOSAyNDIuNCAzMTMuMUMyNDIuNyAzMTIuNyAyNDMuMyAzMTIuNiAyNDMuNyAzMTIuN0MyNDQuMiAzMTIuOSAyNDQuNSAzMTMuMyAyNDQuNSAzMTMuOFYzMjAuNkgyNTguMlpNMjI1LjQgMzA5LjdDMjE0LjQgMzA5LjcgMjA1LjcgMzAwLjggMjA1LjcgMjg5LjRDMjA1LjcgMjc4IDIxNC40IDI2OS4xIDIyNS40IDI2OS4xQzIzNi40IDI2OS4xIDI0NS4xIDI3OCAyNDUuMSAyODkuNEMyNDUuMSAzMDAuOCAyMzYuNCAzMDkuNyAyMjUuNCAzMDkuN1pNMjgzLjQgMzEzLjNDMjgzLjUgMzEzLjMgMjgzLjcgMzEzLjIgMjgzLjggMzEzLjJDMjg0LjEgMzEzLjIgMjg0LjUgMzEzLjQgMjg0LjcgMzEzLjZDMjg5LjQgMzE5LjEgMjk2LjcgMzIyLjMgMzA0LjggMzIyLjNDMzIxLjkgMzIyLjMgMzM1LjQgMzA3LjggMzM1LjQgMjg5LjRDMzM1LjQgMjgwLjQgMzMyLjMgMjcyIDMyNi42IDI2NS45QzMyMC45IDI1OS44IDMxMy4yIDI1Ni41IDMwNC44IDI1Ni41QzI5Ni45IDI1Ni41IDI4OS42IDI1OS44IDI4NC43IDI2NS41QzI4NC40IDI2NS45IDI4My45IDI2NiAyODMuNCAyNjUuOUMyODIuOSAyNjUuNyAyODIuNiAyNjUuMyAyODIuNiAyNjQuOFYyMzAuOEgyNjguN1YzMjAuOUgyODIuNlYzMTQuNkMyODIuNiAzMTMuOSAyODIuOSAzMTMuNSAyODMuNCAzMTMuM1pNMjgyIDI4OS40QzI4MiAyNzggMjkwLjcgMjY5LjEgMzAxLjcgMjY5LjFDMzEyLjcgMjY5LjEgMzIxLjQgMjc4IDMyMS40IDI4OS40QzMyMS40IDMwMC44IDMxMi43IDMwOS43IDMwMS43IDMwOS43QzI5MC42IDMwOS43IDI4MiAzMDAuOCAyODIgMjg5LjRaTTM1Ni45IDI5My4yVjMyMC44SDM0M1YyNThIMzU2LjdWMjY1LjdDMzU2LjcgMjY2LjIgMzU3LjEgMjY2LjcgMzU3LjYgMjY2LjhDMzU4LjEgMjY2LjkgMzU4LjcgMjY2LjcgMzU4LjkgMjY2LjNDMzYyLjQgMjYwLjQgMzY5LjEgMjU2LjcgMzc2LjIgMjU2LjdDMzc3LjEgMjU2LjcgMzc4LjEgMjU2LjggMzc4LjUgMjU2LjlWMjcxLjFDMzc3LjcgMjcwLjkgMzc2LjQgMjcwLjggMzc1LjEgMjcwLjhDMzYzLjkgMjcwLjkgMzU2LjkgMjc5LjQgMzU2LjkgMjkzLjJaTTQwMS4zIDI1OFYzMjAuN0gzODcuM1YyNThINDAxLjNaTTQwMi42IDIzOS4zQzQwMi42IDI0NCAzOTguOCAyNDcuOCAzOTQuMSAyNDcuOEMzODkuNCAyNDcuOCAzODUuNiAyNDQgMzg1LjYgMjM5LjNDMzg1LjYgMjM0LjYgMzg5LjQgMjMwLjggMzk0LjEgMjMwLjhDMzk4LjggMjMwLjggNDAyLjYgMjM0LjYgNDAyLjYgMjM5LjNaTTQ2OC4yIDI2Ni40TDQ1OS40IDI3NC43QzQ1NC40IDI3MSA0NDkuMiAyNjkuMiA0NDMuNyAyNjkuMkM0MzIuMSAyNjkuMiA0MjMuNCAyNzcuOSA0MjMuNCAyODkuNEM0MjMuNCAzMDAuOSA0MzIuMSAzMDkuNiA0NDMuNyAzMDkuNkM0NDguOCAzMDkuNiA0NTQgMzA3LjggNDU5LjcgMzA0LjFMNDY3LjYgMzEyLjRDNDU2LjIgMzIwLjggNDUwLjEgMzIyLjMgNDQyLjMgMzIyLjNDNDMyLjkgMzIyLjMgNDI0LjQgMzE5IDQxOC41IDMxM0M0MTIuNiAzMDcgNDA5LjMgMjk4LjcgNDA5LjMgMjg5LjRDNDA5LjMgMjcwLjMgNDIzLjMgMjU2LjUgNDQyLjUgMjU2LjVDNDQ4LjYgMjU2LjUgNDU4IDI1Ny41IDQ2OC4yIDI2Ni40Wk00ODkuNCAyOTUuNEM0ODkuMiAyOTUuNiA0ODkgMjk1LjkgNDg5IDI5Ni4zVjMyMC43SDQ3NS4xVjIzMC42SDQ4OVYyNzkuOUM0ODkgMjgwLjQgNDg5LjMgMjgwLjggNDg5LjcgMjgxQzQ5MC4yIDI4MS4yIDQ5MC43IDI4MS4xIDQ5MSAyODAuN0w1MTMuNyAyNTcuOUg1MzAuNkw1MDQuMiAyODQuM0M1MDMuOCAyODQuNyA1MDMuNyAyODUuNCA1MDQuMSAyODUuOUw1MzIuOCAzMjAuNkg1MTUuN0w0OTMuNSAyOTMuMUM0OTMuMyAyOTIuOCA0OTMgMjkyLjcgNDkyLjYgMjkyLjdINDkyLjVDNDkyLjIgMjkyLjcgNDkxLjkgMjkyLjggNDkxLjcgMjkzTDQ4OS40IDI5NS40Wk01MzEuNSAzMDYuOEw1NDIuNyAzMDAuOUM1NDUuMSAzMDYuOCA1NTAuMSAzMTAuNCA1NTUuNyAzMTAuNEM1NTkuOSAzMTAuNCA1NjQuOCAzMDguNSA1NjQuOCAzMDMuMkM1NjQuOCAyOTkuNiA1NjIuNiAyOTcuNSA1NTcuMSAyOTUuOEw1NDkuNCAyOTMuM0M1MzguNyAyODkuOSA1MzMuNSAyODQgNTMzLjUgMjc1LjNDNTMzLjUgMjY0LjMgNTQyLjUgMjU2LjMgNTU1IDI1Ni4zQzU2NC44IDI1Ni4zIDU3My40IDI2MS41IDU3Ny41IDI3MEw1NjYuNCAyNzZDNTYzLjggMjcwLjcgNTU5LjcgMjY3LjcgNTU1LjEgMjY3LjdDNTUwLjMgMjY3LjcgNTQ2LjkgMjcwLjMgNTQ2LjkgMjc0LjFDNTQ2LjkgMjc3LjQgNTQ5LjQgMjc5LjggNTU0LjQgMjgxLjVMNTYyIDI4NEM1NzMgMjg3LjYgNTc4LjQgMjkzLjUgNTc4LjQgMzAyLjFDNTc4LjQgMzE1LjIgNTY2LjkgMzIyLjEgNTU1LjUgMzIyLjFDNTQ0LjQgMzIyLjMgNTM1LjMgMzE2LjQgNTMxLjUgMzA2LjhaTTE1OSAyOTkuN1YyNzAuNUMxNTkgMjY5LjggMTU4LjUgMjY5LjMgMTU3LjggMjY5LjNIMTQ4LjFWMjU4SDE1Ny44QzE1OC41IDI1OCAxNTkgMjU3LjUgMTU5IDI1Ni44VjIzOC42SDE3Mi44VjI1Ni44QzE3Mi44IDI1Ny41IDE3My4zIDI1OCAxNzQgMjU4SDE4Ny41VjI2OS4zSDE3NEMxNzMuMyAyNjkuMyAxNzIuOCAyNjkuOCAxNzIuOCAyNzAuNVYyOTYuM0MxNzIuOCAzMDguNCAxNzcuMSAzMDkuNCAxODIuNyAzMDkuNEMxODQuNyAzMDkuNCAxODcuOCAzMDkuMiAxODkuNyAzMDguOVYzMjAuOUMxODcuNSAzMjEuMiAxODMuNSAzMjEuNiAxNzkuMiAzMjEuNkMxNzMuNiAzMjEuNyAxNTkgMzIxLjcgMTU5IDI5OS43WiIgZmlsbD0iIzBCMjAyNiIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzE5ODRfNzMwIj4KPHJlY3Qgd2lkdGg9IjU3OC41IiBoZWlnaHQ9IjMyMi4zIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+  },
+  "groups" : [
+    {
+      "id" : "workspace",
+      "label" : "Databricks workspace"
+    },
+    {
+      "id" : "operation",
+      "label" : "Operation"
+    },
+    {
+      "id" : "authentication",
+      "label" : "Authentication"
+    },
+    {
+      "id" : "sql",
+      "label" : "SQL statement"
+    },
+    {
+      "id" : "warehouse",
+      "label" : "SQL warehouse"
+    },
+    {
+      "id" : "jobs",
+      "label" : "Job run"
+    },
+    {
+      "id" : "modelServing",
+      "label" : "Model Serving"
+    },
+    {
+      "id" : "vectorSearch",
+      "label" : "Vector Search"
+    },
+    {
+      "id" : "headers",
+      "label" : "HTTP headers"
+    },
+    {
+      "id" : "timeout",
+      "label" : "Timeouts"
+    },
+    {
+      "id" : "output",
+      "label" : "Output mapping"
+    },
+    {
+      "id" : "error",
+      "label" : "Error handling"
+    },
+    {
+      "id" : "retries",
+      "label" : "Retries"
+    }
+  ],
+  "properties" : [
+    {
+      "type" : "Hidden",
+      "description" : "Binds the element to the REST protocol connector job worker.",
+      "value" : "io.camunda:http-json:1",
+      "binding" : {
+        "property" : "type",
+        "type" : "zeebe:taskDefinition"
+      }
+    },
+    {
+      "id" : "databricksHost",
+      "label" : "Workspace URL",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^(=|(https://|secrets|\\{\\{).*$)",
+          "message" : "Must be an https URL, a FEEL expression, or a {{secrets.NAME}} placeholder"
+        }
+      },
+      "feel" : "optional",
+      "group" : "workspace",
+      "binding" : {
+        "name" : "databricksHostInput",
+        "type" : "zeebe:input"
+      },
+      "placeholder" : "https://dbc-1234abcd-5678.cloud.databricks.com",
+      "tooltip" : "Base URL of the Databricks workspace. Do not include a path, the operation-specific path is appended automatically. A trailing slash is tolerated.",
+      "type" : "String"
+    },
+    {
+      "id" : "service",
+      "label" : "Databricks API",
+      "optional" : false,
+      "value" : "sql",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "operation",
+      "binding" : {
+        "name" : "serviceInput",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Which Databricks API to call. The operation list below changes to match.",
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "SQL Statement Execution",
+          "value" : "sql"
+        },
+        {
+          "name" : "SQL Warehouses",
+          "value" : "warehouse"
+        },
+        {
+          "name" : "Jobs",
+          "value" : "jobs"
+        },
+        {
+          "name" : "Model Serving",
+          "value" : "modelServing"
+        },
+        {
+          "name" : "Vector Search",
+          "value" : "vectorSearch"
+        }
+      ]
+    },
+    {
+      "id" : "sqlOperation",
+      "label" : "Operation",
+      "optional" : false,
+      "value" : "sql.execute",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "operation",
+      "binding" : {
+        "name" : "operationInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "service",
+        "type" : "simple",
+        "equals" : "sql"
+      },
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "Execute statement (POST /api/2.0/sql/statements)",
+          "value" : "sql.execute"
+        },
+        {
+          "name" : "Get statement status and result (GET /api/2.0/sql/statements/{id})",
+          "value" : "sql.getStatement"
+        },
+        {
+          "name" : "Get result chunk (GET .../result/chunks/{index})",
+          "value" : "sql.getChunk"
+        },
+        {
+          "name" : "Cancel statement (POST .../cancel)",
+          "value" : "sql.cancel"
+        }
+      ]
+    },
+    {
+      "id" : "warehouseOperation",
+      "label" : "Operation",
+      "optional" : false,
+      "value" : "warehouse.get",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "operation",
+      "binding" : {
+        "name" : "operationInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "service",
+        "type" : "simple",
+        "equals" : "warehouse"
+      },
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "Get warehouse (GET /api/2.0/sql/warehouses/{id})",
+          "value" : "warehouse.get"
+        },
+        {
+          "name" : "Start warehouse (POST .../start)",
+          "value" : "warehouse.start"
+        },
+        {
+          "name" : "Stop warehouse (POST .../stop)",
+          "value" : "warehouse.stop"
+        }
+      ]
+    },
+    {
+      "id" : "jobsOperation",
+      "label" : "Operation",
+      "optional" : false,
+      "value" : "jobs.runNow",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "operation",
+      "binding" : {
+        "name" : "operationInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "service",
+        "type" : "simple",
+        "equals" : "jobs"
+      },
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "Run job now (POST /api/2.2/jobs/run-now)",
+          "value" : "jobs.runNow"
+        },
+        {
+          "name" : "Get run (GET /api/2.2/jobs/runs/get)",
+          "value" : "jobs.getRun"
+        },
+        {
+          "name" : "Get run output (GET /api/2.2/jobs/runs/get-output)",
+          "value" : "jobs.getRunOutput"
+        },
+        {
+          "name" : "Cancel run (POST /api/2.2/jobs/runs/cancel)",
+          "value" : "jobs.cancelRun"
+        }
+      ]
+    },
+    {
+      "id" : "servingOperation",
+      "label" : "Operation",
+      "optional" : false,
+      "value" : "serving.chat",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "operation",
+      "binding" : {
+        "name" : "operationInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "service",
+        "type" : "simple",
+        "equals" : "modelServing"
+      },
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "Invoke chat / LLM endpoint (POST /serving-endpoints/{name}/invocations)",
+          "value" : "serving.chat"
+        },
+        {
+          "name" : "Invoke custom model, raw payload (POST /serving-endpoints/{name}/invocations)",
+          "value" : "serving.raw"
+        },
+        {
+          "name" : "Get endpoint (GET /api/2.0/serving-endpoints/{name})",
+          "value" : "serving.getEndpoint"
+        }
+      ]
+    },
+    {
+      "id" : "vectorSearchOperation",
+      "label" : "Operation",
+      "optional" : false,
+      "value" : "vectorSearch.query",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "operation",
+      "binding" : {
+        "name" : "operationInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "service",
+        "type" : "simple",
+        "equals" : "vectorSearch"
+      },
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "Query index (POST /api/2.0/vector-search/indexes/{name}/query)",
+          "value" : "vectorSearch.query"
+        }
+      ]
+    },
+    {
+      "id" : "authentication.type",
+      "label" : "Type",
+      "optional" : false,
+      "value" : "oauth-client-credentials-flow",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "OAuth M2M with a service principal is the recommended method for production. See <a href=\"https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m\">Databricks OAuth M2M</a>.",
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "OAuth M2M (service principal)",
+          "value" : "oauth-client-credentials-flow"
+        },
+        {
+          "name" : "OAuth refresh token (U2M, obtained out of band)",
+          "value" : "oauth-refresh-token"
+        },
+        {
+          "name" : "Personal access token (testing only)",
+          "value" : "bearer"
+        }
+      ]
+    },
+    {
+      "id" : "authentication.clientId",
+      "label" : "Client ID",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.clientId",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "type" : "simple",
+        "equals" : "oauth-client-credentials-flow"
+      },
+      "tooltip" : "Application ID of the Databricks service principal.",
+      "type" : "String"
+    },
+    {
+      "id" : "authentication.clientSecret",
+      "label" : "Client secret",
+      "optional" : false,
+      "value" : "{{secrets.DATABRICKS_CLIENT_SECRET}}",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.clientSecret",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "type" : "simple",
+        "equals" : "oauth-client-credentials-flow"
+      },
+      "tooltip" : "OAuth secret of the service principal. Reference it as a connector secret rather than entering the value directly.",
+      "type" : "String",
+      "secret" : true
+    },
+    {
+      "id" : "authentication.oauthRefreshToken.clientId",
+      "label" : "Client ID",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.clientId",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "type" : "simple",
+        "equals" : "oauth-refresh-token"
+      },
+      "type" : "String"
+    },
+    {
+      "id" : "authentication.oauthRefreshToken.clientSecret",
+      "label" : "Client secret",
+      "optional" : true,
+      "value" : "{{secrets.DATABRICKS_CLIENT_SECRET}}",
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.clientSecret",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "type" : "simple",
+        "equals" : "oauth-refresh-token"
+      },
+      "type" : "String",
+      "secret" : true
+    },
+    {
+      "id" : "authentication.oauthRefreshToken.refreshToken",
+      "label" : "Refresh token",
+      "optional" : false,
+      "value" : "{{secrets.DATABRICKS_REFRESH_TOKEN}}",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.refreshToken",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "type" : "simple",
+        "equals" : "oauth-refresh-token"
+      },
+      "tooltip" : "Obtained out of band via the OAuth U2M authorization-code and PKCE flow, which a connector cannot perform itself.",
+      "type" : "String",
+      "secret" : true
+    },
+    {
+      "id" : "authentication.token",
+      "label" : "Personal access token",
+      "description" : "Note: intended for testing only. Use OAuth M2M in production.",
+      "optional" : false,
+      "value" : "{{secrets.DATABRICKS_TOKEN}}",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.token",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "type" : "simple",
+        "equals" : "bearer"
+      },
+      "type" : "String",
+      "secret" : true
+    },
+    {
+      "type" : "Hidden",
+      "description" : "Workspace-level OAuth token endpoint, derived from the workspace URL.",
+      "value" : "=(if ends with(databricksHostInput, \"/\") then substring(databricksHostInput, 1, string length(databricksHostInput) - 1) else databricksHostInput) + \"/oidc/v1/token\"",
+      "binding" : {
+        "name" : "authentication.oauthTokenEndpoint",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "type" : "simple",
+        "oneOf" : [
+          "oauth-client-credentials-flow",
+          "oauth-refresh-token"
+        ]
+      }
+    },
+    {
+      "type" : "Hidden",
+      "description" : "Databricks requires the client credentials as a Basic Auth header.",
+      "value" : "basicAuthHeader",
+      "binding" : {
+        "name" : "authentication.clientAuthentication",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "type" : "simple",
+        "equals" : "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "type" : "Hidden",
+      "description" : "Grants access to every Databricks REST API the principal is permitted to call.",
+      "value" : "all-apis",
+      "binding" : {
+        "name" : "authentication.scopes",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "type" : "simple",
+        "oneOf" : [
+          "oauth-client-credentials-flow",
+          "oauth-refresh-token"
+        ]
+      }
+    },
+    {
+      "id" : "servingEndpointName",
+      "label" : "Serving endpoint name",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "modelServing",
+      "binding" : {
+        "name" : "servingEndpointNameInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "servingOperation",
+        "type" : "simple",
+        "oneOf" : [
+          "serving.chat",
+          "serving.raw",
+          "serving.getEndpoint"
+        ]
+      },
+      "placeholder" : "databricks-meta-llama-3-3-70b-instruct",
+      "type" : "String"
+    },
+    {
+      "id" : "chatMessages",
+      "label" : "Messages",
+      "optional" : false,
+      "value" : "=[\n  {role: \"user\", content: \"Hello\"}\n]",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "required",
+      "group" : "modelServing",
+      "binding" : {
+        "name" : "chatMessagesInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "servingOperation",
+        "type" : "simple",
+        "equals" : "serving.chat"
+      },
+      "tooltip" : "List of chat messages. Each entry needs a role of system, user, or assistant, and a content string.",
+      "type" : "Text"
+    },
+    {
+      "id" : "chatMaxTokens",
+      "label" : "Max tokens",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "modelServing",
+      "binding" : {
+        "name" : "chatMaxTokensInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "servingOperation",
+        "type" : "simple",
+        "equals" : "serving.chat"
+      },
+      "tooltip" : "Leave blank to use the endpoint default. Databricks reserves tokens up front, so an oversized value can be rejected with HTTP 429 before the request is processed.",
+      "type" : "Number"
+    },
+    {
+      "id" : "chatTemperature",
+      "label" : "Temperature",
+      "description" : "Between 0.0 and 2.0.",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "modelServing",
+      "binding" : {
+        "name" : "chatTemperatureInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "servingOperation",
+        "type" : "simple",
+        "equals" : "serving.chat"
+      },
+      "tooltip" : "Leave blank to use the endpoint default of 1.0.",
+      "type" : "Number"
+    },
+    {
+      "id" : "chatExtraParams",
+      "label" : "Additional chat parameters",
+      "optional" : true,
+      "feel" : "required",
+      "group" : "modelServing",
+      "binding" : {
+        "name" : "chatExtraParamsInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "servingOperation",
+        "type" : "simple",
+        "equals" : "serving.chat"
+      },
+      "tooltip" : "Extra parameters merged into the request body, for anything not exposed as its own field: top_p, top_k, tools, tool_choice, response_format, logprobs, reasoning_effort. Streaming stays disabled and cannot be re-enabled here.",
+      "type" : "Text"
+    },
+    {
+      "id" : "servingRawPayload",
+      "label" : "Request payload",
+      "optional" : false,
+      "value" : "={\n  dataframe_split: {\n    columns: [\"feature_a\", \"feature_b\"],\n    data: [[1, 2]]\n  }\n}",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "required",
+      "group" : "modelServing",
+      "binding" : {
+        "name" : "servingRawPayloadInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "servingOperation",
+        "type" : "simple",
+        "equals" : "serving.raw"
+      },
+      "tooltip" : "Full request body for a custom model endpoint, using exactly one of dataframe_split, dataframe_records, inputs, or instances. Prefer dataframe_split, because dataframe_records does not guarantee column ordering. See <a href=\"https://docs.databricks.com/api/workspace/servingendpoints/query\">Model Serving query API</a>.",
+      "type" : "Text"
+    },
+    {
+      "id" : "sqlWarehouseId",
+      "label" : "Warehouse ID",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "sql",
+      "binding" : {
+        "name" : "sqlWarehouseIdInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "sqlOperation",
+        "type" : "simple",
+        "equals" : "sql.execute"
+      },
+      "placeholder" : "1234567890abcdef",
+      "type" : "String"
+    },
+    {
+      "id" : "sqlStatementText",
+      "label" : "SQL statement",
+      "description" : "Warning: bind values as parameters below. Never concatenate process variables into this text. Maximum statement size 16 MiB.",
+      "optional" : false,
+      "value" : "SELECT * FROM samples.nyctaxi.trips WHERE fare_amount > :min_fare LIMIT 10",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "sql",
+      "binding" : {
+        "name" : "sqlStatementTextInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "sqlOperation",
+        "type" : "simple",
+        "equals" : "sql.execute"
+      },
+      "tooltip" : "Named markers such as :min_fare are supported. Positional question-mark markers are not supported by the Databricks SQL Statement Execution API.",
+      "type" : "Text"
+    },
+    {
+      "id" : "sqlParameters",
+      "label" : "Statement parameters",
+      "optional" : true,
+      "value" : "=[\n  {name: \"min_fare\", value: \"10.0\", type: \"DECIMAL(10,2)\"}\n]",
+      "feel" : "required",
+      "group" : "sql",
+      "binding" : {
+        "name" : "sqlParametersInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "sqlOperation",
+        "type" : "simple",
+        "equals" : "sql.execute"
+      },
+      "tooltip" : "List of name, value, and type entries, and the only injection-safe way to pass values into the statement. The name omits the leading colon, type defaults to STRING, and omitting value binds NULL. Complex types such as ARRAY, MAP, and STRUCT are not supported.",
+      "type" : "Text"
+    },
+    {
+      "id" : "sqlCatalog",
+      "label" : "Catalog",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "sql",
+      "binding" : {
+        "name" : "sqlCatalogInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "sqlOperation",
+        "type" : "simple",
+        "equals" : "sql.execute"
+      },
+      "placeholder" : "main",
+      "type" : "String"
+    },
+    {
+      "id" : "sqlSchema",
+      "label" : "Schema",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "sql",
+      "binding" : {
+        "name" : "sqlSchemaInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "sqlOperation",
+        "type" : "simple",
+        "equals" : "sql.execute"
+      },
+      "placeholder" : "default",
+      "type" : "String"
+    },
+    {
+      "id" : "sqlWaitTimeout",
+      "label" : "Wait timeout",
+      "description" : "Either 0s, or between 5s and 50s.",
+      "optional" : false,
+      "value" : "30s",
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^(=.*|0s|[5-9]s|[1-4][0-9]s|50s)$",
+          "message" : "Must be 0s, or between 5s and 50s"
+        }
+      },
+      "feel" : "optional",
+      "group" : "sql",
+      "binding" : {
+        "name" : "sqlWaitTimeoutInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "sqlOperation",
+        "type" : "simple",
+        "equals" : "sql.execute"
+      },
+      "tooltip" : "How long to wait inline for the statement to finish. 0s returns immediately. If the statement does not finish within the window, the response carries a non-terminal state and the result must be polled with the Get statement operation.",
+      "type" : "String"
+    },
+    {
+      "id" : "sqlOnWaitTimeout",
+      "label" : "On wait timeout",
+      "optional" : false,
+      "value" : "CONTINUE",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "sql",
+      "binding" : {
+        "name" : "sqlOnWaitTimeoutInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "sqlOperation",
+        "type" : "simple",
+        "equals" : "sql.execute"
+      },
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "CONTINUE - keep running, poll for the result",
+          "value" : "CONTINUE"
+        },
+        {
+          "name" : "CANCEL - cancel the statement on timeout",
+          "value" : "CANCEL"
+        }
+      ]
+    },
+    {
+      "id" : "sqlDisposition",
+      "label" : "Disposition",
+      "optional" : false,
+      "value" : "INLINE",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "sql",
+      "binding" : {
+        "name" : "sqlDispositionInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "sqlOperation",
+        "type" : "simple",
+        "equals" : "sql.execute"
+      },
+      "tooltip" : "How results are returned. INLINE embeds rows in the response and is capped at 25 MiB, and exceeding the cap aborts the statement without a result set. EXTERNAL_LINKS returns presigned URLs that expire after 15 minutes and must be fetched without an Authorization header.",
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "INLINE - rows in the response (max 25 MiB)",
+          "value" : "INLINE"
+        },
+        {
+          "name" : "EXTERNAL_LINKS - presigned download URLs",
+          "value" : "EXTERNAL_LINKS"
+        }
+      ]
+    },
+    {
+      "id" : "statementId",
+      "label" : "Statement ID",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "sql",
+      "binding" : {
+        "name" : "statementIdInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "sqlOperation",
+        "type" : "simple",
+        "oneOf" : [
+          "sql.getStatement",
+          "sql.getChunk",
+          "sql.cancel"
+        ]
+      },
+      "tooltip" : "The statement_id returned by the Execute statement operation. Statements are removed roughly 12 hours after reaching a terminal state, after which these calls return HTTP 404.",
+      "type" : "String"
+    },
+    {
+      "id" : "chunkIndex",
+      "label" : "Chunk index",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "sql",
+      "binding" : {
+        "name" : "chunkIndexInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "sqlOperation",
+        "type" : "simple",
+        "equals" : "sql.getChunk"
+      },
+      "tooltip" : "Zero-based chunk index, taken from next_chunk_index in a previous response. Use this to page through a result set larger than one chunk.",
+      "type" : "Number"
+    },
+    {
+      "id" : "warehouseId",
+      "label" : "Warehouse ID",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "warehouse",
+      "binding" : {
+        "name" : "warehouseIdInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "service",
+        "type" : "simple",
+        "equals" : "warehouse"
+      },
+      "placeholder" : "1234567890abcdef",
+      "tooltip" : "Start and stop return immediately. Poll Get warehouse until state is RUNNING or STOPPED before relying on the change.",
+      "type" : "String"
+    },
+    {
+      "id" : "jobId",
+      "label" : "Job ID",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "jobs",
+      "binding" : {
+        "name" : "jobIdInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "jobsOperation",
+        "type" : "simple",
+        "equals" : "jobs.runNow"
+      },
+      "tooltip" : "Numeric ID of the Databricks job to trigger.",
+      "type" : "Number"
+    },
+    {
+      "id" : "jobParameters",
+      "label" : "Job parameters",
+      "optional" : true,
+      "feel" : "required",
+      "group" : "jobs",
+      "binding" : {
+        "name" : "jobParametersInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "jobsOperation",
+        "type" : "simple",
+        "equals" : "jobs.runNow"
+      },
+      "tooltip" : "Key-value parameters passed to the run, for example {environment: \"prod\"}. Keys must match parameters declared on the job.",
+      "type" : "Text"
+    },
+    {
+      "id" : "idempotencyToken",
+      "label" : "Idempotency token",
+      "description" : "Note: without a token, a connector retry can start the job a second time.",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "jobs",
+      "binding" : {
+        "name" : "idempotencyTokenInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "jobsOperation",
+        "type" : "simple",
+        "equals" : "jobs.runNow"
+      },
+      "tooltip" : "Databricks returns the existing run instead of starting a new one when a token is reused. Deriving it from a process variable makes the trigger safe to retry.",
+      "type" : "String"
+    },
+    {
+      "id" : "runId",
+      "label" : "Run ID",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "jobs",
+      "binding" : {
+        "name" : "runIdInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "jobsOperation",
+        "type" : "simple",
+        "oneOf" : [
+          "jobs.getRun",
+          "jobs.getRunOutput",
+          "jobs.cancelRun"
+        ]
+      },
+      "tooltip" : "The run_id returned by Run job now.",
+      "type" : "Number"
+    },
+    {
+      "id" : "vectorIndexName",
+      "label" : "Index name",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "vectorSearch",
+      "binding" : {
+        "name" : "vectorIndexNameInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "vectorSearchOperation",
+        "type" : "simple",
+        "equals" : "vectorSearch.query"
+      },
+      "placeholder" : "main.default.my_index",
+      "tooltip" : "Three-level Unity Catalog name of the vector search index.",
+      "type" : "String"
+    },
+    {
+      "id" : "vectorQueryPayload",
+      "label" : "Query payload",
+      "optional" : false,
+      "value" : "={\n  columns: [\"id\", \"text\"],\n  query_text: \"search phrase\",\n  num_results: 5\n}",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "required",
+      "group" : "vectorSearch",
+      "binding" : {
+        "name" : "vectorQueryPayloadInput",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "vectorSearchOperation",
+        "type" : "simple",
+        "equals" : "vectorSearch.query"
+      },
+      "tooltip" : "Request body for the index query. Only columns is required. Supply query_text for a text index or query_vector for a direct vector, plus optional num_results, filters_json, query_type, and score_threshold.",
+      "type" : "Text"
+    },
+    {
+      "id" : "additionalHeaders",
+      "label" : "Additional HTTP headers",
+      "optional" : true,
+      "feel" : "required",
+      "group" : "headers",
+      "binding" : {
+        "name" : "additionalHeadersInput",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Extra headers to send with the request. The User-Agent required for Databricks partner attribution is set by this template and cannot be overridden here.",
+      "type" : "Text"
+    },
+    {
+      "type" : "Hidden",
+      "description" : "GET for read operations, POST for everything else.",
+      "value" : "=if list contains([\"sql.getStatement\", \"sql.getChunk\", \"warehouse.get\", \"jobs.getRun\", \"jobs.getRunOutput\", \"serving.getEndpoint\"], operationInput) then \"GET\" else \"POST\"",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      }
+    },
+    {
+      "type" : "Hidden",
+      "description" : "Workspace URL plus the operation-specific path. Model Serving invocations have no /api/2.0 prefix.",
+      "value" : "=(if ends with(databricksHostInput, \"/\") then substring(databricksHostInput, 1, string length(databricksHostInput) - 1) else databricksHostInput) + (if operationInput = \"sql.execute\" then \"/api/2.0/sql/statements\" else if operationInput = \"sql.getStatement\" then \"/api/2.0/sql/statements/\" + statementIdInput else if operationInput = \"sql.cancel\" then \"/api/2.0/sql/statements/\" + statementIdInput + \"/cancel\" else if operationInput = \"sql.getChunk\" then \"/api/2.0/sql/statements/\" + statementIdInput + \"/result/chunks/\" + string(chunkIndexInput) else if operationInput = \"warehouse.get\" then \"/api/2.0/sql/warehouses/\" + warehouseIdInput else if operationInput = \"warehouse.start\" then \"/api/2.0/sql/warehouses/\" + warehouseIdInput + \"/start\" else if operationInput = \"warehouse.stop\" then \"/api/2.0/sql/warehouses/\" + warehouseIdInput + \"/stop\" else if operationInput = \"jobs.runNow\" then \"/api/2.2/jobs/run-now\" else if operationInput = \"jobs.getRun\" then \"/api/2.2/jobs/runs/get\" else if operationInput = \"jobs.getRunOutput\" then \"/api/2.2/jobs/runs/get-output\" else if operationInput = \"jobs.cancelRun\" then \"/api/2.2/jobs/runs/cancel\" else if operationInput = \"serving.getEndpoint\" then \"/api/2.0/serving-endpoints/\" + servingEndpointNameInput else if operationInput = \"vectorSearch.query\" then \"/api/2.0/vector-search/indexes/\" + vectorIndexNameInput + \"/query\" else \"/serving-endpoints/\" + servingEndpointNameInput + \"/invocations\")",
+      "binding" : {
+        "name" : "url",
+        "type" : "zeebe:input"
+      }
+    },
+    {
+      "type" : "Hidden",
+      "description" : "The Jobs run endpoints take run_id as a query parameter rather than a path segment.",
+      "value" : "=if operationInput = \"jobs.getRun\" or operationInput = \"jobs.getRunOutput\" then {run_id: string(runIdInput)} else null",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      }
+    },
+    {
+      "type" : "Hidden",
+      "description" : "User-Agent is merged last so the partner attribution value cannot be overridden by additional headers.",
+      "value" : "=context merge([if additionalHeadersInput = null then {} else additionalHeadersInput, {\"User-Agent\": \"Camunda_DatabricksConnector/1.0\"}])",
+      "binding" : {
+        "name" : "headers",
+        "type" : "zeebe:input"
+      }
+    },
+    {
+      "type" : "Hidden",
+      "description" : "Operation-specific request body. Null optional fields are omitted, GET operations send no body, and for chat stream is merged last so it stays false.",
+      "value" : "=if operationInput = \"sql.execute\" then context merge([ {statement: sqlStatementTextInput, warehouse_id: sqlWarehouseIdInput, wait_timeout: sqlWaitTimeoutInput, on_wait_timeout: sqlOnWaitTimeoutInput, disposition: sqlDispositionInput, format: \"JSON_ARRAY\"}, if sqlCatalogInput = null then {} else {catalog: sqlCatalogInput}, if sqlSchemaInput = null then {} else {schema: sqlSchemaInput}, if sqlParametersInput = null then {} else {parameters: sqlParametersInput}]) else if operationInput = \"serving.chat\" then context merge([ if chatExtraParamsInput = null then {} else chatExtraParamsInput, if chatMaxTokensInput = null then {} else {max_tokens: chatMaxTokensInput}, if chatTemperatureInput = null then {} else {temperature: chatTemperatureInput}, {messages: chatMessagesInput, stream: false}]) else if operationInput = \"serving.raw\" then servingRawPayloadInput else if operationInput = \"jobs.runNow\" then context merge([{job_id: jobIdInput}, if jobParametersInput = null then {} else {job_parameters: jobParametersInput}, if idempotencyTokenInput = null then {} else {idempotency_token: idempotencyTokenInput}]) else if operationInput = \"jobs.cancelRun\" then {run_id: runIdInput} else if operationInput = \"vectorSearch.query\" then vectorQueryPayloadInput else if list contains([\"sql.cancel\", \"warehouse.start\", \"warehouse.stop\"], operationInput) then {} else null",
+      "binding" : {
+        "name" : "body",
+        "type" : "zeebe:input"
+      }
+    },
+    {
+      "id" : "readTimeoutInSeconds",
+      "label" : "Read timeout in seconds",
+      "optional" : false,
+      "value" : 60,
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^\\d+$",
+          "message" : "Must be a number"
+        }
+      },
+      "feel" : "static",
+      "group" : "timeout",
+      "binding" : {
+        "name" : "readTimeoutInSeconds",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Must exceed the SQL wait timeout. Model Serving allows up to 597 seconds of model execution per request, so raise this for slow inference. Use 0 for an infinite timeout.",
+      "type" : "Number"
+    },
+    {
+      "id" : "resultVariable",
+      "label" : "Result variable",
+      "group" : "output",
+      "binding" : {
+        "key" : "resultVariable",
+        "type" : "zeebe:taskHeader"
+      },
+      "placeholder" : "databricksResponse",
+      "tooltip" : "Name of the process variable that receives the whole response. See <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\">result variable</a>.",
+      "type" : "String"
+    },
+    {
+      "id" : "resultExpression",
+      "label" : "Result expression",
+      "feel" : "required",
+      "group" : "output",
+      "binding" : {
+        "key" : "resultExpression",
+        "type" : "zeebe:taskHeader"
+      },
+      "tooltip" : "Maps the response into process variables, and the shape differs per operation. Execute statement returns status.state plus result.data_array, Run job now returns run_id, Get run returns state.life_cycle_state and state.result_state, and chat returns choices, where FEEL lists are 1-indexed. See <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\">result expression</a>.",
+      "type" : "Text"
+    },
+    {
+      "id" : "errorExpression",
+      "label" : "Error expression",
+      "description" : "Note: a failed SQL statement returns HTTP 200 with status.state FAILED, so the status code alone does not indicate success.",
+      "value" : "=if response != null and response.body != null and response.body.status != null and response.body.status.state != null and (response.body.status.state = \"FAILED\" or response.body.status.state = \"CANCELED\" or response.body.status.state = \"CLOSED\") then bpmnError(\"DATABRICKS_SQL_\" + response.body.status.state, \"Databricks SQL statement ended in state \" + response.body.status.state + \": \" + (if response.body.status.error = null then \"no error detail returned\" else response.body.status.error.message)) else null",
+      "feel" : "required",
+      "group" : "error",
+      "binding" : {
+        "key" : "errorExpression",
+        "type" : "zeebe:taskHeader"
+      },
+      "tooltip" : "The default expression raises a BPMN error for the terminal SQL states FAILED, CANCELED, and CLOSED. PENDING and RUNNING are not errors, they mean the statement is still executing. Job run outcomes are not covered, because a failed run is reported in state.result_state and is normally handled with a gateway rather than an error.",
+      "type" : "Text"
+    },
+    {
+      "id" : "retryCount",
+      "label" : "Retries",
+      "value" : "3",
+      "feel" : "optional",
+      "group" : "retries",
+      "binding" : {
+        "property" : "retries",
+        "type" : "zeebe:taskDefinition"
+      },
+      "type" : "String"
+    },
+    {
+      "id" : "retryBackoff",
+      "label" : "Retry backoff",
+      "value" : "PT30S",
+      "group" : "retries",
+      "binding" : {
+        "key" : "retryBackoff",
+        "type" : "zeebe:taskHeader"
+      },
+      "tooltip" : "ISO 8601 duration to wait between retries.",
+      "type" : "String"
+    }
+  ]
+}
