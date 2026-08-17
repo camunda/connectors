@@ -103,6 +103,13 @@ irreconcilable budget-vs-effort semantics and no documented generalized dial, an
 out of a model id breaks on custom-model and marketplace ARNs. A generalized dial belongs with the
 capability matrix this module does not have yet.
 
+Only the *request* side varies by model family. The `reasoningContent` block Converse *returns* is a
+single normalized union (`reasoningText`/`redactedContent`) regardless of which model produced it, so
+`BedrockConverseContentConverter`/`BedrockConverseResponseConverter` never branch on model family. The
+real-API acceptance suite exercises this round-trip against three model families that each enable
+reasoning through a different `bodyProperties` shape (Amazon's own model, a non-Amazon third-party
+model, and Claude via the Converse path) to prove the normalization holds in practice, not just on paper.
+
 ### Caching
 
 Opt-in per model (`BedrockConverseModelParameters.promptCaching.enabled`, default `false`),
