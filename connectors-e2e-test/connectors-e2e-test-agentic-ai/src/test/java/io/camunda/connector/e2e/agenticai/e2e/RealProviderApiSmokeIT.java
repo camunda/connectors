@@ -73,7 +73,6 @@ import org.springframework.core.io.ResourceLoader;
       "camunda.connector.webhook.enabled=false",
       "camunda.connector.polling.enabled=false",
       "camunda.connector.agenticai.tools.process-definition.cache.enabled=false",
-      // Kept below PROCESS_TIMEOUT so a real timeout surfaces cleanly instead of racing it.
       "camunda.connector.agenticai.aiagent.chat-model.api.default-timeout=PT2M",
       "logging.level.io.camunda.connector.agenticai=TRACE"
     },
@@ -354,10 +353,10 @@ class RealProviderApiSmokeIT {
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",
                             "provider.anthropic.model.parameters.effort", "high"))),
-            // Amazon's own flagship Converse model: multimodal + prompt caching + reasoning.
-            // STRUCTURED_OUTPUT is deliberately NOT declared -- confirmed against a real API call:
-            // AWS rejects outputConfig for this model ("This model doesn't support the outputConfig
-            // field"), matching its model card ("Structured outputs" listed as Not Supported).
+            // Amazon's own Nova 2 Lite Converse model (cheap tier): multimodal + prompt caching +
+            // reasoning. STRUCTURED_OUTPUT is deliberately NOT declared: AWS rejects outputConfig
+            // for this model ("This model doesn't support the outputConfig field"), matching its
+            // model card ("Structured outputs" listed as Not Supported).
             bedrockConverse(
                 "us.amazon.nova-2-lite-v1:0",
                 Map.of(
@@ -378,12 +377,13 @@ class RealProviderApiSmokeIT {
                 Map.of(
                     Capability.REASONING,
                     Map.of("provider.bedrock.bodyProperties", "={reasoning_effort: \"medium\"}"))),
-            // Claude via the native Converse path -- not the audience this provider targets
-            // (Claude gets its own dedicated provider), but a permanent cross-check that the
-            // generic sdkFields() codec round-trips Anthropic's own block shapes correctly too.
-            // Global cross-region inference ID (no in-region endpoint for this model).
+            // Claude via the native Converse path: a permanent cross-check that the generic
+            // sdkFields() codec round-trips Anthropic's own block shapes correctly too, exercising
+            // Converse-specific features (structured output via outputConfig) Claude's dedicated
+            // provider never goes through. Global cross-region inference ID (no in-region endpoint
+            // for this model). claude-sonnet-5 only allows thinking type "adaptive", not "enabled".
             bedrockConverse(
-                "global.anthropic.claude-sonnet-4-6",
+                "global.anthropic.claude-sonnet-5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -392,7 +392,7 @@ class RealProviderApiSmokeIT {
                     Capability.REASONING,
                         Map.of(
                             "provider.bedrock.bodyProperties",
-                            "={thinking: {type: \"enabled\", budget_tokens: 2048}}"))),
+                            "={thinking: {type: \"adaptive\"}}"))),
             // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
             // domain block in addition to reasoning_tokens, so REASONING is exercisable here.
             openAiResponsesApi(

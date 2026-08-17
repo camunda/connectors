@@ -254,13 +254,13 @@ class DocumentToolCallResultsIT {
             anthropicBedrockMantleV2("claude-sonnet-5"),
             anthropicBedrockMantleV2("claude-haiku-4-5"),
             // AWS Bedrock, v1 (Anthropic models via cross-region inference)
-            bedrockV1("eu.anthropic.claude-sonnet-4-20250514-v1:0"),
-            bedrockV1("global.anthropic.claude-sonnet-4-6"),
+            bedrockV1("global.anthropic.claude-sonnet-5"),
             bedrockV1("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
-            // AWS Bedrock, v2 (native Converse API)
-            bedrockV2("eu.anthropic.claude-sonnet-4-20250514-v1:0"),
-            bedrockV2("global.anthropic.claude-sonnet-4-6"),
+            // AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference
+            bedrockV2("global.anthropic.claude-sonnet-5"),
             bedrockV2("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
+            // AWS Bedrock, v2 (native Converse API); Amazon's own multimodal Converse model
+            bedrockV2("us.amazon.nova-2-lite-v1:0"),
             // Docker Model Runner (OpenAI-compatible)
             dockerModelRunnerV1("ai/gemma4:latest").disabled(),
             dockerModelRunnerV1("ai/qwen3.6:latest").disabled(),
