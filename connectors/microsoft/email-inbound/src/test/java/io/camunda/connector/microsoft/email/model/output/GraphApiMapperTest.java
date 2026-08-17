@@ -8,7 +8,6 @@ package io.camunda.connector.microsoft.email.model.output;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.microsoft.graph.models.EmailAddress;
 import com.microsoft.graph.models.Message;
 import com.microsoft.graph.models.Recipient;
 import io.camunda.connector.api.document.Document;
@@ -20,7 +19,7 @@ import org.mockito.Mockito;
 class GraphApiMapperTest {
 
   private static Recipient graphRecipient(String name, String address) {
-    var emailAddress = new EmailAddress();
+    var emailAddress = new com.microsoft.graph.models.EmailAddress();
     emailAddress.setName(name);
     emailAddress.setAddress(address);
     var recipient = new Recipient();
@@ -37,6 +36,7 @@ class GraphApiMapperTest {
     message.setSender(graphRecipient("Vendor", "vendor@example.com"));
     message.setToRecipients(List.of(graphRecipient("Me", "me@example.com")));
     message.setReceivedDateTime(OffsetDateTime.parse("2025-01-15T10:30:00Z"));
+    message.setHasAttachments(true);
     var pdf = new EmailAttachmentMetadata("att-1", "invoice.pdf", "application/pdf", 2048L, false);
 
     var result = GraphApiMapper.toEmailMessage(message, List.of(pdf));
@@ -47,8 +47,9 @@ class GraphApiMapperTest {
     assertThat(result.sender().address()).isEqualTo("vendor@example.com");
     assertThat(result.recipients())
         .singleElement()
-        .extracting(io.camunda.connector.microsoft.email.model.output.EmailAddress::address)
+        .extracting(EmailAddress::address)
         .isEqualTo("me@example.com");
+    assertThat(result.hasAttachments()).isTrue();
     assertThat(result.attachmentMetadata()).containsExactly(pdf);
     assertThat(result.attachments()).isEmpty();
   }
@@ -61,6 +62,7 @@ class GraphApiMapperTest {
     var result = GraphApiMapper.toEmailMessage(message, List.of());
 
     assertThat(result.attachmentMetadata()).isEmpty();
+    assertThat(result.hasAttachments()).isNull();
   }
 
   @Test
@@ -69,8 +71,7 @@ class GraphApiMapperTest {
         new EmailMessage(
             "msg-1",
             "conv-1",
-            new io.camunda.connector.microsoft.email.model.output.EmailAddress(
-                "Vendor", "vendor@example.com"),
+            new EmailAddress("Vendor", "vendor@example.com"),
             List.of(),
             List.of(),
             List.of(),
@@ -78,6 +79,7 @@ class GraphApiMapperTest {
             "body",
             "text",
             OffsetDateTime.parse("2025-01-15T10:30:00Z"),
+            true,
             List.of(
                 new EmailAttachmentMetadata(
                     "att-1", "invoice.pdf", "application/pdf", 2048L, false)),
@@ -89,6 +91,7 @@ class GraphApiMapperTest {
     assertThat(result.id()).isEqualTo("msg-1");
     assertThat(result.subject()).isEqualTo("Invoice");
     assertThat(result.attachments()).containsExactly(downloaded);
+    assertThat(result.hasAttachments()).isTrue();
     assertThat(result.attachmentMetadata()).containsExactly(source.attachmentMetadata().get(0));
   }
 

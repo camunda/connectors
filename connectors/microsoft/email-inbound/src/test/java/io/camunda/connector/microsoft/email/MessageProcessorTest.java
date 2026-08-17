@@ -73,6 +73,7 @@ class MessageProcessorTest {
         "Test Body",
         "text",
         TEST_RECEIVED_TIME,
+        !attachmentMetadata.isEmpty(),
         attachmentMetadata,
         List.of());
   }

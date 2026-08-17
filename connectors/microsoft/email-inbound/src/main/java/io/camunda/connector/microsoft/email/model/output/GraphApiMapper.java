@@ -32,11 +32,6 @@ public final class GraphApiMapper {
         .toList();
   }
 
-  /**
-   * Maps a Graph message and its resolved attachment metadata to an {@link EmailMessage}, the shape
-   * evaluated by the activation condition. {@code attachments} is empty at this point; the content
-   * is only downloaded once the condition has matched.
-   */
   public static EmailMessage toEmailMessage(
       Message message, List<EmailAttachmentMetadata> attachmentMetadata) {
     String body = null;
@@ -60,6 +55,7 @@ public final class GraphApiMapper {
         body,
         bodyContentType,
         receivedTime,
+        message.getHasAttachments(),
         attachmentMetadata,
         List.of());
   }
@@ -81,6 +77,7 @@ public final class GraphApiMapper {
         source.body(),
         source.bodyContentType(),
         source.receivedDateTime(),
+        source.hasAttachments(),
         source.attachmentMetadata(),
         documents);
   }
