@@ -68,6 +68,7 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
   private @Nullable Document additionalModelResponseFields;
   private @Nullable TokenUsage usage;
   private @Nullable ConverseMetrics metrics;
+  private boolean messageStopReceived;
 
   public BedrockConverseStreamAssembler(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
@@ -124,6 +125,7 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
   public void visitMessageStop(MessageStopEvent event) {
     stopReason = event.stopReasonAsString();
     additionalModelResponseFields = event.additionalModelResponseFields();
+    messageStopReceived = true;
   }
 
   @Override
@@ -136,10 +138,15 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
   }
 
   /**
-   * Returns the assembled {@link ConverseResponse}. May be called once the stream has completed
-   * (after {@code visitMessageStop}/{@code visitMetadata} have been invoked).
+   * Returns the assembled {@link ConverseResponse}. Throws {@link IllegalStateException} if the
+   * stream hasn't completed yet ({@code visitMessageStop} not received), rather than returning a
+   * response silently assembled from a partial event sequence.
    */
   public ConverseResponse converseResponse() {
+    if (!messageStopReceived) {
+      throw new IllegalStateException(
+          "converseResponse() called before the stream completed (no messageStop event received)");
+    }
     final List<ContentBlock> content = new ArrayList<>(finalizedBlocks.values());
     final Message message = Message.builder().role(role).content(content).build();
     final ConverseOutput output = ConverseOutput.builder().message(message).build();

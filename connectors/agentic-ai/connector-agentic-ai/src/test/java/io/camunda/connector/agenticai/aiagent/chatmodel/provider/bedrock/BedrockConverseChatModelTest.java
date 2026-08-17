@@ -31,6 +31,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseCh
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,10 +41,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.async.SdkPublisher;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
+import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamOutput;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamResponseHandler;
 
@@ -93,8 +100,23 @@ class BedrockConverseChatModelTest {
 
     when(requestConverter.toConverseStreamRequest(any(), any(), any()))
         .thenReturn(converseStreamRequest);
+    // Drives a minimal messageStart/messageStop pair through the real handler built inside
+    // execute(), matching what the SDK delivers on a genuine call, so the assembler it feeds is
+    // actually complete by the time execute() reads converseResponse() off of it.
     when(client.converseStream(eq(converseStreamRequest), any(ConverseStreamResponseHandler.class)))
-        .thenReturn(CompletableFuture.completedFuture(null));
+        .thenAnswer(
+            invocation -> {
+              final ConverseStreamResponseHandler handler = invocation.getArgument(1);
+              handler.onEventStream(
+                  SdkPublisher.adapt(
+                      new ImmediateEventPublisher(
+                          List.of(
+                              ConverseStreamOutput.messageStartBuilder().role("assistant").build(),
+                              ConverseStreamOutput.messageStopBuilder()
+                                  .stopReason("end_turn")
+                                  .build()))));
+              return CompletableFuture.completedFuture(null);
+            });
     when(responseConverter.toResult(any(ConverseResponse.class), any())).thenReturn(expected);
 
     final var result = api.execute(request);
@@ -106,15 +128,46 @@ class BedrockConverseChatModelTest {
     verify(client)
         .converseStream(eq(converseStreamRequest), any(ConverseStreamResponseHandler.class));
 
-    // client.converseStream is mocked and never drives the handler, so the assembler passed to
-    // responseConverter is the untouched, freshly-created one for this call.
     final ArgumentCaptor<ConverseResponse> responseCaptor =
         ArgumentCaptor.forClass(ConverseResponse.class);
     verify(responseConverter).toResult(responseCaptor.capture(), any());
-    assertThat(responseCaptor.getValue().stopReason()).isNull();
+    assertThat(responseCaptor.getValue().stopReasonAsString()).isEqualTo("end_turn");
+    assertThat(responseCaptor.getValue().output().message().roleAsString()).isEqualTo("assistant");
     assertThat(responseCaptor.getValue().output().message().content()).isEmpty();
 
     verify(client, never()).close();
+  }
+
+  /** Replays a fixed event list synchronously on the first {@code request}, then completes. */
+  private static final class ImmediateEventPublisher implements Publisher<ConverseStreamOutput> {
+
+    private final Deque<ConverseStreamOutput> events;
+
+    ImmediateEventPublisher(List<ConverseStreamOutput> events) {
+      this.events = new ArrayDeque<>(events);
+    }
+
+    @Override
+    public void subscribe(Subscriber<? super ConverseStreamOutput> subscriber) {
+      subscriber.onSubscribe(
+          new Subscription() {
+            private boolean completed;
+
+            @Override
+            public void request(long n) {
+              for (long i = 0; i < n && !events.isEmpty(); i++) {
+                subscriber.onNext(events.poll());
+              }
+              if (events.isEmpty() && !completed) {
+                completed = true;
+                subscriber.onComplete();
+              }
+            }
+
+            @Override
+            public void cancel() {}
+          });
+    }
   }
 
   @Test

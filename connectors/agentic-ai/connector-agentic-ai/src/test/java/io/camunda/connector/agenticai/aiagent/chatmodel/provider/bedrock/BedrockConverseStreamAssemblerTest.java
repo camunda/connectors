@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -157,6 +158,7 @@ class BedrockConverseStreamAssemblerTest {
         MessageStartEvent.builder().role(ConversationRole.ASSISTANT).build());
     assembler.visitContentBlockStart(toolUseContentBlockStart(0, "tooluse_now", "now"));
     assembler.visitContentBlockStop(contentBlockStop(0));
+    assembler.visitMessageStop(MessageStopEvent.builder().stopReason(StopReason.TOOL_USE).build());
 
     final var response = assembler.converseResponse();
 
@@ -173,6 +175,7 @@ class BedrockConverseStreamAssemblerTest {
     assembler.visitContentBlockDelta(reasoningTextDelta(0, "about this."));
     assembler.visitContentBlockDelta(reasoningSignatureDelta(0, "sig-abc123"));
     assembler.visitContentBlockStop(contentBlockStop(0));
+    assembler.visitMessageStop(MessageStopEvent.builder().stopReason(StopReason.END_TURN).build());
 
     final var response = assembler.converseResponse();
 
@@ -190,6 +193,7 @@ class BedrockConverseStreamAssemblerTest {
     assembler.visitContentBlockStart(contentBlockStart(0));
     assembler.visitContentBlockDelta(reasoningRedactedContentDelta(0, "opaque-redacted-bytes"));
     assembler.visitContentBlockStop(contentBlockStop(0));
+    assembler.visitMessageStop(MessageStopEvent.builder().stopReason(StopReason.END_TURN).build());
 
     final var response = assembler.converseResponse();
 
@@ -214,6 +218,7 @@ class BedrockConverseStreamAssemblerTest {
     assembler.visitContentBlockDelta(textDelta(0, "before the tool call"));
     assembler.visitContentBlockStop(contentBlockStop(1));
     assembler.visitContentBlockStop(contentBlockStop(0));
+    assembler.visitMessageStop(MessageStopEvent.builder().stopReason(StopReason.TOOL_USE).build());
 
     final var response = assembler.converseResponse();
 
@@ -250,5 +255,16 @@ class BedrockConverseStreamAssemblerTest {
     assertThat(response.usage().cacheReadInputTokens()).isEqualTo(2);
     assertThat(response.usage().cacheWriteInputTokens()).isEqualTo(1);
     assertThat(response.metrics().latencyMs()).isEqualTo(1234L);
+  }
+
+  @Test
+  void throwsWhenConverseResponseCalledBeforeMessageStop() {
+    assembler.visitMessageStart(
+        MessageStartEvent.builder().role(ConversationRole.ASSISTANT).build());
+    assembler.visitContentBlockStart(contentBlockStart(0));
+    assembler.visitContentBlockDelta(textDelta(0, "still streaming"));
+    assembler.visitContentBlockStop(contentBlockStop(0));
+
+    assertThatThrownBy(assembler::converseResponse).isInstanceOf(IllegalStateException.class);
   }
 }
