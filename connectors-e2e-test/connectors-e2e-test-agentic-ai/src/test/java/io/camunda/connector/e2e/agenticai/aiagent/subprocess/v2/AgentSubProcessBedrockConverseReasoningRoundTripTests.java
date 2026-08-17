@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Test;
  * toggle is needed for the block to appear; the stub simply streams one.
  */
 class AgentSubProcessBedrockConverseReasoningRoundTripTests
-    extends BaseBedrockConverseNativeSubProcessTest {
+    extends BaseBedrockConverseSubProcessTest {
 
   @Test
   void roundTripsSignedReasoningContentBlockBeforeToolResultOnFollowUpRequest() throws Exception {

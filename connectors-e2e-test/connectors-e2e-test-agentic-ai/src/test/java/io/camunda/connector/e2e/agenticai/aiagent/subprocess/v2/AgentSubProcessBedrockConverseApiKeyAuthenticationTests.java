@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
  * rather than being silently dropped in favor of the sigv4 scheme the SDK lists first by default.
  */
 class AgentSubProcessBedrockConverseApiKeyAuthenticationTests
-    extends BaseBedrockConverseNativeSubProcessTest {
+    extends BaseBedrockConverseSubProcessTest {
 
   @Override
   protected Function<ElementTemplate, ElementTemplate> providerConfigurer() {

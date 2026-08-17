@@ -31,13 +31,13 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Mirrors {@code BaseAnthropicNativeSubProcessTest}: drives the connector through the native v2
- * Bedrock provider (AWS {@code converseStream}), pointed at WireMock, for request-shape assertions
- * that don't need a full stubbed response (the response side is exercised via {@link
+ * Drives the connector through the v2 Bedrock Converse provider (AWS {@code converseStream}),
+ * pointed at WireMock, for request-shape assertions that don't need a full stubbed response (the
+ * response side is exercised via {@link
  * io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.StreamingBedrockConverseEventStreamChatModelStubs}
  * in the wire-format smoke suite).
  */
-abstract class BaseBedrockConverseNativeSubProcessTest extends BaseAgentSubProcessV2Test {
+abstract class BaseBedrockConverseSubProcessTest extends BaseAgentSubProcessV2Test {
 
   private static final String DEFAULT_MODEL = "test-model";
 

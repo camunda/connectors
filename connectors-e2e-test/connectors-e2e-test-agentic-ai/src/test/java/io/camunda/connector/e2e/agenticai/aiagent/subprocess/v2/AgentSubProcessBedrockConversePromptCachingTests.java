@@ -32,8 +32,7 @@ import org.junit.jupiter.api.Test;
  * are placed one at the end of {@code system[]} (a system prompt is always present here), one at
  * the end of the last message's content, and none in {@code tools[]}.
  */
-class AgentSubProcessBedrockConversePromptCachingTests
-    extends BaseBedrockConverseNativeSubProcessTest {
+class AgentSubProcessBedrockConversePromptCachingTests extends BaseBedrockConverseSubProcessTest {
 
   @Test
   void enablePromptCachingAddsCachePointsToTheWire() throws Exception {
