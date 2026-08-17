@@ -244,12 +244,6 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>aws-core</artifactId>
     </dependency>
-    <!--
-      BedrockSdkPojoCodec relies directly on software.amazon.awssdk.utils.builder.Buildable
-      (implemented by every generated bedrockruntime model Builder alongside SdkPojo) to build()
-      the pojo it has just populated via SdkField reflection. Otherwise only a transitive
-      dependency of bedrockruntime; declared explicitly per dependency:analyze.
-    -->
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>utils</artifactId>
