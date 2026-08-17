@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.SdkPojo;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamRequest;
@@ -89,11 +90,7 @@ public class BedrockConverseChatModel implements ChatModel {
             configuration,
             request.executionContext().configuration().response(),
             request.snapshot());
-    if (LOG.isTraceEnabled()) {
-      LOG.trace(
-          "Bedrock Converse API request: {}",
-          LoggingSupport.toJson(objectMapper, converseStreamRequest));
-    }
+    logTrace("request", converseStreamRequest);
 
     final long startNanos = System.nanoTime();
     try {
@@ -103,10 +100,7 @@ public class BedrockConverseChatModel implements ChatModel {
       client.converseStream(converseStreamRequest, handler).join();
 
       final ConverseResponse response = streamAssembler.converseResponse();
-      if (LOG.isTraceEnabled()) {
-        LOG.trace(
-            "Bedrock Converse API response: {}", LoggingSupport.toJson(objectMapper, response));
-      }
+      logTrace("response", response);
       final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
       return responseConverter.toResult(response, executionTime);
     } catch (CompletionException e) {
@@ -118,6 +112,17 @@ public class BedrockConverseChatModel implements ChatModel {
       throw toConnectorException(e);
     } catch (Exception e) {
       throw toConnectorException(e);
+    }
+  }
+
+  // Generic Jackson introspection can't see the SDK's builder-only accessors, so route the POJO
+  // through the SdkPojo->Map codec first, else it silently logs as "{}".
+  private void logTrace(String label, SdkPojo pojo) {
+    if (LOG.isTraceEnabled()) {
+      LOG.trace(
+          "Bedrock Converse API {}: {}",
+          label,
+          LoggingSupport.toJson(objectMapper, BedrockConverseSdkPojoCodec.capture(pojo)));
     }
   }
 
