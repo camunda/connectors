@@ -213,7 +213,7 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
       return Document.fromMap(Map.of());
     }
     try {
-      return toDocument(objectMapper.readValue(concatenatedInput, Object.class));
+      return toAwsDocument(objectMapper.readValue(concatenatedInput, Object.class));
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
           ERROR_CODE_FAILED_MODEL_CALL,
@@ -229,9 +229,9 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
    * Converse converters; a value that policy cannot make sense of either is reported here as a
    * failed model call, since it originates from the model's own (malformed) streamed response.
    */
-  private Document toDocument(@Nullable Object value) {
+  private Document toAwsDocument(@Nullable Object value) {
     try {
-      return BedrockConverseDocuments.toDocument(value, objectMapper);
+      return BedrockConverseDocuments.toAwsDocument(value, objectMapper);
     } catch (RuntimeException e) {
       throw new ConnectorException(
           ERROR_CODE_FAILED_MODEL_CALL,

@@ -147,13 +147,15 @@ public class BedrockConverseContentConverter {
       case IMAGE ->
           ContentBlock.fromImage(
               ImageBlock.builder()
-                  .format(lookup(IMAGE_FORMATS, Objects.requireNonNull(contentType)))
+                  .format(lookupContentType(IMAGE_FORMATS, Objects.requireNonNull(contentType)))
                   .source(s -> s.bytes(SdkBytes.fromByteArray(document.asByteArray())))
                   .build());
       case DOCUMENT_NATIVE ->
           ContentBlock.fromDocument(
               DocumentBlock.builder()
-                  .format(lookup(NATIVE_DOCUMENT_FORMATS, Objects.requireNonNull(contentType)))
+                  .format(
+                      lookupContentType(
+                          NATIVE_DOCUMENT_FORMATS, Objects.requireNonNull(contentType)))
                   .name(DocumentHandle.idFor(document))
                   .source(s -> s.bytes(SdkBytes.fromByteArray(document.asByteArray())))
                   .build());
@@ -228,7 +230,7 @@ public class BedrockConverseContentConverter {
    * for the conversion policy shared with the other Bedrock Converse converters.
    */
   private software.amazon.awssdk.core.document.Document toBedrockDocument(@Nullable Object value) {
-    return BedrockConverseDocuments.toDocument(value, objectMapper);
+    return BedrockConverseDocuments.toAwsDocument(value, objectMapper);
   }
 
   private static String decodeUtf8(Document document) {
@@ -262,7 +264,7 @@ public class BedrockConverseContentConverter {
     if (DocumentMimeTypes.isImage(contentType)) {
       return DocumentBlockKind.IMAGE;
     }
-    if (lookup(NATIVE_DOCUMENT_FORMATS, contentType) != null) {
+    if (lookupContentType(NATIVE_DOCUMENT_FORMATS, contentType) != null) {
       return DocumentBlockKind.DOCUMENT_NATIVE;
     }
     if (DocumentMimeTypes.isTextIsh(contentType)) {
@@ -275,7 +277,8 @@ public class BedrockConverseContentConverter {
    * Looks a content type up in one of the format tables via {@link ContentType#isSameMimeType}
    * rather than map equality, so parameters and casing on the incoming type don't cause a miss.
    */
-  private static <T> @Nullable T lookup(Map<ContentType, T> formats, ContentType contentType) {
+  private static <T> @Nullable T lookupContentType(
+      Map<ContentType, T> formats, ContentType contentType) {
     return formats.entrySet().stream()
         .filter(entry -> contentType.isSameMimeType(entry.getKey()))
         .map(Map.Entry::getValue)

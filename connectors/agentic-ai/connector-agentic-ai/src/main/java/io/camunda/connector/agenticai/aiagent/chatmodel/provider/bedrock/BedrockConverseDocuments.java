@@ -72,7 +72,7 @@ final class BedrockConverseDocuments {
 
   private BedrockConverseDocuments() {}
 
-  static Document toDocument(@Nullable Object value, ObjectMapper objectMapper) {
+  static Document toAwsDocument(@Nullable Object value, ObjectMapper objectMapper) {
     if (value == null) {
       return Document.fromNull();
     }
@@ -93,18 +93,18 @@ final class BedrockConverseDocuments {
     }
     if (value instanceof Map<?, ?> map) {
       final Map<String, Document> result = new LinkedHashMap<>();
-      map.forEach((k, v) -> result.put(String.valueOf(k), toDocument(v, objectMapper)));
+      map.forEach((k, v) -> result.put(String.valueOf(k), toAwsDocument(v, objectMapper)));
       return Document.fromMap(result);
     }
     if (value instanceof List<?> list) {
       final List<Document> result = new ArrayList<>(list.size());
       for (final Object element : list) {
-        result.add(toDocument(element, objectMapper));
+        result.add(toAwsDocument(element, objectMapper));
       }
       return Document.fromList(result);
     }
     // Arbitrary POJO: normalize to its JSON tree shape (Map/List/scalar) via Jackson and retry.
-    return toDocument(objectMapper.convertValue(value, Object.class), objectMapper);
+    return toAwsDocument(objectMapper.convertValue(value, Object.class), objectMapper);
   }
 
   /**

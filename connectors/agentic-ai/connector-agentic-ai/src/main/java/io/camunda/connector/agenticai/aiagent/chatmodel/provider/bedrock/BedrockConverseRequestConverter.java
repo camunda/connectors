@@ -190,7 +190,7 @@ public class BedrockConverseRequestConverter {
               ToolUseBlock.builder()
                   .toolUseId(toolCall.id())
                   .name(toolCall.name())
-                  .input(toDocument(toolCall.arguments()))
+                  .input(toAwsDocument(toolCall.arguments()))
                   .build()));
     }
     return Message.builder().role(ConversationRole.ASSISTANT).content(blocks).build();
@@ -215,7 +215,7 @@ public class BedrockConverseRequestConverter {
       final var specBuilder =
           ToolSpecification.builder()
               .name(definition.name())
-              .inputSchema(ToolInputSchema.fromJson(toDocument(definition.inputSchema())));
+              .inputSchema(ToolInputSchema.fromJson(toAwsDocument(definition.inputSchema())));
       if (definition.description() != null) {
         specBuilder.description(definition.description());
       }
@@ -317,7 +317,7 @@ public class BedrockConverseRequestConverter {
     if (bodyProperties == null || bodyProperties.isEmpty()) {
       return;
     }
-    builder.additionalModelRequestFields(toDocument(bodyProperties));
+    builder.additionalModelRequestFields(toAwsDocument(bodyProperties));
   }
 
   /** Merges the escape-hatch {@code headers} and {@code queryParameters} onto the request. */
@@ -350,18 +350,13 @@ public class BedrockConverseRequestConverter {
   }
 
   /**
-   * Converts an already-deserialized JSON value tree (as produced by FEEL evaluation or JSON
-   * deserialization: maps, lists, strings, numbers, booleans, null, or an arbitrary POJO) into the
-   * AWS SDK's generic {@code Document} value tree, used for tool input schemas ({@link
-   * ToolInputSchema#fromJson}) and {@code additionalModelRequestFields}. See {@link
-   * BedrockConverseDocuments} for the conversion policy shared with the other Bedrock Converse
-   * converters; a value that policy cannot make sense of either is reported here as an unsupported
-   * model configuration, since both call sites of this method (tool input schemas and request
-   * parameters) originate from the connector's own configuration/tool definitions.
+   * Converts a value from the connector's own configuration/tool definitions to an AWS SDK {@link
+   * software.amazon.awssdk.core.document.Document} (see {@link BedrockConverseDocuments}),
+   * reporting a conversion failure as an unsupported model configuration.
    */
-  private software.amazon.awssdk.core.document.Document toDocument(@Nullable Object value) {
+  private software.amazon.awssdk.core.document.Document toAwsDocument(@Nullable Object value) {
     try {
-      return BedrockConverseDocuments.toDocument(value, objectMapper);
+      return BedrockConverseDocuments.toAwsDocument(value, objectMapper);
     } catch (RuntimeException e) {
       throw new ConnectorException(
           ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION,
