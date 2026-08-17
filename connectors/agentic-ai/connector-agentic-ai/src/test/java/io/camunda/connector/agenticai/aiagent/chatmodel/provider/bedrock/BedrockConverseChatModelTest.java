@@ -31,8 +31,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseCh
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
 import io.camunda.connector.api.error.ConnectorException;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,9 +39,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.async.SdkPublisher;
@@ -108,13 +103,12 @@ class BedrockConverseChatModelTest {
             invocation -> {
               final ConverseStreamResponseHandler handler = invocation.getArgument(1);
               handler.onEventStream(
-                  SdkPublisher.adapt(
-                      new ImmediateEventPublisher(
-                          List.of(
-                              ConverseStreamOutput.messageStartBuilder().role("assistant").build(),
-                              ConverseStreamOutput.messageStopBuilder()
-                                  .stopReason("end_turn")
-                                  .build()))));
+                  SdkPublisher.fromIterable(
+                      List.of(
+                          ConverseStreamOutput.messageStartBuilder().role("assistant").build(),
+                          ConverseStreamOutput.messageStopBuilder()
+                              .stopReason("end_turn")
+                              .build())));
               return CompletableFuture.completedFuture(null);
             });
     when(responseConverter.toResult(any(ConverseResponse.class), any())).thenReturn(expected);
@@ -136,38 +130,6 @@ class BedrockConverseChatModelTest {
     assertThat(responseCaptor.getValue().output().message().content()).isEmpty();
 
     verify(client, never()).close();
-  }
-
-  /** Replays a fixed event list synchronously on the first {@code request}, then completes. */
-  private static final class ImmediateEventPublisher implements Publisher<ConverseStreamOutput> {
-
-    private final Deque<ConverseStreamOutput> events;
-
-    ImmediateEventPublisher(List<ConverseStreamOutput> events) {
-      this.events = new ArrayDeque<>(events);
-    }
-
-    @Override
-    public void subscribe(Subscriber<? super ConverseStreamOutput> subscriber) {
-      subscriber.onSubscribe(
-          new Subscription() {
-            private boolean completed;
-
-            @Override
-            public void request(long n) {
-              for (long i = 0; i < n && !events.isEmpty(); i++) {
-                subscriber.onNext(events.poll());
-              }
-              if (events.isEmpty() && !completed) {
-                completed = true;
-                subscriber.onComplete();
-              }
-            }
-
-            @Override
-            public void cancel() {}
-          });
-    }
   }
 
   @Test

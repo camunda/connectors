@@ -410,11 +410,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.reactivestreams</groupId>
-      <artifactId>reactive-streams</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>uk.org.webcompere</groupId>
       <artifactId>system-stubs-jupiter</artifactId>
       <scope>test</scope>
