@@ -88,6 +88,10 @@ limitations under the License.</license.inlineheader>
     <version.hamcrest>3.0</version.hamcrest>
 
     <version.spring-boot>3.5.16-spring-boot-3.5.18</version.spring-boot>
+    <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
+         spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
+         Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
+    <version.amqp-client>5.34.0</version.amqp-client>
     <tomcat.version>10.1.57</tomcat.version>
     <version.spring-cloud-gcp-starter-logging>5.13.11</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.3</version.logback>
@@ -545,6 +549,16 @@ limitations under the License.</license.inlineheader>
         <version>${version.lz4-java}</version>
       </dependency>
 
+      <!-- Temporary override: remove once spring-boot-dependencies manages
+           rabbit-amqp-client >= 5.34.0. Guarded by the version.spring-boot enforcer rule below.
+           Setting Spring Boot's own rabbit-amqp-client.version property would not work here:
+           a same-named property does not override a dependency-management import. -->
+      <dependency>
+        <groupId>com.rabbitmq</groupId>
+        <artifactId>amqp-client</artifactId>
+        <version>${version.amqp-client}</version>
+      </dependency>
+
       <dependency>
         <groupId>com.microsoft.graph</groupId>
         <artifactId>microsoft-graph</artifactId>
@@ -910,6 +924,22 @@ not just the property), remove the tomcat-embed-core/tomcat-embed-el/tomcat-embe
 tomcat-annotations-api dependencyManagement entries, the tomcat.version property, and this
 enforcer rule from parent/pom.xml.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-55955
+                </regexMessage>
+              </requireProperty>
+              <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx guard: fails if version.spring-boot is
+                   bumped, as a reminder to check whether the amqp-client override can be removed
+                   (see version.amqp-client). spring-boot-dependencies manages
+                   com.rabbitmq:amqp-client via its own rabbit-amqp-client.version property. -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^3\.5\.16-spring-boot-3\.5\.18$</regex>
+                <regexMessage>
+version.spring-boot was changed! Check if the amqp-client CVE-2026-63337 override can be removed.
+If the new spring-boot-dependencies BOM ships com.rabbitmq:amqp-client &gt;= 5.34.0 (confirm with
+`mvn dependency:tree -Dincludes=com.rabbitmq:amqp-client`, not just the property), remove the
+version.amqp-client property, the amqp-client dependencyManagement entry, and this enforcer rule
+from parent/pom.xml.
+See: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx
                 </regexMessage>
               </requireProperty>
             </rules>
