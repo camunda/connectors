@@ -106,8 +106,7 @@ public class BedrockConverseRequestConverter {
     }
 
     applyOutputConfig(builder, response);
-    applyAdditionalModelRequestFields(builder, connection);
-    applyOverrideConfiguration(builder, connection);
+    applyRequestCustomizations(builder, connection);
 
     return builder.build();
   }
@@ -311,34 +310,27 @@ public class BedrockConverseRequestConverter {
             .build());
   }
 
-  private void applyAdditionalModelRequestFields(
+  private void applyRequestCustomizations(
       ConverseStreamRequest.Builder builder, BedrockConverseConnection connection) {
     final Map<String, Object> bodyProperties = connection.bodyProperties();
-    if (bodyProperties == null || bodyProperties.isEmpty()) {
-      return;
+    if (bodyProperties != null && !bodyProperties.isEmpty()) {
+      builder.additionalModelRequestFields(toAwsDocument(bodyProperties));
     }
-    builder.additionalModelRequestFields(toAwsDocument(bodyProperties));
-  }
 
-  /** Merges the escape-hatch {@code headers} and {@code queryParameters} onto the request. */
-  private void applyOverrideConfiguration(
-      ConverseStreamRequest.Builder builder, BedrockConverseConnection connection) {
     final Map<String, String> headers = connection.headers();
     final Map<String, String> queryParameters = connection.queryParameters();
-    if ((headers == null || headers.isEmpty())
-        && (queryParameters == null || queryParameters.isEmpty())) {
-      return;
+    if ((headers != null && !headers.isEmpty())
+        || (queryParameters != null && !queryParameters.isEmpty())) {
+      builder.overrideConfiguration(
+          c -> {
+            if (headers != null) {
+              headers.forEach(c::putHeader);
+            }
+            if (queryParameters != null) {
+              queryParameters.forEach(c::putRawQueryParameter);
+            }
+          });
     }
-
-    builder.overrideConfiguration(
-        c -> {
-          if (headers != null) {
-            headers.forEach(c::putHeader);
-          }
-          if (queryParameters != null) {
-            queryParameters.forEach(c::putRawQueryParameter);
-          }
-        });
   }
 
   private String writeAsJson(Object value) {
