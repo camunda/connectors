@@ -29,7 +29,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
 @OutboundConnector(
     name = "AI Agent",
     inputVariables = {"provider", "data"},
-    type = "io.camunda.agenticai:aiagent:1")
+    type = "io.camunda.agenticai:aiagent:1",
+    withLease = true)
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.aiagent.v1",
     name = "AI Agent Task",
