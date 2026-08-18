@@ -31,7 +31,8 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
       AgentSubProcessV1Function.TOOL_CALL_RESULTS_VARIABLE,
       AgentSubProcessV1Function.PROVIDER_VARIABLE,
       AgentSubProcessV1Function.DATA_VARIABLE
-    })
+    },
+    withLease = true)
 public class AgentSubProcessV1Function implements AgentConnectorFunction {
 
   public static final String JOB_WORKER_NAME = "AI Agent Job Worker";

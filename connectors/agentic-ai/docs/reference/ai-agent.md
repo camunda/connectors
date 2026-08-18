@@ -868,6 +868,8 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
 - The no-op completion pattern means most superseded jobs were doing nothing anyway
 - Superseded jobs produce a `CommandIgnored` outcome — the conversation store receives `onJobCompletionFailed` with a `CommandIgnored` failure
 
+**Job leasing**: All AI Agent connectors — both flavors, v1 and v2 (`AgentTaskV1Function`, `AgentTaskV2Function`, `AgentSubProcessV1Function`, `AgentSubProcessV2Function`) — opt into job leasing via `@OutboundConnector(withLease = true)`. (v1 is leased too because the agent-instance integration does not differentiate by version: a custom v1 template can still carry an agent definition and emit visibility data, so it needs the same fencing.) Each activation carries a per-activation `leaseToken` (`JobContext#getLeaseToken()`), and the runtime completes/fails jobs through the `ActivatedJob`-based command overloads, so completion is fenced against a superseded activation automatically. The agent-instance conversation-history writes are fenced too — `CamundaAgentInstanceClient` forwards the token via `jobLease(...)` on the create-history command, so a superseded activation's history items are discarded server-side (see [§23](#23-agent-instance-integration)). The status/metrics update goes through a separate command that carries no history batch, and its `jobLease` step only guards a batched history list, so those updates are not lease-fenced (best-effort, as before). Note the version-skew contract on `OutboundConnector#withLease`: over gRPC a pre-leasing gateway drops the field (token is `null`), so the client only forwards a lease when one is present; over REST an older gateway rejects the activation (HTTP 400). The gateway/MCP/A2A tool connectors are not leased. For the underlying job-lease mechanism itself, see the monorepo ADR [0005-810-job-lease](https://github.com/camunda/camunda/blob/main/zeebe/docs/adr/0005-810-job-lease.md).
+
 ### Challenge 2: Conversation Store Ahead of Zeebe
 
 **Problem**: The conversation is written to storage **before** the job completion command is sent to Zeebe. If job completion fails, the store has data that Zeebe doesn't know about.
@@ -1781,8 +1783,11 @@ currently fall back to an object/text block — see follow-ups), and the additiv
 `ProviderContent` blocks ([§5](#5-data-model)) → an object block wrapping the record / the raw
 provider payload respectively (`AgentInstanceHistoryMapper`; neither is produced by the LangChain4j
 path yet). The item carries the current turn's
-`iterationKey` and the active `jobKey`; the engine discards superseded/non-completed items by
-observing job completion (`jobLease` enforcement is a planned follow-up, camunda/camunda#55033).
+`iterationKey` and the active `jobKey`, and — for a leased activation — the `jobLease` token; the
+engine correlates the item to the active job by `jobKey` and discards it when the supplied lease
+doesn't match a superseded activation (see below).
+
+**Job-lease fencing.** With the AI Agent connectors leased ([§10](#10-concurrency-challenges--race-conditions)), the activation's `leaseToken` reaches `CamundaAgentInstanceClient`, which forwards it via `jobLease(...)` on the create-history command (`newCreateAgentHistoryItemCommand`) whenever a token is present. That command also sends the active `jobKey`; the engine correlates the item to the job by `jobKey` and rejects it (`NOT_FOUND`, "supplied lease does not match") when the lease doesn't match — so a superseded activation's history items are discarded rather than committed. A token is absent (and no lease forwarded) only in the gRPC version-skew case (a pre-leasing gateway drops the field). The status/metrics update (`newUpdateAgentInstanceCommand`) is **not** lease-fenced: on that command `jobLease` only guards a batched `history(...)` list, which this connector never sends via the update (history goes through the dedicated create-history command), so a stale status/metrics update is not rejected. That is a best-effort write, unchanged from before leasing.
 
 Failures to write a history item are **fatal** to the turn (propagated after retries), unlike the
 best-effort metrics updates.

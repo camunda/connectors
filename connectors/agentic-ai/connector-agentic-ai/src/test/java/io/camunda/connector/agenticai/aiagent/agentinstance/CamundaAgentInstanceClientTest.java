@@ -1322,6 +1322,76 @@ class CamundaAgentInstanceClientTest {
     }
   }
 
+  @Nested
+  class JobLeaseFencing {
+
+    private static final String LEASE_TOKEN = "lease-token-abc";
+
+    @Test
+    void shouldNeverForwardLeaseTokenOnUpdate() {
+      givenUpdateCommand();
+
+      // when: an activation carrying a lease token issues an update
+      client.update(
+          TestAgentExecutionContext.withLeaseToken(LEASE_TOKEN),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+
+      // then: the lease is not forwarded on the update command -- on that command it only fences a
+      // batched history() list, which this status/metrics update never sends
+      verify(updateCommandStep2, never()).jobLease(any());
+      verify(updateCommandStep2).execute();
+    }
+
+    @Test
+    void shouldForwardLeaseTokenOnHistoryItemWhenActivationIsLeased() {
+      givenHistoryCommand();
+
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build()),
+              null,
+              AgentMetrics.empty());
+
+      // when
+      client.createHistoryForInputMessages(
+          TestAgentExecutionContext.withLeaseToken(LEASE_TOKEN),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          turn,
+          Optional.empty(),
+          OffsetDateTime.parse("2026-07-02T10:00:00Z"));
+
+      // then
+      verify(historyCommand).jobLease(LEASE_TOKEN);
+      verify(historyCommand).execute();
+    }
+
+    @Test
+    void shouldNotForwardLeaseTokenOnHistoryItemWhenActivationIsNotLeased() {
+      givenHistoryCommand();
+
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build()),
+              null,
+              AgentMetrics.empty());
+
+      // when: an activation without a lease token issues a history item
+      client.createHistoryForInputMessages(
+          TestAgentExecutionContext.withLimits(),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          turn,
+          Optional.empty(),
+          OffsetDateTime.parse("2026-07-02T10:00:00Z"));
+
+      // then: no lease is forwarded
+      verify(historyCommand, never()).jobLease(any());
+      verify(historyCommand).execute();
+    }
+  }
+
   private static class TestAgentExecutionContext implements AgentExecutionContext {
 
     public static TestAgentExecutionContext withoutLimits() {
@@ -1332,14 +1402,26 @@ class CamundaAgentInstanceClientTest {
       return new TestAgentExecutionContext(new LimitsConfiguration(10));
     }
 
+    public static TestAgentExecutionContext withLeaseToken(String leaseToken) {
+      return new TestAgentExecutionContext(new LimitsConfiguration(10), leaseToken);
+    }
+
     private final TestJobContext jobContext;
 
     private final LimitsConfiguration limitsConfiguration;
 
     private TestAgentExecutionContext(LimitsConfiguration limitsConfiguration) {
+      this(limitsConfiguration, null);
+    }
+
+    private TestAgentExecutionContext(
+        LimitsConfiguration limitsConfiguration, @Nullable String leaseToken) {
       this.jobContext = new TestJobContext(Map::of, () -> "");
       jobContext.setElementInstanceKey(ELEMENT_INSTANCE_KEY);
       jobContext.setJobKey(JOB_KEY);
+      if (leaseToken != null) {
+        jobContext.setLeaseToken(leaseToken);
+      }
 
       this.limitsConfiguration = limitsConfiguration;
     }
