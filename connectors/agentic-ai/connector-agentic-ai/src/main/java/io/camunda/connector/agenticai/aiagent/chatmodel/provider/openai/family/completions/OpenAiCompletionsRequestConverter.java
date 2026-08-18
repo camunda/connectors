@@ -172,7 +172,7 @@ public class OpenAiCompletionsRequestConverter {
 
   private ChatCompletionSystemMessageParam systemMessage(SystemMessage system) {
     return ChatCompletionSystemMessageParam.builder()
-        .content(MessageUtil.systemPromptText(system))
+        .content(MessageUtil.contentText(system))
         .build();
   }
 

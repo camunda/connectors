@@ -150,7 +150,7 @@ public class OpenAiResponsesRequestConverter {
 
   private void applySystemPrompt(ResponseCreateParams.Builder builder, List<Message> messages) {
     MessageUtil.leadingSystemMessage(messages)
-        .map(MessageUtil::systemPromptText)
+        .map(MessageUtil::contentText)
         .filter(system -> !system.isBlank())
         .ifPresent(builder::instructions);
   }

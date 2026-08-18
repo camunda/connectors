@@ -41,11 +41,11 @@ public class MessageUtil {
   }
 
   /**
-   * Flattens a {@link SystemMessage}'s {@link TextContent} blocks to a single string, joined with
+   * Flattens a {@link ContentMessage}'s {@link TextContent} blocks to a single string, joined with
    * {@code \n}; non-text content blocks are ignored.
    */
-  public static String systemPromptText(SystemMessage systemMessage) {
-    return systemMessage.content().stream()
+  public static String contentText(ContentMessage message) {
+    return message.content().stream()
         .filter(TextContent.class::isInstance)
         .map(c -> ((TextContent) c).text())
         .collect(Collectors.joining("\n"));

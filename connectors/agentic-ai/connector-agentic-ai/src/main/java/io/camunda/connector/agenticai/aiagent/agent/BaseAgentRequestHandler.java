@@ -45,7 +45,9 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -278,12 +280,42 @@ public abstract class BaseAgentRequestHandler<
       throw switch (e) {
         case ContentFilteredException cfe ->
             new ConnectorException(
-                AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED, cfe.getMessage(), cfe);
+                AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
+                cfe.getMessage(),
+                cfe,
+                rejectionErrorVariables(cfe));
         case ContextWindowExceededException cwe ->
             new ConnectorException(
-                AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED, cwe.getMessage(), cwe);
+                AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED,
+                cwe.getMessage(),
+                cwe,
+                rejectionErrorVariables(cwe));
       };
     }
+  }
+
+  /**
+   * Surfaces the stop reason and any text the provider had already produced before the rejection as
+   * a nested {@code rejection} error variable, so a BPMN error boundary event can inspect what the
+   * model was doing when it was cut off. Empty when the provider rejected the request before
+   * producing any partial result at all.
+   */
+  private static Map<String, Object> rejectionErrorVariables(ChatModelRejectedException e) {
+    final var partialResult = e.partialResult();
+    if (partialResult == null) {
+      return Map.of();
+    }
+
+    final var assistantMessage = partialResult.assistantMessage();
+    final Map<String, Object> rejection = new LinkedHashMap<>();
+    if (assistantMessage.stopReason() != null) {
+      rejection.put("stopReason", assistantMessage.stopReason().value());
+    }
+    final var text = MessageUtil.contentText(assistantMessage);
+    if (!text.isBlank()) {
+      rejection.put("text", text);
+    }
+    return rejection.isEmpty() ? Map.of() : Map.of("rejection", Map.copyOf(rejection));
   }
 
   private void throwIfLimitsReached(

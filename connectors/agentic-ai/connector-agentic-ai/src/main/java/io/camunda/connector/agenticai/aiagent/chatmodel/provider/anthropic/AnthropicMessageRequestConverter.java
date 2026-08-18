@@ -178,7 +178,7 @@ public class AnthropicMessageRequestConverter {
     if (systemMessage.isEmpty()) {
       return;
     }
-    final String system = MessageUtil.systemPromptText(systemMessage.get());
+    final String system = MessageUtil.contentText(systemMessage.get());
     if (!system.isBlank()) {
       builder.system(system);
     }
