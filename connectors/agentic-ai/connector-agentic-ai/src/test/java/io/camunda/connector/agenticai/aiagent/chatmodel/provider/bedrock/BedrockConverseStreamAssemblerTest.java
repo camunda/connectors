@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.bedrockruntime.model.CitationsDelta;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlockDelta;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlockDeltaEvent;
@@ -98,6 +99,16 @@ class BedrockConverseStreamAssemblerTest {
             ContentBlockDelta.builder()
                 .reasoningContent(
                     ReasoningContentBlockDelta.fromRedactedContent(SdkBytes.fromUtf8String(bytes)))
+                .build())
+        .build();
+  }
+
+  private static ContentBlockDeltaEvent citationDelta(int index, String title, String source) {
+    return ContentBlockDeltaEvent.builder()
+        .contentBlockIndex(index)
+        .delta(
+            ContentBlockDelta.builder()
+                .citation(CitationsDelta.builder().title(title).source(source).build())
                 .build())
         .build();
   }
@@ -202,6 +213,30 @@ class BedrockConverseStreamAssemblerTest {
     assertThat(reasoningContent.reasoningText()).isNull();
     assertThat(reasoningContent.redactedContent().asUtf8String())
         .isEqualTo("opaque-redacted-bytes");
+  }
+
+  @Test
+  void assemblesCitationsContentBlockFromTextAndCitationDeltas() {
+    assembler.visitMessageStart(
+        MessageStartEvent.builder().role(ConversationRole.ASSISTANT).build());
+    assembler.visitContentBlockStart(contentBlockStart(0));
+    assembler.visitContentBlockDelta(textDelta(0, "Camunda 8 is a process orchestrator."));
+    assembler.visitContentBlockDelta(citationDelta(0, "Camunda Docs", "https://docs.camunda.io"));
+    assembler.visitContentBlockDelta(citationDelta(0, "Camunda Blog", "https://camunda.com/blog"));
+    assembler.visitContentBlockStop(contentBlockStop(0));
+    assembler.visitMessageStop(MessageStopEvent.builder().stopReason(StopReason.END_TURN).build());
+
+    final var response = assembler.converseResponse();
+
+    assertThat(response.output().message().content()).hasSize(1);
+    final var citationsContent = response.output().message().content().get(0).citationsContent();
+    assertThat(citationsContent.content()).hasSize(1);
+    assertThat(citationsContent.content().get(0).text())
+        .isEqualTo("Camunda 8 is a process orchestrator.");
+    assertThat(citationsContent.citations()).hasSize(2);
+    assertThat(citationsContent.citations().get(0).title()).isEqualTo("Camunda Docs");
+    assertThat(citationsContent.citations().get(0).source()).isEqualTo("https://docs.camunda.io");
+    assertThat(citationsContent.citations().get(1).title()).isEqualTo("Camunda Blog");
   }
 
   @Test

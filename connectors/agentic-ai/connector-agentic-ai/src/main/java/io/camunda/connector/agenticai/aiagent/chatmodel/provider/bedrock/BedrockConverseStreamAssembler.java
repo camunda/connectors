@@ -20,6 +20,10 @@ import java.util.TreeMap;
 import org.jspecify.annotations.Nullable;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.document.Document;
+import software.amazon.awssdk.services.bedrockruntime.model.Citation;
+import software.amazon.awssdk.services.bedrockruntime.model.CitationGeneratedContent;
+import software.amazon.awssdk.services.bedrockruntime.model.CitationsContentBlock;
+import software.amazon.awssdk.services.bedrockruntime.model.CitationsDelta;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlockDeltaEvent;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlockStart;
@@ -54,7 +58,11 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
  * text}, {@code signature}, {@code redactedContent}; see {@link ReasoningContentBlockDelta}), each
  * accumulated separately and combined into one {@link ReasoningContentBlock} at {@code
  * contentBlockStop} - redacted if any {@code redactedContent} bytes arrived, else a {@code
- * reasoningText} block.
+ * reasoningText} block. Each {@code citation} delta carries one complete {@link Citation} to append
+ * to the block's citation list (unlike text, its fields never arrive fragmented across multiple
+ * deltas); a block with at least one accumulated citation finalizes as a {@link
+ * CitationsContentBlock} pairing the accumulated text with the accumulated citations, rather than
+ * as plain text.
  */
 public final class BedrockConverseStreamAssembler implements ConverseStreamResponseHandler.Visitor {
 
@@ -111,6 +119,12 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
         accumulator.reasoningRedactedContent.writeBytes(
             reasoningDelta.redactedContent().asByteArray());
       }
+    }
+    final CitationsDelta citationDelta = delta.citation();
+    if (citationDelta != null) {
+      accumulator.citations.add(
+          BedrockConverseSdkPojoCodec.replay(
+              BedrockConverseSdkPojoCodec.capture(citationDelta), Citation::builder));
     }
   }
 
@@ -170,10 +184,11 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
   }
 
   /**
-   * Finalizes a single block's accumulated deltas into a {@link ContentBlock}, in the same three
-   * shapes {@link BedrockConverseResponseConverter} understands: {@code toolUse} (seeded at {@code
-   * contentBlockStart}), {@code reasoningContent} (redacted or text+signature), and otherwise plain
-   * {@code text}.
+   * Finalizes a single block's accumulated deltas into a {@link ContentBlock}: {@code toolUse}
+   * (seeded at {@code contentBlockStart}), {@code reasoningContent} (redacted or text+signature),
+   * {@code citationsContent} if any citation deltas arrived, and otherwise plain {@code text}. The
+   * first two are shapes {@link BedrockConverseResponseConverter} maps explicitly; {@code
+   * citationsContent} instead falls through its generic unmapped-block preservation.
    */
   private ContentBlock finalize(BlockAccumulator accumulator) {
     if (accumulator.toolUseId != null || accumulator.toolUseName != null) {
@@ -203,6 +218,14 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
         reasoningContentBuilder.reasoningText(reasoningTextBuilder.build());
       }
       return ContentBlock.fromReasoningContent(reasoningContentBuilder.build());
+    }
+
+    if (!accumulator.citations.isEmpty()) {
+      return ContentBlock.fromCitationsContent(
+          CitationsContentBlock.builder()
+              .content(CitationGeneratedContent.builder().text(accumulator.text.toString()).build())
+              .citations(accumulator.citations)
+              .build());
     }
 
     return ContentBlock.fromText(accumulator.text.toString());
@@ -258,5 +281,6 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
     private final StringBuilder reasoningText = new StringBuilder();
     private final StringBuilder reasoningSignature = new StringBuilder();
     private final ByteArrayOutputStream reasoningRedactedContent = new ByteArrayOutputStream();
+    private final List<Citation> citations = new ArrayList<>();
   }
 }
