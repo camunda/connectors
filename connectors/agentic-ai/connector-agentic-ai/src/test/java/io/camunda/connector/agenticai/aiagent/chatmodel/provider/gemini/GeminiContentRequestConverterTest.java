@@ -468,6 +468,18 @@ class GeminiContentRequestConverterTest {
   }
 
   @Test
+  void configuresJsonResponseFormatWithoutSchema() {
+    final var response =
+        new AgentTaskResponseConfiguration(new JsonResponseFormatConfiguration(null, null), null);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var config = converter.toGenerateContentConfig(model(null), response, snapshot);
+
+    assertThat(config.responseMimeType()).contains("application/json");
+    assertThat(config.responseJsonSchema()).isEmpty();
+  }
+
+  @Test
   void textResponseFormatHasNoRequestSideEffect() {
     final var response =
         new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), null);

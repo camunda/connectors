@@ -226,15 +226,13 @@ public class GeminiContentRequestConverter {
    */
   private void applyStructuredOutput(
       GenerateContentConfig.Builder builder, @Nullable ResponseConfiguration response) {
-    final Map<String, Object> schema =
-        response != null && response.format() instanceof JsonResponseFormatConfiguration json
-            ? json.schema()
-            : null;
-    if (schema == null) {
+    if (!(response != null && response.format() instanceof JsonResponseFormatConfiguration json)) {
       return;
     }
     builder.responseMimeType("application/json");
-    builder.responseJsonSchema(schema);
+    if (json.schema() != null) {
+      builder.responseJsonSchema(json.schema());
+    }
   }
 
   private List<Part> assistantParts(AssistantMessage assistant) {
