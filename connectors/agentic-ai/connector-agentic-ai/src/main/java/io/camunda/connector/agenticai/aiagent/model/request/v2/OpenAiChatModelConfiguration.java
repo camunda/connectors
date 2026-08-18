@@ -233,8 +233,16 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
     /** The backend discriminator string. */
     String type();
 
+    OpenAiRequestCustomizations requestCustomizations();
+
     @TemplateSubType(id = OPENAI_API_ID, label = "OpenAI API")
     record OpenAiApiBackend(@Valid @NotNull OpenAiApiConnection openai) implements OpenAiBackend {
+
+      @Override
+      public OpenAiRequestCustomizations requestCustomizations() {
+        return new OpenAiRequestCustomizations(
+            openai.headers(), openai.queryParameters(), openai.bodyProperties());
+      }
 
       @TemplateProperty(ignore = true)
       public static final String OPENAI_API_ID = "openai-api";
@@ -333,6 +341,12 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       @Override
       public String type() {
         return CUSTOM_ID;
+      }
+
+      @Override
+      public OpenAiRequestCustomizations requestCustomizations() {
+        return new OpenAiRequestCustomizations(
+            custom.headers(), custom.queryParameters(), custom.bodyProperties());
       }
 
       public record CustomBackend(

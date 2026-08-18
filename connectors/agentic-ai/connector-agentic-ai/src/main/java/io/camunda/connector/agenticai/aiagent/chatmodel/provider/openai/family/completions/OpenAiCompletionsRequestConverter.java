@@ -25,7 +25,6 @@ import com.openai.models.chat.completions.ChatCompletionTool;
 import com.openai.models.chat.completions.ChatCompletionToolMessageParam;
 import com.openai.models.chat.completions.ChatCompletionUserMessageParam;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiRequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -45,6 +44,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi.CompletionsParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiRequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -311,7 +311,7 @@ public class OpenAiCompletionsRequestConverter {
    */
   private void applyRequestCustomizations(
       ChatCompletionCreateParams.Builder builder, OpenAiConnection connection) {
-    final var customizations = OpenAiRequestCustomizations.from(connection);
+    final var customizations = connection.backend().requestCustomizations();
     customizations.headers().forEach(builder::putAdditionalHeader);
     customizations.queryParameters().forEach(builder::putAdditionalQueryParam);
     customizations
