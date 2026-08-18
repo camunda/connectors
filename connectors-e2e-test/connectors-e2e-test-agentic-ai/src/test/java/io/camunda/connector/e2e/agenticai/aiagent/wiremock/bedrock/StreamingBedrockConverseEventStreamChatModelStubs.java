@@ -152,6 +152,27 @@ public final class StreamingBedrockConverseEventStreamChatModelStubs {
     writeEvent(body, "contentBlockStop", Map.of("contentBlockIndex", index));
   }
 
+  /** A turn whose response ends with a {@code content_filtered} stop reason. */
+  public record ContentFilteredTurnStub(String text, int inputTokens, int outputTokens) {}
+
+  /**
+   * Wires a single-turn scenario whose response ends with a {@code content_filtered} stop reason.
+   */
+  public static void stubContentFilteredConversation(ContentFilteredTurnStub turn) {
+    stubScenario(List.of(contentFilteredEventStreamBody(turn)));
+  }
+
+  private static byte[] contentFilteredEventStreamBody(ContentFilteredTurnStub turn) {
+    final ByteArrayOutputStream body = new ByteArrayOutputStream();
+
+    writeEvent(body, "messageStart", Map.of("role", "assistant"));
+    writeTextBlock(body, 0, turn.text());
+    writeEvent(body, "messageStop", Map.of("stopReason", "content_filtered"));
+    writeEvent(body, "metadata", metadataPayload(turn.inputTokens(), turn.outputTokens()));
+
+    return body.toByteArray();
+  }
+
   /** Shared scenario-chaining plumbing: returns each pre-rendered EventStream body in order. */
   private static void stubScenario(List<byte[]> bodies) {
     for (int i = 0; i < bodies.size(); i++) {
