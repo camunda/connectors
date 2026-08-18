@@ -64,35 +64,8 @@ class AgentSubProcessOpenAiResponsesAdvancedFeaturesTests
   }
 
   // ---------------------------------------------------------------------------
-  // Effort configuration on the wire
+  // Effort configuration on the wire (negative case)
   // ---------------------------------------------------------------------------
-
-  @Test
-  void configuredEffortAppearsAsReasoningEffortOnTheWire() throws Exception {
-    final var userPrompt = "Write a haiku about the sea";
-    final var responseText = "A haiku about the endless sea.";
-
-    OpenAiResponsesV2SseChatModelStubs.stubConversation(TurnStub.text(responseText, 10, 20));
-    enqueueUserFeedback(userSatisfiedFeedback());
-
-    final var zeebeTest =
-        awaitProcessCompletion(
-            createProcessInstance(effort("high"), Map.of("userPrompt", userPrompt)));
-
-    final var recorded = OpenAiResponsesV2RecordedConversation.recorded();
-    assertThat(recorded.modelCallCount()).isEqualTo(1);
-
-    final var request = recorded.lastRequest();
-    assertThat(request.reasoningEffort()).as("reasoning.effort").contains("high");
-    assertThat(request.include()).as("include[]").contains("reasoning.encrypted_content");
-
-    assertAgentResponse(
-        zeebeTest,
-        agentResponse ->
-            AgentSubProcessResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasResponseText(responseText));
-  }
 
   @Test
   void unsetEffortOmitsReasoningFromTheWire() throws Exception {
@@ -121,12 +94,11 @@ class AgentSubProcessOpenAiResponsesAdvancedFeaturesTests
   }
 
   // ---------------------------------------------------------------------------
-  // Byte-identical encrypted-reasoning round-trip
+  // Configured effort on the wire, and byte-identical encrypted-reasoning round-trip
   // ---------------------------------------------------------------------------
 
   @Test
-  void reasoningItemWithEncryptedContentRoundTripsByteIdenticalOnFollowUpRequest()
-      throws Exception {
+  void configuredEffortRoundTripsByteIdenticalOnFollowUpRequest() throws Exception {
     final var userPrompt = "Use the superflux tool on 5 and 3.";
     final var reasoningId = "rs_e2e_advfeat_001";
     final var encryptedContent = "gAAAAABo-e2e-encrypted-reasoning-payload-xyz==";
@@ -149,6 +121,10 @@ class AgentSubProcessOpenAiResponsesAdvancedFeaturesTests
 
     final var recorded = OpenAiResponsesV2RecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
+
+    final var request = recorded.requests().get(0);
+    assertThat(request.reasoningEffort()).as("reasoning.effort").contains("high");
+    assertThat(request.include()).as("include[]").contains("reasoning.encrypted_content");
 
     final var followUpRequest = recorded.requests().get(1);
     final var rawItems = followUpRequest.rawInputItems();

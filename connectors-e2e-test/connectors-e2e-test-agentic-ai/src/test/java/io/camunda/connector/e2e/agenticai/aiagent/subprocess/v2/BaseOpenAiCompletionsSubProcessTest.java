@@ -63,7 +63,11 @@ abstract class BaseOpenAiCompletionsSubProcessTest extends BaseAgentSubProcessV2
         .property("provider.openai.model.model", defaultModel());
   }
 
-  static LoggedRequest soleRecordedRequest() {
+  /**
+   * Asserts that exactly one model-call request has been recorded and returns it. Use {@link
+   * #recordedLoggedRequests()} directly when a test expects more than one request.
+   */
+  static LoggedRequest assertSoleRecordedRequest() {
     final var requests = recordedLoggedRequests();
     assertThat(requests).as("recorded model-call requests").hasSize(1);
     return requests.get(0);
