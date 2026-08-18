@@ -59,13 +59,11 @@ public class OpenAiChatModel implements ChatModel {
   public ChatResult execute(ChatRequest request) {
     try {
       return strategy.call(client, configuration, request);
-    } catch (ConnectorException e) {
-      // already coded (e.g. OpenAiContentConverter's unsupported content type); avoid
-      // double-wrapping as a generic "Model call failed" below.
-      throw e;
-    } catch (ChatModelRejectedException e) {
-      // thrown directly by the response converter when it recognizes a known rejection - let it
-      // propagate as-is rather than flattening it into a generic FAILED_MODEL_CALL below.
+    } catch (ConnectorException | ChatModelRejectedException e) {
+      // already coded -- a ConnectorException thrown by e.g. OpenAiContentConverter's unsupported
+      // content type, or a ChatModelRejectedException thrown by the response converter for a
+      // known rejection. Let it propagate as-is rather than flattening it into a generic
+      // FAILED_MODEL_CALL below.
       throw e;
     } catch (BadRequestException e) {
       // an over-length request is rejected outright with an HTTP 400, on both API families - this
