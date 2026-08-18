@@ -378,14 +378,21 @@ class RealProviderApiSmokeIT {
                     Capability.REASONING,
                     Map.of("provider.bedrock.bodyProperties", "={reasoning_effort: \"medium\"}"))),
             // Claude via the native Converse path: a permanent cross-check that the generic
-            // sdkFields() codec round-trips Anthropic's own block shapes correctly too, exercising
-            // Converse-specific features (structured output via outputConfig) Claude's dedicated
-            // provider never goes through. Global cross-region inference ID (no in-region endpoint
-            // for this model). claude-sonnet-5 only allows thinking type "adaptive", not "enabled".
+            // sdkFields() codec round-trips Anthropic's own block shapes correctly too. Global
+            // cross-region inference ID (no in-region endpoint for this model). claude-sonnet-5
+            // only
+            // allows thinking type "adaptive", not "enabled". STRUCTURED_OUTPUT is deliberately NOT
+            // declared: outputConfig.textFormat is a genuine Converse field (confirmed via the
+            // SDK's
+            // own ConverseRequest.outputConfig()), but AWS's Converse structured-output model
+            // allow-list (docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html) does
+            // not yet include claude-sonnet-5 — the model itself rejects it with a 400
+            // ("output_config.format: Extra inputs are not permitted"), confirmed against a real
+            // API
+            // call.
             bedrockConverse(
                 "global.anthropic.claude-sonnet-5",
                 Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING,
                         Map.of("provider.bedrock.model.parameters.promptCaching.enabled", "true"),
