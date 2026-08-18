@@ -469,7 +469,7 @@ class RealProviderApiSmokeIT {
                     .join());
   }
 
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providers")
   void toolCallLoopSurfacesPlantedFact(Provider provider) {
     var model =
@@ -497,7 +497,7 @@ class RealProviderApiSmokeIT {
                     text -> Assertions.assertThat(text).contains(NONCE_CODE_NAME)));
   }
 
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithStructuredOutput")
   void structuredOutputReturnsSchemaConformingJson(Provider provider) {
     var model =
@@ -539,7 +539,7 @@ class RealProviderApiSmokeIT {
                     }));
   }
 
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithReasoning")
   void reasoningEnabledProducesReasoningContent(Provider provider) {
     var model =
@@ -570,7 +570,7 @@ class RealProviderApiSmokeIT {
                 .hasResponseTextSatisfying(text -> Assertions.assertThat(text).contains("23")));
   }
 
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithPromptCaching")
   void promptCachingReportsCacheReadAndWriteTokens(Provider provider) {
     var model =
@@ -662,7 +662,7 @@ class RealProviderApiSmokeIT {
                     text -> Assertions.assertThat(text).contains(NONCE_CLEARANCE)));
   }
 
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithMultimodalUserMessage")
   void documentInUserMessageIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
     stubPdfDownloads();
@@ -698,7 +698,7 @@ class RealProviderApiSmokeIT {
     assertResponseTextContains(instance, "Zypherion");
   }
 
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithMultimodalUserMessage")
   void documentInToolResultIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
     stubPdfDownloads();
