@@ -225,10 +225,9 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       cmd = cmd.tools(toolMapper.mapTools(tools));
     }
 
-    final String leaseToken = executionContext.jobContext().getLeaseToken();
-    if (leaseToken != null && !leaseToken.isBlank()) {
-      cmd = cmd.jobLease(leaseToken);
-    }
+    // No jobLease here: on the update command the lease only fences a batched history() list, which
+    // this status/metrics/tools update never sends (history goes through
+    // newCreateAgentHistoryItem).
     cmd.execute();
   }
 

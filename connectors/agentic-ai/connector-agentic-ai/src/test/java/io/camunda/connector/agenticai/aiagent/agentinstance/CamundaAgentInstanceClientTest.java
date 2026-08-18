@@ -1328,7 +1328,7 @@ class CamundaAgentInstanceClientTest {
     private static final String LEASE_TOKEN = "lease-token-abc";
 
     @Test
-    void shouldForwardLeaseTokenOnUpdateWhenActivationIsLeased() {
+    void shouldNeverForwardLeaseTokenOnUpdate() {
       givenUpdateCommand();
 
       // when: an activation carrying a lease token issues an update
@@ -1337,8 +1337,9 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
 
-      // then: the lease token fences the write
-      verify(updateCommandStep2).jobLease(LEASE_TOKEN);
+      // then: the lease is not forwarded on the update command -- on that command it only fences a
+      // batched history() list, which this status/metrics update never sends
+      verify(updateCommandStep2, never()).jobLease(any());
       verify(updateCommandStep2).execute();
     }
 
@@ -1364,21 +1365,6 @@ class CamundaAgentInstanceClientTest {
       // then
       verify(historyCommand).jobLease(LEASE_TOKEN);
       verify(historyCommand).execute();
-    }
-
-    @Test
-    void shouldNotForwardLeaseTokenOnUpdateWhenActivationIsNotLeased() {
-      givenUpdateCommand();
-
-      // when: an activation without a lease token (not opted in / gRPC skew) issues an update
-      client.update(
-          TestAgentExecutionContext.withLimits(),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
-
-      // then: no lease is forwarded
-      verify(updateCommandStep2, never()).jobLease(any());
-      verify(updateCommandStep2).execute();
     }
 
     @Test
