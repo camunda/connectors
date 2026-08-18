@@ -130,12 +130,14 @@ public class AgentSubProcessMemoryStorageTests extends BaseAgentSubProcessTest {
 
   @Test
   void camundaDocumentStorage_cleansUpOrphanedDocumentOnJobCompletionFailure() throws Exception {
-    // capture the job key from the createSession call on the spy
+    // capture the job key and lease token from the createSession call on the spy
     var jobKey = new AtomicLong();
+    var leaseToken = new AtomicReference<String>();
     doAnswer(
             invocation -> {
               AgentExecutionContext executionContext = invocation.getArgument(0);
               jobKey.set(executionContext.jobContext().getJobKey());
+              leaseToken.set(executionContext.jobContext().getLeaseToken());
               return invocation.callRealMethod();
             })
         .when(documentConversationStore)
@@ -149,6 +151,7 @@ public class AgentSubProcessMemoryStorageTests extends BaseAgentSubProcessTest {
               camundaClient
                   .newFailCommand(jobKey.get())
                   .retries(0)
+                  .withLeaseToken(leaseToken.get())
                   .errorMessage("Deliberately failed for e2e test")
                   .send()
                   .join();
