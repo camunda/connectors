@@ -89,11 +89,20 @@ public class AiAgentE2ETestIT {
   private static final String HTTP_JSON_JOB_TYPE = "io.camunda:http-json:1";
   private static final String DATE_TIME_JOB_TYPE = "io.camunda.e2e:date-time:1";
 
-  private static final String JOKE =
-      "Why did the AI cross the road? To process the chicken on the other side.";
+  /** Vertex AI's non-regional endpoint, which is where the newest models land first. */
+  private static final String GLOBAL_REGION = "global";
 
-  /** Fragment of {@link #JOKE} distinctive enough that only a retold joke can contain it. */
-  private static final String JOKE_FRAGMENT = "process the chicken";
+  /**
+   * Fabricated name, so it cannot come from model training data — the model can only produce it by
+   * relaying what the tool returned. A joke is exactly the content a model will happily supply from
+   * its own knowledge instead of calling the tool, which a recognisable joke could not detect.
+   */
+  private static final String JOKE_NONCE = "Blorptastic-7";
+
+  private static final String JOKE =
+      "Why did the robot named "
+          + JOKE_NONCE
+          + " cross the road? To reticulate the splines on the other side.";
 
   /** Name of the second entry in {@link #knownUsers()}, which the lookup scenario asks for. */
   private static final String SECOND_USER_NAME = "Ervin Howell";
@@ -204,16 +213,15 @@ public class AiAgentE2ETestIT {
         deployAndStart(
             provider,
             "I need two things: use your date and time tool to tell me which day of the week it is,"
-                + " and also use your jokes API tool to fetch a random joke for me");
+                + " and also use your jokes API tool to fetch a random joke for me. Repeat the"
+                + " joke exactly as the tool returns it.");
 
     completeUserTask(awaitUserTask(processInstance), true, null);
 
     assertThatProcessInstance(processInstance).isCompleted();
     assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
     assertThatProcessInstance(processInstance).hasCompletedElement("Jokes_API", 1);
-    assertThat(responseText(processInstance))
-        .contains(DEFAULT_DAY_OF_WEEK)
-        .containsIgnoringCase(JOKE_FRAGMENT);
+    assertThat(responseText(processInstance)).contains(DEFAULT_DAY_OF_WEEK).contains(JOKE_NONCE);
   }
 
   /**
@@ -281,7 +289,8 @@ public class AiAgentE2ETestIT {
     return Stream.of(
             openAiV1("gpt-4o"),
             googleVertexAiV1("gemini-2.5-flash"),
-            googleVertexAiV1("gemini-3.5-flash-lite"))
+            // Gemini 3 models are served on the global endpoint, not the regional ones
+            googleVertexAiV1("gemini-3.5-flash-lite", GLOBAL_REGION))
         .filter(ProviderRow::isEnabled);
   }
 
@@ -297,14 +306,28 @@ public class AiAgentE2ETestIT {
             "provider.openai.model.model", model));
   }
 
-  /** Google Vertex AI, v1. */
+  /** Google Vertex AI, v1, in the region {@code GOOGLE_VERTEX_AI_REGION} names. */
   static ProviderRow googleVertexAiV1(String model) {
+    return googleVertexAiV1(
+        model, model, "{{secrets.GOOGLE_VERTEX_AI_REGION}}", List.of("GOOGLE_VERTEX_AI_REGION"));
+  }
+
+  /**
+   * Google Vertex AI, v1, pinned to {@code region} — for models the configured region does not
+   * serve. A pinned region needs no {@code GOOGLE_VERTEX_AI_REGION} to be set.
+   */
+  static ProviderRow googleVertexAiV1(String model, String region) {
+    return googleVertexAiV1(model + "@" + region, model, region, List.of());
+  }
+
+  private static ProviderRow googleVertexAiV1(
+      String id, String model, String region, List<String> regionEnvVars) {
     return new ProviderRow(
-        "google-vertex-ai-v1/" + model,
-        List.of(
-            "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT",
-            "GOOGLE_VERTEX_AI_PROJECT_ID",
-            "GOOGLE_VERTEX_AI_REGION"),
+        "google-vertex-ai-v1/" + id,
+        Stream.concat(
+                Stream.of("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", "GOOGLE_VERTEX_AI_PROJECT_ID"),
+                regionEnvVars.stream())
+            .toList(),
         AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
             "provider.type",
@@ -312,7 +335,7 @@ public class AiAgentE2ETestIT {
             "provider.googleVertexAi.projectId",
             "{{secrets.GOOGLE_VERTEX_AI_PROJECT_ID}}",
             "provider.googleVertexAi.region",
-            "{{secrets.GOOGLE_VERTEX_AI_REGION}}",
+            region,
             "provider.googleVertexAi.authentication.type",
             "serviceAccountCredentials",
             "provider.googleVertexAi.authentication.jsonKey",
