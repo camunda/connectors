@@ -42,23 +42,16 @@ import org.springframework.util.StringUtils;
 
 /**
  * Maps an accumulated Anthropic SDK {@link Message} response to the domain {@link
- * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatResult}.
+ * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatResult}: {@code text} blocks become
+ * {@link TextContent}, {@code tool_use} blocks become {@link ToolCall}s, {@code thinking}/{@code
+ * redacted_thinking} blocks become {@link ReasoningContent}, and any other block type is captured
+ * losslessly as {@link ProviderContent}.
  *
- * <p>{@code text} blocks become {@link TextContent}, {@code tool_use} blocks become {@link
- * ToolCall}s, {@code thinking} / {@code redacted_thinking} blocks become {@link ReasoningContent}
- * carrying the full raw block as payload (re-emitted verbatim on the request side, see {@link
- * AnthropicContentConverter}, so reasoning round-trips losslessly), and every other block type is
- * captured losslessly as {@link ProviderContent} rather than dropped.
- *
- * <p>The {@code pause_turn} stop reason surfaces as a {@link ChatResult.Continuation}; every other
- * stop reason surfaces as {@link ChatResult.Completed} - except {@code
- * model_context_window_exceeded} and {@code refusal}, which throw {@link
- * ContextWindowExceededException}/{@link ContentFilteredException} instead, carrying the assistant
- * message and metrics already built for the turn as their {@link PartialResult}. The raw vendor
- * stop reason string is always preserved under the {@code anthropic} provider-id key in {@link
- * AssistantMessage#metadata()}, independent of how it normalizes to the domain {@code StopReason};
- * see {@link AssistantMessageMetadata} for the {@code timestamp} entry every provider adds
- * alongside it.
+ * <p>A {@code pause_turn} stop reason surfaces as a {@link ChatResult.Continuation}; {@code
+ * model_context_window_exceeded} and {@code refusal} throw {@link
+ * ContextWindowExceededException}/{@link ContentFilteredException} instead of returning a result,
+ * carrying the assistant message and metrics already built for the turn as a {@link PartialResult}.
+ * Every other stop reason surfaces as a {@link ChatResult.Completed}.
  */
 public class AnthropicMessageResponseConverter {
 

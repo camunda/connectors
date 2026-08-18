@@ -35,26 +35,16 @@ import java.util.Map;
 
 /**
  * Maps an accumulated OpenAI Chat Completions API SDK {@link ChatCompletion} to the domain {@link
- * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatResult}.
+ * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatResult}: {@code content}/{@code
+ * refusal} become {@link TextContent} and {@code tool_calls} become {@link ToolCall}s. This message
+ * shape carries no reasoning/thinking field, so no {@link ReasoningContent} is ever emitted, though
+ * {@code completion_tokens_details.reasoning_tokens} is still surfaced via {@link
+ * AgentMetrics.TokenUsage}.
  *
- * <p>Deliberate subset of the sibling {@code OpenAiResponsesResponseConverter}: the Completions
- * message shape has no reasoning/thinking field and no server-tool result items, so no {@link
- * ReasoningContent} or {@code ProviderContent} is ever emitted here -- only {@link TextContent}
- * (from {@code content} and, when present, {@code refusal}) and {@link ToolCall} (from {@code
- * tool_calls}). Reasoning *token* accounting is not deferred, though: {@code
- * completion_tokens_details.reasoning_tokens} is surfaced via {@link AgentMetrics.TokenUsage}, even
- * though no corresponding {@link ReasoningContent} exists on the message.
- *
- * <p>The domain {@link StopReason} is derived from the choice's {@code finish_reason}; see {@link
- * #mapStopReason} for the mapping - except {@code content_filter}, which throws {@link
- * ContentFilteredException} instead, carrying the assistant message and metrics already built for
- * the turn as its {@link PartialResult} -- see {@link #hasRefusal} for the same treatment of a
- * refusal message, which carries no {@code finish_reason} signal of its own. Every other call
- * surfaces as a {@link ChatResult.Completed}.
- *
- * <p>The raw vendor {@code finish_reason} string is always preserved under the {@code openai}
- * provider-id key in {@link AssistantMessage#metadata()}; see {@link AssistantMessageMetadata} for
- * the {@code timestamp} entry every provider adds alongside it.
+ * <p>A refusal (see {@link #hasRefusal}) or a {@code content_filter} finish reason throws {@link
+ * ContentFilteredException} instead of returning a result, carrying the assistant message and
+ * metrics already built for the turn as a {@link PartialResult}. Every other call surfaces as a
+ * {@link ChatResult.Completed}.
  */
 public class OpenAiCompletionsResponseConverter {
 
@@ -100,9 +90,8 @@ public class OpenAiCompletionsResponseConverter {
   }
 
   /**
-   * A refusal carries no {@code finish_reason} signal of its own -- mirrors the Responses sibling's
-   * {@code hasRefusal}, treating it the same as {@code content_filter} for a uniform "blocked"
-   * outcome across both mechanisms.
+   * A refusal carries no {@code finish_reason} signal of its own, so it is treated the same as
+   * {@code content_filter} for a uniform "blocked" outcome.
    */
   private boolean hasRefusal(ChatCompletion.Choice choice) {
     return choice.message().refusal().isPresent();

@@ -46,28 +46,16 @@ import org.springframework.util.StringUtils;
 
 /**
  * Maps an accumulated OpenAI Responses API SDK {@link Response} to the domain {@link
- * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatResult}.
+ * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatResult}: {@code output_text} parts
+ * become {@link TextContent}, {@code function_call} items become {@link ToolCall}s, {@code
+ * reasoning} items become {@link ReasoningContent}, and any other output item is captured
+ * losslessly as {@link ProviderContent}.
  *
- * <p>An output {@code message} item's {@code output_text} parts become {@link TextContent}, {@code
- * function_call} items become {@link ToolCall}s, and {@code reasoning} items become {@link
- * ReasoningContent} whose {@code payload} carries the full raw item so it round-trips losslessly
- * back onto the request; see {@link #toReasoningContent}. Any provider-specific or unrecognized
- * output item is captured losslessly as {@link ProviderContent} (kept inline in original order) and
- * never added to {@code toolCalls}, since the caller is never expected to act on it.
- *
- * <p>The domain {@link StopReason} is derived from the response shape: an {@code
- * incomplete_details.reason} of {@code max_output_tokens} maps to {@link StopReason#LENGTH} as a
- * normal completion; {@code content_filter} instead throws {@link ContentFilteredException},
- * carrying the assistant message and metrics already built for the turn as its {@link
- * PartialResult} -- see {@link #hasRefusal} for the same treatment of a refusal message, which
- * carries no stop-reason signal of its own. Otherwise, one or more {@code function_call} items map
- * to {@link StopReason#TOOL_USE}, and a normal completion maps to {@link StopReason#STOP}. A
- * top-level {@code status} of {@code failed} is handled separately, before any of the above -- see
- * {@link #checkForFailure}.
- *
- * <p>The raw vendor stop-reason string is always preserved under the {@code openai} provider-id key
- * in {@link AssistantMessage#metadata()}, independent of how it normalizes to the domain {@link
- * StopReason}.
+ * <p>A {@code failed} response status (see {@link #checkForFailure}) throws a plain {@link
+ * ConnectorException} before any assistant message is built. A {@code content_filter} incomplete
+ * reason or a refusal (see {@link #hasRefusal}) throws {@link ContentFilteredException} instead,
+ * carrying the assistant message and metrics already built for the turn as a {@link PartialResult}.
+ * Every other case surfaces as a {@link ChatResult.Completed}.
  */
 public class OpenAiResponsesResponseConverter {
 
@@ -115,13 +103,10 @@ public class OpenAiResponsesResponseConverter {
 
   /**
    * A {@code response.failed} terminal event carries this same {@link Response} shape, with {@code
-   * status: failed} and {@code error} populated instead of a normal completion -- it has neither
-   * {@code incomplete_details} nor (usually) tool calls, so {@link #mapStopReason} would otherwise
-   * fall through to a plain {@link StopReason#STOP}/{@link StopReason#TOOL_USE} and this converter
-   * would report a successful {@link ChatResult.Completed}. Surface it as a failed model call
-   * instead, mirroring how {@link
-   * io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModel} already
-   * reports transport/SDK-level failures under the same error code.
+   * status: failed} and {@code error} populated instead of a normal completion; it typically has
+   * neither {@code incomplete_details} nor tool calls, so without this check {@link #mapStopReason}
+   * would fall through to a plain {@link StopReason#STOP} and this converter would report a
+   * successful {@link ChatResult.Completed} for a failed call.
    */
   private void checkForFailure(Response response) {
     if (response.status().filter(ResponseStatus.FAILED::equals).isEmpty()) {

@@ -56,13 +56,13 @@ public class AnthropicContentConverter {
         case TextContent text -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(text)));
         case DocumentContent doc -> blocks.add(toDocumentBlockParam(doc));
         case ObjectContent obj -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(obj)));
-        // Foreign-provider content (left behind by a provider switch) is dropped, not replayed.
+        // Content tagged for a different provider is dropped rather than replayed.
         case ReasoningContent rc when ANTHROPIC_ID.equals(rc.provider()) ->
             blocks.add(toReasoningContentBlockParam(rc));
-        case ReasoningContent ignored -> {} // dropped: foreign provider
+        case ReasoningContent ignored -> {}
         case ProviderContent pc when ANTHROPIC_ID.equals(pc.provider()) ->
             blocks.add(toProviderContentBlockParam(pc));
-        case ProviderContent ignored -> {} // dropped: foreign provider
+        case ProviderContent ignored -> {}
       }
     }
     return blocks;
@@ -141,10 +141,8 @@ public class AnthropicContentConverter {
   /**
    * Converts a tool result's structured content into Anthropic tool-result blocks. Unlike {@link
    * #toContentBlockParams}, a document here is flattened to a JSON reference rather than embedded
-   * natively as an image/document block: the composer's synthetic {@code <doc/>} fallback message
-   * already delivers the actual document bytes for tool results (see {@code
-   * AgentConversationTurnInputComposerImpl}), so embedding it here as well would send it to the
-   * model twice.
+   * natively as an image/document block: the document's actual bytes are already delivered to the
+   * model elsewhere for tool results, so embedding it here as well would send it twice.
    */
   public List<ToolResultBlockParam.Content.Block> toToolResultBlocks(List<Content> content) {
     final List<ToolResultBlockParam.Content.Block> blocks = new ArrayList<>();

@@ -85,9 +85,8 @@ public class OpenAiContentConverter {
    * Responses-only: the Completions family has no equivalent structured tool-result item shape (see
    * {@link #toCompletionsContentParts}). Unlike {@link #toResponsesContentParts}, a document here
    * is flattened to a JSON reference rather than emitted natively as {@code input_image}/{@code
-   * input_file}: the composer's synthetic {@code <doc/>} fallback message already delivers the
-   * actual document bytes for tool results (see {@code AgentConversationTurnInputComposerImpl}), so
-   * embedding it here as well would send it to the model twice.
+   * input_file}: the document's actual bytes are already delivered to the model elsewhere for tool
+   * results, so embedding it here as well would send it twice.
    */
   public List<ResponseFunctionCallOutputItem> toResponsesToolResultOutputItems(
       List<Content> content) {

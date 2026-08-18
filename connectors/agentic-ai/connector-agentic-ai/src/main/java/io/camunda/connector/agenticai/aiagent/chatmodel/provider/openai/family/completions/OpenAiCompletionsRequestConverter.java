@@ -60,12 +60,10 @@ import org.jspecify.annotations.Nullable;
  * {@link Message} / {@link ToolCall} / {@link ToolCallResultContent} model into the wire shape via
  * the {@link OpenAiContentConverter} built for content parts.
  *
- * <p>Deliberate subset of the sibling {@link
- * io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesRequestConverter}:
- * reasoning is limited to the input-only {@code reasoning_effort} dial (no encrypted-content replay
- * or stateless-store toggle, unlike the Responses sibling's {@code reasoning} object -- Completions
- * has no reasoning-item replay mechanism at all) and tool results are always flattened to plain
- * text rather than replayed as multimodal item lists.
+ * <p>Reasoning is mapped only via the input-only {@code reasoning_effort} dial: this family has no
+ * mechanism to replay reasoning content from a prior turn, so {@link ReasoningContent} and {@link
+ * ProviderContent} are dropped rather than replayed, and tool results are always flattened to plain
+ * text.
  */
 public class OpenAiCompletionsRequestConverter {
 
@@ -140,11 +138,7 @@ public class OpenAiCompletionsRequestConverter {
     }
   }
 
-  /**
-   * Maps the {@code effort} dial onto the SDK's {@code reasoning_effort} param. Unlike the
-   * Responses sibling's {@code applyReasoning}, there is no encrypted-content include: Completions
-   * has no reasoning-item replay mechanism at all.
-   */
+  /** Maps the {@code effort} dial onto the SDK's {@code reasoning_effort} param. */
   private void applyReasoning(
       ChatCompletionCreateParams.Builder builder, @Nullable CompletionsParameters params) {
     final OpenAiEffort effort = params == null ? null : params.effort();
@@ -191,16 +185,12 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   /**
-   * {@link ReasoningContent} and {@link ProviderContent} have no wire representation on the
-   * Completions family (reasoning is input-only via {@code reasoning_effort}, with no
-   * reasoning-item or server-tool replay mechanism at all, see the class Javadoc) and are silently
-   * dropped; everything else (text/document/object) is flattened to a single text blob.
+   * Flattens plain content (text/document/object) to a single text blob; {@link ReasoningContent}
+   * and {@link ProviderContent} have no wire representation on this family and are dropped.
    *
-   * <p>Returns {@code null} when nothing representable remains after that drop and there are no
-   * tool calls either -- a reasoning-only/server-tool-only turn replayed from a different family
-   * (e.g. Responses) after a mid-conversation family switch. The Completions API requires an
-   * assistant message to carry {@code content} unless it carries a tool/function call, so such a
-   * message is omitted entirely rather than sent empty.
+   * <p>Returns {@code null} when nothing representable remains and there are no tool calls either:
+   * the Completions API requires an assistant message to carry {@code content} unless it carries a
+   * tool/function call, so such a message is omitted entirely rather than sent empty.
    */
   private @Nullable ChatCompletionAssistantMessageParam assistantMessage(
       AssistantMessage assistant) {
@@ -250,10 +240,8 @@ public class OpenAiCompletionsRequestConverter {
    * Flattens a message's structured content to a single text blob: {@link TextContent} is
    * concatenated verbatim, {@link ObjectContent} is unwrapped to its raw {@code content()} before
    * being serialized to JSON (otherwise the polymorphic {@link Content} envelope itself, including
-   * its {@code type} discriminator, would leak onto the wire), anything else (documents) falls back
-   * to serializing the whole content value. Tool results are always text-only on the Completions
-   * family, so this is the sole tool-result serialization path (unlike the Responses sibling, there
-   * is no multimodal item-list shape).
+   * its {@code type} discriminator, would leak onto the wire), and anything else (documents) falls
+   * back to serializing the whole content value. Tool results are always text-only on this family.
    */
   private String toTextOutput(List<Content> content) {
     return content.stream()
@@ -306,8 +294,8 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   /**
-   * Merges the backend's headers, query parameters, and body properties onto the request, shared
-   * with the Responses sibling via {@link OpenAiRequestCustomizations}.
+   * Merges the backend's headers, query parameters, and body properties onto the request via the
+   * shared {@link OpenAiRequestCustomizations}.
    */
   private void applyRequestCustomizations(
       ChatCompletionCreateParams.Builder builder, OpenAiConnection connection) {
