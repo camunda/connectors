@@ -8,7 +8,9 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.core.ObjectMappers;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionMessage;
 import com.openai.models.chat.completions.ChatCompletionMessageFunctionToolCall;
@@ -23,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -36,9 +39,12 @@ import java.util.Map;
 /**
  * Maps an accumulated OpenAI Chat Completions API SDK {@link ChatCompletion} to the domain {@link
  * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatResult}: {@code content}/{@code
- * refusal} become {@link TextContent} and {@code tool_calls} become {@link ToolCall}s. This message
- * shape carries no reasoning/thinking field, so no {@link ReasoningContent} is ever emitted, though
- * {@code completion_tokens_details.reasoning_tokens} is still surfaced via {@link
+ * refusal} become {@link TextContent} and function tool calls become {@link ToolCall}s. A custom
+ * tool call (only reachable when a request customization configures a custom tool) has no
+ * provider-neutral representation in this domain model and is captured losslessly as {@link
+ * ProviderContent} instead of being silently dropped. This message shape carries no
+ * reasoning/thinking field, so no {@link ReasoningContent} is ever emitted, though {@code
+ * completion_tokens_details.reasoning_tokens} is still surfaced via {@link
  * AgentMetrics.TokenUsage}.
  *
  * <p>A refusal (see {@link #hasRefusal}) or a {@code content_filter} finish reason throws {@link
@@ -112,7 +118,9 @@ public class OpenAiCompletionsResponseConverter {
     message.refusal().ifPresent(refusal -> content.add(TextContent.textContent(refusal)));
 
     final List<ToolCall> toolCalls = new ArrayList<>();
-    message.toolCalls().ifPresent(calls -> calls.forEach(call -> toToolCall(call, toolCalls)));
+    message
+        .toolCalls()
+        .ifPresent(calls -> calls.forEach(call -> toToolCall(call, toolCalls, content)));
 
     final Map<String, Object> openAiMetadata =
         Map.of(OPENAI_PROVIDER, Map.of("stopReason", choice.finishReason().asString()));
@@ -144,10 +152,13 @@ public class OpenAiCompletionsResponseConverter {
     };
   }
 
-  private void toToolCall(ChatCompletionMessageToolCall call, List<ToolCall> toolCalls) {
+  private void toToolCall(
+      ChatCompletionMessageToolCall call, List<ToolCall> toolCalls, List<Content> content) {
     if (call.function().isEmpty()) {
-      // Only function tool calls have a provider-neutral representation; custom tool calls are
-      // not supported by the domain model and are silently skipped.
+      // Only function tool calls have a provider-neutral representation; a custom tool call (see
+      // the class Javadoc) is preserved losslessly as ProviderContent instead, so the agent loop
+      // still sees the model's output even though it can't act on it as a tool call.
+      content.add(ProviderContent.providerContent(OPENAI_PROVIDER, toRawMap(call)));
       return;
     }
 
@@ -159,6 +170,17 @@ public class OpenAiCompletionsResponseConverter {
             .arguments(
                 OpenAiToolCallArguments.parse(objectMapper, functionCall.function().arguments()))
             .build());
+  }
+
+  /**
+   * Converts an SDK type to a raw map using the OpenAI SDK's own {@link ObjectMappers}, not the
+   * connector's general-purpose {@link ObjectMapper}: only it knows how to serialize the raw
+   * value's {@code JsonValue}/{@code JsonField} internals faithfully (e.g. omitting genuinely
+   * absent optional fields instead of materializing them as explicit {@code null}).
+   */
+  private Map<String, Object> toRawMap(ChatCompletionMessageToolCall call) {
+    return ObjectMappers.jsonMapper()
+        .convertValue(call, new TypeReference<Map<String, Object>>() {});
   }
 
   private AgentMetrics toMetrics(ChatCompletion completion, int toolCalls, Duration executionTime) {

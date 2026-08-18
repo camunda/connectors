@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -25,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Map;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -183,6 +185,47 @@ class OpenAiCompletionsResponseConverterTest {
                 .build());
     assertThat(result.assistantMessage().content()).isEmpty();
     assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.TOOL_USE);
+  }
+
+  @Test
+  void preservesCustomToolCallAsProviderContentInsteadOfDroppingIt() {
+    final ChatCompletion completion =
+        completionWithFinishReason(
+            "tool_calls",
+            """
+            {
+              "role": "assistant",
+              "content": null,
+              "tool_calls": [
+                {
+                  "id": "call_1",
+                  "type": "custom",
+                  "custom": {"name": "my_custom_tool", "input": "raw model output"}
+                }
+              ]
+            }
+            """);
+
+    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+
+    // No provider-neutral representation exists for a custom tool call, so it is preserved
+    // losslessly as ProviderContent instead of being silently dropped and losing the model's
+    // output.
+    assertThat(result.assistantMessage().toolCalls()).isEmpty();
+    assertThat(result.assistantMessage().content())
+        .singleElement()
+        .isInstanceOfSatisfying(
+            ProviderContent.class,
+            providerContent -> {
+              assertThat(providerContent.provider()).isEqualTo("openai");
+              assertThat(providerContent.payload())
+                  .asInstanceOf(InstanceOfAssertFactories.MAP)
+                  .containsEntry("id", "call_1")
+                  .containsEntry("type", "custom")
+                  .extractingByKey("custom", InstanceOfAssertFactories.MAP)
+                  .containsEntry("name", "my_custom_tool")
+                  .containsEntry("input", "raw model output");
+            });
   }
 
   @Test
