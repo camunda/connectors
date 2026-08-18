@@ -59,11 +59,9 @@ import org.springframework.util.StringUtils;
  *       contains {@code functionCall} parts, so the mapped stop reason is overridden with {@link
  *       StopReason#TOOL_USE} whenever the response produced tool calls. The raw vendor value is
  *       preserved unchanged under the {@code google-gemini} metadata key regardless.
- *   <li><b>A blocked prompt has no candidate.</b> The response then carries only {@code
- *       promptFeedback}, which is converted into a well-formed message (the block reason preserved
- *       as content and under {@code blockReason} metadata) instead of an empty message or a
- *       converter crash, so {@link #toResult} has a well-formed message to throw {@link
- *       ContentFilteredException} with rather than something it chokes on.
+ *   <li><b>A blocked prompt has no candidate.</b> The response carries only {@code promptFeedback};
+ *       the block reason is preserved as content and under {@code blockReason} metadata so {@link
+ *       #toResult} has a well-formed message to throw {@link ContentFilteredException} with.
  * </ul>
  *
  * <p>Every non-thrown result is a {@link ChatResult.Completed}: Gemini has no equivalent of
@@ -83,11 +81,10 @@ public class GeminiContentResponseConverter {
   private static final String BLOCK_REASON_METADATA_KEY = "blockReason";
 
   /**
-   * @throws ContentFilteredException when the prompt was blocked, or the candidate's finish reason
-   *     indicates the response was filtered ({@code SAFETY}, {@code RECITATION}, {@code BLOCKLIST},
-   *     {@code PROHIBITED_CONTENT}, {@code SPII}, or one of the {@code IMAGE_*} variants) — in both
-   *     cases carrying the {@link ChatModelRejectedException.PartialResult} built for the turn so
-   *     far.
+   * @throws ContentFilteredException if the prompt was blocked, or the candidate's finish reason is
+   *     {@code SAFETY}, {@code RECITATION}, {@code BLOCKLIST}, {@code PROHIBITED_CONTENT}, {@code
+   *     SPII}, or an {@code IMAGE_*} variant. Carries the {@link
+   *     ChatModelRejectedException.PartialResult} built so far.
    */
   public ChatResult toResult(GenerateContentResponse response, Duration executionTime) {
     final AssistantMessage assistantMessage = toAssistantMessage(response);
@@ -148,13 +145,10 @@ public class GeminiContentResponseConverter {
   }
 
   /**
-   * Builds the message for a response Gemini returned without any candidate, which is what a prompt
-   * blocked by input-side filtering looks like. The block reason (when reported) is preserved as an
-   * explanatory {@link TextContent} and under {@code blockReason} metadata, so the message is
-   * well-formed rather than silently empty; {@link #toResult} then throws {@link
-   * ContentFilteredException} carrying this message as its {@link
-   * ChatModelRejectedException.PartialResult}, rather than the converter crashing on an empty
-   * message.
+   * Builds the message for a candidate-less response (a prompt blocked by input-side filtering).
+   * Preserves the block reason as an explanatory {@link TextContent} and under {@code blockReason}
+   * metadata; {@link #toResult} throws {@link ContentFilteredException} carrying this as its {@link
+   * ChatModelRejectedException.PartialResult}.
    */
   private AssistantMessage blockedPromptMessage(GenerateContentResponse response) {
     final String blockReason =
@@ -349,14 +343,11 @@ public class GeminiContentResponseConverter {
   }
 
   /**
-   * Normalizes Gemini's finish reason, overriding it with {@link StopReason#TOOL_USE} whenever the
-   * response produced tool calls (Gemini has no tool-use finish reason of its own) — but only once
-   * a filtering finish reason has already been ruled out: Gemini always reports its real finish
-   * reason regardless of whether the candidate also carries {@code functionCall} parts, so a
-   * filtered-and-tool-calling response must still surface as {@code CONTENT_FILTERED} rather than
-   * losing that classification to the tool-use override. The tool-use override is otherwise applied
-   * before the null check so that a response reporting no finish reason at all still surfaces as
-   * {@code TOOL_USE} when it carries function calls.
+   * Normalizes Gemini's finish reason. A filtering finish reason wins first — Gemini reports its
+   * real finish reason even when the candidate carries {@code functionCall} parts, so filtered
+   * content must not be reclassified as {@code TOOL_USE}. Otherwise, tool calls override to {@link
+   * StopReason#TOOL_USE} (Gemini has no tool-use finish reason of its own), applied before the null
+   * check so a missing finish reason still surfaces as {@code TOOL_USE} when calls are present.
    */
   private @Nullable StopReason mapStopReason(
       @Nullable FinishReason finishReason, boolean hasToolCalls) {

@@ -500,9 +500,7 @@ class GeminiContentResponseConverterTest {
 
   @Test
   void throwsContentFilteredExceptionEvenWhenTheFilteredCandidateAlsoCarriesToolCalls() {
-    // Gemini always reports its real finish reason even when the candidate carries functionCall
-    // parts; a filtered-and-tool-calling response must not lose CONTENT_FILTERED to the TOOL_USE
-    // override applied elsewhere.
+    // A filtered finish reason must win over the TOOL_USE override.
     final var response =
         response(
             candidate(

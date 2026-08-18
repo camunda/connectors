@@ -44,15 +44,12 @@ import org.junit.jupiter.api.Test;
  * rather than on a finish reason. The stub emits exactly one chunk with no candidate — an empty
  * stream would instead trip the assembler's "contained no chunks" guard, a different failure.
  *
- * <p>Both filtered cases end in an <b>incident</b>, not in a completed process: the converter
- * builds a well-formed message for both wire shapes first, then throws {@code
- * ContentFilteredException} with it — caught by {@code
- * BaseAgentRequestHandler#driveContinuationLoop} and mapped to a terminal {@code
- * ConnectorException} ({@code MODEL_RESPONSE_CONTENT_FILTERED}). What these tests pin down is that
- * Gemini's two filtered wire shapes reach that throw rather than crashing the converter first. A
- * converter crash would surface as a different message entirely ({@code "Model call failed: ..."}
- * from {@code GeminiChatModel}'s catch-all), so the asserted message is what discriminates the two
- * outcomes.
+ * <p>Both filtered cases end in an <b>incident</b>: the converter throws {@code
+ * ContentFilteredException}, caught by {@code BaseAgentRequestHandler#driveContinuationLoop} and
+ * mapped to a terminal {@code ConnectorException} ({@code MODEL_RESPONSE_CONTENT_FILTERED}). These
+ * tests pin down that both wire shapes reach that throw rather than crashing the converter first —
+ * a crash instead surfaces {@code "Model call failed: ..."} from {@code GeminiChatModel}'s
+ * catch-all, which the asserted message discriminates against.
  *
  * <p>{@link #completesNormallyWhenTruncatedByMaxTokens()} is the deliberate control: it proves the
  * filtered cases fail <em>because</em> they are filtered, not merely because the finish reason was
