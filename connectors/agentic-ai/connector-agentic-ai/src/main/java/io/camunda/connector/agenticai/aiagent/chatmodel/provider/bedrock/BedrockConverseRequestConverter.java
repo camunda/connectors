@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BEDROCK_CONVERSE_ID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -187,15 +188,35 @@ public class BedrockConverseRequestConverter {
     final List<ContentBlock> blocks =
         new ArrayList<>(contentConverter.toContentBlocks(assistant.content()));
     for (final ToolCall toolCall : assistant.toolCalls()) {
-      blocks.add(
-          ContentBlock.fromToolUse(
-              ToolUseBlock.builder()
-                  .toolUseId(toolCall.id())
-                  .name(toolCall.name())
-                  .input(toAwsDocument(toolCall.arguments()))
-                  .build()));
+      blocks.add(ContentBlock.fromToolUse(toToolUseBlock(toolCall)));
     }
     return Message.builder().role(ConversationRole.ASSISTANT).content(blocks).build();
+  }
+
+  /**
+   * Rebuilds the {@link ToolUseBlock} Converse originally sent, replaying {@code type} (the
+   * server-tool-use marker) if {@link BedrockConverseResponseConverter} captured one into {@link
+   * ToolCall#metadata()} under the {@code bedrock} key - {@code toolUseId}/{@code name}/{@code
+   * input} are the only other members {@link ToolUseBlock} has, and those are already mapped.
+   */
+  private ToolUseBlock toToolUseBlock(ToolCall toolCall) {
+    final ToolUseBlock.Builder builder =
+        ToolUseBlock.builder()
+            .toolUseId(toolCall.id())
+            .name(toolCall.name())
+            .input(toAwsDocument(toolCall.arguments()));
+    if (bedrockMetadataValue(toolCall, "type") instanceof String type) {
+      builder.type(type);
+    }
+    return builder.build();
+  }
+
+  private @Nullable Object bedrockMetadataValue(ToolCall toolCall, String key) {
+    final Map<String, Object> metadata = toolCall.metadata();
+    if (metadata == null || !(metadata.get(BEDROCK_CONVERSE_ID) instanceof Map<?, ?> bedrock)) {
+      return null;
+    }
+    return bedrock.get(key);
   }
 
   private Message toolResultMessage(ToolCallResultMessage message) {

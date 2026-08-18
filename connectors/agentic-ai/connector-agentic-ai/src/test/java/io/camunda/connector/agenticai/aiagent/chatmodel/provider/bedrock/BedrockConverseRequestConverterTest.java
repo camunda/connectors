@@ -314,6 +314,29 @@ class BedrockConverseRequestConverterTest {
       assertThat(content.get(1).toolUse().toolUseId()).isEqualTo("id1");
       assertThat(content.get(2).toolUse().toolUseId()).isEqualTo("id2");
     }
+
+    @Test
+    void replaysBedrockToolUseTypeMetadataOnToolCall() {
+      final var snapshot =
+          new ConversationSnapshot(
+              List.of(
+                  AssistantMessage.builder()
+                      .toolCalls(
+                          List.of(
+                              ToolCall.builder()
+                                  .id("id")
+                                  .name("code_execution")
+                                  .arguments(Map.of())
+                                  .metadata(Map.of("bedrock", Map.of("type", "server_tool_use")))
+                                  .build()))
+                      .build()),
+              List.of());
+
+      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+
+      final var toolUse = request.messages().get(0).content().get(0).toolUse();
+      assertThat(toolUse.typeAsString()).isEqualTo("server_tool_use");
+    }
   }
 
   @Nested
