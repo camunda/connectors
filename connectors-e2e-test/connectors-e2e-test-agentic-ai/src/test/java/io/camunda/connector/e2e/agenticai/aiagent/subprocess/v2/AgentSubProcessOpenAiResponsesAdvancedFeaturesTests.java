@@ -68,7 +68,7 @@ class AgentSubProcessOpenAiResponsesAdvancedFeaturesTests
   // ---------------------------------------------------------------------------
 
   @Test
-  void unsetEffortOmitsReasoningFromTheWire() throws Exception {
+  void unsetEffortOmitsReasoningEffortButStillRequestsEncryptedContent() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
     final var responseText = "A haiku about the endless sea.";
 
@@ -82,8 +82,11 @@ class AgentSubProcessOpenAiResponsesAdvancedFeaturesTests
     assertThat(recorded.modelCallCount()).isEqualTo(1);
 
     final var request = recorded.lastRequest();
+    // reasoning.effort itself stays conditional on explicit configuration, but
+    // REASONING_ENCRYPTED_CONTENT is requested unconditionally so a reasoning-capable model
+    // applying its own default effort can still have its reasoning replayed statelessly.
     assertThat(request.reasoningEffort()).as("reasoning.effort").isEmpty();
-    assertThat(request.include()).as("include[]").isEmpty();
+    assertThat(request.include()).as("include[]").containsExactly("reasoning.encrypted_content");
 
     assertAgentResponse(
         zeebeTest,
