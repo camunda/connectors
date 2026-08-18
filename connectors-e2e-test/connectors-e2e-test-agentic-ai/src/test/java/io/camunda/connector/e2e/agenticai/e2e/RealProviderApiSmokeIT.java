@@ -43,14 +43,10 @@ import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -93,6 +89,7 @@ class RealProviderApiSmokeIT {
   static final String PROCESS_ID = "real_provider_api_smoke";
   static final String TOOL_JOB_TYPE = "lookup-classified-fact";
   static final Duration PROCESS_TIMEOUT = Duration.ofMinutes(3);
+  private static final Duration INCIDENT_POLL_TIMEOUT = Duration.ofSeconds(1);
 
   // Fabricated nonce facts — cannot originate from model training, so their presence in the answer
   // proves the tool was actually invoked and consumed.
@@ -361,16 +358,8 @@ class RealProviderApiSmokeIT {
             // Amazon's own Nova 2 Lite Converse model (cheap tier): multimodal + prompt caching +
             // reasoning. STRUCTURED_OUTPUT is deliberately NOT declared: AWS rejects outputConfig
             // for this model ("This model doesn't support the outputConfig field"), matching its
-            // model card ("Structured outputs" listed as Not Supported).
-            //
-            // Disabled for now: Mistral Large 3 was tried as a replacement (avoids nova's
-            // occasional
-            // nonce-word transcription typo) but confirmed against a real API call to reject
-            // document
-            // content entirely ("This model doesn't support documents"), ruling it out for this
-            // slot.
-            // Re-enable once a better non-Anthropic multimodal+caching+reasoning candidate is
-            // found.
+            // model card ("Structured outputs" listed as Not Supported). Disabled for now: prone
+            // to misspelling nonce words in its output.
             bedrockConverse(
                     "us.amazon.nova-2-lite-v1:0",
                     Map.of(
@@ -510,7 +499,8 @@ class RealProviderApiSmokeIT {
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
                 .hasResponseTextSatisfying(
-                    text -> Assertions.assertThat(text).contains(NONCE_CODE_NAME)));
+                    text ->
+                        Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME)));
   }
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
@@ -548,9 +538,10 @@ class RealProviderApiSmokeIT {
                       @SuppressWarnings("unchecked")
                       var map = (Map<String, Object>) json;
                       Assertions.assertThat(map).containsKeys("codeName", "clearanceLevel");
-                      Assertions.assertThat(String.valueOf(map.get("codeName")))
+                      Assertions.assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
                           .contains(NONCE_CODE_NAME);
-                      Assertions.assertThat(String.valueOf(map.get("clearanceLevel")))
+                      Assertions.assertThat(
+                              normalizeDashes(String.valueOf(map.get("clearanceLevel"))))
                           .contains(NONCE_CLEARANCE);
                     }));
   }
@@ -631,7 +622,7 @@ class RealProviderApiSmokeIT {
                           .as("cache read token count")
                           .isPositive())
               .hasResponseTextSatisfying(
-                  text -> Assertions.assertThat(text).contains(NONCE_CODE_NAME));
+                  text -> Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME));
         });
   }
 
@@ -864,7 +855,18 @@ class RealProviderApiSmokeIT {
             Map.class,
             map -> responseTextRef.set(String.valueOf(map.get("responseText"))));
 
-    Assertions.assertThat(responseTextRef.get()).contains(expectedSubstrings);
+    Assertions.assertThat(normalizeDashes(responseTextRef.get())).contains(expectedSubstrings);
+  }
+
+  /**
+   * Normalizes Unicode dash/hyphen variants (e.g. U+2011 non-breaking hyphen, which models
+   * sometimes substitute for a plain ASCII '-' when markdown-formatting a nonce fact) to a plain
+   * '-', so a model's typographic choice doesn't break a literal {@code contains} check.
+   */
+  private static String normalizeDashes(String text) {
+    // U+2010 hyphen, U+2011 non-breaking hyphen, U+2012 figure dash, U+2013 en dash,
+    // U+2014 em dash, U+2212 minus sign.
+    return text.replaceAll("[\u2010\u2011\u2012\u2013\u2014\u2212]", "-");
   }
 
   /**
@@ -872,41 +874,44 @@ class RealProviderApiSmokeIT {
    * waiting out the full {@link #PROCESS_TIMEOUT} for a completion that will never come - a job
    * failure (e.g. the model call itself throwing) surfaces as an incident, not as a completed
    * instance, and {@code isCompleted()} alone has no way to notice that and stop waiting early.
-   * Races {@code isCompleted()} against {@code hasActiveIncidents()} - each polls internally with
-   * its own await loop, so whichever condition becomes true first ends the wait.
+   * Polls both conditions on this thread with a short per-check timeout: {@code CamundaAssert}'s
+   * data source is bound to the test thread, so checking off a background thread (e.g. racing two
+   * {@code CompletableFuture}s) fails with "No data source is set".
    */
   private void awaitCompletionOrIncident(ProcessInstanceEvent instance) {
-    final CompletableFuture<Void> completed =
-        CompletableFuture.runAsync(
-            () -> assertThat(instance).withAssertionTimeout(PROCESS_TIMEOUT).isCompleted());
-    final CompletableFuture<Void> incident =
-        CompletableFuture.runAsync(
-            () -> assertThat(instance).withAssertionTimeout(PROCESS_TIMEOUT).hasActiveIncidents());
-
-    try {
-      CompletableFuture.anyOf(completed, incident)
-          .get(PROCESS_TIMEOUT.plusSeconds(5).toMillis(), TimeUnit.MILLISECONDS);
-    } catch (InterruptedException | ExecutionException | TimeoutException e) {
-      throw new AssertionError(
-          "Timed out waiting for process instance %d to complete"
-              .formatted(instance.getProcessInstanceKey()),
-          e);
-    }
-
-    if (incident.isDone() && !incident.isCompletedExceptionally()) {
-      throw new AssertionError(
-          ("Process instance %d raised an incident instead of completing - failing fast instead "
-                  + "of waiting out the remaining timeout")
-              .formatted(instance.getProcessInstanceKey()));
-    }
-
-    try {
-      completed.join();
-    } catch (CompletionException e) {
-      if (e.getCause() instanceof AssertionError assertionError) {
-        throw assertionError;
+    final Instant deadline = Instant.now().plus(PROCESS_TIMEOUT);
+    while (Instant.now().isBefore(deadline)) {
+      if (hasActiveIncident(instance)) {
+        throw new AssertionError(
+            ("Process instance %d raised an incident instead of completing - failing fast "
+                    + "instead of waiting out the remaining timeout")
+                .formatted(instance.getProcessInstanceKey()));
       }
-      throw e;
+      if (isCompleted(instance)) {
+        return;
+      }
+    }
+
+    throw new AssertionError(
+        "Timed out waiting for process instance %d to complete"
+            .formatted(instance.getProcessInstanceKey()));
+  }
+
+  private static boolean hasActiveIncident(ProcessInstanceEvent instance) {
+    try {
+      assertThat(instance).withAssertionTimeout(INCIDENT_POLL_TIMEOUT).hasActiveIncidents();
+      return true;
+    } catch (AssertionError e) {
+      return false;
+    }
+  }
+
+  private static boolean isCompleted(ProcessInstanceEvent instance) {
+    try {
+      assertThat(instance).withAssertionTimeout(INCIDENT_POLL_TIMEOUT).isCompleted();
+      return true;
+    } catch (AssertionError e) {
+      return false;
     }
   }
 
