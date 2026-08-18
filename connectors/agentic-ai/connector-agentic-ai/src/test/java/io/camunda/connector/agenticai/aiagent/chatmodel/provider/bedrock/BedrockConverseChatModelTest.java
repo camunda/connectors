@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -130,6 +131,34 @@ class BedrockConverseChatModelTest {
     assertThat(responseCaptor.getValue().output().message().content()).isEmpty();
 
     verify(client, never()).close();
+  }
+
+  @Test
+  void propagatesChatModelRejectedExceptionFromResponseConverterUnwrapped() {
+    final var converseStreamRequest = mock(ConverseStreamRequest.class);
+    final var rejection = new ContentFilteredException("blocked by content filtering", null);
+
+    when(requestConverter.toConverseStreamRequest(any(), any(), any()))
+        .thenReturn(converseStreamRequest);
+    when(client.converseStream(eq(converseStreamRequest), any(ConverseStreamResponseHandler.class)))
+        .thenAnswer(
+            invocation -> {
+              final ConverseStreamResponseHandler handler = invocation.getArgument(1);
+              handler.onEventStream(
+                  SdkPublisher.fromIterable(
+                      List.of(
+                          ConverseStreamOutput.messageStartBuilder().role("assistant").build(),
+                          ConverseStreamOutput.messageStopBuilder()
+                              .stopReason("content_filtered")
+                              .build())));
+              return CompletableFuture.completedFuture(null);
+            });
+    when(responseConverter.toResult(any(ConverseResponse.class), any())).thenThrow(rejection);
+
+    // must escape execute() as-is - a plain catch (Exception) would flatten it into a generic
+    // FAILED_MODEL_CALL ConnectorException, losing the typed rejection before it ever reaches
+    // BaseAgentRequestHandler
+    assertThatThrownBy(() -> api.execute(request)).isSameAs(rejection);
   }
 
   @Test

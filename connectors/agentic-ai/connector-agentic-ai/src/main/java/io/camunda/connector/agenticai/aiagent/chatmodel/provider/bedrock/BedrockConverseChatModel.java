@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration;
@@ -92,6 +93,10 @@ public class BedrockConverseChatModel implements ChatModel {
       throw toConnectorException(e.getCause() != null ? e.getCause() : e);
     } catch (AwsServiceException e) {
       throw toConnectorException(e);
+    } catch (ChatModelRejectedException e) {
+      // thrown directly by the response converter when it recognizes a known rejection - let it
+      // propagate as-is rather than flattening it into a generic FAILED_MODEL_CALL below.
+      throw e;
     } catch (Exception e) {
       throw toConnectorException(e);
     }
