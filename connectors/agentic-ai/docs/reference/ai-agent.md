@@ -868,6 +868,8 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
 - The no-op completion pattern means most superseded jobs were doing nothing anyway
 - Superseded jobs produce a `CommandIgnored` outcome — the conversation store receives `onJobCompletionFailed` with a `CommandIgnored` failure
 
+**Job leasing (v2 connectors)**: The v2 AI Agent connectors (`AgentTaskV2Function`, `AgentSubProcessV2Function`) opt into job leasing via `@OutboundConnector(withLease = true)`. Each activation carries a per-activation `leaseToken` (`JobContext#getLeaseToken()`), and the runtime completes/fails jobs through the `ActivatedJob`-based command overloads, so completion is fenced against a superseded activation automatically. Note the version-skew contract on `OutboundConnector#withLease`: over gRPC a pre-leasing gateway drops the field (token is `null`); over REST it rejects the activation (HTTP 400). The agent-instance writes (see [§23](#23-agent-instance-integration)) are **not** yet fenced — token forwarding there is deliberately deferred (see below).
+
 ### Challenge 2: Conversation Store Ahead of Zeebe
 
 **Problem**: The conversation is written to storage **before** the job completion command is sent to Zeebe. If job completion fails, the store has data that Zeebe doesn't know about.
@@ -1783,6 +1785,8 @@ provider payload respectively (`AgentInstanceHistoryMapper`; neither is produced
 path yet). The item carries the current turn's
 `iterationKey` and the active `jobKey`; the engine discards superseded/non-completed items by
 observing job completion (`jobLease` enforcement is a planned follow-up, camunda/camunda#55033).
+
+**Job-lease fencing is plumbed but deferred.** With the v2 connectors leased ([§10](#10-concurrency-challenges--race-conditions)), the activation's `leaseToken` is available to `CamundaAgentInstanceClient`, and both write commands (`newUpdateAgentInstanceCommand`, `newCreateAgentHistoryItemCommand`) already expose a `jobLease(...)` step. The client routes a present token through a single seam (`applyJobLease`) that today logs a warning and proceeds **unfenced** rather than forwarding it — the agent-instance write endpoint is being redesigned, so binding to the current command shape is deliberately deferred. When the new endpoint lands, forwarding is a one-line change at that seam.
 
 Failures to write a history item are **fatal** to the turn (propagated after retries), unlike the
 best-effort metrics updates.

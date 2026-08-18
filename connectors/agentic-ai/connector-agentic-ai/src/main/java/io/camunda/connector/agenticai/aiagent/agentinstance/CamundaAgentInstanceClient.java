@@ -225,6 +225,10 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       cmd = cmd.tools(toolMapper.mapTools(tools));
     }
 
+    final String leaseToken = executionContext.jobContext().getLeaseToken();
+    if (leaseToken != null && !leaseToken.isBlank()) {
+      cmd = applyJobLease(cmd, leaseToken);
+    }
     cmd.execute();
   }
 
@@ -383,7 +387,25 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       cmd = cmd.metrics(metrics);
     }
 
+    final String leaseToken = executionContext.jobContext().getLeaseToken();
+    if (leaseToken != null && !leaseToken.isBlank()) {
+      cmd = applyJobLease(cmd, leaseToken);
+    }
     cmd.execute();
+  }
+
+  /**
+   * Seam for job-lease fencing of agent-instance writes. Called only for an activation that carries
+   * a lease token; the token is deliberately not forwarded to the write command, because the
+   * agent-instance write endpoint is being redesigned and we do not bind to its current {@code
+   * jobLease(...)} command step. When the new endpoint lands, forward the token from this single
+   * point. Returns the command unchanged.
+   */
+  private <T> T applyJobLease(T command, String leaseToken) {
+    LOGGER.warn(
+        "Agent instance write carries a job lease token but fencing is not yet forwarded "
+            + "(agent-instance write endpoint redesign pending); proceeding unfenced.");
+    return command;
   }
 
   private ConnectorException buildCreateException(

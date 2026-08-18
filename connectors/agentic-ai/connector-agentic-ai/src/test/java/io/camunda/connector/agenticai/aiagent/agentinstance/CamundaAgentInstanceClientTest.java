@@ -1322,6 +1322,67 @@ class CamundaAgentInstanceClientTest {
     }
   }
 
+  @Nested
+  class JobLeaseFencing {
+
+    private static final String LEASE_TOKEN = "lease-token-abc";
+
+    @Test
+    void shouldNotForwardLeaseTokenOnUpdateWhenActivationIsLeased() {
+      givenUpdateCommand();
+
+      // when: an activation carrying a lease token issues an update
+      client.update(
+          TestAgentExecutionContext.withLeaseToken(LEASE_TOKEN),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+
+      // then: the write proceeds unchanged; the token is not forwarded to the command (the
+      // agent-instance fencing endpoint is being redesigned, so nothing lease-specific happens yet)
+      verify(updateCommandStep2).execute();
+      verify(updateCommandStep2, never()).jobLease(any());
+    }
+
+    @Test
+    void shouldNotForwardLeaseTokenOnHistoryItemWhenActivationIsLeased() {
+      givenHistoryCommand();
+
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build()),
+              null,
+              AgentMetrics.empty());
+
+      // when
+      client.createHistoryForInputMessages(
+          TestAgentExecutionContext.withLeaseToken(LEASE_TOKEN),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          turn,
+          Optional.empty(),
+          OffsetDateTime.parse("2026-07-02T10:00:00Z"));
+
+      // then
+      verify(historyCommand).execute();
+      verify(historyCommand, never()).jobLease(any());
+    }
+
+    @Test
+    void shouldBehaveIdenticallyWhenActivationIsNotLeased() {
+      givenUpdateCommand();
+
+      // when: an activation without a lease token (not opted in / gRPC skew) issues an update
+      client.update(
+          TestAgentExecutionContext.withLimits(),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+
+      // then: unchanged from the leased case
+      verify(updateCommandStep2).execute();
+      verify(updateCommandStep2, never()).jobLease(any());
+    }
+  }
+
   private static class TestAgentExecutionContext implements AgentExecutionContext {
 
     public static TestAgentExecutionContext withoutLimits() {
@@ -1332,14 +1393,26 @@ class CamundaAgentInstanceClientTest {
       return new TestAgentExecutionContext(new LimitsConfiguration(10));
     }
 
+    public static TestAgentExecutionContext withLeaseToken(String leaseToken) {
+      return new TestAgentExecutionContext(new LimitsConfiguration(10), leaseToken);
+    }
+
     private final TestJobContext jobContext;
 
     private final LimitsConfiguration limitsConfiguration;
 
     private TestAgentExecutionContext(LimitsConfiguration limitsConfiguration) {
+      this(limitsConfiguration, null);
+    }
+
+    private TestAgentExecutionContext(
+        LimitsConfiguration limitsConfiguration, @Nullable String leaseToken) {
       this.jobContext = new TestJobContext(Map::of, () -> "");
       jobContext.setElementInstanceKey(ELEMENT_INSTANCE_KEY);
       jobContext.setJobKey(JOB_KEY);
+      if (leaseToken != null) {
+        jobContext.setLeaseToken(leaseToken);
+      }
 
       this.limitsConfiguration = limitsConfiguration;
     }

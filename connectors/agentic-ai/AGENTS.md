@@ -96,7 +96,9 @@ conversation and turn types (everything else below).
 High-frequency traps (detail behind each link):
 
 - **Job supersession / `NOT_FOUND`**: a completing tool creates a new job; the stale in-flight job may be rejected.
-  `ai-agent.md` §10.
+  v2 connectors opt into job leasing (`@OutboundConnector(withLease = true)`), so completion is fenced against a
+  superseded activation; the lease token is plumbed to `CamundaAgentInstanceClient` but agent-instance write fencing
+  is deliberately deferred (a warn-and-proceed seam, `applyJobLease`) pending the endpoint redesign. `ai-agent.md` §10, §23.
 - **Partial tool results → no-op (but not silent)**: incomplete results make the composer return `Deferred` and the
   worker completes without an LLM call — expected, not a bug — but it now also reports whichever results have
   arrived so far to agent instance history first (ADR 011). E2e tests asserting `verifyNoMoreInteractions` on
