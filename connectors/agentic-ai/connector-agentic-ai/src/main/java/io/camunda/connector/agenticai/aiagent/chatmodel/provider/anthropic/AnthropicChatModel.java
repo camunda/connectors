@@ -18,6 +18,7 @@ import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.RawMessageStreamEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
@@ -107,6 +108,10 @@ public class AnthropicChatModel implements ChatModel {
           "Model call failed with HTTP %d (%s): %s"
               .formatted(e.statusCode(), errorType, e.getMessage()),
           e);
+    } catch (ChatModelRejectedException e) {
+      // thrown directly by the response converter when it recognizes a known rejection - let it
+      // propagate as-is rather than flattening it into a generic FAILED_MODEL_CALL below.
+      throw e;
     } catch (Exception e) {
       final String detail =
           Optional.ofNullable(e.getMessage())

@@ -138,6 +138,28 @@ public final class OpenAiCompletionsV2SseChatModelStubs {
     return body.toString();
   }
 
+  /**
+   * A single-turn conversation whose final chunk carries {@code finish_reason: content_filter}
+   * after some assistant text - the shape OpenAI returns when its content filtering blocks the
+   * response, mirroring how {@link UsageDetailsTurnStub} wires a distinct single-turn shape.
+   */
+  public record ContentFilteredTurnStub(String text, int inputTokens, int outputTokens) {}
+
+  public static void stubConversation(ContentFilteredTurnStub turn) {
+    stubFor(post(urlPathEqualTo(CHAT_COMPLETIONS_PATH)).willReturn(sseResponse(sseBody(turn))));
+  }
+
+  private static String sseBody(ContentFilteredTurnStub turn) {
+    final String id = "chatcmpl-test-" + TURN_COUNTER.getAndIncrement();
+
+    final StringBuilder body = new StringBuilder();
+    body.append(dataLine(chunk(id, contentDelta(turn.text()), null)));
+    body.append(dataLine(chunk(id, Delta.builder().build(), FinishReason.CONTENT_FILTER)));
+    body.append(dataLine(usageChunk(id, turn.inputTokens(), turn.outputTokens(), 0L, 0L)));
+    body.append("data: [DONE]\n\n");
+    return body.toString();
+  }
+
   private static String sseBody(TurnStub turn) {
     final String id = "chatcmpl-test-" + TURN_COUNTER.getAndIncrement();
     final String text =

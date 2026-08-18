@@ -28,6 +28,7 @@ import com.anthropic.services.blocking.MessageService;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -138,6 +139,23 @@ class AnthropicChatModelTest {
                   .contains("429")
                   .contains("rate_limit_error");
             });
+  }
+
+  @Test
+  void propagatesChatModelRejectedExceptionFromResponseConverterUnwrapped() {
+    final var params = mock(MessageCreateParams.class);
+    final var rejection = new ContentFilteredException("blocked by content filtering", null);
+
+    when(requestConverter.toMessageCreateParams(any(), any(), any())).thenReturn(params);
+    when(client.messages()).thenReturn(messageService);
+    when(messageService.createStreaming(params)).thenReturn(streamResponse);
+    when(streamAssembler.assemble(streamResponse)).thenReturn(assembledMessage);
+    when(responseConverter.toResult(eq(assembledMessage), any())).thenThrow(rejection);
+
+    // must escape execute() as-is - a plain catch (Exception) would flatten it into a generic
+    // FAILED_MODEL_CALL ConnectorException, losing the typed rejection before it ever reaches
+    // BaseAgentRequestHandler
+    assertThatThrownBy(() -> api.execute(request)).isSameAs(rejection);
   }
 
   @Test

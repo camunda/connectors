@@ -247,6 +247,34 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
     writeEvent(body, "content_block_stop", RawContentBlockStopEvent.builder().index(index).build());
   }
 
+  /**
+   * A turn whose response leads with assistant text but ends with a {@code refusal} stop reason -
+   * the shape Anthropic returns when its content filtering blocks the response after some text was
+   * already generated. Always ends the turn with {@code stop_reason: refusal}, unlike {@link
+   * #sseBody(TurnStub)} which derives the stop reason from whether tool calls are present.
+   */
+  public record RefusalTurnStub(String text, int inputTokens, int outputTokens) {}
+
+  /** Wires a single-turn scenario whose response ends with a {@code refusal} stop reason. */
+  public static void stubRefusalConversation(RefusalTurnStub refusalTurn) {
+    stubScenario(List.of(refusalSseBody(refusalTurn)));
+  }
+
+  private static String refusalSseBody(RefusalTurnStub turn) {
+    final int id = TURN_COUNTER.getAndIncrement();
+    final StringBuilder body = new StringBuilder();
+
+    writeEvent(body, "message_start", messageStartEvent(id, turn.inputTokens()));
+    writeTextBlock(body, 0, turn.text());
+    writeEvent(
+        body,
+        "message_delta",
+        messageDeltaEvent(StopReason.REFUSAL, turn.inputTokens(), turn.outputTokens()));
+    writeEvent(body, "message_stop", RawMessageStopEvent.builder().build());
+
+    return body.toString();
+  }
+
   /** Shared scenario-chaining plumbing: returns each pre-rendered SSE body in order. */
   private static void stubScenario(List<String> bodies) {
     for (int i = 0; i < bodies.size(); i++) {
@@ -372,11 +400,17 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
 
   private static RawMessageDeltaEvent messageDeltaEvent(
       boolean hasToolCalls, int inputTokens, int outputTokens) {
+    return messageDeltaEvent(
+        hasToolCalls ? StopReason.TOOL_USE : StopReason.END_TURN, inputTokens, outputTokens);
+  }
+
+  private static RawMessageDeltaEvent messageDeltaEvent(
+      StopReason stopReason, int inputTokens, int outputTokens) {
     return RawMessageDeltaEvent.builder()
         .delta(
             RawMessageDeltaEvent.Delta.builder()
                 .container((Container) null)
-                .stopReason(hasToolCalls ? StopReason.TOOL_USE : StopReason.END_TURN)
+                .stopReason(stopReason)
                 .stopDetails((RefusalStopDetails) null)
                 .stopSequence((String) null)
                 .build())

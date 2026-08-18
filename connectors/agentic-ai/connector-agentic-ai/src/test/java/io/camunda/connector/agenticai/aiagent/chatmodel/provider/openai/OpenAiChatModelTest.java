@@ -22,6 +22,7 @@ import com.openai.models.ErrorObject;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
@@ -89,6 +90,17 @@ class OpenAiChatModelTest {
     when(strategy.call(eq(client), eq(configuration), eq(request))).thenThrow(thrown);
 
     assertThatThrownBy(() -> api.execute(request)).isSameAs(thrown);
+  }
+
+  @Test
+  void propagatesChatModelRejectedExceptionFromStrategyUnwrapped() {
+    final var rejection = new ContentFilteredException("blocked by content filtering", null);
+    when(strategy.call(eq(client), eq(configuration), eq(request))).thenThrow(rejection);
+
+    // must escape execute() as-is - a plain catch (Exception) would flatten it into a generic
+    // FAILED_MODEL_CALL ConnectorException, losing the typed rejection before it ever reaches
+    // BaseAgentRequestHandler
+    assertThatThrownBy(() -> api.execute(request)).isSameAs(rejection);
   }
 
   @Test

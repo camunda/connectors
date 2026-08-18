@@ -210,6 +210,21 @@
       <bpmn:incoming>Flow_1h472y0</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_1h472y0" sourceRef="ErrorBoundary_MaxModelCalls" targetRef="EndEvent_MaxModelCalls" />
+    <bpmn:boundaryEvent id="ErrorBoundary_ContentFiltered" attachedToRef="AI_Agent">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:output source="=errorCode" target="rejectionErrorCode" />
+          <zeebe:output source="=stopReason" target="rejectionStopReason" />
+          <zeebe:output source="=text" target="rejectionText" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_ContentFiltered</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_ContentFiltered" errorRef="Error_ContentFiltered" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="EndEvent_ContentFiltered" name="Model response content filtered">
+      <bpmn:incoming>Flow_ContentFiltered</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_ContentFiltered" sourceRef="ErrorBoundary_ContentFiltered" targetRef="EndEvent_ContentFiltered" />
   </bpmn:process>
   <bpmn:message id="Message_1yi97dl" name="ai-agent-message">
     <bpmn:extensionElements>
@@ -217,6 +232,7 @@
     </bpmn:extensionElements>
   </bpmn:message>
   <bpmn:error id="Error_1dld26f" name="Maximum model calls" errorCode="MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED" />
+  <bpmn:error id="Error_ContentFiltered" name="Model response content filtered" errorCode="MODEL_RESPONSE_CONTENT_FILTERED" />
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Agentic_AI_Connectors">
       <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
@@ -397,6 +413,19 @@
         <di:waypoint x="1070" y="1028" />
         <di:waypoint x="1070" y="1090" />
         <di:waypoint x="1142" y="1090" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Event_ContentFiltered_di" bpmnElement="ErrorBoundary_ContentFiltered">
+        <dc:Bounds x="962" y="992" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_ContentFiltered_di" bpmnElement="EndEvent_ContentFiltered">
+        <dc:Bounds x="962" y="1072" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="940" y="1115" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_ContentFiltered_di" bpmnElement="Flow_ContentFiltered">
+        <di:waypoint x="980" y="1028" />
+        <di:waypoint x="980" y="1072" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
