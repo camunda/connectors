@@ -46,16 +46,11 @@ import software.amazon.awssdk.core.document.Document;
  * Document} instance instead of a plain map - so treating it as an arbitrary POJO would recurse
  * forever.
  *
- * <p>The serialized reference is also what makes the document correlatable: {@code
- * AgentConversationTurnInputComposerImpl} extracts every document referenced by a tool result and
- * echoes it, provider-agnostically, in a separate synthetic user message whose {@code <doc/>} tag
- * carries those very same fields (see {@link
- * io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag}) next to the real
- * content block. That message is the one place the document's bytes are delivered, so this class
- * only has to avoid recursing on the copy still embedded in the original tool result's JSON.
- * Inlining the bytes here as well would send them to the model twice and trip Bedrock's "duplicate
- * document names" validation, since {@link DocumentHandle#idFor} derives the same {@code
- * DocumentBlock.name} in both places.
+ * <p>A document nested in a tool result is embedded in this tree only as that same reference, never
+ * inlined as native bytes: its actual bytes are already delivered to the model elsewhere, so
+ * inlining them here as well would send them twice and trip Bedrock's "duplicate document names"
+ * validation, since {@link DocumentHandle#idFor} derives the same {@code DocumentBlock.name} in
+ * both places.
  *
  * <p>Anything else that isn't already a {@code Map}/{@code List}/{@code String}/{@code Number}/
  * {@code Boolean}/{@code null} is treated as an arbitrary POJO: it is normalized to its JSON tree
