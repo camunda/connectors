@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,8 +54,6 @@ import java.util.Map;
  * {@link ChatResult.Completed}.
  */
 public class OpenAiCompletionsResponseConverter {
-
-  private static final String OPENAI_PROVIDER = "openai";
 
   private final ObjectMapper objectMapper;
 
@@ -123,7 +122,7 @@ public class OpenAiCompletionsResponseConverter {
         .ifPresent(calls -> calls.forEach(call -> toToolCall(call, toolCalls, content)));
 
     final Map<String, Object> openAiMetadata =
-        Map.of(OPENAI_PROVIDER, Map.of("stopReason", choice.finishReason().asString()));
+        Map.of(OPENAI_ID, Map.of("stopReason", choice.finishReason().asString()));
 
     return AssistantMessage.builder()
         .content(content)
@@ -158,7 +157,7 @@ public class OpenAiCompletionsResponseConverter {
       // Only function tool calls have a provider-neutral representation; a custom tool call (see
       // the class Javadoc) is preserved losslessly as ProviderContent instead, so the agent loop
       // still sees the model's output even though it can't act on it as a tool call.
-      content.add(ProviderContent.providerContent(OPENAI_PROVIDER, toRawMap(call)));
+      content.add(ProviderContent.providerContent(OPENAI_ID, toRawMap(call)));
       return;
     }
 
