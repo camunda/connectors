@@ -228,6 +228,26 @@ class BedrockConverseContentConverterTest {
     }
 
     @Test
+    void dropsReasoningContentFromAForeignProvider() {
+      final var payload = Map.<String, Object>of("type", "thinking", "id", "rs_1");
+
+      final var blocks =
+          converter.toContentBlocks(List.of(new ReasoningContent("openai", payload, null, null)));
+
+      assertThat(blocks).isEmpty();
+    }
+
+    @Test
+    void dropsProviderContentFromAForeignProvider() {
+      final var payload = Map.<String, Object>of("type", "container_upload", "id", "file_1");
+
+      final var blocks =
+          converter.toContentBlocks(List.of(new ProviderContent("anthropic", payload, null)));
+
+      assertThat(blocks).isEmpty();
+    }
+
+    @Test
     void mapsMultipleContentItemsInOrder() {
       final var doc = inlineDocument("fake-png-bytes", "photo.png", "image/png");
       final List<Content> content =

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BEDROCK_CONVERSE_ID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -91,8 +92,12 @@ public class BedrockConverseContentConverter {
         case TextContent text -> blocks.add(ContentBlock.fromText(text.text()));
         case DocumentContent doc -> blocks.add(documentContentBlock(doc));
         case ObjectContent obj -> blocks.add(ContentBlock.fromText(writeAsJson(obj.content())));
-        case ReasoningContent rc -> blocks.add(toReasoningContentBlock(rc));
-        case ProviderContent pc -> blocks.add(replayProviderContentBlock(pc));
+        case ReasoningContent rc when BEDROCK_CONVERSE_ID.equals(rc.provider()) ->
+            blocks.add(toReasoningContentBlock(rc));
+        case ReasoningContent ignored -> {}
+        case ProviderContent pc when BEDROCK_CONVERSE_ID.equals(pc.provider()) ->
+            blocks.add(replayProviderContentBlock(pc));
+        case ProviderContent ignored -> {}
       }
     }
     return blocks;
