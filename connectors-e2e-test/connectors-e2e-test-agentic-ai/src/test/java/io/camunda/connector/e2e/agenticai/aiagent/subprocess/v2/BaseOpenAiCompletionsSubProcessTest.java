@@ -56,21 +56,17 @@ abstract class BaseOpenAiCompletionsSubProcessTest extends BaseAgentSubProcessV2
     return template
         .property("provider.type", "openai")
         .property("provider.openai.api.type", "completions")
-        .property("provider.openai.backend.type", "custom")
-        .property("provider.openai.backend.custom.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-        .property("provider.openai.backend.custom.authentication.type", "apiKey")
-        .property("provider.openai.backend.custom.authentication.apiKey", "dummy")
+        .property("provider.openai.backend.type", "openai-api")
+        .property("provider.openai.backend.openai.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+        .property("provider.openai.backend.openai.apiKey", "dummy")
         .property("provider.openai.model.model", defaultModel());
   }
 
-  /**
-   * Asserts that exactly one model-call request has been recorded and returns it. Use {@link
-   * #recordedLoggedRequests()} directly when a test expects more than one request.
-   */
-  static LoggedRequest assertSoleRecordedRequest() {
+  /** Asserts that exactly one model-call request has been recorded and returns its parsed body. */
+  JsonNode parseSoleRecordedRequest() {
     final var requests = recordedLoggedRequests();
     assertThat(requests).as("recorded model-call requests").hasSize(1);
-    return requests.get(0);
+    return parseBody(requests.get(0));
   }
 
   static List<LoggedRequest> recordedLoggedRequests() {

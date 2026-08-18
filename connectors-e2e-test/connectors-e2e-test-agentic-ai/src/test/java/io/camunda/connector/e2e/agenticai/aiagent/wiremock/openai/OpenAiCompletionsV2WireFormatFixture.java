@@ -33,9 +33,9 @@ import java.util.function.Function;
  * OpenAiCompletionsRecordedChatRequestAdapter}; the response wire differs (native streams SSE), so
  * {@link #stubConversation} uses {@link OpenAiCompletionsV2SseChatModelStubs} instead.
  *
- * <p>Drives the v2 element template via the {@code custom} backend, pointed at the WireMock host
- * with a trailing {@code /v1} so the SDK's {@code /chat/completions} path resolves to the recorded
- * path.
+ * <p>Drives the v2 element template via the {@code openai-api} backend's hidden {@code endpoint}
+ * override, pointed at the WireMock host with a trailing {@code /v1} so the SDK's {@code
+ * /chat/completions} path resolves to the recorded path.
  */
 public final class OpenAiCompletionsV2WireFormatFixture implements ProviderWireFormatFixture {
 
@@ -56,10 +56,9 @@ public final class OpenAiCompletionsV2WireFormatFixture implements ProviderWireF
         template
             .property("provider.type", "openai")
             .property("provider.openai.api.type", "completions")
-            .property("provider.openai.backend.type", "custom")
-            .property("provider.openai.backend.custom.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-            .property("provider.openai.backend.custom.authentication.type", "apiKey")
-            .property("provider.openai.backend.custom.authentication.apiKey", "dummy")
+            .property("provider.openai.backend.type", "openai-api")
+            .property("provider.openai.backend.openai.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+            .property("provider.openai.backend.openai.apiKey", "dummy")
             .property("provider.openai.model.model", "test-model");
   }
 

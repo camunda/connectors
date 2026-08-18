@@ -44,10 +44,9 @@ abstract class BaseOpenAiResponsesSubProcessTest extends BaseAgentSubProcessV2Te
     return template
         .property("provider.type", "openai")
         .property("provider.openai.api.type", "responses")
-        .property("provider.openai.backend.type", "custom")
-        .property("provider.openai.backend.custom.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-        .property("provider.openai.backend.custom.authentication.type", "apiKey")
-        .property("provider.openai.backend.custom.authentication.apiKey", "dummy")
+        .property("provider.openai.backend.type", "openai-api")
+        .property("provider.openai.backend.openai.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+        .property("provider.openai.backend.openai.apiKey", "dummy")
         .property("provider.openai.model.model", defaultModel());
   }
 }

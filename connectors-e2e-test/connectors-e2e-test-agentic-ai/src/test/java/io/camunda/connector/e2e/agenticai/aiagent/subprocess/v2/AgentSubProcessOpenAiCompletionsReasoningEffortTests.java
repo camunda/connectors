@@ -56,7 +56,7 @@ class AgentSubProcessOpenAiCompletionsReasoningEffortTests
     awaitProcessCompletion(
         createProcessInstance(effort("xhigh"), Map.of("userPrompt", userPrompt)));
 
-    final var request = parseBody(assertSoleRecordedRequest());
+    final var request = parseSoleRecordedRequest();
     assertThat(request.path("reasoning_effort").asText()).as("reasoning_effort").isEqualTo("xhigh");
   }
 
@@ -69,7 +69,7 @@ class AgentSubProcessOpenAiCompletionsReasoningEffortTests
 
     awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
 
-    final var request = parseBody(assertSoleRecordedRequest());
+    final var request = parseSoleRecordedRequest();
     assertThat(request.has("reasoning_effort"))
         .as("reasoning_effort must not be present when effort is not configured")
         .isFalse();

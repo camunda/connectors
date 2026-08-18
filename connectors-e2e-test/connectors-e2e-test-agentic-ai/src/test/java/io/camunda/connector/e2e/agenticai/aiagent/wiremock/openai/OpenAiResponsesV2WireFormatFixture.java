@@ -36,9 +36,9 @@ import java.util.function.Function;
  * instead of reusing the Completions ones.
  *
  * <p>Drives the v2 element template with {@code provider.openai.*} property ids, via the {@code
- * custom} backend pointed at the WireMock host with a trailing {@code /v1} so the SDK's {@code
- * /responses} path resolves to the recorded path (mirrors {@link
- * OpenAiCompletionsV2WireFormatFixture}'s endpoint setup).
+ * openai-api} backend's hidden {@code endpoint} override pointed at the WireMock host with a
+ * trailing {@code /v1} so the SDK's {@code /responses} path resolves to the recorded path (mirrors
+ * {@link OpenAiCompletionsV2WireFormatFixture}'s endpoint setup).
  *
  * <p>Does not override {@code assertResponseFormatConfigured}: unlike Anthropic, the Responses wire
  * does carry the configured schema name (in {@code text.format.name}), and {@link
@@ -64,10 +64,9 @@ public final class OpenAiResponsesV2WireFormatFixture implements ProviderWireFor
         template
             .property("provider.type", "openai")
             .property("provider.openai.api.type", "responses")
-            .property("provider.openai.backend.type", "custom")
-            .property("provider.openai.backend.custom.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-            .property("provider.openai.backend.custom.authentication.type", "apiKey")
-            .property("provider.openai.backend.custom.authentication.apiKey", "dummy")
+            .property("provider.openai.backend.type", "openai-api")
+            .property("provider.openai.backend.openai.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+            .property("provider.openai.backend.openai.apiKey", "dummy")
             .property("provider.openai.model.model", "test-model");
   }
 
