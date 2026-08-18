@@ -1328,7 +1328,7 @@ class CamundaAgentInstanceClientTest {
     private static final String LEASE_TOKEN = "lease-token-abc";
 
     @Test
-    void shouldNotForwardLeaseTokenOnUpdateWhenActivationIsLeased() {
+    void shouldForwardLeaseTokenOnUpdateWhenActivationIsLeased() {
       givenUpdateCommand();
 
       // when: an activation carrying a lease token issues an update
@@ -1337,14 +1337,13 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
 
-      // then: the write proceeds unchanged; the token is not forwarded to the command (the
-      // agent-instance fencing endpoint is being redesigned, so nothing lease-specific happens yet)
+      // then: the lease token fences the write
+      verify(updateCommandStep2).jobLease(LEASE_TOKEN);
       verify(updateCommandStep2).execute();
-      verify(updateCommandStep2, never()).jobLease(any());
     }
 
     @Test
-    void shouldNotForwardLeaseTokenOnHistoryItemWhenActivationIsLeased() {
+    void shouldForwardLeaseTokenOnHistoryItemWhenActivationIsLeased() {
       givenHistoryCommand();
 
       final var turn =
@@ -1363,12 +1362,12 @@ class CamundaAgentInstanceClientTest {
           OffsetDateTime.parse("2026-07-02T10:00:00Z"));
 
       // then
+      verify(historyCommand).jobLease(LEASE_TOKEN);
       verify(historyCommand).execute();
-      verify(historyCommand, never()).jobLease(any());
     }
 
     @Test
-    void shouldBehaveIdenticallyWhenActivationIsNotLeased() {
+    void shouldNotForwardLeaseTokenWhenActivationIsNotLeased() {
       givenUpdateCommand();
 
       // when: an activation without a lease token (not opted in / gRPC skew) issues an update
@@ -1377,9 +1376,9 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
 
-      // then: unchanged from the leased case
-      verify(updateCommandStep2).execute();
+      // then: no lease is forwarded
       verify(updateCommandStep2, never()).jobLease(any());
+      verify(updateCommandStep2).execute();
     }
   }
 
