@@ -357,16 +357,27 @@ class RealProviderApiSmokeIT {
             // reasoning. STRUCTURED_OUTPUT is deliberately NOT declared: AWS rejects outputConfig
             // for this model ("This model doesn't support the outputConfig field"), matching its
             // model card ("Structured outputs" listed as Not Supported).
+            //
+            // Disabled for now: Mistral Large 3 was tried as a replacement (avoids nova's
+            // occasional
+            // nonce-word transcription typo) but confirmed against a real API call to reject
+            // document
+            // content entirely ("This model doesn't support documents"), ruling it out for this
+            // slot.
+            // Re-enable once a better non-Anthropic multimodal+caching+reasoning candidate is
+            // found.
             bedrockConverse(
-                "us.amazon.nova-2-lite-v1:0",
-                Map.of(
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING,
-                        Map.of("provider.bedrock.model.parameters.promptCaching.enabled", "true"),
-                    Capability.REASONING,
-                        Map.of(
-                            "provider.bedrock.bodyProperties",
-                            "={reasoningConfig: {type: \"enabled\", maxReasoningEffort: \"medium\"}}"))),
+                    "us.amazon.nova-2-lite-v1:0",
+                    Map.of(
+                        Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                        Capability.PROMPT_CACHING,
+                            Map.of(
+                                "provider.bedrock.model.parameters.promptCaching.enabled", "true"),
+                        Capability.REASONING,
+                            Map.of(
+                                "provider.bedrock.bodyProperties",
+                                "={reasoningConfig: {type: \"enabled\", maxReasoningEffort: \"medium\"}}")))
+                .disabled(),
             // A non-Amazon Converse model: gpt-oss-120b's model card lists text-only input
             // modalities, and neither structured output nor explicit prompt caching is documented
             // for it, so those capabilities are left undeclared. Its reasoning uses a
