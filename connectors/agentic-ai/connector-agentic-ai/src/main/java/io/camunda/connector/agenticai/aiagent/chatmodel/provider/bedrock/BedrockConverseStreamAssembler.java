@@ -94,6 +94,7 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
     if (start != null && start.toolUse() != null) {
       accumulator.toolUseId = start.toolUse().toolUseId();
       accumulator.toolUseName = start.toolUse().name();
+      accumulator.toolUseType = start.toolUse().typeAsString();
     }
   }
 
@@ -193,12 +194,15 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
   private ContentBlock finalize(BlockAccumulator accumulator) {
     if (accumulator.toolUseId != null || accumulator.toolUseName != null) {
       final Document input = parseToolUseInput(accumulator.toolInput.toString());
-      return ContentBlock.fromToolUse(
+      final ToolUseBlock.Builder toolUseBuilder =
           ToolUseBlock.builder()
               .toolUseId(accumulator.toolUseId)
               .name(accumulator.toolUseName)
-              .input(input)
-              .build());
+              .input(input);
+      if (accumulator.toolUseType != null) {
+        toolUseBuilder.type(accumulator.toolUseType);
+      }
+      return ContentBlock.fromToolUse(toolUseBuilder.build());
     }
 
     final boolean hasRedactedContent = accumulator.reasoningRedactedContent.size() > 0;
@@ -276,6 +280,7 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
   private static final class BlockAccumulator {
     private @Nullable String toolUseId;
     private @Nullable String toolUseName;
+    private @Nullable String toolUseType;
     private final StringBuilder text = new StringBuilder();
     private final StringBuilder toolInput = new StringBuilder();
     private final StringBuilder reasoningText = new StringBuilder();

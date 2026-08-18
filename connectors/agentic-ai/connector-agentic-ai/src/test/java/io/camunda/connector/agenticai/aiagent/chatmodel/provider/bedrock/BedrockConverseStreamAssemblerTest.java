@@ -29,6 +29,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.StopReason;
 import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlockDelta;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlockStart;
+import software.amazon.awssdk.services.bedrockruntime.model.ToolUseType;
 
 /**
  * Feeds synthesised {@code ConverseStream} event sequences directly into a {@link
@@ -175,6 +176,31 @@ class BedrockConverseStreamAssemblerTest {
 
     final var toolUse = response.output().message().content().get(0).toolUse();
     assertThat(toolUse.input().asMap()).isEmpty();
+  }
+
+  @Test
+  void assemblesToolUseTypeFromContentBlockStart() {
+    assembler.visitMessageStart(
+        MessageStartEvent.builder().role(ConversationRole.ASSISTANT).build());
+    assembler.visitContentBlockStart(
+        ContentBlockStartEvent.builder()
+            .contentBlockIndex(0)
+            .start(
+                ContentBlockStart.fromToolUse(
+                    ToolUseBlockStart.builder()
+                        .toolUseId("tooluse_1")
+                        .name("web_search")
+                        .type(ToolUseType.SERVER_TOOL_USE)
+                        .build()))
+            .build());
+    assembler.visitContentBlockDelta(toolUseInputDelta(0, "{}"));
+    assembler.visitContentBlockStop(contentBlockStop(0));
+    assembler.visitMessageStop(MessageStopEvent.builder().stopReason(StopReason.TOOL_USE).build());
+
+    final var response = assembler.converseResponse();
+
+    final var toolUse = response.output().message().content().get(0).toolUse();
+    assertThat(toolUse.typeAsString()).isEqualTo("server_tool_use");
   }
 
   @Test
