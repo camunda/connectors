@@ -1367,7 +1367,7 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
-    void shouldNotForwardLeaseTokenWhenActivationIsNotLeased() {
+    void shouldNotForwardLeaseTokenOnUpdateWhenActivationIsNotLeased() {
       givenUpdateCommand();
 
       // when: an activation without a lease token (not opted in / gRPC skew) issues an update
@@ -1379,6 +1379,30 @@ class CamundaAgentInstanceClientTest {
       // then: no lease is forwarded
       verify(updateCommandStep2, never()).jobLease(any());
       verify(updateCommandStep2).execute();
+    }
+
+    @Test
+    void shouldNotForwardLeaseTokenOnHistoryItemWhenActivationIsNotLeased() {
+      givenHistoryCommand();
+
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build()),
+              null,
+              AgentMetrics.empty());
+
+      // when: an activation without a lease token issues a history item
+      client.createHistoryForInputMessages(
+          TestAgentExecutionContext.withLimits(),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          turn,
+          Optional.empty(),
+          OffsetDateTime.parse("2026-07-02T10:00:00Z"));
+
+      // then: no lease is forwarded
+      verify(historyCommand, never()).jobLease(any());
+      verify(historyCommand).execute();
     }
   }
 
