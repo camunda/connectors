@@ -448,14 +448,15 @@ class OpenAiResponsesRequestConverterTest {
   }
 
   @Test
-  void omitsReasoningEntirelyWhenEffortUnset() {
+  void requestsEncryptedReasoningButOmitsEffortParamWhenEffortUnset() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params = converter.toRequest(model(null), null, snapshot);
 
     assertThat(params.reasoning()).isEmpty();
     assertThat(params.store()).contains(false); // unconditional, not tied to reasoning
-    assertThat(params.include()).isEmpty();
+    assertThat(params.include().orElseThrow())
+        .contains(ResponseIncludable.REASONING_ENCRYPTED_CONTENT);
   }
 
   /**
@@ -476,7 +477,8 @@ class OpenAiResponsesRequestConverterTest {
 
     assertThat(params.reasoning()).isEmpty();
     assertThat(params.store()).contains(false); // unconditional, not tied to reasoning
-    assertThat(params.include()).isEmpty();
+    assertThat(params.include().orElseThrow())
+        .contains(ResponseIncludable.REASONING_ENCRYPTED_CONTENT);
     assertThat(params.maxOutputTokens()).isEmpty();
     assertThat(params.temperature()).isEmpty();
     assertThat(params.topP()).isEmpty();

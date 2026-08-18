@@ -68,9 +68,12 @@ via `OpenAiRequestCustomizations` (shared between both converters).
 
 One nullable `OpenAiEffort` enum per family. Completions maps it to `reasoningEffort` (input-only; no
 reasoning content returns — `reasoning_tokens` comes from `completion_tokens_details` instead).
-Responses maps it to `Reasoning.builder().effort(...)` and, when set, also sets `store(false)` and
-requests `include: ["reasoning.encrypted_content"]` (the connector owns conversation state, so
-OpenAI-side state would only compete for authority). A non-empty `summary` is joined onto
+Responses maps it to `Reasoning.builder().effort(...)`, conditional on `effort` being configured.
+`store(false)` and `include: ["reasoning.encrypted_content"]` are both requested unconditionally
+instead, independent of `effort`: the connector always owns conversation state (OpenAI-side state
+would only compete for authority), and a reasoning-capable model can apply its own default reasoning
+effort even without an explicit `effort`, so `encrypted_content` must always be available to replay
+that reasoning item on a later turn. A non-empty `summary` is joined onto
 `ReasoningContent.text`, stripped from the raw payload only when reconstructible byte-identical on
 replay.
 

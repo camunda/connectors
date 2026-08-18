@@ -130,18 +130,23 @@ public class OpenAiResponsesRequestConverter {
   }
 
   /**
-   * Maps the {@code effort} dial onto the SDK's {@code reasoning} param. {@code
-   * REASONING_ENCRYPTED_CONTENT} is always requested alongside effort so reasoning items can be
-   * replayed on a subsequent turn (see {@link #assistantInputItems}).
+   * Requests {@code REASONING_ENCRYPTED_CONTENT} unconditionally, independent of whether {@code
+   * effort} is configured: a reasoning-capable model can apply its own default reasoning effort
+   * even without an explicit {@code reasoning} param, and this connector always runs with {@code
+   * store(false)} (see {@link #toRequest}), so {@code encrypted_content} is the only way such a
+   * reasoning item can be replayed on a subsequent turn (see {@link #assistantInputItems}) rather
+   * than losing its chain of thought. The {@code effort} dial itself, mapped onto the SDK's {@code
+   * reasoning} param, stays conditional on explicit configuration.
    */
   private void applyReasoning(
       ResponseCreateParams.Builder builder, @Nullable ResponsesParameters params) {
+    builder.addInclude(ResponseIncludable.REASONING_ENCRYPTED_CONTENT);
+
     final OpenAiEffort effort = params == null ? null : params.effort();
     if (effort == null) {
       return;
     }
     builder.reasoning(Reasoning.builder().effort(mapEffort(effort)).build());
-    builder.addInclude(ResponseIncludable.REASONING_ENCRYPTED_CONTENT);
   }
 
   private ReasoningEffort mapEffort(OpenAiEffort effort) {
