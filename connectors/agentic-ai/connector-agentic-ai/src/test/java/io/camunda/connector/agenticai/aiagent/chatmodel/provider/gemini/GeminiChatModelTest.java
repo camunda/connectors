@@ -27,6 +27,7 @@ import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -112,6 +113,30 @@ class GeminiChatModelTest {
     verify(streamAssembler).assemble(responseStream);
     verify(responseStream).close();
     verify(client, never()).close();
+  }
+
+  @Test
+  void propagatesContentFilteredExceptionFromResponseConverterUnwrapped() {
+    final var responseConfiguration = mock(ResponseConfiguration.class);
+    when(agentConfiguration.response()).thenReturn(responseConfiguration);
+
+    final var config = GenerateContentConfig.builder().build();
+    final List<Content> contents = List.of();
+    final var assembledResponse = GenerateContentResponse.builder().build();
+    final var rejection =
+        new ContentFilteredException(
+            "Model response was blocked by provider content filtering.", null);
+
+    when(requestConverter.toGenerateContentConfig(any(), any(), any())).thenReturn(config);
+    when(requestConverter.toContents(any())).thenReturn(contents);
+    when(models.generateContentStream(configuration.model(), contents, config))
+        .thenReturn(responseStream);
+    when(streamAssembler.assemble(responseStream)).thenReturn(assembledResponse);
+    when(responseConverter.toResult(eq(assembledResponse), any())).thenThrow(rejection);
+
+    assertThatThrownBy(() -> api.execute(request)).isSameAs(rejection);
+
+    verify(responseStream).close();
   }
 
   @Test

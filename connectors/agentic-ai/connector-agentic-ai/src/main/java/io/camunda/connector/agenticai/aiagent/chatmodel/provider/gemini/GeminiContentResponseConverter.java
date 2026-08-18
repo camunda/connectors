@@ -19,7 +19,9 @@ import com.google.genai.types.GenerateContentResponse;
 import com.google.genai.types.GenerateContentResponsePromptFeedback;
 import com.google.genai.types.GenerateContentResponseUsageMetadata;
 import com.google.genai.types.Part;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessageBuilder;
@@ -58,16 +60,16 @@ import org.springframework.util.StringUtils;
  *       StopReason#TOOL_USE} whenever the response produced tool calls. The raw vendor value is
  *       preserved unchanged under the {@code google-gemini} metadata key regardless.
  *   <li><b>A blocked prompt has no candidate.</b> The response then carries only {@code
- *       promptFeedback}, which is converted into a well-formed {@link StopReason#CONTENT_FILTERED}
- *       message (the block reason preserved as content and under {@code blockReason} metadata)
- *       instead of an empty message or a converter crash, so the terminal stop-reason guard
- *       downstream receives a message it can act on rather than something it chokes on.
+ *       promptFeedback}, which is converted into a well-formed message (the block reason preserved
+ *       as content and under {@code blockReason} metadata) instead of an empty message or a
+ *       converter crash, so {@link #toResult} has a well-formed message to throw {@link
+ *       ContentFilteredException} with rather than something it chokes on.
  * </ul>
  *
- * <p>Every result is a {@link ChatResult.Completed}: Gemini has no equivalent of Anthropic's {@code
- * pause_turn}. {@code FinishReason.Known} contains no paused/continuation value and nothing else in
- * the SDK models a turn the provider expects to be resumed without new input, so {@link
- * ChatResult.Continuation} is never produced.
+ * <p>Every non-thrown result is a {@link ChatResult.Completed}: Gemini has no equivalent of
+ * Anthropic's {@code pause_turn}. {@code FinishReason.Known} contains no paused/continuation value
+ * and nothing else in the SDK models a turn the provider expects to be resumed without new input,
+ * so {@link ChatResult.Continuation} is never produced.
  *
  * <p>The candidate's parts are read via {@code candidates().get(0).content().parts()} rather than
  * the {@link GenerateContentResponse#parts()}/{@code text()}/{@code functionCalls()} convenience
@@ -80,10 +82,23 @@ public class GeminiContentResponseConverter {
   private static final String FINISH_REASON_METADATA_KEY = "finishReason";
   private static final String BLOCK_REASON_METADATA_KEY = "blockReason";
 
+  /**
+   * @throws ContentFilteredException when the prompt was blocked, or the candidate's finish reason
+   *     indicates the response was filtered ({@code SAFETY}, {@code RECITATION}, {@code BLOCKLIST},
+   *     {@code PROHIBITED_CONTENT}, {@code SPII}, or one of the {@code IMAGE_*} variants) — in both
+   *     cases carrying the {@link ChatModelRejectedException.PartialResult} built for the turn so
+   *     far.
+   */
   public ChatResult toResult(GenerateContentResponse response, Duration executionTime) {
     final AssistantMessage assistantMessage = toAssistantMessage(response);
     final AgentMetrics metrics =
         toMetrics(response, assistantMessage.toolCalls().size(), executionTime);
+
+    if (assistantMessage.stopReason() == StopReason.CONTENT_FILTERED) {
+      throw new ContentFilteredException(
+          "Model response was blocked by provider content filtering.",
+          new ChatModelRejectedException.PartialResult(assistantMessage, metrics));
+    }
 
     return new ChatResult.Completed(assistantMessage, metrics);
   }
@@ -134,11 +149,12 @@ public class GeminiContentResponseConverter {
 
   /**
    * Builds the message for a response Gemini returned without any candidate, which is what a prompt
-   * blocked by input-side filtering looks like. Never throws: the block reason (when reported) is
-   * preserved as an explanatory {@link TextContent} and under {@code blockReason} metadata, so the
-   * message is well-formed rather than silently empty. The {@link StopReason#CONTENT_FILTERED} stop
-   * reason this message carries is still terminal downstream, by design shared with every other
-   * provider — this only avoids an empty message or a converter crash, not the eventual incident.
+   * blocked by input-side filtering looks like. The block reason (when reported) is preserved as an
+   * explanatory {@link TextContent} and under {@code blockReason} metadata, so the message is
+   * well-formed rather than silently empty; {@link #toResult} then throws {@link
+   * ContentFilteredException} carrying this message as its {@link
+   * ChatModelRejectedException.PartialResult}, rather than the converter crashing on an empty
+   * message.
    */
   private AssistantMessage blockedPromptMessage(GenerateContentResponse response) {
     final String blockReason =
@@ -334,12 +350,20 @@ public class GeminiContentResponseConverter {
 
   /**
    * Normalizes Gemini's finish reason, overriding it with {@link StopReason#TOOL_USE} whenever the
-   * response produced tool calls (Gemini has no tool-use finish reason of its own). The override is
-   * applied before the null check so that a response reporting no finish reason at all still
-   * surfaces as {@code TOOL_USE} when it carries function calls.
+   * response produced tool calls (Gemini has no tool-use finish reason of its own) — but only once
+   * a filtering finish reason has already been ruled out: Gemini always reports its real finish
+   * reason regardless of whether the candidate also carries {@code functionCall} parts, so a
+   * filtered-and-tool-calling response must still surface as {@code CONTENT_FILTERED} rather than
+   * losing that classification to the tool-use override. The tool-use override is otherwise applied
+   * before the null check so that a response reporting no finish reason at all still surfaces as
+   * {@code TOOL_USE} when it carries function calls.
    */
   private @Nullable StopReason mapStopReason(
       @Nullable FinishReason finishReason, boolean hasToolCalls) {
+    final StopReason filtered = finishReason != null ? filteredStopReason(finishReason) : null;
+    if (filtered != null) {
+      return filtered;
+    }
     if (hasToolCalls) {
       return StopReason.TOOL_USE;
     }
@@ -350,6 +374,15 @@ public class GeminiContentResponseConverter {
     return switch (finishReason.knownEnum()) {
       case STOP -> StopReason.STOP;
       case MAX_TOKENS -> StopReason.LENGTH;
+      // LANGUAGE, OTHER, MALFORMED_FUNCTION_CALL, UNEXPECTED_TOOL_CALL, NO_IMAGE and any value the
+      // SDK does not recognise (knownEnum() collapses those to FINISH_REASON_UNSPECIFIED, while
+      // toString() still returns the raw vendor string)
+      default -> new StopReason.UnknownStopReason(finishReason.toString());
+    };
+  }
+
+  private @Nullable StopReason filteredStopReason(FinishReason finishReason) {
+    return switch (finishReason.knownEnum()) {
       case SAFETY,
           RECITATION,
           BLOCKLIST,
@@ -359,10 +392,7 @@ public class GeminiContentResponseConverter {
           IMAGE_PROHIBITED_CONTENT,
           IMAGE_RECITATION ->
           StopReason.CONTENT_FILTERED;
-      // LANGUAGE, OTHER, MALFORMED_FUNCTION_CALL, UNEXPECTED_TOOL_CALL, NO_IMAGE and any value the
-      // SDK does not recognise (knownEnum() collapses those to FINISH_REASON_UNSPECIFIED, while
-      // toString() still returns the raw vendor string)
-      default -> new StopReason.UnknownStopReason(finishReason.toString());
+      default -> null;
     };
   }
 }

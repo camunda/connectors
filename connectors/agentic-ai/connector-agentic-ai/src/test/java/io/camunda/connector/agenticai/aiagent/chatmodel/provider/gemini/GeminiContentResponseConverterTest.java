@@ -25,6 +25,7 @@ import com.google.genai.types.GenerateContentResponsePromptFeedback;
 import com.google.genai.types.GenerateContentResponseUsageMetadata;
 import com.google.genai.types.Part;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
@@ -476,7 +477,7 @@ class GeminiContentResponseConverterTest {
         "IMAGE_PROHIBITED_CONTENT",
         "IMAGE_RECITATION"
       })
-  void mapsFilteringFinishReasonsToContentFiltered(String finishReason) {
+  void throwsContentFilteredExceptionForFilteringFinishReasons(String finishReason) {
     final var response =
         response(
             Candidate.builder()
@@ -484,11 +485,32 @@ class GeminiContentResponseConverterTest {
                 .content(contentOf(Part.fromText("filtered")))
                 .build());
 
-    final var result = converter.toResult(response, EXECUTION_TIME);
+    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+        .isInstanceOf(ContentFilteredException.class)
+        .extracting(e -> ((ContentFilteredException) e).partialResult())
+        .satisfies(
+            partialResult -> {
+              assertThat(partialResult).isNotNull();
+              final var assistantMessage = partialResult.assistantMessage();
+              assertThat(assistantMessage.stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
+              assertThat(assistantMessage.metadata())
+                  .containsEntry(GOOGLE_GEMINI_ID, Map.of("finishReason", finishReason));
+            });
+  }
 
-    assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
-    assertThat(result.assistantMessage().metadata())
-        .containsEntry(GOOGLE_GEMINI_ID, Map.of("finishReason", finishReason));
+  @Test
+  void throwsContentFilteredExceptionEvenWhenTheFilteredCandidateAlsoCarriesToolCalls() {
+    // Gemini always reports its real finish reason even when the candidate carries functionCall
+    // parts; a filtered-and-tool-calling response must not lose CONTENT_FILTERED to the TOOL_USE
+    // override applied elsewhere.
+    final var response =
+        response(
+            candidate(
+                FinishReason.Known.SAFETY,
+                functionCallPart("call-1", "get_weather", Map.of("city", "Berlin"))));
+
+    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+        .isInstanceOf(ContentFilteredException.class);
   }
 
   @ParameterizedTest
@@ -535,7 +557,7 @@ class GeminiContentResponseConverterTest {
   // ---------------------------------------------------------------------------------------------
 
   @Test
-  void mapsABlockedPromptToContentFilteredCarryingAnExplanation() {
+  void throwsContentFilteredExceptionForABlockedPromptCarryingAnExplanation() {
     // A blocked prompt yields promptFeedback and NO candidates at all (absent Optional).
     final var response =
         GenerateContentResponse.builder()
@@ -549,24 +571,28 @@ class GeminiContentResponseConverterTest {
                 GenerateContentResponseUsageMetadata.builder().promptTokenCount(7).build())
             .build();
 
-    final var result = converter.toResult(response, EXECUTION_TIME);
+    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+        .isInstanceOf(ContentFilteredException.class)
+        .extracting(e -> ((ContentFilteredException) e).partialResult())
+        .satisfies(
+            partialResult -> {
+              assertThat(partialResult).isNotNull();
+              final var assistantMessage = partialResult.assistantMessage();
+              assertThat(assistantMessage.content())
+                  .containsExactly(TextContent.textContent("Prompt blocked: SAFETY"));
+              assertThat(assistantMessage.toolCalls()).isEmpty();
+              assertThat(assistantMessage.stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
+              assertThat(assistantMessage.messageId()).isEqualTo("resp-blocked");
+              assertThat(assistantMessage.modelId()).isEqualTo("gemini-3-pro-preview");
+              assertThat(assistantMessage.metadata())
+                  .containsEntry(GOOGLE_GEMINI_ID, Map.of("blockReason", "SAFETY"))
+                  .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY);
 
-    assertThat(result).isInstanceOf(ChatResult.Completed.class);
-
-    final var assistantMessage = result.assistantMessage();
-    assertThat(assistantMessage.content())
-        .containsExactly(TextContent.textContent("Prompt blocked: SAFETY"));
-    assertThat(assistantMessage.toolCalls()).isEmpty();
-    assertThat(assistantMessage.stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
-    assertThat(assistantMessage.messageId()).isEqualTo("resp-blocked");
-    assertThat(assistantMessage.modelId()).isEqualTo("gemini-3-pro-preview");
-    assertThat(assistantMessage.metadata())
-        .containsEntry(GOOGLE_GEMINI_ID, Map.of("blockReason", "SAFETY"))
-        .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY);
-
-    assertThat(result.metrics().tokenUsage().inputTokenCount()).isEqualTo(7);
-    assertThat(result.metrics().modelCalls()).isEqualTo(1);
-    assertThat(result.metrics().toolCalls()).isZero();
+              final var metrics = partialResult.metrics();
+              assertThat(metrics.tokenUsage().inputTokenCount()).isEqualTo(7);
+              assertThat(metrics.modelCalls()).isEqualTo(1);
+              assertThat(metrics.toolCalls()).isZero();
+            });
   }
 
   @Test
