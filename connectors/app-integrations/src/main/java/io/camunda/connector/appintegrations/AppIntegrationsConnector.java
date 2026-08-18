@@ -49,6 +49,8 @@ import org.slf4j.LoggerFactory;
       "form"
     },
     icon = "icon.svg",
+    documentationRef =
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/app-integrations/",
     engineVersion = "^8.10",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
