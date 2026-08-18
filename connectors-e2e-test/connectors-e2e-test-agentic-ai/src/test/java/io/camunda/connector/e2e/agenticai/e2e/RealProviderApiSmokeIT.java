@@ -46,6 +46,11 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -827,10 +832,10 @@ class RealProviderApiSmokeIT {
    */
   private void assertAgentResponse(
       ProcessInstanceEvent instance, ThrowingConsumer<AgentSubProcessResponse> assertions) {
+    awaitCompletionOrIncident(instance);
+
     final var responseRef = new AtomicReference<AgentSubProcessResponse>();
     assertThat(instance)
-        .withAssertionTimeout(PROCESS_TIMEOUT)
-        .isCompleted()
         .hasVariableSatisfies(
             AGENT_RESPONSE_VARIABLE,
             Map.class,
@@ -850,16 +855,59 @@ class RealProviderApiSmokeIT {
    */
   private void assertResponseTextContains(
       ProcessInstanceEvent instance, String... expectedSubstrings) {
+    awaitCompletionOrIncident(instance);
+
     final var responseTextRef = new AtomicReference<String>();
     assertThat(instance)
-        .withAssertionTimeout(PROCESS_TIMEOUT)
-        .isCompleted()
         .hasVariableSatisfies(
             AGENT_RESPONSE_VARIABLE,
             Map.class,
             map -> responseTextRef.set(String.valueOf(map.get("responseText"))));
 
     Assertions.assertThat(responseTextRef.get()).contains(expectedSubstrings);
+  }
+
+  /**
+   * Waits for the process instance to complete, but fails fast on an active incident instead of
+   * waiting out the full {@link #PROCESS_TIMEOUT} for a completion that will never come - a job
+   * failure (e.g. the model call itself throwing) surfaces as an incident, not as a completed
+   * instance, and {@code isCompleted()} alone has no way to notice that and stop waiting early.
+   * Races {@code isCompleted()} against {@code hasActiveIncidents()} - each polls internally with
+   * its own await loop, so whichever condition becomes true first ends the wait.
+   */
+  private void awaitCompletionOrIncident(ProcessInstanceEvent instance) {
+    final CompletableFuture<Void> completed =
+        CompletableFuture.runAsync(
+            () -> assertThat(instance).withAssertionTimeout(PROCESS_TIMEOUT).isCompleted());
+    final CompletableFuture<Void> incident =
+        CompletableFuture.runAsync(
+            () -> assertThat(instance).withAssertionTimeout(PROCESS_TIMEOUT).hasActiveIncidents());
+
+    try {
+      CompletableFuture.anyOf(completed, incident)
+          .get(PROCESS_TIMEOUT.plusSeconds(5).toMillis(), TimeUnit.MILLISECONDS);
+    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+      throw new AssertionError(
+          "Timed out waiting for process instance %d to complete"
+              .formatted(instance.getProcessInstanceKey()),
+          e);
+    }
+
+    if (incident.isDone() && !incident.isCompletedExceptionally()) {
+      throw new AssertionError(
+          ("Process instance %d raised an incident instead of completing - failing fast instead "
+                  + "of waiting out the remaining timeout")
+              .formatted(instance.getProcessInstanceKey()));
+    }
+
+    try {
+      completed.join();
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof AssertionError assertionError) {
+        throw assertionError;
+      }
+      throw e;
+    }
   }
 
   private void stubPdfDownloads() {
