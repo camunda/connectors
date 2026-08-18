@@ -84,10 +84,12 @@ Automatic and read-only — no config, no cache-write metric, so the acceptance 
 
 ### Tool-result documents
 
-A document inside a tool result always renders as a JSON reference
-(`OpenAiContentConverter.toToolResultOutputItems`), on both Responses and Completions, regardless of
-content type — never embedded natively as `input_image`/`input_file`, so the bytes the composer's
-`<doc/>` fallback message already delivers aren't sent twice.
+A document inside a tool result always renders as a JSON reference, on both Responses
+(`OpenAiContentConverter.toResponsesToolResultOutputItems`) and Completions
+(`OpenAiCompletionsRequestConverter.toTextOutput`, which has its own tool-result flattening rather
+than sharing the former), regardless of content type — never embedded natively as `input_image`/
+`input_file`, so the bytes the composer's `<doc/>` fallback message already delivers aren't sent
+twice.
 
 ### Truncation
 

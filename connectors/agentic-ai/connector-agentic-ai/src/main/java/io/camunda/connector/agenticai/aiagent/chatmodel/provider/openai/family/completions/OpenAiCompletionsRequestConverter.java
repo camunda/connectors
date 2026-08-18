@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -238,10 +239,13 @@ public class OpenAiCompletionsRequestConverter {
 
   /**
    * Flattens a message's structured content to a single text blob: {@link TextContent} is
-   * concatenated verbatim, {@link ObjectContent} is unwrapped to its raw {@code content()} before
-   * being serialized to JSON (otherwise the polymorphic {@link Content} envelope itself, including
-   * its {@code type} discriminator, would leak onto the wire), and anything else (documents) falls
-   * back to serializing the whole content value. Tool results are always text-only on this family.
+   * concatenated verbatim, {@link ObjectContent} is unwrapped to its raw {@code content()}, and
+   * {@link DocumentContent} is unwrapped to its raw {@code document()} reference -- in both cases
+   * so the polymorphic {@link Content} envelope itself, including its {@code type} discriminator,
+   * never leaks onto the wire. A document's bytes are already delivered to the model elsewhere, so
+   * this reference is never accompanied by a native embed, matching the tool-result document
+   * handling on the Responses and Anthropic siblings. Anything else falls back to serializing the
+   * whole content value. Tool results are always text-only on this family.
    */
   private String toTextOutput(List<Content> content) {
     return content.stream()
@@ -251,6 +255,8 @@ public class OpenAiCompletionsRequestConverter {
                 return text.text();
               } else if (c instanceof ObjectContent obj) {
                 return writeAsJson(obj.content());
+              } else if (c instanceof DocumentContent doc) {
+                return writeAsJson(doc.document());
               } else {
                 return writeAsJson(c);
               }

@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -44,6 +47,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpo
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -51,7 +58,8 @@ import org.junit.jupiter.api.Test;
 
 class OpenAiCompletionsRequestConverterTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper =
+      new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
   private final OpenAiContentConverter contentConverter = new OpenAiContentConverter(objectMapper);
   private final OpenAiCompletionsRequestConverter converter =
       new OpenAiCompletionsRequestConverter(contentConverter, objectMapper);
@@ -196,6 +204,52 @@ class OpenAiCompletionsRequestConverterTest {
     // Must be the raw unwrapped value ("24"), not the polymorphic Content envelope
     // ("{"type":"object","content":24}") - see OpenAiCompletionsRequestConverter#toTextOutput.
     assertThat(tool.content().asText()).isEqualTo("24");
+  }
+
+  @Test
+  void emitsJsonReferenceForToolResultDocuments() throws Exception {
+    // never embedded natively for a tool result - the composer's synthetic <doc/> fallback
+    // message already delivers the actual bytes, so embedding it here as well would send it to
+    // the model twice; see OpenAiCompletionsRequestConverter#toTextOutput
+    final var document = mock(Document.class);
+    final var metadata = mock(DocumentMetadata.class);
+    when(document.metadata()).thenReturn(metadata);
+    when(metadata.getContentType()).thenReturn("application/pdf");
+    when(metadata.getFileName()).thenReturn("report.pdf");
+    when(document.asBase64()).thenReturn("UERGQ09OVEVOVA==");
+    when(document.reference())
+        .thenReturn(
+            new ExternalDocumentReferenceModel("https://example.com/report.pdf", "report.pdf"));
+
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                ToolCallResultMessage.builder()
+                    .results(
+                        List.of(
+                            ToolCallResultContent.builder()
+                                .id("call_1")
+                                .name("fetch_report")
+                                .content(
+                                    List.of(
+                                        TextContent.textContent("here is the report"),
+                                        new DocumentContent(document, null)))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    final var tool = params.messages().get(0).asTool();
+    assertThat(tool.toolCallId()).isEqualTo("call_1");
+    // Must be exactly the document's own reference JSON (whatever JacksonModuleDocumentSerializer
+    // produces for it), joined with the text on its own line -- not the polymorphic Content
+    // envelope ("{"type":"document","document":{...}}") toTextOutput's fallback would otherwise
+    // serialize.
+    final var expectedReference = objectMapper.writeValueAsString(document);
+    assertThat(tool.content().asText())
+        .isEqualTo("here is the report\n" + expectedReference)
+        .doesNotContain("\"type\":\"document\"");
   }
 
   @Test
