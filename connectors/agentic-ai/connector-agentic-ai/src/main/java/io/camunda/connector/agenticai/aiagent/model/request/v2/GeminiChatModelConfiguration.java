@@ -178,37 +178,66 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
     public record GeminiThinking(
         @TemplateProperty(
                 group = "model-options",
+                label = "Enable thinking",
+                tooltip =
+                    "Enables Gemini's extended-thinking mode. Configure a token budget (Gemini 2.5) or a qualitative level (Gemini 3.x) below once enabled. <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
+                type = TemplateProperty.PropertyType.Boolean,
+                optional = true)
+            Boolean enabled,
+        @TemplateProperty(
+                group = "model-options",
                 label = "Thinking budget (tokens)",
                 tooltip =
                     "Gemini 2.5 models: token budget for extended thinking. -1 = dynamic, 0 = disabled. Mutually exclusive with Thinking level (Gemini 3.x). <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
-                optional = true)
+                optional = true,
+                condition =
+                    @TemplateProperty.PropertyCondition(
+                        property = "provider.googleGemini.model.parameters.thinking.enabled",
+                        equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
             @Nullable Integer thinkingBudget,
         @TemplateProperty(
                 group = "model-options",
                 label = "Thinking level",
                 tooltip =
-                    "Gemini 3.x models: qualitative thinking effort. Mutually exclusive with Thinking budget (Gemini 2.5). <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
+                    "Gemini 3.x models: qualitative thinking effort. \"Model default\" lets the model choose its own reasoning depth. Mutually exclusive with Thinking budget (Gemini 2.5). <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
+                  @DropdownPropertyChoice(value = "modelDefault", label = "Model default"),
+                  @DropdownPropertyChoice(value = "minimal", label = "minimal"),
                   @DropdownPropertyChoice(value = "low", label = "low"),
                   @DropdownPropertyChoice(value = "medium", label = "medium"),
                   @DropdownPropertyChoice(value = "high", label = "high")
                 },
-                optional = true)
+                defaultValue = "modelDefault",
+                optional = true,
+                condition =
+                    @TemplateProperty.PropertyCondition(
+                        property = "provider.googleGemini.model.parameters.thinking.enabled",
+                        equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
             @Nullable GeminiThinkingLevel thinkingLevel) {
+
+      public GeminiThinking {
+        if (thinkingLevel == null) {
+          thinkingLevel = GeminiThinkingLevel.MODEL_DEFAULT;
+        }
+      }
 
       @JsonIgnore
       @AssertFalse(
           message = "thinking.thinkingBudget and thinking.thinkingLevel are mutually exclusive")
       public boolean isBothThinkingBudgetAndLevelSet() {
-        return thinkingBudget != null && thinkingLevel != null;
+        return thinkingBudget != null && thinkingLevel != GeminiThinkingLevel.MODEL_DEFAULT;
       }
     }
 
     /** Gemini qualitative thinking-effort levels (Gemini 3.x models). */
     public enum GeminiThinkingLevel {
+      @JsonProperty("modelDefault")
+      MODEL_DEFAULT,
+      @JsonProperty("minimal")
+      MINIMAL,
       @JsonProperty("low")
       LOW,
       @JsonProperty("medium")

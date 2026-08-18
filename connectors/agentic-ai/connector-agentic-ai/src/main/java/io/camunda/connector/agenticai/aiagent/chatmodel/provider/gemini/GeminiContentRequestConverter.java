@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -136,39 +137,41 @@ public class GeminiContentRequestConverter {
   }
 
   /**
-   * Maps {@code thinking} onto the SDK's {@link ThinkingConfig}: {@code thinkingBudget} xor {@code
-   * thinkingLevel}, never both. {@link GeminiThinking#isBothThinkingBudgetAndLevelSet()}'s
-   * {@code @AssertFalse} bean validation should already prevent both being set by the time a real
-   * request reaches this converter, but this is defended here too rather than silently picking one.
+   * Maps {@code thinking} onto the SDK's {@link ThinkingConfig} when the modeler has opted in via
+   * {@code enabled}. {@code thinkingBudget} xor an explicit {@code thinkingLevel}, never both;
+   * {@link GeminiThinking#isBothThinkingBudgetAndLevelSet()}'s {@code @AssertFalse} bean validation
+   * should already prevent both being set, but this is defended here too rather than silently
+   * picking one.
    */
   private void applyThinking(
       GenerateContentConfig.Builder builder, @Nullable GeminiModelParameters params) {
     final GeminiThinking thinking = params == null ? null : params.thinking();
-    if (thinking == null) {
+    if (thinking == null || !Boolean.TRUE.equals(thinking.enabled())) {
       return;
     }
 
     final Integer budget = thinking.thinkingBudget();
-    final GeminiThinkingLevel level = thinking.thinkingLevel();
-    if (budget != null && level != null) {
+    // GeminiThinking's compact constructor already normalizes a null thinkingLevel to
+    // MODEL_DEFAULT; this repeats the default defensively since the record component itself is
+    // still typed @Nullable (a caller could in principle bypass the compact constructor).
+    final GeminiThinkingLevel level =
+        Objects.requireNonNullElse(thinking.thinkingLevel(), GeminiThinkingLevel.MODEL_DEFAULT);
+    final boolean explicitLevel = level != GeminiThinkingLevel.MODEL_DEFAULT;
+    if (budget != null && explicitLevel) {
       throw new ConnectorException(
           ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION,
           "thinking.thinkingBudget and thinking.thinkingLevel are mutually exclusive");
     }
-    if (budget == null && level == null) {
-      return;
-    }
 
     // Thoughts are not returned unless explicitly asked for (per ThinkingConfig#includeThoughts:
     // "If true, thoughts are returned only if the model supports thought and thoughts are
-    // available"), so configuring a budget/level without this would enable thinking the connector
-    // could never surface. Not configurable: the config record has no separate toggle, and this
-    // matches Anthropic, which always returns thinking content once thinking is enabled and only
-    // lets ThinkingDisplay control how it is formatted.
+    // available"); enabling thinking at all is the signal to also request them back. Matches
+    // Anthropic, which always returns thinking content once thinking is enabled and only lets
+    // ThinkingDisplay control how it is formatted.
     final var thinkingConfigBuilder = ThinkingConfig.builder().includeThoughts(true);
     if (budget != null) {
       thinkingConfigBuilder.thinkingBudget(budget);
-    } else if (level != null) {
+    } else {
       thinkingConfigBuilder.thinkingLevel(toThinkingLevel(level));
     }
     builder.thinkingConfig(thinkingConfigBuilder.build());
@@ -176,6 +179,8 @@ public class GeminiContentRequestConverter {
 
   private ThinkingLevel.Known toThinkingLevel(GeminiThinkingLevel level) {
     return switch (level) {
+      case MODEL_DEFAULT -> ThinkingLevel.Known.THINKING_LEVEL_UNSPECIFIED;
+      case MINIMAL -> ThinkingLevel.Known.MINIMAL;
       case LOW -> ThinkingLevel.Known.LOW;
       case MEDIUM -> ThinkingLevel.Known.MEDIUM;
       case HIGH -> ThinkingLevel.Known.HIGH;

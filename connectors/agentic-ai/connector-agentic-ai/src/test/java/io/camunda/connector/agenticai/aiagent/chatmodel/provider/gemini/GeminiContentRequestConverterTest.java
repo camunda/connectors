@@ -100,7 +100,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void mapsThinkingBudgetOnly() {
     final var parameters =
-        new GeminiModelParameters(null, null, null, null, new GeminiThinking(2048, null));
+        new GeminiModelParameters(null, null, null, null, new GeminiThinking(true, 2048, null));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
@@ -116,7 +116,7 @@ class GeminiContentRequestConverterTest {
   void mapsThinkingLevelOnly() {
     final var parameters =
         new GeminiModelParameters(
-            null, null, null, null, new GeminiThinking(null, GeminiThinkingLevel.HIGH));
+            null, null, null, null, new GeminiThinking(true, null, GeminiThinkingLevel.HIGH));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
@@ -129,13 +129,41 @@ class GeminiContentRequestConverterTest {
   }
 
   @Test
+  void mapsThinkingLevelMinimal() {
+    final var parameters =
+        new GeminiModelParameters(
+            null, null, null, null, new GeminiThinking(true, null, GeminiThinkingLevel.MINIMAL));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
+
+    assertThat(config.thinkingConfig().orElseThrow().thinkingLevel().orElseThrow().toString())
+        .isEqualToIgnoringCase("minimal");
+  }
+
+  @Test
+  void mapsUnconfiguredThinkingLevelToExplicitModelDefault() {
+    final var parameters =
+        new GeminiModelParameters(null, null, null, null, new GeminiThinking(true, null, null));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
+
+    assertThat(config.thinkingConfig()).isPresent();
+    assertThat(config.thinkingConfig().orElseThrow().thinkingBudget()).isEmpty();
+    assertThat(config.thinkingConfig().orElseThrow().thinkingLevel().orElseThrow().toString())
+        .isEqualToIgnoringCase("THINKING_LEVEL_UNSPECIFIED");
+    assertThat(config.thinkingConfig().orElseThrow().includeThoughts()).contains(true);
+  }
+
+  @Test
   void bothThinkingBudgetAndLevelSetThrows() {
     // Defensive check: the config record's own @AssertFalse should already prevent this, but the
     // converter guards it too rather than silently picking one (constructed directly here,
     // bypassing bean validation, to exercise that defense).
     final var parameters =
         new GeminiModelParameters(
-            null, null, null, null, new GeminiThinking(2048, GeminiThinkingLevel.HIGH));
+            null, null, null, null, new GeminiThinking(true, 2048, GeminiThinkingLevel.HIGH));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     assertThatThrownBy(() -> converter.toGenerateContentConfig(model(parameters), null, snapshot))
@@ -143,10 +171,40 @@ class GeminiContentRequestConverterTest {
   }
 
   @Test
+  void budgetWithModelDefaultLevelDoesNotThrow() {
+    final var parameters =
+        new GeminiModelParameters(
+            null,
+            null,
+            null,
+            null,
+            new GeminiThinking(true, 2048, GeminiThinkingLevel.MODEL_DEFAULT));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
+
+    assertThat(config.thinkingConfig().orElseThrow().thinkingBudget()).contains(2048);
+  }
+
+  @Test
   void noThinkingConfiguredEmitsNoThinkingConfig() {
     final var parameters = new GeminiModelParameters(null, null, null, null, null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
+    final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
+
+    assertThat(config.thinkingConfig()).isEmpty();
+  }
+
+  @Test
+  void thinkingNotEnabledEmitsNoThinkingConfigEvenIfBudgetOrLevelSet() {
+    final var parameters =
+        new GeminiModelParameters(
+            null, null, null, null, new GeminiThinking(null, 2048, GeminiThinkingLevel.HIGH));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    // Constructed directly (bypassing bean validation) purely to prove the `enabled` gate is
+    // checked before the mutual-exclusivity check -- an unrealistic combination otherwise.
     final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
 
     assertThat(config.thinkingConfig()).isEmpty();

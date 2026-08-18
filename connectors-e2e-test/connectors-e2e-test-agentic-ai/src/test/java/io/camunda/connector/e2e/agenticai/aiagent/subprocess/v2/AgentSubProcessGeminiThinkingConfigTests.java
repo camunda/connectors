@@ -62,6 +62,10 @@ class AgentSubProcessGeminiThinkingConfigTests extends BaseGeminiNativeSubProces
             .andThen(
                 template ->
                     template.property(
+                        "provider.googleGemini.model.parameters.thinking.enabled", "=true"))
+            .andThen(
+                template ->
+                    template.property(
                         "provider.googleGemini.model.parameters.thinking.thinkingBudget", "=2048"));
 
     awaitProcessCompletion(
@@ -98,6 +102,10 @@ class AgentSubProcessGeminiThinkingConfigTests extends BaseGeminiNativeSubProces
             .andThen(
                 template ->
                     template.property(
+                        "provider.googleGemini.model.parameters.thinking.enabled", "=true"))
+            .andThen(
+                template ->
+                    template.property(
                         "provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"));
 
     awaitProcessCompletion(
@@ -117,6 +125,34 @@ class AgentSubProcessGeminiThinkingConfigTests extends BaseGeminiNativeSubProces
         .isTrue();
     assertThat(thinkingConfig.has("thinkingBudget"))
         .as("thinkingBudget must be absent when a level is configured")
+        .isFalse();
+  }
+
+  @Test
+  void thinkingConfigCarriesExplicitModelDefaultLevelWhenEnabledWithNeitherFieldSet()
+      throws Exception {
+    final var userPrompt = "Write a haiku about the sea";
+
+    StreamingGeminiChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
+        template ->
+            template.property("provider.googleGemini.model.parameters.thinking.enabled", "=true");
+
+    awaitProcessCompletion(
+        createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
+
+    final var thinkingConfig =
+        parseBody(soleRecordedRequest()).path("generationConfig").path("thinkingConfig");
+    assertThat(thinkingConfig.path("thinkingLevel").asText())
+        .as("generationConfig.thinkingConfig.thinkingLevel")
+        .isEqualTo("THINKING_LEVEL_UNSPECIFIED");
+    assertThat(thinkingConfig.path("includeThoughts").asBoolean())
+        .as("generationConfig.thinkingConfig.includeThoughts")
+        .isTrue();
+    assertThat(thinkingConfig.has("thinkingBudget"))
+        .as("thinkingBudget must be absent when neither field is configured")
         .isFalse();
   }
 
