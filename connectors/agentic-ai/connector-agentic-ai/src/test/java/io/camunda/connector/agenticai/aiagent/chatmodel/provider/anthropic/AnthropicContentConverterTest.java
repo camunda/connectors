@@ -12,16 +12,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.anthropic.models.messages.Base64ImageSource;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -30,8 +31,8 @@ import org.junit.jupiter.api.Test;
 
 class AnthropicContentConverterTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-  private final AnthropicContentConverter converter = new AnthropicContentConverter(objectMapper);
+  private final AnthropicContentConverter converter =
+      new AnthropicContentConverter(TestObjectMapperSupplier.INSTANCE);
 
   private static Document mockDocument(String contentType, String base64) {
     final var document = mock(Document.class);
@@ -39,6 +40,10 @@ class AnthropicContentConverterTest {
     when(document.metadata()).thenReturn(metadata);
     when(metadata.getContentType()).thenReturn(contentType);
     when(document.asBase64()).thenReturn(base64);
+    // stubbed so a reference-only fallback (tool-result documents) can serialize this mock via
+    // JacksonModuleDocumentSerializer, which dispatches on Document#reference()
+    when(document.reference())
+        .thenReturn(new ExternalDocumentReferenceModel("https://example.com/document", "document"));
     return document;
   }
 
@@ -198,6 +203,38 @@ class AnthropicContentConverterTest {
     }
 
     @Test
+    void throwsWhenDocumentContentTypeIsUnset() {
+      final var doc = mockDocument(null, "UEsDBA==");
+
+      assertThatThrownBy(
+              () -> converter.toContentBlockParams(List.of(new DocumentContent(doc, null))))
+          .isInstanceOf(ConnectorException.class)
+          .hasMessageContaining("Content type is unset")
+          .hasMessageContaining("https://example.com/document");
+    }
+
+    @Test
+    void dropsReasoningContentFromAForeignProvider() {
+      final var payload = Map.<String, Object>of("type", "reasoning", "id", "rs_1");
+
+      final var blocks =
+          converter.toContentBlockParams(
+              List.of(new ReasoningContent("openai", payload, null, null)));
+
+      assertThat(blocks).isEmpty();
+    }
+
+    @Test
+    void dropsProviderContentFromAForeignProvider() {
+      final var payload = Map.<String, Object>of("type", "web_search_call", "id", "ws_1");
+
+      final var blocks =
+          converter.toContentBlockParams(List.of(new ProviderContent("openai", payload, null)));
+
+      assertThat(blocks).isEmpty();
+    }
+
+    @Test
     void mapsMultipleContentItemsInOrder() {
       final var doc = mockDocument("image/png", "QUJD");
       final List<Content> content =
@@ -224,27 +261,20 @@ class AnthropicContentConverterTest {
     }
 
     @Test
-    void mapsImageDocumentToImageBlock() {
+    void mapsDocumentContentToTextBlockReference() {
+      // never embedded natively here, regardless of content type - the composer's synthetic
+      // <doc/> fallback message already delivers the actual bytes for tool results, so this
+      // renders the same JSON reference ObjectContent would, avoiding a double-send
       final var doc = mockDocument("image/jpeg", "QUJD");
 
       final var blocks = converter.toToolResultBlocks(List.of(new DocumentContent(doc, null)));
 
       assertThat(blocks).hasSize(1);
-      assertThat(blocks.get(0).isImage()).isTrue();
-      assertThat(blocks.get(0).image().orElseThrow().source().base64().orElseThrow().data())
-          .isEqualTo("QUJD");
-    }
-
-    @Test
-    void mapsPdfDocumentToDocumentBlock() {
-      final var doc = mockDocument("application/pdf", "UERGQ09OVEVOVA==");
-
-      final var blocks = converter.toToolResultBlocks(List.of(new DocumentContent(doc, null)));
-
-      assertThat(blocks).hasSize(1);
-      assertThat(blocks.get(0).isDocument()).isTrue();
-      assertThat(blocks.get(0).document().orElseThrow().source().asBase64().data())
-          .isEqualTo("UERGQ09OVEVOVA==");
+      assertThat(blocks.get(0).isText()).isTrue();
+      assertThat(blocks.get(0).text().orElseThrow().text())
+          .isEqualTo(
+              "{\"url\":\"https://example.com/document\",\"name\":\"document\","
+                  + "\"camunda.document.type\":\"external\"}");
     }
 
     @Test
@@ -255,16 +285,6 @@ class AnthropicContentConverterTest {
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isText()).isTrue();
       assertThat(blocks.get(0).text().orElseThrow().text()).isEqualTo("{\"a\":1}");
-    }
-
-    @Test
-    void throwsForUnsupportedDocumentContentType() {
-      final var doc = mockDocument("application/zip", "UEsDBA==");
-
-      assertThatThrownBy(
-              () -> converter.toToolResultBlocks(List.of(new DocumentContent(doc, null))))
-          .isInstanceOf(ConnectorException.class)
-          .hasMessageContaining("application/zip");
     }
 
     @Test

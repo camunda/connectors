@@ -1,0 +1,506 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses;
+
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.core.ObjectMappers;
+import com.openai.models.responses.Response;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
+import io.camunda.connector.api.error.ConnectorException;
+import java.time.Duration;
+import java.util.Map;
+import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.api.Test;
+
+/**
+ * {@link Response} and its output items are response-side vendor SDK models: their generated {@code
+ * Builder}s require every field (including the ones exposed as {@code Optional} on the read side)
+ * to be set explicitly, which makes them impractical for hand-assembling test fixtures.
+ * Deserializing a small JSON fixture via the SDK's own {@link ObjectMappers#jsonMapper()} (the
+ * approach the SDK itself uses to build these objects from the wire) is far less brittle, so all
+ * fixtures here go through that path instead of the builders.
+ */
+class OpenAiResponsesResponseConverterTest {
+
+  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final OpenAiResponsesResponseConverter converter =
+      new OpenAiResponsesResponseConverter(objectMapper);
+
+  private static Response responseFromJson(String json) {
+    try {
+      return ObjectMappers.jsonMapper().readValue(json, Response.class);
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("Failed to parse test fixture JSON", e);
+    }
+  }
+
+  private static Response baseResponse(String outputJson) {
+    return baseResponse(outputJson, "null");
+  }
+
+  private static Response baseResponse(String outputJson, String usageJson) {
+    return responseFromJson(
+        """
+        {
+          "id": "resp_123",
+          "object": "response",
+          "created_at": 0,
+          "model": "gpt-5",
+          "output": %s,
+          "parallel_tool_calls": true,
+          "tool_choice": "auto",
+          "tools": [],
+          "usage": %s
+        }
+        """
+            .formatted(outputJson, usageJson));
+  }
+
+  private static Response truncatedResponse() {
+    return responseFromJson(
+        """
+        {
+          "id": "resp_1", "object": "response", "created_at": 0, "model": "gpt-5",
+          "status": "incomplete",
+          "incomplete_details": {"reason": "max_output_tokens"},
+          "output": [], "parallel_tool_calls": true, "tool_choice": "auto", "tools": []
+        }
+        """);
+  }
+
+  private static Response contentFilteredResponse() {
+    return responseFromJson(
+        """
+        {
+          "id": "resp_2", "object": "response", "created_at": 0, "model": "gpt-5",
+          "status": "incomplete",
+          "incomplete_details": {"reason": "content_filter"},
+          "output": [], "parallel_tool_calls": true, "tool_choice": "auto", "tools": []
+        }
+        """);
+  }
+
+  private static Response responseWithReasoning() {
+    return baseResponse(
+        """
+        [
+          {
+            "type": "reasoning",
+            "id": "rs_1",
+            "summary": [{"type": "summary_text", "text": "Thinking about it"}],
+            "encrypted_content": "encrypted-blob"
+          }
+        ]
+        """);
+  }
+
+  @Test
+  void mapsOutputTextItemToTextContent() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_1",
+                "role": "assistant",
+                "status": "completed",
+                "content": [
+                  {"type": "output_text", "text": "Hello there", "annotations": []}
+                ]
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result).isInstanceOf(ChatResult.Completed.class);
+    assertThat(result.assistantMessage().content())
+        .containsExactly(TextContent.textContent("Hello there"));
+    assertThat(result.assistantMessage().toolCalls()).isEmpty();
+    assertThat(result.assistantMessage().messageId()).isEqualTo("msg_1");
+    assertThat(result.assistantMessage().modelId()).isEqualTo("gpt-5");
+    assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.STOP);
+  }
+
+  @Test
+  void throwsContentFilteredExceptionForRefusal() {
+    assertThatThrownBy(() -> converter.toResult(responseWithRefusal(), Duration.ofMillis(100)))
+        .isInstanceOfSatisfying(
+            ContentFilteredException.class,
+            e -> {
+              assertThat(e.partialResult()).isNotNull();
+              final var assistantMessage = e.partialResult().assistantMessage();
+              assertThat(assistantMessage.content())
+                  .containsExactly(TextContent.textContent("I can't help with that."));
+              assertThat(assistantMessage.toolCalls()).isEmpty();
+            });
+  }
+
+  private static Response responseWithRefusal() {
+    return baseResponse(
+        """
+        [
+          {
+            "type": "message",
+            "id": "msg_1",
+            "role": "assistant",
+            "status": "completed",
+            "content": [
+              {"type": "refusal", "refusal": "I can't help with that."}
+            ]
+          }
+        ]
+        """);
+  }
+
+  @Test
+  void mapsFunctionCallItemToToolCall() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "function_call",
+                "id": "fc_1",
+                "call_id": "call_1",
+                "name": "get_weather",
+                "arguments": "{\\"city\\":\\"Berlin\\"}",
+                "status": "completed"
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().toolCalls())
+        .containsExactly(
+            ToolCall.builder()
+                .id("call_1")
+                .name("get_weather")
+                .arguments(Map.of("city", "Berlin"))
+                .build());
+    assertThat(result.assistantMessage().content()).isEmpty();
+    assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.TOOL_USE);
+  }
+
+  @Test
+  void mapsReasoningItemToReasoningContentWithProviderPayload() {
+    final ChatResult result = converter.toResult(responseWithReasoning(), Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content()).hasSize(1);
+    final ReasoningContent reasoningContent =
+        (ReasoningContent) result.assistantMessage().content().get(0);
+
+    // the summary text is lifted out into text(), mirroring the Anthropic sibling's thinking
+    // handling, so it isn't persisted twice
+    assertThat(reasoningContent.text()).contains("Thinking about it");
+
+    @SuppressWarnings("unchecked")
+    final Map<String, Object> payload = (Map<String, Object>) reasoningContent.payload();
+    assertThat(payload).containsEntry("id", "rs_1");
+    assertThat(payload).containsEntry("type", "reasoning");
+    assertThat(payload).containsEntry("encrypted_content", "encrypted-blob");
+    assertThat(payload).doesNotContainKey("summary");
+  }
+
+  @Test
+  void mapsReasoningItemWithoutSummaryPreservesRawPayload() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {"type": "reasoning", "id": "rs_2", "summary": []}
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    final ReasoningContent reasoningContent =
+        (ReasoningContent) result.assistantMessage().content().get(0);
+
+    @SuppressWarnings("unchecked")
+    final Map<String, Object> payload = (Map<String, Object>) reasoningContent.payload();
+    assertThat(payload).containsEntry("id", "rs_2");
+  }
+
+  @Test
+  void liftsMultiEntrySummaryTextButLeavesPayloadSummaryUntouched() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "reasoning",
+                "id": "rs_3",
+                "summary": [
+                  {"type": "summary_text", "text": "First part"},
+                  {"type": "summary_text", "text": "Second part"}
+                ],
+                "encrypted_content": "encrypted-blob"
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    final ReasoningContent reasoningContent =
+        (ReasoningContent) result.assistantMessage().content().get(0);
+
+    // two entries can't be losslessly reconstructed from a single joined text() string, so text()
+    // is a duplicated convenience copy and the original summary array is kept in the payload
+    assertThat(reasoningContent.text()).isEqualTo("First part\nSecond part");
+
+    @SuppressWarnings("unchecked")
+    final Map<String, Object> payload = (Map<String, Object>) reasoningContent.payload();
+    assertThat(payload).containsKey("summary");
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void buildsReasoningPayloadWithTheSdkObjectMapper() {
+    // Guards the pilot's real bug: using the connector's own Jackson ObjectMapper (rather than the
+    // SDK's own com.openai.core.ObjectMappers#jsonMapper()) to serialize the raw item leaked a
+    // spurious "valid":true property (the Kotlin-generated isValid() property) onto the wire during
+    // a real-API run. This must never come back.
+    final var content =
+        converter
+            .toResult(responseWithReasoning(), Duration.ofMillis(100))
+            .assistantMessage()
+            .content();
+
+    assertThat(content)
+        .filteredOn(ReasoningContent.class::isInstance)
+        .singleElement()
+        .satisfies(
+            c ->
+                assertThat((Map<String, Object>) ((ReasoningContent) c).payload())
+                    .containsKey("encrypted_content")
+                    .doesNotContainKey("valid"));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void mapsWebSearchAndCodeInterpreterItemsToProviderContent() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "web_search_call",
+                "id": "ws_1",
+                "status": "completed",
+                "action": {"type": "search", "query": "weather berlin"}
+              },
+              {
+                "type": "code_interpreter_call",
+                "id": "ci_1",
+                "status": "completed",
+                "container_id": "container_1"
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    final var content = result.assistantMessage().content();
+    assertThat(content).hasSize(2);
+
+    final ProviderContent webSearchContent = (ProviderContent) content.get(0);
+    assertThat(webSearchContent.provider()).isEqualTo("openai");
+    assertThat((Map<String, Object>) webSearchContent.payload())
+        .containsEntry("id", "ws_1")
+        .containsEntry("type", "web_search_call");
+
+    final ProviderContent codeInterpreterContent = (ProviderContent) content.get(1);
+    assertThat(codeInterpreterContent.provider()).isEqualTo("openai");
+    assertThat((Map<String, Object>) codeInterpreterContent.payload())
+        .containsEntry("id", "ci_1")
+        .containsEntry("type", "code_interpreter_call");
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void capturesUnknownOutputItemAsProviderContent() {
+    // file_search_call is a recognized ResponseOutputItem variant that the converter does not
+    // explicitly branch on, exercising the faithfulness fallback for any output item kind not
+    // handled by name (whether genuinely unknown to this SDK version, or simply not yet mapped).
+    final Response response =
+        baseResponse(
+            """
+            [
+              {"type": "file_search_call", "id": "fs_1", "status": "completed", "queries": []}
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    final var content = result.assistantMessage().content();
+    assertThat(content).hasSize(1);
+
+    final ProviderContent providerContent = (ProviderContent) content.get(0);
+    assertThat(providerContent.provider()).isEqualTo("openai");
+    assertThat((Map<String, Object>) providerContent.payload())
+        .containsEntry("type", "file_search_call")
+        .containsEntry("id", "fs_1");
+    assertThat(result.assistantMessage().toolCalls()).isEmpty();
+  }
+
+  @Test
+  void mapsStringModelIdToModelId() {
+    final Response response =
+        responseFromJson(
+            """
+            {
+              "id": "resp_456",
+              "object": "response",
+              "created_at": 0,
+              "model": "my-custom-fine-tuned-model",
+              "output": [],
+              "parallel_tool_calls": true,
+              "tool_choice": "auto",
+              "tools": [],
+              "usage": null
+            }
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(10));
+
+    assertThat(result.assistantMessage().modelId()).isEqualTo("my-custom-fine-tuned-model");
+  }
+
+  @Test
+  void mapsUsageToTokenUsageAndReturnsCompleted() {
+    final Response response =
+        baseResponse(
+            "[]",
+            """
+            {
+              "input_tokens": 100,
+              "output_tokens": 50,
+              "total_tokens": 150,
+              "input_tokens_details": {"cached_tokens": 20},
+              "output_tokens_details": {"reasoning_tokens": 10}
+            }
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(250));
+
+    assertThat(result).isInstanceOf(ChatResult.Completed.class);
+
+    final AgentMetrics metrics = result.metrics();
+    assertThat(metrics.modelCalls()).isEqualTo(1);
+    assertThat(metrics.toolCalls()).isZero();
+    assertThat(metrics.executionTime()).isEqualTo(Duration.ofMillis(250));
+    // input_tokens (100) includes the 20 cached tokens; inputTokenCount must exclude them so it
+    // reflects only new, non-cached input tokens (see AgentMetrics.TokenUsage javadoc).
+    assertThat(metrics.tokenUsage().inputTokenCount()).isEqualTo(80);
+    assertThat(metrics.tokenUsage().outputTokenCount()).isEqualTo(50);
+    assertThat(metrics.tokenUsage().cacheReadTokenCount()).isEqualTo(20);
+    assertThat(metrics.tokenUsage().reasoningTokenCount()).isEqualTo(10);
+  }
+
+  @Test
+  void returnsEmptyTokenUsageWhenUsageAbsent() {
+    final Response response = baseResponse("[]");
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(10));
+
+    assertThat(result.metrics().tokenUsage()).isEqualTo(AgentMetrics.TokenUsage.empty());
+  }
+
+  @Test
+  void mapsTruncatedResponseToLengthWithoutThrowing() {
+    final ChatResult result = converter.toResult(truncatedResponse(), Duration.ofSeconds(1));
+
+    assertThat(result).isInstanceOf(ChatResult.Completed.class);
+    assertThat(((ChatResult.Completed) result).assistantMessage().stopReason())
+        .isEqualTo(StopReason.LENGTH);
+  }
+
+  @Test
+  void throwsContentFilteredExceptionForContentFilteredResponse() {
+    assertThatThrownBy(() -> converter.toResult(contentFilteredResponse(), Duration.ofSeconds(1)))
+        .isInstanceOfSatisfying(
+            ContentFilteredException.class, e -> assertThat(e.partialResult()).isNotNull());
+  }
+
+  @Test
+  void throwsConnectorExceptionOnFailedResponse() {
+    final Response response =
+        responseFromJson(
+            """
+            {
+              "id": "resp_failed", "object": "response", "created_at": 0, "model": "gpt-5",
+              "status": "failed",
+              "error": {"code": "server_error", "message": "the model produced no output"},
+              "output": [], "parallel_tool_calls": true, "tool_choice": "auto", "tools": []
+            }
+            """);
+
+    assertThatThrownBy(() -> converter.toResult(response, Duration.ofSeconds(1)))
+        .asInstanceOf(InstanceOfAssertFactories.type(ConnectorException.class))
+        .satisfies(
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
+              assertThat(e.getMessage())
+                  .isEqualTo("OpenAI response failed: server_error: the model produced no output");
+            });
+  }
+
+  @Test
+  void stampsTimestampAndRawIncompleteDetailsReasonMetadata() {
+    final ChatResult result = converter.toResult(truncatedResponse(), Duration.ofSeconds(1));
+
+    assertThat(result.assistantMessage().metadata())
+        .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY)
+        .containsEntry("openai", Map.of("responseId", "resp_1", "stopReason", "max_output_tokens"));
+  }
+
+  @Test
+  void stampsTimestampAndRawStatusMetadataWhenNoIncompleteDetails() {
+    final Response response =
+        responseFromJson(
+            """
+            {
+              "id": "resp_status", "object": "response", "created_at": 0, "model": "gpt-5",
+              "status": "completed",
+              "output": [], "parallel_tool_calls": true, "tool_choice": "auto", "tools": []
+            }
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(10));
+
+    assertThat(result.assistantMessage().metadata())
+        .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY)
+        .containsEntry("openai", Map.of("responseId", "resp_status", "stopReason", "completed"));
+  }
+
+  @Test
+  void stampsResponseIdWithoutStopReasonWhenNoneAvailable() {
+    final Response response = baseResponse("[]");
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(10));
+
+    assertThat(result.assistantMessage().metadata())
+        .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY)
+        .containsEntry("openai", Map.of("responseId", "resp_123"));
+  }
+}

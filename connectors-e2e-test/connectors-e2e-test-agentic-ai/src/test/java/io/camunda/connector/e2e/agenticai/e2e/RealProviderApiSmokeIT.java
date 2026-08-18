@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.BpmnUtil;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
@@ -45,6 +46,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
@@ -70,7 +72,8 @@ import org.springframework.core.io.ResourceLoader;
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=false",
       "camunda.connector.polling.enabled=false",
-      "camunda.connector.agenticai.tools.process-definition.cache.enabled=false"
+      "camunda.connector.agenticai.tools.process-definition.cache.enabled=false",
+      "logging.level.io.camunda.connector.agenticai=TRACE"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -138,8 +141,7 @@ class RealProviderApiSmokeIT {
     STRUCTURED_OUTPUT,
     REASONING,
     PROMPT_CACHING,
-    MULTIMODAL_USER_MESSAGE,
-    MULTIMODAL_TOOL_RESULT
+    MULTIMODAL_USER_MESSAGE
   }
 
   /**
@@ -252,6 +254,39 @@ class RealProviderApiSmokeIT {
         true);
   }
 
+  // Always targets the openai-api backend, mirroring anthropicApi above.
+  static Provider openAiCompletionsApi(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return openAiApi("completions", model, capabilityProperties);
+  }
+
+  static Provider openAiResponsesApi(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return openAiApi("responses", model, capabilityProperties);
+  }
+
+  private static Provider openAiApi(
+      String family, String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new Provider(
+        "openai-api/" + family + "/" + model,
+        List.of("OPENAI_API_KEY"),
+        Map.of(
+            "provider.type",
+            "openai",
+            "provider.openai.backend.type",
+            "openai-api",
+            "provider.openai.backend.openai.apiKey",
+            envOrPlaceholder("OPENAI_API_KEY"),
+            "provider.openai.api.type",
+            family,
+            "provider.openai.model.model",
+            model),
+        capabilityProperties,
+        // OpenAI reports a cache-read token count but no distinct cache-creation (write) metric
+        // for either API family, unlike Anthropic.
+        false);
+  }
+
   static Stream<Provider> providers() {
     return Stream.of(
             // claude-sonnet-4-6 only supports thinking mode "enabled" (explicit budget) — the model
@@ -261,7 +296,6 @@ class RealProviderApiSmokeIT {
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING,
                         Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
                     Capability.REASONING,
@@ -276,7 +310,6 @@ class RealProviderApiSmokeIT {
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING,
                         Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
                     Capability.REASONING,
@@ -291,13 +324,41 @@ class RealProviderApiSmokeIT {
                 "claude-sonnet-5",
                 Map.of(
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING,
                         Map.of("provider.anthropic.model.parameters.promptCaching.enabled", "true"),
                     Capability.REASONING,
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",
-                            "provider.anthropic.model.parameters.effort", "high"))))
+                            "provider.anthropic.model.parameters.effort", "high"))),
+            // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
+            // domain block in addition to reasoning_tokens, so REASONING is exercisable here.
+            openAiResponsesApi(
+                "gpt-5.5",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
+                    Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
+            // REASONING omitted: Completions never returns a ReasoningContent block to assert on.
+            openAiCompletionsApi(
+                "gpt-5.5",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
+            // An older model, on both API families, for completeness.
+            openAiResponsesApi(
+                "gpt-4.1",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
+            openAiCompletionsApi(
+                "gpt-4.1",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())))
         .filter(Provider::isEnabled);
   }
 
@@ -315,10 +376,6 @@ class RealProviderApiSmokeIT {
 
   static Stream<Provider> providersWithMultimodalUserMessage() {
     return providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE));
-  }
-
-  static Stream<Provider> providersWithMultimodalToolResult() {
-    return providers().filter(p -> p.supports(Capability.MULTIMODAL_TOOL_RESULT));
   }
 
   private static String envOrPlaceholder(String envVar) {
@@ -525,7 +582,7 @@ class RealProviderApiSmokeIT {
   }
 
   @ParameterizedTest(name = "{0}")
-  @MethodSource("providersWithMultimodalToolResult")
+  @MethodSource("providersWithMultimodalUserMessage")
   void documentInToolResultIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
     stubPdfDownloads();
 
@@ -582,8 +639,9 @@ class RealProviderApiSmokeIT {
     try {
       var templateFile = template.writeTo(new File(tempDir, "template.json"));
       var bpmnFile = resourceLoader.getResource(bpmnResource).getFile();
-      return new BpmnFile(bpmnFile)
-          .apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
+      var modelInstance =
+          new BpmnFile(bpmnFile).apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
+      return BpmnUtil.withAgentDefinitionMarker(modelInstance, "AI_Agent", "aiAgentSubProcess");
     } catch (Exception e) {
       throw new RuntimeException("Failed to build BPMN model for " + provider.label(), e);
     }
@@ -606,41 +664,49 @@ class RealProviderApiSmokeIT {
         .join();
   }
 
+  /**
+   * Waits for the process instance to complete, capturing its response, then asserts on it exactly
+   * once. Deliberately not a single {@code hasVariableSatisfies} chain with the assertions inside:
+   * that treats the whole consumer as a polling predicate, so an assertion failure in it is retried
+   * for the full {@link #PROCESS_TIMEOUT} even though the instance is already completed and its
+   * variable is fixed -- retrying can't change either. The {@code hasVariableSatisfies} lambda here
+   * only captures the deserialized response; {@code assertions} runs once it returns.
+   */
   private void assertAgentResponse(
       ProcessInstanceEvent instance, ThrowingConsumer<AgentSubProcessResponse> assertions) {
+    final var responseRef = new AtomicReference<AgentSubProcessResponse>();
     assertThat(instance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
         .hasVariableSatisfies(
             AGENT_RESPONSE_VARIABLE,
             Map.class,
-            map -> {
-              var response = objectMapper.convertValue(map, AgentSubProcessResponse.class);
-              assertions.accept(response);
-            });
+            map -> responseRef.set(objectMapper.convertValue(map, AgentSubProcessResponse.class)));
+
+    Assertions.assertThat(responseRef.get()).satisfies(assertions);
   }
 
   /**
-   * Asserts substrings on the agent's {@code responseText} read directly from the raw output map,
-   * without deserializing the whole response - the multimodal scenario's persisted agent context
-   * contains a {@link io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent}
-   * whose abstract {@code Document} the plain test ObjectMapper cannot reconstruct.
+   * Same completion-wait/one-shot-assertion split as {@link #assertAgentResponse}, but reads {@code
+   * responseText} directly off the raw output map instead of deserializing the whole response: the
+   * multimodal scenario's persisted agent context contains a {@link
+   * io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent} whose abstract
+   * {@code Document} the plain test {@code ObjectMapper} (no document-deserialization module
+   * registered) cannot reconstruct, so going through {@link AgentSubProcessResponseAssert} here
+   * isn't an option.
    */
   private void assertResponseTextContains(
       ProcessInstanceEvent instance, String... expectedSubstrings) {
+    final var responseTextRef = new AtomicReference<String>();
     assertThat(instance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
         .hasVariableSatisfies(
             AGENT_RESPONSE_VARIABLE,
             Map.class,
-            map -> {
-              final var responseText = String.valueOf(map.get("responseText"));
-              final var textAssert = Assertions.assertThat(responseText);
-              for (final String expected : expectedSubstrings) {
-                textAssert.contains(expected);
-              }
-            });
+            map -> responseTextRef.set(String.valueOf(map.get("responseText"))));
+
+    Assertions.assertThat(responseTextRef.get()).contains(expectedSubstrings);
   }
 
   private void stubPdfDownloads() {

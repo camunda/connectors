@@ -15,8 +15,12 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -30,10 +34,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
-import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
@@ -43,7 +45,9 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -238,9 +242,7 @@ public abstract class BaseAgentRequestHandler<
 
       final var windowedSnapshot =
           workingConversation.window(agentConfiguration.contextWindowSize());
-      final var chatResult = chatModel.execute(new ChatRequest(executionContext, windowedSnapshot));
-
-      throwIfTerminalStopReason(chatResult.assistantMessage());
+      final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
 
       workingConversation =
           workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
@@ -264,17 +266,56 @@ public abstract class BaseAgentRequestHandler<
     return workingConversation;
   }
 
-  private void throwIfTerminalStopReason(AssistantMessage assistantMessage) {
-    if (assistantMessage.stopReason() == StopReason.CONTENT_FILTERED) {
-      throw new ConnectorException(
-          AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
-          "Model response was blocked by provider content filtering.");
+  /**
+   * Calls the chat model, translating a {@link ChatModelRejectedException} - thrown directly by the
+   * provider when it recognizes a known, unrecoverable-for-now condition - into the equivalent
+   * coded {@link ConnectorException}. Exhaustive over the sealed hierarchy, so a future subtype
+   * fails to compile here until handled.
+   */
+  private ChatResult executeChatModel(
+      ChatModel chatModel, AgentExecutionContext executionContext, ConversationSnapshot snapshot) {
+    try {
+      return chatModel.execute(new ChatRequest(executionContext, snapshot));
+    } catch (ChatModelRejectedException e) {
+      throw switch (e) {
+        case ContentFilteredException cfe ->
+            new ConnectorException(
+                AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
+                cfe.getMessage(),
+                cfe,
+                rejectionErrorVariables(cfe));
+        case ContextWindowExceededException cwe ->
+            new ConnectorException(
+                AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED,
+                cwe.getMessage(),
+                cwe,
+                rejectionErrorVariables(cwe));
+      };
     }
-    if (assistantMessage.stopReason() == StopReason.CONTEXT_WINDOW_EXCEEDED) {
-      throw new ConnectorException(
-          AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED,
-          "Model's context window was exceeded before it could finish generating a response.");
+  }
+
+  /**
+   * Surfaces the stop reason and any text the provider had already produced before the rejection as
+   * a nested {@code rejection} error variable, so a BPMN error boundary event can inspect what the
+   * model was doing when it was cut off. Empty when the provider rejected the request before
+   * producing any partial result at all.
+   */
+  private static Map<String, Object> rejectionErrorVariables(ChatModelRejectedException e) {
+    final var partialResult = e.partialResult();
+    if (partialResult == null) {
+      return Map.of();
     }
+
+    final var assistantMessage = partialResult.assistantMessage();
+    final Map<String, Object> rejection = new LinkedHashMap<>();
+    if (assistantMessage.stopReason() != null) {
+      rejection.put("stopReason", assistantMessage.stopReason().value());
+    }
+    final var text = MessageUtil.contentText(assistantMessage);
+    if (!text.isBlank()) {
+      rejection.put("text", text);
+    }
+    return rejection.isEmpty() ? Map.of() : Map.of("rejection", Map.copyOf(rejection));
   }
 
   private void throwIfLimitsReached(

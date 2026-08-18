@@ -5,6 +5,6 @@
  * except in compliance with the proprietary license.
  */
 @NullMarked
-package io.camunda.connector.agenticai.aiagent.model.request.v2.shared;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import org.jspecify.annotations.NullMarked;

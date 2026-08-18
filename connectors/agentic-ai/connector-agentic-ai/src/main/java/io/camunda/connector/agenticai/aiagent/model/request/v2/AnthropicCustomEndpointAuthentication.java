@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.request.v2.shared;
+package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -15,14 +15,18 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
 /**
- * Authentication strategies shared by "custom"-backend endpoints. Extensible: more schemes can be
- * added later without breaking existing configs.
+ * Authentication strategies for Anthropic's {@code custom}-backend endpoint. Anthropic-compatible
+ * endpoints genuinely support sending no authentication header at all, so {@link NoAuthentication}
+ * is a real option here. Extensible: more schemes can be added later without breaking existing
+ * configs.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-  @JsonSubTypes.Type(value = CustomEndpointAuthentication.NoAuthentication.class, name = "none"),
   @JsonSubTypes.Type(
-      value = CustomEndpointAuthentication.ApiKeyAuthentication.class,
+      value = AnthropicCustomEndpointAuthentication.NoAuthentication.class,
+      name = "none"),
+  @JsonSubTypes.Type(
+      value = AnthropicCustomEndpointAuthentication.ApiKeyAuthentication.class,
       name = "apiKey")
 })
 @TemplateDiscriminatorProperty(
@@ -31,10 +35,10 @@ import jakarta.validation.constraints.NotBlank;
     name = "type",
     defaultValue = "none",
     description = "Authentication for the compatible API.")
-public sealed interface CustomEndpointAuthentication {
+public sealed interface AnthropicCustomEndpointAuthentication {
 
   @TemplateSubType(id = "none", label = "None")
-  record NoAuthentication() implements CustomEndpointAuthentication {}
+  record NoAuthentication() implements AnthropicCustomEndpointAuthentication {}
 
   @TemplateSubType(id = "apiKey", label = "API key")
   record ApiKeyAuthentication(
@@ -46,7 +50,7 @@ public sealed interface CustomEndpointAuthentication {
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String apiKey)
-      implements CustomEndpointAuthentication {
+      implements AnthropicCustomEndpointAuthentication {
 
     @Override
     public String toString() {

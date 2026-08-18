@@ -39,8 +39,11 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -689,22 +692,22 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
-    final var filteredAssistantMessage =
-        AssistantMessage.builder().stopReason(StopReason.CONTENT_FILTERED).build();
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(any()))
-        .thenReturn(new ChatResult.Completed(filteredAssistantMessage, AgentMetrics.empty()));
+        .thenThrow(new ContentFilteredException("blocked by content filtering", null));
 
     assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
         .isInstanceOfSatisfying(
             ConnectorException.class,
-            e ->
-                assertThat(e.getErrorCode())
-                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED));
+            e -> {
+              assertThat(e.getErrorCode())
+                  .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED);
+              assertThat(e.getErrorVariables()).isEmpty();
+            });
 
-    // the guard fires before ingest / history write: THINKING status + input-message history are
-    // sent before the model call, but the assistant-message history write and response handling
-    // never happen
+    // the provider throws before ingest / history write: THINKING status + input-message history
+    // are sent before the model call, but the assistant-message history write and response
+    // handling never happen
     verify(agentInstanceClient, never())
         .createHistoryForAssistantMessage(any(), any(), any(), any());
     verifyNoInteractions(responseHandler);
@@ -717,22 +720,80 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
-    final var truncatedAssistantMessage =
-        AssistantMessage.builder().stopReason(StopReason.CONTEXT_WINDOW_EXCEEDED).build();
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(any()))
-        .thenReturn(new ChatResult.Completed(truncatedAssistantMessage, AgentMetrics.empty()));
+        .thenThrow(new ContextWindowExceededException("context window exceeded", null));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode())
+                  .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED);
+              assertThat(e.getErrorVariables()).isEmpty();
+            });
+
+    verify(agentInstanceClient, never())
+        .createHistoryForAssistantMessage(any(), any(), any(), any());
+    verifyNoInteractions(responseHandler);
+  }
+
+  @Test
+  void surfacesPartialResultAsRejectionErrorVariablesWhenPresent() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var partialAssistantMessage =
+        AssistantMessage.builder()
+            .content(List.of(new TextContent("partial answer before the cutoff", null)))
+            .stopReason(StopReason.of("content_filter"))
+            .build();
+    final var partialResult =
+        new ChatModelRejectedException.PartialResult(
+            partialAssistantMessage, new AgentMetrics(1, TokenUsage.empty(), 0));
+
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(any()))
+        .thenThrow(new ContentFilteredException("blocked by content filtering", partialResult));
 
     assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e ->
-                assertThat(e.getErrorCode())
-                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED));
+                assertThat(e.getErrorVariables())
+                    .isEqualTo(
+                        Map.of(
+                            "rejection",
+                            Map.of(
+                                "stopReason", "content_filter",
+                                "text", "partial answer before the cutoff"))));
+  }
 
-    verify(agentInstanceClient, never())
-        .createHistoryForAssistantMessage(any(), any(), any(), any());
-    verifyNoInteractions(responseHandler);
+  @Test
+  void omitsBlankTextFromRejectionErrorVariables() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var partialAssistantMessage =
+        AssistantMessage.builder().stopReason(StopReason.of("content_filter")).build();
+    final var partialResult =
+        new ChatModelRejectedException.PartialResult(
+            partialAssistantMessage, new AgentMetrics(1, TokenUsage.empty(), 0));
+
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(any()))
+        .thenThrow(new ContentFilteredException("blocked by content filtering", partialResult));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorVariables())
+                    .isEqualTo(Map.of("rejection", Map.of("stopReason", "content_filter"))));
   }
 
   @Test

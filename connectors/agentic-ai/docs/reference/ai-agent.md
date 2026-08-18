@@ -998,7 +998,7 @@ loud rather than resolving implicitly.
 ### Turn-based continuation loop
 
 `BaseAgentRequestHandler.proceed` drives the SPI in a `do { … } while (continued)` loop: each
-iteration calls `chatModel.execute(request)`, enforces the content-filter guard (below), ingests the
+iteration calls `chatModel.execute(request)`, catches `ChatModelRejectedException` (below), ingests the
 assistant message into the turn, and — only if the result was a `Continuation` — checks the
 model-call limit and starts the next continuation round on a fresh turn before looping. A `Completed`
 result ends the loop. LangChain4j always returns `Completed`, so the loop runs exactly once for it —
@@ -1011,13 +1011,17 @@ invocation. The engine applies metric updates additively, so collapsing the roun
 keeps the counters correct while minimizing PATCH round-trips (and narrows the retry double-count
 window pending the API-level idempotency fix).
 
-### Normalized stop reasons & the terminal-stop-reason guard
+### Normalized stop reasons & ChatModelRejectedException
 
-`StopReason` is a sealed, provider-neutral finish reason living on `AssistantMessage`, mostly
-diagnostic. One exception: `BaseAgentRequestHandler.throwIfTerminalStopReason` checks it generically,
-before ingesting the response, and throws a dedicated error code for terminal reasons
-(`CONTENT_FILTERED`, `CONTEXT_WINDOW_EXCEEDED`) rather than every provider reimplementing the guard —
-see [Error Codes](#15-error-codes).
+`StopReason` is a sealed, provider-neutral finish reason on `AssistantMessage`. A provider that
+recognizes an unrecoverable rejection condition throws `ChatModelRejectedException` (a sealed type,
+one concrete subtype per condition) directly, at the point of detection, rather than returning data
+for a caller to inspect. Each subtype carries an optional `PartialResult` — the assistant message
+and metrics already built for the turn, when any exist; a provider that rejects the request before
+producing any content has none. `BaseAgentRequestHandler` catches the sealed type around each
+`chatModel.execute(...)` call and maps it to the matching coded `ConnectorException` (see
+[Error Codes](#15-error-codes)) before ingesting anything, so a rejected turn is never persisted to
+conversation memory.
 
 ### LangChain4j Implementation
 
@@ -1268,7 +1272,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 
 ### Core Agent Logic
 - `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → load + reconstruct → compose → rehydrate → LLM (continuation loop) → ingest → persist → complete
-- `BaseAgentRequestHandler.proceed()` → `do { chatModel.execute() → content-filter guard → ingest → … } while (continued)` — the turn-based continuation loop ([§12](#12-framework-abstraction))
+- `BaseAgentRequestHandler.proceed()` → `do { chatModel.execute() → ChatModelRejectedException handling → ingest → … } while (continued)` — the turn-based continuation loop ([§12](#12-framework-abstraction))
 - `AgentInitializerImpl.initializeAgent()` → State machine / initialization
 - `TurnReconstructor.reconstruct()` → Rebuilds turns + system message from the stored flat message list
 - `AgentConversationTurnInputComposerImpl.compose()` → Turn input assembly (tool results, events, user prompt) → `AgentInput`
@@ -1298,13 +1302,19 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `SystemPromptComposerImpl.compose()` → Aggregates base prompt + contributions
 - `A2aSystemPromptContributor` → A2A protocol instructions (order 100)
 
-### Chat Model SPI & LangChain4j
+### Chat Model SPI
+
 - `ChatModelRegistryImpl.resolve()` → Provider resolution by `ChatModelFactory.supports()`, fail-loud on zero/multiple matches
-- `LangChain4JChatModel.execute()` → Main LLM call path (LangChain4j implementation)
+
+**v1 (LangChain4j-backed)**, all under `aiagent/chatmodel/provider/langchain4j/**`:
+- `LangChain4JChatModel.execute()` → Main LLM call path
 - `ChatMessageConverterImpl` → Message conversion chain
 - `ToolSpecificationConverterImpl` → Tool definition conversion
-- `AnthropicChatModelFactory`, `BedrockChatModelFactory`, `OpenAiChatModelFactory`, `OpenAiCompatibleChatModelFactory`, `AzureOpenAiChatModelFactory`, `GoogleVertexAiChatModelFactory` → Provider-specific `ChatModel` creation (`LangChain4JChatModelFactory` subclasses)
-- `AnthropicChatModelApiFactory` → Native (non-LangChain4J) Anthropic `ChatModel` creation for `AnthropicChatModelConfiguration` (v2, `aiagent/chatmodel/provider/anthropic/**`); `AnthropicChatModelApi.execute()` drives the Anthropic Java SDK's stable Messages client directly
+- `factory.AnthropicChatModelFactory`, `factory.BedrockChatModelFactory`, `factory.OpenAiChatModelFactory`, `factory.OpenAiCompatibleChatModelFactory`, `factory.AzureOpenAiChatModelFactory`, `factory.GoogleVertexAiChatModelFactory` → Provider-specific `ChatModel` creation (`LangChain4JChatModelFactory` subclasses)
+
+**v2 (fully native, no LangChain4j)**, one package per provider under `aiagent/chatmodel/provider/**`:
+- `anthropic.AnthropicChatModelFactory` / `anthropic.AnthropicChatModel.execute()` → Drives the Anthropic Java SDK's stable Messages client directly, for `AnthropicChatModelConfiguration`
+- `openai.OpenAiChatModelFactory` / `openai.OpenAiChatModel.execute()` → Drives the OpenAI Java SDK directly across both wire formats (Chat Completions, Responses) via the per-family `OpenAiApiFamilyStrategy` seam, for `OpenAiChatModelConfiguration`
 
 ### Configuration
 - `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
@@ -1879,73 +1889,56 @@ reference implementation and its wiring for the current exact procedure, and res
 
 ### 25.1 Add an LLM provider
 
-Implement `ChatModelFactory` (`supports(ChatModelConfiguration)` / `create(ChatModelConfiguration)`)
-and register it as a Spring bean; `ChatModelRegistryImpl` auto-collects every `ChatModelFactory` bean
-and routes a request to the single one whose `supports` returns true ([§12](#12-framework-abstraction)).
-A provider going through LangChain4j extends the abstract `LangChain4JChatModelFactory<T extends
-ProviderConfiguration>` (the v1 `ProviderConfiguration`) instead — it only needs to supply
-`providerType()` and `createChatModel(T)`, plus the matching `ProviderConfiguration` subtype
-(`supports`/`create` are already implemented by the
-base class). Reference implementation: `AnthropicChatModelFactory` with
-`AnthropicProviderConfiguration`. The LangChain4j provider package
-(`aiagent/chatmodel/provider/langchain4j/**`) is the only place that may touch `dev.langchain4j`
-(invariant I1); a fully native provider implements `ChatModel`/`ChatModelFactory` directly with its own
-`ChatModelConfiguration` and stays out of that package. Reference implementation for a fully native
-provider: `AnthropicChatModelApiFactory` (`aiagent/chatmodel/provider/anthropic/**`) with
-`AnthropicChatModelConfiguration` (`model/request/v2`) — drives the Anthropic Java SDK's stable
-Messages client directly (no LangChain4J), covering the request/response converter chain, transport,
-reasoning/effort/prompt-caching, and Spring registration end to end.
+**The SPI.** Implement `ChatModelFactory` (`supports(ChatModelConfiguration)` /
+`create(ChatModelConfiguration)`) and register it as a Spring bean; `ChatModelRegistryImpl`
+auto-collects every `ChatModelFactory` bean and routes each request to the one whose `supports`
+returns true ([§12](#12-framework-abstraction)).
 
-**Backend-subtype wrapping convention (v2, mandatory for every new backend).** A v2 provider's
-backend is a sealed interface with one `@TemplateSubType` per backend variant, discriminated by a
-`type` property (see `AnthropicChatModelConfiguration.AnthropicBackend`). The element template
-generator flat-validates that every generated property id is globally unique across the whole
-template — it has no awareness that sibling discriminator subtypes are mutually exclusive, so two
-subtypes with a same-named field (e.g. both an `apiKey`, both an `endpoint`) collide even though only
-one is ever active at a time. The fix, applied uniformly to every subtype including the default: each
-subtype wraps **all** of its own fields inside a single container field, uniquely named for that
-subtype (e.g. `anthropic` for `AnthropicApiBackend`, `custom` for `AnthropicCustomBackend`) — since the
-generator derives a container's id-path prefix purely from the Java field name, this makes every
-subtype's whole subtree collision-proof regardless of what its siblings look like, with no per-leaf
-`id=` overrides needed. The wrapper field name does not need to match the subtype's `@TemplateSubType`
-id verbatim (ids may contain characters, such as `-`, invalid in a Java identifier) — it only needs to
-be distinct from every sibling's wrapper field name. Extract each subtype's discriminator string (the
-`@TemplateSubType` id / `@JsonSubTypes.Type` name / `type()` return value — all the same string) into a
-`public static final String` constant on that subtype's own record, and reference the constant from
-all three places plus the discriminator's `defaultValue`, so the string is defined once. Apply this
-convention to every new v2 provider backend (OpenAI, Gemini, Bedrock, etc.), not just Anthropic's.
+**v1: LangChain4j-backed.** Extend the abstract `LangChain4JChatModelFactory<T extends
+ProviderConfiguration>` (v1's `ProviderConfiguration`) — supply `providerType()` and
+`createChatModel(T)` plus a matching `ProviderConfiguration` subtype; `supports`/`create` are already
+implemented by the base class. Reference: `AnthropicChatModelFactory`
+(`aiagent/chatmodel/provider/langchain4j/factory`) with `AnthropicProviderConfiguration`. Only
+`aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*` (invariant I1).
 
-**Provider-namespaced metadata convention.** Any provider-specific data a converter attaches outside
-a domain object's mapped fields — whether on a content block (`TextContent`/`ToolCall`'s `metadata`,
-see [§5](#5-data-model-agent-context)) or on the message itself (`AssistantMessage#metadata()`, e.g.
-the raw vendor stop reason) — must be nested under a single provider-namespaced key (`"anthropic"`
-for the Anthropic converters), never written as top-level metadata entries. This keeps metadata from
-different providers (and future cross-provider fields) from colliding, and keeps the common,
-nothing-extra-to-preserve case metadata-free. Apply this to every new provider's converters.
+**v2: fully native.** Implement `ChatModel`/`ChatModelFactory` directly with your own
+`ChatModelConfiguration`, staying out of the `langchain4j` package. Reference implementation:
+`AnthropicChatModelFactory` (`aiagent/chatmodel/provider/anthropic`) with
+`AnthropicChatModelConfiguration` (`model/request/v2`); the other native providers under
+`aiagent/chatmodel/provider/**` follow the same shape. A v2 provider without a built-in factory falls
+through to `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/Hybrid
+only): it carries a user-chosen `providerType` (dispatch discriminator), a dedicated `model` field (so
+agent-instance reporting works without digging it out of opaque config), and an opaque `parameters` map
+understood only by your factory. `LangChain4JChatModelFactory` cannot be extended for it — it's bound
+to v1's `ProviderConfiguration`, a different sealed hierarchy — but its building block,
+`LangChain4JChatModel`, is a public, framework-agnostic `ChatModel` wrapper: build your own
+`dev.langchain4j.model.chat.ChatModel`, wrap it in a `CloseableChatModel`, and construct a
+`LangChain4JChatModel` directly if you want to reuse LangChain4j from a v2-native factory. No built-in
+factory ever matches `CustomProviderConfiguration`, so the registry fails with the ordinary "no factory
+registered" error until you register one.
 
-**Stamping `AssistantMessage#metadata()`.** Every response converter must build the assistant
-message's `metadata` map through `AssistantMessageMetadata.withDefaults(providerMetadata)`
-(`aiagent/util`), passing only its own provider-namespaced entries (or `Map.of()` if it has none) as
-`providerMetadata`. The util adds the common `timestamp` entry (when the model responded) so it can't
-be forgotten by a new provider and stays identically shaped across all of them; never call
-`AssistantMessage.builder().metadata(...)` with a raw `Map.of(...)` directly. Reference
-implementations: `AnthropicMessageResponseConverter` (native) and `ChatMessageConverterImpl`
-(LangChain4j).
+Every new v2 provider backend must follow three conventions, regardless of provider:
 
-The v2 request's `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/
-Hybrid only) is the connector-facing entry point for this SPI: it carries a user-chosen `providerType`
-(dispatch discriminator), a dedicated `model` field (so agent-instance history/reporting works without
-digging it out of opaque config), and an opaque `parameters` map understood only by the user's factory.
-To use it, implement `ChatModelFactory` directly, matching your chosen discriminator string inside
-`supports(...)`, and register it as a Spring bean. `LangChain4JChatModelFactory` itself is
-bound to `ProviderConfiguration` and cannot be extended for `CustomProviderConfiguration`, but its
-building block, `LangChain4JChatModel`, is a public, framework-agnostic `ChatModel` wrapper: a custom
-factory that wants to reuse LangChain4J can build its own `dev.langchain4j.model.chat.ChatModel`, wrap it
-in a `CloseableChatModel`, and construct a `LangChain4JChatModel` directly. `ChatModelRegistryImpl` then
-dispatches `CustomProviderConfiguration` requests to the registered factory the
-same way it dispatches any other provider. No built-in factory ever matches `CustomProviderConfiguration`
-— it exists purely so the registry fails with the ordinary "no factory registered" error until the user
-registers one.
+- **Backend-subtype wrapping.** A backend is a sealed interface with one `@TemplateSubType` per
+  variant, discriminated by a `type` property (see `AnthropicChatModelConfiguration.AnthropicBackend`).
+  The template generator only validates property-id uniqueness across the whole template, not per
+  discriminator subtype, so two subtypes with a same-named field (e.g. both an `apiKey`) collide even
+  though only one is ever active. Fix: wrap each subtype's fields inside a single container field
+  uniquely named for that subtype (e.g. `anthropic`, `custom`) — the generator derives the id-path
+  prefix from the Java field name, making the subtree collision-proof with no per-leaf `id=` overrides.
+  Extract each subtype's discriminator string into a `public static final String` constant on its own
+  record, and reference it from the `@TemplateSubType` id, `@JsonSubTypes.Type` name, `type()`, and the
+  discriminator's `defaultValue`.
+- **Provider-namespaced metadata.** Provider-specific data a converter attaches outside a domain
+  object's mapped fields — on a content block's `metadata` ([§5](#5-data-model-agent-context)) or on
+  `AssistantMessage#metadata()` — must nest under a single provider key, never as top-level entries.
+- **Stamping `AssistantMessage#metadata()`.** Build it through
+  `AssistantMessageMetadata.withDefaults(providerMetadata)` (`aiagent/util`), passing only your own
+  provider-namespaced entries (or `Map.of()`); it adds the common `timestamp` entry. Never call
+  `AssistantMessage.builder().metadata(...)` with a raw map directly.
+
+Provider-specific converter/configuration decisions live in [`native-providers.md`](native-providers.md),
+one section per provider, rather than here.
 
 <a id="252-add-a-systempromptcontributor"></a>
 
