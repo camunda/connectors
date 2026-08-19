@@ -9,8 +9,6 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 import com.google.genai.Client;
 import com.google.genai.types.ClientOptions;
 import com.google.genai.types.HttpOptions;
-import com.google.genai.types.ProxyOptions;
-import com.google.genai.types.ProxyType;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
@@ -20,9 +18,13 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelCo
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Optional;
+import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
 import org.jspecify.annotations.Nullable;
 
 public class GeminiChatModelFactory implements ChatModelFactory {
@@ -32,6 +34,22 @@ public class GeminiChatModelFactory implements ChatModelFactory {
    * connector accepts any positive {@link Duration}.
    */
   private static final Duration MAX_GEMINI_TIMEOUT = Duration.ofMillis(Integer.MAX_VALUE);
+
+  /**
+   * The SDK's own default {@link OkHttpClient} (built when no {@code customHttpClient} is supplied)
+   * sets {@code connectTimeout}/{@code readTimeout}/{@code writeTimeout} to zero (unbounded) and
+   * relies solely on {@link HttpOptions#timeout} as an overall {@code callTimeout} -- a hung TCP
+   * connect would otherwise consume the whole, often much longer, configured request budget before
+   * failing. Bounding connect separately, at OkHttp's own upstream default, lets a genuinely
+   * unreachable host fail fast regardless of how generous the configured overall timeout is.
+   *
+   * <p>Supplying a {@code customHttpClient} at all changes {@code ApiClient#createHttpClient}'s
+   * behavior beyond just the timeouts: on that branch, the SDK skips applying {@code
+   * HttpOptions#timeout} and {@code ClientOptions#proxyOptions} entirely and trusts the supplied
+   * client as-is. {@link #buildClient} therefore applies the overall timeout and proxy directly on
+   * this custom client instead of through those SDK options.
+   */
+  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
 
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final GeminiContentRequestConverter requestConverter;
@@ -80,38 +98,55 @@ public class GeminiChatModelFactory implements ChatModelFactory {
     if (endpoint != null) {
       httpOptionsBuilder.baseUrl(endpoint);
     }
+    // Stored for introspection/consistency only -- because a customHttpClient is always supplied
+    // below, the SDK never reads this value itself; okHttpClientBuilder.callTimeout is what
+    // actually enforces the overall timeout.
     if (timeout != null) {
       httpOptionsBuilder.timeout(toGeminiTimeoutMillis(timeout));
     }
 
-    final var clientBuilder =
-        Client.builder().apiKey(googleGeminiApi.apiKey()).httpOptions(httpOptionsBuilder.build());
+    final var okHttpClientBuilder = new OkHttpClient.Builder().connectTimeout(CONNECT_TIMEOUT);
+    if (timeout != null) {
+      okHttpClientBuilder.callTimeout(Duration.ofMillis(toGeminiTimeoutMillis(timeout)));
+    }
 
     final String scheme =
         Optional.ofNullable(endpoint).map(e -> URI.create(e).getScheme()).orElse(null);
     httpProxySupport
         .getProxyConfiguration()
         .getProxyDetails(scheme != null ? scheme : ProxyConfiguration.SCHEME_HTTPS)
-        .ifPresent(
-            proxyDetails ->
-                clientBuilder.clientOptions(
-                    ClientOptions.builder().proxyOptions(toProxyOptions(proxyDetails)).build()));
+        .ifPresent(proxyDetails -> applyProxy(okHttpClientBuilder, proxyDetails));
 
-    return clientBuilder.build();
+    return Client.builder()
+        .apiKey(googleGeminiApi.apiKey())
+        .httpOptions(httpOptionsBuilder.build())
+        .clientOptions(
+            ClientOptions.builder().customHttpClient(okHttpClientBuilder.build()).build())
+        .build();
   }
 
-  private static ProxyOptions toProxyOptions(ProxyConfiguration.ProxyDetails proxyDetails) {
-    final var builder =
-        ProxyOptions.builder()
-            .type(ProxyType.Known.HTTP)
-            .host(proxyDetails.host())
-            .port(proxyDetails.port());
+  /** Only HTTP proxies are supported today; matches what this connector's proxy support offers. */
+  private static void applyProxy(
+      OkHttpClient.Builder builder, ProxyConfiguration.ProxyDetails proxyDetails) {
+    builder.proxy(
+        new Proxy(
+            Proxy.Type.HTTP, new InetSocketAddress(proxyDetails.host(), proxyDetails.port())));
 
     if (proxyDetails.hasCredentials()) {
-      builder.username(proxyDetails.user()).password(proxyDetails.password());
+      final String credential = Credentials.basic(proxyDetails.user(), proxyDetails.password());
+      // Only answers a proxy's 407 challenge once per request: if the prior attempt already
+      // carried this header, OkHttp calls the authenticator again because the proxy rejected it a
+      // second time, and returning the same credential again would retry forever.
+      builder.proxyAuthenticator(
+          (route, response) ->
+              response.request().header("Proxy-Authorization") != null
+                  ? null
+                  : response
+                      .request()
+                      .newBuilder()
+                      .header("Proxy-Authorization", credential)
+                      .build());
     }
-
-    return builder.build();
   }
 
   /**

@@ -29,9 +29,11 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelCo
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
+import okhttp3.Authenticator;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -150,7 +152,12 @@ class GeminiChatModelFactoryTest {
   }
 
   @Test
-  void createWiresProxyOptionsWhenProxyConfigured() {
+  void createAppliesProxyDirectlyToTheCustomHttpClient() {
+    // Applied directly to the OkHttp client we own, not via ClientOptions.proxyOptions() -
+    // supplying a customHttpClient (required for the connect timeout) makes the SDK skip applying
+    // that option entirely, see GeminiChatModelFactory#buildClient's javadoc on CONNECT_TIMEOUT.
+    // GeminiChatModelFactoryClientTest exercises the real wire behavior (address + credentials)
+    // end to end; this only checks that the client we hand the SDK is configured at all.
     when(httpProxySupport.getProxyConfiguration()).thenReturn(proxyConfiguration);
     when(proxyConfiguration.getProxyDetails(any()))
         .thenReturn(
@@ -160,20 +167,48 @@ class GeminiChatModelFactoryTest {
 
     final ChatModel model = factory.create(apiConfig(null, null));
 
-    final ApiClient apiClient = apiClientOf(model);
-    @SuppressWarnings("unchecked")
-    final Optional<ClientOptions> clientOptions =
-        (Optional<ClientOptions>) ReflectionTestUtils.getField(apiClient, "clientOptions");
-
-    assertThat(clientOptions).isPresent();
-    final var proxyOptions = clientOptions.get().proxyOptions();
-    assertThat(proxyOptions).isPresent();
-    assertThat(proxyOptions.get().host()).contains("proxy.example.com");
-    assertThat(proxyOptions.get().port()).contains(8080);
-    assertThat(proxyOptions.get().username()).contains("proxy-user");
-    assertThat(proxyOptions.get().password()).contains("proxy-pass");
+    final var customHttpClient = clientOptionsOf(model).orElseThrow().customHttpClient();
+    assertThat(customHttpClient).isPresent();
+    final var proxyAddress = (InetSocketAddress) customHttpClient.get().proxy().address();
+    assertThat(proxyAddress.getHostString()).isEqualTo("proxy.example.com");
+    assertThat(proxyAddress.getPort()).isEqualTo(8080);
+    assertThat(customHttpClient.get().proxyAuthenticator()).isNotEqualTo(Authenticator.NONE);
 
     verify(proxyConfiguration).getProxyDetails(ProxyConfiguration.SCHEME_HTTPS);
+
+    model.close();
+  }
+
+  @Test
+  void createOmitsProxyAuthenticatorWhenProxyHasNoCredentials() {
+    when(httpProxySupport.getProxyConfiguration()).thenReturn(proxyConfiguration);
+    when(proxyConfiguration.getProxyDetails(any()))
+        .thenReturn(
+            Optional.of(
+                new ProxyConfiguration.ProxyDetails(
+                    "https", "proxy.example.com", 8080, null, null)));
+
+    final ChatModel model = factory.create(apiConfig(null, null));
+
+    final var customHttpClient = clientOptionsOf(model).orElseThrow().customHttpClient();
+    assertThat(customHttpClient.get().proxyAuthenticator()).isEqualTo(Authenticator.NONE);
+
+    model.close();
+  }
+
+  @Test
+  void createSetsConnectTimeoutIndependentlyOfOverallTimeout() {
+    noProxyConfigured();
+
+    // The overall (callTimeout) timeout is deliberately left unset here: connect timeout must be
+    // wired even when no overall timeout is configured at all.
+    final ChatModel model = factory.create(apiConfig(null, null));
+
+    final Optional<ClientOptions> clientOptions = clientOptionsOf(model);
+    assertThat(clientOptions).isPresent();
+    final var customHttpClient = clientOptions.get().customHttpClient();
+    assertThat(customHttpClient).isPresent();
+    assertThat(customHttpClient.get().connectTimeoutMillis()).isEqualTo(10_000);
 
     model.close();
   }
@@ -193,6 +228,12 @@ class GeminiChatModelFactoryTest {
 
   private static HttpOptions httpOptionsOf(ChatModel model) {
     return apiClientOf(model).httpOptions();
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Optional<ClientOptions> clientOptionsOf(ChatModel model) {
+    return (Optional<ClientOptions>)
+        ReflectionTestUtils.getField(apiClientOf(model), "clientOptions");
   }
 
   private static GeminiChatModelConfiguration apiConfig(
