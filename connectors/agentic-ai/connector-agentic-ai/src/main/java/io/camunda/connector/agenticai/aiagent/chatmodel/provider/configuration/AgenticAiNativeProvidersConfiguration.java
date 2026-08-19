@@ -15,7 +15,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.Bedrock
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseResponseConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.FoundryCredentialCache;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
@@ -67,9 +67,9 @@ public class AgenticAiNativeProvidersConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public FoundryCredentialCache aiAgentFoundryCredentialCache(
+  public FoundryCredentialResolver aiAgentFoundryCredentialResolver(
       AgenticAiConnectorsConfigurationProperties configuration) {
-    return new FoundryCredentialCache(
+    return new FoundryCredentialResolver(
         configuration.aiagent().chatModel().openai().foundry().credentialCache());
   }
 
@@ -78,7 +78,7 @@ public class AgenticAiNativeProvidersConfiguration {
   public OpenAiChatModelFactory aiAgentOpenAiChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport,
       @ConnectorsObjectMapper ObjectMapper objectMapper,
-      FoundryCredentialCache foundryCredentialCache) {
+      FoundryCredentialResolver foundryCredentialResolver) {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var completionsStrategy =
         new OpenAiCompletionsStrategy(
@@ -91,6 +91,6 @@ public class AgenticAiNativeProvidersConfiguration {
             new OpenAiResponsesResponseConverter(objectMapper),
             OpenAiResponsesStreamAssembler.accumulating());
     return new OpenAiChatModelFactory(
-        httpProxySupport, completionsStrategy, responsesStrategy, foundryCredentialCache);
+        httpProxySupport, completionsStrategy, responsesStrategy, foundryCredentialResolver);
   }
 }
