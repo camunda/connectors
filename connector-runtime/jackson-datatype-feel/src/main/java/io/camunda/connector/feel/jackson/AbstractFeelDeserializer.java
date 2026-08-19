@@ -52,6 +52,13 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
   protected static final ObjectMapper BLANK_OBJECT_MAPPER =
       ConnectorsObjectMapperSupplier.getCopy();
 
+  /**
+   * Marks the deserialization of a value that came out of a FEEL evaluation, so that deserializers
+   * which would otherwise treat a string as expression source leave it alone. Scoped to the
+   * conversion call and restored afterwards.
+   */
+  static final String EVALUATION_RESULT_ATTRIBUTE = "FEEL_EVALUATION_RESULT";
+
   /** Evaluator configured for this deserializer instance. */
   protected final FeelExpressionEvaluator evaluator;
 
@@ -156,7 +163,18 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
       if (targetType.getRawClass() == String.class && jsonNode.isObject()) {
         return (R) BLANK_OBJECT_MAPPER.writeValueAsString(jsonNode);
       }
-      return ctx.readTreeAsValue(jsonNode, targetType);
+      // Converting the result runs it back through the deserializers, so without this marker a
+      // string in the result that looks like an expression naming a secret would be sent to the
+      // cluster as a NEW expression. That second evaluation would legitimately reference the
+      // secret and resolve it — laundering data the cluster reported no reference for into a
+      // resolved value. An evaluation result is never expression source.
+      Object outerMarker = ctx.getAttribute(EVALUATION_RESULT_ATTRIBUTE);
+      ctx.setAttribute(EVALUATION_RESULT_ATTRIBUTE, Boolean.TRUE);
+      try {
+        return ctx.readTreeAsValue(jsonNode, targetType);
+      } finally {
+        ctx.setAttribute(EVALUATION_RESULT_ATTRIBUTE, outerMarker);
+      }
     } catch (IOException e) {
       throw new FeelEngineWrapperException(
           "Failed to convert FEEL evaluation result to the target type", expression, variables, e);
@@ -175,6 +193,14 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
   protected abstract T doDeserialize(
       JsonNode node, JsonNode feelContext, DeserializationContext deserializationContext)
       throws IOException;
+
+  /**
+   * Whether the value currently being deserialized came out of a FEEL evaluation rather than from
+   * the model. Such a value is data: it must never be evaluated again.
+   */
+  static boolean isEvaluationResult(DeserializationContext ctx) {
+    return Boolean.TRUE.equals(ctx.getAttribute(EVALUATION_RESULT_ATTRIBUTE));
+  }
 
   private FeelExpressionEvaluator resolveEvaluator(DeserializationContext ctx) {
     // Strict deserializers are used for deferred runtime callbacks like Function/Supplier.

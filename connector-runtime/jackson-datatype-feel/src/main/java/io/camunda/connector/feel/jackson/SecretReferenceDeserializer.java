@@ -46,6 +46,12 @@ import java.io.IOException;
  * <p>No FEEL context is supplied. The point is to resolve a secret reference, not to turn plain
  * properties into expression fields, so an expression naming process data belongs on a
  * {@code @FEEL} property as before.
+ *
+ * <p>It never acts on a value that came out of a FEEL evaluation. Converting an evaluation result
+ * runs it back through the deserializers, and a result may carry anything the process holds — a
+ * webhook payload, a correlated variable. Treating such a string as expression source would send it
+ * to the cluster as a new expression, which would then legitimately reference the secret and
+ * resolve it, laundering data the cluster reported no reference for into a resolved value.
  */
 public class SecretReferenceDeserializer extends StringDeserializer {
 
@@ -54,7 +60,7 @@ public class SecretReferenceDeserializer extends StringDeserializer {
   @Override
   public String deserialize(JsonParser parser, DeserializationContext context) throws IOException {
     String value = super.deserialize(parser, context);
-    if (!namesSecretReference(value)) {
+    if (!namesSecretReference(value) || AbstractFeelDeserializer.isEvaluationResult(context)) {
       return value;
     }
     FeelExpressionEvaluator evaluator = AbstractFeelDeserializer.resolveEvaluator(context, null);

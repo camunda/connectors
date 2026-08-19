@@ -62,7 +62,7 @@ class InboundSecretReferenceBindingTest {
   private final Map<String, List<String>> referencedSecrets = new HashMap<>();
 
   /** Mirrors a credential property class: some fields carry @FEEL, most do not. */
-  record Credentials(String hmacSecret, @FEEL String token, Map<String, String> headers) {}
+  record Credentials(String hmacSecret, @FEEL String token, @FEEL Map<String, String> headers) {}
 
   @Test
   void resolvesAReferenceInAPropertyFeelNeverEvaluates() {
@@ -110,6 +110,37 @@ class InboundSecretReferenceBindingTest {
     var bound = bind(Map.of("token", "=camunda.vars.cluster.plainNote"));
 
     assertThat(bound.token()).isEqualTo("camunda.secrets.DB");
+    assertThat(resolveRequests).isEmpty();
+  }
+
+  @Test
+  void leavesReferenceTextThatArrivedAsDataAndIsWrittenAsAnExpression() {
+    // The dangerous shape of the previous test: attacker-supplied data that looks like an
+    // expression naming a secret. An evaluation result must never be treated as expression source
+    // again, or the second evaluation would legitimately reference the secret and resolve it.
+    secretStore.put("camunda.secrets.DB", "db-password");
+    evaluationOf("=camunda.vars.cluster.plainNote")
+        .returns("=camunda.secrets.DB")
+        .referencingNothing();
+    evaluationOf("=camunda.secrets.DB").returns("camunda.secrets.DB").referencing("DB");
+
+    var bound = bind(Map.of("token", "=camunda.vars.cluster.plainNote"));
+
+    assertThat(bound.token()).isEqualTo("=camunda.secrets.DB");
+    assertThat(resolveRequests).isEmpty();
+  }
+
+  @Test
+  void leavesReferenceTextThatArrivedAsDataInsideAStructuredResult() {
+    secretStore.put("camunda.secrets.DB", "db-password");
+    evaluationOf("=camunda.vars.cluster.payload")
+        .returns(Map.of("Authorization", "=camunda.secrets.DB"))
+        .referencingNothing();
+    evaluationOf("=camunda.secrets.DB").returns("camunda.secrets.DB").referencing("DB");
+
+    var bound = bind(Map.of("headers", "=camunda.vars.cluster.payload"));
+
+    assertThat(bound.headers()).isEqualTo(Map.of("Authorization", "=camunda.secrets.DB"));
     assertThat(resolveRequests).isEmpty();
   }
 
