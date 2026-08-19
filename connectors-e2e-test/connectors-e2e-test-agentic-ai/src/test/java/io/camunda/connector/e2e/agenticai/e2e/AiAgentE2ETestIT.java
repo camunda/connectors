@@ -75,7 +75,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  *
  * <p>The service account variable holds the whole key file verbatim. Each row skips itself when its
  * own credentials are absent, so a partial credential set runs a subset. Narrow a run further with
- * {@code -Dit.test='AiAgentE2ETestIT#someScenario'} and {@link ProviderRow#disabled()}.
+ * {@code -Dit.test='AiAgentE2ETestIT#someScenario'} and {@link ProviderConfig#disabled()}.
  *
  * <p>Requires {@code element-templates-cli} on the PATH at the version pinned in {@code
  * .github/workflows/package.json}.
@@ -164,7 +164,7 @@ public class AiAgentE2ETestIT {
   /** One tool call in a single round, with the tool named outright. */
   @ParameterizedTest(name = "{0}")
   @MethodSource("providers")
-  void shouldCompleteWithToolCall(ProviderRow provider) {
+  void shouldCompleteWithToolCall(ProviderConfig provider) {
     var processInstance =
         deployAndStart(
             provider,
@@ -185,7 +185,7 @@ public class AiAgentE2ETestIT {
   /** Two tools requested at once, so both calls have to be emitted in the same round. */
   @ParameterizedTest(name = "{0}")
   @MethodSource("providers")
-  void shouldCompleteWithMultipleToolCallsInOneRound(ProviderRow provider) {
+  void shouldCompleteWithMultipleToolCallsInOneRound(ProviderConfig provider) {
     var processInstance =
         deployAndStart(
             provider,
@@ -212,7 +212,7 @@ public class AiAgentE2ETestIT {
    */
   @ParameterizedTest(name = "{0}")
   @MethodSource("providers")
-  void shouldCompleteWithMultipleToolCallRounds(ProviderRow provider) {
+  void shouldCompleteWithMultipleToolCallRounds(ProviderConfig provider) {
     var processInstance =
         deployAndStart(
             provider,
@@ -240,7 +240,7 @@ public class AiAgentE2ETestIT {
    */
   @ParameterizedTest(name = "{0}")
   @MethodSource("providers")
-  void shouldCompleteWithUserTaskTool(ProviderRow provider) {
+  void shouldCompleteWithUserTaskTool(ProviderConfig provider) {
     var processInstance =
         deployAndStart(
             provider,
@@ -272,7 +272,7 @@ public class AiAgentE2ETestIT {
    */
   @ParameterizedTest(name = "{0}")
   @MethodSource("providers")
-  void shouldCompleteWithUserFeedbackLoop(ProviderRow provider) {
+  void shouldCompleteWithUserFeedbackLoop(ProviderConfig provider) {
     var processInstance =
         deployAndStart(
             provider, "Use your date and time tool to tell me the exact current date and time");
@@ -307,22 +307,24 @@ public class AiAgentE2ETestIT {
     return providers().findAny().isPresent();
   }
 
-  static Stream<ProviderRow> providers() {
+  static Stream<ProviderConfig> providers() {
     return Stream.of(
+            // OpenAI (v1)
             openAiV1("gpt-4o"),
-            // both API families of the v2 provider: they build different wire requests and unwrap
-            // tool calls and tool results differently, so each needs to run the scenarios
-            openAiV2("responses", OPENAI_V2_MODEL),
-            openAiV2("completions", OPENAI_V2_MODEL),
+            // OpenAI (v2) — both API families build different wire requests and unwrap tool calls
+            // and tool results differently, so each needs to run the scenarios
+            openAiResponsesV2(OPENAI_V2_MODEL),
+            openAiCompletionsV2(OPENAI_V2_MODEL),
+            // Google Vertex AI (v1)
             googleVertexAiV1("gemini-2.5-flash"),
             // Gemini 3 models are served on the global endpoint, not the regional ones
             googleVertexAiV1("gemini-3.5-flash-lite", GLOBAL_REGION))
-        .filter(ProviderRow::isEnabled);
+        .filter(ProviderConfig::isEnabled);
   }
 
   /** OpenAI, v1. */
-  static ProviderRow openAiV1(String model) {
-    return new ProviderRow(
+  static ProviderConfig openAiV1(String model) {
+    return new ProviderConfig(
         "openai-v1/" + model,
         List.of("OPENAI_API_KEY"),
         AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
@@ -332,13 +334,19 @@ public class AiAgentE2ETestIT {
             "provider.openai.model.model", model));
   }
 
-  /**
-   * OpenAI, v2, on the {@code openai-api} backend, for the given API family ({@code responses} or
-   * {@code completions}).
-   */
-  static ProviderRow openAiV2(String apiFamily, String model) {
-    return new ProviderRow(
-        "openai-v2/" + apiFamily + "/" + model,
+  /** OpenAI, v2, Responses family, on the {@code openai-api} backend. */
+  static ProviderConfig openAiResponsesV2(String model) {
+    return openAiV2("responses", model);
+  }
+
+  /** OpenAI, v2, Completions family, on the {@code openai-api} backend. */
+  static ProviderConfig openAiCompletionsV2(String model) {
+    return openAiV2("completions", model);
+  }
+
+  private static ProviderConfig openAiV2(String apiFamily, String model) {
+    return new ProviderConfig(
+        "openai-" + apiFamily + "-v2/" + model,
         List.of("OPENAI_API_KEY"),
         AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -350,7 +358,7 @@ public class AiAgentE2ETestIT {
   }
 
   /** Google Vertex AI, v1, in the region {@code GOOGLE_VERTEX_AI_REGION} names. */
-  static ProviderRow googleVertexAiV1(String model) {
+  static ProviderConfig googleVertexAiV1(String model) {
     return googleVertexAiV1(
         model, model, "{{secrets.GOOGLE_VERTEX_AI_REGION}}", List.of("GOOGLE_VERTEX_AI_REGION"));
   }
@@ -359,13 +367,13 @@ public class AiAgentE2ETestIT {
    * Google Vertex AI, v1, pinned to {@code region} — for models the configured region does not
    * serve. A pinned region needs no {@code GOOGLE_VERTEX_AI_REGION} to be set.
    */
-  static ProviderRow googleVertexAiV1(String model, String region) {
+  static ProviderConfig googleVertexAiV1(String model, String region) {
     return googleVertexAiV1(model + "@" + region, model, region, List.of());
   }
 
-  private static ProviderRow googleVertexAiV1(
+  private static ProviderConfig googleVertexAiV1(
       String id, String model, String region, List<String> regionEnvVars) {
-    return new ProviderRow(
+    return new ProviderConfig(
         "google-vertex-ai-v1/" + id,
         Stream.concat(
                 Stream.of("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", "GOOGLE_VERTEX_AI_PROJECT_ID"),
@@ -387,23 +395,23 @@ public class AiAgentE2ETestIT {
             model));
   }
 
-  record ProviderRow(
-      String id,
+  record ProviderConfig(
+      String label,
       List<String> requiredEnvVars,
       boolean enabled,
       String elementTemplatePath,
       Map<String, String> properties) {
 
-    ProviderRow(
-        String id,
+    ProviderConfig(
+        String label,
         List<String> requiredEnvVars,
         String elementTemplatePath,
         Map<String, String> properties) {
-      this(id, requiredEnvVars, true, elementTemplatePath, properties);
+      this(label, requiredEnvVars, true, elementTemplatePath, properties);
     }
 
-    ProviderRow disabled() {
-      return new ProviderRow(id, requiredEnvVars, false, elementTemplatePath, properties);
+    ProviderConfig disabled() {
+      return new ProviderConfig(label, requiredEnvVars, false, elementTemplatePath, properties);
     }
 
     boolean isEnabled() {
@@ -412,7 +420,7 @@ public class AiAgentE2ETestIT {
 
     @Override
     public String toString() {
-      return id;
+      return label;
     }
   }
 
@@ -484,7 +492,7 @@ public class AiAgentE2ETestIT {
     return value == null || value.isBlank() ? defaultValue : value;
   }
 
-  private ProcessInstanceEvent deployAndStart(ProviderRow provider, String inputText) {
+  private ProcessInstanceEvent deployAndStart(ProviderConfig provider, String inputText) {
     camundaClient
         .newDeployResourceCommand()
         .addProcessModel(buildModel(provider), PROCESS_ID + ".bpmn")
@@ -501,7 +509,7 @@ public class AiAgentE2ETestIT {
         .join();
   }
 
-  private BpmnModelInstance buildModel(ProviderRow provider) {
+  private BpmnModelInstance buildModel(ProviderConfig provider) {
     var template =
         ElementTemplate.from(provider.elementTemplatePath())
             .property("agentContext", "=agent.context")
@@ -528,7 +536,7 @@ public class AiAgentE2ETestIT {
           new BpmnFile(bpmnFile).apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
       return BpmnUtil.withAgentDefinitionMarker(model, "AI_Agent", "aiAgentSubProcess");
     } catch (Exception e) {
-      throw new RuntimeException("Failed to build BPMN model for " + provider.id(), e);
+      throw new RuntimeException("Failed to build BPMN model for " + provider.label(), e);
     }
   }
 

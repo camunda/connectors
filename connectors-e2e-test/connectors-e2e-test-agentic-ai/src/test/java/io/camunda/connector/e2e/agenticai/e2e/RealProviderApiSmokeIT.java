@@ -158,7 +158,7 @@ class RealProviderApiSmokeIT {
    * scenario. A capability absent from the map means the row does not support it, so its scenario
    * is skipped for this row.
    */
-  record Provider(
+  record ProviderConfig(
       String label,
       List<String> requiredEnvVars,
       boolean enabled,
@@ -168,7 +168,7 @@ class RealProviderApiSmokeIT {
       // cache-read; gates the cache-creation assertion in the prompt-caching scenario.
       boolean reportsCacheCreationTokens) {
 
-    Provider(
+    ProviderConfig(
         String label,
         List<String> requiredEnvVars,
         Map<String, String> properties,
@@ -183,8 +183,8 @@ class RealProviderApiSmokeIT {
           reportsCacheCreationTokens);
     }
 
-    Provider disabled() {
-      return new Provider(
+    ProviderConfig disabled() {
+      return new ProviderConfig(
           label,
           requiredEnvVars,
           false,
@@ -214,10 +214,10 @@ class RealProviderApiSmokeIT {
     }
   }
 
-  static Provider anthropicApi(
+  static ProviderConfig anthropicV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return new Provider(
-        "anthropic-api/" + model,
+    return new ProviderConfig(
+        "anthropic-v2/" + model,
         List.of("ANTHROPIC_API_KEY"),
         Map.of(
             "provider.type",
@@ -236,10 +236,10 @@ class RealProviderApiSmokeIT {
   // hosted on/by AWS: requests are SigV4-signed and sent to a Bedrock Mantle endpoint instead of
   // api.anthropic.com, but the connector performs no body/path/response translation between the
   // two.
-  static Provider anthropicBedrockMantle(
+  static ProviderConfig anthropicBedrockMantleV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return new Provider(
-        "anthropic-bedrock-mantle/" + model,
+    return new ProviderConfig(
+        "anthropic-bedrock-mantle-v2/" + model,
         List.of("ANTHROPIC_BEDROCK_API_KEY"),
         Map.of(
             "provider.type",
@@ -258,10 +258,10 @@ class RealProviderApiSmokeIT {
         true);
   }
 
-  static Provider bedrockConverse(
+  static ProviderConfig bedrockConverseV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return new Provider(
-        "bedrock-converse/" + model,
+    return new ProviderConfig(
+        "bedrock-converse-v2/" + model,
         List.of("AWS_BEDROCK_API_KEY"),
         Map.of(
             "provider.type",
@@ -278,21 +278,21 @@ class RealProviderApiSmokeIT {
         true);
   }
 
-  // Always targets the openai-api backend, mirroring anthropicApi above.
-  static Provider openAiCompletionsApi(
+  // Always targets the openai-api backend, mirroring anthropicV2 above.
+  static ProviderConfig openAiCompletionsV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return openAiApi("completions", model, capabilityProperties);
+    return openAiV2("completions", model, capabilityProperties);
   }
 
-  static Provider openAiResponsesApi(
+  static ProviderConfig openAiResponsesV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return openAiApi("responses", model, capabilityProperties);
+    return openAiV2("responses", model, capabilityProperties);
   }
 
-  private static Provider openAiApi(
+  private static ProviderConfig openAiV2(
       String family, String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return new Provider(
-        "openai-api/" + family + "/" + model,
+    return new ProviderConfig(
+        "openai-" + family + "-v2/" + model,
         List.of("OPENAI_API_KEY"),
         Map.of(
             "provider.type",
@@ -316,20 +316,20 @@ class RealProviderApiSmokeIT {
   // differ. `model` doubles as the Azure deployment name (see native-providers.md), so this
   // requires a deployment literally named after each model string below to exist on the
   // configured resource.
-  static Provider openAiFoundryCompletionsApi(
+  static ProviderConfig openAiFoundryCompletionsV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return openAiFoundryApi("completions", model, capabilityProperties);
+    return openAiFoundryV2("completions", model, capabilityProperties);
   }
 
-  static Provider openAiFoundryResponsesApi(
+  static ProviderConfig openAiFoundryResponsesV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return openAiFoundryApi("responses", model, capabilityProperties);
+    return openAiFoundryV2("responses", model, capabilityProperties);
   }
 
-  private static Provider openAiFoundryApi(
+  private static ProviderConfig openAiFoundryV2(
       String family, String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return new Provider(
-        "openai-foundry/" + family + "/" + model,
+    return new ProviderConfig(
+        "openai-foundry-" + family + "-v2/" + model,
         List.of("OPENAI_FOUNDRY_API_KEY", "OPENAI_FOUNDRY_ENDPOINT"),
         Map.of(
             "provider.type",
@@ -352,10 +352,10 @@ class RealProviderApiSmokeIT {
         false);
   }
 
-  static Provider googleGeminiApi(
+  static ProviderConfig googleGeminiV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return new Provider(
-        "google-gemini-api/" + model,
+    return new ProviderConfig(
+        "google-gemini-v2/" + model,
         List.of("GOOGLE_GEMINI_API_KEY"),
         Map.of(
             "provider.type",
@@ -370,10 +370,10 @@ class RealProviderApiSmokeIT {
         false);
   }
 
-  static Provider googleVertexAi(
+  static ProviderConfig googleGeminiVertexAiV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return new Provider(
-        "google-vertex-ai/" + model,
+    return new ProviderConfig(
+        "google-gemini-vertex-ai-v2/" + model,
         List.of(
             "GOOGLE_VERTEX_AI_PROJECT_ID",
             "GOOGLE_VERTEX_AI_REGION",
@@ -397,11 +397,11 @@ class RealProviderApiSmokeIT {
         false);
   }
 
-  static Stream<Provider> providers() {
+  static Stream<ProviderConfig> providers() {
     return Stream.of(
             // claude-sonnet-4-6 only supports thinking mode "enabled" (explicit budget) — the model
             // always emits a thinking block regardless of prompt difficulty.
-            anthropicApi(
+            anthropicV2(
                 "claude-sonnet-4-6",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
@@ -415,7 +415,7 @@ class RealProviderApiSmokeIT {
             // claude-sonnet-5 does NOT accept "enabled"; it only allows "adaptive" (the model
             // decides whether to think). At effort "high" it reliably thinks on a genuinely
             // multi-step prompt, but this is model choice, not an API-level guarantee.
-            anthropicApi(
+            anthropicV2(
                 "claude-sonnet-5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
@@ -430,7 +430,7 @@ class RealProviderApiSmokeIT {
             // structured output: Bedrock Mantle rejects output_config.format with a 400. AWS docs
             // confirm this endpoint doesn't support it:
             // https://docs.aws.amazon.com/bedrock/latest/userguide/claude-messages-structured-outputs.html
-            anthropicBedrockMantle(
+            anthropicBedrockMantleV2(
                 "claude-sonnet-5",
                 Map.of(
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -445,7 +445,7 @@ class RealProviderApiSmokeIT {
             // for this model ("This model doesn't support the outputConfig field"), matching its
             // model card ("Structured outputs" listed as Not Supported). Disabled for now: prone
             // to misspelling nonce words in its output.
-            bedrockConverse(
+            bedrockConverseV2(
                     "us.amazon.nova-2-lite-v1:0",
                     Map.of(
                         Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -462,7 +462,7 @@ class RealProviderApiSmokeIT {
             // for it, so those capabilities are left undeclared. Its reasoning uses a
             // "reasoning_effort" shape (no "type", no budget), proving a third incompatible
             // reasoning request shape works through the same provider-agnostic scenario.
-            bedrockConverse(
+            bedrockConverseV2(
                 "openai.gpt-oss-120b-1:0",
                 Map.of(
                     Capability.REASONING,
@@ -480,7 +480,7 @@ class RealProviderApiSmokeIT {
             // ("output_config.format: Extra inputs are not permitted"), confirmed against a real
             // API
             // call.
-            bedrockConverse(
+            bedrockConverseV2(
                 "global.anthropic.claude-sonnet-5",
                 Map.of(
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -492,7 +492,7 @@ class RealProviderApiSmokeIT {
                             "={thinking: {type: \"adaptive\"}}"))),
             // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
             // domain block in addition to reasoning_tokens, so REASONING is exercisable here.
-            openAiResponsesApi(
+            openAiResponsesV2(
                 "gpt-5.5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
@@ -500,52 +500,52 @@ class RealProviderApiSmokeIT {
                     Capability.PROMPT_CACHING, Map.of(),
                     Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
             // REASONING omitted: Completions never returns a ReasoningContent block to assert on.
-            openAiCompletionsApi(
+            openAiCompletionsV2(
                 "gpt-5.5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
             // An older model, on both API families, for completeness.
-            openAiResponsesApi(
+            openAiResponsesV2(
                 "gpt-4.1",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
-            openAiCompletionsApi(
+            openAiCompletionsV2(
                 "gpt-4.1",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
             // Same models/capabilities as the openai-api rows above, via the foundry backend.
-            openAiFoundryResponsesApi(
+            openAiFoundryResponsesV2(
                 "gpt-5.5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of(),
                     Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
-            openAiFoundryCompletionsApi(
+            openAiFoundryCompletionsV2(
                 "gpt-5.5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
-            openAiFoundryResponsesApi(
+            openAiFoundryResponsesV2(
                 "gpt-4.1",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
-            openAiFoundryCompletionsApi(
+            openAiFoundryCompletionsV2(
                 "gpt-4.1",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
-            googleGeminiApi(
+            googleGeminiV2(
                 "gemini-3.7-flash",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT,
@@ -557,7 +557,7 @@ class RealProviderApiSmokeIT {
                     Capability.REASONING,
                     Map.of(
                         "provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"))),
-            googleVertexAi(
+            googleGeminiVertexAiV2(
                 "gemini-3.7-flash",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
@@ -569,7 +569,7 @@ class RealProviderApiSmokeIT {
                             "high"))),
             // Gemini 2.5 models use a numeric thinkingBudget rather than a qualitative level.
             // No STRUCTURED_OUTPUT claim: the Gemini API rejects a JSON response mime type
-            googleGeminiApi(
+            googleGeminiV2(
                 "gemini-2.5-pro",
                 Map.of(
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -578,7 +578,7 @@ class RealProviderApiSmokeIT {
                         Map.of(
                             "provider.googleGemini.model.parameters.thinking.thinkingBudget",
                             "24576"))),
-            googleVertexAi(
+            googleGeminiVertexAiV2(
                 "gemini-2.5-pro",
                 Map.of(
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -587,22 +587,22 @@ class RealProviderApiSmokeIT {
                         Map.of(
                             "provider.googleGemini.model.parameters.thinking.thinkingBudget",
                             "24576"))))
-        .filter(Provider::isEnabled);
+        .filter(ProviderConfig::isEnabled);
   }
 
-  static Stream<Provider> providersWithStructuredOutput() {
+  static Stream<ProviderConfig> providersWithStructuredOutput() {
     return providers().filter(p -> p.supports(Capability.STRUCTURED_OUTPUT));
   }
 
-  static Stream<Provider> providersWithReasoning() {
+  static Stream<ProviderConfig> providersWithReasoning() {
     return providers().filter(p -> p.supports(Capability.REASONING));
   }
 
-  static Stream<Provider> providersWithPromptCaching() {
+  static Stream<ProviderConfig> providersWithPromptCaching() {
     return providers().filter(p -> p.supports(Capability.PROMPT_CACHING));
   }
 
-  static Stream<Provider> providersWithMultimodalUserMessage() {
+  static Stream<ProviderConfig> providersWithMultimodalUserMessage() {
     return providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE));
   }
 
@@ -629,7 +629,7 @@ class RealProviderApiSmokeIT {
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providers")
-  void toolCallLoopSurfacesPlantedFact(Provider provider) {
+  void toolCallLoopSurfacesPlantedFact(ProviderConfig provider) {
     var model =
         buildModel(
             provider,
@@ -658,7 +658,7 @@ class RealProviderApiSmokeIT {
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithStructuredOutput")
-  void structuredOutputReturnsSchemaConformingJson(Provider provider) {
+  void structuredOutputReturnsSchemaConformingJson(ProviderConfig provider) {
     var model =
         buildModel(
             provider,
@@ -701,7 +701,7 @@ class RealProviderApiSmokeIT {
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithReasoning")
-  void reasoningEnabledProducesReasoningContent(Provider provider) {
+  void reasoningEnabledProducesReasoningContent(ProviderConfig provider) {
     var model =
         buildModel(
             provider,
@@ -732,7 +732,7 @@ class RealProviderApiSmokeIT {
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithPromptCaching")
-  void promptCachingReportsCacheReadAndWriteTokens(Provider provider) {
+  void promptCachingReportsCacheReadAndWriteTokens(ProviderConfig provider) {
     var model =
         buildModel(
             provider,
@@ -782,7 +782,7 @@ class RealProviderApiSmokeIT {
   /** Re-entry test: catches a completed assistant text turn getting replayed incorrectly. */
   @ParameterizedTest(name = "{0}")
   @MethodSource("providers")
-  void userFeedbackLoopReplaysAssistantTextOnFollowUp(Provider provider) {
+  void userFeedbackLoopReplaysAssistantTextOnFollowUp(ProviderConfig provider) {
     var model =
         buildModel(
             provider,
@@ -825,7 +825,7 @@ class RealProviderApiSmokeIT {
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithMultimodalUserMessage")
-  void documentInUserMessageIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
+  void documentInUserMessageIsReadByModel(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
     stubPdfDownloads();
 
     final var systemPrompt =
@@ -861,7 +861,7 @@ class RealProviderApiSmokeIT {
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithMultimodalUserMessage")
-  void documentInToolResultIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
+  void documentInToolResultIsReadByModel(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
     stubPdfDownloads();
 
     var model =
@@ -895,7 +895,7 @@ class RealProviderApiSmokeIT {
   // ---------------------------------------------------------------------------
 
   private BpmnModelInstance buildModel(
-      Provider provider,
+      ProviderConfig provider,
       String templatePath,
       String bpmnResource,
       String systemPrompt,
