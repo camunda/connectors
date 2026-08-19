@@ -41,6 +41,8 @@ import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.secret.LegacySecretMode;
+import io.camunda.connector.runtime.core.secret.LegacySecretsDisabledProvider;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
@@ -53,6 +55,7 @@ import jakarta.validation.ConstraintValidatorFactory;
 import jakarta.validation.Validation;
 import java.net.URL;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -68,6 +71,7 @@ import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
@@ -87,6 +91,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class ConnectorsAutoConfiguration {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectorsAutoConfiguration.class);
+
+  // Shared by the aggregator bean's name and by the guard that detects a replacement for it, so
+  // the two cannot drift apart.
+  static final String DEFAULT_AGGREGATOR_BEAN_NAME = "springSecretProviderAggregator";
 
   private final ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider;
 
@@ -149,10 +157,28 @@ public class ConnectorsAutoConfiguration {
     return cache;
   }
 
-  @Bean
+  /**
+   * Builds the aggregator every legacy ({@code {{secrets.X}}} and bare {@code secrets.X}) lookup
+   * goes through; outbound, inbound and configuration validation all share this one bean. Under
+   * {@link LegacySecretMode#OFF} none of the configured providers is consulted and every lookup
+   * fails instead.
+   *
+   * <p>This has no effect on {@code camunda.secrets.<name>} resolution, which reads the
+   * orchestration cluster's secret stores through a separate mechanism.
+   */
+  @Bean(DEFAULT_AGGREGATOR_BEAN_NAME)
   @ConditionalOnMissingBean
   public SecretProviderAggregator springSecretProviderAggregator(
-      Optional<List<SecretProvider>> secretProviderBeans) {
+      Optional<List<SecretProvider>> secretProviderBeans,
+      @Value("${" + LegacySecretsDisabledProvider.PROPERTY + ":ON}") LegacySecretMode legacyMode) {
+    if (legacyMode == LegacySecretMode.OFF) {
+      LOG.info(
+          "Legacy secret resolution is disabled ({}={}); {{secrets.X}} and secrets.X will not"
+              + " resolve.",
+          LegacySecretsDisabledProvider.PROPERTY,
+          LegacySecretMode.OFF);
+      return new SecretProviderAggregator(List.of(new LegacySecretsDisabledProvider()));
+    }
     var secretProviders = secretProviderBeans.orElseGet(LinkedList::new);
     LOG.debug("Using secret providers discovered as Spring beans: {}", secretProviderBeans);
     if (secretProviderLookupEnabled != Boolean.FALSE) {
@@ -161,6 +187,40 @@ public class ConnectorsAutoConfiguration {
       secretProviders.addAll(discoveredSecretProviders);
     }
     return new SecretProviderAggregator(secretProviders);
+  }
+
+  /**
+   * Refuses to start when legacy secret resolution is switched off but the application supplies its
+   * own {@link SecretProviderAggregator}. Such a bean replaces {@link
+   * #springSecretProviderAggregator} outright, since that one exists only through
+   * {@code @ConditionalOnMissingBean}, so the setting would be silently ignored rather than
+   * enforced. This bean carries no conditions of its own, so it runs whichever aggregator won.
+   */
+  @Bean
+  public Object secretProviderAggregatorLegacySwitchGuard(
+      ApplicationContext applicationContext,
+      @Value("${" + LegacySecretsDisabledProvider.PROPERTY + ":ON}") LegacySecretMode legacyMode) {
+    if (legacyMode != LegacySecretMode.OFF) {
+      return new Object();
+    }
+    List<String> replacements =
+        Arrays.stream(applicationContext.getBeanNamesForType(SecretProviderAggregator.class))
+            .filter(name -> !DEFAULT_AGGREGATOR_BEAN_NAME.equals(name))
+            .toList();
+    if (!replacements.isEmpty()) {
+      throw new IllegalStateException(
+          LegacySecretsDisabledProvider.PROPERTY
+              + "="
+              + LegacySecretMode.OFF
+              + " cannot be enforced: the application supplies its own SecretProviderAggregator"
+              + " bean "
+              + replacements
+              + ", which replaces the one that applies the setting. Remove that bean, or set the"
+              + " mode back to "
+              + LegacySecretMode.ON
+              + ".");
+    }
+    return new Object();
   }
 
   @Bean
