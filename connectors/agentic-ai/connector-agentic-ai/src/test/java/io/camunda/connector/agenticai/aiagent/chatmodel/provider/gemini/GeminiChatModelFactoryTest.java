@@ -114,7 +114,11 @@ class GeminiChatModelFactoryTest {
 
     final ChatModel model = factory.create(apiConfig(null, Duration.ofSeconds(30)));
 
+    // httpOptions().timeout() is stored for introspection/consistency only - the SDK never reads
+    // it once a customHttpClient is supplied; callTimeoutMillis() on that client is what actually
+    // enforces the overall timeout, see GeminiChatModelFactory#buildClient's javadoc.
     assertThat(httpOptionsOf(model).timeout()).contains(30_000);
+    assertThat(callTimeoutMillisOf(model)).isEqualTo(30_000);
 
     model.close();
   }
@@ -126,6 +130,7 @@ class GeminiChatModelFactoryTest {
     final ChatModel model = factory.create(apiConfig(null, Duration.ofNanos(500)));
 
     assertThat(httpOptionsOf(model).timeout()).contains(1);
+    assertThat(callTimeoutMillisOf(model)).isEqualTo(1);
 
     model.close();
   }
@@ -136,10 +141,12 @@ class GeminiChatModelFactoryTest {
 
     final ChatModel zeroTimeoutModel = factory.create(apiConfig(null, Duration.ZERO));
     assertThat(httpOptionsOf(zeroTimeoutModel).timeout()).isEmpty();
+    assertThat(callTimeoutMillisOf(zeroTimeoutModel)).isZero();
     zeroTimeoutModel.close();
 
     final ChatModel negativeTimeoutModel = factory.create(apiConfig(null, Duration.ofSeconds(-1)));
     assertThat(httpOptionsOf(negativeTimeoutModel).timeout()).isEmpty();
+    assertThat(callTimeoutMillisOf(negativeTimeoutModel)).isZero();
     negativeTimeoutModel.close();
   }
 
@@ -249,6 +256,14 @@ class GeminiChatModelFactoryTest {
   private static Optional<ClientOptions> clientOptionsOf(ChatModel model) {
     return (Optional<ClientOptions>)
         ReflectionTestUtils.getField(apiClientOf(model), "clientOptions");
+  }
+
+  private static int callTimeoutMillisOf(ChatModel model) {
+    return clientOptionsOf(model)
+        .orElseThrow()
+        .customHttpClient()
+        .orElseThrow()
+        .callTimeoutMillis();
   }
 
   private static GeminiChatModelConfiguration apiConfig(
