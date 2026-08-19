@@ -1,0 +1,132 @@
+# ADR-0007: Centralized Secret Resolution in the Connector Runtime
+
+## Status
+Accepted
+
+## Context
+
+[PDP-3040](https://github.com/camunda/product-hub/issues/3040) adds a new way to write secrets in a process: `camunda.secrets.<name>`. Values come from secret stores configured on the broker, and two new endpoints read them: `POST /v2/secrets/resolve` and `POST /v2/secrets/list`. In time this is meant to replace the way the Connector Runtime handles `{{secrets.X}}` and bare `secrets.X` today. [#8222](https://github.com/camunda/connectors/issues/8222) tracks the work on the connectors side.
+
+Twelve constraints shape the decision.
+
+1. **For jobs, the engine resolves these secrets itself.** It replaces the placeholder in a job's variables before the job is marked activated. Today that covers jobs a worker asks for; `camunda/camunda#56564` extends it to jobs the broker pushes, targeted at the same release. Job push was named in the epic's own phase-1 criteria from the start — long polling simply shipped first.
+
+2. **Nothing resolves them anywhere else.** Inbound connectors have no job, and out-of-band configuration validation runs outside any process, so neither is covered now or after that work lands.
+
+3. **`camunda.secrets.<name>` is a FEEL expression; `{{secrets.X}}` is text the engine ignores.** The authoring form is the bare path written as an expression, `=camunda.secrets.NAME`, which the engine evaluates into placeholder text and substitutes later. The two forms are therefore not interchangeable in a model, and anything that generates input mappings or element properties has to know which it is emitting.
+
+4. **The runtime replaces legacy secrets one name at a time, and the new endpoint wants them in groups.** Legacy replacement runs over the request as serialized JSON, before it is bound to objects, calling a single-name lookup for each match. The resolve endpoint takes a batch of references and caps how many one call may carry. So treating the cluster as one more `SecretProvider` would mean one HTTP request per secret, and the existing `SecretProvider.fetchAll` cannot help: it returns values without saying which name each belongs to.
+
+5. **The resolve call carries no tenant** — the cluster derives it from the caller's token. The only routing question is therefore which `CamundaClient` to call, not how to describe a tenant.
+
+6. **The runtime's pattern for the old form overlaps the new one.** `SecretUtil.SECRET_PATTERN_SECRETS` matches the `secrets.<name>` part inside `camunda.secrets.<name>`. The same method that finds those names, `retrieveSecretKeysInInput`, also builds the outbound allow-list of declared secrets, so any change to what it matches changes what that allow-list permits.
+
+7. **The engine rejects a reference written as a plain literal wherever one can be written.** `SecretReferenceLiteralValidator` covers `zeebe:input` sources and, since the engine work described under *Asks on the engine* below, `zeebe:property` extension elements — which is where inbound connector configuration lives. The bare form is therefore policed on the inbound surface too, not merely unpoliced.
+
+8. **The expression-evaluation endpoint knows the new form.** The endpoint evaluates against the engine's placeholder-emitting context, so an expression naming `camunda.secrets.<name>` comes back with the reference text in the result rather than resolving to nothing. A reference survives evaluation, including one that is only part of a larger expression: `="Bearer " + camunda.secrets.TOKEN` evaluates to `Bearer camunda.secrets.TOKEN`.
+
+9. **The evaluation response reports which references that evaluation used.** Alongside the result, the response carries the secret references the engine derived from the parsed FEEL expression and from the references stored on the `SECRET_REFERENCE` cluster variables the evaluation read. This is authoritative: it comes from the engine's own parse, not from scanning text.
+
+10. **The engine records an expression-evaluation request and its result verbatim.** Whatever is sent as expression source, and whatever comes back, is persisted in the cluster. Substituting a secret value into expression source before sending it would therefore write that value into cluster storage.
+
+11. **A cluster variable can carry references inside its value.** A cluster variable has a kind: `JSON` or `SECRET_REFERENCE`. A `SECRET_REFERENCE` one holds `camunda.secrets.<name>` text instead of a value, and the engine swaps in the real value at job activation. It only does that for variables of that kind — a `JSON` one is left alone even if its contents look like a reference. So a reference can reach the runtime as *data* that no model wrote.
+
+12. **Without a rule of some kind, any text that looks like a reference would be resolved.** Verified against a live cluster: a `JSON` variable holding `{"note": "camunda.secrets.NOT_DECLARED"}` read back exactly that text through the expression endpoint. Anything scanning evaluated results for references would otherwise resolve a secret nobody declared — and the same applies to a webhook payload, an HTTP response body, or any other attacker-supplied text that reaches a connector property.
+
+## Decision
+
+Support `camunda.secrets.<name>` **for inbound connectors and configuration validation only**, substituting values into the result of a cluster expression evaluation, restricted to the references that evaluation reported. Leave job handling to the engine. The two forms of secret stay completely apart, and the public SDK does not change.
+
+1. **Do not handle the outbound job path.** The engine owns job activation and is closing its remaining gap there in the same release (Context 1). Building our own would put two components in charge of the same thing, with different failure behaviour, for as long as it took. Adding the outbound path later, if that work slips, is a small change on top of what this decision already builds; removing it afterwards would mean deleting code other things had come to depend on. Inbound and configuration validation are the cases nothing else will ever cover (Context 2), and they are what this addresses.
+
+   **Accepted risk.** Every Connectors bundle asks the broker to push jobs, which is the case the engine does not yet cover. If that upstream work misses the release, secrets in the new form will not work for outbound connectors until it does.
+
+2. **Keep the two forms apart.** `camunda.secrets.<name>` is read only through the cluster's resolve endpoint; `{{secrets.X}}` and bare `secrets.X` are read only through the runtime's existing secret providers. Neither falls back to the other when it comes up empty, and the legacy form keeps working exactly as it does today. They draw on different configuration — stores configured on the broker, against providers configured in the runtime — and letting an environment variable satisfy a reference written against a broker store would make it impossible to say where a secret actually came from.
+
+3. **Resolution happens after evaluation, on the result — never before.** The engine records an evaluation request and its result verbatim (Context 10), so splicing a secret value into expression source would persist that value in the cluster. It would also be unsafe on its own terms: a quote or an operator inside a secret value silently changes what the expression means. The reference is therefore sent to the cluster exactly as the modeller wrote it, survives evaluation as placeholder text (Context 8), and the value is substituted into the result afterwards.
+
+   The hook is `EvaluationResultProcessor` in `connector-feel`, applied by `CamundaClientFeelExpressionEvaluator` to the raw result of every evaluation before the result is converted to the caller's target type. Every public `evaluate` method funnels through one internal call, so a processor applies to all of them. `SecretResolvingResultProcessor` is the implementation, and `SecretReferenceResolver` is what calls the endpoint.
+
+4. **The allow-list comes from the engine, per evaluation.** The evaluation response reports the references that evaluation actually used (Context 9). `SecretResolvingResultProcessor` builds its allow-list from that report alone, walks the result graph — maps, lists, strings — collecting only references the report names, and substitutes only those, only inside that one evaluation's result. Nothing is derived from scanning property text, and nothing is read from cluster-variable storage: the runtime makes no cluster-variable search call at all.
+
+   Two properties follow, and both are the point. Text that arrived as *data* — a webhook payload, a plain `JSON` cluster variable — is reported by nothing and stays literal (Context 12). And because the list is scoped to a single evaluation rather than pooled across a whole property binding, reference-shaped text in one property cannot be substituted because a *sibling* property legitimately named a secret.
+
+   The store id a report carries is informational — a reference never names a store — so two reports differing only in store id are one reference to resolve.
+
+5. **A reference embedded in a larger expression is supported.** `="Bearer " + camunda.secrets.TOKEN` is not an edge case to be refused: it is the shape the engine built the feature around, and it is what `Bearer {{secrets.TOKEN}}` migrates to. Because the placeholder survives evaluation as text inside the result, and the allow-list is per evaluation rather than per property, this needs no special handling: the result string `Bearer camunda.secrets.TOKEN` is walked like any other and the reference inside it is substituted. Recognising a reference only as a whole property value is therefore not a constraint the runtime imposes.
+
+6. **Two registration points, one substitution point.** A `@FEEL`-annotated property keeps the existing FEEL deserializer, because a property-level deserializer wins over a type-registered one. Every other string is covered by `SecretReferenceDeserializer`, registered for `String` by `JacksonModuleSecretReference`.
+
+   The type registration is needed for two reasons. Eleven of the twenty-one inbound credential fields carry `@FEEL`; the other ten are plain strings, and a reference written in one of those has to resolve too. And a property-level introspector cannot reach the string values inside `Map` and `List` properties or values reached through a field declared as `Object` — an `Authorization` header is exactly where a secret goes.
+
+   The deserializer is deliberately narrow. It acts only on a value written as an expression that names a reference (it checks for a leading `=` and the `camunda.secrets.` prefix), and only when the reader carries an evaluator of its own — which is how the runtime hands each connector context its cluster-backed one. The raw-property round-trip through legacy secret replacement carries none, and there the value must survive untouched. It supplies no FEEL context: the point is to resolve a secret reference, not to turn plain properties into expression fields.
+
+   The module is registered on the inbound property-binding mapper only, and deliberately kept out of `JacksonModuleFeelFunction`, which is also installed on the outbound and Camunda client mappers where the engine does the substituting.
+
+   Both routes end in the same decorated evaluator, so there is exactly one place in the runtime where a secret value replaces its reference. It is installed on `InboundConnectorContextImpl`, on `DefaultProcessInstanceContext` (the path polling connectors bind through), and on the configuration-validation evaluators. The ambient evaluator is left alone.
+
+7. **Fail closed: an unreported or unresolvable reference stays as it is.** `SecretReferenceUtil.replaceReferences` leaves a reference with no resolved value exactly where it is, so a placeholder never becomes an empty string, and the failure is reported against the reference rather than as an unexplained blank credential. A cluster that reports no references at all disables substitution entirely, with one warning logged rather than one per evaluation.
+
+   This also keeps a refusal a refusal. The runtime already distinguishes a secret nobody can supply from one deliberately withheld: for the legacy form, a name the `SecretFilter` refuses is left in the text untouched. The new form behaves the same way by construction — a reference the cluster did not report is left in place rather than failing — although through a different mechanism: `SecretFilter` gates the legacy form only and is not consulted here.
+
+   Replacement makes a single pass over the text, so a resolved value is never itself rescanned: a secret whose value contains reference-shaped text stays opaque. The pattern is greedy, so `camunda.secrets.TOKEN` cannot be substituted inside `camunda.secrets.TOKEN_V2`.
+
+8. **Resolve in groups, and only when there is something to resolve.** All references found in one evaluation result are resolved in as few calls as the endpoint's limit allows — `SecretReferenceResolver` batches at twenty per request — rather than one at a time (Context 4). An evaluation that reports no references, or whose result contains none, does not call the cluster at all. That is what keeps this free for everything that does not use the new form.
+
+9. **Keep the new resolver inside the runtime; do not extend the public SDK.** Because the two forms are kept apart, the resolver is never one of the secret providers, so widening the `SecretProvider` interface would add public API that nothing here uses. `SecretProvider` and `fetchAll` are left exactly as they are, and existing implementations — including other people's — keep working unchanged.
+
+10. **Route by client, not by tenant** (Context 5). Inbound connector contexts are already created per physical tenant, so each already holds the correct client and builds its evaluator from it. Configuration validation keeps one evaluator per engine, each built with a resolver over that engine's client. No new way of describing tenancy is introduced, and the existing secret-resolution and secret-filtering context types are not merged.
+
+11. **Treat every failure the same way, and log what it was.** All the failures the endpoint can report mean one thing here: no value, so the placeholder stays and the connector fails as it already does for a missing secret. There is no behaviour that branches on the reported cause. Because the endpoint answers successfully even when individual references fail, a missing grant would otherwise be indistinguishable from a misspelled name, so the reported cause is logged per reference. A network failure, or a cluster too old to have the endpoint, is treated identically — such a cluster degrades to "secret not available" rather than failing outright. The thrown exception itself is never logged, only its type: a client error message can echo the response body.
+
+12. **Keep the two forms from overlapping in text, narrowly.** The legacy pattern gains a negative lookbehind, `(?<!camunda\.)secrets\.…`, so it can no longer match inside a reference of the new form (Context 6), and only for that prefix — the pattern still matches in other places it arguably should not, and changing that is a separate question. Without this the legacy pass, which runs first and over raw model text, would rewrite the tail of a new-form reference from a *local* provider: the wrong store, and the reference destroyed before the cluster ever saw it. Because the same method feeds the outbound allow-list, `retrieveSecretKeysInInput` is also taught to recognise the new form, so the set of secrets that list permits is unchanged for every existing process.
+
+13. **Configuration validation resolves the new form only, and rejects the legacy syntax.** A `credentialRef` is evaluated on the cluster and its references are substituted by the same result processor, with the same per-evaluation allow-list. Legacy replacement is removed from that path entirely, and `ConfigurationValidationService` no longer takes a `SecretProviderAggregator`.
+
+    This is the only place in the runtime where legacy replacement ran over a FEEL *result* rather than over raw model text, and the only one combining that with an allow-all filter. At that point nothing distinguishes a secret name a configuration declared from one that arrived as data, and out-of-band validation has no process or element scope from which to derive an allow-list — which is exactly what Decision 4 supplies for the new form and nothing supplies for the old one.
+
+    A resolved configuration still carrying the legacy syntax is rejected rather than passed through, with a message naming the supported form: "The configuration uses an unsupported secret syntax. Reference secrets as `camunda.secrets.<name>`." Leaving the text in place would bind it as the credential and fail at the target with nothing to explain why. The message names only syntax, never resolved content, so it is safe to return under the endpoint's message-safety policy. The surface is unreleased, so there is no legacy behaviour to deprecate.
+
+14. **Do nothing yet about hiding secrets from error output.** Values in the new form can only appear where this decision substitutes them, and the only place the runtime hides secrets from errors is on the outbound path, which this does not touch. Two gaps are recorded as separate work rather than addressed here: inbound has never hidden secrets from error output, and once the engine substitutes a value into job variables the reference is gone, leaving nothing for the outbound masking to recognise — which already applies today and needs information the job does not currently carry, so it belongs upstream.
+
+15. **Accept that substitution within one evaluation is not positional.** If an expression legitimately references secret X, then any attacker-supplied text that lands in *that same evaluation's* result is also subject to X's substitution. This is not closable by position: the result of a transformed expression carries no pointers back into its source, so there is no way to say which span of the result came from the reference and which from data. The exposure is bounded — the attacker learns only a secret that the very expression they influenced already uses, and never one from another property, another evaluation or another element. Narrowing the allow-list further would not help, because the reference is genuinely on it.
+
+**Asks on the engine.** All three asks recorded when this work started have been delivered, in [camunda/camunda#60240](https://github.com/camunda/camunda/issues/60240), [#60237](https://github.com/camunda/camunda/issues/60237) and [#60385](https://github.com/camunda/camunda/issues/60385): the placeholder-emitting context is installed on the expression-evaluation endpoint (Context 8), literal validation of the bare form extends to `zeebe:property` (Context 7), and the evaluation response reports the references an evaluation used (Context 9).
+
+Together they are what makes this design possible rather than merely convenient. The third replaced a locally computed allow-list built by scanning property text and cluster-variable values: that approach over-matched — a regex decides that something *looks like* a reference, where the engine *knows* — and it could not see a reference past a truncated cluster-variable value, which failed closed but silently. The first turned the embedded form of Decision 5 from an unsupported case into an ordinary one. The second moves the failure for a mis-authored reference from first activation to deployment, which is where it belongs.
+
+**Not covered here.** The hybrid Connector Runtime keeps resolving secrets locally in this release, as the epic decided, since routing it through the orchestration cluster would defeat the point of keeping secrets self-hosted. Restricting which secrets an inbound connector may read stays with [#7730](https://github.com/camunda/connectors/issues/7730). Note the asymmetry this creates, deliberately: the new form is gated by what the engine reports, while `{{secrets.X}}` and bare `secrets.X` stay unrestricted on inbound as they are today. Making element templates emit the new form (Context 3) is separate work.
+
+## Consequences
+
+### Positive
+
+- Secrets in the new form work for inbound connectors and configuration validation, which nothing else covers and no engine change will.
+- No code is written that is expected to become dead. The engine keeps sole ownership of job activation.
+- A secret value is never sent to the cluster as expression source, so it is never written into the record of an evaluation request or its result.
+- What may be substituted is decided by the engine's own parse, not by a regex over text. A reference is resolved because the evaluation reported using it, not because something in the result looked like one — so a webhook payload, an HTTP response body or a plain `JSON` cluster variable containing reference-shaped text stays literal.
+- Scoping that decision to one evaluation means a secret legitimately named by one property cannot be substituted into another property's value.
+- The runtime derives nothing about secrets from storage: no cluster-variable search, no exported-projection lag, no truncation blind spot, and no requirement that secondary storage be present.
+- A reference works the same whether it stands alone or sits inside a larger expression, so `Bearer {{secrets.TOKEN}}` has a direct equivalent and migrating it does not hit a wall.
+- Exactly one place in the runtime substitutes a secret value. Two registration points feed it, and both cover the fields that actually hold credentials — including map values and list elements, which a property-level annotation cannot reach.
+- Resolution costs one round trip per evaluation that uses secrets, batched, rather than one per secret; an evaluation naming no secret costs nothing extra.
+- The public SDK is unchanged, so third-party secret providers keep compiling and behaving as before.
+- The two forms no longer overlap in text, and the set of secrets the outbound allow-list permits is unchanged for existing processes.
+- Inbound and the job path take the reference in the same shape, so what a modeller writes does not depend on which kind of connector reads it.
+- Secrets held in `SECRET_REFERENCE` cluster variables work for configuration validation and inbound alike, which is what the credentials work needs — without the runtime having to reimplement the engine's rule about which variable kinds may hold references.
+- If the outbound path does need covering later, it is a small addition on top of this, not a redesign.
+
+### Negative
+
+- **The secret-name charset is narrower than the engine's will be.** `SecretReferenceUtil.PATTERN` is `camunda\.secrets\.(?<secret>[\p{Alnum}_]+)`, which matches the engine's charset today. It must widen to `[\p{Alnum}_-]+` when [camunda/camunda#60446](https://github.com/camunda/camunda/issues/60446) lands, or a dash-named secret will be reported by the cluster and then not located in the result, so it silently fails to substitute. It fails closed — the placeholder survives and the connector fails visibly rather than binding a wrong value — but nothing in the build will catch the mismatch.
+- **The runtime's account must hold a `SECRET:REVEAL` grant.** Without it the resolve endpoint refuses every reference and nothing resolves. Granting it is an upgrade step that has to be documented for Helm and Console, not something the runtime can arrange for itself.
+- **There are now two ways to write a secret, and both stay.** They differ in syntax, in where values come from, in how they are configured and in how they fail. Maintainers have to know why they deliberately do not mix, and users have to know which one their store is set up for.
+- **Within one evaluation, substitution is not positional** (Decision 15). An expression that references a secret and also carries attacker-influenced data can leak that one secret into the data. Bounded, but real, and not closable at this layer.
+- **Secrets in the new form do not work for outbound connectors until the engine's own job-push work ships.** This is the deliberate bet in Decision 1; if it slips, we cover that path after all.
+- **A reference in the new form cannot be satisfied locally.** Keeping the forms apart means no environment variable will do, so local development and tests need either a configured store or a stand-in for the cluster.
+- **Nothing resolves against a cluster that does not report referenced secrets.** The behaviour is safe — placeholders survive, one warning is logged — but a runtime pointed at an older cluster gets silence rather than an error at startup.
+- **A missing grant reads as "secret not available".** Treating all failures alike is far less code, at the cost of a misleading message; the per-reference log naming the real cause makes it findable but does not fix it.
+- **Secret values substituted into inbound properties are not hidden from error output**, because inbound never hid them. This does not make that worse, but it does make the gap reachable by a second route.
+- **Every plain string property on the inbound binding path is now inspected.** The check is a cheap prefix test, but the consequence is a behaviour change: a plain-string field whose value begins with `=` and names a reference is now sent for evaluation, where before it was bound as text.
+- **Configuration validation no longer accepts the legacy syntax at all.** That is deliberate (Decision 13) and the surface is unreleased, but it means the two entry points to credentials do not accept the same syntax as each other.
+- **We depend on an unfinished API.** The client commands and both endpoints are marked experimental and open to change, so a client update could break this. Treating failures as described in Decision 11 bounds the worst case to secrets not resolving, rather than the runtime failing to start.
