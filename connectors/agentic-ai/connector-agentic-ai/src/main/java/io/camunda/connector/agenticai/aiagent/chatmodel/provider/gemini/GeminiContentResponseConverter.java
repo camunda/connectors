@@ -92,7 +92,12 @@ public class GeminiContentResponseConverter {
     final AgentMetrics metrics =
         toMetrics(response, assistantMessage.toolCalls().size(), executionTime);
 
-    if (assistantMessage.stopReason() == StopReason.CONTENT_FILTERED) {
+    final boolean blockedPrompt = response.candidates().filter(c -> !c.isEmpty()).isEmpty();
+    final FinishReason finishReason =
+        blockedPrompt
+            ? null
+            : response.candidates().orElseThrow().getFirst().finishReason().orElse(null);
+    if (blockedPrompt || (finishReason != null && isFilteringFinishReason(finishReason))) {
       throw new ContentFilteredException(
           "Model response was blocked by provider content filtering.",
           new ChatModelRejectedException.PartialResult(assistantMessage, metrics));
@@ -171,7 +176,6 @@ public class GeminiContentResponseConverter {
     return assistantMessageBuilder(response)
         .content(List.of(TextContent.textContent(text)))
         .toolCalls(List.of())
-        .stopReason(StopReason.CONTENT_FILTERED)
         .metadata(AssistantMessageMetadata.withDefaults(geminiMetadata))
         .build();
   }
@@ -352,9 +356,8 @@ public class GeminiContentResponseConverter {
    */
   private @Nullable StopReason mapStopReason(
       @Nullable FinishReason finishReason, boolean hasToolCalls) {
-    final StopReason filtered = finishReason != null ? filteredStopReason(finishReason) : null;
-    if (filtered != null) {
-      return filtered;
+    if (finishReason != null && isFilteringFinishReason(finishReason)) {
+      return new StopReason.UnknownStopReason(finishReason.toString());
     }
     if (hasToolCalls) {
       return StopReason.TOOL_USE;
@@ -373,7 +376,13 @@ public class GeminiContentResponseConverter {
     };
   }
 
-  private @Nullable StopReason filteredStopReason(FinishReason finishReason) {
+  /**
+   * Gemini's filtering finish reasons: no {@link StopReason} constant represents these (terminal
+   * rejections are signalled by throwing {@link ContentFilteredException} instead, see {@link
+   * #toResult}), so a match here both wins priority in {@link #mapStopReason} and is {@link
+   * #toResult}'s trigger to throw.
+   */
+  private boolean isFilteringFinishReason(FinishReason finishReason) {
     return switch (finishReason.knownEnum()) {
       case SAFETY,
           RECITATION,
@@ -383,8 +392,8 @@ public class GeminiContentResponseConverter {
           IMAGE_SAFETY,
           IMAGE_PROHIBITED_CONTENT,
           IMAGE_RECITATION ->
-          StopReason.CONTENT_FILTERED;
-      default -> null;
+          true;
+      default -> false;
     };
   }
 }

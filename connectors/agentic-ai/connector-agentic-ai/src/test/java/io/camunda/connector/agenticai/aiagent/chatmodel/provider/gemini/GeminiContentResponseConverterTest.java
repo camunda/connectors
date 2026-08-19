@@ -237,7 +237,7 @@ class GeminiContentResponseConverterTest {
 
     assertThat(assistantMessage.content()).isEmpty();
     assertThat(assistantMessage.toolCalls()).isEmpty();
-    assertThat(assistantMessage.stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
+    assertThat(assistantMessage.stopReason()).isEqualTo(new UnknownStopReason("SAFETY"));
   }
 
   @Test
@@ -254,7 +254,7 @@ class GeminiContentResponseConverterTest {
 
     assertThat(assistantMessage.content())
         .containsExactly(TextContent.textContent("partial answer"));
-    assertThat(assistantMessage.stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
+    assertThat(assistantMessage.stopReason()).isEqualTo(new UnknownStopReason("SAFETY"));
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -492,7 +492,8 @@ class GeminiContentResponseConverterTest {
             partialResult -> {
               assertThat(partialResult).isNotNull();
               final var assistantMessage = partialResult.assistantMessage();
-              assertThat(assistantMessage.stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
+              assertThat(assistantMessage.stopReason())
+                  .isEqualTo(new UnknownStopReason(finishReason));
               assertThat(assistantMessage.metadata())
                   .containsEntry(GOOGLE_GEMINI_ID, Map.of("finishReason", finishReason));
             });
@@ -579,7 +580,7 @@ class GeminiContentResponseConverterTest {
               assertThat(assistantMessage.content())
                   .containsExactly(TextContent.textContent("Prompt blocked: SAFETY"));
               assertThat(assistantMessage.toolCalls()).isEmpty();
-              assertThat(assistantMessage.stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
+              assertThat(assistantMessage.stopReason()).isNull();
               assertThat(assistantMessage.messageId()).isEqualTo("resp-blocked");
               assertThat(assistantMessage.modelId()).isEqualTo("gemini-3-pro-preview");
               assertThat(assistantMessage.metadata())
@@ -608,7 +609,7 @@ class GeminiContentResponseConverterTest {
 
     assertThat(assistantMessage.content())
         .containsExactly(TextContent.textContent("Prompt blocked: PROHIBITED_CONTENT"));
-    assertThat(assistantMessage.stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
+    assertThat(assistantMessage.stopReason()).isNull();
   }
 
   @Test
@@ -619,7 +620,7 @@ class GeminiContentResponseConverterTest {
 
     assertThat(assistantMessage.content())
         .containsExactly(TextContent.textContent("Prompt blocked (no block reason reported)"));
-    assertThat(assistantMessage.stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
+    assertThat(assistantMessage.stopReason()).isNull();
     assertThat(assistantMessage.metadata())
         .containsOnlyKeys(AssistantMessageMetadata.TIMESTAMP_KEY);
   }
