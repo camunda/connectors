@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.Anthr
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdCredentialCache;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseRequestConverter;
@@ -67,10 +68,17 @@ public class AgenticAiNativeProvidersConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public FoundryCredentialResolver aiAgentFoundryCredentialResolver(
+  public EntraIdCredentialCache aiAgentEntraIdCredentialCache(
       AgenticAiConnectorsConfigurationProperties configuration) {
-    return new FoundryCredentialResolver(
-        configuration.aiagent().chatModel().openai().foundry().credentialCache());
+    return new EntraIdCredentialCache(
+        configuration.aiagent().chatModel().azure().credentialCache());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public FoundryCredentialResolver aiAgentFoundryCredentialResolver(
+      EntraIdCredentialCache entraIdCredentialCache) {
+    return new FoundryCredentialResolver(entraIdCredentialCache);
   }
 
   @Bean
