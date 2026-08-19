@@ -30,6 +30,7 @@ import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.feel.jackson.JacksonModuleSecretReference;
 import io.camunda.connector.hostvalidator.CidrRange;
 import io.camunda.connector.hostvalidator.VerifiedHostValidator;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
@@ -252,6 +253,7 @@ public class ConnectorsAutoConfiguration {
         jacksonModuleDocumentDeserializer,
         new JacksonModuleFeelFunction(
             true, feelExpressionEvaluator, FeelExpressionEvaluatorBuilder.local().build()),
+        new JacksonModuleSecretReference(),
         new JacksonModuleDocumentSerializer());
   }
 

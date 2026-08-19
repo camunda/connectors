@@ -184,9 +184,20 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     if (!relaxed) {
       return evaluator;
     }
+    return resolveEvaluator(ctx, evaluator);
+  }
+
+  /**
+   * Returns the evaluator carried by the current {@link
+   * com.fasterxml.jackson.databind.ObjectReader} as the {@link
+   * FeelContextAwareObjectReader#FEEL_EVALUATOR_ATTRIBUTE} attribute, or {@code fallback} when the
+   * reader carries none.
+   */
+  static FeelExpressionEvaluator resolveEvaluator(
+      DeserializationContext ctx, FeelExpressionEvaluator fallback) {
     var override = ctx.getAttribute(FeelContextAwareObjectReader.FEEL_EVALUATOR_ATTRIBUTE);
     if (override == null) {
-      return evaluator;
+      return fallback;
     }
     if (override instanceof FeelExpressionEvaluator feelEvaluator) {
       return feelEvaluator;
