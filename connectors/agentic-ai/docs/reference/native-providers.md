@@ -146,10 +146,10 @@ decision, so they fail the call with `ERROR_CODE_FAILED_MODEL_CALL` instead.
 ## OpenAI
 
 Two orthogonal sealed axes: `OpenAiApi` (`completions` | `responses`, default `responses`) and
-`OpenAiBackend` (`openai-api` | `custom`, default `openai-api`) vary independently, so any backend can
-serve either wire format. The wire format is a sealed discriminator rather than a flat enum so each
-family gets its own namespace for family-specific knobs — e.g. the differing max-token field name
-(`maxCompletionTokens` vs `maxOutputTokens`) — without `condition` gating or collisions.
+`OpenAiBackend` (`openai-api` | `foundry` | `custom`, default `openai-api`) vary independently, so any
+backend can serve either wire format. The wire format is a sealed discriminator rather than a flat enum
+so each family gets its own namespace for family-specific knobs — e.g. the differing max-token field
+name (`maxCompletionTokens` vs `maxOutputTokens`) — without `condition` gating or collisions.
 
 ### Backends
 
@@ -157,6 +157,34 @@ family gets its own namespace for family-specific knobs — e.g. the differing m
 `headers`/`queryParameters`/`bodyProperties`, and requires an API key — no no-auth option, because the
 SDK client builder requires a credential source to build at all. Overrides merge additively per-key
 via `OpenAiRequestCustomizations` (shared between both converters).
+
+`OpenAiFoundryBackend` (Microsoft Foundry / Azure OpenAI) exposes the same request customizations as
+`headers`/`queryParameters`/`bodyProperties`, but hidden, matching
+`AnthropicAwsBedrockMantleBackend`'s pattern rather than the fully-visible `custom` backend. Its
+`FoundryAuthentication` sealed interface supports an Azure API key
+(`com.openai.azure.credential.AzureApiKeyCredential`, sent as the dedicated `api-key` header rather than
+`Authorization: Bearer`) or Microsoft Entra ID via `ClientCredentialsAuthentication` /
+`ManagedIdentityAuthentication`, both wrapped as `BearerTokenCredential` suppliers over an
+azure-identity `TokenCredential`. `ManagedIdentityAuthentication` is blocked on SaaS
+(`ConnectorUtils.isSaaS()`) since a SaaS runtime doesn't execute inside the customer's Azure tenant.
+
+The openai-java SDK detects the Azure API surface (legacy dated `api-version` + deployment-in-path vs.
+the newer unified `/openai/v1` GA API) automatically from the endpoint hostname, so neither an
+api-version nor a URL-path-mode field is exposed as a normal config property. `apiVersion` exists only
+as a hidden, optional escape hatch for pinning a specific legacy-style API version, wired through the
+SDK's dedicated `azureServiceVersion(...)` builder method rather than the generic hidden
+`queryParameters` map — a manually-set `api-version` query parameter is silently dropped by the SDK
+when combined with Entra ID auth on a legacy-style endpoint.
+
+Since a `ChatModel` (and the underlying `OpenAIClient`) is rebuilt on every agent turn, azure-identity
+`TokenCredential` instances (`ClientSecretCredential`, `ManagedIdentityCredential`) are cached and
+reused across turns by `FoundryCredentialCache`, a bounded Caffeine cache
+(`camunda.connector.agenticai.aiagent.chat-model.openai.foundry.credential-cache.*`) keyed by a
+SHA-256 hash of the authentication
+configuration — never the raw secret material itself, mirroring `CaffeineOAuthTokenCache` in
+connector-commons/http-client. Only the credential *object* is cached; azure-identity's credentials
+already cache and auto-refresh their own tokens internally, so rebuilding the `OpenAIClient` each turn
+never forces a fresh Entra ID token request as long as the credential object is reused.
 
 ### Reasoning effort
 
