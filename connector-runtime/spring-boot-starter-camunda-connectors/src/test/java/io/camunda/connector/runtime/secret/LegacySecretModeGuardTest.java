@@ -25,7 +25,10 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.runtime.ConnectorsAutoConfiguration;
 import io.camunda.connector.runtime.core.secret.LegacySecretMode;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
 
@@ -60,6 +63,41 @@ class LegacySecretModeGuardTest {
     assertThat(
             autoConfiguration.secretProviderAggregatorLegacySwitchGuard(
                 applicationContext, LegacySecretMode.OFF))
+        .isNotNull();
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = SecretFilterMode.class,
+      names = {"DISABLED", "LAX"})
+  void refusesToStartOnFallbackWithoutAStrictSecretFilter(SecretFilterMode secretFilterMode) {
+    assertThatThrownBy(
+            () ->
+                autoConfiguration.legacyFallbackSecretFilterGuard(
+                    LegacySecretMode.FALLBACK, secretFilterMode))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("camunda.connector.secret-resolver.legacy.mode=FALLBACK")
+        .hasMessageContaining("secret-filter.mode=STRICT");
+  }
+
+  @Test
+  void startsOnFallbackWithAStrictSecretFilter() {
+    assertThat(
+            autoConfiguration.legacyFallbackSecretFilterGuard(
+                LegacySecretMode.FALLBACK, SecretFilterMode.STRICT))
+        .isNotNull();
+  }
+
+  @ParameterizedTest
+  @EnumSource(SecretFilterMode.class)
+  void leavesTheSecretFilterAloneWhenTheFallbackIsNotInUse(SecretFilterMode secretFilterMode) {
+    assertThat(
+            autoConfiguration.legacyFallbackSecretFilterGuard(
+                LegacySecretMode.ON, secretFilterMode))
+        .isNotNull();
+    assertThat(
+            autoConfiguration.legacyFallbackSecretFilterGuard(
+                LegacySecretMode.OFF, secretFilterMode))
         .isNotNull();
   }
 

@@ -48,6 +48,7 @@ import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
+import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
@@ -217,6 +218,36 @@ public class ConnectorsAutoConfiguration {
                 name ->
                     new SecretReferenceResolver(
                         PhysicalTenantClients.resolveClient(registry, name, legacyCamundaClient))));
+  }
+
+  /**
+   * Refuses to start under {@link LegacySecretMode#FALLBACK} unless the outbound secret filter is
+   * strict.
+   *
+   * <p>The fallback lets the legacy syntax reach the cluster's secret stores, and the only thing
+   * restricting which secrets a legacy reference may name is that filter. It ships disabled, and
+   * its lax setting resolves everything whenever the process-definition lookup fails. Pairing the
+   * two is a deployment invariant either way; refusing to start makes it one the runtime enforces
+   * rather than one a runbook describes.
+   */
+  @Bean
+  public Object legacyFallbackSecretFilterGuard(
+      @Value("${" + LegacySecretsDisabledProvider.PROPERTY + ":ON}") LegacySecretMode legacyMode,
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
+          SecretFilterMode secretFilterMode) {
+    if (legacyMode == LegacySecretMode.FALLBACK && secretFilterMode != SecretFilterMode.STRICT) {
+      throw new IllegalStateException(
+          LegacySecretsDisabledProvider.PROPERTY
+              + "="
+              + LegacySecretMode.FALLBACK
+              + " requires camunda.connector.secret-resolver.secret-filter.mode="
+              + SecretFilterMode.STRICT
+              + ", but it is "
+              + secretFilterMode
+              + ". The fallback lets a legacy secret reference read the cluster's secret stores,"
+              + " and the secret filter is what restricts which secrets a process may name.");
+    }
+    return new Object();
   }
 
   /**

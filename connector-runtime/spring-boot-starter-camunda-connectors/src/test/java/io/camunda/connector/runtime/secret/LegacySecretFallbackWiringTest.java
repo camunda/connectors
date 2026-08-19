@@ -32,7 +32,10 @@ class LegacySecretFallbackWiringTest {
   @Nested
   @SpringBootTest(
       classes = {TestConnectorRuntimeApplication.class, FooSpringSecretProvider.class},
-      properties = {"camunda.connector.secret-resolver.legacy.mode=FALLBACK"})
+      properties = {
+        "camunda.connector.secret-resolver.legacy.mode=FALLBACK",
+        "camunda.connector.secret-resolver.secret-filter.mode=STRICT"
+      })
   class WhenFallbackIsChosen {
 
     @Autowired SecretProviderAggregator secretProviderAggregator;
