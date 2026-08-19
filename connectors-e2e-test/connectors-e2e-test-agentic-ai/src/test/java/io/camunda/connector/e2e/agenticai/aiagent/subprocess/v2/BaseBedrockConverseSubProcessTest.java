@@ -65,10 +65,11 @@ abstract class BaseBedrockConverseSubProcessTest extends BaseAgentSubProcessV2Te
         .property("provider.bedrock.model.model", defaultModel());
   }
 
-  static LoggedRequest soleRecordedRequest() {
+  /** Asserts that exactly one model-call request has been recorded and returns its parsed body. */
+  JsonNode parseSoleRecordedRequest() {
     final var requests = recordedLoggedRequests();
     assertThat(requests).as("recorded model-call requests").hasSize(1);
-    return requests.get(0);
+    return parseBody(requests.get(0));
   }
 
   static List<LoggedRequest> recordedLoggedRequests() {
