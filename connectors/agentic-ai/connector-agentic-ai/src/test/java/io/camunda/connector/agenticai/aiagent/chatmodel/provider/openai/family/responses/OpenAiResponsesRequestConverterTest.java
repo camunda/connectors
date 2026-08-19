@@ -413,7 +413,28 @@ class OpenAiResponsesRequestConverterTest {
   @Test
   void configuresStructuredOutputFromJsonSchema() {
     final Map<String, Object> schema =
-        Map.of("type", "object", "properties", Map.of("answer", Map.of("type", "string")));
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of(
+                "answer",
+                Map.of("type", "string"),
+                "details",
+                Map.of(
+                    "type",
+                    "object",
+                    "additionalProperties",
+                    true,
+                    "properties",
+                    Map.of("confidence", Map.of("type", "number"))),
+                "sources",
+                Map.of(
+                    "type",
+                    "array",
+                    "items",
+                    Map.of(
+                        "type", "object", "properties", Map.of("id", Map.of("type", "string"))))));
     final var response =
         new AgentTaskResponseConfiguration(
             new JsonResponseFormatConfiguration(schema, "Answer"), null);
@@ -427,9 +448,27 @@ class OpenAiResponsesRequestConverterTest {
     assertThat(textNode.path("type").asText()).isEqualTo("json_schema");
     assertThat(textNode.path("name").asText()).isEqualTo("Answer");
     assertThat(textNode.path("strict").asBoolean()).isTrue();
-    assertThat(textNode.path("schema").path("type").asText()).isEqualTo("object");
-    assertThat(textNode.path("schema").path("properties").path("answer").path("type").asText())
+
+    final var schemaNode = textNode.path("schema");
+    assertThat(schemaNode.path("type").asText()).isEqualTo("object");
+    assertThat(schemaNode.path("properties").path("answer").path("type").asText())
         .isEqualTo("string");
+
+    // additionalProperties: false is required by OpenAI's strict mode on every object level, so
+    // it's auto-injected -- at the root, overriding an explicit `true` on a nested object, and on
+    // an object nested inside an array's items -- rather than left to the caller to get right.
+    assertThat(schemaNode.path("additionalProperties").asBoolean()).isFalse();
+    assertThat(
+            schemaNode.path("properties").path("details").path("additionalProperties").asBoolean())
+        .isFalse();
+    assertThat(
+            schemaNode
+                .path("properties")
+                .path("sources")
+                .path("items")
+                .path("additionalProperties")
+                .asBoolean())
+        .isFalse();
   }
 
   // --- Reasoning / effort ------------------------------------------------------------------

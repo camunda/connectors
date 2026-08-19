@@ -24,6 +24,7 @@ import com.openai.models.chat.completions.ChatCompletionTool;
 import com.openai.models.chat.completions.ChatCompletionToolMessageParam;
 import com.openai.models.chat.completions.ChatCompletionUserMessageParam;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiStrictJsonSchemas;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -292,7 +293,8 @@ public class OpenAiCompletionsRequestConverter {
                     .name(json.schemaName())
                     .schema(
                         objectMapper.convertValue(
-                            json.schema(), ResponseFormatJsonSchema.JsonSchema.Schema.class))
+                            OpenAiStrictJsonSchemas.forStrictMode(json.schema(), objectMapper),
+                            ResponseFormatJsonSchema.JsonSchema.Schema.class))
                     .strict(true)
                     .build())
             .build());
