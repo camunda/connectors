@@ -7,13 +7,12 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.AuthenticationUtil;
 import com.openai.azure.credential.AzureApiKeyCredential;
 import com.openai.credential.BearerTokenCredential;
 import com.openai.credential.Credential;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdCredentialCache;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
-import java.util.Objects;
 
 /**
  * Resolves the openai-java {@link Credential} for the {@code foundry} backend's {@link
@@ -26,9 +25,13 @@ import java.util.Objects;
  */
 public class FoundryCredentialResolver {
 
-  /** Scope requested when acquiring a Microsoft Entra ID token for Azure OpenAI / Foundry. */
-  private static final String AZURE_COGNITIVE_SERVICES_SCOPE =
-      "https://cognitiveservices.azure.com/.default";
+  /**
+   * Scope requested when acquiring a Microsoft Entra ID token for Foundry Models, per the <a
+   * href="https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/how-to/configure-entra-id">
+   * Microsoft Foundry Entra ID documentation</a> (the openai-java code sample there uses this exact
+   * scope with {@link AuthenticationUtil#getBearerTokenSupplier}).
+   */
+  private static final String AZURE_AI_FOUNDRY_SCOPE = "https://ai.azure.com/.default";
 
   private final EntraIdCredentialCache entraIdCredentialCache;
 
@@ -52,18 +55,13 @@ public class FoundryCredentialResolver {
   }
 
   /**
-   * Wraps an azure-identity {@link TokenCredential} as an openai-java {@link Credential}: the
-   * supplier is invoked fresh on every request, so this never caches a token itself, relying
-   * entirely on the wrapped credential's own token cache and refresh logic.
+   * Wraps an azure-identity {@link TokenCredential} as an openai-java {@link Credential} via the
+   * supplier {@link AuthenticationUtil#getBearerTokenSupplier} builds: it is invoked fresh on every
+   * request, so this never caches a token itself, relying entirely on the wrapped credential's own
+   * token cache and refresh logic.
    */
   private static Credential entraIdBearerTokenCredential(TokenCredential tokenCredential) {
     return BearerTokenCredential.create(
-        () ->
-            Objects.requireNonNull(
-                    tokenCredential
-                        .getToken(
-                            new TokenRequestContext().addScopes(AZURE_COGNITIVE_SERVICES_SCOPE))
-                        .block())
-                .getToken());
+        AuthenticationUtil.getBearerTokenSupplier(tokenCredential, AZURE_AI_FOUNDRY_SCOPE));
   }
 }

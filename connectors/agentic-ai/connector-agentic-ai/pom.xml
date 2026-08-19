@@ -227,15 +227,6 @@
       <groupId>com.azure</groupId>
       <artifactId>azure-core</artifactId>
     </dependency>
-    <!--
-      Used directly (not just transitively) to block on the Mono<AccessToken> returned by
-      TokenCredential#getToken when wrapping azure-identity credentials for the Foundry backend's
-      Microsoft Entra ID authentication.
-    -->
-    <dependency>
-      <groupId>io.projectreactor</groupId>
-      <artifactId>reactor-core</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>software.amazon.awssdk</groupId>

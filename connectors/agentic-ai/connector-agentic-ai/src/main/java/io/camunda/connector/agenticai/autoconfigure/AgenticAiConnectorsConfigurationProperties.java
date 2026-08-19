@@ -36,10 +36,6 @@ public record AgenticAiConnectorsConfigurationProperties(
       @Valid @DefaultValue ApiProperties api, @Valid @DefaultValue AzureProperties azure) {
     public record ApiProperties(@DefaultValue("PT3M") Duration defaultTimeout) {}
 
-    /**
-     * Shared by every native provider backend hosted on Microsoft Foundry / Azure (e.g. OpenAI, and
-     * eventually Anthropic) that authenticates via Microsoft Entra ID -- not OpenAI-specific.
-     */
     public record AzureProperties(@Valid @DefaultValue CredentialCacheProperties credentialCache) {
       public record CredentialCacheProperties(
           @DefaultValue("true") boolean enabled,

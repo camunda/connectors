@@ -21,12 +21,8 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Resolves and caches azure-identity {@link TokenCredential} instances for Microsoft Entra ID
- * authentication (client-credentials and managed-identity flows), shared by every native provider
- * backend hosted on Microsoft Foundry / Azure -- today only the native OpenAI provider's {@code
- * foundry} backend, but written provider-agnostic since an Anthropic-on-Foundry backend is a known
- * near-term addition (issue #8060) that will need the exact same azure-identity plumbing. Vendor
- * SDK-specific wrapping (e.g. openai-java's {@code Credential}) is each provider's own concern and
- * lives outside this class -- it only ever returns a plain {@link TokenCredential}.
+ * authentication (client-credentials and managed-identity flows). Returns a plain {@link
+ * TokenCredential}; wrapping it for a particular vendor SDK is the caller's responsibility.
  *
  * <p>A provider's {@code ChatModel} is typically rebuilt on every agent turn, so without caching, a
  * fresh {@code ClientSecretCredential}/{@code ManagedIdentityCredential} would be constructed every
@@ -38,7 +34,7 @@ import org.jspecify.annotations.Nullable;
  * <p>The cache key is a SHA-256 hash of the credential configuration (mirroring {@code
  * CaffeineOAuthTokenCache} in connector-commons/http-client), computed and consumed entirely inside
  * this class so that raw credential material such as a client secret is never stored in plain text
- * as a map key, or passed to/through any other component.
+ * as a map key.
  */
 public class EntraIdCredentialCache {
 
@@ -64,12 +60,7 @@ public class EntraIdCredentialCache {
       String tenantId, String clientId, String clientSecret, @Nullable String authorityHost) {
     final var key =
         String.join(
-            "\0",
-            "clientCredentials",
-            tenantId,
-            clientId,
-            clientSecret,
-            Objects.requireNonNullElse(authorityHost, ""));
+            "\0", tenantId, clientId, clientSecret, Objects.requireNonNullElse(authorityHost, ""));
     return cache.get(
         sha256Hex(key),
         k -> buildClientSecretCredential(tenantId, clientId, clientSecret, authorityHost));
@@ -81,7 +72,7 @@ public class EntraIdCredentialCache {
    * the system-assigned identity.
    */
   public TokenCredential managedIdentity(@Nullable String clientId) {
-    final var key = String.join("\0", "managedIdentity", Objects.requireNonNullElse(clientId, ""));
+    final var key = Objects.requireNonNullElse(clientId, "");
     return cache.get(sha256Hex(key), k -> buildManagedIdentityCredential(clientId));
   }
 
