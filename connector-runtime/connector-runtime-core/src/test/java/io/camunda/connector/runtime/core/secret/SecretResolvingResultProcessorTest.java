@@ -181,6 +181,32 @@ class SecretResolvingResultProcessorTest {
   }
 
   @Test
+  void handlesANullAnywhereInTheResult() {
+    // An expression may evaluate to a structure holding nulls. Walking it must not fail the bind.
+    resolver.holds("camunda.secrets.TOKEN", "tok-1");
+    var withNulls = new LinkedHashMap<String, Object>();
+    withNulls.put("empty", null);
+    withNulls.put("secret", "camunda.secrets.TOKEN");
+    withNulls.put("list", Arrays.asList(null, "camunda.secrets.TOKEN"));
+
+    Object result = processor.process(withNulls, references("TOKEN"));
+
+    var expected = new LinkedHashMap<String, Object>();
+    expected.put("empty", null);
+    expected.put("secret", "tok-1");
+    expected.put("list", Arrays.asList(null, "tok-1"));
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void handlesANullInAResultWithNothingToResolve() {
+    var withNulls = new LinkedHashMap<String, Object>();
+    withNulls.put("empty", null);
+
+    assertThat(processor.process(withNulls, references("TOKEN"))).isEqualTo(withNulls);
+  }
+
+  @Test
   void passesThroughAResultWithNoStrings() {
     assertThat(processor.process(42, references("TOKEN"))).isEqualTo(42);
     assertThat(processor.process(null, references("TOKEN"))).isNull();

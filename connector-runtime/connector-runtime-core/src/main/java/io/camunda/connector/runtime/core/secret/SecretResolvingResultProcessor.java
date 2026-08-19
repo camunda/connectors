@@ -101,6 +101,9 @@ public class SecretResolvingResultProcessor implements EvaluationResultProcessor
 
   private static void collectReferences(Object node, Set<String> into) {
     switch (node) {
+      // A pattern switch throws on a null selector unless null is matched explicitly, and an
+      // evaluation result may hold a null anywhere in it.
+      case null -> {}
       case String text -> into.addAll(SecretReferenceUtil.findReferences(text));
       case Map<?, ?> map -> map.values().forEach(value -> collectReferences(value, into));
       case List<?> list -> list.forEach(element -> collectReferences(element, into));
@@ -110,6 +113,7 @@ public class SecretResolvingResultProcessor implements EvaluationResultProcessor
 
   private static Object substitute(Object node, Map<String, String> values) {
     return switch (node) {
+      case null -> null;
       case String text -> SecretReferenceUtil.replaceReferences(text, values);
       case Map<?, ?> map -> {
         Map<Object, Object> substituted = new LinkedHashMap<>();
