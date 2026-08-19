@@ -27,13 +27,11 @@ import io.camunda.connector.api.secret.SecretProvider;
  */
 public class LegacySecretsDisabledProvider implements SecretProvider {
 
-  public static final String PROPERTY = "camunda.connector.secret-resolver.legacy.mode";
-
   @Override
   public String getSecret(String name, SecretContext context) {
     throw new ConnectorInputException(
         "Legacy secret resolution is disabled ("
-            + PROPERTY
+            + LegacySecretMode.PROPERTY
             + "="
             + LegacySecretMode.OFF
             + "); secret '"

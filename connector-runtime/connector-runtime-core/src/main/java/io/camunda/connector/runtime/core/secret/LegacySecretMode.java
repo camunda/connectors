@@ -41,5 +41,32 @@ public enum LegacySecretMode {
    * "no provider is configured", because a provider reading the environment is registered by
    * default and so that is never actually the case.
    */
-  FALLBACK
+  FALLBACK;
+
+  /** The property that selects the mode. */
+  public static final String PROPERTY = "camunda.connector.secret-resolver.legacy.mode";
+
+  /**
+   * Reads the configured value. Spring's own string-to-enum conversion turns a present-but-empty
+   * property into {@code null} rather than failing, which for a setting that governs whether
+   * secrets resolve at all would mean silently falling back to the most permissive mode. Parsing
+   * here rejects that, and accepts any capitalisation.
+   */
+  public static LegacySecretMode parse(String value) {
+    if (value == null || value.isBlank()) {
+      throw new IllegalArgumentException(
+          PROPERTY + " is set but empty. Use one of " + java.util.Arrays.toString(values()) + ".");
+    }
+    try {
+      return valueOf(value.trim().toUpperCase(java.util.Locale.ROOT));
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          PROPERTY
+              + "='"
+              + value
+              + "' is not a legacy secret mode. Use one of "
+              + java.util.Arrays.toString(values())
+              + ".");
+    }
+  }
 }

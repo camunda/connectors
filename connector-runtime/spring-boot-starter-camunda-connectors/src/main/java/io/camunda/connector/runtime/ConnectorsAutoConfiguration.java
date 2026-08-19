@@ -177,15 +177,16 @@ public class ConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public SecretProviderAggregator springSecretProviderAggregator(
       Optional<List<SecretProvider>> secretProviderBeans,
-      @Value("${" + LegacySecretsDisabledProvider.PROPERTY + ":ON}") LegacySecretMode legacyMode,
+      @Value("${" + LegacySecretMode.PROPERTY + ":ON}") String legacyModeProperty,
       @Autowired(required = false) CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
       @Autowired(required = false) MeterRegistry meterRegistry) {
+    LegacySecretMode legacyMode = LegacySecretMode.parse(legacyModeProperty);
     if (legacyMode == LegacySecretMode.OFF) {
       LOG.info(
           "Legacy secret resolution is disabled ({}={}); {{secrets.X}} and secrets.X will not"
               + " resolve.",
-          LegacySecretsDisabledProvider.PROPERTY,
+          LegacySecretMode.PROPERTY,
           LegacySecretMode.OFF);
       return new SecretProviderAggregator(List.of(new LegacySecretsDisabledProvider()));
     }
@@ -202,7 +203,7 @@ public class ConnectorsAutoConfiguration {
       LOG.info(
           "Legacy secret names not held by any configured provider will be read from the cluster's"
               + " secret stores ({}={})",
-          LegacySecretsDisabledProvider.PROPERTY,
+          LegacySecretMode.PROPERTY,
           LegacySecretMode.FALLBACK);
       secretProviders.add(
           new CentralStoreSecretProvider(
@@ -237,12 +238,18 @@ public class ConnectorsAutoConfiguration {
    */
   @Bean
   public Object legacyFallbackSecretFilterGuard(
-      @Value("${" + LegacySecretsDisabledProvider.PROPERTY + ":ON}") LegacySecretMode legacyMode,
+      @Value("${" + LegacySecretMode.PROPERTY + ":ON}") String legacyModeProperty,
       @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
           SecretFilterMode secretFilterMode) {
+    return checkLegacyFallbackSecretFilter(
+        LegacySecretMode.parse(legacyModeProperty), secretFilterMode);
+  }
+
+  public Object checkLegacyFallbackSecretFilter(
+      LegacySecretMode legacyMode, SecretFilterMode secretFilterMode) {
     if (legacyMode == LegacySecretMode.FALLBACK && secretFilterMode != SecretFilterMode.STRICT) {
       throw new IllegalStateException(
-          LegacySecretsDisabledProvider.PROPERTY
+          LegacySecretMode.PROPERTY
               + "="
               + LegacySecretMode.FALLBACK
               + " requires camunda.connector.secret-resolver.secret-filter.mode="
@@ -265,7 +272,13 @@ public class ConnectorsAutoConfiguration {
   @Bean
   public Object secretProviderAggregatorLegacySwitchGuard(
       ApplicationContext applicationContext,
-      @Value("${" + LegacySecretsDisabledProvider.PROPERTY + ":ON}") LegacySecretMode legacyMode) {
+      @Value("${" + LegacySecretMode.PROPERTY + ":ON}") String legacyModeProperty) {
+    return checkSecretProviderAggregatorLegacySwitch(
+        applicationContext, LegacySecretMode.parse(legacyModeProperty));
+  }
+
+  public Object checkSecretProviderAggregatorLegacySwitch(
+      ApplicationContext applicationContext, LegacySecretMode legacyMode) {
     if (legacyMode != LegacySecretMode.OFF) {
       return new Object();
     }
@@ -275,7 +288,7 @@ public class ConnectorsAutoConfiguration {
             .toList();
     if (!replacements.isEmpty()) {
       throw new IllegalStateException(
-          LegacySecretsDisabledProvider.PROPERTY
+          LegacySecretMode.PROPERTY
               + "="
               + LegacySecretMode.OFF
               + " cannot be enforced: the application supplies its own SecretProviderAggregator"

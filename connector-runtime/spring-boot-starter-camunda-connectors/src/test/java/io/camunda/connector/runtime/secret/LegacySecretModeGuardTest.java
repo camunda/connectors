@@ -29,6 +29,7 @@ import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
 
@@ -43,12 +44,36 @@ class LegacySecretModeGuardTest {
   private final ConnectorsAutoConfiguration autoConfiguration =
       new ConnectorsAutoConfiguration(mock(ObjectProvider.class));
 
+  @ParameterizedTest
+  @ValueSource(strings = {"OFF", "off", " on ", "FALLBACK", "Fallback"})
+  void readsTheModeWhateverItsCapitalisation(String configured) {
+    assertThat(LegacySecretMode.parse(configured))
+        .isEqualTo(LegacySecretMode.valueOf(configured.trim().toUpperCase(java.util.Locale.ROOT)));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "   ", "yes", "true", "DISABLED"})
+  void refusesAModeItCannotRead(String configured) {
+    // Spring's own conversion turns an empty value into null rather than failing, which for this
+    // setting would mean silently resolving legacy secrets after an operator tried to switch them
+    // off.
+    assertThatThrownBy(() -> LegacySecretMode.parse(configured))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(LegacySecretMode.PROPERTY);
+  }
+
+  @Test
+  void refusesAModeThatIsNotSetAtAll() {
+    assertThatThrownBy(() -> LegacySecretMode.parse(null))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
   @Test
   void doesNotInspectTheAggregatorBeansWhenLegacyResolutionIsOn() {
     ApplicationContext applicationContext = mock(ApplicationContext.class);
 
     assertThat(
-            autoConfiguration.secretProviderAggregatorLegacySwitchGuard(
+            autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
                 applicationContext, LegacySecretMode.ON))
         .isNotNull();
     verifyNoInteractions(applicationContext);
@@ -61,7 +86,7 @@ class LegacySecretModeGuardTest {
         .thenReturn(new String[] {"springSecretProviderAggregator"});
 
     assertThat(
-            autoConfiguration.secretProviderAggregatorLegacySwitchGuard(
+            autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
                 applicationContext, LegacySecretMode.OFF))
         .isNotNull();
   }
@@ -73,7 +98,7 @@ class LegacySecretModeGuardTest {
   void refusesToStartOnFallbackWithoutAStrictSecretFilter(SecretFilterMode secretFilterMode) {
     assertThatThrownBy(
             () ->
-                autoConfiguration.legacyFallbackSecretFilterGuard(
+                autoConfiguration.checkLegacyFallbackSecretFilter(
                     LegacySecretMode.FALLBACK, secretFilterMode))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("camunda.connector.secret-resolver.legacy.mode=FALLBACK")
@@ -83,7 +108,7 @@ class LegacySecretModeGuardTest {
   @Test
   void startsOnFallbackWithAStrictSecretFilter() {
     assertThat(
-            autoConfiguration.legacyFallbackSecretFilterGuard(
+            autoConfiguration.checkLegacyFallbackSecretFilter(
                 LegacySecretMode.FALLBACK, SecretFilterMode.STRICT))
         .isNotNull();
   }
@@ -92,11 +117,11 @@ class LegacySecretModeGuardTest {
   @EnumSource(SecretFilterMode.class)
   void leavesTheSecretFilterAloneWhenTheFallbackIsNotInUse(SecretFilterMode secretFilterMode) {
     assertThat(
-            autoConfiguration.legacyFallbackSecretFilterGuard(
+            autoConfiguration.checkLegacyFallbackSecretFilter(
                 LegacySecretMode.ON, secretFilterMode))
         .isNotNull();
     assertThat(
-            autoConfiguration.legacyFallbackSecretFilterGuard(
+            autoConfiguration.checkLegacyFallbackSecretFilter(
                 LegacySecretMode.OFF, secretFilterMode))
         .isNotNull();
   }
@@ -109,7 +134,7 @@ class LegacySecretModeGuardTest {
 
     assertThatThrownBy(
             () ->
-                autoConfiguration.secretProviderAggregatorLegacySwitchGuard(
+                autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
                     applicationContext, LegacySecretMode.OFF))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("camunda.connector.secret-resolver.legacy.mode=OFF")
