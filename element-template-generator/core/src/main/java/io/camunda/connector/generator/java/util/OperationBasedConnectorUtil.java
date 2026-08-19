@@ -31,6 +31,7 @@ import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
@@ -212,9 +213,19 @@ public class OperationBasedConnectorUtil {
           new PropertyCondition.AllMatch(
               List.of(operationCondition, mapPropertyCondition(isActive, operationId)));
       case PropertyCondition.AllMatch allMatch -> {
+        // mapPropertyCondition returns an AllMatch over an immutable list, so the operation
+        // condition
+        // has to be merged into a fresh list rather than added in place. This branch is only
+        // reached
+        // when a property already carries an AllMatch — which for an operation-based connector
+        // means
+        // two levels of nested discriminators (a sealed field inside a sealed subtype), so it went
+        // unexercised until such a connector existed.
         PropertyCondition.AllMatch allMatchPatched = mapPropertyCondition(allMatch, operationId);
-        allMatchPatched.allMatch().add(operationCondition);
-        yield allMatchPatched;
+        List<PropertyCondition> conditions = new ArrayList<>();
+        conditions.add(operationCondition);
+        conditions.addAll(allMatchPatched.allMatch());
+        yield new PropertyCondition.AllMatch(conditions);
       }
       case PropertyCondition.OneOf oneOf ->
           new PropertyCondition.AllMatch(

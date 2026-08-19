@@ -24,6 +24,7 @@ import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
+import io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationProcessor;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -58,6 +59,30 @@ public class LinkedResourcePropertiesUtil {
     return buildLinkedResourcePropertiesCore(annotations, "", null, null);
   }
 
+  /**
+   * Re-points a condition at the operation-scoped property ID. {@code idPrefix} is {@code
+   * "<operationId>:"} for operation-based connectors and empty for class-based ones, matching how
+   * the referenced property's own ID is prefixed.
+   */
+  private static PropertyCondition withIdPrefix(PropertyCondition condition, String idPrefix) {
+    if (idPrefix.isEmpty()) {
+      return condition;
+    }
+    return switch (condition) {
+      case PropertyCondition.Equals c ->
+          new PropertyCondition.Equals(idPrefix + c.property(), c.equals());
+      case PropertyCondition.OneOf c ->
+          new PropertyCondition.OneOf(idPrefix + c.property(), c.oneOf());
+      case PropertyCondition.IsActive c ->
+          new PropertyCondition.IsActive(idPrefix + c.property(), c.isActive());
+      // transformToNestedCondition cannot return AllMatch (nested conditions do not nest further).
+      // Passing it through would leave its inner properties unprefixed — wrong output rather than a
+      // failure — so fail loudly if that ever changes.
+      case PropertyCondition.AllMatch c ->
+          throw new IllegalStateException("Nested conditions cannot nest further, got: " + c);
+    };
+  }
+
   static List<PropertyBuilder> buildLinkedResourcePropertiesCore(
       TemplateLinkedResource[] annotations,
       String idPrefix,
@@ -89,6 +114,25 @@ public class LinkedResourcePropertiesUtil {
       String group = linkedResource.group().isBlank() ? defaultGroup : linkedResource.group();
       String bindingTypeId = idPrefix + linkedResource.linkName() + SUFFIX_BINDING_TYPE;
 
+      // Conditions every linked-resource property inherits: the operation scope (null for
+      // class-based connectors, which have none) plus any declared gates.
+      // idPrefix is "<operationId>:" for operation-based connectors and "" for class-based ones,
+      // matching how the referenced property's own ID is prefixed.
+      List<PropertyCondition> baseConditions = new ArrayList<>();
+      if (baseCondition != null) {
+        baseConditions.add(baseCondition);
+      }
+      for (var condition : linkedResource.conditions()) {
+        // Reuse the shared translator rather than handling equals only: NestedPropertyCondition
+        // also
+        // offers equalsBoolean, oneOf and isActive, and silently rejecting them would make the API
+        // look broader than it is. It validates too, so no separate check is needed here.
+        baseConditions.add(
+            withIdPrefix(
+                TemplatePropertyAnnotationProcessor.transformToNestedCondition(condition),
+                idPrefix));
+      }
+
       // When optional=true, prepend a Yes/No toggle (zeebe:taskHeader). All linked-resource
       // properties are then conditioned on the toggle so no linkedResource block is written when
       // the user leaves it at the default "No", avoiding a Zeebe deploy-time validation error.
@@ -113,19 +157,17 @@ public class LinkedResourcePropertiesUtil {
                     new PropertyBinding.ZeebeTaskHeader(
                         idPrefix + linkedResource.linkName() + SUFFIX_INCLUDE))
                 .condition(
-                    baseCondition == null
+                    baseConditions.isEmpty()
                         ? null
-                        : new PropertyCondition.AllMatch(List.of(baseCondition))));
+                        : new PropertyCondition.AllMatch(List.copyOf(baseConditions))));
 
-        PropertyCondition.Equals toggleEquals = new PropertyCondition.Equals(toggleId, "true");
-        propertyCondition =
-            baseCondition == null
-                ? new PropertyCondition.AllMatch(List.of(toggleEquals))
-                : new PropertyCondition.AllMatch(List.of(baseCondition, toggleEquals));
+        List<PropertyCondition> withToggle = new ArrayList<>(baseConditions);
+        withToggle.add(new PropertyCondition.Equals(toggleId, "true"));
+        propertyCondition = new PropertyCondition.AllMatch(withToggle);
       } else {
-        // baseCondition == null for class-based (no operation scope); non-null for operation-based.
+        // baseConditions is empty for class-based connectors with no conditionProperty declared.
         propertyCondition =
-            baseCondition == null ? null : new PropertyCondition.AllMatch(List.of(baseCondition));
+            baseConditions.isEmpty() ? null : new PropertyCondition.AllMatch(baseConditions);
       }
 
       result.add(

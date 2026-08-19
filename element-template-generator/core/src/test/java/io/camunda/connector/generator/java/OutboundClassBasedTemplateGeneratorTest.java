@@ -57,10 +57,13 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.example.outbound.ClassBasedConnectorWithConditionedLinkedResource;
 import io.camunda.connector.generator.java.example.outbound.ClassBasedConnectorWithLinkedResource;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
+import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithIncompleteLinkedResourceCondition;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithLinkedResource;
+import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithNestedDiscriminators;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithPrimitiveTypes;
 import io.camunda.connector.generator.java.example.outbound.SingleOperationAnnotatedConnector;
 import java.io.File;
@@ -1360,6 +1363,103 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               .orElseThrow();
       assertThat(attachmentBHidden.getValue()).isEqualTo("file");
     }
+
+    @Test
+    void conditionedLinkedResource_allPropertiesGatedOnConditionProperty() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+
+      var expectedOperation = new PropertyCondition.Equals("operation", "op6");
+      var expectedGate = new PropertyCondition.Equals("op6:content.type", "form");
+
+      var conditioned =
+          template.properties().stream()
+              .filter(
+                  p ->
+                      "zeebe:linkedResource".equals(p.getBinding().type())
+                          && p.getCondition() instanceof PropertyCondition.AllMatch am
+                          && am.allMatch().contains(expectedOperation))
+              .toList();
+
+      assertThat(conditioned).hasSize(4);
+      assertThat(conditioned)
+          .allSatisfy(
+              p ->
+                  assertThat(((PropertyCondition.AllMatch) p.getCondition()).allMatch())
+                      .contains(expectedOperation, expectedGate));
+
+      // No toggle is emitted: the conditionProperty gates the resource instead.
+      assertThat(template.properties())
+          .noneMatch(p -> "op6:formDefinition.include".equals(p.getId()));
+
+      // versionTag keeps its own extra clause on top of the operation + gate conditions.
+      var versionTag = getPropertyById("op6:formDefinition.versionTag", template);
+      assertThat(((PropertyCondition.AllMatch) versionTag.getCondition()).allMatch())
+          .contains(
+              expectedOperation,
+              expectedGate,
+              new PropertyCondition.Equals("op6:formDefinition.bindingType", "versionTag"));
+    }
+
+    @Test
+    void conditionedOptionalLinkedResource_togglesGatedOnConditionPropertyToo() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+
+      var expectedOperation = new PropertyCondition.Equals("operation", "op7");
+      var expectedGate = new PropertyCondition.Equals("op7:content.type", "form");
+      var expectedToggle = new PropertyCondition.Equals("op7:formDefinition.include", "true");
+
+      // The toggle itself is gated on the operation and the conditionProperty, but not on itself.
+      var toggle = getPropertyById("op7:formDefinition.include", template);
+      assertThat(((PropertyCondition.AllMatch) toggle.getCondition()).allMatch())
+          .containsExactly(expectedOperation, expectedGate);
+
+      var resourceId = getPropertyById("op7:formDefinition.resourceId", template);
+      assertThat(((PropertyCondition.AllMatch) resourceId.getCondition()).allMatch())
+          .containsExactly(expectedOperation, expectedGate, expectedToggle);
+    }
+
+    @Test
+    void nestedDiscriminators_onOperationConnector_mergeBothConditionsWithTheOperation() {
+      // Regression: merging the operation condition into an existing AllMatch used to mutate an
+      // immutable list and throw UnsupportedOperationException. Only reachable with two levels of
+      // nested discriminators on an @Operation connector, which no connector had until now.
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithNestedDiscriminators.class).getFirst();
+
+      var deep = getPropertyById("op1:outer.nested.deep", template);
+      assertThat(deep.getCondition()).isInstanceOf(PropertyCondition.AllMatch.class);
+      assertThat(((PropertyCondition.AllMatch) deep.getCondition()).allMatch())
+          .contains(
+              new PropertyCondition.Equals("operation", "op1"),
+              new PropertyCondition.Equals("op1:outer.type", "outerA"),
+              new PropertyCondition.Equals("op1:outer.nested.type", "innerA"));
+    }
+
+    @Test
+    void conditionSupportsOneOf_notJustEquals() {
+      // conditions take the full NestedPropertyCondition contract, so oneOf/equalsBoolean/isActive
+      // work too - not only string equality.
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+      var resourceId = getPropertyById("op8:formDefinition.resourceId", template);
+
+      assertThat(((PropertyCondition.AllMatch) resourceId.getCondition()).allMatch())
+          .contains(
+              new PropertyCondition.Equals("operation", "op8"),
+              new PropertyCondition.OneOf("op8:content.type", List.of("form", "template")));
+    }
+
+    @Test
+    void condition_withoutProperty_throws() {
+      assertThatThrownBy(
+              () ->
+                  generator.generate(
+                      OperationAnnotatedConnectorWithIncompleteLinkedResourceCondition.class))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("must have " + "'property' set");
+    }
   }
 
   @Nested
@@ -1410,6 +1510,21 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               new DropdownProperty.DropdownChoice("Latest", "latest"),
               new DropdownProperty.DropdownChoice("Deployment", "deployment"),
               new DropdownProperty.DropdownChoice("Version tag", "versionTag"));
+    }
+
+    @Test
+    void classBased_conditionedResource_usesUnprefixedPropertyId() {
+      // Class-based connectors have no operation scope, so the condition must NOT be prefixed. This
+      // is
+      // the withIdPrefix early-return path that the operation-based fixtures never reach.
+      var template =
+          generator.generate(ClassBasedConnectorWithConditionedLinkedResource.class).getFirst();
+      var resourceId = getPropertyById("formDefinition.resourceId", template);
+
+      assertThat(resourceId.getCondition())
+          .isEqualTo(
+              new PropertyCondition.AllMatch(
+                  List.of(new PropertyCondition.Equals("contentType", "form"))));
     }
 
     @Test
