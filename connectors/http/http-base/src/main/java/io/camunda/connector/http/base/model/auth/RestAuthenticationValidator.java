@@ -96,10 +96,10 @@ public class RestAuthenticationValidator
       return ConfigurationValidationResult.failure(ErrorCode.INVALID_INPUT, MISSING_AUTH_MESSAGE);
     }
     return switch (configuration.authentication()) {
-      case NoAuthentication -> ConfigurationValidationResult.success();
-      case BasicAuthentication _ -> ConfigurationValidationResult.unsupported();
-      case BearerAuthentication _ -> ConfigurationValidationResult.unsupported();
-      case ApiKeyAuthentication _ -> ConfigurationValidationResult.unsupported();
+      case NoAuthentication ignored -> ConfigurationValidationResult.success();
+      case BasicAuthentication ignored -> ConfigurationValidationResult.unsupported();
+      case BearerAuthentication ignored -> ConfigurationValidationResult.unsupported();
+      case ApiKeyAuthentication ignored -> ConfigurationValidationResult.unsupported();
       case OAuthAuthentication oauth -> requestTokenFor(oauth);
       case OAuthRefreshTokenAuthentication ignored ->
           ConfigurationValidationResult
