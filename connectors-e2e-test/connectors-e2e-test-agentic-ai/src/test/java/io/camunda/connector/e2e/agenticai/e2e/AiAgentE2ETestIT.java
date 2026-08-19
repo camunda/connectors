@@ -104,6 +104,10 @@ public class AiAgentE2ETestIT {
           .withConnectorsEnabled(true)
           .withConnectorsDockerImageName(env("CONNECTORS_IMAGE_NAME", DEFAULT_CONNECTORS_IMAGE))
           .withConnectorsDockerImageVersion(env("CONNECTORS_IMAGE_VERSION", "SNAPSHOT"))
+          // Container-side logging: the agent runs in the bundle, so its own log is the only place
+          // a provider request, a tool result or a failed agent-instance history write shows up.
+          .withConnectorsEnv("LOGGING_LEVEL_IO_CAMUNDA_CONNECTOR", "DEBUG")
+          .withConnectorsEnv("LOGGING_LEVEL_IO_CAMUNDA_CONNECTOR_AGENTICAI", "TRACE")
           .withConnectorsSecret("OPENAI_API_KEY", env("OPENAI_API_KEY", ""))
           .withConnectorsSecret(
               "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", env("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", ""))

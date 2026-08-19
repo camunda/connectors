@@ -51,6 +51,11 @@
               <includes>
                 <include>**/*E2ETestIT.java</include>
               </includes>
+              <systemPropertyVariables>
+                <!-- Surfaces the connectors container log; scoped to this suite by pointing at a
+                     file logback does not pick up on its own. -->
+                <logback.configurationFile>${project.basedir}/src/test/resources/logback-real-llm.xml</logback.configurationFile>
+              </systemPropertyVariables>
             </configuration>
             <executions>
               <execution>
