@@ -243,3 +243,65 @@ An over-length request is rejected outright with an HTTP 400 (`BadRequestExcepti
 `code=context_length_exceeded`) on both API families, rather than completing with a stop reason;
 `OpenAiChatModel.execute` catches it directly and throws `ContextWindowExceededException` with no
 `PartialResult` (the request was rejected before any response body could be converted).
+
+## Gemini
+
+One backend today, `GeminiBackend.GeminiApiBackend` (`google-gemini-api`, API-key auth) against the
+Google GenAI Java SDK's Developer API. A second backend, `google-vertex-ai`, is added on a stacked
+branch and shares every converter described below unchanged.
+
+### Backends
+
+`GeminiChatModelFactory.buildClient` builds the SDK's `Client` directly from the API key; there is no
+custom-backend variant (no user-configurable headers/query params, unlike Anthropic/OpenAI's
+`*CustomBackend`).
+
+### Reasoning
+
+`GeminiThinking.enabled` gates `thinkingBudget` (Gemini 2.5, token budget) and `thinkingLevel`
+(Gemini 3.x: `minimal`/`low`/`medium`/`high`, plus `MODEL_DEFAULT`) — both stay unset and no
+`ThinkingConfig` is sent unless `enabled` is `true`. An omitted/`MODEL_DEFAULT` level is not simply
+left out when thinking is enabled: `GeminiContentRequestConverter.toThinkingLevel` sends it as the
+SDK's own `THINKING_LEVEL_UNSPECIFIED` sentinel, so "let the model choose" is explicit on the wire
+rather than inferred from absence. Setting both a budget and an explicit level is rejected client-side
+(`GeminiThinking.isBothThinkingBudgetAndLevelSet`, `@AssertFalse`) — stricter than the real API, which
+only errors on Gemini 3.x (2.5 just ignores `thinkingLevel`); a deliberate simplification, not a bug.
+`thoughtSignature` is preserved verbatim on any part it appears on (not only `functionCall`/thinking
+parts — a plain text part can carry one too) and restored byte-identical on replay; Gemini 3 rejects a
+follow-up request whose history dropped it.
+
+### Caching
+
+Implicit and read-only, like OpenAI: `GeminiContentResponseConverter.toMetrics` reads
+`cachedContentTokenCount` for `cacheReadTokenCount` only, nothing to configure, no cache-write metric.
+Gemini's explicit caching (`CachedContent`, a session-scoped resource with its own
+create/reference/expire lifecycle) is out of scope for the same reason it's out of scope everywhere
+else in this file — a different feature from a per-request model call, not a per-provider gap.
+
+### Tool-result documents
+
+Unlike Anthropic and OpenAI, a document inside a tool result is embedded natively, not flattened to a
+JSON reference: `GeminiContentConverter.toFunctionResponseParts` calls the same `toDocumentPart` used
+for ordinary message content, so an image/PDF becomes an `inlineData` `Part` and text becomes a plain
+text `Part`, sent as a sibling of the `functionResponse` part rather than referenced from inside it.
+This is a real, unreviewed divergence from the other two providers' consistent "always JSON-reference,
+never native" rule — flagged here as a decision that still needs making, not as settled behavior.
+
+### Truncation
+
+`SAFETY`/`RECITATION`/`BLOCKLIST`/`PROHIBITED_CONTENT`/`SPII`/`IMAGE_SAFETY`/
+`IMAGE_PROHIBITED_CONTENT`/`IMAGE_RECITATION` finish reasons, and a blocked prompt (no candidate at
+all, only `promptFeedback`), never reach `StopReason`: `toResult` checks the raw response shape
+directly and throws `ContentFilteredException` before any of that finish-reason mapping runs — Gemini
+has no refusal-without-a-signal case the way OpenAI does, since a blocked prompt is its own distinct
+wire shape. `MAX_TOKENS` maps to `LENGTH`; a missing tool-use finish reason is synthesized as
+`TOOL_USE` when the candidate carries `functionCall` parts, but only after the filtering check, so a
+filtered candidate that also happens to carry a tool call is never misclassified. Every other finish
+reason falls back to `UnknownStopReason` with the raw value preserved.
+
+Gemini has no context-window-specific error signal to catch: an over-length prompt surfaces from the
+SDK as a plain `ApiException` (HTTP 400, `status="INVALID_ARGUMENT"`, no dedicated code or exception
+subclass — unlike OpenAI's `BadRequestException` with `code=context_length_exceeded`), which
+`GeminiChatModel.execute`'s catch-all currently reports as a generic `ERROR_CODE_FAILED_MODEL_CALL`
+rather than `ContextWindowExceededException`. Distinguishing it would require matching on the error
+message text, which is fragile; not yet done.
