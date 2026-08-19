@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.ConnectorException;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.bedrockruntime.model.CitationsDelta;
@@ -22,11 +23,15 @@ import software.amazon.awssdk.services.bedrockruntime.model.ContentBlockStopEven
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamMetadataEvent;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamMetrics;
+import software.amazon.awssdk.services.bedrockruntime.model.ImageBlockDelta;
+import software.amazon.awssdk.services.bedrockruntime.model.ImageBlockStart;
+import software.amazon.awssdk.services.bedrockruntime.model.ImageSource;
 import software.amazon.awssdk.services.bedrockruntime.model.MessageStartEvent;
 import software.amazon.awssdk.services.bedrockruntime.model.MessageStopEvent;
 import software.amazon.awssdk.services.bedrockruntime.model.ReasoningContentBlockDelta;
 import software.amazon.awssdk.services.bedrockruntime.model.StopReason;
 import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
+import software.amazon.awssdk.services.bedrockruntime.model.ToolResultBlockDelta;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlockDelta;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlockStart;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseType;
@@ -110,6 +115,19 @@ class BedrockConverseStreamAssemblerTest {
         .delta(
             ContentBlockDelta.builder()
                 .citation(CitationsDelta.builder().title(title).source(source).build())
+                .build())
+        .build();
+  }
+
+  private static ContentBlockDeltaEvent imageBytesDelta(int index, String bytes) {
+    return ContentBlockDeltaEvent.builder()
+        .contentBlockIndex(index)
+        .delta(
+            ContentBlockDelta.builder()
+                .image(
+                    ImageBlockDelta.builder()
+                        .source(ImageSource.builder().bytes(SdkBytes.fromUtf8String(bytes)).build())
+                        .build())
                 .build())
         .build();
   }
@@ -263,6 +281,47 @@ class BedrockConverseStreamAssemblerTest {
     assertThat(citationsContent.citations().get(0).title()).isEqualTo("Camunda Docs");
     assertThat(citationsContent.citations().get(0).source()).isEqualTo("https://docs.camunda.io");
     assertThat(citationsContent.citations().get(1).title()).isEqualTo("Camunda Blog");
+  }
+
+  @Test
+  void assemblesImageContentFromFormatAndByteFragments() {
+    assembler.visitMessageStart(
+        MessageStartEvent.builder().role(ConversationRole.ASSISTANT).build());
+    assembler.visitContentBlockStart(
+        ContentBlockStartEvent.builder()
+            .contentBlockIndex(0)
+            .start(ContentBlockStart.fromImage(ImageBlockStart.builder().format("png").build()))
+            .build());
+    assembler.visitContentBlockDelta(imageBytesDelta(0, "chunk-1-"));
+    assembler.visitContentBlockDelta(imageBytesDelta(0, "chunk-2"));
+    assembler.visitContentBlockStop(contentBlockStop(0));
+    assembler.visitMessageStop(MessageStopEvent.builder().stopReason(StopReason.END_TURN).build());
+
+    final var response = assembler.converseResponse();
+
+    assertThat(response.output().message().content()).hasSize(1);
+    final var image = response.output().message().content().get(0).image();
+    assertThat(image.formatAsString()).isEqualTo("png");
+    assertThat(image.source().bytes().asUtf8String()).isEqualTo("chunk-1-chunk-2");
+  }
+
+  @Test
+  void throwsOnToolResultContentDeltaInModelOutput() {
+    assembler.visitMessageStart(
+        MessageStartEvent.builder().role(ConversationRole.ASSISTANT).build());
+    assembler.visitContentBlockStart(contentBlockStart(0));
+
+    assertThatThrownBy(
+            () ->
+                assembler.visitContentBlockDelta(
+                    ContentBlockDeltaEvent.builder()
+                        .contentBlockIndex(0)
+                        .delta(
+                            ContentBlockDelta.builder()
+                                .toolResult(ToolResultBlockDelta.builder().text("result").build())
+                                .build())
+                        .build()))
+        .isInstanceOf(ConnectorException.class);
   }
 
   @Test

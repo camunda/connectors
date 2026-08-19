@@ -35,6 +35,10 @@ import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamMetadataEvent;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamMetrics;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamResponseHandler;
+import software.amazon.awssdk.services.bedrockruntime.model.ErrorBlock;
+import software.amazon.awssdk.services.bedrockruntime.model.ImageBlock;
+import software.amazon.awssdk.services.bedrockruntime.model.ImageBlockDelta;
+import software.amazon.awssdk.services.bedrockruntime.model.ImageSource;
 import software.amazon.awssdk.services.bedrockruntime.model.Message;
 import software.amazon.awssdk.services.bedrockruntime.model.MessageStartEvent;
 import software.amazon.awssdk.services.bedrockruntime.model.MessageStopEvent;
@@ -62,7 +66,11 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
  * to the block's citation list (unlike text, its fields never arrive fragmented across multiple
  * deltas); a block with at least one accumulated citation finalizes as a {@link
  * CitationsContentBlock} pairing the accumulated text with the accumulated citations, rather than
- * as plain text.
+ * as plain text. Image content mirrors tool-use: {@code format} is seeded at {@code
+ * contentBlockStart} and raw {@code bytes} fragments are concatenated per block, combined into one
+ * {@link ImageBlock} at {@code contentBlockStop}. A {@code toolResult} delta is rejected with a
+ * {@link ConnectorException} rather than accumulated, since {@code toolResult} content is expected
+ * only in caller-supplied messages, never in a model's own streamed output.
  */
 public final class BedrockConverseStreamAssembler implements ConverseStreamResponseHandler.Visitor {
 
@@ -96,6 +104,9 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
       accumulator.toolUseName = start.toolUse().name();
       accumulator.toolUseType = start.toolUse().typeAsString();
     }
+    if (start != null && start.image() != null) {
+      accumulator.imageFormat = start.image().formatAsString();
+    }
   }
 
   @Override
@@ -126,6 +137,22 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
       accumulator.citations.add(
           BedrockConverseSdkPojoCodec.replay(
               BedrockConverseSdkPojoCodec.capture(citationDelta), Citation::builder));
+    }
+    final ImageBlockDelta imageDelta = delta.image();
+    if (imageDelta != null) {
+      if (imageDelta.source() != null && imageDelta.source().bytes() != null) {
+        accumulator.imageBytes.writeBytes(imageDelta.source().bytes().asByteArray());
+      }
+      if (imageDelta.error() != null) {
+        accumulator.imageError = imageDelta.error();
+      }
+    }
+    if (delta.hasToolResult() && !delta.toolResult().isEmpty()) {
+      throw new ConnectorException(
+          ERROR_CODE_FAILED_MODEL_CALL,
+          "Bedrock Converse streamed a toolResult content delta on an assistant response, which "
+              + "this connector does not support; toolResult content is expected only in "
+              + "caller-supplied messages, not in model output.");
     }
   }
 
@@ -187,9 +214,11 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
   /**
    * Finalizes a single block's accumulated deltas into a {@link ContentBlock}: {@code toolUse}
    * (seeded at {@code contentBlockStart}), {@code reasoningContent} (redacted or text+signature),
-   * {@code citationsContent} if any citation deltas arrived, and otherwise plain {@code text}. The
-   * first two are shapes {@link BedrockConverseResponseConverter} maps explicitly; {@code
-   * citationsContent} instead falls through its generic unmapped-block preservation.
+   * {@code citationsContent} if any citation deltas arrived, {@code image} if any image format,
+   * bytes or error arrived, and otherwise plain {@code text}. {@code toolUse} and {@code
+   * reasoningContent} are shapes {@link BedrockConverseResponseConverter} maps explicitly; {@code
+   * citationsContent} and {@code image} instead fall through its generic unmapped-block
+   * preservation.
    */
   private ContentBlock finalize(BlockAccumulator accumulator) {
     if (accumulator.toolUseId != null || accumulator.toolUseName != null) {
@@ -230,6 +259,27 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
               .content(CitationGeneratedContent.builder().text(accumulator.text.toString()).build())
               .citations(accumulator.citations)
               .build());
+    }
+
+    final boolean hasImageData =
+        accumulator.imageFormat != null
+            || accumulator.imageBytes.size() > 0
+            || accumulator.imageError != null;
+    if (hasImageData) {
+      final ImageBlock.Builder imageBuilder = ImageBlock.builder();
+      if (accumulator.imageFormat != null) {
+        imageBuilder.format(accumulator.imageFormat);
+      }
+      if (accumulator.imageBytes.size() > 0) {
+        imageBuilder.source(
+            ImageSource.builder()
+                .bytes(SdkBytes.fromByteArray(accumulator.imageBytes.toByteArray()))
+                .build());
+      }
+      if (accumulator.imageError != null) {
+        imageBuilder.error(accumulator.imageError);
+      }
+      return ContentBlock.fromImage(imageBuilder.build());
     }
 
     return ContentBlock.fromText(accumulator.text.toString());
@@ -287,5 +337,8 @@ public final class BedrockConverseStreamAssembler implements ConverseStreamRespo
     private final StringBuilder reasoningSignature = new StringBuilder();
     private final ByteArrayOutputStream reasoningRedactedContent = new ByteArrayOutputStream();
     private final List<Citation> citations = new ArrayList<>();
+    private @Nullable String imageFormat;
+    private final ByteArrayOutputStream imageBytes = new ByteArrayOutputStream();
+    private @Nullable ErrorBlock imageError;
   }
 }
