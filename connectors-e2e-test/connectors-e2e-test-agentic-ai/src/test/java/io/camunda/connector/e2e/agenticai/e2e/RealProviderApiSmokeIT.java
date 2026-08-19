@@ -351,6 +351,24 @@ class RealProviderApiSmokeIT {
         false);
   }
 
+  static Provider googleGeminiApi(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new Provider(
+        "google-gemini-api/" + model,
+        List.of("GOOGLE_GEMINI_API_KEY"),
+        Map.of(
+            "provider.type",
+            "google-gemini",
+            "provider.googleGemini.backend.type",
+            "google-gemini-api",
+            "provider.googleGemini.backend.googleGeminiApi.apiKey",
+            envOrPlaceholder("GOOGLE_GEMINI_API_KEY"),
+            "provider.googleGemini.model.model",
+            model),
+        capabilityProperties,
+        false);
+  }
+
   static Stream<Provider> providers() {
     return Stream.of(
             // claude-sonnet-4-6 only supports thinking mode "enabled" (explicit budget) — the model
@@ -498,7 +516,14 @@ class RealProviderApiSmokeIT {
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING, Map.of())))
+                    Capability.PROMPT_CACHING, Map.of())),
+            // Conservative row, matching the Vertex AI row below: no REASONING/PROMPT_CACHING
+            // claim, since neither has been manually verified against a live Gemini endpoint yet.
+            googleGeminiApi(
+                "gemini-3-pro-preview",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of())))
         .filter(Provider::isEnabled);
   }
 
