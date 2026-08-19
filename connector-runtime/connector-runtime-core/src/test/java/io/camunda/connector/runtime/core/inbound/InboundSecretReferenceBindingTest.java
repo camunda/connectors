@@ -62,7 +62,14 @@ class InboundSecretReferenceBindingTest {
   private final Map<String, List<String>> referencedSecrets = new HashMap<>();
 
   /** Mirrors a credential property class: some fields carry @FEEL, most do not. */
-  record Credentials(String hmacSecret, @FEEL String token, @FEEL Map<String, String> headers) {}
+  record Credentials(
+      String hmacSecret,
+      @FEEL String token,
+      @FEEL Map<String, String> headers,
+      @FEEL Nested nested) {}
+
+  /** A @FEEL property whose type itself declares a @FEEL field. */
+  record Nested(@FEEL String inner) {}
 
   @Test
   void resolvesAReferenceInAPropertyFeelNeverEvaluates() {
@@ -141,6 +148,22 @@ class InboundSecretReferenceBindingTest {
     var bound = bind(Map.of("headers", "=camunda.vars.cluster.payload"));
 
     assertThat(bound.headers()).isEqualTo(Map.of("Authorization", "=camunda.secrets.DB"));
+    assertThat(resolveRequests).isEmpty();
+  }
+
+  @Test
+  void leavesReferenceTextThatArrivedAsDataInsideANestedFeelProperty() {
+    // Converting a result descends into the target type, and a @FEEL field there gets the FEEL
+    // deserializer, which also evaluates. The marker has to stop that too.
+    secretStore.put("camunda.secrets.DB", "db-password");
+    evaluationOf("=camunda.vars.cluster.payload")
+        .returns(Map.of("inner", "=camunda.secrets.DB"))
+        .referencingNothing();
+    evaluationOf("=camunda.secrets.DB").returns("camunda.secrets.DB").referencing("DB");
+
+    var bound = bind(Map.of("nested", "=camunda.vars.cluster.payload"));
+
+    assertThat(bound.nested().inner()).isEqualTo("=camunda.secrets.DB");
     assertThat(resolveRequests).isEmpty();
   }
 

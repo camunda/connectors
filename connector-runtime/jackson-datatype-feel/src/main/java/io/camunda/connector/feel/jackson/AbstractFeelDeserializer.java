@@ -149,6 +149,14 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
       final String expression,
       final JavaType targetType,
       final Object... variables) {
+    // Anything reached while converting an evaluation result is data, whatever it looks like.
+    // Evaluating it would send it to the cluster as a new expression, and that expression would
+    // legitimately reference any secret named in it — turning text the cluster reported no
+    // reference for into a resolved secret. The guard sits here, on the one method that
+    // evaluates, so it covers every deserializer that routes through it.
+    if (isEvaluationResult(ctx)) {
+      return (R) expression;
+    }
     // Evaluate the expression - get raw result, allowing a per-call evaluator override via
     // FEEL_EVALUATOR_ATTRIBUTE on the DeserializationContext.
     FeelExpressionEvaluator effectiveEvaluator = resolveEvaluator(ctx);
