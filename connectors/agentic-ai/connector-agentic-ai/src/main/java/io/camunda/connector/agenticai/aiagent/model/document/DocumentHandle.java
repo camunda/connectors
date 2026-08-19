@@ -22,6 +22,8 @@ import java.util.HexFormat;
 /** Derives a stable, model-safe id for a document. */
 public final class DocumentHandle {
 
+  private static final HexFormat HEX_FORMAT = HexFormat.of();
+
   private DocumentHandle() {}
 
   /**
@@ -63,8 +65,6 @@ public final class DocumentHandle {
                       document.reference()));
     };
   }
-
-  private static final HexFormat HEX_FORMAT = HexFormat.of();
 
   private static String sha256Prefix(String input, int hexChars) {
     try {

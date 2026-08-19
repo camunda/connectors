@@ -51,26 +51,15 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 /**
  * Accumulates the delta-based {@code ConverseStream} event sequence into a {@link ConverseResponse}
  * equivalent to what the non-streaming {@code converse} operation would have returned, so {@link
- * BedrockConverseResponseConverter} can be reused unchanged on the assembled result.
+ * BedrockConverseResponseConverter} can be reused unchanged on the assembled result. The AWS SDK
+ * has no built-in equivalent - {@link ConverseStreamResponseHandler.Visitor} only dispatches
+ * events, it doesn't accumulate them.
  *
- * <p>One instance is created per streamed call and registered as the {@link
- * ConverseStreamResponseHandler.Visitor}; once the stream completes, {@link #converseResponse()}
- * returns the assembled result. Content blocks are keyed by {@code contentBlockIndex} in a {@link
- * TreeMap}, so they're emitted in index order regardless of arrival order. Tool-use input arrives
- * as successive JSON string fragments, concatenated per block and parsed into a {@link Document} at
- * {@code contentBlockStop}. Reasoning content arrives as three independent delta shapes ({@code
- * text}, {@code signature}, {@code redactedContent}; see {@link ReasoningContentBlockDelta}), each
- * accumulated separately and combined into one {@link ReasoningContentBlock} at {@code
- * contentBlockStop} - redacted if any {@code redactedContent} bytes arrived, else a {@code
- * reasoningText} block. Each {@code citation} delta carries one complete {@link Citation} to append
- * to the block's citation list (unlike text, its fields never arrive fragmented across multiple
- * deltas); a block with at least one accumulated citation finalizes as a {@link
- * CitationsContentBlock} pairing the accumulated text with the accumulated citations, rather than
- * as plain text. Image content mirrors tool-use: {@code format} is seeded at {@code
- * contentBlockStart} and raw {@code bytes} fragments are concatenated per block, combined into one
- * {@link ImageBlock} at {@code contentBlockStop}. A {@code toolResult} delta is rejected with a
- * {@link ConnectorException} rather than accumulated, since {@code toolResult} content is expected
- * only in caller-supplied messages, never in a model's own streamed output.
+ * <p>One instance is created per streamed call and registered as the {@code Visitor}; once the
+ * stream completes, {@link #converseResponse()} returns the assembled result. Content blocks are
+ * keyed by {@code contentBlockIndex} in a {@link TreeMap}, so they're emitted in index order
+ * regardless of arrival order. See {@link #finalize(BlockAccumulator)} for how each block shape is
+ * accumulated and finalized.
  */
 public final class BedrockConverseStreamAssembler implements ConverseStreamResponseHandler.Visitor {
 

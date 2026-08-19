@@ -257,8 +257,6 @@ class RealProviderApiSmokeIT {
         true);
   }
 
-  // The Converse API never reports a distinct reasoning token count, and always exposes a
-  // cache-write count in TokenUsage.
   static Provider bedrockConverse(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
     return new Provider(
