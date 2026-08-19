@@ -48,6 +48,7 @@ import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
+import io.camunda.connector.runtime.metrics.MeteredSecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
@@ -55,6 +56,7 @@ import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import io.camunda.connector.runtime.secret.console.JwtCredential;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.ConstraintValidatorFactory;
 import jakarta.validation.Validation;
 import java.net.URL;
@@ -177,7 +179,8 @@ public class ConnectorsAutoConfiguration {
       Optional<List<SecretProvider>> secretProviderBeans,
       @Value("${" + LegacySecretsDisabledProvider.PROPERTY + ":ON}") LegacySecretMode legacyMode,
       @Autowired(required = false) CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient) {
+      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      @Autowired(required = false) MeterRegistry meterRegistry) {
     if (legacyMode == LegacySecretMode.OFF) {
       LOG.info(
           "Legacy secret resolution is disabled ({}={}); {{secrets.X}} and secrets.X will not"
@@ -205,7 +208,9 @@ public class ConnectorsAutoConfiguration {
           new CentralStoreSecretProvider(
               secretReferenceResolversByPhysicalTenantId(registry, legacyCamundaClient)));
     }
-    return new SecretProviderAggregator(secretProviders);
+    return meterRegistry == null
+        ? new SecretProviderAggregator(secretProviders)
+        : new MeteredSecretProviderAggregator(secretProviders, meterRegistry);
   }
 
   private static Map<String, SecretReferenceResolver> secretReferenceResolversByPhysicalTenantId(

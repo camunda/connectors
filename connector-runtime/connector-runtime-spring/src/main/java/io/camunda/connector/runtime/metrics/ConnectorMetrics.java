@@ -148,6 +148,17 @@ public class ConnectorMetrics {
    * tenant's job worker received the job should prefer {@link #counter(ActivatedJob, String)}, so
    * that the meter and the {@code /outbound} entry it belongs to always carry the same value.
    */
+  public static class Secrets {
+
+    /**
+     * Legacy secret references ({@code {{secrets.X}}} and bare {@code secrets.X}) successfully
+     * resolved, tagged by the orchestration cluster the lookup was made for. Measures how much the
+     * legacy syntax is still in use, so that retiring it can be decided on evidence.
+     */
+    public static final String METRIC_NAME_LEGACY_RESOLUTIONS =
+        "camunda.connector.secret.legacy.resolutions";
+  }
+
   public static CounterMetricsContext counter(ActivatedJob job) {
     return counter(job, null);
   }
