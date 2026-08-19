@@ -28,6 +28,7 @@ import com.google.genai.types.GenerateContentResponse;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -171,6 +172,29 @@ class GeminiChatModelTest {
                   .contains("429")
                   .contains("RESOURCE_EXHAUSTED")
                   .contains("slow down");
+            });
+  }
+
+  @Test
+  void throwsContextWindowExceededExceptionForOverLengthPrompt() {
+    when(requestConverter.toGenerateContentConfig(any(), any(), any()))
+        .thenReturn(GenerateContentConfig.builder().build());
+    when(requestConverter.toContents(any())).thenReturn(List.of());
+    when(models.generateContentStream(any(), anyList(), any()))
+        .thenThrow(
+            new ClientException(
+                400,
+                "INVALID_ARGUMENT",
+                "The input token count (1236488) exceeds the maximum number of tokens allowed"
+                    + " (1048576)."));
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOf(ContextWindowExceededException.class)
+        .satisfies(
+            e -> {
+              final var cwe = (ContextWindowExceededException) e;
+              assertThat(cwe.partialResult()).isNull();
+              assertThat(cwe.getCause()).isInstanceOf(ClientException.class);
             });
   }
 

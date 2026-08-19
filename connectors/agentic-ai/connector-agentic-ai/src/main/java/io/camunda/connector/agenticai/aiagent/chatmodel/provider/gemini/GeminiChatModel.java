@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
@@ -95,6 +96,12 @@ public class GeminiChatModel implements ChatModel {
       // ConnectorException.
       throw e;
     } catch (ApiException e) {
+      if (isContextWindowExceeded(e)) {
+        throw new ContextWindowExceededException(
+            "Model's context window was exceeded before it could finish generating a response.",
+            e,
+            null);
+      }
       final String status =
           Optional.ofNullable(e.status())
               .filter(s -> !s.isBlank())
@@ -115,6 +122,19 @@ public class GeminiChatModel implements ChatModel {
       throw new ConnectorException(
           ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), e);
     }
+  }
+
+  /**
+   * Gemini has no dedicated exception type or error code for an over-length prompt -- {@code
+   * ApiException.code()}/{@code status()} (400, {@code INVALID_ARGUMENT}) are shared with many
+   * unrelated validation failures, so detection falls back to matching this specific, stable
+   * substring of the message text. Confirmed identical across the Developer API and Vertex AI
+   * backends; the surrounding token counts vary per request and are excluded from the match.
+   */
+  private boolean isContextWindowExceeded(ApiException e) {
+    return e.code() == 400
+        && e.message() != null
+        && e.message().contains("exceeds the maximum number of tokens allowed");
   }
 
   @Override
