@@ -57,88 +57,51 @@
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_16otfp1</bpmn:incoming>
       <bpmn:outgoing>Flow_0m7etfk</bpmn:outgoing>
-      <bpmn:serviceTask id="GetDateAndTime" name="Get Date and Time">
+      <bpmn:serviceTask id="GetDateAndTime" name="Get date and time">
         <bpmn:documentation>Returns the current date and time, including the day of the week and
           the timezone.</bpmn:documentation>
         <bpmn:extensionElements>
           <zeebe:taskDefinition type="io.camunda.e2e:date-time:1" retries="3" />
         </bpmn:extensionElements>
       </bpmn:serviceTask>
-      <bpmn:serviceTask id="ListUsers" name="List users"
-        zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="12">
-        <bpmn:documentation>Lists all available users. More contact details (such as e-mail
-          addresses) can be loaded up by looking up the individual user by ID.</bpmn:documentation>
+      <bpmn:serviceTask id="ListUsers" name="List users">
+        <bpmn:documentation>Lists all known users, including the ID of the order each of them has
+          placed.</bpmn:documentation>
         <bpmn:extensionElements>
-          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
-          <zeebe:ioMapping>
-            <zeebe:input source="noAuth" target="authentication.type" />
-            <zeebe:input source="GET" target="method" />
-            <zeebe:input source="https://tools.test.invalid/users" target="url" />
-            <zeebe:input source="=false" target="storeResponse" />
-            <zeebe:input source="20" target="connectionTimeoutInSeconds" />
-            <zeebe:input source="20" target="readTimeoutInSeconds" />
-            <zeebe:input source="=false" target="ignoreNullValues" />
-          </zeebe:ioMapping>
-          <zeebe:taskHeaders>
-            <zeebe:header key="elementTemplateVersion" value="12" />
-            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
-            <zeebe:header key="resultExpression"
-              value="={&#10;  toolCallResult: for user in response.body return {&#10;    id: user.id,&#10;    name: user.name,&#10;    username: user.username&#10;  }&#10;}" />
-            <zeebe:header key="retryBackoff" value="PT0S" />
-          </zeebe:taskHeaders>
+          <zeebe:taskDefinition type="io.camunda.e2e:list-users:1" retries="3" />
         </bpmn:extensionElements>
       </bpmn:serviceTask>
-      <bpmn:serviceTask id="Jokes_API" name="Jokes API"
-        zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="12">
-        <bpmn:documentation>Fetches a random joke from a Jokes REST API</bpmn:documentation>
+      <bpmn:serviceTask id="GetJoke" name="Get a joke">
+        <bpmn:documentation>Fetches a random joke.</bpmn:documentation>
         <bpmn:extensionElements>
-          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
-          <zeebe:ioMapping>
-            <zeebe:input source="noAuth" target="authentication.type" />
-            <zeebe:input source="GET" target="method" />
-            <zeebe:input source="https://tools.test.invalid/jokes/random" target="url" />
-            <zeebe:input source="=false" target="storeResponse" />
-            <zeebe:input source="=20" target="connectionTimeoutInSeconds" />
-            <zeebe:input source="=20" target="readTimeoutInSeconds" />
-            <zeebe:input source="=false" target="ignoreNullValues" />
-          </zeebe:ioMapping>
-          <zeebe:taskHeaders>
-            <zeebe:header key="elementTemplateVersion" value="12" />
-            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
-            <zeebe:header key="resultExpression"
-              value="={&#10;  toolCallResult: response.body&#10;}" />
-            <zeebe:header key="retryBackoff" value="PT0S" />
-          </zeebe:taskHeaders>
+          <zeebe:taskDefinition type="io.camunda.e2e:joke:1" retries="3" />
         </bpmn:extensionElements>
       </bpmn:serviceTask>
-      <bpmn:serviceTask id="GetOrderStatus" name="Get order status"
-        zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="12">
+      <bpmn:serviceTask id="GetOrderStatus" name="Get order status">
         <bpmn:documentation>Looks up the current status of a customer order by its order ID,
-          including shipment tracking information. Used to answer customer-support-style
-          questions about where an order is without the user having to name the tool
-          explicitly.</bpmn:documentation>
+          including shipment tracking information.</bpmn:documentation>
         <bpmn:extensionElements>
-          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:taskDefinition type="io.camunda.e2e:order-status:1" retries="3" />
           <zeebe:ioMapping>
-            <zeebe:input source="noAuth" target="authentication.type" />
-            <zeebe:input source="GET" target="method" />
             <zeebe:input
-              source="=&#34;https://tools.test.invalid/orders/&#34; + fromAi(toolCall.orderId, &#34;The order ID to look up, e.g. ORD-1001&#34;, &#34;string&#34;)"
-              target="url" />
-            <zeebe:input source="=false" target="storeResponse" />
-            <zeebe:input source="20" target="connectionTimeoutInSeconds" />
-            <zeebe:input source="20" target="readTimeoutInSeconds" />
-            <zeebe:input source="=false" target="ignoreNullValues" />
+              source="=fromAi(toolCall.orderId, &#34;The order ID to look up, e.g. ORD-1001&#34;, &#34;string&#34;)"
+              target="orderId" />
           </zeebe:ioMapping>
-          <zeebe:taskHeaders>
-            <zeebe:header key="elementTemplateVersion" value="12" />
-            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
-            <zeebe:header key="resultExpression"
-              value="={&#10;  toolCallResult: response.body&#10;}" />
-            <zeebe:header key="retryBackoff" value="PT0S" />
-          </zeebe:taskHeaders>
         </bpmn:extensionElements>
       </bpmn:serviceTask>
+      <bpmn:userTask id="AskHuman" name="Ask a human">
+        <bpmn:documentation>Asks a human expert a question the agent cannot answer on its own, and
+          returns their answer.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:userTask />
+          <zeebe:ioMapping>
+            <zeebe:input
+              source="=fromAi(toolCall.question, &#34;The question to ask the human expert.&#34;, &#34;string&#34;)"
+              target="question" />
+            <zeebe:output source="=humanAnswer" target="toolCallResult" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+      </bpmn:userTask>
     </bpmn:adHocSubProcess>
     <bpmn:sequenceFlow id="Flow_16otfp1" sourceRef="Gateway_0z6ctwk" targetRef="AI_Agent" />
     <bpmn:sequenceFlow id="Flow_0m7etfk" sourceRef="AI_Agent" targetRef="User_Feedback" />
@@ -175,11 +138,14 @@
       <bpmndi:BPMNShape id="Activity_0kkpyxf_di" bpmnElement="ListUsers">
         <dc:Bounds x="380" y="310" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1l8tp85_di" bpmnElement="Jokes_API">
+      <bpmndi:BPMNShape id="Activity_1l8tp85_di" bpmnElement="GetJoke">
         <dc:Bounds x="380" y="410" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0go_ordr_di" bpmnElement="GetOrderStatus">
         <dc:Bounds x="380" y="510" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0askhmn_di" bpmnElement="AskHuman">
+        <dc:Bounds x="530" y="210" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0pbzrme_di" bpmnElement="Flow_0pbzrme">
         <di:waypoint x="188" y="210" />

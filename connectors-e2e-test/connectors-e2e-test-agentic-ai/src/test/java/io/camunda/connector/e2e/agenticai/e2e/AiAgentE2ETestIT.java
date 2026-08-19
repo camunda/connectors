@@ -24,6 +24,8 @@ import static org.awaitility.Awaitility.await;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.client.api.search.enums.UserTaskState;
+import io.camunda.client.api.search.response.UserTask;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
@@ -39,10 +41,8 @@ import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.condition.EnabledIf;
@@ -69,15 +69,12 @@ import org.junit.jupiter.params.provider.MethodSource;
  * ./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -Pit-real-llm
  * }</pre>
  *
- * <p>Credentials are read straight from the environment — see {@link #EXTENSION} for why this suite
- * configures the runtime in Java rather than through a Spring profile.
- *
  * <p>The service account variable holds the whole key file verbatim. Each row skips itself when its
- * own credentials are absent, so a partial credential set runs a subset.
+ * own credentials are absent, so a partial credential set runs a subset. Narrow a run further with
+ * {@code -Dit.test='AiAgentE2ETestIT#someScenario'} and {@link ProviderRow#disabled()}.
  *
- * <p>Narrow a run with {@code -Dit.test='AiAgentE2ETestIT#someScenario'} and {@link
- * ProviderRow#disabled()}. Requires {@code element-templates-cli} on the PATH at the version pinned
- * in {@code .github/workflows/package.json}.
+ * <p>Requires {@code element-templates-cli} on the PATH at the version pinned in {@code
+ * .github/workflows/package.json}.
  */
 @EnabledIf("hasConfiguredProvider")
 public class AiAgentE2ETestIT {
@@ -89,33 +86,10 @@ public class AiAgentE2ETestIT {
   private static final String DEFAULT_CONNECTORS_IMAGE =
       "registry.camunda.cloud/team-connectors/connectors-bundle";
 
-  private static final String HTTP_JSON_JOB_TYPE = "io.camunda:http-json:1";
-  private static final String DATE_TIME_JOB_TYPE = "io.camunda.e2e:date-time:1";
-
   /** Vertex AI's non-regional endpoint, which is where the newest models land first. */
   private static final String GLOBAL_REGION = "global";
 
-  /**
-   * Fabricated name, so it cannot come from model training data — the model can only produce it by
-   * relaying what the tool returned. A joke is exactly the content a model will happily supply from
-   * its own knowledge instead of calling the tool, which a recognisable joke could not detect.
-   *
-   * <p>Every tool fixture follows this rule, and every tool URL in the BPMN points at a {@code
-   * .invalid} host (RFC 6761 guarantees those never resolve). So a tool job answered by anything
-   * other than this test's mocks fails outright rather than returning something plausible — the
-   * property that kept a second, in-process connector runtime hidden for as long as it was.
-   */
-  private static final String JOKE_NONCE = "Blorptastic-7";
-
-  private static final String JOKE =
-      "Why did the robot named "
-          + JOKE_NONCE
-          + " cross the road? To reticulate the splines on the other side.";
-
-  /** Name of the second entry in {@link #knownUsers()}, which the lookup scenario asks for. */
-  private static final String SECOND_USER_NAME = "Ervin Quibbleton";
-
-  private static final String ORDER_STATUS_TRACKING_NUMBER = "1Z999AA10123456784";
+  private static final Duration USER_TASK_TIMEOUT = Duration.ofMinutes(3);
 
   private static final String SYSTEM_PROMPT =
       "You are a helpful chat agent which can answer a wide amount of questions based on your "
@@ -123,27 +97,6 @@ public class AiAgentE2ETestIT {
           + "instead of guessing an answer. Do not guess any tools which were not explicitly "
           + "configured.";
 
-  private static final Duration USER_TASK_TIMEOUT = Duration.ofMinutes(3);
-
-  /**
-   * What {@code GetDateAndTime} reports. Fixed so scenarios can assert on it — a Saturday, so the
-   * weekday is a token the model either echoes from the tool result or derives from the ISO date,
-   * landing on the same value either way.
-   */
-  private static final ZonedDateTime DEFAULT_DATE_AND_TIME =
-      ZonedDateTime.parse("2026-03-14T15:09:26+01:00[Europe/Berlin]");
-
-  private static final String DEFAULT_DAY_OF_WEEK = dayOfWeek(DEFAULT_DATE_AND_TIME);
-
-  /**
-   * Registers the process-test runtime directly rather than through
-   * {@code @CamundaSpringProcessTest}. A Spring context here would auto-configure a second
-   * connector runtime inside the test JVM — this module has {@code connector-agentic-ai} and {@code
-   * connector-http-json} on its compile classpath and the connectors starter on its test classpath
-   * — whose workers would compete with the bundle container for the agent and tool jobs this suite
-   * exists to route through that container. Without a Spring context, none of those
-   * auto-configurations run.
-   */
   @RegisterExtension
   static final CamundaProcessTestExtension EXTENSION =
       new CamundaProcessTestExtension()
@@ -151,9 +104,6 @@ public class AiAgentE2ETestIT {
           .withConnectorsEnabled(true)
           .withConnectorsDockerImageName(env("CONNECTORS_IMAGE_NAME", DEFAULT_CONNECTORS_IMAGE))
           .withConnectorsDockerImageVersion(env("CONNECTORS_IMAGE_VERSION", "SNAPSHOT"))
-          // Keep the container's own HTTP connector off the tool job types, so the test's job mocks
-          // are the only thing answering them.
-          .withConnectorsEnv("CONNECTOR_OUTBOUND_DISABLED", HTTP_JSON_JOB_TYPE)
           .withConnectorsSecret("OPENAI_API_KEY", env("OPENAI_API_KEY", ""))
           .withConnectorsSecret(
               "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", env("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", ""))
@@ -167,157 +117,158 @@ public class AiAgentE2ETestIT {
 
   @TempDir private File tempDir;
 
-  /** Reassign before starting an instance to run a scenario against a different point in time. */
-  private ZonedDateTime dateAndTime;
-
-  /**
-   * Tool elements the mock had no case for, asserted empty after every scenario. Completing such a
-   * job with no {@code toolCallResult} would leave the model with an empty tool result, which it
-   * covers by improvising — indistinguishable, from the response text alone, from a result that was
-   * delivered and ignored.
-   */
-  private final List<String> unmockedToolElements = new CopyOnWriteArrayList<>();
-
   @BeforeAll
   static void setUp() {
     setAssertionTimeout(USER_TASK_TIMEOUT);
   }
 
+  /**
+   * Every tool runs on its own job type, which no connector in the bundle implements, so these
+   * mocks are the only thing that can answer a tool job and every tool result is fixed.
+   */
   @BeforeEach
   void mockTools() {
-    dateAndTime = DEFAULT_DATE_AND_TIME;
-    unmockedToolElements.clear();
+    mockTool(DATE_TIME_JOB_TYPE, DATE_AND_TIME);
+    mockTool(LIST_USERS_JOB_TYPE, KNOWN_USERS);
+    mockTool(JOKE_JOB_TYPE, JOKE);
+    mockTool(ORDER_STATUS_JOB_TYPE, ORDER_STATUS);
+  }
 
-    // GetDateAndTime runs on a job type no connector in the bundle implements, so the job is ours
-    // by construction and the tool result is fixed rather than the real wall clock.
+  private void mockTool(String jobType, Object toolCallResult) {
     processTestContext
-        .mockJobWorker(DATE_TIME_JOB_TYPE)
+        .mockJobWorker(jobType)
         .withHandler(
             (jobClient, job) ->
                 jobClient
                     .newCompleteCommand(job)
-                    .variable("toolCallResult", dateAndTime())
+                    .variable("toolCallResult", toolCallResult)
                     .send()
                     .join());
-
-    // Intercept ListUsers, Jokes_API and GetOrderStatus HTTP jobs — the HTTP connector is disabled
-    // in the Docker bundle via CONNECTOR_OUTBOUND_DISABLED so these jobs stay open for the test to
-    // complete. Matching is done by element id (a single job worker per job type, dispatching on
-    // the element that raised the job) rather than by request content.
-    processTestContext
-        .mockJobWorker(HTTP_JSON_JOB_TYPE)
-        .withHandler(
-            (jobClient, job) -> {
-              var result =
-                  switch (job.getElementId()) {
-                    case "ListUsers" -> knownUsers();
-                    case "Jokes_API" -> JOKE;
-                    case "GetOrderStatus" -> orderStatus();
-                    default -> {
-                      unmockedToolElements.add(job.getElementId());
-                      yield "NO MOCK CONFIGURED FOR TOOL ELEMENT " + job.getElementId();
-                    }
-                  };
-              jobClient.newCompleteCommand(job).variable("toolCallResult", result).send().join();
-            });
-  }
-
-  @AfterEach
-  void allToolCallsWereMocked() {
-    assertThat(unmockedToolElements).as("tool elements without a configured mock").isEmpty();
   }
 
   // ---------------------------------------------------------------------------
   // Scenarios
   // ---------------------------------------------------------------------------
 
-  /**
-   * Names the tool outright, so this exercises tool <em>execution</em> — calling {@code ListUsers}
-   * and using its result. Tool <em>selection</em> is covered by {@link
-   * #shouldInferOrderStatusToolFromNaturalRequest(ProviderRow)}.
-   */
+  /** One tool call in a single round, with the tool named outright. */
   @ParameterizedTest(name = "{0}")
   @MethodSource("providers")
-  void shouldCompleteWithUserLookupTool(ProviderRow provider) {
+  void shouldCompleteWithToolCall(ProviderRow provider) {
     var processInstance =
         deployAndStart(
             provider,
-            "Use your user lookup tool to list the available users and tell me the name of the"
-                + " second user in the list. Reply with that name only.");
+            """
+            Use your user lookup tool to list the available users and tell me the name of the \
+            second user in the list. Reply with that name only.""");
 
-    completeUserTask(awaitUserTask(processInstance), true, null);
+    completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
     assertThatProcessInstance(processInstance).isCompleted();
     assertThatProcessInstance(processInstance).hasCompletedElement("ListUsers", 1);
-    assertThat(responseText(processInstance)).contains(SECOND_USER_NAME);
+    assertThat(responseText(processInstance)).contains((String) KNOWN_USERS.get(1).get("name"));
   }
 
-  /** Requests two tools in a single prompt, so the model has to emit both calls in one turn. */
+  /** Two tools requested at once, so both calls have to be emitted in the same round. */
   @ParameterizedTest(name = "{0}")
   @MethodSource("providers")
-  void shouldCompleteWithMultipleToolCalls(ProviderRow provider) {
+  void shouldCompleteWithMultipleToolCallsInOneRound(ProviderRow provider) {
     var processInstance =
         deployAndStart(
             provider,
-            "I need two things: use your date and time tool to tell me which day of the week it is,"
-                + " and also use your jokes API tool to fetch a random joke for me. Repeat the"
-                + " joke exactly as the tool returns it.");
+            """
+            I need two things: use your date and time tool to tell me which day of the week it \
+            is, and also use your joke tool to fetch a random joke for me. Repeat the joke \
+            exactly as the tool returns it.""");
 
-    completeUserTask(awaitUserTask(processInstance), true, null);
+    completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
     assertThatProcessInstance(processInstance).isCompleted();
     assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
-    assertThatProcessInstance(processInstance).hasCompletedElement("Jokes_API", 1);
-
-    assertThat(responseText(processInstance)).contains(DEFAULT_DAY_OF_WEEK).contains(JOKE_NONCE);
+    assertThatProcessInstance(processInstance).hasCompletedElement("GetJoke", 1);
+    assertThat(responseText(processInstance)).contains(DAY_OF_WEEK).contains(JOKE_NONCE);
   }
 
   /**
-   * Forces at least two model-call turns, so any regression in conversation-history round-tripping
-   * — tool calls, tool results, or a provider's own reasoning/thought metadata — surfaces here. The
-   * {@code hasCompletedElement} assertion is what proves the second turn reused the retained result
-   * rather than silently calling the tool again.
+   * Two tool calls the model cannot batch: the order ID it needs for the second is only known from
+   * the result of the first. The model-call count is what proves the rounds were sequential — one
+   * call to request the lookup, one to request the order status, one to answer.
    */
   @ParameterizedTest(name = "{0}")
   @MethodSource("providers")
-  void shouldRetainToolResultAcrossFeedbackLoop(ProviderRow provider) {
+  void shouldCompleteWithMultipleToolCallRounds(ProviderRow provider) {
+    var processInstance =
+        deployAndStart(
+            provider,
+            """
+            Look up the list of users, take the second user in that list, and then check the \
+            status of the order that user has placed. Tell me the order status and the tracking \
+            number.""");
+
+    completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
+
+    assertThatProcessInstance(processInstance).isCompleted();
+    assertThatProcessInstance(processInstance).hasCompletedElement("ListUsers", 1);
+    assertThatProcessInstance(processInstance).hasCompletedElement("GetOrderStatus", 1);
+
+    var response = agentResponse(processInstance);
+    assertThat(response.context().metrics().modelCalls()).isGreaterThanOrEqualTo(3);
+    assertThat(response.responseText())
+        .containsIgnoringCase("shipped")
+        .contains(ORDER_TRACKING_NUMBER);
+  }
+
+  /**
+   * A user task as a tool — the human-in-the-loop pattern. The agent pauses inside the ad-hoc
+   * sub-process until the task is completed, and the answer supplied here reaches its response.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providers")
+  void shouldCompleteWithUserTaskTool(ProviderRow provider) {
+    var processInstance =
+        deployAndStart(
+            provider,
+            """
+            I need the internal code name of the current maintenance window. You do not know it, \
+            so ask a human expert for it, then tell me their answer verbatim.""");
+
+    camundaClient
+        .newCompleteUserTaskCommand(awaitUserTask(processInstance, "AskHuman"))
+        .variables(Map.of("humanAnswer", HUMAN_ANSWER))
+        .send()
+        .join();
+
+    completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
+
+    assertThatProcessInstance(processInstance).isCompleted();
+    assertThatProcessInstance(processInstance).hasCompletedElement("AskHuman", 1);
+    assertThat(responseText(processInstance)).contains(HUMAN_ANSWER_NONCE);
+  }
+
+  /**
+   * Leaves the ad-hoc sub-process and re-enters it with follow-up input, so any regression in
+   * conversation-history round-tripping — tool calls, tool results, or a provider's own
+   * reasoning/thought metadata — surfaces here. The {@code hasCompletedElement} count is what
+   * proves the second round reused the retained result rather than silently calling the tool again.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providers")
+  void shouldCompleteWithUserFeedbackLoop(ProviderRow provider) {
     var processInstance =
         deployAndStart(
             provider, "Use your date and time tool to tell me the exact current date and time");
 
-    var firstTaskKey = awaitUserTask(processInstance);
     completeUserTask(
-        firstTaskKey,
+        awaitUserTask(processInstance, USER_FEEDBACK),
         false,
-        "Based on the date and time you just looked up, which day of the week was that? Reply with"
-            + " the weekday only.");
+        """
+        Based on the date and time you just looked up, which day of the week was that? Reply with \
+        the weekday only.""");
 
-    completeUserTask(awaitNextUserTask(processInstance, firstTaskKey), true, null);
+    completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
     assertThatProcessInstance(processInstance).isCompleted();
     assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
-    assertThat(responseText(processInstance)).contains(DEFAULT_DAY_OF_WEEK);
-  }
-
-  /**
-   * A natural, customer-support-style request that does not name any tool: the model has to infer
-   * on its own that {@code GetOrderStatus} is needed and to bind its {@code fromAi} order-ID
-   * parameter, exercising tool <em>selection</em>.
-   */
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("providers")
-  void shouldInferOrderStatusToolFromNaturalRequest(ProviderRow provider) {
-    var processInstance =
-        deployAndStart(
-            provider, "Hi, can you check the status of my order for me? The order ID is ORD-1001.");
-
-    completeUserTask(awaitUserTask(processInstance), true, null);
-
-    assertThatProcessInstance(processInstance).isCompleted();
-    assertThatProcessInstance(processInstance).hasCompletedElement("GetOrderStatus", 1);
-    assertThat(responseText(processInstance))
-        .containsIgnoringCase("shipped")
-        .contains(ORDER_STATUS_TRACKING_NUMBER);
+    assertThat(responseText(processInstance)).contains(DAY_OF_WEEK);
   }
 
   // ---------------------------------------------------------------------------
@@ -329,11 +280,6 @@ public class AiAgentE2ETestIT {
    * #providers()} is empty, and an empty {@code @MethodSource} is a JUnit configuration error
    * rather than a skip.
    */
-  private static String env(String name, String defaultValue) {
-    final var value = System.getenv(name);
-    return value == null || value.isBlank() ? defaultValue : value;
-  }
-
   static boolean hasConfiguredProvider() {
     return providers().findAny().isPresent();
   }
@@ -427,39 +373,71 @@ public class AiAgentE2ETestIT {
   }
 
   // ---------------------------------------------------------------------------
-  // Fixtures and helpers
+  // Tool fixtures
   // ---------------------------------------------------------------------------
 
+  private static final String USER_FEEDBACK = "User_Feedback";
+
+  private static final String DATE_TIME_JOB_TYPE = "io.camunda.e2e:date-time:1";
+  private static final String LIST_USERS_JOB_TYPE = "io.camunda.e2e:list-users:1";
+  private static final String JOKE_JOB_TYPE = "io.camunda.e2e:joke:1";
+  private static final String ORDER_STATUS_JOB_TYPE = "io.camunda.e2e:order-status:1";
+
   /**
-   * Invented users, for the same reason as {@link #JOKE_NONCE}: these names exist nowhere but this
-   * fixture, so an answer containing one can only have come from the mock.
+   * Fixture values a model cannot produce from its own knowledge, so an answer containing one can
+   * only have come from a tool result. A joke or a plausible user name would not do: those the
+   * model will happily supply itself, which is exactly how tool results that never arrived went
+   * unnoticed.
    */
-  private static List<Map<String, Object>> knownUsers() {
-    return List.of(
-        Map.of("id", 1, "name", "Leanne Marchetti", "username", "Bret"),
-        Map.of("id", 2, "name", SECOND_USER_NAME, "username", "Antonette"),
-        Map.of("id", 3, "name", "Clementine Vosk", "username", "Samantha"),
-        Map.of("id", 4, "name", "Patricia Bramblewood", "username", "Karianne"),
-        Map.of("id", 5, "name", "Chelsey Dunmoor", "username", "Kamren"));
-  }
+  private static final String JOKE_NONCE = "Blorptastic-7";
 
-  private Map<String, Object> dateAndTime() {
-    return Map.of(
-        "iso", dateAndTime.toOffsetDateTime().toString(),
-        "dayOfWeek", dayOfWeek(dateAndTime),
-        "timeZone", dateAndTime.getZone().getId());
-  }
+  private static final String HUMAN_ANSWER_NONCE = "Quibbleton-4";
 
-  private static String dayOfWeek(ZonedDateTime dateTime) {
-    return dateTime.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
-  }
+  private static final String JOKE =
+      "Why did the robot named "
+          + JOKE_NONCE
+          + " cross the road? To reticulate the splines on the other side.";
 
-  private static Map<String, Object> orderStatus() {
-    return Map.of(
-        "orderId", "ORD-1001",
-        "status", "shipped",
-        "trackingNumber", ORDER_STATUS_TRACKING_NUMBER,
-        "estimatedDelivery", "2026-08-10");
+  private static final String HUMAN_ANSWER =
+      "The current maintenance window code name is " + HUMAN_ANSWER_NONCE + ".";
+
+  private static final String ORDER_TRACKING_NUMBER = "1Z999AA10123456784";
+
+  private static final List<Map<String, Object>> KNOWN_USERS =
+      List.of(
+          Map.of("id", 1, "name", "Leanne Marchetti", "orderId", "ORD-1000"),
+          Map.of("id", 2, "name", "Ervin Quibbleton", "orderId", "ORD-1001"),
+          Map.of("id", 3, "name", "Clementine Vosk", "orderId", "ORD-1002"),
+          Map.of("id", 4, "name", "Patricia Bramblewood", "orderId", "ORD-1003"),
+          Map.of("id", 5, "name", "Chelsey Dunmoor", "orderId", "ORD-1004"));
+
+  private static final Map<String, Object> ORDER_STATUS =
+      Map.of(
+          "orderId", "ORD-1001",
+          "status", "shipped",
+          "trackingNumber", ORDER_TRACKING_NUMBER,
+          "estimatedDelivery", "2026-08-10");
+
+  /** A Saturday, so the weekday holds whether the model echoes it or derives it from the date. */
+  private static final ZonedDateTime FIXED_DATE_AND_TIME =
+      ZonedDateTime.parse("2026-03-14T15:09:26+01:00[Europe/Berlin]");
+
+  private static final String DAY_OF_WEEK =
+      FIXED_DATE_AND_TIME.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+
+  private static final Map<String, Object> DATE_AND_TIME =
+      Map.of(
+          "iso", FIXED_DATE_AND_TIME.toOffsetDateTime().toString(),
+          "dayOfWeek", DAY_OF_WEEK,
+          "timeZone", FIXED_DATE_AND_TIME.getZone().getId());
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
+  private static String env(String name, String defaultValue) {
+    final var value = System.getenv(name);
+    return value == null || value.isBlank() ? defaultValue : value;
   }
 
   private ProcessInstanceEvent deployAndStart(ProviderRow provider, String inputText) {
@@ -510,50 +488,47 @@ public class AiAgentE2ETestIT {
     }
   }
 
-  /**
-   * Reads {@code responseText} off the completed instance. The {@code hasVariableSatisfies} lambda
-   * only captures — CamundaAssert treats it as a polling predicate, so an assertion raised inside
-   * it would be retried for the full assertion timeout even though the instance is already
-   * completed and the variable value can no longer change.
-   */
-  private String responseText(ProcessInstanceEvent instance) {
+  private AgentResponse agentResponse(ProcessInstanceEvent instance) {
     var response = new AtomicReference<AgentResponse>();
+    // The lambda only captures: CamundaAssert treats it as a polling predicate, so an assertion
+    // raised inside it would be retried for the full assertion timeout even though the instance is
+    // already completed and the variable value can no longer change.
     assertThatProcessInstance(instance)
         .hasVariableSatisfies("agent", AgentResponse.class, response::set);
-    return response.get().responseText();
+    return response.get();
   }
 
-  private long awaitUserTask(ProcessInstanceEvent instance) {
-    assertThatProcessInstance(instance).hasActiveElements("User_Feedback");
-    return userTaskKeys(instance).getFirst();
+  private String responseText(ProcessInstanceEvent instance) {
+    return agentResponse(instance).responseText();
   }
 
-  /**
-   * Waits for the user task raised by the <em>next</em> agent turn, identified by key rather than
-   * by element id: the follow-up loop re-enters the same {@code User_Feedback} element, so the key
-   * is the only thing separating the new task from the one just completed.
-   */
-  private long awaitNextUserTask(ProcessInstanceEvent instance, long previousTaskKey) {
+  /** Waits for a created user task on {@code elementId} — the feedback loop re-enters its own. */
+  private long awaitUserTask(ProcessInstanceEvent instance, String elementId) {
+    var keys = new AtomicReference<List<Long>>(List.of());
     await()
         .atMost(USER_TASK_TIMEOUT)
-        .pollInterval(Duration.ofSeconds(5))
-        .untilAsserted(() -> assertThat(userTaskKeysAfter(instance, previousTaskKey)).isNotEmpty());
-    return userTaskKeysAfter(instance, previousTaskKey).getFirst();
+        .pollInterval(Duration.ofSeconds(2))
+        .untilAsserted(
+            () -> {
+              keys.set(createdUserTaskKeys(instance, elementId));
+              assertThat(keys.get()).as("created user task on %s", elementId).isNotEmpty();
+            });
+    return keys.get().getFirst();
   }
 
-  private List<Long> userTaskKeysAfter(ProcessInstanceEvent instance, long previousTaskKey) {
-    return userTaskKeys(instance).stream().filter(key -> key != previousTaskKey).toList();
-  }
-
-  private List<Long> userTaskKeys(ProcessInstanceEvent instance) {
+  private List<Long> createdUserTaskKeys(ProcessInstanceEvent instance, String elementId) {
     return camundaClient
         .newUserTaskSearchRequest()
-        .filter(f -> f.processInstanceKey(instance.getProcessInstanceKey()))
+        .filter(
+            f ->
+                f.processInstanceKey(instance.getProcessInstanceKey())
+                    .elementId(elementId)
+                    .state(UserTaskState.CREATED))
         .send()
         .join()
         .items()
         .stream()
-        .map(task -> task.getUserTaskKey())
+        .map(UserTask::getUserTaskKey)
         .toList();
   }
 
