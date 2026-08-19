@@ -29,7 +29,8 @@ import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.BpmnUtil;
 import io.camunda.process.test.api.CamundaProcessTestContext;
-import io.camunda.process.test.api.CamundaSpringProcessTest;
+import io.camunda.process.test.api.CamundaProcessTestExtension;
+import io.camunda.process.test.api.CamundaProcessTestRuntimeMode;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
@@ -43,19 +44,16 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.condition.EnabledIf;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.io.ResourceLoader;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * Real-LLM CPT coverage for the AI Agent sub-process, run against every configured provider.
  *
- * <p>Runs the agent inside the connectors bundle Docker image. To run locally, build and tag that
- * image, then point the test at it and supply the provider credentials:
+ * <p>Runs the agent and its tools inside the connectors bundle Docker image. To run locally, build
+ * and tag that image, then point the test at it and supply the provider credentials:
  *
  * <pre>{@code
  * ./mvnw package -pl apps/bundle/default-bundle -DskipTests
@@ -69,6 +67,9 @@ import org.springframework.test.context.ActiveProfiles;
  * ./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -Pit-real-llm
  * }</pre>
  *
+ * <p>Credentials are read straight from the environment — see {@link #EXTENSION} for why this suite
+ * configures the runtime in Java rather than through a Spring profile.
+ *
  * <p>The service account variable holds the whole key file verbatim. Each row skips itself when its
  * own credentials are absent, so a partial credential set runs a subset.
  *
@@ -76,15 +77,15 @@ import org.springframework.test.context.ActiveProfiles;
  * ProviderRow#disabled()}. Requires {@code element-templates-cli} on the PATH at the version pinned
  * in {@code .github/workflows/package.json}.
  */
-@SpringBootTest(classes = AiAgentE2ETestApplication.class)
-@CamundaSpringProcessTest
-@ActiveProfiles("it-real-llm")
 @EnabledIf("hasConfiguredProvider")
 public class AiAgentE2ETestIT {
 
-  private static final String BPMN_RESOURCE = "classpath:ai-agent-e2e.bpmn";
+  private static final String BPMN_RESOURCE = "ai-agent-e2e.bpmn";
   private static final String FORM_RESOURCE = "ai-agent-chat-user-feedback.form";
   private static final String PROCESS_ID = "ai-agent-e2e";
+
+  private static final String DEFAULT_CONNECTORS_IMAGE =
+      "registry.camunda.cloud/team-connectors/connectors-bundle";
 
   private static final String HTTP_JSON_JOB_TYPE = "io.camunda:http-json:1";
   private static final String DATE_TIME_JOB_TYPE = "io.camunda.e2e:date-time:1";
@@ -127,9 +128,35 @@ public class AiAgentE2ETestIT {
 
   private static final String DEFAULT_DAY_OF_WEEK = dayOfWeek(DEFAULT_DATE_AND_TIME);
 
-  @Autowired private CamundaClient camundaClient;
-  @Autowired private CamundaProcessTestContext processTestContext;
-  @Autowired private ResourceLoader resourceLoader;
+  /**
+   * Registers the process-test runtime directly rather than through
+   * {@code @CamundaSpringProcessTest}. A Spring context here would auto-configure a second
+   * connector runtime inside the test JVM — this module has {@code connector-agentic-ai} and {@code
+   * connector-http-json} on its compile classpath and the connectors starter on its test classpath
+   * — whose workers would compete with the bundle container for the agent and tool jobs this suite
+   * exists to route through that container. Without a Spring context, none of those
+   * auto-configurations run.
+   */
+  @RegisterExtension
+  static final CamundaProcessTestExtension EXTENSION =
+      new CamundaProcessTestExtension()
+          .withRuntimeMode(CamundaProcessTestRuntimeMode.SHARED)
+          .withConnectorsEnabled(true)
+          .withConnectorsDockerImageName(env("CONNECTORS_IMAGE_NAME", DEFAULT_CONNECTORS_IMAGE))
+          .withConnectorsDockerImageVersion(env("CONNECTORS_IMAGE_VERSION", "SNAPSHOT"))
+          // Keep the container's own HTTP connector off the tool job types, so the test's job mocks
+          // are the only thing answering them.
+          .withConnectorsEnv("CONNECTOR_OUTBOUND_DISABLED", HTTP_JSON_JOB_TYPE)
+          .withConnectorsSecret("OPENAI_API_KEY", env("OPENAI_API_KEY", ""))
+          .withConnectorsSecret(
+              "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", env("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", ""))
+          .withConnectorsSecret(
+              "GOOGLE_VERTEX_AI_PROJECT_ID", env("GOOGLE_VERTEX_AI_PROJECT_ID", ""))
+          .withConnectorsSecret("GOOGLE_VERTEX_AI_REGION", env("GOOGLE_VERTEX_AI_REGION", ""));
+
+  // Injected by the extension before each test.
+  private CamundaClient camundaClient;
+  private CamundaProcessTestContext processTestContext;
 
   @TempDir private File tempDir;
 
@@ -221,6 +248,7 @@ public class AiAgentE2ETestIT {
     assertThatProcessInstance(processInstance).isCompleted();
     assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
     assertThatProcessInstance(processInstance).hasCompletedElement("Jokes_API", 1);
+
     assertThat(responseText(processInstance)).contains(DEFAULT_DAY_OF_WEEK).contains(JOKE_NONCE);
   }
 
@@ -281,6 +309,11 @@ public class AiAgentE2ETestIT {
    * #providers()} is empty, and an empty {@code @MethodSource} is a JUnit configuration error
    * rather than a skip.
    */
+  private static String env(String name, String defaultValue) {
+    final var value = System.getenv(name);
+    return value == null || value.isBlank() ? defaultValue : value;
+  }
+
   static boolean hasConfiguredProvider() {
     return providers().findAny().isPresent();
   }
@@ -444,7 +477,8 @@ public class AiAgentE2ETestIT {
 
     try {
       var templateFile = template.writeTo(new File(tempDir, "template.json"));
-      var bpmnFile = resourceLoader.getResource(BPMN_RESOURCE).getFile();
+      var bpmnFile =
+          new File(AiAgentE2ETestIT.class.getClassLoader().getResource(BPMN_RESOURCE).toURI());
       var model =
           new BpmnFile(bpmnFile).apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
       return BpmnUtil.withAgentDefinitionMarker(model, "AI_Agent", "aiAgentSubProcess");
