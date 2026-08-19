@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.JsonValue;
 import com.openai.models.FunctionDefinition;
@@ -216,7 +215,7 @@ public class OpenAiCompletionsRequestConverter {
                   .function(
                       ChatCompletionMessageFunctionToolCall.Function.builder()
                           .name(toolCall.name())
-                          .arguments(writeAsJson(toolCall.arguments()))
+                          .arguments(contentConverter.writeAsJson(toolCall.arguments()))
                           .build())
                   .build()));
     }
@@ -254,11 +253,11 @@ public class OpenAiCompletionsRequestConverter {
               if (c instanceof TextContent text) {
                 return text.text();
               } else if (c instanceof ObjectContent obj) {
-                return writeAsJson(obj.content());
+                return contentConverter.writeAsJson(obj.content());
               } else if (c instanceof DocumentContent doc) {
-                return writeAsJson(doc.document());
+                return contentConverter.writeAsJson(doc.document());
               } else {
-                return writeAsJson(c);
+                return contentConverter.writeAsJson(c);
               }
             })
         .collect(Collectors.joining("\n"));
@@ -311,13 +310,5 @@ public class OpenAiCompletionsRequestConverter {
     customizations
         .bodyProperties()
         .forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));
-  }
-
-  private String writeAsJson(Object value) {
-    try {
-      return objectMapper.writeValueAsString(value);
-    } catch (JsonProcessingException e) {
-      throw new IllegalStateException("Failed to serialize content to JSON", e);
-    }
   }
 }

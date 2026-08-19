@@ -156,10 +156,14 @@ public class AnthropicContentConverter {
                     TextBlockParam.builder().text(writeAsJson(doc.document())).build()));
         case ObjectContent obj ->
             blocks.add(ToolResultBlockParam.Content.Block.ofText(toTextBlockParam(obj)));
-        default ->
+        case ReasoningContent reasoning ->
             blocks.add(
                 ToolResultBlockParam.Content.Block.ofText(
-                    TextBlockParam.builder().text(writeAsJson(c)).build()));
+                    TextBlockParam.builder().text(writeAsJson(reasoning)).build()));
+        case ProviderContent providerContent ->
+            blocks.add(
+                ToolResultBlockParam.Content.Block.ofText(
+                    TextBlockParam.builder().text(writeAsJson(providerContent)).build()));
       }
     }
     return blocks;

@@ -105,10 +105,14 @@ public class OpenAiContentConverter {
             items.add(
                 ResponseFunctionCallOutputItem.ofInputText(
                     ResponseInputTextContent.builder().text(writeAsJson(obj.content())).build()));
-        default ->
+        case ReasoningContent reasoning ->
             items.add(
                 ResponseFunctionCallOutputItem.ofInputText(
-                    ResponseInputTextContent.builder().text(writeAsJson(c)).build()));
+                    ResponseInputTextContent.builder().text(writeAsJson(reasoning)).build()));
+        case ProviderContent providerContent ->
+            items.add(
+                ResponseFunctionCallOutputItem.ofInputText(
+                    ResponseInputTextContent.builder().text(writeAsJson(providerContent)).build()));
       }
     }
     return items;
@@ -129,10 +133,16 @@ public class OpenAiContentConverter {
                     ChatCompletionContentPartText.builder()
                         .text(writeAsJson(obj.content()))
                         .build()));
-        default ->
+        case ReasoningContent reasoning ->
             parts.add(
                 ChatCompletionContentPart.ofText(
-                    ChatCompletionContentPartText.builder().text(writeAsJson(c)).build()));
+                    ChatCompletionContentPartText.builder().text(writeAsJson(reasoning)).build()));
+        case ProviderContent providerContent ->
+            parts.add(
+                ChatCompletionContentPart.ofText(
+                    ChatCompletionContentPartText.builder()
+                        .text(writeAsJson(providerContent))
+                        .build()));
       }
     }
     return parts;
@@ -210,7 +220,7 @@ public class OpenAiContentConverter {
     return new String(document.asByteArray(), StandardCharsets.UTF_8);
   }
 
-  private String writeAsJson(Object value) {
+  public String writeAsJson(Object value) {
     try {
       return objectMapper.writeValueAsString(value);
     } catch (JsonProcessingException e) {
