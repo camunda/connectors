@@ -22,6 +22,7 @@ import com.openai.models.responses.ResponseFunctionToolCall;
 import com.openai.models.responses.ResponseIncludable;
 import com.openai.models.responses.ResponseInputItem;
 import com.openai.models.responses.ResponseOutputMessage;
+import com.openai.models.responses.ResponseOutputText;
 import com.openai.models.responses.ResponseTextConfig;
 import com.openai.models.responses.Tool;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
@@ -33,6 +34,8 @@ import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -52,7 +55,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -194,10 +197,13 @@ public class OpenAiResponsesRequestConverter {
    * provider is dropped rather than replayed, since its payload is shaped for that provider's SDK
    * and would either throw or produce garbage if converted here.
    *
-   * <p>Plain content is replayed via {@link EasyInputMessage} rather than the structured {@link
-   * ResponseOutputMessage} shape, which requires a {@code msg_*}-namespaced {@code id} that {@link
-   * AssistantMessage#messageId()} isn't guaranteed to carry. See {@link
-   * #assistantContentInputItem(List)} for the content shape used for the assistant role.
+   * <p>Plain content is replayed as a {@link ResponseOutputMessage}, not the {@link
+   * EasyInputMessage} shape used for user messages: the Responses API accepts only {@code
+   * output_text}/{@code refusal} content parts for the assistant role, and {@link
+   * EasyInputMessage}'s part-list shape (built from {@link
+   * OpenAiContentConverter#toResponsesContentParts}) is exclusively {@code input_text}/{@code
+   * input_image}/{@code input_file}, which the API rejects for that role. See {@link
+   * #assistantContentInputItem(AssistantMessage, List)} for the item's exact shape.
    */
   private List<ResponseInputItem> assistantInputItems(AssistantMessage assistant) {
     final List<ResponseInputItem> items = new ArrayList<>();
@@ -220,7 +226,7 @@ public class OpenAiResponsesRequestConverter {
       }
     }
     if (!plainContent.isEmpty()) {
-      items.add(assistantContentInputItem(plainContent));
+      items.add(assistantContentInputItem(assistant, plainContent));
     }
     for (final ToolCall toolCall : assistant.toolCalls()) {
       items.add(
@@ -235,45 +241,63 @@ public class OpenAiResponsesRequestConverter {
   }
 
   /**
-   * Builds the assistant-role input item for plain (text/document/object) content. The Responses
-   * API accepts only {@code output_text}/{@code refusal} content parts for the assistant role, so
-   * the part-list shape used for user messages (built from {@link
-   * OpenAiContentConverter#toResponsesContentParts}, whose parts are all {@code input_text}/{@code
-   * input_image}/{@code input_file}) is rejected here. {@link EasyInputMessage.Content#ofTextInput}
-   * serializes as a bare JSON string instead, which the API does accept for this role, so text
-   * content is joined into one string that way.
-   *
-   * <p>The domain only ever puts {@link TextContent} into an assistant message's plain content --
-   * LLM responses are translated to text/reasoning/tool-call content, never document or object
-   * content. If a non-text part does appear, this falls back to the part-list shape rather than
-   * inventing handling for a case the domain does not produce; that fallback is rejected by the API
-   * for the same reason plain text was, and stays that way until the domain actually produces it.
-   *
-   * <p>Multiple {@link TextContent} blocks are joined into the single string rather than replayed
-   * as separate {@code output_text} parts: {@link EasyInputMessage.Content} has no such array-of-
-   * output_text variant for the assistant role -- only the bare-string shape used here and the
-   * part-list shape of {@code input_text}/{@code input_image}/{@code input_file} parts, both
-   * rejected above. An array of {@code output_text}/{@code refusal} parts requires the {@link
-   * ResponseOutputMessage} shape this method deliberately avoids (see {@link
-   * #assistantInputItems}).
+   * Builds the assistant-role input item for plain (text/document/object) content, as a {@link
+   * ResponseOutputMessage} with one {@code output_text} part per {@link Content} block, preserving
+   * block boundaries rather than flattening them into one string. {@link DocumentContent}/{@link
+   * ObjectContent} -- content types the domain never actually puts into an assistant message's
+   * plain content, since LLM responses are translated to text/reasoning/tool-call content only --
+   * become an {@code output_text} part carrying their JSON serialization, the same "reference
+   * rather than lost" treatment {@link OpenAiContentConverter} gives out-of-place content
+   * elsewhere; {@code output_text} carries text only, so there is no native shape for either.
    *
    * <p>Refusals need no handling here: {@code OpenAiResponsesResponseConverter} has no domain
    * content type for them and never turns one into {@link AssistantMessage} content -- a refusal
    * response is surfaced as a thrown {@code ContentFilteredException} instead, so it never reaches
    * conversation history to be replayed.
    */
-  private ResponseInputItem assistantContentInputItem(List<Content> plainContent) {
-    final boolean textOnly = plainContent.stream().allMatch(TextContent.class::isInstance);
-    final EasyInputMessage.Content content =
-        textOnly
-            ? EasyInputMessage.Content.ofTextInput(
-                plainContent.stream()
-                    .map(c -> ((TextContent) c).text())
-                    .collect(Collectors.joining("\n")))
-            : EasyInputMessage.Content.ofResponseInputMessageContentList(
-                contentConverter.toResponsesContentParts(plainContent));
-    return ResponseInputItem.ofEasyInputMessage(
-        EasyInputMessage.builder().role(EasyInputMessage.Role.ASSISTANT).content(content).build());
+  private ResponseInputItem assistantContentInputItem(
+      AssistantMessage assistant, List<Content> plainContent) {
+    final List<ResponseOutputMessage.Content> parts =
+        plainContent.stream().map(this::outputTextPart).toList();
+    return ResponseInputItem.ofResponseOutputMessage(
+        ResponseOutputMessage.builder()
+            .id(assistantMessageId(assistant))
+            .status(ResponseOutputMessage.Status.COMPLETED)
+            .content(parts)
+            .build());
+  }
+
+  private ResponseOutputMessage.Content outputTextPart(Content content) {
+    final String text =
+        switch (content) {
+          case TextContent t -> t.text();
+          case ObjectContent obj -> contentConverter.writeAsJson(obj.content());
+          case DocumentContent doc -> contentConverter.writeAsJson(doc.document());
+          default ->
+              throw new IllegalStateException(
+                  "Reasoning/provider content is routed by assistantInputItems before reaching "
+                      + "plain-content handling and must never appear here: "
+                      + content.getClass().getSimpleName());
+        };
+    return ResponseOutputMessage.Content.ofOutputText(
+        ResponseOutputText.builder().text(text).annotations(List.of()).build());
+  }
+
+  /**
+   * The {@code id} to replay an assistant message under. A genuine Responses-origin turn's {@link
+   * AssistantMessage#messageId()} is the {@code msg_*} output-item id {@code
+   * OpenAiResponsesResponseConverter} captured from the real response, so it is passed through
+   * verbatim. Any other value -- absent (e.g. v1 LangChain4j-sourced history, a legacy record) or
+   * foreign-namespaced (e.g. Completions' {@code chatcmpl_*}, or another provider's own id scheme
+   * after a family/provider switch) -- is rejected by the API ({@code "Expected an ID that begins
+   * with msg"}), so a fresh {@code msg_}-namespaced id is synthesized instead; {@code id} is
+   * required to build a {@link ResponseOutputMessage} at all, so replay can't simply omit it here.
+   */
+  private String assistantMessageId(AssistantMessage assistant) {
+    final String messageId = assistant.messageId();
+    return messageId != null && messageId.startsWith("msg_")
+        ? messageId
+        : "msg_" + UUID.randomUUID().toString().replace("-", "");
   }
 
   /**

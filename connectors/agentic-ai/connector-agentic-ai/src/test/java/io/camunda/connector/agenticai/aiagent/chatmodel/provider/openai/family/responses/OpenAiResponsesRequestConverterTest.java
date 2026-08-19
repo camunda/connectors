@@ -19,7 +19,7 @@ import com.openai.models.ReasoningEffort;
 import com.openai.models.responses.EasyInputMessage;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseIncludable;
-import com.openai.models.responses.ResponseInputContent;
+import com.openai.models.responses.ResponseOutputMessage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -55,6 +55,7 @@ import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocu
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
@@ -267,11 +268,12 @@ class OpenAiResponsesRequestConverterTest {
   }
 
   @Test
-  void replaysAssistantTextContentAsBareAssistantMessageString() {
+  void replaysAssistantTextContentAsOutputTextMessage() {
     // Responses rejects input_text/input_image/input_file content parts for the assistant role
     // (only output_text/refusal are valid there) - see
     // OpenAiResponsesRequestConverter#assistantContentInputItem. Assistant text is therefore
-    // replayed as a bare string, not a content-part list.
+    // replayed as a ResponseOutputMessage with an output_text part, not the EasyInputMessage
+    // content-part-list shape used for user messages.
     final var snapshot =
         new ConversationSnapshot(
             List.of(
@@ -286,17 +288,44 @@ class OpenAiResponsesRequestConverterTest {
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(1);
 
-    final var easy = items.get(0).easyInputMessage().orElseThrow();
-    assertThat(easy.role()).isEqualTo(EasyInputMessage.Role.ASSISTANT);
-    assertThat(easy.content().textInput()).contains("here's the answer");
-    assertThat(easy.content().responseInputMessageContentList()).isEmpty();
+    final var message = items.get(0).responseOutputMessage().orElseThrow();
+    assertThat(message.id()).isEqualTo("msg_1");
+    assertThat(message.status()).isEqualTo(ResponseOutputMessage.Status.COMPLETED);
+    assertThat(message.content()).hasSize(1);
+    assertThat(message.content().get(0).asOutputText().text()).isEqualTo("here's the answer");
+  }
+
+  @Test
+  void replaysMultipleAssistantTextBlocksAsSeparateOutputTextParts() {
+    // Block boundaries are preserved rather than flattened into one joined string - see
+    // OpenAiResponsesRequestConverter#assistantContentInputItem.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            TextContent.textContent("first block"),
+                            TextContent.textContent("second block")))
+                    .messageId("msg_1")
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    final var items = params.input().orElseThrow().asResponse();
+    final var message = items.get(0).responseOutputMessage().orElseThrow();
+    assertThat(message.content()).hasSize(2);
+    assertThat(message.content().get(0).asOutputText().text()).isEqualTo("first block");
+    assertThat(message.content().get(1).asOutputText().text()).isEqualTo("second block");
   }
 
   @Test
   void neverEmitsAnInputTextContentPartForAnAssistantMessage() {
     // Regression test for the 400 the real Responses API returns for an assistant-role input_text
     // part ("Invalid value: 'input_text'. Supported values are: 'output_text' and 'refusal'.") -
-    // this must fail if assistant content is ever emitted as a content-part list again.
+    // checked at the raw JSON level (not through a typed SDK accessor) so it fails on any
+    // reintroduction of the bug, typed or not.
     final var snapshot =
         new ConversationSnapshot(
             List.of(
@@ -307,24 +336,45 @@ class OpenAiResponsesRequestConverterTest {
 
     final var params = converter.toRequest(model(null), null, snapshot);
 
-    final var items = params.input().orElseThrow().asResponse();
-    final boolean anyAssistantInputTextPart =
-        items.stream()
-            .flatMap(item -> item.easyInputMessage().stream())
-            .filter(easy -> easy.role() == EasyInputMessage.Role.ASSISTANT)
-            .flatMap(easy -> easy.content().responseInputMessageContentList().stream())
-            .flatMap(List::stream)
-            .anyMatch(ResponseInputContent::isInputText);
+    final var assistantInputTextParts =
+        rawInputItems(params).stream()
+            .filter(item -> "assistant".equals(item.get("role")))
+            .flatMap(
+                item ->
+                    item.get("content") instanceof List<?> parts ? parts.stream() : Stream.empty())
+            .filter(part -> part instanceof Map<?, ?> map && "input_text".equals(map.get("type")))
+            .toList();
 
-    assertThat(anyAssistantInputTextPart).isFalse();
+    assertThat(assistantInputTextParts).isEmpty();
   }
 
   @Test
-  void replaysAssistantTextContentWithoutRequiringAValidResponsesMessageId() {
+  void replaysAssistantTextContentUnderItsOwnValidMessageId() {
+    // A genuine Responses-origin turn's messageId is the msg_* id OpenAiResponsesResponseConverter
+    // captured from the real response - replay passes it through verbatim.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(List.of(TextContent.textContent("here's the answer")))
+                    .messageId("msg_abc123")
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    final var items = params.input().orElseThrow().asResponse();
+    final var message = items.get(0).responseOutputMessage().orElseThrow();
+    assertThat(message.id()).isEqualTo("msg_abc123");
+  }
+
+  @Test
+  void synthesizesAFreshMessageIdWhenNoneIsValid() {
     // messageId is null (e.g. v1 LangChain4j-sourced history, or a legacy record) or namespaced
     // for a different family/provider (e.g. OpenAI Completions' chatcmpl_*, or another provider's
-    // own id scheme, after a family/provider switch mid-conversation) -- EasyInputMessage has no
-    // id field, so replay must not depend on messageId being present or valid at all.
+    // own id scheme, after a family/provider switch mid-conversation) -- the API rejects any id
+    // that doesn't start with "msg_", so replay must synthesize a fresh one rather than passing
+    // the foreign id through or failing.
     for (final String messageId : new String[] {null, "chatcmpl_1", "some-other-provider-id"}) {
       final var snapshot =
           new ConversationSnapshot(
@@ -339,7 +389,8 @@ class OpenAiResponsesRequestConverterTest {
 
       final var items = params.input().orElseThrow().asResponse();
       assertThat(items).hasSize(1);
-      assertThat(items.get(0).easyInputMessage()).isPresent();
+      final var message = items.get(0).responseOutputMessage().orElseThrow();
+      assertThat(message.id()).startsWith("msg_").isNotEqualTo(messageId);
     }
   }
 
@@ -366,7 +417,7 @@ class OpenAiResponsesRequestConverterTest {
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(2);
 
-    assertThat(items.get(0).easyInputMessage()).isPresent();
+    assertThat(items.get(0).responseOutputMessage()).isPresent();
 
     final var functionCall = items.get(1).functionCall().orElseThrow();
     assertThat(functionCall.callId()).isEqualTo("call_1");
@@ -401,7 +452,7 @@ class OpenAiResponsesRequestConverterTest {
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(3);
     assertThat(items.get(0).reasoning()).isPresent();
-    assertThat(items.get(1).easyInputMessage()).isPresent();
+    assertThat(items.get(1).responseOutputMessage()).isPresent();
     assertThat(items.get(2).functionCall()).isPresent();
   }
 
