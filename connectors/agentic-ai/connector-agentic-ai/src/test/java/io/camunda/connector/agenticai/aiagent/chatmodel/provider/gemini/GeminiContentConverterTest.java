@@ -11,7 +11,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.types.FunctionCall;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -19,9 +18,11 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectConten
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
@@ -31,8 +32,8 @@ import org.junit.jupiter.api.Test;
 
 class GeminiContentConverterTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-  private final GeminiContentConverter converter = new GeminiContentConverter(objectMapper);
+  private final GeminiContentConverter converter =
+      new GeminiContentConverter(TestObjectMapperSupplier.INSTANCE);
 
   private static Document mockDocument(String contentType, byte[] bytes) {
     final var document = mock(Document.class);
@@ -40,6 +41,10 @@ class GeminiContentConverterTest {
     when(document.metadata()).thenReturn(metadata);
     when(metadata.getContentType()).thenReturn(contentType);
     when(document.asByteArray()).thenReturn(bytes);
+    // stubbed so a reference-only fallback (tool-result documents) can serialize this mock via
+    // JacksonModuleDocumentSerializer, which dispatches on Document#reference()
+    when(document.reference())
+        .thenReturn(new ExternalDocumentReferenceModel("https://example.com/document", "document"));
     return document;
   }
 
@@ -307,36 +312,34 @@ class GeminiContentConverterTest {
     }
 
     @Test
-    void mapsImageDocumentToInlineDataPart() {
+    void mapsDocumentContentToTextPartReference() {
+      // never embedded natively here, regardless of content type - the composer's synthetic
+      // <doc/> fallback message already delivers the actual bytes for tool results, so this
+      // renders the same JSON reference ObjectContent would, avoiding a double-send
       final var doc = mockDocument("image/jpeg", "ABC".getBytes(StandardCharsets.UTF_8));
 
       final var parts = converter.toFunctionResponseParts(List.of(new DocumentContent(doc, null)));
 
       assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).inlineData()).isPresent();
       assertThat(parts.get(0).functionResponse()).isEmpty();
+      assertThat(parts.get(0).inlineData()).isEmpty();
+      assertThat(parts.get(0).text().orElseThrow())
+          .isEqualTo(
+              "{\"url\":\"https://example.com/document\",\"name\":\"document\","
+                  + "\"camunda.document.type\":\"external\"}");
     }
 
     @Test
-    void mapsPdfDocumentToInlineDataPart() {
+    void mapsUnsupportedDocumentContentTypeToTextPartReference() {
+      // an unsupported content type is fine here, unlike toParts's native-embedding path -
+      // classification never runs since the document is always flattened to a reference
       final var doc =
-          mockDocument("application/pdf", "PDFCONTENT".getBytes(StandardCharsets.UTF_8));
+          mockDocument("application/zip", "ZIPCONTENT".getBytes(StandardCharsets.UTF_8));
 
       final var parts = converter.toFunctionResponseParts(List.of(new DocumentContent(doc, null)));
 
       assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).inlineData()).isPresent();
-    }
-
-    @Test
-    void throwsForUnsupportedDocumentContentType() {
-      final var doc =
-          mockDocument("application/zip", "ZIPCONTENT".getBytes(StandardCharsets.UTF_8));
-
-      assertThatThrownBy(
-              () -> converter.toFunctionResponseParts(List.of(new DocumentContent(doc, null))))
-          .isInstanceOf(ConnectorException.class)
-          .hasMessageContaining("application/zip");
+      assertThat(parts.get(0).text()).isPresent();
     }
 
     @Test

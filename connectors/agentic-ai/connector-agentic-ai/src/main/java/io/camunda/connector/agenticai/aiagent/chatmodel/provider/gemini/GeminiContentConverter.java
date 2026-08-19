@@ -96,6 +96,12 @@ public class GeminiContentConverter {
    * {@code ToolCallResultContent.content()}); if that list ever becomes multi-element for a single
    * tool call, the caller must merge the results into a single {@code functionResponse} rather than
    * emit sibling parts sharing one name/id.
+   *
+   * <p>Unlike {@link #toParts(List)}, a document here is flattened to a JSON reference rather than
+   * embedded natively as {@code inlineData}: the document's actual bytes are already delivered to
+   * the model elsewhere for tool results, so embedding it here as well would send it twice. Matches
+   * {@code AnthropicContentConverter#toToolResultBlocks} and {@code
+   * OpenAiContentConverter#toResponsesToolResultOutputItems}.
    */
   public List<Part> toFunctionResponseParts(List<Content> content) {
     final List<Part> parts = new ArrayList<>();
@@ -103,7 +109,7 @@ public class GeminiContentConverter {
       switch (c) {
         case TextContent text -> parts.add(toFunctionResponsePart(text.text()));
         case ObjectContent obj -> parts.add(toFunctionResponsePart(obj.content()));
-        case DocumentContent doc -> parts.add(toDocumentPart(doc));
+        case DocumentContent doc -> parts.add(Part.fromText(writeAsJson(doc.document())));
         default -> parts.add(Part.fromText(writeAsJson(c)));
       }
     }

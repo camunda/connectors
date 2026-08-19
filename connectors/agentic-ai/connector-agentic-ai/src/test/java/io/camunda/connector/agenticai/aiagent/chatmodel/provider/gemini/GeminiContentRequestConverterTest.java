@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -31,9 +30,11 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
@@ -44,8 +45,8 @@ import org.mockito.Mockito;
 
 class GeminiContentRequestConverterTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-  private final GeminiContentConverter contentConverter = new GeminiContentConverter(objectMapper);
+  private final GeminiContentConverter contentConverter =
+      new GeminiContentConverter(TestObjectMapperSupplier.INSTANCE);
   private final GeminiContentRequestConverter converter =
       new GeminiContentRequestConverter(contentConverter);
 
@@ -63,6 +64,10 @@ class GeminiContentRequestConverterTest {
     Mockito.when(document.metadata()).thenReturn(metadata);
     Mockito.when(metadata.getContentType()).thenReturn(contentType);
     Mockito.when(document.asByteArray()).thenReturn(bytes);
+    // stubbed so a tool-result document (flattened to a JSON reference) can serialize this mock
+    // via JacksonModuleDocumentSerializer, which dispatches on Document#reference()
+    Mockito.when(document.reference())
+        .thenReturn(new ExternalDocumentReferenceModel("https://example.com/document", "document"));
     return document;
   }
 
@@ -436,8 +441,11 @@ class GeminiContentRequestConverterTest {
     assertThat(functionResponse.id()).contains("call-1");
     assertThat(functionResponse.response().orElseThrow()).isEqualTo(Map.of("output", "described"));
 
-    assertThat(parts.get(1).inlineData()).isPresent();
+    // flattened to a JSON reference, not embedded natively - see GeminiContentConverter
+    // #toFunctionResponseParts
     assertThat(parts.get(1).functionResponse()).isEmpty();
+    assertThat(parts.get(1).inlineData()).isEmpty();
+    assertThat(parts.get(1).text()).isPresent();
   }
 
   @Test
