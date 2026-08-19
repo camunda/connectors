@@ -31,8 +31,13 @@ public class SecretUtil {
 
   private static final JsonStringEncoder encoder = JsonStringEncoder.getInstance();
 
+  // The negative lookbehind keeps this legacy pattern out of a new-form camunda.secrets.<name>
+  // reference, which ends in the same three characters. Without it the legacy pass, which runs
+  // first and over raw model text, would replace secrets.TOKEN inside camunda.secrets.TOKEN from a
+  // local provider — reading the wrong store, and destroying the reference before the cluster ever
+  // sees it.
   private static final Pattern SECRET_PATTERN_SECRETS =
-      Pattern.compile("secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
+      Pattern.compile("(?<!camunda\\.)secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
 
   private static final Pattern SECRET_PATTERN_PARENTHESES =
       Pattern.compile("\\{\\{\\s*secrets\\.(?<secret>\\S+?\\s*)}}");
@@ -103,10 +108,26 @@ public class SecretUtil {
     return output.toString();
   }
 
+  /**
+   * Whether the text contains a legacy secret reference, in either of its two spellings. Used where
+   * the legacy form is not supported and has to be reported rather than silently left in place.
+   */
+  public static boolean containsLegacySecretReference(String input) {
+    return input != null
+        && (SECRET_PATTERN_PARENTHESES.matcher(input).find()
+            || SECRET_PATTERN_SECRETS.matcher(input).find());
+  }
+
+  /**
+   * Every secret name the given text declares, in either form. The new form is included so that
+   * excluding it from {@link #SECRET_PATTERN_SECRETS} does not shrink the outbound allow-list this
+   * feeds: a name a model declares as {@code camunda.secrets.NAME} stays permitted, exactly as it
+   * was before the two patterns were separated.
+   */
   public static List<String> retrieveSecretKeysInInput(String input) {
     return Objects.isNull(input)
         ? List.of()
-        : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
+        : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS, SecretReferenceUtil.PATTERN)
             .map(pattern -> pattern.matcher(input))
             .flatMap(Matcher::results)
             .map(matchResult -> matchResult.group("secret"))
