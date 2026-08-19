@@ -67,6 +67,8 @@ import org.junit.jupiter.params.provider.MethodSource;
  *
  * export CONNECTORS_IMAGE_NAME=camunda/connectors-bundle CONNECTORS_IMAGE_VERSION=local
  * export OPENAI_API_KEY=...                  # the OpenAI rows
+ * export ANTHROPIC_API_KEY=...               # the Anthropic rows
+ * export ANTHROPIC_BEDROCK_API_KEY=...       # the Anthropic Bedrock Mantle row
  * export GOOGLE_VERTEX_AI_PROJECT_ID=... GOOGLE_VERTEX_AI_REGION=... \
  *        GOOGLE_VERTEX_AI_SERVICE_ACCOUNT="$(cat sa-key.json)"   # the Vertex AI rows
  *
@@ -116,6 +118,8 @@ public class AiAgentE2ETestIT {
           .withConnectorsEnv("LOGGING_LEVEL_IO_CAMUNDA_CONNECTOR", "DEBUG")
           .withConnectorsEnv("LOGGING_LEVEL_IO_CAMUNDA_CONNECTOR_AGENTICAI", "TRACE")
           .withConnectorsSecret("OPENAI_API_KEY", env("OPENAI_API_KEY", ""))
+          .withConnectorsSecret("ANTHROPIC_API_KEY", env("ANTHROPIC_API_KEY", ""))
+          .withConnectorsSecret("ANTHROPIC_BEDROCK_API_KEY", env("ANTHROPIC_BEDROCK_API_KEY", ""))
           .withConnectorsSecret(
               "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", env("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", ""))
           .withConnectorsSecret(
@@ -315,6 +319,12 @@ public class AiAgentE2ETestIT {
             // and tool results differently, so each needs to run the scenarios
             openAiResponsesV2(OPENAI_V2_MODEL),
             openAiCompletionsV2(OPENAI_V2_MODEL),
+            // Anthropic (v1)
+            anthropicV1("claude-haiku-4-5-20251001"),
+            // Anthropic (v2)
+            anthropicV2("claude-haiku-4-5-20251001"),
+            // Anthropic (v2), AWS Bedrock Mantle backend
+            anthropicBedrockMantleV2("claude-haiku-4-5"),
             // Google Vertex AI (v1)
             googleVertexAiV1("gemini-2.5-flash"),
             // Gemini 3 models are served on the global endpoint, not the regional ones
@@ -355,6 +365,57 @@ public class AiAgentE2ETestIT {
             "provider.openai.backend.openai.apiKey", "{{secrets.OPENAI_API_KEY}}",
             "provider.openai.api.type", apiFamily,
             "provider.openai.model.model", model));
+  }
+
+  /** Anthropic, v1 (LangChain4j-backed). */
+  static ProviderConfig anthropicV1(String model) {
+    return new ProviderConfig(
+        "anthropic-v1/" + model,
+        List.of("ANTHROPIC_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type", "anthropic",
+            "provider.anthropic.authentication.apiKey", "{{secrets.ANTHROPIC_API_KEY}}",
+            "provider.anthropic.model.model", model));
+  }
+
+  /** Anthropic, v2, on the {@code anthropic-api} backend. */
+  static ProviderConfig anthropicV2(String model) {
+    return new ProviderConfig(
+        "anthropic-v2/" + model,
+        List.of("ANTHROPIC_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type", "anthropic",
+            "provider.anthropic.backend.type", "anthropic-api",
+            "provider.anthropic.backend.anthropic.apiKey", "{{secrets.ANTHROPIC_API_KEY}}",
+            "provider.anthropic.model.model", model));
+  }
+
+  /**
+   * Anthropic, v2, via the AWS Bedrock Mantle backend: the same Messages API wire format as {@link
+   * #anthropicV2}, just SigV4-signed and sent to a Bedrock Mantle endpoint instead of
+   * api.anthropic.com. Bedrock names its models with an {@code anthropic.} prefix and without the
+   * date suffix.
+   */
+  static ProviderConfig anthropicBedrockMantleV2(String model) {
+    return new ProviderConfig(
+        "anthropic-bedrock-mantle-v2/" + model,
+        List.of("ANTHROPIC_BEDROCK_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "anthropic",
+            "provider.anthropic.backend.type",
+            "aws-bedrock-mantle",
+            "provider.anthropic.backend.awsBedrockMantle.region",
+            env("ANTHROPIC_BEDROCK_REGION", "us-east-1"),
+            "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+            "apiKey",
+            "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
+            "{{secrets.ANTHROPIC_BEDROCK_API_KEY}}",
+            "provider.anthropic.model.model",
+            "anthropic." + model));
   }
 
   /** Google Vertex AI, v1, in the region {@code GOOGLE_VERTEX_AI_REGION} names. */
