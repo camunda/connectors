@@ -714,12 +714,10 @@ class RealProviderApiSmokeIT {
   }
 
   /**
-   * Completes the currently active {@code User_Feedback} user task with the given variables,
-   * mirroring {@code AiAgentE2ETestIT#shouldCompleteFeedbackLoop}'s raw {@code CamundaClient}
-   * completion for this suite's harness (no {@code ZeebeTest} response wrapper, no WireMock
-   * fixture). Picks the task with the highest key - user task keys are monotonically increasing, so
-   * this is always the most recently created (and only still-active) one for the instance, even
-   * after a prior feedback-loop iteration already completed an earlier task on the same instance.
+   * Completes the currently active {@code User_Feedback} user task with the given variables. Picks
+   * the task with the highest key - user task keys are monotonically increasing, so this is always
+   * the most recently created (and only still-active) one for the instance, even after a prior
+   * feedback-loop iteration already completed an earlier task on the same instance.
    */
   private void completeUserFeedback(ProcessInstanceEvent instance, Map<String, Object> variables) {
     assertThat(instance).withAssertionTimeout(PROCESS_TIMEOUT).hasActiveElements("User_Feedback");

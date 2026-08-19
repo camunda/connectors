@@ -241,19 +241,11 @@ public class OpenAiResponsesRequestConverter {
   }
 
   /**
-   * Builds the assistant-role input item for plain (text/document/object) content, as a {@link
-   * ResponseOutputMessage} with one {@code output_text} part per {@link Content} block, preserving
-   * block boundaries rather than flattening them into one string. {@link DocumentContent}/{@link
-   * ObjectContent} -- content types the domain never actually puts into an assistant message's
-   * plain content, since LLM responses are translated to text/reasoning/tool-call content only --
-   * become an {@code output_text} part carrying their JSON serialization, the same "reference
-   * rather than lost" treatment {@link OpenAiContentConverter} gives out-of-place content
-   * elsewhere; {@code output_text} carries text only, so there is no native shape for either.
-   *
-   * <p>Refusals need no handling here: {@code OpenAiResponsesResponseConverter} has no domain
-   * content type for them and never turns one into {@link AssistantMessage} content -- a refusal
-   * response is surfaced as a thrown {@code ContentFilteredException} instead, so it never reaches
-   * conversation history to be replayed.
+   * Builds the assistant-role input item: a {@link ResponseOutputMessage} with one {@code
+   * output_text} part per {@link Content} block. {@link DocumentContent}/{@link ObjectContent}
+   * become an {@code output_text} part carrying their JSON serialization, since that part type
+   * carries text only. Refusals never reach here -- the response converter turns them into a thrown
+   * exception, not assistant content.
    */
   private ResponseInputItem assistantContentInputItem(
       AssistantMessage assistant, List<Content> plainContent) {
