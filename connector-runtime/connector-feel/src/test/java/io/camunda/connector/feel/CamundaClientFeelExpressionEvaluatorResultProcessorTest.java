@@ -96,12 +96,14 @@ class CamundaClientFeelExpressionEvaluatorResultProcessorTest {
   }
 
   @Test
-  void handsTheProcessorWhateverTheClusterReportedIncludingNothing() {
-    var evaluator = evaluatorReturning("value", null);
+  void handsTheProcessorAnEmptyReportWhenTheClusterNamedNoSecret() {
+    // The client normalises an absent report to an empty list, so this is what a cluster too old
+    // to report referenced secrets produces, and what an expression using no secret produces.
+    var evaluator = evaluatorReturning("value", List.of());
 
     evaluator.evaluateToJson("=x");
 
-    assertThat(reported).containsExactly((List<SecretReference>) null);
+    assertThat(reported).containsExactly(List.of());
   }
 
   @Test

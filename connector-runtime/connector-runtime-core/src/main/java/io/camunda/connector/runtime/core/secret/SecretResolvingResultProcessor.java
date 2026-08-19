@@ -52,7 +52,7 @@ public class SecretResolvingResultProcessor implements EvaluationResultProcessor
   private static final Logger LOG = LoggerFactory.getLogger(SecretResolvingResultProcessor.class);
 
   private final SecretReferenceResolver resolver;
-  private final AtomicBoolean unreportedSecretsWarned = new AtomicBoolean();
+  private final AtomicBoolean unreportedReferenceWarned = new AtomicBoolean();
 
   public SecretResolvingResultProcessor(SecretReferenceResolver resolver) {
     this.resolver = resolver;
@@ -63,20 +63,21 @@ public class SecretResolvingResultProcessor implements EvaluationResultProcessor
     if (result == null) {
       return null;
     }
-    if (referencedSecrets == null) {
-      warnOnceAboutMissingReport();
+    Set<String> found = new LinkedHashSet<>();
+    collectReferences(result, found);
+    if (found.isEmpty()) {
       return result;
     }
     Set<String> allowed = allowList(referencedSecrets);
-    if (allowed.isEmpty()) {
+    Set<String> resolvable = new LinkedHashSet<>(found);
+    resolvable.retainAll(allowed);
+    if (resolvable.size() < found.size()) {
+      warnOnceAboutUnreportedReference();
+    }
+    if (resolvable.isEmpty()) {
       return result;
     }
-    Set<String> present = new LinkedHashSet<>();
-    collectReferences(result, allowed, present);
-    if (present.isEmpty()) {
-      return result;
-    }
-    Map<String, String> values = resolver.resolve(present);
+    Map<String, String> values = resolver.resolve(resolvable);
     return values.isEmpty() ? result : substitute(result, values);
   }
 
@@ -87,6 +88,9 @@ public class SecretResolvingResultProcessor implements EvaluationResultProcessor
    */
   private static Set<String> allowList(List<SecretReference> referencedSecrets) {
     Set<String> allowed = new LinkedHashSet<>();
+    if (referencedSecrets == null) {
+      return allowed;
+    }
     for (SecretReference reference : referencedSecrets) {
       if (reference != null && reference.getSecretName() != null) {
         allowed.add(SecretReferenceUtil.reference(reference.getSecretName()));
@@ -95,19 +99,11 @@ public class SecretResolvingResultProcessor implements EvaluationResultProcessor
     return allowed;
   }
 
-  private static void collectReferences(Object node, Set<String> allowed, Set<String> into) {
+  private static void collectReferences(Object node, Set<String> into) {
     switch (node) {
-      case String text -> {
-        for (String reference : SecretReferenceUtil.findReferences(text)) {
-          if (allowed.contains(reference)) {
-            into.add(reference);
-          } else {
-            LOG.debug("Reference-shaped text was not reported by the cluster; leaving it as it is");
-          }
-        }
-      }
-      case Map<?, ?> map -> map.values().forEach(value -> collectReferences(value, allowed, into));
-      case List<?> list -> list.forEach(element -> collectReferences(element, allowed, into));
+      case String text -> into.addAll(SecretReferenceUtil.findReferences(text));
+      case Map<?, ?> map -> map.values().forEach(value -> collectReferences(value, into));
+      case List<?> list -> list.forEach(element -> collectReferences(element, into));
       default -> {}
     }
   }
@@ -129,12 +125,20 @@ public class SecretResolvingResultProcessor implements EvaluationResultProcessor
     };
   }
 
-  private void warnOnceAboutMissingReport() {
-    if (unreportedSecretsWarned.compareAndSet(false, true)) {
+  /**
+   * Warns once, not per occurrence, and without repeating the text. Two very different things reach
+   * here: text that was never a reference, which is the defence working, and a cluster too old to
+   * report referenced secrets, where every reference goes unresolved. Neither is worth a line per
+   * evaluation, and the text can be attacker-supplied.
+   */
+  private void warnOnceAboutUnreportedReference() {
+    if (unreportedReferenceWarned.compareAndSet(false, true)) {
       LOG.warn(
-          "The cluster did not report which secret references an expression used, so no secret"
-              + " reference will be resolved. This needs an orchestration cluster that reports"
-              + " referenced secrets on expression evaluation.");
+          "An expression result contained camunda.secrets.<name> text that the cluster did not"
+              + " report as a referenced secret, so it was left unresolved. That is expected when"
+              + " the text is data rather than a reference a model declared. If a secret is not"
+              + " resolving, check that the orchestration cluster reports referenced secrets on"
+              + " expression evaluation.");
     }
   }
 }

@@ -99,12 +99,28 @@ class SecretResolvingResultProcessorTest {
   }
 
   @Test
-  void resolvesNothingWhenTheClusterReportedNoListAtAll() {
+  void resolvesNothingWhenTheReportIsAbsentAltogether() {
+    // The Camunda client normalises an absent report to an empty list, so production never passes
+    // null. Tolerating it anyway keeps a hand-built or older client from causing an NPE here, in
+    // the one place where failing open would be a leak.
     resolver.holds("camunda.secrets.TOKEN", "tok-1");
 
     Object result = processor.process("camunda.secrets.TOKEN", null);
 
     assertThat(result).isEqualTo("camunda.secrets.TOKEN");
+    assertThat(resolver.requested).isEmpty();
+  }
+
+  @Test
+  void resolvesNothingAgainstAClusterThatReportsNoReferences() {
+    // An orchestration cluster too old to report referenced secrets answers with an empty list,
+    // which is indistinguishable from an expression that used no secret. Either way nothing is
+    // resolved: the placeholder survives and the connector fails visibly.
+    resolver.holds("camunda.secrets.TOKEN", "tok-1");
+
+    Object result = processor.process("Bearer camunda.secrets.TOKEN", List.of());
+
+    assertThat(result).isEqualTo("Bearer camunda.secrets.TOKEN");
     assertThat(resolver.requested).isEmpty();
   }
 

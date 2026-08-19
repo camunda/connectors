@@ -251,16 +251,7 @@ class InboundSecretReferenceBindingTest {
             });
     when(resolveCommand.send()).thenReturn(resolveFuture);
     when(resolveFuture.join())
-        .thenAnswer(
-            invocation -> {
-              var r = new StubResolution(resolveRequests.getLast(), secretStore);
-              System.out.println(
-                  "DBG join() resolved="
-                      + r.getResolved().size()
-                      + " errors="
-                      + r.getErrors().size());
-              return r;
-            });
+        .thenAnswer(invocation -> new StubResolution(resolveRequests.getLast(), secretStore));
     return client;
   }
 
@@ -313,11 +304,6 @@ class InboundSecretReferenceBindingTest {
 
     @Override
     public List<SecretReference> getReferencedSecrets() {
-      System.out.println(
-          "DBG getReferencedSecrets for ["
-              + expression
-              + "] -> "
-              + referencedSecrets.get(expression));
       return referencedSecrets.getOrDefault(expression, List.of()).stream()
           .<SecretReference>map(StubSecretReference::new)
           .toList();
