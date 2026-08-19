@@ -88,15 +88,13 @@ public class AiAgentE2ETestIT {
   private static final String BPMN_RESOURCE = "ai-agent-e2e.bpmn";
   private static final String FORM_RESOURCE = "ai-agent-chat-user-feedback.form";
   private static final String PROCESS_ID = "ai-agent-e2e";
+  private static final String USER_FEEDBACK = "User_Feedback";
 
   private static final String DEFAULT_CONNECTORS_IMAGE =
       "registry.camunda.cloud/team-connectors/connectors-bundle";
 
   /** Vertex AI's non-regional endpoint, which is where the newest models land first. */
   private static final String GLOBAL_REGION = "global";
-
-  /** Served by both OpenAI API families, and cheaper on a tool-calling loop than the gpt-5 line. */
-  private static final String OPENAI_V2_MODEL = "gpt-4.1";
 
   private static final Duration USER_TASK_TIMEOUT = Duration.ofMinutes(3);
 
@@ -105,6 +103,59 @@ public class AiAgentE2ETestIT {
           + "knowledge and an optional set of available tools. If tools are provided, prefer them "
           + "instead of guessing an answer. Do not guess any tools which were not explicitly "
           + "configured.";
+
+  private static final String DATE_TIME_JOB_TYPE = "io.camunda.e2e:date-time:1";
+  private static final String LIST_USERS_JOB_TYPE = "io.camunda.e2e:list-users:1";
+  private static final String JOKE_JOB_TYPE = "io.camunda.e2e:joke:1";
+  private static final String ORDER_STATUS_JOB_TYPE = "io.camunda.e2e:order-status:1";
+
+  /**
+   * Fixture values a model cannot produce from its own knowledge, so an answer containing one can
+   * only have come from a tool result. A joke or a plausible user name would not do: those the
+   * model will happily supply itself, which is exactly how tool results that never arrived went
+   * unnoticed.
+   */
+  private static final String JOKE_NONCE = "Blorptastic-7";
+
+  private static final String HUMAN_ANSWER_NONCE = "Quibbleton-4";
+
+  private static final String JOKE =
+      "Why did the robot named "
+          + JOKE_NONCE
+          + " cross the road? To reticulate the splines on the other side.";
+
+  private static final String HUMAN_ANSWER =
+      "The current maintenance window code name is " + HUMAN_ANSWER_NONCE + ".";
+
+  private static final String ORDER_TRACKING_NUMBER = "1Z999AA10123456784";
+
+  private static final List<Map<String, Object>> KNOWN_USERS =
+      List.of(
+          Map.of("id", 1, "name", "Leanne Marchetti", "orderId", "ORD-1000"),
+          Map.of("id", 2, "name", "Ervin Quibbleton", "orderId", "ORD-1001"),
+          Map.of("id", 3, "name", "Clementine Vosk", "orderId", "ORD-1002"),
+          Map.of("id", 4, "name", "Patricia Bramblewood", "orderId", "ORD-1003"),
+          Map.of("id", 5, "name", "Chelsey Dunmoor", "orderId", "ORD-1004"));
+
+  private static final Map<String, Object> ORDER_STATUS =
+      Map.of(
+          "orderId", "ORD-1001",
+          "status", "shipped",
+          "trackingNumber", ORDER_TRACKING_NUMBER,
+          "estimatedDelivery", "2026-08-10");
+
+  /** A Saturday, so the weekday holds whether the model echoes it or derives it from the date. */
+  private static final ZonedDateTime FIXED_DATE_AND_TIME =
+      ZonedDateTime.parse("2026-03-14T15:09:26+01:00[Europe/Berlin]");
+
+  private static final String DAY_OF_WEEK =
+      FIXED_DATE_AND_TIME.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+
+  private static final Map<String, Object> DATE_AND_TIME =
+      Map.of(
+          "iso", FIXED_DATE_AND_TIME.toOffsetDateTime().toString(),
+          "dayOfWeek", DAY_OF_WEEK,
+          "timeZone", FIXED_DATE_AND_TIME.getZone().getId());
 
   @RegisterExtension
   static final CamundaProcessTestExtension EXTENSION =
@@ -299,7 +350,7 @@ public class AiAgentE2ETestIT {
   }
 
   // ---------------------------------------------------------------------------
-  // Provider rows
+  // Provider configurations
   // ---------------------------------------------------------------------------
 
   /**
@@ -317,8 +368,8 @@ public class AiAgentE2ETestIT {
             openAiV1("gpt-4o"),
             // OpenAI (v2) — both API families build different wire requests and unwrap tool calls
             // and tool results differently, so each needs to run the scenarios
-            openAiResponsesV2(OPENAI_V2_MODEL),
-            openAiCompletionsV2(OPENAI_V2_MODEL),
+            openAiResponsesV2("gpt-4.1"),
+            openAiCompletionsV2("gpt-4.1"),
             // Anthropic (v1)
             anthropicV1("claude-haiku-4-5-20251001"),
             // Anthropic (v2)
@@ -484,65 +535,6 @@ public class AiAgentE2ETestIT {
       return label;
     }
   }
-
-  // ---------------------------------------------------------------------------
-  // Tool fixtures
-  // ---------------------------------------------------------------------------
-
-  private static final String USER_FEEDBACK = "User_Feedback";
-
-  private static final String DATE_TIME_JOB_TYPE = "io.camunda.e2e:date-time:1";
-  private static final String LIST_USERS_JOB_TYPE = "io.camunda.e2e:list-users:1";
-  private static final String JOKE_JOB_TYPE = "io.camunda.e2e:joke:1";
-  private static final String ORDER_STATUS_JOB_TYPE = "io.camunda.e2e:order-status:1";
-
-  /**
-   * Fixture values a model cannot produce from its own knowledge, so an answer containing one can
-   * only have come from a tool result. A joke or a plausible user name would not do: those the
-   * model will happily supply itself, which is exactly how tool results that never arrived went
-   * unnoticed.
-   */
-  private static final String JOKE_NONCE = "Blorptastic-7";
-
-  private static final String HUMAN_ANSWER_NONCE = "Quibbleton-4";
-
-  private static final String JOKE =
-      "Why did the robot named "
-          + JOKE_NONCE
-          + " cross the road? To reticulate the splines on the other side.";
-
-  private static final String HUMAN_ANSWER =
-      "The current maintenance window code name is " + HUMAN_ANSWER_NONCE + ".";
-
-  private static final String ORDER_TRACKING_NUMBER = "1Z999AA10123456784";
-
-  private static final List<Map<String, Object>> KNOWN_USERS =
-      List.of(
-          Map.of("id", 1, "name", "Leanne Marchetti", "orderId", "ORD-1000"),
-          Map.of("id", 2, "name", "Ervin Quibbleton", "orderId", "ORD-1001"),
-          Map.of("id", 3, "name", "Clementine Vosk", "orderId", "ORD-1002"),
-          Map.of("id", 4, "name", "Patricia Bramblewood", "orderId", "ORD-1003"),
-          Map.of("id", 5, "name", "Chelsey Dunmoor", "orderId", "ORD-1004"));
-
-  private static final Map<String, Object> ORDER_STATUS =
-      Map.of(
-          "orderId", "ORD-1001",
-          "status", "shipped",
-          "trackingNumber", ORDER_TRACKING_NUMBER,
-          "estimatedDelivery", "2026-08-10");
-
-  /** A Saturday, so the weekday holds whether the model echoes it or derives it from the date. */
-  private static final ZonedDateTime FIXED_DATE_AND_TIME =
-      ZonedDateTime.parse("2026-03-14T15:09:26+01:00[Europe/Berlin]");
-
-  private static final String DAY_OF_WEEK =
-      FIXED_DATE_AND_TIME.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
-
-  private static final Map<String, Object> DATE_AND_TIME =
-      Map.of(
-          "iso", FIXED_DATE_AND_TIME.toOffsetDateTime().toString(),
-          "dayOfWeek", DAY_OF_WEEK,
-          "timeZone", FIXED_DATE_AND_TIME.getZone().getId());
 
   // ---------------------------------------------------------------------------
   // Helpers
