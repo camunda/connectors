@@ -15,32 +15,46 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi.ResponsesParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend.OpenAiApiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend.FoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Map;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith({SpringExtension.class, SystemStubsExtension.class})
 @Import(ValidationAutoConfiguration.class)
 class OpenAiChatModelConfigurationTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
 
   @Autowired private Validator validator;
+  @SystemStub private EnvironmentVariables environment;
+
+  @BeforeEach
+  void setUp() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, null);
+  }
 
   @Test
   void rejectsBlankModel() {
@@ -292,6 +306,167 @@ class OpenAiChatModelConfigurationTest {
       assertThat(mapper.writeValueAsString(entry.getKey()))
           .isEqualTo("\"" + entry.getValue() + "\"");
     }
+  }
+
+  @Test
+  void deserialisesFoundryBackendWithApiKeyAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "openai",
+          "openai": {
+            "api": { "type": "responses", "responses": {} },
+            "backend": {
+              "type": "foundry",
+              "foundry": {
+                "endpoint": "https://my-resource.openai.azure.com",
+                "authentication": { "type": "apiKey", "apiKey": "foundry-secret-123" }
+              }
+            },
+            "model": { "model": "gpt-5.5" }
+          }
+        }
+        """;
+
+    final OpenAiChatModelConfiguration parsed =
+        (OpenAiChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    assertThat(parsed.openai().backend()).isInstanceOf(OpenAiFoundryBackend.class);
+    final OpenAiFoundryBackend foundry = (OpenAiFoundryBackend) parsed.openai().backend();
+    assertThat(foundry.foundry().endpoint()).isEqualTo("https://my-resource.openai.azure.com");
+    assertThat(foundry.foundry().authentication())
+        .isEqualTo(new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-123"));
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesFoundryBackendWithClientCredentialsAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "openai",
+          "openai": {
+            "api": { "type": "responses", "responses": {} },
+            "backend": {
+              "type": "foundry",
+              "foundry": {
+                "endpoint": "https://my-resource.openai.azure.com",
+                "authentication": {
+                  "type": "clientCredentials",
+                  "clientId": "client-123",
+                  "clientSecret": "secret-123",
+                  "tenantId": "tenant-123"
+                }
+              }
+            },
+            "model": { "model": "gpt-5.5" }
+          }
+        }
+        """;
+
+    final OpenAiChatModelConfiguration parsed =
+        (OpenAiChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    final OpenAiFoundryBackend foundry = (OpenAiFoundryBackend) parsed.openai().backend();
+    assertThat(foundry.foundry().authentication())
+        .isEqualTo(
+            new FoundryAuthentication.ClientCredentialsAuthentication(
+                "client-123", "secret-123", "tenant-123", null));
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void foundryBackendRedactsSecretsInToString() {
+    final var backend =
+        new OpenAiFoundryBackend(
+            new FoundryBackend(
+                "https://my-resource.openai.azure.com",
+                null,
+                new FoundryAuthentication.ClientCredentialsAuthentication(
+                    "client-123", "secret-super-secret", "tenant-123", null),
+                Map.of("Authorization", "Bearer secret"),
+                Map.of("api-version", "2026-01-01"),
+                Map.of("large_field", "large_value")));
+
+    final String toString = backend.toString();
+    assertThat(toString)
+        .doesNotContain("secret-super-secret", "Bearer secret", "large_value")
+        .contains(
+            "clientSecret=[REDACTED]",
+            "headers={Authorization=[REDACTED]}",
+            "queryParameters={api-version=[REDACTED]}",
+            "bodyProperties={large_field=[REDACTED]}");
+  }
+
+  @Test
+  void requiredFoundryFieldsAreEnforced() {
+    final var config =
+        new OpenAiChatModelConfiguration(
+            new OpenAiConnection(
+                responsesApi(),
+                new OpenAiFoundryBackend(
+                    new FoundryBackend(
+                        "",
+                        null,
+                        new FoundryAuthentication.ApiKeyAuthentication("  "),
+                        null,
+                        null,
+                        null)),
+                new OpenAiModel("gpt-5.5"),
+                null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("openai.backend.foundry.endpoint");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("openai.backend.foundry.authentication.apiKey");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            });
+  }
+
+  @Test
+  void foundryManagedIdentityRejectedOnSaaS() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
+    final var config = foundryConfig(new FoundryAuthentication.ManagedIdentityAuthentication(null));
+
+    assertThat(validator.validate(config))
+        .extracting(ConstraintViolation::getMessage)
+        .contains("Managed identity authentication is not supported on SaaS");
+  }
+
+  @Test
+  void foundryManagedIdentityAllowedWhenNotSaaS() {
+    final var config = foundryConfig(new FoundryAuthentication.ManagedIdentityAuthentication(null));
+
+    assertThat(validator.validate(config)).isEmpty();
+  }
+
+  private static OpenAiChatModelConfiguration foundryConfig(FoundryAuthentication authentication) {
+    return new OpenAiChatModelConfiguration(
+        new OpenAiConnection(
+            responsesApi(),
+            new OpenAiFoundryBackend(
+                new FoundryBackend(
+                    "https://my-resource.openai.azure.com",
+                    null,
+                    authentication,
+                    null,
+                    null,
+                    null)),
+            new OpenAiModel("gpt-5.5"),
+            null));
   }
 
   @Test

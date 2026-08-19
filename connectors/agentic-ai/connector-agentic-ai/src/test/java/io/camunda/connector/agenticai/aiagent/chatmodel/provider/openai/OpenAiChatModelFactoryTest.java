@@ -27,13 +27,18 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi.CompletionsParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi.ResponsesParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend.OpenAiApiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend.FoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.OpenAiProperties.FoundryProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -69,7 +74,9 @@ class OpenAiChatModelFactoryTest {
             new OpenAiResponsesStrategy(
                 new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
                 new OpenAiResponsesResponseConverter(objectMapper),
-                OpenAiResponsesStreamAssembler.accumulating()));
+                OpenAiResponsesStreamAssembler.accumulating()),
+            new FoundryCredentialCache(
+                new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
   }
 
   @Test
@@ -94,7 +101,12 @@ class OpenAiChatModelFactoryTest {
 
   static Stream<OpenAiChatModelConfiguration> configs() {
     return Stream.of(
-        responsesApiConfig(MODEL_ID), customConfig(MODEL_ID), completionsApiConfig(MODEL_ID));
+        responsesApiConfig(MODEL_ID),
+        customConfig(MODEL_ID),
+        completionsApiConfig(MODEL_ID),
+        foundryApiKeyConfig(MODEL_ID),
+        foundryClientCredentialsConfig(MODEL_ID),
+        foundryManagedIdentityConfig(MODEL_ID));
   }
 
   private static OpenAiChatModelConfiguration responsesApiConfig(String modelId) {
@@ -128,6 +140,39 @@ class OpenAiChatModelFactoryTest {
                     null,
                     null,
                     new ApiKeyAuthentication("sk-custom-test"))),
+            new OpenAiModel(modelId),
+            null));
+  }
+
+  private static OpenAiChatModelConfiguration foundryApiKeyConfig(String modelId) {
+    return foundryConfig(
+        modelId, new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-test"));
+  }
+
+  private static OpenAiChatModelConfiguration foundryClientCredentialsConfig(String modelId) {
+    return foundryConfig(
+        modelId,
+        new FoundryAuthentication.ClientCredentialsAuthentication(
+            "client-test", "secret-test", "tenant-test", null));
+  }
+
+  private static OpenAiChatModelConfiguration foundryManagedIdentityConfig(String modelId) {
+    return foundryConfig(modelId, new FoundryAuthentication.ManagedIdentityAuthentication(null));
+  }
+
+  private static OpenAiChatModelConfiguration foundryConfig(
+      String modelId, FoundryAuthentication authentication) {
+    return new OpenAiChatModelConfiguration(
+        new OpenAiChatModelConfiguration.OpenAiConnection(
+            new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
+            new OpenAiFoundryBackend(
+                new FoundryBackend(
+                    "https://foundry-test.openai.azure.com",
+                    null,
+                    authentication,
+                    null,
+                    null,
+                    null)),
             new OpenAiModel(modelId),
             null));
   }

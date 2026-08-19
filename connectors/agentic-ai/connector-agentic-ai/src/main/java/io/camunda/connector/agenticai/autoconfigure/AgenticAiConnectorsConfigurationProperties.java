@@ -32,8 +32,19 @@ public record AgenticAiConnectorsConfigurationProperties(
     public record AgentInstanceProperties(@Valid @DefaultValue RetriesProperties retries) {}
   }
 
-  public record ChatModelProperties(@Valid @DefaultValue ApiProperties api) {
+  public record ChatModelProperties(
+      @Valid @DefaultValue ApiProperties api, @Valid @DefaultValue OpenAiProperties openai) {
     public record ApiProperties(@DefaultValue("PT3M") Duration defaultTimeout) {}
+
+    public record OpenAiProperties(@Valid @DefaultValue FoundryProperties foundry) {
+      public record FoundryProperties(
+          @Valid @DefaultValue CredentialCacheProperties credentialCache) {
+        public record CredentialCacheProperties(
+            @DefaultValue("true") boolean enabled,
+            @DefaultValue("100") @PositiveOrZero Long maximumSize,
+            @DefaultValue("PT10M") Duration expireAfterAccess) {}
+      }
+    }
   }
 
   public record HttpProperties(@Valid @DefaultValue ProxySupportProperties proxySupport) {

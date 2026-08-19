@@ -43,12 +43,16 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi.ResponsesParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend.OpenAiApiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend.FoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.OpenAiProperties.FoundryProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;
@@ -57,6 +61,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -163,6 +168,42 @@ class OpenAiChatModelFactoryClientTest {
                 null,
                 null,
                 wireMock.getHttpBaseUrl(),
+                Map.of("X-Custom-Header", "header-value"),
+                Map.of("custom-query-param", "query-value"),
+                null)));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/responses"))
+            .withHeader("X-Custom-Header", equalTo("header-value"))
+            .withQueryParam("custom-query-param", equalTo("query-value")));
+  }
+
+  @Test
+  void appliesApiKeyHeaderForFoundryBackend(WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new OpenAiFoundryBackend(
+            new FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                null,
+                null,
+                null)));
+
+    // Azure wants the API key on a dedicated `api-key` header, never `Authorization: Bearer`.
+    verify(
+        postRequestedFor(urlPathEqualTo("/responses"))
+            .withHeader("api-key", equalTo("foundry-secret-key")));
+  }
+
+  @Test
+  void foundryBackendAppliesHiddenHeadersAndQueryParameters(WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new OpenAiFoundryBackend(
+            new FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
                 Map.of("X-Custom-Header", "header-value"),
                 Map.of("custom-query-param", "query-value"),
                 null)));
@@ -311,7 +352,9 @@ class OpenAiChatModelFactoryClientTest {
             new OpenAiResponsesStrategy(
                 new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
                 new OpenAiResponsesResponseConverter(objectMapper),
-                OpenAiResponsesStreamAssembler.accumulating()));
+                OpenAiResponsesStreamAssembler.accumulating()),
+            new FoundryCredentialCache(
+                new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
     final var configuration =
         new OpenAiChatModelConfiguration(
             new OpenAiChatModelConfiguration.OpenAiConnection(
