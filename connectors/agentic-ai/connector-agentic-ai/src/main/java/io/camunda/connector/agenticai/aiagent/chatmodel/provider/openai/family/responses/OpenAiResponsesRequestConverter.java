@@ -35,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
@@ -51,6 +52,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -194,7 +196,8 @@ public class OpenAiResponsesRequestConverter {
    *
    * <p>Plain content is replayed via {@link EasyInputMessage} rather than the structured {@link
    * ResponseOutputMessage} shape, which requires a {@code msg_*}-namespaced {@code id} that {@link
-   * AssistantMessage#messageId()} isn't guaranteed to carry.
+   * AssistantMessage#messageId()} isn't guaranteed to carry. See {@link
+   * #assistantContentInputItem(List)} for the content shape used for the assistant role.
    */
   private List<ResponseInputItem> assistantInputItems(AssistantMessage assistant) {
     final List<ResponseInputItem> items = new ArrayList<>();
@@ -217,14 +220,7 @@ public class OpenAiResponsesRequestConverter {
       }
     }
     if (!plainContent.isEmpty()) {
-      items.add(
-          ResponseInputItem.ofEasyInputMessage(
-              EasyInputMessage.builder()
-                  .role(EasyInputMessage.Role.ASSISTANT)
-                  .content(
-                      EasyInputMessage.Content.ofResponseInputMessageContentList(
-                          contentConverter.toResponsesContentParts(plainContent)))
-                  .build()));
+      items.add(assistantContentInputItem(plainContent));
     }
     for (final ToolCall toolCall : assistant.toolCalls()) {
       items.add(
@@ -236,6 +232,48 @@ public class OpenAiResponsesRequestConverter {
                   .build()));
     }
     return items;
+  }
+
+  /**
+   * Builds the assistant-role input item for plain (text/document/object) content. The Responses
+   * API accepts only {@code output_text}/{@code refusal} content parts for the assistant role, so
+   * the part-list shape used for user messages (built from {@link
+   * OpenAiContentConverter#toResponsesContentParts}, whose parts are all {@code input_text}/{@code
+   * input_image}/{@code input_file}) is rejected here. {@link EasyInputMessage.Content#ofTextInput}
+   * serializes as a bare JSON string instead, which the API does accept for this role, so text
+   * content is joined into one string that way.
+   *
+   * <p>The domain only ever puts {@link TextContent} into an assistant message's plain content --
+   * LLM responses are translated to text/reasoning/tool-call content, never document or object
+   * content. If a non-text part does appear, this falls back to the part-list shape rather than
+   * inventing handling for a case the domain does not produce; that fallback is rejected by the API
+   * for the same reason plain text was, and stays that way until the domain actually produces it.
+   *
+   * <p>Multiple {@link TextContent} blocks are joined into the single string rather than replayed
+   * as separate {@code output_text} parts: {@link EasyInputMessage.Content} has no such array-of-
+   * output_text variant for the assistant role -- only the bare-string shape used here and the
+   * part-list shape of {@code input_text}/{@code input_image}/{@code input_file} parts, both
+   * rejected above. An array of {@code output_text}/{@code refusal} parts requires the {@link
+   * ResponseOutputMessage} shape this method deliberately avoids (see {@link
+   * #assistantInputItems}).
+   *
+   * <p>Refusals need no handling here: {@code OpenAiResponsesResponseConverter} has no domain
+   * content type for them and never turns one into {@link AssistantMessage} content -- a refusal
+   * response is surfaced as a thrown {@code ContentFilteredException} instead, so it never reaches
+   * conversation history to be replayed.
+   */
+  private ResponseInputItem assistantContentInputItem(List<Content> plainContent) {
+    final boolean textOnly = plainContent.stream().allMatch(TextContent.class::isInstance);
+    final EasyInputMessage.Content content =
+        textOnly
+            ? EasyInputMessage.Content.ofTextInput(
+                plainContent.stream()
+                    .map(c -> ((TextContent) c).text())
+                    .collect(Collectors.joining("\n")))
+            : EasyInputMessage.Content.ofResponseInputMessageContentList(
+                contentConverter.toResponsesContentParts(plainContent));
+    return ResponseInputItem.ofEasyInputMessage(
+        EasyInputMessage.builder().role(EasyInputMessage.Role.ASSISTANT).content(content).build());
   }
 
   /**

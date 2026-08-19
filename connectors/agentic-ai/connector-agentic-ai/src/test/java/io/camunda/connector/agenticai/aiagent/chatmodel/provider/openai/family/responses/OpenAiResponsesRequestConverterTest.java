@@ -19,6 +19,7 @@ import com.openai.models.ReasoningEffort;
 import com.openai.models.responses.EasyInputMessage;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseIncludable;
+import com.openai.models.responses.ResponseInputContent;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -266,7 +267,11 @@ class OpenAiResponsesRequestConverterTest {
   }
 
   @Test
-  void replaysAssistantTextContentAsAssistantMessageInputItem() {
+  void replaysAssistantTextContentAsBareAssistantMessageString() {
+    // Responses rejects input_text/input_image/input_file content parts for the assistant role
+    // (only output_text/refusal are valid there) - see
+    // OpenAiResponsesRequestConverter#assistantContentInputItem. Assistant text is therefore
+    // replayed as a bare string, not a content-part list.
     final var snapshot =
         new ConversationSnapshot(
             List.of(
@@ -283,10 +288,35 @@ class OpenAiResponsesRequestConverterTest {
 
     final var easy = items.get(0).easyInputMessage().orElseThrow();
     assertThat(easy.role()).isEqualTo(EasyInputMessage.Role.ASSISTANT);
+    assertThat(easy.content().textInput()).contains("here's the answer");
+    assertThat(easy.content().responseInputMessageContentList()).isEmpty();
+  }
 
-    final var parts = easy.content().asResponseInputMessageContentList();
-    assertThat(parts).hasSize(1);
-    assertThat(parts.get(0).inputText().orElseThrow().text()).isEqualTo("here's the answer");
+  @Test
+  void neverEmitsAnInputTextContentPartForAnAssistantMessage() {
+    // Regression test for the 400 the real Responses API returns for an assistant-role input_text
+    // part ("Invalid value: 'input_text'. Supported values are: 'output_text' and 'refusal'.") -
+    // this must fail if assistant content is ever emitted as a content-part list again.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(List.of(TextContent.textContent("here's the answer")))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    final var items = params.input().orElseThrow().asResponse();
+    final boolean anyAssistantInputTextPart =
+        items.stream()
+            .flatMap(item -> item.easyInputMessage().stream())
+            .filter(easy -> easy.role() == EasyInputMessage.Role.ASSISTANT)
+            .flatMap(easy -> easy.content().responseInputMessageContentList().stream())
+            .flatMap(List::stream)
+            .anyMatch(ResponseInputContent::isInputText);
+
+    assertThat(anyAssistantInputTextPart).isFalse();
   }
 
   @Test
