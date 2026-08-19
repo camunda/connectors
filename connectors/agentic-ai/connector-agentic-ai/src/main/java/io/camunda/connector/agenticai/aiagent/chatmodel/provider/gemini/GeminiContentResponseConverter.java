@@ -57,8 +57,9 @@ import org.springframework.util.StringUtils;
  * <ul>
  *   <li><b>No tool-use finish reason.</b> Gemini reports {@code STOP} even when the candidate
  *       contains {@code functionCall} parts, so the mapped stop reason is overridden with {@link
- *       StopReason#TOOL_USE} whenever the response produced tool calls. The raw vendor value is
- *       preserved unchanged under the {@code google-gemini} metadata key regardless.
+ *       StopReason#TOOL_USE} when the response produced tool calls and was not filtered (see {@link
+ *       #mapStopReason}). The raw vendor value is preserved unchanged under the {@code
+ *       google-gemini} metadata key regardless.
  *   <li><b>A blocked prompt has no candidate.</b> The response carries only {@code promptFeedback};
  *       the block reason is preserved as content and under {@code blockReason} metadata so {@link
  *       #toResult} has a well-formed message to throw {@link ContentFilteredException} with.

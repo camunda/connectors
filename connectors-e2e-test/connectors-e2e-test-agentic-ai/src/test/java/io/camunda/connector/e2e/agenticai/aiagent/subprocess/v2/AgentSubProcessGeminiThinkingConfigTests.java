@@ -28,8 +28,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Native-Gemini e2e coverage for the extended-thinking configuration surface: proves the element
- * template's two thinking fields reach the wire in the right place and shape, through the real
- * vendor SDK's {@code GenerateContentConfig} builder.
+ * template's {@code enabled}/{@code thinkingBudget}/{@code thinkingLevel} fields reach the wire in
+ * the right place and shape, through the real vendor SDK's {@code GenerateContentConfig} builder.
  *
  * <p>{@code thinkingBudget} (Gemini 2.5) and {@code thinkingLevel} (Gemini 3.x) are <b>mutually
  * exclusive</b>: {@code GeminiThinking#isBothThinkingBudgetAndLevelSet()} carries an

@@ -170,10 +170,12 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
         @Valid @Nullable GeminiThinking thinking) {}
 
     /**
-     * Gemini extended-thinking configuration for a single model. Gemini 2.5 models use {@code
-     * thinkingBudget}; Gemini 3.x models use {@code thinkingLevel}. Setting both is a hard API
-     * error on 3.x models &mdash; this is validated below ({@link
-     * #isBothThinkingBudgetAndLevelSet()}), not auto-resolved.
+     * Gemini extended-thinking configuration for a single model, applied only when {@code enabled}.
+     * Gemini 2.5 models use {@code thinkingBudget}; Gemini 3.x models use an explicit {@code
+     * thinkingLevel} (unset defaults to {@code MODEL_DEFAULT}, letting the model choose its own
+     * reasoning depth). Setting a budget alongside an explicit level is a hard API error on 3.x
+     * models &mdash; this is validated below ({@link #isBothThinkingBudgetAndLevelSet()}), not
+     * auto-resolved.
      */
     public record GeminiThinking(
         @TemplateProperty(

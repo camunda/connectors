@@ -91,6 +91,8 @@ public class GeminiChatModel implements ChatModel {
       final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
       return responseConverter.toResult(response, executionTime);
     } catch (ChatModelRejectedException e) {
+      // Rethrown unwrapped so the catch-all below does not flatten it into a generic
+      // ConnectorException.
       throw e;
     } catch (ApiException e) {
       final String status =

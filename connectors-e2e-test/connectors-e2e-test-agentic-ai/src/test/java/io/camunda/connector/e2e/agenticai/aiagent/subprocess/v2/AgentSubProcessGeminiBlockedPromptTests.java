@@ -102,8 +102,8 @@ class AgentSubProcessGeminiBlockedPromptTests extends BaseGeminiNativeSubProcess
     // finish reason is what has to map to CONTENT_FILTERED. Reaching this at all also exercises why
     // the converter reads candidates()[0].content().parts() directly instead of the SDK's
     // text()/parts() convenience accessors - those call checkFinishReason() internally and throw
-    // for
-    // every finish reason outside {UNSPECIFIED, STOP, MAX_TOKENS}, i.e. for exactly this response.
+    // for every finish reason outside {UNSPECIFIED, STOP, MAX_TOKENS}, i.e. for exactly this
+    // response.
     StreamingGeminiChatModelStubs.stubTurns(
         GeminiTurnStub.of(
             GeminiResponseChunks.chunk()
