@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.
 
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.JsonValue;
 import com.openai.core.ObjectMappers;
@@ -233,7 +232,7 @@ public class OpenAiResponsesRequestConverter {
               ResponseFunctionToolCall.builder()
                   .callId(toolCall.id())
                   .name(toolCall.name())
-                  .arguments(writeAsJson(toolCall.arguments()))
+                  .arguments(contentConverter.writeAsJson(toolCall.arguments()))
                   .build()));
     }
     return items;
@@ -329,13 +328,5 @@ public class OpenAiResponsesRequestConverter {
     customizations
         .bodyProperties()
         .forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));
-  }
-
-  private String writeAsJson(Object value) {
-    try {
-      return objectMapper.writeValueAsString(value);
-    } catch (JsonProcessingException e) {
-      throw new IllegalStateException("Failed to serialize content to JSON", e);
-    }
   }
 }

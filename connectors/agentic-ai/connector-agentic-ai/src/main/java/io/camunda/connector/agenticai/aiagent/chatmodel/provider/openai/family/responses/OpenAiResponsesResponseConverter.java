@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -59,7 +60,6 @@ import org.springframework.util.StringUtils;
  */
 public class OpenAiResponsesResponseConverter {
 
-  private static final String OPENAI_PROVIDER = "openai";
   private static final String METADATA_RESPONSE_ID = "responseId";
   private static final String METADATA_STOP_REASON = "stopReason";
 
@@ -148,7 +148,7 @@ public class OpenAiResponsesResponseConverter {
         // original order as ProviderContent rather than silently dropping it; it is never a
         // client tool call (the caller is never expected to act on it), so it is kept out of
         // toolCalls.
-        content.add(ProviderContent.providerContent(OPENAI_PROVIDER, toRawMap(item)));
+        content.add(ProviderContent.providerContent(OPENAI_ID, toRawMap(item)));
       }
     }
 
@@ -201,7 +201,7 @@ public class OpenAiResponsesResponseConverter {
         .map(Response.IncompleteDetails.Reason::asString)
         .or(() -> response.status().map(ResponseStatus::asString))
         .ifPresent(sr -> metadata.put(METADATA_STOP_REASON, sr));
-    return Map.of(OPENAI_PROVIDER, Map.copyOf(metadata));
+    return Map.of(OPENAI_ID, Map.copyOf(metadata));
   }
 
   /**
@@ -252,12 +252,12 @@ public class OpenAiResponsesResponseConverter {
     final Optional<ResponseReasoningItem> reasoning = item.reasoning();
     final String text = reasoning.map(this::summaryText).orElse(null);
     if (text == null) {
-      return ReasoningContent.reasoningContent(OPENAI_PROVIDER, raw);
+      return ReasoningContent.reasoningContent(OPENAI_ID, raw);
     }
     if (reasoning.filter(this::canReconstructSummaryFromText).isPresent()) {
       raw.remove("summary");
     }
-    return new ReasoningContent(OPENAI_PROVIDER, raw, text, Map.of());
+    return new ReasoningContent(OPENAI_ID, raw, text, Map.of());
   }
 
   private @Nullable String summaryText(ResponseReasoningItem reasoning) {
