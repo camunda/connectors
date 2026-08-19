@@ -230,6 +230,134 @@ class GeminiChatModelFactoryTest {
     model.close();
   }
 
+  @Test
+  void createBuildsVertexAiClientWithApplicationDefaultCredentials() {
+    noProxyConfigured();
+
+    final var clientBuilder =
+        createVertexAiChatModel(
+            vertexConfig(null, new ApplicationDefaultCredentialsAuthentication()));
+
+    verify(clientBuilder).vertexAI(true);
+    verify(clientBuilder).project(PROJECT_ID);
+    verify(clientBuilder).location(REGION);
+    verify(clientBuilder, never()).credentials(any());
+
+    // no endpoint override configured: the base URL is left for the SDK to derive itself at
+    // build time (its own per-region formula, e.g. for "us"/"eu" multi-region hosts, is not
+    // byte-identical to AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl, which is why that
+    // function is never used to pin the base URL here)
+    verify(clientBuilder).httpOptions(httpOptionsCaptor.capture());
+    assertThat(httpOptionsCaptor.getValue().baseUrl()).isEmpty();
+
+    // .. and with no endpoint override configured, the proxy scheme falls back to the default
+    // https scheme
+    verify(httpProxySupport).okHttpProxy(ProxyConfiguration.SCHEME_HTTPS);
+  }
+
+  /**
+   * Service account credentials must be scoped explicitly. google-genai only scopes the application
+   * default credentials it resolves itself and passes user-supplied credentials through verbatim,
+   * so an unscoped credential would make the token request fail with {@code invalid_scope}.
+   */
+  @Test
+  void createBuildsVertexAiClientWithServiceAccountCredentials() {
+    noProxyConfigured();
+
+    try (MockedStatic<ServiceAccountCredentials> sacMock =
+        mockStatic(ServiceAccountCredentials.class)) {
+      final var mockedSac = mock(ServiceAccountCredentials.class);
+      final var scopedSac = mock(GoogleCredentials.class);
+      when(mockedSac.createScoped("https://www.googleapis.com/auth/cloud-platform"))
+          .thenReturn(scopedSac);
+      sacMock.when(() -> ServiceAccountCredentials.fromStream(any())).thenReturn(mockedSac);
+
+      final var clientBuilder =
+          createVertexAiChatModel(
+              vertexConfig(null, new ServiceAccountCredentialsAuthentication("{}")));
+
+      verify(clientBuilder).credentials(scopedSac);
+    }
+  }
+
+  @Test
+  void createAppliesVertexAiEndpointOverride() {
+    noProxyConfigured();
+    final String endpoint = "http://localhost:8888";
+
+    final var clientBuilder =
+        createVertexAiChatModel(
+            vertexConfig(endpoint, new ApplicationDefaultCredentialsAuthentication()));
+
+    verify(clientBuilder).httpOptions(httpOptionsCaptor.capture());
+    assertThat(httpOptionsCaptor.getValue().baseUrl()).contains(endpoint);
+
+    verify(httpProxySupport).okHttpProxy(ProxyConfiguration.SCHEME_HTTP);
+  }
+
+  @Test
+  void createWiresProxyOptionsForVertexAiBackendWhenProxyConfigured() {
+    when(httpProxySupport.okHttpProxy(any()))
+        .thenReturn(Optional.of(proxyOf("proxy.example.com", 8080, "proxy-user", "proxy-pass")));
+
+    final var clientBuilder =
+        createVertexAiChatModel(
+            vertexConfig(null, new ApplicationDefaultCredentialsAuthentication()));
+
+    // applied directly to the custom OkHttp client, not via ClientOptions.proxyOptions() - see
+    // GeminiChatModelFactory#buildClient's javadoc on CONNECT_TIMEOUT
+    verify(clientBuilder).clientOptions(clientOptionsCaptor.capture());
+    final var customHttpClient = clientOptionsCaptor.getValue().customHttpClient();
+    assertThat(customHttpClient).isPresent();
+    final var proxyAddress = (InetSocketAddress) customHttpClient.get().proxy().address();
+    assertThat(proxyAddress.getHostString()).isEqualTo("proxy.example.com");
+    assertThat(proxyAddress.getPort()).isEqualTo(8080);
+    assertThat(customHttpClient.get().proxyAuthenticator()).isNotEqualTo(Authenticator.NONE);
+
+    verify(httpProxySupport).okHttpProxy(ProxyConfiguration.SCHEME_HTTPS);
+  }
+
+  @Test
+  void createThrowsConnectorInputExceptionWhenVertexAiClientBuildFails() {
+    noProxyConfigured();
+
+    final var clientBuilder = spy(Client.builder());
+    doAnswer(
+            invocation -> {
+              throw new IllegalArgumentException("boom");
+            })
+        .when(clientBuilder)
+        .build();
+
+    try (MockedStatic<Client> clientMock = mockStatic(Client.class, Answers.CALLS_REAL_METHODS)) {
+      clientMock.when(Client::builder).thenReturn(clientBuilder);
+
+      assertThatThrownBy(
+              () ->
+                  factory.create(
+                      vertexConfig(null, new ApplicationDefaultCredentialsAuthentication())))
+          .isInstanceOf(ConnectorInputException.class)
+          .hasMessageContaining("Failed to create Google GenAI client");
+    }
+  }
+
+  @Test
+  void createThrowsConnectorInputExceptionWhenServiceAccountCredentialsAreInvalid() {
+    try (MockedStatic<ServiceAccountCredentials> sacMock =
+        mockStatic(ServiceAccountCredentials.class)) {
+      sacMock
+          .when(() -> ServiceAccountCredentials.fromStream(any()))
+          .thenThrow(new IOException("bad key"));
+
+      assertThatThrownBy(
+              () ->
+                  factory.create(
+                      vertexConfig(null, new ServiceAccountCredentialsAuthentication("{}"))))
+          .isInstanceOf(ConnectorInputException.class)
+          .hasMessageContaining("Authentication failed for provided service account credentials");
+    }
+  }
+
   private void noProxyConfigured() {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
   }
