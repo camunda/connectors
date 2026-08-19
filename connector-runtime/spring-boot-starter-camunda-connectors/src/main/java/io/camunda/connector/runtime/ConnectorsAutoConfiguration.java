@@ -41,15 +41,18 @@ import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.secret.CentralStoreSecretProvider;
 import io.camunda.connector.runtime.core.secret.LegacySecretMode;
 import io.camunda.connector.runtime.core.secret.LegacySecretsDisabledProvider;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
+import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
 import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import io.camunda.connector.runtime.secret.console.JwtCredential;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import jakarta.validation.ConstraintValidatorFactory;
 import jakarta.validation.Validation;
@@ -58,6 +61,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
 import org.slf4j.Logger;
@@ -170,7 +174,9 @@ public class ConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public SecretProviderAggregator springSecretProviderAggregator(
       Optional<List<SecretProvider>> secretProviderBeans,
-      @Value("${" + LegacySecretsDisabledProvider.PROPERTY + ":ON}") LegacySecretMode legacyMode) {
+      @Value("${" + LegacySecretsDisabledProvider.PROPERTY + ":ON}") LegacySecretMode legacyMode,
+      @Autowired(required = false) CamundaClientRegistry registry,
+      @Autowired(required = false) CamundaClient legacyCamundaClient) {
     if (legacyMode == LegacySecretMode.OFF) {
       LOG.info(
           "Legacy secret resolution is disabled ({}={}); {{secrets.X}} and secrets.X will not"
@@ -186,7 +192,31 @@ public class ConnectorsAutoConfiguration {
       LOG.debug("Using secret providers discovered by lookup: {}", discoveredSecretProviders);
       secretProviders.addAll(discoveredSecretProviders);
     }
+    if (legacyMode == LegacySecretMode.FALLBACK) {
+      // Last in the chain: a name a configured provider holds still comes from there, so moving
+      // values into the central store one at a time works without touching any diagram.
+      LOG.info(
+          "Legacy secret names not held by any configured provider will be read from the cluster's"
+              + " secret stores ({}={})",
+          LegacySecretsDisabledProvider.PROPERTY,
+          LegacySecretMode.FALLBACK);
+      secretProviders.add(
+          new CentralStoreSecretProvider(
+              secretReferenceResolversByPhysicalTenantId(registry, legacyCamundaClient)));
+    }
     return new SecretProviderAggregator(secretProviders);
+  }
+
+  private static Map<String, SecretReferenceResolver> secretReferenceResolversByPhysicalTenantId(
+      CamundaClientRegistry registry, CamundaClient legacyCamundaClient) {
+    return PhysicalTenantClients.clientNames(registry, legacyCamundaClient).stream()
+        .collect(
+            PhysicalTenantClients.toMapByPhysicalTenantId(
+                registry,
+                legacyCamundaClient,
+                name ->
+                    new SecretReferenceResolver(
+                        PhysicalTenantClients.resolveClient(registry, name, legacyCamundaClient))));
   }
 
   /**

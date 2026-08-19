@@ -29,5 +29,17 @@ public enum LegacySecretMode {
   OFF,
 
   /** Legacy references are resolved from the secret providers configured in the runtime. */
-  ON
+  ON,
+
+  /**
+   * Legacy references are resolved from the configured secret providers, and a name none of them
+   * holds is looked up in the orchestration cluster's secret stores as {@code
+   * camunda.secrets.<name>}.
+   *
+   * <p>This is the migration path: move values to the central store, drop the local provider, and
+   * existing diagrams keep resolving. It has to be chosen explicitly — it is never inferred from
+   * "no provider is configured", because a provider reading the environment is registered by
+   * default and so that is never actually the case.
+   */
+  FALLBACK
 }
