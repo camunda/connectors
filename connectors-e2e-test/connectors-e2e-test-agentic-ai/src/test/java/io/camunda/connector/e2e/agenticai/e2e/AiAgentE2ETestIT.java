@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.e2e;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.process.test.api.CamundaAssert.assertThatProcessInstance;
 import static io.camunda.process.test.api.CamundaAssert.setAssertionTimeout;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -62,7 +63,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  * cd apps/bundle/default-bundle && docker build -t camunda/connectors-bundle:local .
  *
  * export CONNECTORS_IMAGE_NAME=camunda/connectors-bundle CONNECTORS_IMAGE_VERSION=local
- * export OPENAI_API_KEY=...                  # the OpenAI row
+ * export OPENAI_API_KEY=...                  # the OpenAI rows
  * export GOOGLE_VERTEX_AI_PROJECT_ID=... GOOGLE_VERTEX_AI_REGION=... \
  *        GOOGLE_VERTEX_AI_SERVICE_ACCOUNT="$(cat sa-key.json)"   # the Vertex AI rows
  *
@@ -88,6 +89,9 @@ public class AiAgentE2ETestIT {
 
   /** Vertex AI's non-regional endpoint, which is where the newest models land first. */
   private static final String GLOBAL_REGION = "global";
+
+  /** Served by both OpenAI API families, and cheaper on a tool-calling loop than the gpt-5 line. */
+  private static final String OPENAI_V2_MODEL = "gpt-4.1";
 
   private static final Duration USER_TASK_TIMEOUT = Duration.ofMinutes(3);
 
@@ -303,6 +307,10 @@ public class AiAgentE2ETestIT {
   static Stream<ProviderRow> providers() {
     return Stream.of(
             openAiV1("gpt-4o"),
+            // both API families of the v2 provider: they build different wire requests and unwrap
+            // tool calls and tool results differently, so each needs to run the scenarios
+            openAiV2("responses", OPENAI_V2_MODEL),
+            openAiV2("completions", OPENAI_V2_MODEL),
             googleVertexAiV1("gemini-2.5-flash"),
             // Gemini 3 models are served on the global endpoint, not the regional ones
             googleVertexAiV1("gemini-3.5-flash-lite", GLOBAL_REGION))
@@ -318,6 +326,23 @@ public class AiAgentE2ETestIT {
         Map.of(
             "provider.type", "openai",
             "provider.openai.authentication.apiKey", "{{secrets.OPENAI_API_KEY}}",
+            "provider.openai.model.model", model));
+  }
+
+  /**
+   * OpenAI, v2, on the {@code openai-api} backend, for the given API family ({@code responses} or
+   * {@code completions}).
+   */
+  static ProviderRow openAiV2(String apiFamily, String model) {
+    return new ProviderRow(
+        "openai-v2/" + apiFamily + "/" + model,
+        List.of("OPENAI_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type", "openai",
+            "provider.openai.backend.type", "openai-api",
+            "provider.openai.backend.openai.apiKey", "{{secrets.OPENAI_API_KEY}}",
+            "provider.openai.api.type", apiFamily,
             "provider.openai.model.model", model));
   }
 
