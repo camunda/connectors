@@ -25,6 +25,8 @@ import static org.awaitility.Awaitility.await;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.client.api.search.enums.IncidentState;
+import io.camunda.client.api.search.enums.ProcessInstanceState;
 import io.camunda.client.api.search.enums.UserTaskState;
 import io.camunda.client.api.search.response.UserTask;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -42,6 +44,7 @@ import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
@@ -171,7 +174,7 @@ public class AiAgentE2ETestIT {
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
-    assertThatProcessInstance(processInstance).isCompleted().hasNoActiveIncidents();
+    awaitCompletion(processInstance);
     assertThatProcessInstance(processInstance).hasCompletedElement("ListUsers", 1);
 
     // one call to request the tool, one to answer from its result
@@ -193,7 +196,7 @@ public class AiAgentE2ETestIT {
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
-    assertThatProcessInstance(processInstance).isCompleted().hasNoActiveIncidents();
+    awaitCompletion(processInstance);
     assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
     assertThatProcessInstance(processInstance).hasCompletedElement("GetJoke", 1);
 
@@ -220,7 +223,7 @@ public class AiAgentE2ETestIT {
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
-    assertThatProcessInstance(processInstance).isCompleted().hasNoActiveIncidents();
+    awaitCompletion(processInstance);
     assertThatProcessInstance(processInstance).hasCompletedElement("ListUsers", 1);
     assertThatProcessInstance(processInstance).hasCompletedElement("GetOrderStatus", 1);
 
@@ -253,7 +256,7 @@ public class AiAgentE2ETestIT {
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
-    assertThatProcessInstance(processInstance).isCompleted().hasNoActiveIncidents();
+    awaitCompletion(processInstance);
     assertThatProcessInstance(processInstance).hasCompletedElement("AskHuman", 1);
 
     // one call to ask the human, one to answer once they replied
@@ -283,7 +286,7 @@ public class AiAgentE2ETestIT {
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
-    assertThatProcessInstance(processInstance).isCompleted().hasNoActiveIncidents();
+    awaitCompletion(processInstance);
     assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
 
     // two calls for the first round, at least one more after re-entering with the follow-up
@@ -527,6 +530,58 @@ public class AiAgentE2ETestIT {
     } catch (Exception e) {
       throw new RuntimeException("Failed to build BPMN model for " + provider.id(), e);
     }
+  }
+
+  /**
+   * Waits for the process instance to complete, failing as soon as an incident is raised instead of
+   * polling on for the rest of the assertion timeout. A failed agent job — a rejected provider
+   * request, say — leaves the instance sitting in an incident forever, and a plain {@code
+   * isCompleted()} would only report a timeout once the full {@link #USER_TASK_TIMEOUT} has
+   * elapsed, hiding the message that says what actually broke.
+   */
+  private void awaitCompletion(ProcessInstanceEvent instance) {
+    var incidents =
+        await()
+            .alias("completion of process instance " + instance.getProcessInstanceKey())
+            .atMost(USER_TASK_TIMEOUT)
+            .pollInterval(Duration.ofSeconds(1))
+            .until(() -> completionOutcome(instance), Optional::isPresent)
+            .orElseThrow();
+
+    assertThat(incidents).as("active incidents").isEmpty();
+  }
+
+  /**
+   * The instance's terminal outcome, or {@link Optional#empty()} while it is still running: an
+   * empty list once it has completed, the active incidents' messages if any were raised.
+   */
+  private Optional<List<String>> completionOutcome(ProcessInstanceEvent instance) {
+    var incidents =
+        camundaClient
+            .newIncidentSearchRequest()
+            .filter(
+                f ->
+                    f.processInstanceKey(instance.getProcessInstanceKey())
+                        .state(IncidentState.ACTIVE))
+            .send()
+            .join()
+            .items();
+    if (!incidents.isEmpty()) {
+      return Optional.of(
+          incidents.stream().map(i -> i.getElementId() + ": " + i.getErrorMessage()).toList());
+    }
+
+    var completed =
+        camundaClient
+            .newProcessInstanceSearchRequest()
+            .filter(
+                f ->
+                    f.processInstanceKey(instance.getProcessInstanceKey())
+                        .state(ProcessInstanceState.COMPLETED))
+            .send()
+            .join()
+            .items();
+    return completed.isEmpty() ? Optional.empty() : Optional.of(List.of());
   }
 
   /** Reads the agent response and asserts the number of model calls it took to produce it. */
