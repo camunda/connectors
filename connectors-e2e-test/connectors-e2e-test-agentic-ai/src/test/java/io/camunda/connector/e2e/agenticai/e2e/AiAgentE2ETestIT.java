@@ -39,8 +39,10 @@ import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.condition.EnabledIf;
@@ -163,6 +165,14 @@ public class AiAgentE2ETestIT {
   /** Reassign before starting an instance to run a scenario against a different point in time. */
   private ZonedDateTime dateAndTime;
 
+  /**
+   * Tool elements the mock had no case for, asserted empty after every scenario. Completing such a
+   * job with no {@code toolCallResult} would leave the model with an empty tool result, which it
+   * covers by improvising — indistinguishable, from the response text alone, from a result that was
+   * delivered and ignored.
+   */
+  private final List<String> unmockedToolElements = new CopyOnWriteArrayList<>();
+
   @BeforeAll
   static void setUp() {
     setAssertionTimeout(USER_TASK_TIMEOUT);
@@ -171,6 +181,7 @@ public class AiAgentE2ETestIT {
   @BeforeEach
   void mockTools() {
     dateAndTime = DEFAULT_DATE_AND_TIME;
+    unmockedToolElements.clear();
 
     // GetDateAndTime runs on a job type no connector in the bundle implements, so the job is ours
     // by construction and the tool result is fixed rather than the real wall clock.
@@ -197,14 +208,18 @@ public class AiAgentE2ETestIT {
                     case "ListUsers" -> knownUsers();
                     case "Jokes_API" -> JOKE;
                     case "GetOrderStatus" -> orderStatus();
-                    default -> null;
+                    default -> {
+                      unmockedToolElements.add(job.getElementId());
+                      yield "NO MOCK CONFIGURED FOR TOOL ELEMENT " + job.getElementId();
+                    }
                   };
-              var cmd = jobClient.newCompleteCommand(job);
-              if (result != null) {
-                cmd = cmd.variable("toolCallResult", result);
-              }
-              cmd.send().join();
+              jobClient.newCompleteCommand(job).variable("toolCallResult", result).send().join();
             });
+  }
+
+  @AfterEach
+  void allToolCallsWereMocked() {
+    assertThat(unmockedToolElements).as("tool elements without a configured mock").isEmpty();
   }
 
   // ---------------------------------------------------------------------------
