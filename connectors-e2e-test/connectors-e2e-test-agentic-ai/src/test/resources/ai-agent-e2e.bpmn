@@ -73,7 +73,7 @@
           <zeebe:ioMapping>
             <zeebe:input source="noAuth" target="authentication.type" />
             <zeebe:input source="GET" target="method" />
-            <zeebe:input source="https://jsonplaceholder.typicode.com/users" target="url" />
+            <zeebe:input source="https://tools.test.invalid/users" target="url" />
             <zeebe:input source="=false" target="storeResponse" />
             <zeebe:input source="20" target="connectionTimeoutInSeconds" />
             <zeebe:input source="20" target="readTimeoutInSeconds" />
@@ -96,8 +96,7 @@
           <zeebe:ioMapping>
             <zeebe:input source="noAuth" target="authentication.type" />
             <zeebe:input source="GET" target="method" />
-            <zeebe:input source="https://v2.jokeapi.dev/joke/Any?format=txt&#38;safe-mode"
-              target="url" />
+            <zeebe:input source="https://tools.test.invalid/jokes/random" target="url" />
             <zeebe:input source="=false" target="storeResponse" />
             <zeebe:input source="=20" target="connectionTimeoutInSeconds" />
             <zeebe:input source="=20" target="readTimeoutInSeconds" />
@@ -124,7 +123,7 @@
             <zeebe:input source="noAuth" target="authentication.type" />
             <zeebe:input source="GET" target="method" />
             <zeebe:input
-              source="=&#34;https://api.example-shop.internal/orders/&#34; + fromAi(toolCall.orderId, &#34;The order ID to look up, e.g. ORD-1001&#34;, &#34;string&#34;)"
+              source="=&#34;https://tools.test.invalid/orders/&#34; + fromAi(toolCall.orderId, &#34;The order ID to look up, e.g. ORD-1001&#34;, &#34;string&#34;)"
               target="url" />
             <zeebe:input source="=false" target="storeResponse" />
             <zeebe:input source="20" target="connectionTimeoutInSeconds" />

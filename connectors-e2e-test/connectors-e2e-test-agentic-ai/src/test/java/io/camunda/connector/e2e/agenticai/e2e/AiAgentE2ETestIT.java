@@ -99,6 +99,11 @@ public class AiAgentE2ETestIT {
    * Fabricated name, so it cannot come from model training data — the model can only produce it by
    * relaying what the tool returned. A joke is exactly the content a model will happily supply from
    * its own knowledge instead of calling the tool, which a recognisable joke could not detect.
+   *
+   * <p>Every tool fixture follows this rule, and every tool URL in the BPMN points at a {@code
+   * .invalid} host (RFC 6761 guarantees those never resolve). So a tool job answered by anything
+   * other than this test's mocks fails outright rather than returning something plausible — the
+   * property that kept a second, in-process connector runtime hidden for as long as it was.
    */
   private static final String JOKE_NONCE = "Blorptastic-7";
 
@@ -108,7 +113,7 @@ public class AiAgentE2ETestIT {
           + " cross the road? To reticulate the splines on the other side.";
 
   /** Name of the second entry in {@link #knownUsers()}, which the lookup scenario asks for. */
-  private static final String SECOND_USER_NAME = "Ervin Howell";
+  private static final String SECOND_USER_NAME = "Ervin Quibbleton";
 
   private static final String ORDER_STATUS_TRACKING_NUMBER = "1Z999AA10123456784";
 
@@ -425,14 +430,17 @@ public class AiAgentE2ETestIT {
   // Fixtures and helpers
   // ---------------------------------------------------------------------------
 
-  /** The first five users the real {@code jsonplaceholder.typicode.com/users} endpoint returns. */
+  /**
+   * Invented users, for the same reason as {@link #JOKE_NONCE}: these names exist nowhere but this
+   * fixture, so an answer containing one can only have come from the mock.
+   */
   private static List<Map<String, Object>> knownUsers() {
     return List.of(
-        Map.of("id", 1, "name", "Leanne Graham", "username", "Bret"),
+        Map.of("id", 1, "name", "Leanne Marchetti", "username", "Bret"),
         Map.of("id", 2, "name", SECOND_USER_NAME, "username", "Antonette"),
-        Map.of("id", 3, "name", "Clementine Bauch", "username", "Samantha"),
-        Map.of("id", 4, "name", "Patricia Lebsack", "username", "Karianne"),
-        Map.of("id", 5, "name", "Chelsey Dietrich", "username", "Kamren"));
+        Map.of("id", 3, "name", "Clementine Vosk", "username", "Samantha"),
+        Map.of("id", 4, "name", "Patricia Bramblewood", "username", "Karianne"),
+        Map.of("id", 5, "name", "Chelsey Dunmoor", "username", "Kamren"));
   }
 
   private Map<String, Object> dateAndTime() {
