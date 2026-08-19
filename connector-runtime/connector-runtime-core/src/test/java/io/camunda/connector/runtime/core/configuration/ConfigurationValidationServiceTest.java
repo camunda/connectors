@@ -26,6 +26,7 @@ import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidationResult.Status;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.runtime.core.secret.LegacySecretSyntaxRejectingProcessor;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import jakarta.validation.constraints.Size;
 import java.util.ArrayList;
@@ -112,7 +113,13 @@ class ConfigurationValidationServiceTest {
 
       @Override
       public String evaluateToJson(String expression, Object... variables) {
-        return json;
+        // Mirrors production: the result processor sees the cluster's result and rejects legacy
+        // syntax before any secret value is substituted.
+        return new LegacySecretSyntaxRejectingProcessor((result, refs) -> result)
+                    .process(json, List.of())
+                == null
+            ? null
+            : json;
       }
     };
   }

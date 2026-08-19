@@ -24,7 +24,7 @@ import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry.RegisteredValidator;
-import io.camunda.connector.runtime.core.secret.SecretUtil;
+import io.camunda.connector.runtime.core.secret.LegacySecretSyntaxRejectingProcessor.LegacySecretSyntaxException;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -209,17 +209,9 @@ public class ConfigurationValidationService {
       FeelExpressionEvaluator feelExpressionEvaluator,
       Class<?> configurationClass)
       throws Exception {
+    // The legacy-syntax check runs inside the evaluator's result processor, before any secret
+    // value is substituted, so it never inspects resolved secret material.
     String resolvedJson = feelExpressionEvaluator.evaluateToJson(request.credentialRef());
-    if (SecretUtil.containsLegacySecretReference(resolvedJson)) {
-      throw new LegacySecretSyntaxException();
-    }
     return objectMapper.readValue(resolvedJson, configurationClass);
-  }
-
-  /** Signals that a resolved configuration still carries the unsupported legacy secret syntax. */
-  private static final class LegacySecretSyntaxException extends RuntimeException {
-    private LegacySecretSyntaxException() {
-      super(null, null, false, false);
-    }
   }
 }

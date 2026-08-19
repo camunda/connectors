@@ -30,6 +30,7 @@ import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationService;
+import io.camunda.connector.runtime.core.secret.LegacySecretSyntaxRejectingProcessor;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import java.util.ArrayList;
@@ -97,7 +98,8 @@ public class ConfigurationValidationConfiguration {
   private static FeelExpressionEvaluator buildFeelExpressionEvaluator(CamundaClient camundaClient) {
     return FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
         .resultProcessor(
-            new SecretResolvingResultProcessor(new SecretReferenceResolver(camundaClient)))
+            new LegacySecretSyntaxRejectingProcessor(
+                new SecretResolvingResultProcessor(new SecretReferenceResolver(camundaClient))))
         .build();
   }
 
