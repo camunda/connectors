@@ -165,7 +165,10 @@ public class AiAgentE2ETestIT {
 
     assertThatProcessInstance(processInstance).isCompleted();
     assertThatProcessInstance(processInstance).hasCompletedElement("ListUsers", 1);
-    assertThat(responseText(processInstance)).contains((String) KNOWN_USERS.get(1).get("name"));
+
+    // one call to request the tool, one to answer from its result
+    var response = assertAgentResponse(processInstance, 2);
+    assertThat(response.responseText()).contains((String) KNOWN_USERS.get(1).get("name"));
   }
 
   /** Two tools requested at once, so both calls have to be emitted in the same round. */
@@ -185,7 +188,10 @@ public class AiAgentE2ETestIT {
     assertThatProcessInstance(processInstance).isCompleted();
     assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
     assertThatProcessInstance(processInstance).hasCompletedElement("GetJoke", 1);
-    assertThat(responseText(processInstance)).contains(DAY_OF_WEEK).contains(JOKE_NONCE);
+
+    // both tools are requested in the same call, so this stays at two
+    var response = assertAgentResponse(processInstance, 2);
+    assertThat(response.responseText()).contains(DAY_OF_WEEK).contains(JOKE_NONCE);
   }
 
   /**
@@ -210,8 +216,8 @@ public class AiAgentE2ETestIT {
     assertThatProcessInstance(processInstance).hasCompletedElement("ListUsers", 1);
     assertThatProcessInstance(processInstance).hasCompletedElement("GetOrderStatus", 1);
 
-    var response = agentResponse(processInstance);
-    assertThat(response.context().metrics().modelCalls()).isGreaterThanOrEqualTo(3);
+    // one call per tool request plus one to answer: the rounds cannot have been batched
+    var response = assertAgentResponse(processInstance, 3);
     assertThat(response.responseText())
         .containsIgnoringCase("shipped")
         .contains(ORDER_TRACKING_NUMBER);
@@ -241,7 +247,10 @@ public class AiAgentE2ETestIT {
 
     assertThatProcessInstance(processInstance).isCompleted();
     assertThatProcessInstance(processInstance).hasCompletedElement("AskHuman", 1);
-    assertThat(responseText(processInstance)).contains(HUMAN_ANSWER_NONCE);
+
+    // one call to ask the human, one to answer once they replied
+    var response = assertAgentResponse(processInstance, 2);
+    assertThat(response.responseText()).contains(HUMAN_ANSWER_NONCE);
   }
 
   /**
@@ -268,7 +277,10 @@ public class AiAgentE2ETestIT {
 
     assertThatProcessInstance(processInstance).isCompleted();
     assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
-    assertThat(responseText(processInstance)).contains(DAY_OF_WEEK);
+
+    // two calls for the first round, at least one more after re-entering with the follow-up
+    var response = assertAgentResponse(processInstance, 3);
+    assertThat(response.responseText()).contains(DAY_OF_WEEK);
   }
 
   // ---------------------------------------------------------------------------
@@ -488,18 +500,20 @@ public class AiAgentE2ETestIT {
     }
   }
 
-  private AgentResponse agentResponse(ProcessInstanceEvent instance) {
-    var response = new AtomicReference<AgentResponse>();
+  /** Reads the agent response and asserts the number of model calls it took to produce it. */
+  private AgentResponse assertAgentResponse(ProcessInstanceEvent instance, int minModelCalls) {
+    var captured = new AtomicReference<AgentResponse>();
     // The lambda only captures: CamundaAssert treats it as a polling predicate, so an assertion
     // raised inside it would be retried for the full assertion timeout even though the instance is
     // already completed and the variable value can no longer change.
     assertThatProcessInstance(instance)
-        .hasVariableSatisfies("agent", AgentResponse.class, response::set);
-    return response.get();
-  }
+        .hasVariableSatisfies("agent", AgentResponse.class, captured::set);
 
-  private String responseText(ProcessInstanceEvent instance) {
-    return agentResponse(instance).responseText();
+    var response = captured.get();
+    assertThat(response.context().metrics().modelCalls())
+        .as("model calls")
+        .isGreaterThanOrEqualTo(minModelCalls);
+    return response;
   }
 
   /** Waits for a created user task on {@code elementId} — the feedback loop re-enters its own. */
