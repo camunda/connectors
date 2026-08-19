@@ -163,7 +163,7 @@ public class AiAgentE2ETestIT {
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
-    assertThatProcessInstance(processInstance).isCompleted();
+    assertThatProcessInstance(processInstance).isCompleted().hasNoActiveIncidents();
     assertThatProcessInstance(processInstance).hasCompletedElement("ListUsers", 1);
 
     // one call to request the tool, one to answer from its result
@@ -185,7 +185,7 @@ public class AiAgentE2ETestIT {
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
-    assertThatProcessInstance(processInstance).isCompleted();
+    assertThatProcessInstance(processInstance).isCompleted().hasNoActiveIncidents();
     assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
     assertThatProcessInstance(processInstance).hasCompletedElement("GetJoke", 1);
 
@@ -212,7 +212,7 @@ public class AiAgentE2ETestIT {
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
-    assertThatProcessInstance(processInstance).isCompleted();
+    assertThatProcessInstance(processInstance).isCompleted().hasNoActiveIncidents();
     assertThatProcessInstance(processInstance).hasCompletedElement("ListUsers", 1);
     assertThatProcessInstance(processInstance).hasCompletedElement("GetOrderStatus", 1);
 
@@ -245,7 +245,7 @@ public class AiAgentE2ETestIT {
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
-    assertThatProcessInstance(processInstance).isCompleted();
+    assertThatProcessInstance(processInstance).isCompleted().hasNoActiveIncidents();
     assertThatProcessInstance(processInstance).hasCompletedElement("AskHuman", 1);
 
     // one call to ask the human, one to answer once they replied
@@ -275,7 +275,7 @@ public class AiAgentE2ETestIT {
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
-    assertThatProcessInstance(processInstance).isCompleted();
+    assertThatProcessInstance(processInstance).isCompleted().hasNoActiveIncidents();
     assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
 
     // two calls for the first round, at least one more after re-entering with the follow-up

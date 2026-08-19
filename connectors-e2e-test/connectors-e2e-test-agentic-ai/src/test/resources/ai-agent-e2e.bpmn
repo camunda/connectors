@@ -51,9 +51,14 @@
       <bpmn:documentation>Placeholder agent activity. The AI Agent element template and the
         provider configuration are applied at test time, once per provider row. Only the task type
         is a placeholder — element-templates-cli keeps the retry count set here rather than taking
-        it from the template, so it carries the value the agent actually runs with.</bpmn:documentation>
+        it from the template, so it carries the value the agent actually runs with.
+
+        Deliberately a single attempt: a retry would absorb an agent job failure and complete the
+        work on the second try, leaving the run green with nothing but a line in the connector log.
+        With no retries left, any failure raises an incident the scenarios assert
+        against.</bpmn:documentation>
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="dummy" retries="3" />
+        <zeebe:taskDefinition type="dummy" retries="1" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_16otfp1</bpmn:incoming>
       <bpmn:outgoing>Flow_0m7etfk</bpmn:outgoing>
