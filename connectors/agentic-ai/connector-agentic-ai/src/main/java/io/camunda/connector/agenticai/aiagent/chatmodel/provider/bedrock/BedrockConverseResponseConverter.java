@@ -178,12 +178,22 @@ public class BedrockConverseResponseConverter {
    * {@code Document}) to the domain {@code arguments} map. Numbers survive round-trip precision
    * because the capture already used {@link java.math.BigDecimal} as the plain-Java stand-in for a
    * Document number (see {@link BedrockConverseSdkPojoCodec} for why).
+   *
+   * <p>An entry keyed by the empty string is dropped: some models (observed with gpt-oss on
+   * Bedrock) emit one for a tool whose input schema declares no properties, instead of an empty
+   * object. Bedrock's own Converse API accepts that malformed shape as output but rejects it as
+   * input, so replaying it verbatim on the next request fails the whole call.
    */
   private Map<String, Object> toolUseArguments(Map<String, Object> captured) {
     final Object input = captured.get("input");
     if (input instanceof Map<?, ?> map) {
       final Map<String, Object> arguments = new LinkedHashMap<>();
-      map.forEach((k, v) -> arguments.put(String.valueOf(k), v));
+      map.forEach(
+          (k, v) -> {
+            if (!String.valueOf(k).isEmpty()) {
+              arguments.put(String.valueOf(k), v);
+            }
+          });
       return arguments;
     }
     // Converse always supplies a Document for `input` (an empty object for a no-argument tool

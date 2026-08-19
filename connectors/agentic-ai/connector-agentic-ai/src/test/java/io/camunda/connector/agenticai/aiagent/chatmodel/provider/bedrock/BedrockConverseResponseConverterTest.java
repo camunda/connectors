@@ -212,6 +212,33 @@ class BedrockConverseResponseConverterTest {
   }
 
   @Test
+  void dropsEmptyKeyFromToolUseArguments() {
+    // Observed with gpt-oss on Bedrock: for a tool whose input schema declares no properties, the
+    // model emits {"": {}} instead of {} for a no-argument call. Bedrock's Converse API accepts
+    // that malformed shape as output but rejects it as input, so it must not survive into
+    // ToolCall#arguments() for replay.
+    final var response =
+        response(
+            List.of(
+                ContentBlock.fromToolUse(
+                    ToolUseBlock.builder()
+                        .toolUseId("tooluse_now")
+                        .name("now")
+                        .input(
+                            Document.mapBuilder()
+                                .putDocument("", Document.mapBuilder().build())
+                                .build())
+                        .build())),
+            StopReason.TOOL_USE,
+            usage(1, 1));
+
+    final var toolCalls =
+        converter.toResult(response, EXECUTION_TIME).assistantMessage().toolCalls();
+
+    assertThat(toolCalls).containsExactly(new ToolCall("tooluse_now", "now", Map.of(), null));
+  }
+
+  @Test
   void mapsUnmappedContentBlockToProviderContentPreservingOrder() {
     final ContentBlock cachePoint =
         ContentBlock.fromCachePoint(CachePointBlock.builder().type(CachePointType.DEFAULT).build());
