@@ -280,12 +280,12 @@ else in this file — a different feature from a per-request model call, not a p
 
 ### Tool-result documents
 
-Unlike Anthropic and OpenAI, a document inside a tool result is embedded natively, not flattened to a
-JSON reference: `GeminiContentConverter.toFunctionResponseParts` calls the same `toDocumentPart` used
-for ordinary message content, so an image/PDF becomes an `inlineData` `Part` and text becomes a plain
-text `Part`, sent as a sibling of the `functionResponse` part rather than referenced from inside it.
-This is a real, unreviewed divergence from the other two providers' consistent "always JSON-reference,
-never native" rule — flagged here as a decision that still needs making, not as settled behavior.
+Like Anthropic and OpenAI, a document inside a tool result is flattened to a JSON reference rather
+than embedded natively: `GeminiContentConverter.toFunctionResponseParts` serializes just
+`doc.document()` to a text `Part`, the same reference-only shape `AnthropicContentConverter
+#toToolResultBlocks`/`OpenAiContentConverter#toResponsesToolResultOutputItems` produce — the
+document's actual bytes are already delivered to the model elsewhere for tool results, so embedding
+them here too would send them twice. Only `#toParts` (ordinary message content) embeds natively.
 
 ### Truncation
 
@@ -299,9 +299,26 @@ wire shape. `MAX_TOKENS` maps to `LENGTH`; a missing tool-use finish reason is s
 filtered candidate that also happens to carry a tool call is never misclassified. Every other finish
 reason falls back to `UnknownStopReason` with the raw value preserved.
 
-Gemini has no context-window-specific error signal to catch: an over-length prompt surfaces from the
-SDK as a plain `ApiException` (HTTP 400, `status="INVALID_ARGUMENT"`, no dedicated code or exception
-subclass — unlike OpenAI's `BadRequestException` with `code=context_length_exceeded`), which
-`GeminiChatModel.execute`'s catch-all currently reports as a generic `ERROR_CODE_FAILED_MODEL_CALL`
-rather than `ContextWindowExceededException`. Distinguishing it would require matching on the error
-message text, which is fragile; not yet done.
+Gemini has no context-window-specific error signal, unlike OpenAI's `BadRequestException` with
+`code=context_length_exceeded`: an over-length prompt surfaces as a plain `ApiException` (HTTP 400,
+`status="INVALID_ARGUMENT"`, shared with many unrelated validation failures). `GeminiChatModel
+#isContextWindowExceeded` matches on the one stable, distinctive substring of the message text
+("exceeds the maximum number of tokens allowed", confirmed identical across the Developer API and
+Vertex AI backends) to throw `ContextWindowExceededException` instead of the generic
+`ERROR_CODE_FAILED_MODEL_CALL` — message-matching is inherently brittle against upstream wording
+changes, but the SDK exposes no more reliable signal for this condition.
+
+### Timeout and retry
+
+`GeminiChatModelFactory.buildClient` always installs a `ClientOptions.customHttpClient` with a fixed
+10-second OkHttp `connectTimeout`, merged into the same `ClientOptions` builder as any proxy
+configuration. Without it, the SDK's own default `OkHttpClient` (built when no custom client is
+supplied) leaves `connectTimeout`/`readTimeout`/`writeTimeout` at zero (unbounded) and relies solely
+on `HttpOptions#timeout` as an overall `callTimeout` — a hung TCP connect would otherwise consume the
+whole, often much longer, configured request budget before failing. The overall timeout itself stays
+exactly as configurable as before (`TimeoutConfiguration`, shared with Anthropic/OpenAI); only connect
+is bounded separately, and only at this fixed default — there is no user-facing property for it.
+Retry needs no equivalent fix: the SDK unconditionally wraps every call in a `RetryInterceptor`
+(decompiled defaults: 5 attempts, exponential backoff with full jitter, retrying on
+408/429/500/502/503/504) whether or not `HttpOptions.retryOptions()` is configured, matching
+Anthropic/OpenAI's own SDK-default retry behavior (neither configures anything explicitly either).
