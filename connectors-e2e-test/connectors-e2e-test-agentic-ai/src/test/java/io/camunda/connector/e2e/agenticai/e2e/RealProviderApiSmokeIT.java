@@ -30,7 +30,6 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
-import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
@@ -84,8 +83,6 @@ import org.springframework.core.io.ResourceLoader;
 class RealProviderApiSmokeIT {
 
   static final String BPMN_RESOURCE = "classpath:real-provider-api-smoke.bpmn";
-  // Reuses the same form AiAgentE2ETestIT's ai-agent-e2e-openai.bpmn deploys - same field keys
-  // (userSatisfied/followUpInput/followUpDocuments), so the same form fixture fits both BPMNs.
   static final String FORM_RESOURCE = "ai-agent-chat-user-feedback.form";
   static final String PROCESS_ID = "real_provider_api_smoke";
   static final String TOOL_JOB_TYPE = "lookup-classified-fact";
@@ -553,20 +550,7 @@ class RealProviderApiSmokeIT {
         });
   }
 
-  /**
-   * Regression test for a real production bug in the OpenAI Responses provider: replaying a
-   * completed assistant TEXT turn as conversation history sent {@code input_text} content on an
-   * assistant-role item, which the real API rejects with a 400 ({@code "Invalid value:
-   * 'input_text'. Supported values are: 'output_text' and 'refusal'."}) - see
-   * OpenAiResponsesRequestConverter#assistantContentInputItem. Tool-call turns replay as {@code
-   * function_call} items and never hit this, which is why no other scenario in this suite (or the
-   * unit/wire-format suites before this test was added) covered it.
-   *
-   * <p>Turn 1 gets a tool call followed by a completed text answer, so its {@link AssistantMessage}
-   * carries plain text content with no further tool call once persisted. The user-feedback loop's
-   * follow-up then forces a second model call whose request necessarily replays that turn 1
-   * assistant message - the exact shape that 400'd on the OpenAI Responses rows before the fix.
-   */
+  /** Re-entry test: catches a completed assistant text turn getting replayed incorrectly. */
   @ParameterizedTest(name = "{0}")
   @MethodSource("providers")
   void userFeedbackLoopReplaysAssistantTextOnFollowUp(Provider provider) {
@@ -717,9 +701,6 @@ class RealProviderApiSmokeIT {
       String systemPrompt,
       Map<String, Object> variables) {
     ZeebeTest.with(camundaClient).awaitCompleteTopology().deploy(model);
-    // Deployed unconditionally: only real-provider-api-smoke.bpmn's User_Feedback task references
-    // this form, but redeploying it for scenarios on a different BPMN (e.g. the document ones) is a
-    // harmless no-op - Zeebe deduplicates identical resource content under the same form id.
     camundaClient.newDeployResourceCommand().addResourceFromClasspath(FORM_RESOURCE).send().join();
     final var allVariables = new HashMap<>(variables);
     allVariables.put("systemPrompt", systemPrompt);
