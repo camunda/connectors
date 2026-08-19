@@ -18,16 +18,13 @@ package io.camunda.connector.runtime.core.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.secret.SecretContext;
-import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidationResult.ErrorCode;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry.RegisteredValidator;
-import io.camunda.connector.runtime.core.secret.SecretFilter;
-import io.camunda.connector.runtime.core.secret.SecretHandler;
+import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,17 +35,25 @@ import org.slf4j.LoggerFactory;
  * ConfigurationValidationResult}.
  *
  * <p>Pipeline: look up the registered validator by id; select the (cluster-backed) FEEL evaluator
- * for the request's physical tenant and resolve {@code credentialRef} to JSON with it; replace
- * secret placeholders in that same physical tenant's scope; deserialize into the registered
- * configuration class; run Jakarta bean validation (as normal connector binding does); then call
- * the validator. A missing registration yields {@code UNSUPPORTED}; anything else that goes wrong
- * yields {@code FAILURE}.
+ * for the request's physical tenant and resolve {@code credentialRef} to JSON with it; deserialize
+ * into the registered configuration class; run Jakarta bean validation (as normal connector binding
+ * does); then call the validator. A missing registration yields {@code UNSUPPORTED}; anything else
+ * that goes wrong yields {@code FAILURE}.
  *
- * <p><b>Multi-engine.</b> A stored configuration lives on one orchestration cluster, so both halves
- * of resolution are physical-tenant-scoped: the reference must be evaluated against the engine that
- * holds it (each engine has its own {@code camunda.vars.env.*}), and its secrets must be resolved
- * in that engine's scope (see {@link SecretContext#physicalTenantId()}). Evaluating against the
- * wrong engine would silently validate a different configuration, or none at all.
+ * <p><b>Secrets.</b> Configurations support {@code camunda.secrets.<name>} only. Such a reference
+ * survives evaluation as placeholder text and is substituted by the evaluator's result processor,
+ * restricted to the references the cluster reports for that evaluation. The legacy {@code
+ * {{secrets.X}}} and bare {@code secrets.X} forms are not resolved here at all: they would have to
+ * be replaced over the evaluation <em>result</em>, where nothing distinguishes a name a
+ * configuration declared from one that arrived as data, and out-of-band validation has no process
+ * or element scope to derive an allow-list from. A configuration still carrying that syntax is
+ * rejected rather than passed through, so the problem is reported here rather than as an
+ * unexplained failure at the target.
+ *
+ * <p><b>Multi-engine.</b> A stored configuration lives on one orchestration cluster, so the
+ * reference must be evaluated against the engine that holds it — each engine has its own {@code
+ * camunda.vars.env.*} and its own secret stores. Evaluating against the wrong engine would silently
+ * validate a different configuration, or none at all.
  *
  * <p><b>Message-safety policy.</b> The resolved configuration and everything derived from it
  * (deserialization errors, constraint-violation messages, exceptions thrown from connector code)
@@ -69,22 +74,23 @@ public class ConfigurationValidationService {
       "The resolved configuration is not valid.";
   private static final String VALIDATOR_ERROR_MESSAGE = "Validation could not be completed.";
 
+  // Names no resolved content, only the supported syntax, so it is safe to return to the caller.
+  private static final String LEGACY_SECRET_SYNTAX_MESSAGE =
+      "The configuration uses an unsupported secret syntax. Reference secrets as"
+          + " camunda.secrets.<name>.";
+
   private final ConfigurationValidationRegistry registry;
   private final Map<String, FeelExpressionEvaluator> feelExpressionEvaluatorsByPhysicalTenantId;
-  private final SecretHandler secretHandler;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
 
   public ConfigurationValidationService(
       ConfigurationValidationRegistry registry,
       Map<String, FeelExpressionEvaluator> feelExpressionEvaluatorsByPhysicalTenantId,
-      SecretProvider secretProvider,
       ValidationProvider validationProvider,
       ObjectMapper objectMapper) {
     this.registry = registry;
     this.feelExpressionEvaluatorsByPhysicalTenantId = feelExpressionEvaluatorsByPhysicalTenantId;
-    // Out-of-band validation has no process/element scope, so no secret allow-list applies.
-    this.secretHandler = new SecretHandler(secretProvider, SecretFilter.allowAll());
     this.validationProvider = validationProvider;
     this.objectMapper = objectMapper;
   }
@@ -111,6 +117,13 @@ public class ConfigurationValidationService {
     try {
       configuration =
           resolveConfiguration(request, feelExpressionEvaluator, registered.configurationClass());
+    } catch (LegacySecretSyntaxException e) {
+      // The message names only the supported syntax, so it is returned to the caller in full.
+      LOG.warn(
+          "Configuration '{}' uses the legacy secret syntax, which configurations do not support",
+          request.credentialId());
+      return ConfigurationValidationResult.failure(
+          ErrorCode.RESOLUTION_ERROR, LEGACY_SECRET_SYNTAX_MESSAGE);
     } catch (Exception e) {
       // Log only the exception type, never the throwable: FEEL/secret/JSON error messages (and
       // stack-trace detail) can echo resolved secret material into the logs.
@@ -196,10 +209,17 @@ public class ConfigurationValidationService {
       FeelExpressionEvaluator feelExpressionEvaluator,
       Class<?> configurationClass)
       throws Exception {
-    String rawJson = feelExpressionEvaluator.evaluateToJson(request.credentialRef());
-    String withSecrets =
-        secretHandler.replaceSecrets(
-            rawJson, new SecretContext(request.tenantId(), null, request.physicalTenantId()));
-    return objectMapper.readValue(withSecrets, configurationClass);
+    String resolvedJson = feelExpressionEvaluator.evaluateToJson(request.credentialRef());
+    if (SecretUtil.containsLegacySecretReference(resolvedJson)) {
+      throw new LegacySecretSyntaxException();
+    }
+    return objectMapper.readValue(resolvedJson, configurationClass);
+  }
+
+  /** Signals that a resolved configuration still carries the unsupported legacy secret syntax. */
+  private static final class LegacySecretSyntaxException extends RuntimeException {
+    private LegacySecretSyntaxException() {
+      super(null, null, false, false);
+    }
   }
 }

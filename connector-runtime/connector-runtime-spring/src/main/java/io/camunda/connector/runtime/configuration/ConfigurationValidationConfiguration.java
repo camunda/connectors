@@ -30,7 +30,8 @@ import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationService;
-import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
+import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,11 +47,10 @@ import org.springframework.context.annotation.Import;
  * the neutral top-level runtime auto-configuration rather than the outbound-specific one — an
  * inbound-only runtime exposes it too.
  *
- * <p>{@code POST /configurations/validate} resolves stored secrets to run a validator, and applies
- * no secret allow-list while doing so — out-of-band validation has no process or element scope to
- * derive one from. No resolved value can reach the response (see the message-safety policy on
- * {@code ConfigurationValidationService}), but the route is still expected to be reachable only by
- * trusted callers; the SaaS bundle covers it with the Console JWT {@code SecurityFilterChain}.
+ * <p>{@code POST /configurations/validate} resolves stored secrets to run a validator. No resolved
+ * value can reach the response (see the message-safety policy on {@code
+ * ConfigurationValidationService}), but the route is still expected to be reachable only by trusted
+ * callers; the SaaS bundle covers it with the Console JWT {@code SecurityFilterChain}.
  */
 @Configuration
 @Import(ConfigurationValidationRestController.class)
@@ -84,9 +84,21 @@ public class ConfigurationValidationConfiguration {
                 registry,
                 legacyCamundaClient,
                 name ->
-                    FeelExpressionEvaluatorBuilder.camundaClient(
-                            resolveClient(registry, name, legacyCamundaClient))
-                        .build()));
+                    buildFeelExpressionEvaluator(
+                        resolveClient(registry, name, legacyCamundaClient))));
+  }
+
+  /**
+   * A {@code credentialRef} is evaluated on the cluster, so a {@code camunda.secrets.<name>}
+   * reference in it comes back as placeholder text. The result processor substitutes the values,
+   * restricted to the references the cluster reports for that evaluation — the same mechanism, and
+   * the same allow-list, that inbound property binding uses.
+   */
+  private static FeelExpressionEvaluator buildFeelExpressionEvaluator(CamundaClient camundaClient) {
+    return FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
+        .resultProcessor(
+            new SecretResolvingResultProcessor(new SecretReferenceResolver(camundaClient)))
+        .build();
   }
 
   @Bean
@@ -108,7 +120,6 @@ public class ConfigurationValidationConfiguration {
   @Bean
   public ConfigurationValidationService configurationValidationService(
       ConfigurationValidationRegistry configurationValidationRegistry,
-      SecretProviderAggregator secretProviderAggregator,
       ValidationProvider validationProvider,
       @OutboundConnectorObjectMapper ObjectMapper objectMapper,
       @Autowired(required = false) CamundaClientRegistry registry,
@@ -116,7 +127,6 @@ public class ConfigurationValidationConfiguration {
     return new ConfigurationValidationService(
         configurationValidationRegistry,
         buildFeelExpressionEvaluatorsByPhysicalTenantId(registry, legacyCamundaClient),
-        secretProviderAggregator,
         validationProvider,
         objectMapper);
   }

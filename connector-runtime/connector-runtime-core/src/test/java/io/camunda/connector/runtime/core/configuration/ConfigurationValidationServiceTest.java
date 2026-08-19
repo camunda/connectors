@@ -22,8 +22,6 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.secret.SecretContext;
-import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidationResult.Status;
 import io.camunda.connector.api.validation.ConfigurationValidator;
@@ -119,31 +117,41 @@ class ConfigurationValidationServiceTest {
     };
   }
 
-  /** Records the {@link SecretContext} each lookup was made with, and resolves nothing. */
-  private static final class RecordingSecretProvider implements SecretProvider {
-    private final List<SecretContext> contexts = new ArrayList<>();
+  /** Records that it was asked to evaluate, so a test can tell which engine's evaluator ran. */
+  private FeelExpressionEvaluator feelRecording(String json, List<String> calls, String name) {
+    var delegate = feelReturning(json);
+    return new FeelExpressionEvaluator() {
+      @Override
+      public <T> T evaluate(String expression, Object... variables) {
+        throw new UnsupportedOperationException();
+      }
 
-    @Override
-    public String getSecret(String name, SecretContext context) {
-      contexts.add(context);
-      return null;
-    }
+      @Override
+      public <T> T evaluate(String expression, Class<T> targetType, Object... variables) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public <T> T evaluate(String expression, JavaType targetType, Object... variables) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public String evaluateToJson(String expression, Object... variables) {
+        calls.add(name);
+        return delegate.evaluateToJson(expression, variables);
+      }
+    };
   }
 
   private ConfigurationValidationService serviceWith(String resolvedJson) {
     return serviceWith(Map.of("engine-a", feelReturning(resolvedJson)));
   }
 
-  private ConfigurationValidationService serviceWith(
-      Map<String, FeelExpressionEvaluator> evaluatorsByPhysicalTenantId) {
-    return serviceWith(evaluatorsByPhysicalTenantId, new RecordingSecretProvider());
-  }
-
   private final RecordingValidator recordingValidator = new RecordingValidator();
 
   private ConfigurationValidationService serviceWith(
-      Map<String, FeelExpressionEvaluator> evaluatorsByPhysicalTenantId,
-      SecretProvider secretProvider) {
+      Map<String, FeelExpressionEvaluator> evaluatorsByPhysicalTenantId) {
     var registry =
         new ConfigurationValidationRegistry(
             List.of(
@@ -155,7 +163,6 @@ class ConfigurationValidationServiceTest {
     return new ConfigurationValidationService(
         registry,
         evaluatorsByPhysicalTenantId,
-        secretProvider,
         ValidationUtil.discoverDefaultValidationProviderImplementation(),
         objectMapper);
   }
@@ -240,20 +247,59 @@ class ConfigurationValidationServiceTest {
 
   @Test
   void resolvesSecretsInTheRequestedPhysicalTenantsScope() {
-    var secretProvider = new RecordingSecretProvider();
+    // Secret resolution now rides on the evaluator: each physical tenant has its own, built from
+    // that engine's client, and a camunda.secrets.<name> reference is substituted into the result
+    // of that engine's evaluation. So the scoping property is that only the requested engine's
+    // evaluator runs.
+    var calls = new ArrayList<String>();
     var service =
         serviceWith(
-            Map.of("engine-b", feelReturning("{\"value\":\"{{secrets.TOKEN}}\"}")), secretProvider);
+            Map.of(
+                "engine-a", feelRecording("{\"value\":\"a\"}", calls, "engine-a"),
+                "engine-b", feelRecording("{\"value\":\"b\"}", calls, "engine-b")));
 
     service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant", "engine-b"));
 
-    assertThat(secretProvider.contexts)
-        .isNotEmpty()
-        .allSatisfy(
-            context -> {
-              assertThat(context.physicalTenantId()).isEqualTo("engine-b");
-              assertThat(context.tenantId()).isEqualTo("tenant");
-            });
+    assertThat(calls).containsExactly("engine-b");
+  }
+
+  @Test
+  void rejectsAConfigurationStillUsingTheLegacySecretSyntax() {
+    var service = serviceWith("{\"value\":\"{{secrets.TOKEN}}\"}");
+
+    var result =
+        service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant", "engine-a"));
+
+    assertThat(result.status()).isEqualTo(Status.FAILURE);
+    assertThat(result.code())
+        .isEqualTo(ConfigurationValidationResult.ErrorCode.RESOLUTION_ERROR.name());
+    assertThat(result.message()).contains("camunda.secrets.<name>");
+  }
+
+  @Test
+  void rejectsAConfigurationUsingTheBareLegacySecretSyntax() {
+    var service = serviceWith("{\"value\":\"secrets.TOKEN\"}");
+
+    var result =
+        service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant", "engine-a"));
+
+    assertThat(result.status()).isEqualTo(Status.FAILURE);
+    assertThat(result.message()).contains("camunda.secrets.<name>");
+  }
+
+  @Test
+  void leavesACamundaSecretsReferenceToTheEvaluatorToResolve() {
+    // The evaluator's result processor has already substituted the value by the time the service
+    // sees the JSON; nothing here re-reads or rejects it.
+    var service = serviceWith("{\"value\":\"resolved-token\"}");
+
+    var result =
+        service.validate(
+            new ConfigurationValidationRequest(
+                "recording", "=camunda.secrets.TOKEN", "tenant", "engine-a"));
+
+    assertThat(result.status()).isEqualTo(Status.SUCCESS);
+    assertThat(recordingValidator.seen.value()).isEqualTo("resolved-token");
   }
 
   @Test
