@@ -16,15 +16,27 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi;
 
+import java.util.Set;
+
 /**
  * A single content part of a {@link RecordedMessage}, in a provider-agnostic shape. {@code kind} is
- * the provider's own discriminator value (e.g. {@code "text"}, {@code "image"}/{@code "image_url"},
- * {@code "document"}) — not normalized across providers, since the point of this suite is to see
- * those differences, not paper over them. {@code text} is non-null only for {@code "text"} parts.
+ * the provider's own raw wire discriminator value (e.g. {@code "text"}, {@code "input_text"},
+ * {@code "image"}/{@code "image_url"}, {@code "document"}) — not normalized across providers, since
+ * the point of this suite is to see those differences, not paper over them; a fixture keeping the
+ * raw kind is also what lets a role/type mismatch (e.g. an {@code input_text} part on an
+ * assistant-role message) surface as an assertion failure instead of being erased. {@code text} is
+ * non-null only for text-carrying parts.
  */
 public record RecordedContentPart(String kind, String text) {
 
+  /**
+   * Recognizes every wire vocabulary this suite's fixtures use for a plain-text part, so {@link
+   * RecordedMessage#textContent()} joins correctly regardless of provider, even though {@link
+   * #kind()} itself stays unnormalized.
+   */
+  private static final Set<String> TEXT_KINDS = Set.of("text", "input_text", "output_text");
+
   public boolean isText() {
-    return "text".equals(kind);
+    return TEXT_KINDS.contains(kind);
   }
 }

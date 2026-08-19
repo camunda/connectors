@@ -125,6 +125,19 @@ sealed interface ProviderWireFormatExpectedMessage {
     public void assertMatches(int index, RecordedMessage message) {
       assertRoleAndText(index, message, "assistant", text);
 
+      // Every wire format this suite covers reserves an "input_"-prefixed content-part kind for
+      // input-only roles (e.g. OpenAI Responses' input_text/input_image/input_file); none of them
+      // ever produce one for the model's own turn. Catches a role/type mismatch (e.g. an
+      // input_text part replayed on an assistant message) that a text-only comparison would miss.
+      final var inputTypedParts =
+          message.contentParts().stream()
+              .map(RecordedContentPart::kind)
+              .filter(kind -> kind.startsWith("input_"))
+              .toList();
+      assertThat(inputTypedParts)
+          .as("input-only content part kinds on assistant message %d", index)
+          .isEmpty();
+
       final var actualNames = message.toolCalls().stream().map(RecordedToolCall::name).toList();
       assertThat(actualNames)
           .as("tool call names of message %d", index)
