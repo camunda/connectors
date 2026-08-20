@@ -81,9 +81,10 @@ public class AgentInitializerImpl implements AgentInitializer {
 
     if (hasAgentDefinitionKeyHeader(jobContext)) {
       final var agentInstanceKey = provisionAgentInstance(executionContext);
+      LOGGER.debug("Created agent instance {}", agentInstanceKey.value());
       metadata = metadata.withAgentInstanceKey(agentInstanceKey.value());
     } else {
-      LOGGER.debug(
+      LOGGER.warn(
           "Skipping agent instance creation: element was not marked with an agent definition");
     }
 
