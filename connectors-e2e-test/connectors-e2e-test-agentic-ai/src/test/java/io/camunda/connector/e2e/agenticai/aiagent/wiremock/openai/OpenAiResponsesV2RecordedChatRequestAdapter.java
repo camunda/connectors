@@ -75,14 +75,16 @@ final class OpenAiResponsesV2RecordedChatRequestAdapter implements RecordedChatR
       return delegate.contentParts().stream()
           .map(
               part -> {
-                final var rawKind = part.path("type").asText();
-                // The Responses wire uses "input_text" for text parts (unlike Completions'/
-                // Anthropic's "text"); normalize so the shared RecordedContentPart#isText()/
-                // RecordedMessage#textContent() contract behaves the same across every provider
-                // fixture. Other kinds (input_image/input_file) are passed through verbatim.
-                final var kind = "input_text".equals(rawKind) ? "text" : rawKind;
-                return new RecordedContentPart(
-                    kind, "text".equals(kind) ? part.path("text").asText() : null);
+                // The raw wire kind (e.g. "input_text"/"output_text"/"input_image"/"input_file")
+                // is kept as-is, not normalized to a provider-neutral "text" -
+                // RecordedContentPart#isText() already recognizes both "input_text" (user/tool
+                // messages) and "output_text" (assistant messages) for
+                // RecordedMessage#textContent() to keep working, and keeping the raw kind is what
+                // lets ProviderWireFormatExpectedMessage catch an input_*-typed part landing on an
+                // assistant-role message (only output_text/refusal are valid there).
+                final var kind = part.path("type").asText();
+                final var isText = "input_text".equals(kind) || "output_text".equals(kind);
+                return new RecordedContentPart(kind, isText ? part.path("text").asText() : null);
               })
           .toList();
     }

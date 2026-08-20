@@ -83,6 +83,7 @@ import org.springframework.core.io.ResourceLoader;
 class RealProviderApiSmokeIT {
 
   static final String BPMN_RESOURCE = "classpath:real-provider-api-smoke.bpmn";
+  static final String FORM_RESOURCE = "ai-agent-chat-user-feedback.form";
   static final String PROCESS_ID = "real_provider_api_smoke";
   static final String TOOL_JOB_TYPE = "lookup-classified-fact";
   static final Duration PROCESS_TIMEOUT = Duration.ofMinutes(3);
@@ -416,6 +417,7 @@ class RealProviderApiSmokeIT {
             PROCESS_ID,
             DEFAULT_SYSTEM_PROMPT,
             Map.of("userPrompt", "What is the internal project code name? Use your lookup tool."));
+    completeUserFeedback(instance, Map.of("userSatisfied", true));
 
     assertAgentResponse(
         instance,
@@ -449,6 +451,7 @@ class RealProviderApiSmokeIT {
             Map.of(
                 "userPrompt",
                 "Look up the internal project code name and clearance level and return them."));
+    completeUserFeedback(instance, Map.of("userSatisfied", true));
 
     assertAgentResponse(
         instance,
@@ -487,6 +490,7 @@ class RealProviderApiSmokeIT {
                 "userPrompt",
                 "A farmer has chickens and rabbits. Together they have 35 heads and 94 legs. How "
                     + "many chickens are there? Reply with just the number."));
+    completeUserFeedback(instance, Map.of("userSatisfied", true));
 
     assertAgentResponse(
         instance,
@@ -521,6 +525,7 @@ class RealProviderApiSmokeIT {
                 "What is the internal project code name? Use your lookup tool.",
                 "longSystemPrompt",
                 LONG_SYSTEM_PROMPT));
+    completeUserFeedback(instance, Map.of("userSatisfied", true));
 
     // The tool call forces a second model call: turn 1 writes the cache, turn 2 reads it.
     assertAgentResponse(
@@ -543,6 +548,49 @@ class RealProviderApiSmokeIT {
               .hasResponseTextSatisfying(
                   text -> Assertions.assertThat(text).contains(NONCE_CODE_NAME));
         });
+  }
+
+  /** Re-entry test: catches a completed assistant text turn getting replayed incorrectly. */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providers")
+  void userFeedbackLoopReplaysAssistantTextOnFollowUp(Provider provider) {
+    var model =
+        buildModel(
+            provider,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+            BPMN_RESOURCE,
+            DEFAULT_SYSTEM_PROMPT,
+            template ->
+                template.property(
+                    "data.userPrompt.prompt",
+                    "=if (is defined(followUpInput)) then followUpInput else userPrompt"));
+
+    var instance =
+        startAgent(
+            model,
+            PROCESS_ID,
+            DEFAULT_SYSTEM_PROMPT,
+            Map.of("userPrompt", "What is the internal project code name? Use your lookup tool."));
+
+    // Turn 1 completes with a plain text answer - no follow-up tool call.
+    completeUserFeedback(
+        instance,
+        Map.of(
+            "userSatisfied",
+            false,
+            "followUpInput",
+            "Also tell me the clearance level you just found, in one short sentence."));
+
+    // Turn 2's request replays turn 1's completed assistant text message from history.
+    completeUserFeedback(instance, Map.of("userSatisfied", true));
+
+    assertAgentResponse(
+        instance,
+        response ->
+            AgentSubProcessResponseAssert.assertThat(response)
+                .isReady()
+                .hasResponseTextSatisfying(
+                    text -> Assertions.assertThat(text).contains(NONCE_CLEARANCE)));
   }
 
   @ParameterizedTest(name = "{0}")
@@ -653,6 +701,7 @@ class RealProviderApiSmokeIT {
       String systemPrompt,
       Map<String, Object> variables) {
     ZeebeTest.with(camundaClient).awaitCompleteTopology().deploy(model);
+    camundaClient.newDeployResourceCommand().addResourceFromClasspath(FORM_RESOURCE).send().join();
     final var allVariables = new HashMap<>(variables);
     allVariables.put("systemPrompt", systemPrompt);
     return camundaClient
@@ -662,6 +711,30 @@ class RealProviderApiSmokeIT {
         .variables(allVariables)
         .send()
         .join();
+  }
+
+  /**
+   * Completes the currently active {@code User_Feedback} user task with the given variables. Picks
+   * the task with the highest key - user task keys are monotonically increasing, so this is always
+   * the most recently created (and only still-active) one for the instance, even after a prior
+   * feedback-loop iteration already completed an earlier task on the same instance.
+   */
+  private void completeUserFeedback(ProcessInstanceEvent instance, Map<String, Object> variables) {
+    assertThat(instance).withAssertionTimeout(PROCESS_TIMEOUT).hasActiveElements("User_Feedback");
+
+    final var tasks =
+        camundaClient
+            .newUserTaskSearchRequest()
+            .filter(f -> f.processInstanceKey(instance.getProcessInstanceKey()))
+            .send()
+            .join();
+    final var taskKey =
+        tasks.items().stream()
+            .max((a, b) -> Long.compare(a.getUserTaskKey(), b.getUserTaskKey()))
+            .orElseThrow()
+            .getUserTaskKey();
+
+    camundaClient.newCompleteUserTaskCommand(taskKey).variables(variables).send().join();
   }
 
   /**
