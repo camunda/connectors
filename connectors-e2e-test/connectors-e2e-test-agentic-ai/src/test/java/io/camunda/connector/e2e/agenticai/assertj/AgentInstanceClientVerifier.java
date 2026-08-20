@@ -18,7 +18,7 @@ package io.camunda.connector.e2e.agenticai.assertj;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -33,7 +33,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.mockito.ArgumentCaptor;
@@ -41,24 +40,24 @@ import org.mockito.InOrder;
 
 /**
  * Verifies the ordered sequence of {@link AgentInstanceClient} interactions a single agent
- * invocation produces, together with the actual conversation messages passed to the history-item
- * calls.
+ * invocation produces, together with the actual conversation messages passed along the way.
  *
  * <p>This is a Mockito interaction verifier (hence {@code verify(...)} rather than an AssertJ
  * {@code assertThat(...)}); it asserts on calls, not on a value. Each chat turn follows the same
- * shape: {@code THINKING} (status only) → {@code createHistoryItemsBeforeChat} → {@code
- * createHistoryItemsAfterChat} → a final {@code update} carrying the end status and the per-turn
- * metrics delta. The before-chat snapshot carries input messages only; the after-chat snapshot adds
- * the assistant response; both share the sequential 1-based iteration key.
+ * shape: {@code applyTurnStart} (moves the agent instance to {@code THINKING} and records its
+ * input) followed by {@code applyTurnCompletion} (records the assistant's response and moves the
+ * agent instance to its end-of-turn status). The turn snapshot passed to {@code applyTurnStart}
+ * carries input messages only; the one passed to {@code applyTurnCompletion} adds the assistant
+ * response and this turn's own metrics; both share the sequential 1-based iteration key.
  */
 public class AgentInstanceClientVerifier {
 
   private final AgentInstanceClient client;
   private final InOrder inOrder;
 
-  // Two captors on purpose: the before-chat snapshot documents that createHistoryItemsBeforeChat
-  // fires with input-only turns, the after-chat snapshot that createHistoryItemsAfterChat fires
-  // with the assistant response attached.
+  // Two captors on purpose: the before-chat snapshot documents that applyTurnStart fires with
+  // input-only turns, the after-chat snapshot that applyTurnCompletion fires with the assistant
+  // response attached.
   private final ArgumentCaptor<AgentConversationTurn> beforeChatTurns =
       ArgumentCaptor.forClass(AgentConversationTurn.class);
   private final ArgumentCaptor<AgentConversationTurn> afterChatTurns =
@@ -80,51 +79,28 @@ public class AgentInstanceClientVerifier {
     return this;
   }
 
-  /** A chat turn that ends in a tool call: ... → {@code TOOL_CALLING} + metrics delta. */
+  /** A chat turn that ends in a tool call: ... → {@code TOOL_CALLING} + this turn's metrics. */
   public AgentInstanceClientVerifier toolCallTurn(
-      AgentMetrics delta, Consumer<ChatTurnAssert> turnAssertions) {
-    return chatTurn(AgentInstanceUpdateStatus.TOOL_CALLING, delta, turnAssertions);
+      AgentMetrics metrics, Consumer<ChatTurnAssert> turnAssertions) {
+    return chatTurn(AgentInstanceUpdateStatus.TOOL_CALLING, metrics, turnAssertions);
   }
 
-  /** A chat turn that ends with the final answer: ... → {@code IDLE} + metrics delta. */
+  /** A chat turn that ends with the final answer: ... → {@code IDLE} + this turn's metrics. */
   public AgentInstanceClientVerifier finalAnswerTurn(
-      AgentMetrics delta, Consumer<ChatTurnAssert> turnAssertions) {
-    return chatTurn(AgentInstanceUpdateStatus.IDLE, delta, turnAssertions);
+      AgentMetrics metrics, Consumer<ChatTurnAssert> turnAssertions) {
+    return chatTurn(AgentInstanceUpdateStatus.IDLE, metrics, turnAssertions);
   }
 
   private AgentInstanceClientVerifier chatTurn(
       AgentInstanceUpdateStatus endStatus,
-      AgentMetrics delta,
+      AgentMetrics metrics,
       Consumer<ChatTurnAssert> turnAssertions) {
     inOrder
         .verify(client)
-        .update(
-            any(),
-            any(),
-            argThat(
-                request ->
-                    request != null
-                        && request.status() == AgentInstanceUpdateStatus.THINKING
-                        && request.delta() == null
-                        && request.tools() != null
-                        && !request.tools().isEmpty()));
+        .applyTurnStart(any(), any(), beforeChatTurns.capture(), any(), any(), any());
     inOrder
         .verify(client)
-        .createHistoryForInputMessages(any(), any(), beforeChatTurns.capture(), any(), any());
-    inOrder
-        .verify(client)
-        .createHistoryForAssistantMessage(any(), any(), afterChatTurns.capture(), any());
-    inOrder
-        .verify(client)
-        .update(
-            any(),
-            any(),
-            argThat(
-                request ->
-                    request != null
-                        && request.status() == endStatus
-                        && Objects.equals(request.delta(), delta)
-                        && (request.tools() == null || request.tools().isEmpty())));
+        .applyTurnCompletion(any(), any(), afterChatTurns.capture(), any(), eq(endStatus));
 
     final var expectedIterationKey = ++turnCount;
     final var before = lastValue(beforeChatTurns);
@@ -136,6 +112,8 @@ public class AgentInstanceClientVerifier {
     // after-chat snapshot: same turn, now with the assistant response and per-turn execution time
     assertThat(after.iterationKey()).isEqualTo(expectedIterationKey);
     assertThat(after.metrics().executionTime()).isNotNull();
+    // this turn's own metrics (modelCalls/tokens/toolCalls), ignoring the execution-time reading
+    assertThat(after.metrics().withExecutionTime(null)).isEqualTo(metrics);
 
     turnAssertions.accept(new ChatTurnAssert(before, after));
     return this;

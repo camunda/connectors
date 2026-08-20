@@ -14,7 +14,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -73,7 +75,9 @@ public final class AgentConversation {
       @Nullable SystemMessage systemMessage,
       List<Message> inputMessages) {
     int nextKey = nextIterationKey(agentContext, previousConversation);
-    var currentTurn = new AgentConversationTurn(nextKey, inputMessages, null, AgentMetrics.empty());
+    var currentTurn =
+        new AgentConversationTurn(
+            nextKey, inputMessages, null, AgentMetrics.empty(), configuration.fingerprint());
     return new AgentConversation(
         configuration, agentContext, systemMessage, previousConversation.turns(), currentTurn);
   }
@@ -135,7 +139,11 @@ public final class AgentConversation {
     updatedPreviousTurns.add(currentTurn);
     var nextTurn =
         new AgentConversationTurn(
-            currentTurn.iterationKey() + 1, List.of(), null, AgentMetrics.empty());
+            currentTurn.iterationKey() + 1,
+            List.of(),
+            null,
+            AgentMetrics.empty(),
+            currentTurn.configurationFingerprint());
     return new AgentConversation(
         configuration, currentContext, systemMessage, updatedPreviousTurns, nextTurn);
   }
@@ -205,17 +213,21 @@ public final class AgentConversation {
 
   /**
    * Applies the context window filter and returns a {@link ConversationSnapshot} ready to send to
-   * the LLM.
+   * the LLM. Tool definitions come from {@link #configuration}, not the durable {@link
+   * AgentContext} — {@link AgentConfiguration#tools()} is the authoritative current tool list for
+   * this invocation once the handler has populated it via {@link AgentConfiguration#withTools}.
    */
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
-    return new ConversationSnapshot(windowed, currentContext.toolDefinitions());
+    return new ConversationSnapshot(windowed, configuration.tools());
   }
 
   /**
    * Produces an updated {@link AgentContext} with cumulative metrics from all turns ingested in
-   * this invocation applied on top of the base context metrics, and {@code lastIterationKey}
-   * stamped to the current turn's key once it has been ingested.
+   * this invocation applied on top of the base context metrics, {@code lastIterationKey} stamped to
+   * the current turn's key, and a new {@code configurationFingerprintHistory} entry recorded when
+   * the current turn's {@link AgentConversationTurn#configurationFingerprint()} differs from the
+   * turn preceding it — once the current turn has been ingested.
    */
   public AgentContext toAgentContext() {
     var withMetrics = currentContext.withMetrics(totalMetrics());
@@ -223,7 +235,15 @@ public final class AgentConversation {
     if (metadata == null || currentTurn.assistantMessage() == null) {
       return withMetrics;
     }
-    return withMetrics.withMetadata(metadata.withLastIterationKey(currentTurn.iterationKey()));
+    var updatedMetadata = metadata.withLastIterationKey(currentTurn.iterationKey());
+    var precedingFingerprint =
+        previousTurns.isEmpty() ? null : previousTurns.getLast().configurationFingerprint();
+    if (!Objects.equals(currentTurn.configurationFingerprint(), precedingFingerprint)) {
+      var history = new LinkedHashMap<>(updatedMetadata.configurationFingerprintHistory());
+      history.put(currentTurn.iterationKey(), currentTurn.configurationFingerprint());
+      updatedMetadata = updatedMetadata.withConfigurationFingerprintHistory(history);
+    }
+    return withMetrics.withMetadata(updatedMetadata);
   }
 
   /** Returns the last completed turn, or empty if no turns have been completed yet. */

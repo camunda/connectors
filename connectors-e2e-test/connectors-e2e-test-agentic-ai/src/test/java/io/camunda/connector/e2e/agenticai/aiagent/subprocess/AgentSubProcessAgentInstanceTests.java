@@ -230,7 +230,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
     // staggered completion also triggers the early-report path; account for it before
     // noMoreInteractions()
     verify(agentInstanceClient)
-        .createHistoryForToolCallResults(
+        .applyToolCallResults(
             any(AgentExecutionContext.class),
             any(AgentInstanceKey.class),
             argThat(
@@ -243,9 +243,9 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
 
   /**
    * The fast tool's result MUST reach agent instance history via {@link
-   * AgentInstanceClient#createHistoryForToolCallResults} while the slow tool is still in flight.
-   * That call only originates from the composer's {@code Deferred} path, so its occurrence proves
-   * early visibility.
+   * AgentInstanceClient#applyToolCallResults} while the slow tool is still in flight. That call
+   * only originates from the composer's {@code Deferred} path, so its occurrence proves early
+   * visibility.
    */
   @Test
   void shouldReportFastToolResultToHistoryWhileSlowToolStillInFlight() throws Exception {
@@ -275,7 +275,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
             Map.of("userPrompt", "Calculate the superflux product and download a file")));
 
     verify(agentInstanceClient)
-        .createHistoryForToolCallResults(
+        .applyToolCallResults(
             any(AgentExecutionContext.class),
             any(AgentInstanceKey.class),
             argThat(

@@ -14,10 +14,12 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
 import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
+import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.CreateAgentHistoryItemFinalCommandStep;
 import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -323,6 +325,36 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
           null,
           item.producedAt());
     }
+  }
+
+  @Override
+  public void applyTurnStart(
+      AgentExecutionContext executionContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
+      AgentConversationTurn turn,
+      Optional<AgentConversationTurn> previousTurn,
+      OffsetDateTime turnIngestionTimestamp,
+      AgentConfiguration configuration) {
+    throw new UnsupportedOperationException("applyTurnStart is not yet implemented");
+  }
+
+  @Override
+  public void applyTurnCompletion(
+      AgentExecutionContext executionContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
+      AgentConversationTurn turn,
+      OffsetDateTime producedAt,
+      AgentInstanceUpdateStatus status) {
+    throw new UnsupportedOperationException("applyTurnCompletion is not yet implemented");
+  }
+
+  @Override
+  public void applyToolCallResults(
+      AgentExecutionContext executionContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
+      List<ToolCallResult> toolCallResults,
+      AgentConversationTurn previousTurn) {
+    throw new UnsupportedOperationException("applyToolCallResults is not yet implemented");
   }
 
   private void createHistoryItem(
