@@ -48,6 +48,13 @@ public class GeminiChatModelFactory implements ChatModelFactory {
    * HttpOptions#timeout} and {@code ClientOptions#proxyOptions} entirely and trusts the supplied
    * client as-is. {@link #buildClient} therefore applies the overall timeout and proxy directly on
    * this custom client instead of through those SDK options.
+   *
+   * <p>A bare {@code new OkHttpClient.Builder()}, unlike the SDK's own default client, does not
+   * default {@code readTimeout}/{@code writeTimeout} to zero -- it defaults them to OkHttp's own
+   * stock 10-second value. Left alone, a Gemini SSE stream with a longer gap between chunks (e.g.
+   * during an extended thinking phase) would abort mid-stream regardless of how generous the
+   * configured overall timeout is, so {@link #buildClient} explicitly zeroes both, leaving only
+   * connect bounded and {@code callTimeout} governing the overall budget.
    */
   private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
 
@@ -105,7 +112,11 @@ public class GeminiChatModelFactory implements ChatModelFactory {
       httpOptionsBuilder.timeout(toGeminiTimeoutMillis(timeout));
     }
 
-    final var okHttpClientBuilder = new OkHttpClient.Builder().connectTimeout(CONNECT_TIMEOUT);
+    final var okHttpClientBuilder =
+        new OkHttpClient.Builder()
+            .connectTimeout(CONNECT_TIMEOUT)
+            .readTimeout(Duration.ZERO)
+            .writeTimeout(Duration.ZERO);
     if (timeout != null) {
       okHttpClientBuilder.callTimeout(Duration.ofMillis(toGeminiTimeoutMillis(timeout)));
     }

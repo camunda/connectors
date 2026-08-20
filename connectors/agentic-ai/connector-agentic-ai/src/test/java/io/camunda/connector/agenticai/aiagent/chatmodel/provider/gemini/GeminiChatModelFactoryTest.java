@@ -213,6 +213,24 @@ class GeminiChatModelFactoryTest {
     model.close();
   }
 
+  @Test
+  void createLeavesReadAndWriteTimeoutsUnboundedEvenWithAnOverallTimeoutConfigured() {
+    noProxyConfigured();
+
+    // A bare OkHttpClient.Builder() defaults readTimeout/writeTimeout to OkHttp's own stock
+    // 10-second value (unlike the SDK's own default client, which zeroes them) - left alone, a
+    // Gemini SSE stream with a longer gap between chunks would abort mid-stream regardless of how
+    // generous this configured overall timeout is.
+    final ChatModel model = factory.create(apiConfig(null, Duration.ofMinutes(5)));
+
+    final var customHttpClient = clientOptionsOf(model).orElseThrow().customHttpClient();
+    assertThat(customHttpClient).isPresent();
+    assertThat(customHttpClient.get().readTimeoutMillis()).isZero();
+    assertThat(customHttpClient.get().writeTimeoutMillis()).isZero();
+
+    model.close();
+  }
+
   private void noProxyConfigured() {
     when(httpProxySupport.getProxyConfiguration()).thenReturn(proxyConfiguration);
     when(proxyConfiguration.getProxyDetails(any())).thenReturn(Optional.empty());
