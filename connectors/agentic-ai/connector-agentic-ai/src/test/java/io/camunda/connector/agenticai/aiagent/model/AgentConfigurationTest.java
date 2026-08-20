@@ -120,5 +120,14 @@ class AgentConfigurationTest {
     void fingerprintIsNeverBlank() {
       assertThat(configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint()).isNotBlank();
     }
+
+    @Test
+    void fingerprintIsACollisionResistantDigest() {
+      // guards against a 32-bit Integer.hashCode()-based fingerprint: it doubles as both
+      // change-detection and the engine's CONFIGURATION history item id, so a collision would
+      // silently suppress a real update or dedup two distinct configurations
+      final var fingerprint = configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint();
+      assertThat(fingerprint).matches("[0-9a-f]{64}");
+    }
   }
 }

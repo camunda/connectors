@@ -14,8 +14,11 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
@@ -75,12 +78,20 @@ public record AgentConfiguration(
    * send with unchanged content dedups for free.
    */
   public String fingerprint() {
-    return Integer.toHexString(
-        Objects.hash(
+    var input =
+        String.join(
+            " ",
             chatModel.model(),
             chatModel.provider(),
             systemPrompt.prompt(),
-            limits != null ? limits.maxModelCalls() : null,
-            tools));
+            String.valueOf(limits != null ? limits.maxModelCalls() : null),
+            String.valueOf(tools));
+    try {
+      var digest =
+          MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8));
+      return HexFormat.of().formatHex(digest);
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("SHA-256 is not available", e);
+    }
   }
 }
