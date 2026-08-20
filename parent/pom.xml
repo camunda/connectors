@@ -92,7 +92,7 @@ limitations under the License.</license.inlineheader>
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.34.0</version.amqp-client>
-    <tomcat.version>10.1.57</tomcat.version>
+    <tomcat.version>10.1.59</tomcat.version>
     <version.spring-cloud-gcp-starter-logging>5.13.11</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.3</version.logback>
 
@@ -622,13 +622,13 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>4.35.1</version>
+        <version>4.36.0</version>
       </dependency>
 
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java-util</artifactId>
-        <version>4.35.1</version>
+        <version>4.36.0</version>
       </dependency>
 
       <dependency>
