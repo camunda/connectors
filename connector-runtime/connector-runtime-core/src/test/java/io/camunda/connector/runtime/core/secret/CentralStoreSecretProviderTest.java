@@ -90,7 +90,7 @@ class CentralStoreSecretProviderTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"myapp/db.pass", "with.dot", "with/slash", "with-dash", "with space"})
+  @ValueSource(strings = {"myapp/db.pass", "with.dot", "with/slash", "with space"})
   void saysSoForANameThatCannotBeWrittenAsAReference(String name) {
     // The reference charset is narrower than the legacy secret-name charset. Reporting the name as
     // merely unavailable would look exactly like an ordinary missing secret.
@@ -101,6 +101,18 @@ class CentralStoreSecretProviderTest {
         .hasMessageContaining(name)
         .hasMessageContaining("letters, digits and underscores");
     assertThat(engineA.requested).isEmpty();
+  }
+
+  @Test
+  void readsADashedNameFromTheStore() {
+    // Console has always allowed a dash in a connector secret key, and the engine's reference
+    // charset accepts one since camunda/camunda#60446, so these names migrate through the
+    // fallback unchanged.
+    engineA.holds("camunda.secrets.db-password", "pw");
+    var provider = new CentralStoreSecretProvider(Map.of("engine-a", engineA));
+
+    assertThat(provider.getSecret("db-password", context("engine-a"))).isEqualTo("pw");
+    assertThat(engineA.requested).containsExactly(List.of("camunda.secrets.db-password"));
   }
 
   private static SecretContext context(String physicalTenantId) {
