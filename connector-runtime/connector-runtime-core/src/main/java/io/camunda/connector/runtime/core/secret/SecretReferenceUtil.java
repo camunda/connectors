@@ -36,11 +36,15 @@ public final class SecretReferenceUtil {
   public static final String REFERENCE_PREFIX = "camunda.secrets.";
 
   /**
-   * Mirrors the engine's reference charset. The engine detects references on the parsed FEEL
-   * expression rather than with a regex, so this is used only to locate an already-detected
-   * reference in evaluated text — never to decide that something is a reference.
+   * Mirrors the engine's reference charset, which is {@code [\p{Alnum}_-]}. The engine detects
+   * references on the parsed FEEL expression rather than with a regex, so this is used only to
+   * locate an already-detected reference in evaluated text — never to decide that something is a
+   * reference.
+   *
+   * <p>The dash matters: Console has always allowed it in a secret name, so without it a dash-named
+   * secret is reported by the cluster and then never found in the result.
    */
-  static final Pattern PATTERN = Pattern.compile("camunda\\.secrets\\.(?<secret>[\\p{Alnum}_]+)");
+  static final Pattern PATTERN = Pattern.compile("camunda\\.secrets\\.(?<secret>[\\p{Alnum}_-]+)");
 
   private SecretReferenceUtil() {}
 

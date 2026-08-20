@@ -33,7 +33,10 @@ class SecretReferenceUtilTest {
     "Bearer camunda.secrets.TOKEN,camunda.secrets.TOKEN",
     "camunda.secrets.TOKEN_V2,camunda.secrets.TOKEN_V2",
     "camunda.secrets.a1B2,camunda.secrets.a1B2",
-    "camunda.secrets.TOKEN.length,camunda.secrets.TOKEN"
+    "camunda.secrets.TOKEN.length,camunda.secrets.TOKEN",
+    "camunda.secrets.db-password,camunda.secrets.db-password",
+    "=camunda.secrets.my-api-key,camunda.secrets.my-api-key",
+    "camunda.secrets.a-b-c,camunda.secrets.a-b-c"
   })
   void findsAReference(String input, String expected) {
     assertThat(SecretReferenceUtil.findReferences(input)).containsExactly(expected);
@@ -124,6 +127,18 @@ class SecretReferenceUtilTest {
 
     assertThat(SecretReferenceUtil.replaceReferences(input, Map.of("camunda.secrets.A", "v")))
         .isSameAs(input);
+  }
+
+  @Test
+  void doesNotSubstituteAShorterDashedReferenceInsideALongerOne() {
+    String result =
+        SecretReferenceUtil.replaceReferences(
+            "camunda.secrets.db-password-v2",
+            Map.of(
+                "camunda.secrets.db-password", "short",
+                "camunda.secrets.db-password-v2", "long"));
+
+    assertThat(result).isEqualTo("long");
   }
 
   @Test
