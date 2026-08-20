@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED;
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 
 import io.camunda.client.CamundaClient;
@@ -15,8 +16,10 @@ import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
 import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
+import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.CreateAgentHistoryItemFinalCommandStep;
 import io.camunda.client.api.command.ProblemException;
+import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.HistoryItem;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -33,7 +36,9 @@ import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorRetryException;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -335,7 +340,73 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
       AgentConfiguration configuration) {
-    throw new UnsupportedOperationException("applyTurnStart is not yet implemented");
+    if (agentInstanceKey == null) {
+      LOGGER.debug("Skipping agent instance turn start: no agent instance key");
+      return;
+    }
+
+    final List<HistoryItem> historyItems = new ArrayList<>();
+    if (configurationChanged(previousTurn, configuration)) {
+      historyItems.add(
+          configurationHistoryItem(configuration, turn.iterationKey(), turnIngestionTimestamp));
+    }
+    historyItems.addAll(
+        inputHistoryItems(turn, previousTurn, turnIngestionTimestamp, turn.iterationKey()));
+
+    applyBatchedUpdate(
+        executionContext,
+        agentInstanceKey.value(),
+        AgentInstanceUpdateStatus.THINKING,
+        historyItems);
+  }
+
+  private boolean configurationChanged(
+      Optional<AgentConversationTurn> previousTurn, AgentConfiguration configuration) {
+    return previousTurn
+        .map(AgentConversationTurn::configurationFingerprint)
+        .map(fingerprint -> !fingerprint.equals(configuration.fingerprint()))
+        .orElse(true);
+  }
+
+  private HistoryItem configurationHistoryItem(
+      AgentConfiguration configuration, int iterationKey, OffsetDateTime producedAt) {
+    return new HistoryItem()
+        .historyItemId(configuration.fingerprint())
+        .role(AgentInstanceHistoryRole.CONFIGURATION)
+        .content(List.of())
+        .loopIteration(iterationKey)
+        .producedAt(producedAt)
+        .systemPrompt(
+            List.of(AgentInstanceHistoryContent.text(configuration.systemPrompt().prompt())))
+        .tools(toolMapper.mapTools(configuration.tools()));
+  }
+
+  private List<HistoryItem> inputHistoryItems(
+      AgentConversationTurn turn,
+      Optional<AgentConversationTurn> previousTurn,
+      OffsetDateTime turnIngestionTimestamp,
+      int iterationKey) {
+    final Map<String, ToolCall> toolCallsById =
+        previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
+    final List<HistoryItem> items = new ArrayList<>();
+    for (final Message message : turn.inputMessages()) {
+      for (final var item :
+          historyMapper.inputHistoryItems(message, toolCallsById, turnIngestionTimestamp)) {
+        items.add(toHistoryItem(item, iterationKey));
+      }
+    }
+    return items;
+  }
+
+  private HistoryItem toHistoryItem(
+      AgentInstanceHistoryMapper.InputHistoryItem item, int iterationKey) {
+    return new HistoryItem()
+        .historyItemId(item.historyItemId())
+        .role(item.role())
+        .content(item.content())
+        .toolCalls(item.toolCalls())
+        .producedAt(item.producedAt())
+        .loopIteration(iterationKey);
   }
 
   @Override
@@ -345,7 +416,34 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentConversationTurn turn,
       OffsetDateTime producedAt,
       AgentInstanceUpdateStatus status) {
-    throw new UnsupportedOperationException("applyTurnCompletion is not yet implemented");
+    if (agentInstanceKey == null) {
+      LOGGER.debug("Skipping agent instance turn completion: no agent instance key");
+      return;
+    }
+
+    final AssistantMessage assistantMessage = turn.assistantMessage();
+    if (assistantMessage == null) {
+      throw new IllegalArgumentException(
+          "Cannot create assistant history item for a turn without an assistant message");
+    }
+    final var content = historyMapper.assistantContent(assistantMessage);
+    final var toolCalls = historyMapper.assistantToolCalls(assistantMessage);
+    if (content.isEmpty() && (toolCalls == null || toolCalls.isEmpty())) {
+      throw new IllegalArgumentException(
+          "Cannot create assistant history item with neither content nor tool calls");
+    }
+
+    final HistoryItem item =
+        new HistoryItem()
+            .historyItemId(AgentInstanceHistoryItemIds.forMessage(assistantMessage))
+            .role(AgentInstanceHistoryRole.ASSISTANT)
+            .content(content)
+            .toolCalls(toolCalls)
+            .metrics(historyMapper.historyMetrics(turn.metrics()))
+            .producedAt(producedAt)
+            .loopIteration(turn.iterationKey());
+
+    applyBatchedUpdate(executionContext, agentInstanceKey.value(), status, List.of(item));
   }
 
   @Override
@@ -354,7 +452,72 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       List<ToolCallResult> toolCallResults,
       AgentConversationTurn previousTurn) {
-    throw new UnsupportedOperationException("applyToolCallResults is not yet implemented");
+    if (agentInstanceKey == null) {
+      LOGGER.debug("Skipping agent instance tool call results: no agent instance key");
+      return;
+    }
+
+    final var syntheticMessage =
+        ToolCallResultMessage.builder()
+            .results(toolCallResults.stream().map(ToolCallResultContent::from).toList())
+            .build();
+    final var toolCallsById = previousTurn.toolCallsById();
+    final var iteration = previousTurn.iterationKey() + 1;
+
+    final List<HistoryItem> items = new ArrayList<>();
+    // turnIngestionTimestamp is unused for TOOL_RESULT items -- each uses its own resolved
+    // completedAt
+    for (final var item :
+        historyMapper.inputHistoryItems(syntheticMessage, toolCallsById, OffsetDateTime.now())) {
+      items.add(toHistoryItem(item, iteration));
+    }
+
+    applyBatchedUpdate(executionContext, agentInstanceKey.value(), null, items);
+  }
+
+  private void applyBatchedUpdate(
+      AgentExecutionContext executionContext,
+      long agentInstanceKey,
+      @Nullable AgentInstanceUpdateStatus status,
+      List<HistoryItem> historyItems) {
+    CamundaApiRetry.execute(
+        () -> {
+          executeBatchedUpdate(executionContext, agentInstanceKey, status, historyItems);
+          return null;
+        },
+        AgentInstanceErrorClassifier.INSTANCE,
+        retriesProperties.maxRetries(),
+        retriesProperties.initialRetryDelay(),
+        this::buildBatchedUpdateException,
+        sleeper);
+  }
+
+  private void executeBatchedUpdate(
+      AgentExecutionContext executionContext,
+      long agentInstanceKey,
+      @Nullable AgentInstanceUpdateStatus status,
+      List<HistoryItem> historyItems) {
+    LOGGER.debug(
+        "Updating agent instance {} with batched history: status={}, items={}",
+        agentInstanceKey,
+        status,
+        historyItems.size());
+    UpdateAgentInstanceCommandStep2 cmd =
+        camundaClient
+            .newUpdateAgentInstanceCommand(agentInstanceKey)
+            .elementInstanceKey(executionContext.jobContext().getElementInstanceKey())
+            .jobKey(executionContext.jobContext().getJobKey())
+            .history(historyItems);
+
+    if (status != null) {
+      cmd = cmd.status(status);
+    }
+
+    final String leaseToken = executionContext.jobContext().getLeaseToken();
+    if (leaseToken != null && !leaseToken.isBlank()) {
+      cmd = cmd.jobLease(leaseToken);
+    }
+    cmd.execute();
   }
 
   private void createHistoryItem(
@@ -451,6 +614,42 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
           case INTERRUPTED -> "Interrupted while waiting to retry agent instance update";
         };
     return new ConnectorException(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED, message, cause);
+  }
+
+  /**
+   * A batched update (used by {@link #applyTurnStart}, {@link #applyTurnCompletion} and {@link
+   * #applyToolCallResults}) rejected with 404 means the job activation that issued it has been
+   * superseded by a later one, so it must fail without provoking any retry -- unlike a batch-less
+   * {@link #update}, which keeps the plain permanent-failure behavior.
+   */
+  private ConnectorException buildBatchedUpdateException(
+      Throwable cause, int attempt, FailureReason reason) {
+    if (reason == FailureReason.PERMANENT_ERROR && isNotFound(cause)) {
+      return ConnectorRetryException.builder()
+          .errorCode(ERROR_CODE_AGENT_INSTANCE_SUPERSEDED)
+          .message(
+              "Agent instance update rejected: the job activation has been superseded: %s"
+                  .formatted(cause.getMessage()))
+          .cause(cause)
+          .retries(0)
+          .build();
+    }
+    return buildUpdateException(cause, attempt, reason);
+  }
+
+  private boolean isNotFound(Throwable t) {
+    Throwable current = t;
+    while (current != null) {
+      if (current instanceof ClientHttpException httpEx && httpEx.code() == 404) {
+        return true;
+      }
+      final Throwable cause = current.getCause();
+      if (cause == current) {
+        break;
+      }
+      current = cause;
+    }
+    return false;
   }
 
   private ConnectorException buildHistoryItemException(
