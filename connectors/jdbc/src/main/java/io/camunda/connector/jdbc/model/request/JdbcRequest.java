@@ -10,7 +10,10 @@ import static io.camunda.connector.generator.java.annotation.TemplateProperty.Pr
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.jdbc.model.request.connection.JdbcConnection;
 import io.camunda.connector.jdbc.model.request.connection.JdbcConnectionConfiguration;
 import jakarta.validation.Valid;
@@ -38,14 +41,8 @@ public record JdbcRequest(
               @TemplateProperty.DropdownPropertyChoice(label = "Oracle", value = "ORACLE"),
             })
         SupportedDatabase database,
-    // Not @NotNull, and not @Valid: a bound connection credential (configuration) may substitute
-    // for inline connection fields, and takes precedence when both are set (resolved in
-    // ConnectionHelper). The raw field is validated conditionally via
-    // getInlineConnectionWhenNoCredentialBound() below, so a Modeler-generated diagram that only
-    // sets a credential (and carries connection's unconditional default discriminator, e.g.
-    // authType=uri, with no uri set) doesn't fail validation on the losing inline path.
-    JdbcConnection connection,
-    @Valid @NotNull JdbcRequestData data,
+    // Declared before `connection` so it renders first and satisfies ConditionPropertyOrderRule
+    // for the isEmpty condition on `connection` below.
     @TemplateProperty(
             id = "connectionConfiguration",
             label = "Connection credential",
@@ -57,11 +54,25 @@ public record JdbcRequest(
                 "Choose a reusable JDBC connection credential. When set, it is bound as a whole to"
                     + " the connector's 'configuration' input.")
         @Valid
-        JdbcConnectionConfiguration configuration) {
+        JdbcConnectionConfiguration configuration,
+    // Not @NotNull, and not @Valid: a bound connection credential (configuration) may substitute
+    // for inline connection fields, and takes precedence when both are set (resolved in
+    // ConnectionHelper). The raw field is validated conditionally via
+    // getInlineConnectionWhenNoCredentialBound() below, so a Modeler-generated diagram that only
+    // sets a credential (and carries connection's unconditional default discriminator, e.g.
+    // authType=uri, with no uri set) doesn't fail validation on the losing inline path. Hidden and
+    // un-required (via the isEmpty condition) once a credential is bound above.
+    @NestedProperties(
+            condition =
+                @PropertyCondition(
+                    property = "connectionConfiguration",
+                    isEmpty = NullableBoolean.TRUE))
+        JdbcConnection connection,
+    @Valid @NotNull JdbcRequestData data) {
 
   /** Convenience constructor for the pre-configuration-chooser shape (no bound configuration). */
   public JdbcRequest(SupportedDatabase database, JdbcConnection connection, JdbcRequestData data) {
-    this(database, connection, data, null);
+    this(database, null, connection, data);
   }
 
   /**

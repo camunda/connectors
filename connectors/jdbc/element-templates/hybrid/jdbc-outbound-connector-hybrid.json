@@ -5,7 +5,7 @@
   "description" : "Read and write data from a Camunda process directly to a SQL database (e.g., Microsoft SQL Server, MySQL, PostgreSQL)",
   "keywords" : [ "relational", "database", "SQL", "query database", "execute SQL", "relational database", "MySQL", "PostgreSQL", "SQL Server", "Oracle", "MariaDB", "select", "insert", "update", "delete" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -82,6 +82,18 @@
       "value" : "ORACLE"
     } ]
   }, {
+    "id" : "connectionConfiguration",
+    "label" : "Connection credential",
+    "description" : "Choose a reusable JDBC connection credential. When set, it is bound as a whole to the connector's 'configuration' input.",
+    "optional" : true,
+    "group" : "connection",
+    "binding" : {
+      "name" : "configuration",
+      "type" : "zeebe:input"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:jdbc-connection:1"
+  }, {
     "id" : "connection.authType",
     "label" : "Connection type",
     "value" : "uri",
@@ -89,6 +101,11 @@
     "binding" : {
       "name" : "connection.authType",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connectionConfiguration",
+      "isEmpty" : true,
+      "type" : "simple"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -116,9 +133,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "connection.authType",
-      "equals" : "uri",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "connection.authType",
+        "equals" : "uri",
+        "type" : "simple"
+      }, {
+        "property" : "connectionConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "URI should contain JDBC driver, host name, and port number. See the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#uri-connection\" target=\"_blank\">URI connection</a> reference.",
     "type" : "String"
@@ -133,9 +156,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "connection.authType",
-      "equals" : "uri",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "connection.authType",
+        "equals" : "uri",
+        "type" : "simple"
+      }, {
+        "property" : "connectionConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Additional properties for the connection ('user' and 'password' for instance). See the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">SQL connection properties</a> reference.",
     "type" : "String"
@@ -153,9 +182,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "connection.authType",
-      "equals" : "detailed",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "connection.authType",
+        "equals" : "detailed",
+        "type" : "simple"
+      }, {
+        "property" : "connectionConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -172,9 +207,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "connection.authType",
-      "equals" : "detailed",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "connection.authType",
+        "equals" : "detailed",
+        "type" : "simple"
+      }, {
+        "property" : "connectionConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -188,9 +229,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "connection.authType",
-      "equals" : "detailed",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "connection.authType",
+        "equals" : "detailed",
+        "type" : "simple"
+      }, {
+        "property" : "connectionConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -204,9 +251,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "connection.authType",
-      "equals" : "detailed",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "connection.authType",
+        "equals" : "detailed",
+        "type" : "simple"
+      }, {
+        "property" : "connectionConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -220,9 +273,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "connection.authType",
-      "equals" : "detailed",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "connection.authType",
+        "equals" : "detailed",
+        "type" : "simple"
+      }, {
+        "property" : "connectionConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -236,24 +295,18 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "connection.authType",
-      "equals" : "detailed",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "connection.authType",
+        "equals" : "detailed",
+        "type" : "simple"
+      }, {
+        "property" : "connectionConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Additional properties for the connection. See the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">SQL connection properties</a> reference.",
     "type" : "String"
-  }, {
-    "id" : "connectionConfiguration",
-    "label" : "Connection credential",
-    "description" : "Choose a reusable JDBC connection credential. When set, it is bound as a whole to the connector's 'configuration' input.",
-    "optional" : true,
-    "group" : "connection",
-    "binding" : {
-      "name" : "configuration",
-      "type" : "zeebe:input"
-    },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:jdbc-connection:1"
   }, {
     "id" : "data.returnResults",
     "label" : "Return results",
@@ -298,7 +351,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

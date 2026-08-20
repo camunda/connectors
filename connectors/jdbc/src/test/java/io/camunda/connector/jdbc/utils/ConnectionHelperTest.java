@@ -32,7 +32,7 @@ class ConnectionHelperTest {
 
   @Test
   void usesConfigurationWhenBound() {
-    var request = new JdbcRequest(SupportedDatabase.POSTGRESQL, null, DATA, CREDENTIAL);
+    var request = new JdbcRequest(SupportedDatabase.POSTGRESQL, CREDENTIAL, null, DATA);
 
     JdbcConnection resolved = ConnectionHelper.resolveConnection(request);
 
@@ -56,7 +56,7 @@ class ConnectionHelperTest {
 
   @Test
   void configurationTakesPrecedenceOverInline() {
-    var request = new JdbcRequest(SupportedDatabase.POSTGRESQL, INLINE, DATA, CREDENTIAL);
+    var request = new JdbcRequest(SupportedDatabase.POSTGRESQL, CREDENTIAL, INLINE, DATA);
 
     var resolved = (DetailedConnection) ConnectionHelper.resolveConnection(request);
 
