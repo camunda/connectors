@@ -19,7 +19,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
-/** Derives a stable, model-safe id for a document. */
+/**
+ * Derives a stable id for a document, verbatim wherever possible.
+ *
+ * <p>This id is the caller-visible handle other code cross-references a document by (e.g. a
+ * document registry) - it is never sanitized or hashed away for a specific provider's wire-format
+ * constraints. A provider whose native id field has narrower requirements (e.g. Bedrock's {@code
+ * DocumentBlock.name}) derives its own wire-safe value from this id at its own call site instead of
+ * relying on this class to produce one.
+ */
 public final class DocumentHandle {
 
   private static final HexFormat HEX_FORMAT = HexFormat.of();
@@ -27,10 +35,12 @@ public final class DocumentHandle {
   private DocumentHandle() {}
 
   /**
-   * Returns a stable, model-safe id for the given document:
+   * Returns a stable id for the given document:
    *
    * <ul>
-   *   <li>{@link CamundaDocumentReference} → the documentId (already a UUID)
+   *   <li>{@link CamundaDocumentReference} → the documentId verbatim; usually a UUID, but {@code
+   *       DocumentCreationRequest.documentId(...)} accepts arbitrary strings, so it isn't
+   *       guaranteed to be one
    *   <li>{@link ExternalDocumentReference} → {@code "ext-"} + first 12 hex chars of SHA-256(url);
    *       the raw URL is never exposed to the model
    *   <li>{@link InlineDocumentReference} with non-blank content → {@code "inline-"} + first 12 hex

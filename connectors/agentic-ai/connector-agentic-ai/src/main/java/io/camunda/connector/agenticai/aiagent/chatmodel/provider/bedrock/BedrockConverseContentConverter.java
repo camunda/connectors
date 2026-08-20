@@ -22,7 +22,10 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +81,8 @@ public class BedrockConverseContentConverter {
           Map.entry(ContentType.TEXT_HTML, DocumentFormat.HTML),
           Map.entry(ContentType.TEXT_PLAIN, DocumentFormat.TXT),
           Map.entry(ContentType.create("text/markdown"), DocumentFormat.MD));
+
+  private static final HexFormat HEX_FORMAT = HexFormat.of();
 
   private final ObjectMapper objectMapper;
 
@@ -140,9 +145,7 @@ public class BedrockConverseContentConverter {
    * images -> {@link ImageBlock}; native {@link DocumentFormat} types and remaining text-ish types
    * -> {@link DocumentBlock}; anything else throws.
    *
-   * <p>Every {@link DocumentBlock} is named via {@link DocumentHandle#idFor(Document)}. That name
-   * must stay deterministic across requests: a fresh name each time means no prefix containing a
-   * document ever matches, and prompt caching silently never hits.
+   * <p>Every {@link DocumentBlock} is named via {@link #bedrockDocumentName(Document)}.
    */
   private ContentBlock documentContentBlock(DocumentContent doc) {
     final Document document = doc.document();
@@ -161,14 +164,14 @@ public class BedrockConverseContentConverter {
                   .format(
                       lookupContentType(
                           NATIVE_DOCUMENT_FORMATS, Objects.requireNonNull(contentType)))
-                  .name(DocumentHandle.idFor(document))
+                  .name(bedrockDocumentName(document))
                   .source(s -> s.bytes(SdkBytes.fromByteArray(document.asByteArray())))
                   .build());
       case TEXT_FALLBACK ->
           ContentBlock.fromDocument(
               DocumentBlock.builder()
                   .format(DocumentFormat.TXT)
-                  .name(DocumentHandle.idFor(document))
+                  .name(bedrockDocumentName(document))
                   .source(s -> s.text(decodeUtf8(document)))
                   .build());
       case UNSUPPORTED ->
@@ -177,6 +180,23 @@ public class BedrockConverseContentConverter {
               "Unsupported content type '%s' for document with reference '%s'"
                   .formatted(rawContentType, document.reference()));
     };
+  }
+
+  /**
+   * Derives Bedrock's {@code DocumentBlock.name} from {@link DocumentHandle#idFor(Document)} by
+   * hashing it: deterministic (same document -> same name across requests, or prompt caching
+   * silently never hits) and always within Bedrock's charset, regardless of what the underlying id
+   * contains.
+   */
+  private static String bedrockDocumentName(Document document) {
+    try {
+      final var digest = MessageDigest.getInstance("SHA-256");
+      final var bytes =
+          digest.digest(DocumentHandle.idFor(document).getBytes(StandardCharsets.UTF_8));
+      return "doc-" + HEX_FORMAT.formatHex(bytes).substring(0, 40);
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("SHA-256 not available", e);
+    }
   }
 
   /**

@@ -10,7 +10,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -19,8 +18,11 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.InlineDocument;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -98,7 +100,7 @@ class BedrockConverseContentConverterTest {
       assertThat(document.format()).isEqualTo(DocumentFormat.PDF);
       assertThat(document.source().bytes().asByteArray())
           .isEqualTo("fake-pdf-bytes".getBytes(StandardCharsets.UTF_8));
-      assertThat(document.name()).isEqualTo(DocumentHandle.idFor(doc));
+      assertThat(document.name()).matches("doc-[0-9a-f]{40}");
     }
 
     @Test
@@ -126,18 +128,67 @@ class BedrockConverseContentConverterTest {
       assertThat(document).isNotNull();
       assertThat(document.format()).isEqualTo(DocumentFormat.TXT);
       assertThat(document.source().text()).isEqualTo("{\"key\":\"value\"}");
-      assertThat(document.name()).isEqualTo(DocumentHandle.idFor(doc));
+      assertThat(document.name()).matches("doc-[0-9a-f]{40}");
     }
 
     @Test
-    void documentBlockNameMatchesBedrockAllowedCharset() {
+    void documentBlockNameIsDeterministicHashOfTheHandleId() {
       final var doc = inlineDocument("plain text content", "notes.txt", "text/plain");
+
+      final var name1 =
+          converter
+              .toContentBlocks(List.of(new DocumentContent(doc, null)))
+              .get(0)
+              .document()
+              .name();
+      final var name2 =
+          converter
+              .toContentBlocks(List.of(new DocumentContent(doc, null)))
+              .get(0)
+              .document()
+              .name();
+
+      assertThat(name1).matches("[A-Za-z0-9 ()\\[\\]-]{1,200}").isEqualTo(name2);
+    }
+
+    @Test
+    void documentBlockNameDiffersForDifferentDocuments() {
+      final var docA = inlineDocument("content A", "a.txt", "text/plain");
+      final var docB = inlineDocument("content B", "b.txt", "text/plain");
+
+      final var nameA =
+          converter
+              .toContentBlocks(List.of(new DocumentContent(docA, null)))
+              .get(0)
+              .document()
+              .name();
+      final var nameB =
+          converter
+              .toContentBlocks(List.of(new DocumentContent(docB, null)))
+              .get(0)
+              .document()
+              .name();
+
+      assertThat(nameA).isNotEqualTo(nameB);
+    }
+
+    @Test
+    void documentBlockNameStaysWithinCharsetEvenForADisallowedCamundaDocumentId() {
+      // A CamundaDocumentReference's real documentId is carried verbatim by DocumentHandle - other
+      // code cross-references documents by it - and DocumentCreationRequest.documentId(...)
+      // accepts arbitrary strings, so it isn't guaranteed to fit Bedrock's charset on its own.
+      final var documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+      final var doc =
+          documentFactory.create(
+              DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8))
+                  .documentId("custom:doc_id/with spaces")
+                  .contentType("text/plain")
+                  .fileName("hello.txt")
+                  .build());
 
       final var blocks = converter.toContentBlocks(List.of(new DocumentContent(doc, null)));
 
-      final var name = blocks.get(0).document().name();
-      assertThat(name).isEqualTo(DocumentHandle.idFor(doc));
-      assertThat(name).matches("[A-Za-z0-9 ()\\[\\]-]{1,200}");
+      assertThat(blocks.get(0).document().name()).matches("doc-[0-9a-f]{40}");
     }
 
     @Test

@@ -125,23 +125,36 @@ class DocumentHandleTest {
         .hasFieldOrPropertyWithValue("errorCode", "FAILED_MODEL_CALL");
   }
 
-  // ── Bedrock charset ───────────────────────────────────────────────────────
+  // ── Custom (non-UUID) document id ─────────────────────────────────────────
 
   @Test
-  void everyProducedIdMatchesBedrockAllowedCharset() {
-    final var camundaDoc =
+  void camundaDocumentCustomIdIsCarriedVerbatimEvenWithDisallowedChars() {
+    final var customId = "custom:doc_id/with spaces";
+    final var doc =
         documentFactory.create(
-            DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8)).build());
+            DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8))
+                .documentId(customId)
+                .build());
+
+    // Not sanitized, not hashed: this is the handle other code (e.g. a document registry)
+    // cross-references documents by, so it must stay exactly what the caller supplied. Any
+    // provider-specific wire-format constraint (e.g. Bedrock's DocumentBlock.name charset) is
+    // handled at that provider's own call site, not here.
+    assertThat(DocumentHandle.idFor(doc)).isEqualTo(customId);
+  }
+
+  // ── Hashed-branch charset (ext-/inline- only) ─────────────────────────────
+
+  @Test
+  void hashedIdsMatchBedrockAllowedCharset() {
     final var externalDoc =
         new ExternalDocument("https://example.com/report.pdf", "Report", u -> null);
     final var inlineDoc = new InlineDocument("inline content", "file.txt", "text/plain");
 
+    // Only the hashed branches (ext-/inline-) carry this guarantee by construction (hex digits).
+    // The CamundaDocumentReference branch is deliberately excluded - it stays verbatim.
     for (final var id :
-        new String[] {
-          DocumentHandle.idFor(camundaDoc),
-          DocumentHandle.idFor(externalDoc),
-          DocumentHandle.idFor(inlineDoc)
-        }) {
+        new String[] {DocumentHandle.idFor(externalDoc), DocumentHandle.idFor(inlineDoc)}) {
       assertThat(id).matches("[A-Za-z0-9 ()\\[\\]-]{1,200}");
     }
   }
