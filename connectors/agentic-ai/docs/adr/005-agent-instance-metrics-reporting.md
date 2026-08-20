@@ -5,7 +5,10 @@
 
 ## Status
 
-**Implemented**
+**Superseded** by [ADR 013](013-unified-agent-instance-turn-updates.md) — the deferred-vs-synchronous
+PATCH distinction this ADR established no longer applies; every agent-instance write is now
+synchronous and batched with its turn's history items. The metrics semantics themselves (which
+counters, when they reset) are unchanged.
 
 ## Context and Problem Statement
 

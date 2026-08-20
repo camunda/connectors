@@ -7,17 +7,13 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
-import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
-import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.client.api.command.ClientHttpException;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.CreateAgentHistoryItemFinalCommandStep;
 import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.HistoryItem;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
@@ -239,100 +235,6 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   @Override
-  public void createHistoryForInputMessages(
-      AgentExecutionContext executionContext,
-      @Nullable AgentInstanceKey agentInstanceKey,
-      AgentConversationTurn turn,
-      Optional<AgentConversationTurn> previousTurn,
-      OffsetDateTime turnIngestionTimestamp) {
-    if (agentInstanceKey == null) {
-      LOGGER.debug("Skipping agent instance history items (before chat): no agent instance key");
-      return;
-    }
-    final Map<String, ToolCall> toolCallsById =
-        previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
-    for (final Message message : turn.inputMessages()) {
-      for (final var item :
-          historyMapper.inputHistoryItems(message, toolCallsById, turnIngestionTimestamp)) {
-        createHistoryItem(
-            executionContext,
-            agentInstanceKey.value(),
-            item.role(),
-            item.content(),
-            turn.iterationKey(),
-            item.toolCalls(),
-            null,
-            item.producedAt());
-      }
-    }
-  }
-
-  @Override
-  public void createHistoryForAssistantMessage(
-      AgentExecutionContext executionContext,
-      @Nullable AgentInstanceKey agentInstanceKey,
-      AgentConversationTurn turn,
-      OffsetDateTime producedAt) {
-    if (agentInstanceKey == null) {
-      LOGGER.debug("Skipping agent instance history item (after chat): no agent instance key");
-      return;
-    }
-    final AssistantMessage assistantMessage = turn.assistantMessage();
-    if (assistantMessage == null) {
-      throw new IllegalArgumentException(
-          "Cannot create assistant history item for a turn without an assistant message");
-    }
-    final var content = historyMapper.assistantContent(assistantMessage);
-    final var toolCalls = historyMapper.assistantToolCalls(assistantMessage);
-    if (content.isEmpty() && (toolCalls == null || toolCalls.isEmpty())) {
-      throw new IllegalArgumentException(
-          "Cannot create assistant history item with neither content nor tool calls");
-    }
-    createHistoryItem(
-        executionContext,
-        agentInstanceKey.value(),
-        AgentInstanceHistoryRole.ASSISTANT,
-        content,
-        turn.iterationKey(),
-        toolCalls,
-        historyMapper.historyMetrics(turn.metrics()),
-        producedAt);
-  }
-
-  @Override
-  public void createHistoryForToolCallResults(
-      AgentExecutionContext executionContext,
-      @Nullable AgentInstanceKey agentInstanceKey,
-      List<ToolCallResult> toolCallResults,
-      AgentConversationTurn previousTurn) {
-    if (agentInstanceKey == null) {
-      LOGGER.debug(
-          "Skipping agent instance history items (arrived tool call results): no agent instance key");
-      return;
-    }
-    final var syntheticMessage =
-        ToolCallResultMessage.builder()
-            .results(toolCallResults.stream().map(ToolCallResultContent::from).toList())
-            .build();
-    final var toolCallsById = previousTurn.toolCallsById();
-    final var iteration = previousTurn.iterationKey() + 1;
-    // turnIngestionTimestamp is unused for TOOL_RESULT items — each uses its own resolved
-    // completedAt
-    for (final var item :
-        historyMapper.inputHistoryItems(syntheticMessage, toolCallsById, OffsetDateTime.now())) {
-      createHistoryItem(
-          executionContext,
-          agentInstanceKey.value(),
-          item.role(),
-          item.content(),
-          iteration,
-          item.toolCalls(),
-          null,
-          item.producedAt());
-    }
-  }
-
-  @Override
   public void applyTurnStart(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
@@ -520,74 +422,6 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     cmd.execute();
   }
 
-  private void createHistoryItem(
-      AgentExecutionContext executionContext,
-      long agentInstanceKey,
-      AgentInstanceHistoryRole role,
-      List<AgentInstanceHistoryContent> content,
-      int iteration,
-      @Nullable List<AgentInstanceHistoryToolCall> toolCalls,
-      @Nullable AgentInstanceHistoryMetrics metrics,
-      OffsetDateTime producedAt) {
-    CamundaApiRetry.execute(
-        () -> {
-          executeCreateHistoryItem(
-              executionContext,
-              agentInstanceKey,
-              role,
-              content,
-              iteration,
-              toolCalls,
-              metrics,
-              producedAt);
-          return null;
-        },
-        AgentInstanceErrorClassifier.INSTANCE,
-        retriesProperties.maxRetries(),
-        retriesProperties.initialRetryDelay(),
-        this::buildHistoryItemException,
-        sleeper);
-  }
-
-  private void executeCreateHistoryItem(
-      AgentExecutionContext executionContext,
-      long agentInstanceKey,
-      AgentInstanceHistoryRole role,
-      List<AgentInstanceHistoryContent> content,
-      int iteration,
-      @Nullable List<AgentInstanceHistoryToolCall> toolCalls,
-      @Nullable AgentInstanceHistoryMetrics metrics,
-      OffsetDateTime producedAt) {
-    LOGGER.debug(
-        "Creating agent instance {} history item: role={}, iteration={}, contentBlocks={}",
-        agentInstanceKey,
-        role,
-        iteration,
-        content.size());
-    CreateAgentHistoryItemFinalCommandStep cmd =
-        camundaClient
-            .newCreateAgentHistoryItemCommand(agentInstanceKey)
-            .elementInstanceKey(executionContext.jobContext().getElementInstanceKey())
-            .jobKey(executionContext.jobContext().getJobKey())
-            .role(role)
-            .content(content)
-            .producedAt(producedAt)
-            .loopIteration(iteration);
-
-    if (toolCalls != null && !toolCalls.isEmpty()) {
-      cmd = cmd.toolCalls(toolCalls);
-    }
-    if (metrics != null) {
-      cmd = cmd.metrics(metrics);
-    }
-
-    final String leaseToken = executionContext.jobContext().getLeaseToken();
-    if (leaseToken != null && !leaseToken.isBlank()) {
-      cmd = cmd.jobLease(leaseToken);
-    }
-    cmd.execute();
-  }
-
   private ConnectorException buildCreateException(
       Throwable cause, int attempt, FailureReason reason) {
     final String message =
@@ -650,20 +484,5 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       current = cause;
     }
     return false;
-  }
-
-  private ConnectorException buildHistoryItemException(
-      Throwable cause, int attempt, FailureReason reason) {
-    final String message =
-        switch (reason) {
-          case PERMANENT_ERROR ->
-              "Failed to create agent instance history item: %s".formatted(cause.getMessage());
-          case RETRIES_EXHAUSTED ->
-              "Failed to create agent instance history item after %d attempt(s): %s"
-                  .formatted(attempt, cause.getMessage());
-          case INTERRUPTED ->
-              "Interrupted while waiting to retry agent instance history item creation";
-        };
-    return new ConnectorException(ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED, message, cause);
   }
 }
