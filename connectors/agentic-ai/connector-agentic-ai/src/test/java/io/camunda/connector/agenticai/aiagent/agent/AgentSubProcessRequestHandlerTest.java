@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DEFINITIONS;
@@ -64,7 +66,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v1.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -124,8 +125,8 @@ class AgentSubProcessRequestHandlerTest {
     lenient()
         .doReturn(
             new AgentConfiguration(
-                new OpenAiProviderConfiguration(null),
-                new PromptConfiguration.SystemPromptConfiguration(null),
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
                 new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
                 null,
                 null,
@@ -657,8 +658,8 @@ class AgentSubProcessRequestHandlerTest {
     when(agentExecutionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
-                null,
-                null,
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
                 new UserPromptConfiguration("user input", List.of()),
                 null,
                 new LimitsConfiguration(2),
@@ -865,8 +866,8 @@ class AgentSubProcessRequestHandlerTest {
     when(agentExecutionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
-                new OpenAiProviderConfiguration(null),
-                new PromptConfiguration.SystemPromptConfiguration(null),
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
                 new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
                 null,
                 new LimitsConfiguration(1),

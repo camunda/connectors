@@ -21,7 +21,8 @@ class AgentConversationTurnTest {
             1,
             List.of(userMessage("hi")),
             assistantMessage("thinking", TOOL_CALLS),
-            AgentMetrics.empty());
+            AgentMetrics.empty(),
+            null);
     assertThat(turn.hasToolCalls()).isTrue();
   }
 
@@ -29,13 +30,14 @@ class AgentConversationTurnTest {
   void hasToolCalls_returnsFalseWhenNoToolCalls() {
     var turn =
         new AgentConversationTurn(
-            1, List.of(userMessage("hi")), assistantMessage("done"), AgentMetrics.empty());
+            1, List.of(userMessage("hi")), assistantMessage("done"), AgentMetrics.empty(), null);
     assertThat(turn.hasToolCalls()).isFalse();
   }
 
   @Test
   void hasToolCalls_returnsFalseWhenPending() {
-    var turn = new AgentConversationTurn(1, List.of(userMessage("hi")), null, AgentMetrics.empty());
+    var turn =
+        new AgentConversationTurn(1, List.of(userMessage("hi")), null, AgentMetrics.empty(), null);
     assertThat(turn.hasToolCalls()).isFalse();
   }
 
@@ -46,7 +48,8 @@ class AgentConversationTurnTest {
             1,
             List.of(userMessage("hi")),
             assistantMessage("thinking", TOOL_CALLS),
-            AgentMetrics.empty());
+            AgentMetrics.empty(),
+            null);
     var byId = turn.toolCallsById();
     assertThat(byId).containsOnlyKeys("abcdef", "fedcba");
     assertThat(byId.get("abcdef").arguments()).containsEntry("location", "MUC");
@@ -56,13 +59,14 @@ class AgentConversationTurnTest {
   void toolCallsById_emptyWhenNoToolCalls() {
     var turn =
         new AgentConversationTurn(
-            1, List.of(userMessage("hi")), assistantMessage("done"), AgentMetrics.empty());
+            1, List.of(userMessage("hi")), assistantMessage("done"), AgentMetrics.empty(), null);
     assertThat(turn.toolCallsById()).isEmpty();
   }
 
   @Test
   void toolCallsById_emptyWhenPending() {
-    var turn = new AgentConversationTurn(1, List.of(userMessage("hi")), null, AgentMetrics.empty());
+    var turn =
+        new AgentConversationTurn(1, List.of(userMessage("hi")), null, AgentMetrics.empty(), null);
     assertThat(turn.toolCallsById()).isEmpty();
   }
 }

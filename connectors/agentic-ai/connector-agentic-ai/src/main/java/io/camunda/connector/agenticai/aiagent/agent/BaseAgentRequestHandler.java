@@ -113,12 +113,16 @@ public abstract class BaseAgentRequestHandler<
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
 
     try (var session = store.createSession(executionContext, agentContext)) {
-      final var configuration = executionContext.configuration();
+      // AgentConfiguration#tools() becomes the authoritative current tool list for the rest of
+      // this invocation once populated here from the durable AgentContext.
+      final var configuration =
+          executionContext.configuration().withTools(agentContext.toolDefinitions());
       final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
       final var loadedMessages = session.loadMessages(agentContext).messages();
-      final var previousConversation = TurnReconstructor.reconstruct(loadedMessages);
+      final var previousConversation =
+          TurnReconstructor.reconstruct(loadedMessages, agentContext.metadata());
 
       LOGGER.trace("Composing turn input from history and invocation state");
       final var compositionResult =
@@ -136,7 +140,13 @@ public abstract class BaseAgentRequestHandler<
         }
         case CompositionResult.NextTurn(var newMessages) ->
             proceed(
-                executionContext, agentContext, previousConversation, newMessages, session, store);
+                executionContext,
+                agentContext,
+                configuration,
+                previousConversation,
+                newMessages,
+                session,
+                store);
       };
     }
   }
@@ -163,11 +173,11 @@ public abstract class BaseAgentRequestHandler<
   private R proceed(
       final C executionContext,
       final AgentContext agentContext,
+      final AgentConfiguration agentConfiguration,
       final PreviousConversation previousConversation,
       final List<Message> inputMessages,
       final ConversationSession session,
       final ConversationStore store) {
-    var agentConfiguration = executionContext.configuration();
     var systemMessage = createSystemMessage(executionContext, agentContext);
     final var conversation =
         AgentConversation.rehydrate(

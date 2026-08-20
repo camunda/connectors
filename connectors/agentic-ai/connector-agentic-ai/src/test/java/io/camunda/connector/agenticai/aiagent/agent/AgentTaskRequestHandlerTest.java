@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DEFINITIONS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
@@ -293,7 +295,13 @@ class AgentTaskRequestHandlerTest {
     when(agentExecutionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
-                null, null, USER_PROMPT, null, new LimitsConfiguration(2), null, null));
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                USER_PROMPT,
+                null,
+                new LimitsConfiguration(2),
+                null,
+                null));
 
     final var contextAtLimit =
         AgentContext.builder()
@@ -429,7 +437,9 @@ class AgentTaskRequestHandlerTest {
 
   private void mockConfiguration() {
     when(agentExecutionContext.configuration())
-        .thenReturn(new AgentConfiguration(null, null, USER_PROMPT, null, null, null, null));
+        .thenReturn(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, USER_PROMPT, null, null, null, null));
   }
 
   private void mockSystemPrompt() {
