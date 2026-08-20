@@ -724,6 +724,10 @@
                   <name>connectorType</name>
                   <value>io.camunda.agenticai:aiagent:subprocess:2</value>
                 </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentSubProcess</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -757,6 +761,66 @@
                 <property>
                   <name>connectorType</name>
                   <value>io.camunda.agenticai:aiagent:subprocess:2</value>
+                </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentSubProcess</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>add-agent-definition-marker-task-v2</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-task-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-ai-agent-task.v2.json</value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-ai-agent-task.v2.json</value>
+                </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentTask</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>add-agent-definition-marker-task-v2-hybrid</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-task-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>
+                    ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json
+                  </value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>
+                    ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json
+                  </value>
+                </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentTask</value>
                 </property>
               </properties>
             </configuration>

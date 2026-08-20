@@ -38,6 +38,9 @@ if (!connectorType) {
     System.exit(1)
 }
 
+// optional: agentType for the zeebe:agentDefinition marker; unset means no marker is added
+def agentType = binding.hasVariable('agentType') ? agentType : null
+
 def file = new File((String) sourceFile)
 if (!file.exists()) {
     System.err.println("Error: Source file ${sourceFile} not found")
@@ -162,6 +165,19 @@ def updatedProperties = []
             ],
             type: "Hidden"
         ])
+
+        // Mark the element as a native agent definition so the engine creates an agent-definition
+        // record at deploy time.
+        if (agentType) {
+            updatedProperties.add([
+                value: (String) agentType,
+                binding: [
+                    type: "zeebe:agentDefinition",
+                    property: "agentType"
+                ],
+                type: "Hidden"
+            ])
+        }
     } else if (property.id == "id") {
         property.value = (String) templateId
         updatedProperties.add(property)
