@@ -15,12 +15,16 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -158,6 +162,51 @@ class AgentInstanceHistoryMapperTest {
 
     assertThat(content)
         .singleElement()
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object -> assertThat(object.getObject()).isEqualTo(providerContent));
+  }
+
+  @Test
+  void assistantContentOrdersBlocksTextThenReasoningThenObjectThenDocumentThenEverythingElse() {
+    final var providerContent = ProviderContent.providerContent("anthropic", Map.of("id", "x"));
+    final var reasoningContent =
+        new ReasoningContent("anthropic", Map.of("signature", "abc123"), null, Map.of());
+    final var objectContent = ObjectContent.objectContent(Map.of("k", "v"));
+    final var textContent = TextContent.textContent("hello");
+
+    final var documentReference = Mockito.mock(CamundaDocumentReference.class);
+    Mockito.when(documentReference.getDocumentId()).thenReturn("doc-1");
+    Mockito.when(documentReference.getStoreId()).thenReturn("in-memory");
+    final var document = Mockito.mock(Document.class);
+    Mockito.when(document.reference()).thenReturn(documentReference);
+    final var documentContent = new DocumentContent(document, null);
+
+    // scrambled input order -- output must be reordered regardless of how it arrived
+    final var assistantMessage =
+        AssistantMessage.builder()
+            .content(
+                List.of(
+                    providerContent, documentContent, objectContent, reasoningContent, textContent))
+            .build();
+
+    final var content = mapper.assistantContent(assistantMessage);
+
+    assertThat(content).hasSize(5);
+    assertThat(content.get(0))
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.TextContent.class,
+            text -> assertThat(text.getText()).isEqualTo("hello"));
+    assertThat(content.get(1))
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object -> assertThat(object.getObject()).isEqualTo(reasoningContent));
+    assertThat(content.get(2))
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object -> assertThat(object.getObject()).isEqualTo(objectContent.content()));
+    assertThat(content.get(3)).isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+    assertThat(content.get(4))
         .isInstanceOfSatisfying(
             AgentInstanceHistoryContent.ObjectContent.class,
             object -> assertThat(object.getObject()).isEqualTo(providerContent));

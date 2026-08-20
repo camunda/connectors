@@ -37,6 +37,7 @@ import io.camunda.connector.api.document.DocumentReference.CamundaDocumentRefere
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -148,8 +149,24 @@ public class AgentInstanceHistoryMapper {
                         .formatted(result.id())));
   }
 
+  /**
+   * A history-item content ordering: {@code text}, {@code reasoning}, {@code object}, {@code
+   * document}, then everything else, stable within each group.
+   */
+  private static final Comparator<Content> ASSISTANT_CONTENT_ORDER =
+      Comparator.comparingInt(
+          content ->
+              switch (content) {
+                case TextContent t -> 0;
+                case ReasoningContent r -> 1;
+                case ObjectContent o -> 2;
+                case DocumentContent d -> 3;
+                default -> 4;
+              });
+
   public List<AgentInstanceHistoryContent> assistantContent(AssistantMessage assistantMessage) {
-    return contentBlocks(assistantMessage.content());
+    return contentBlocks(
+        assistantMessage.content().stream().sorted(ASSISTANT_CONTENT_ORDER).toList());
   }
 
   public @Nullable List<AgentInstanceHistoryToolCall> assistantToolCalls(
