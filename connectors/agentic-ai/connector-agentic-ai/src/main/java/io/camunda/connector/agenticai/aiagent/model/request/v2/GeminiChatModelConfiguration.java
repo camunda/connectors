@@ -186,7 +186,8 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                 type = TemplateProperty.PropertyType.Boolean,
                 optional = true)
             Boolean enabled,
-        @TemplateProperty(
+        @Min(-1)
+            @TemplateProperty(
                 group = "model-options",
                 label = "Thinking budget (tokens)",
                 tooltip =

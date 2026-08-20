@@ -147,6 +147,42 @@ class GeminiChatModelConfigurationTest {
   }
 
   @Test
+  void thinkingBudgetBelowMinusOneIsRejected() {
+    final var thinking = new GeminiThinking(true, -2, null);
+    final var parameters = new GeminiModelParameters(null, null, null, null, thinking);
+    final var config =
+        new GeminiChatModelConfiguration(
+            new GeminiConnection(
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiModel("gemini-3-pro-preview", parameters),
+                null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("googleGemini.model.parameters.thinking.thinkingBudget");
+              assertThat(v.getMessage()).isEqualTo("must be greater than or equal to -1");
+            });
+  }
+
+  @Test
+  void thinkingBudgetOfMinusOneHasNoViolations() {
+    final var thinking = new GeminiThinking(true, -1, null);
+    final var parameters = new GeminiModelParameters(null, null, null, null, thinking);
+    final var config =
+        new GeminiChatModelConfiguration(
+            new GeminiConnection(
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiModel("gemini-3-pro-preview", parameters),
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+  }
+
+  @Test
   void onlyThinkingLevelSetHasNoViolations() {
     final var thinking = new GeminiThinking(true, null, GeminiThinkingLevel.LOW);
     final var parameters = new GeminiModelParameters(null, null, null, null, thinking);
