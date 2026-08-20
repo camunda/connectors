@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Send GraphQL Request",
-  "id" : "io.camunda.connectors.GraphQL.v1",
-  "description" : "Execute GraphQL query",
-  "keywords" : [ "API", "query", "mutation", "HTTP", "web request", "GraphQL", "fetch data", "data query", "execute query", "API call" ],
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/graphql/",
-  "version" : 14,
+  "name" : "Send REST Request",
+  "id" : "io.camunda.connectors.HttpJson.v2",
+  "description" : "Invoke REST API",
+  "keywords" : [ "HTTP", "REST", "API call", "web request", "GET", "POST", "PUT", "PATCH", "DELETE", "fetch data", "send request", "invoke API" ],
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
+  "version" : 18,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -21,14 +21,17 @@
     "id" : "authentication",
     "label" : "Authentication"
   }, {
-    "id" : "endpoint",
-    "label" : "HTTP Endpoint"
+    "id" : "tls",
+    "label" : "Client certificate (mTLS)"
   }, {
-    "id" : "graphql",
-    "label" : "GraphQL query"
+    "id" : "endpoint",
+    "label" : "HTTP endpoint"
   }, {
     "id" : "timeout",
     "label" : "Connection timeout"
+  }, {
+    "id" : "payload",
+    "label" : "Payload"
   }, {
     "id" : "connector",
     "label" : "Connector"
@@ -43,7 +46,7 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "value" : "io.camunda:connector-graphql:1",
+    "value" : "io.camunda:http-json:1",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
@@ -548,28 +551,85 @@
     "tooltip" : "The scopes to request authorization for (space-separated)",
     "type" : "String"
   }, {
-    "id" : "graphql.method",
+    "id" : "clientTls.clientCertificate",
+    "label" : "Client certificate (PEM)",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "tls",
+    "binding" : {
+      "name" : "clientTls.clientCertificate",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "PEM-encoded client certificate chain presented to the server for mTLS. Provide together with the private key.",
+    "type" : "Text"
+  }, {
+    "id" : "clientTls.clientPrivateKey",
+    "label" : "Client private key (PEM)",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "tls",
+    "binding" : {
+      "name" : "clientTls.clientPrivateKey",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "PEM-encoded private key (PKCS#1, PKCS#8 or EC), optionally encrypted.",
+    "type" : "Text"
+  }, {
+    "id" : "clientTls.privateKeyPassword",
+    "label" : "Private key password",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "tls",
+    "binding" : {
+      "name" : "clientTls.privateKeyPassword",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Password protecting the private key. Leave empty if it is not encrypted.",
+    "type" : "String"
+  }, {
+    "id" : "clientTls.trustedCertificate",
+    "label" : "Trusted CA certificate (PEM)",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "tls",
+    "binding" : {
+      "name" : "clientTls.trustedCertificate",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Optional PEM-encoded CA certificate(s) used to validate the server. If empty, the JVM's default trust store is used.",
+    "type" : "Text"
+  }, {
+    "id" : "method",
     "label" : "Method",
     "optional" : false,
-    "value" : "get",
+    "value" : "GET",
     "constraints" : {
       "notEmpty" : true
     },
     "group" : "endpoint",
     "binding" : {
-      "name" : "graphql.method",
+      "name" : "method",
       "type" : "zeebe:input"
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "GET",
-      "value" : "get"
-    }, {
       "name" : "POST",
-      "value" : "post"
+      "value" : "POST"
+    }, {
+      "name" : "GET",
+      "value" : "GET"
+    }, {
+      "name" : "DELETE",
+      "value" : "DELETE"
+    }, {
+      "name" : "PATCH",
+      "value" : "PATCH"
+    }, {
+      "name" : "PUT",
+      "value" : "PUT"
     } ]
   }, {
-    "id" : "graphql.url",
+    "id" : "url",
     "label" : "URL",
     "optional" : false,
     "constraints" : {
@@ -582,27 +642,57 @@
     "feel" : "optional",
     "group" : "endpoint",
     "binding" : {
-      "name" : "graphql.url",
+      "name" : "url",
       "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authenticationConfiguration",
-      "isEmpty" : true,
-      "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "graphql.headers",
+    "id" : "headers",
     "label" : "Headers",
     "optional" : true,
     "feel" : "required",
     "group" : "endpoint",
     "binding" : {
-      "name" : "graphql.headers",
+      "name" : "headers",
       "type" : "zeebe:input"
     },
     "tooltip" : "Map of HTTP headers to add to the request",
     "type" : "String"
+  }, {
+    "id" : "queryParameters",
+    "label" : "Query parameters",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "queryParameters",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Map of query parameters to add to the request URL",
+    "type" : "String"
+  }, {
+    "id" : "skipEncoding",
+    "label" : "Skip URL encoding",
+    "optional" : true,
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "skipEncoding",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "followRedirects",
+    "label" : "Follow redirects",
+    "optional" : false,
+    "value" : false,
+    "feel" : "static",
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "followRedirects",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "If enabled, HTTP 3xx redirects will be followed automatically. Disabled by default.",
+    "type" : "Boolean"
   }, {
     "id" : "documentReturnFormat",
     "label" : "Response format",
@@ -642,86 +732,85 @@
     },
     "type" : "String"
   }, {
-    "id" : "urlOverride",
-    "label" : "URL",
-    "description" : "Optional. Overrides the URL of the selected credential; leave empty to use the credential's own URL.",
-    "optional" : true,
+    "id" : "connectionTimeoutInSeconds",
+    "label" : "Connection timeout in seconds",
+    "optional" : false,
+    "value" : 20,
     "constraints" : {
-      "notEmpty" : false,
+      "notEmpty" : true,
       "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
-        "message" : "Must be a http(s) URL"
+        "value" : "^\\d+$",
+        "message" : "Must be a number"
       }
     },
-    "feel" : "optional",
-    "group" : "endpoint",
+    "feel" : "static",
+    "group" : "timeout",
     "binding" : {
-      "name" : "graphql.url",
+      "name" : "connectionTimeoutInSeconds",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Use 0 for an infinite timeout",
+    "type" : "Number"
+  }, {
+    "id" : "readTimeoutInSeconds",
+    "label" : "Read timeout in seconds",
+    "optional" : false,
+    "value" : 20,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^\\d+$",
+        "message" : "Must be a number"
+      }
+    },
+    "feel" : "static",
+    "group" : "timeout",
+    "binding" : {
+      "name" : "readTimeoutInSeconds",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Use 0 for an infinite timeout",
+    "type" : "Number"
+  }, {
+    "id" : "body",
+    "label" : "Request body",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "payload",
+    "binding" : {
+      "name" : "body",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authenticationConfiguration",
-      "isEmpty" : false,
+      "property" : "method",
+      "oneOf" : [ "POST", "PUT", "PATCH" ],
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "graphql.query",
-    "label" : "Query/Mutation",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "graphql",
-    "binding" : {
-      "name" : "graphql.query",
-      "type" : "zeebe:input"
-    },
-    "tooltip" : "The GraphQL query or mutation to execute. See the <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/graphql/#querymutation\" target=\"_blank\">GraphQL query/mutation syntax</a>.",
+    "tooltip" : "Payload to send with the request",
     "type" : "Text"
   }, {
-    "id" : "graphql.variables",
-    "label" : "Variables",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "graphql",
-    "binding" : {
-      "name" : "graphql.variables",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
-    "id" : "graphql.connectionTimeoutInSeconds",
-    "label" : "Connection timeout in seconds",
-    "optional" : true,
-    "value" : 20,
+    "id" : "ignoreNullValues",
+    "label" : "Ignore null values",
+    "optional" : false,
+    "value" : false,
     "feel" : "static",
-    "group" : "timeout",
+    "group" : "payload",
     "binding" : {
-      "name" : "graphql.connectionTimeoutInSeconds",
+      "name" : "ignoreNullValues",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Use 0 for an infinite timeout",
-    "type" : "Number"
-  }, {
-    "id" : "graphql.readTimeoutInSeconds",
-    "label" : "Read timeout in seconds",
-    "optional" : true,
-    "value" : 20,
-    "feel" : "static",
-    "group" : "timeout",
-    "binding" : {
-      "name" : "graphql.readTimeoutInSeconds",
-      "type" : "zeebe:input"
+    "condition" : {
+      "property" : "method",
+      "oneOf" : [ "POST", "PUT", "PATCH" ],
+      "type" : "simple"
     },
-    "tooltip" : "Use 0 for an infinite timeout",
-    "type" : "Number"
+    "tooltip" : "Null values will not be sent",
+    "type" : "Boolean"
   }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "14",
+    "value" : "18",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -732,7 +821,7 @@
     "id" : "id",
     "label" : "ID",
     "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.GraphQL.v1",
+    "value" : "io.camunda.connectors.HttpJson.v2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateId",
@@ -753,12 +842,14 @@
     "id" : "resultExpression",
     "label" : "Result expression",
     "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "value" : "{\n  myResponseBody: response.body\n  // Use FEEL to extract values, e.g.,:\n  // myUserId: response.body.post.userId\n}",
     "feel" : "required",
     "group" : "output",
     "binding" : {
       "key" : "resultExpression",
       "type" : "zeebe:taskHeader"
     },
+    "tooltip" : "<div><p>Example response:</p><code>{\"body\":{\"order\":{\"id\":\"123\",\"total\":\"100.00€\"}},\"headers\":{\"Content-Type\":\"application/json\"},\"status\":200}</code><p>Example FEEL expression: <code>= { orderId: body.order.id }</code> -&gt; <code>{\"orderId\":\"123\"}</code></p></div>",
     "type" : "Text"
   }, {
     "id" : "errorExpression",
@@ -815,6 +906,7 @@
       "id" : "authentication.type",
       "label" : "Type",
       "description" : "Choose the authentication type. Select 'None' if no authentication is necessary",
+      "value" : "noAuth",
       "group" : "authentication",
       "binding" : {
         "name" : "authentication.type",
@@ -830,6 +922,9 @@
       }, {
         "name" : "Bearer token",
         "value" : "bearer"
+      }, {
+        "name" : "None",
+        "value" : "noAuth"
       }, {
         "name" : "OAuth 2.0",
         "value" : "oauth-client-credentials-flow"
@@ -1154,31 +1249,9 @@
       },
       "tooltip" : "The scopes to request authorization for (space-separated)",
       "type" : "String"
-    }, {
-      "id" : "url",
-      "label" : "URL",
-      "description" : "The endpoint this credential is bound to. A connector using it may override this URL.",
-      "constraints" : {
-        "notEmpty" : true,
-        "pattern" : {
-          "value" : "^((http://|https://|secrets|\\{\\{).*$)",
-          "message" : "Must be a http(s) URL"
-        }
-      },
-      "group" : "endpoint",
-      "binding" : {
-        "name" : "url",
-        "type" : "property"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "oneOf" : [ "basic", "bearer", "apiKey" ],
-        "type" : "simple"
-      },
-      "type" : "String"
     } ]
   } ],
   "icon" : {
-    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHhtbG5zOnhsaW5rPSdodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rJyB2ZXJzaW9uPScxLjEnIGlkPSdHcmFwaFFMX0xvZ28nCiAgICAgeD0nMHB4JyB5PScwcHgnIHZpZXdCb3g9JzAgMCA0MDAgNDAwJyBlbmFibGUtYmFja2dyb3VuZD0nbmV3IDAgMCA0MDAgNDAwJyB4bWw6c3BhY2U9J3ByZXNlcnZlJz48Zz48Zz48Zz48cmVjdCB4PScxMjInIHk9Jy0wLjQnIHRyYW5zZm9ybT0nbWF0cml4KC0wLjg2NiAtMC41IDAuNSAtMC44NjYgMTYzLjMxOTYgMzYzLjMxMzYpJyBmaWxsPScjRTUzNUFCJyB3aWR0aD0nMTYuNicgaGVpZ2h0PSczMjAuMycvPjwvZz48L2c+PGc+PGc+PHJlY3QgeD0nMzkuOCcgeT0nMjcyLjInIGZpbGw9JyNFNTM1QUInIHdpZHRoPSczMjAuMycgaGVpZ2h0PScxNi42Jy8+PC9nPjwvZz48Zz48Zz48cmVjdCB4PSczNy45JyB5PSczMTIuMicgdHJhbnNmb3JtPSdtYXRyaXgoLTAuODY2IC0wLjUgMC41IC0wLjg2NiA4My4wNjkzIDY2My4zNDA5KScgZmlsbD0nI0U1MzVBQicgd2lkdGg9JzE4NScgaGVpZ2h0PScxNi42Jy8+PC9nPjwvZz48Zz48Zz48cmVjdCB4PScxNzcuMScgeT0nNzEuMScgdHJhbnNmb3JtPSdtYXRyaXgoLTAuODY2IC0wLjUgMC41IC0wLjg2NiA0NjMuMzQwOSAyODMuMDY5MyknIGZpbGw9JyNFNTM1QUInIHdpZHRoPScxODUnIGhlaWdodD0nMTYuNicvPjwvZz48L2c+PGc+PGc+PHJlY3QgeD0nMTIyLjEnIHk9Jy0xMycgdHJhbnNmb3JtPSdtYXRyaXgoLTAuNSAtMC44NjYgMC44NjYgLTAuNSAxMjYuNzkwMyAyMzIuMTIyMSknIGZpbGw9JyNFNTM1QUInIHdpZHRoPScxNi42JyBoZWlnaHQ9JzE4NScvPjwvZz48L2c+PGc+PGc+PHJlY3QgeD0nMTA5LjYnIHk9JzE1MS42JyB0cmFuc2Zvcm09J21hdHJpeCgtMC41IC0wLjg2NiAwLjg2NiAtMC41IDI2Ni4wODI4IDQ3My4zNzY2KScgZmlsbD0nI0U1MzVBQicgd2lkdGg9JzMyMC4zJyBoZWlnaHQ9JzE2LjYnLz48L2c+PC9nPjxnPjxnPjxyZWN0IHg9JzUyLjUnIHk9JzEwNy41JyBmaWxsPScjRTUzNUFCJyB3aWR0aD0nMTYuNicgaGVpZ2h0PScxODUnLz48L2c+PC9nPjxnPjxnPjxyZWN0IHg9JzMzMC45JyB5PScxMDcuNScgZmlsbD0nI0U1MzVBQicgd2lkdGg9JzE2LjYnIGhlaWdodD0nMTg1Jy8+PC9nPjwvZz48Zz48Zz48cmVjdCB4PScyNjIuNCcgeT0nMjQwLjEnIHRyYW5zZm9ybT0nbWF0cml4KC0wLjUgLTAuODY2IDAuODY2IC0wLjUgMTI2Ljc5NTMgNzE0LjI4NzUpJyBmaWxsPScjRTUzNUFCJyB3aWR0aD0nMTQuNScgaGVpZ2h0PScxNjAuOScvPjwvZz48L2c+PHBhdGgKICAgICAgICBmaWxsPScjRTUzNUFCJwogICAgICAgIGQ9J00zNjkuNSwyOTcuOWMtOS42LDE2LjctMzEsMjIuNC00Ny43LDEyLjhjLTE2LjctOS42LTIyLjQtMzEtMTIuOC00Ny43YzkuNi0xNi43LDMxLTIyLjQsNDcuNy0xMi44IEMzNzMuNSwyNTkuOSwzNzkuMiwyODEuMiwzNjkuNSwyOTcuOScvPjxwYXRoCiAgICAgICAgZmlsbD0nI0U1MzVBQicKICAgICAgICBkPSdNOTAuOSwxMzdjLTkuNiwxNi43LTMxLDIyLjQtNDcuNywxMi44Yy0xNi43LTkuNi0yMi40LTMxLTEyLjgtNDcuN2M5LjYtMTYuNywzMS0yMi40LDQ3LjctMTIuOCBDOTQuOCw5OSwxMDAuNSwxMjAuMyw5MC45LDEzNycvPjxwYXRoCiAgICAgICAgZmlsbD0nI0U1MzVBQicKICAgICAgICBkPSdNMzAuNSwyOTcuOWMtOS42LTE2LjctMy45LTM4LDEyLjgtNDcuN2MxNi43LTkuNiwzOC0zLjksNDcuNywxMi44YzkuNiwxNi43LDMuOSwzOC0xMi44LDQ3LjcgQzYxLjQsMzIwLjMsNDAuMSwzMTQuNiwzMC41LDI5Ny45Jy8+PHBhdGgKICAgICAgICBmaWxsPScjRTUzNUFCJwogICAgICAgIGQ9J00zMDkuMSwxMzdjLTkuNi0xNi43LTMuOS0zOCwxMi44LTQ3LjdjMTYuNy05LjYsMzgtMy45LDQ3LjcsMTIuOGM5LjYsMTYuNywzLjksMzgtMTIuOCw0Ny43IEMzNDAuMSwxNTkuNCwzMTguNywxNTMuNywzMDkuMSwxMzcnLz48cGF0aAogICAgICAgIGZpbGw9JyNFNTM1QUInCiAgICAgICAgZD0nTTIwMCwzOTUuOGMtMTkuMywwLTM0LjktMTUuNi0zNC45LTM0LjljMC0xOS4zLDE1LjYtMzQuOSwzNC45LTM0LjljMTkuMywwLDM0LjksMTUuNiwzNC45LDM0LjkgQzIzNC45LDM4MC4xLDIxOS4zLDM5NS44LDIwMCwzOTUuOCcvPjxwYXRoCiAgICAgICAgZmlsbD0nI0U1MzVBQicKICAgICAgICBkPSdNMjAwLDc0Yy0xOS4zLDAtMzQuOS0xNS42LTM0LjktMzQuOWMwLTE5LjMsMTUuNi0zNC45LDM0LjktMzQuOWMxOS4zLDAsMzQuOSwxNS42LDM0LjksMzQuOSBDMjM0LjksNTguNCwyMTkuMyw3NCwyMDAsNzQnLz48L2c+PC9zdmc+"
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K"
   }
 }

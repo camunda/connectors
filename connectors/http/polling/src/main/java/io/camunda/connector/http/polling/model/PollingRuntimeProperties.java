@@ -6,22 +6,25 @@
  */
 package io.camunda.connector.http.polling.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.auth.Authentication;
 import io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import java.util.Map;
 
 public class PollingRuntimeProperties {
-  @Valid private Authentication authentication;
-
   @TemplateProperty(
       id = "authenticationConfiguration",
       label = "Authentication credential",
@@ -35,20 +38,69 @@ public class PollingRuntimeProperties {
   @Valid
   private RestAuthenticationConfiguration authenticationConfiguration;
 
+  // Hidden and un-required (via the isEmpty condition) once a credential is chosen above.
+  @NestedProperties(
+      condition =
+          @PropertyCondition(
+              property = "authenticationConfiguration",
+              isEmpty = NullableBoolean.TRUE))
+  @Valid
+  private Authentication authentication;
+
   @FEEL
   @NotNull
   @TemplateProperty(group = "endpoint", id = "method", defaultValue = "GET")
   private HttpMethod method;
 
+  // Requiredness and the http(s) shape moved off this field onto getUrl() below: once a credential
+  // can supply the URL, it is the *effective* value that must be valid, and this field may
+  // legitimately be blank. The template constraints are therefore spelled out here - the generator
+  // derives them from field annotations, which no longer carry them.
   @FEEL
-  @NotBlank
-  @Pattern(regexp = "^(=|(http://|https://|secrets|\\{\\{).*$)", message = "Must be a http(s) URL")
   @TemplateProperty(
       group = "endpoint",
       label = "URL",
       feel = FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "url"))
+      binding = @TemplateProperty.PropertyBinding(name = "url"),
+      condition =
+          @PropertyCondition(
+              property = "authenticationConfiguration",
+              isEmpty = NullableBoolean.TRUE),
+      constraints =
+          @TemplateProperty.PropertyConstraints(
+              notEmpty = true,
+              pattern =
+                  @TemplateProperty.Pattern(
+                      value = HttpCommonRequest.URL_PATTERN,
+                      message = HttpCommonRequest.URL_PATTERN_MESSAGE)))
   private String url;
+
+  // Template-only twin of `url`, bound to the same `url` input and shown in its place once a
+  // credential is chosen: there the URL may come from the credential, so the inline value is an
+  // optional override rather than a required field. Never populated - the engine writes a single
+  // `url` input, which Jackson binds to the field above.
+  @JsonIgnore
+  @TemplateProperty(
+      id = "urlOverride",
+      group = "endpoint",
+      label = "URL",
+      feel = FeelMode.optional,
+      optional = true,
+      binding = @TemplateProperty.PropertyBinding(name = "url"),
+      condition =
+          @PropertyCondition(
+              property = "authenticationConfiguration",
+              isEmpty = NullableBoolean.FALSE),
+      constraints =
+          @TemplateProperty.PropertyConstraints(
+              pattern =
+                  @TemplateProperty.Pattern(
+                      value = HttpCommonRequest.URL_PATTERN,
+                      message = HttpCommonRequest.URL_PATTERN_MESSAGE)),
+      description =
+          "Optional. Overrides the URL of the selected credential; leave empty to use the"
+              + " credential's own URL.")
+  private String urlOverride;
 
   @FEEL
   @TemplateProperty(
@@ -164,12 +216,42 @@ public class PollingRuntimeProperties {
     this.method = method;
   }
 
+  /**
+   * The URL is the one place where the inline value wins over the credential rather than the other
+   * way round: the credential carries the endpoint it is bound to, and the model may override it
+   * per task (the {@code urlOverride} template property). An OAuth credential carries no URL at
+   * all, so the inline value is the only source there.
+   */
+  @Pattern(regexp = HttpCommonRequest.URL_PATTERN, message = HttpCommonRequest.URL_PATTERN_MESSAGE)
   public String getUrl() {
-    return url;
+    if (url != null && !url.isBlank()) {
+      return url;
+    }
+    return authenticationConfiguration != null ? authenticationConfiguration.url() : null;
   }
 
+  /**
+   * The URL is required, but it may come from the bound credential instead of the inline field, so
+   * requiredness is asserted on the effective value returned by {@link #getUrl()} - the same shape
+   * as {@code JdbcRequest#isConnectionSourceProvided()}. A field-level {@code @NotBlank} could not
+   * do this: the inline field is legitimately blank when the credential supplies the URL.
+   */
+  @AssertTrue(message = "URL is required")
+  @JsonIgnore
+  public boolean isUrlPresent() {
+    String effectiveUrl = getUrl();
+    return effectiveUrl != null && !effectiveUrl.isBlank();
+  }
+
+  /**
+   * A blank inline URL means "not set", not "set to an invalid value". Normalizing it to {@code
+   * null} on the way in is what lets the shape check stay on the field: Modeler may write an empty
+   * input when the optional override is cleared, and a bound credential's URL must then take over
+   * rather than {@code @Pattern} rejecting {@code ""}. It also turns a blank URL with no credential
+   * into the accurate "URL is required" rather than "Must be a http(s) URL".
+   */
   public void setUrl(String url) {
-    this.url = url;
+    this.url = url == null || url.isBlank() ? null : url;
   }
 
   public Map<String, String> getQueryParameters() {

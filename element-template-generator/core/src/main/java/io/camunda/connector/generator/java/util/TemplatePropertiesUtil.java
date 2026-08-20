@@ -30,6 +30,8 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.dsl.PropertyCondition.IsActive;
+import io.camunda.connector.generator.dsl.PropertyCondition.IsEmpty;
 import io.camunda.connector.generator.dsl.PropertyCondition.OneOf;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.java.annotation.*;
@@ -84,7 +86,7 @@ public class TemplatePropertiesUtil {
     }
 
     //
-    return extractTemplatePropertiesFromType(type, context);
+    return extractTemplatePropertiesFromType(type, context, excludedSubTypes(annotation));
   }
 
   public static boolean shouldMapBindingsForParameter(Parameter parameter) {
@@ -112,6 +114,18 @@ public class TemplatePropertiesUtil {
    */
   public static List<PropertyBuilder> extractTemplatePropertiesFromType(
       Class<?> type, TemplateGenerationContext context) {
+    return extractTemplatePropertiesFromType(type, context, Set.of());
+  }
+
+  /**
+   * As {@link #extractTemplatePropertiesFromType(Class, TemplateGenerationContext)}, but omitting
+   * the given permitted subtypes when {@code type} is a sealed hierarchy - the per-usage
+   * counterpart of {@link TemplateSubType#ignore()}, driven by {@link
+   * TemplateProperty#excludeSubTypes()} on the field being analyzed. The exclusion applies to
+   * {@code type} itself only; nested hierarchies reached from it are extracted in full.
+   */
+  public static List<PropertyBuilder> extractTemplatePropertiesFromType(
+      Class<?> type, TemplateGenerationContext context, Set<Class<?>> excludedSubTypes) {
 
     if (type == Void.class) {
       // If the type is Void, return an empty list
@@ -119,7 +133,7 @@ public class TemplatePropertiesUtil {
     }
 
     if (type.isSealed()) {
-      return handleSealedType(type, context);
+      return handleSealedType(type, context, excludedSubTypes);
     }
 
     var fields = getAllFields(type);
@@ -151,24 +165,52 @@ public class TemplatePropertiesUtil {
 
         try {
           // analyze recursively
-          var nestedProperties =
-              extractTemplatePropertiesFromType(field.getType(), context).stream()
-                  .peek(
-                      builder -> {
-                        if (hasPathPrefix) {
-                          addPathPrefixToBuilder(builder, field.getName(), context);
-                        }
-                        if (hasConditionOverride) {
-                          builder.condition(
-                              TemplatePropertyAnnotationProcessor.transformToCondition(
-                                  nestedPropertiesAnnotation.condition()));
-                        }
-                        if (hasGroupOverride) {
-                          builder.group(nestedPropertiesAnnotation.group());
-                        }
-                      })
-                  .toList();
-          properties.addAll(nestedProperties);
+          var nestedBuilders =
+              extractTemplatePropertiesFromType(
+                  field.getType(),
+                  context,
+                  excludedSubTypes(field.getAnnotation(TemplateProperty.class)));
+          if (hasPathPrefix) {
+            // Snapshot before any renaming: a condition on ANY of these builders may reference
+            // ANY other one of them by its pre-prefix id (a discriminator self-reference, or a
+            // sibling reference introduced via @NestedProperties.condition()) - both must be
+            // rewritten consistently once this level's prefix is applied.
+            var siblingIds =
+                nestedBuilders.stream()
+                    .filter(builder -> !isRootBoundDocReturn(builder))
+                    .map(PropertyBuilder::getId)
+                    .collect(Collectors.toSet());
+            nestedBuilders.forEach(
+                builder -> addPathPrefixToBuilder(builder, field.getName(), context));
+            nestedBuilders.forEach(
+                builder ->
+                    builder.condition(
+                        addConditionPrefix(builder.getCondition(), field.getName(), siblingIds)));
+          }
+          nestedBuilders.forEach(
+              builder -> {
+                if (hasConditionOverride) {
+                  var override =
+                      TemplatePropertyAnnotationProcessor.transformToCondition(
+                          nestedPropertiesAnnotation.condition());
+                  var existing = builder.getCondition();
+                  if (existing == null || existing.equals(override)) {
+                    builder.condition(override);
+                  } else if (existing instanceof AllMatch allMatch) {
+                    if (!allMatch.allMatch().contains(override)) {
+                      var conditions = new ArrayList<>(allMatch.allMatch());
+                      conditions.add(override);
+                      builder.condition(new AllMatch(conditions));
+                    }
+                  } else {
+                    builder.condition(new AllMatch(List.of(existing, override)));
+                  }
+                }
+                if (hasGroupOverride) {
+                  builder.group(nestedPropertiesAnnotation.group());
+                }
+              });
+          properties.addAll(nestedBuilders);
         } catch (StackOverflowError e) {
           throw new RuntimeException(
               "Failed to analyze container field "
@@ -343,23 +385,24 @@ public class TemplatePropertiesUtil {
     return propertyBuilder;
   }
 
+  /**
+   * True if this builder's id/binding is exempt from path-prefixing: the DocumentReturnFormat
+   * dropdown + encoding always bind to a canonical root-level path so the runtime can read them
+   * without per-connector configuration.
+   */
+  private static boolean isRootBoundDocReturn(PropertyBuilder builder) {
+    var id = builder.getId();
+    return DocumentReturnFormatHandler.DROPDOWN_ID.equals(id)
+        || DocumentReturnFormatHandler.ENCODING_ID.equals(id);
+  }
+
   private static void addPathPrefixToBuilder(
       PropertyBuilder builder, String path, TemplateGenerationContext context) {
-    var originalId = builder.getId();
-    boolean isRootBoundDocReturn =
-        DocumentReturnFormatHandler.DROPDOWN_ID.equals(originalId)
-            || DocumentReturnFormatHandler.ENCODING_ID.equals(originalId);
-
-    if (isRootBoundDocReturn) {
-      // The DocumentReturnFormat dropdown + encoding always bind to a canonical root-level path
-      // ("documentReturnFormat.choice" / ".encoding") so the runtime can read them without
-      // per-connector configuration. Skip the id and binding rewrite. Discriminator references
-      // in this builder's condition are already path-prefixed by handleSealedType's dependant
-      // pass (see DiscriminatorPropertyBuilder branch below) — re-prefixing here would double-
-      // apply the path.
+    if (isRootBoundDocReturn(builder)) {
       return;
     }
 
+    var originalId = builder.getId();
     builder.id(path + "." + originalId);
     var binding = builder.getBinding();
 
@@ -373,40 +416,53 @@ public class TemplatePropertiesUtil {
       // Re-render so the composer's helper references match their just-prefixed bindings.
       composerBuilder.addHelperPathPrefix(path);
     }
-
-    if (builder instanceof DiscriminatorPropertyBuilder discriminatorPropertyBuilder) {
-      discriminatorPropertyBuilder
-          .getDependantProperties()
-          .forEach(
-              dependant ->
-                  dependant.condition(
-                      addConditionPrefix(dependant.getCondition(), path, originalId)));
-    }
   }
 
+  /**
+   * Any condition (discriminator self-reference, or a sibling reference introduced via {@link
+   * NestedProperties#condition()}) whose {@code property} matches one of {@code siblingIds} — the
+   * ids of the properties extracted alongside it at this same nesting level, before this level's
+   * own prefix was applied — is rewritten to the prefixed id. Ids exempted from prefixing (see
+   * {@link #isRootBoundDocReturn}) are not members of {@code siblingIds}, so references to them
+   * pass through unchanged, matching their own (unprefixed) final id.
+   */
   private static PropertyCondition addConditionPrefix(
-      PropertyCondition condition, String path, String discriminatorPropertyId) {
+      PropertyCondition condition, String path, Set<String> siblingIds) {
+    if (condition == null) {
+      return null;
+    }
     switch (condition) {
       case AllMatch allMatchCondition -> {
         return new AllMatch(
             allMatchCondition.allMatch().stream()
-                .map(
-                    subCondition -> addConditionPrefix(subCondition, path, discriminatorPropertyId))
+                .map(subCondition -> addConditionPrefix(subCondition, path, siblingIds))
                 .toList());
       }
       case Equals equalsCondition -> {
-        if (!equalsCondition.property().equals(discriminatorPropertyId)) {
+        if (!siblingIds.contains(equalsCondition.property())) {
           return equalsCondition;
         }
         return new Equals(path + "." + equalsCondition.property(), equalsCondition.equals());
       }
       case OneOf oneOfCondition -> {
-        if (!oneOfCondition.property().equals(discriminatorPropertyId)) {
+        if (!siblingIds.contains(oneOfCondition.property())) {
           return oneOfCondition;
         }
         return new OneOf(path + "." + oneOfCondition.property(), oneOfCondition.oneOf());
       }
-      default -> throw new IllegalStateException("Unknown condition type: " + condition.getClass());
+      case IsActive isActiveCondition -> {
+        if (!siblingIds.contains(isActiveCondition.property())) {
+          return isActiveCondition;
+        }
+        return new IsActive(
+            path + "." + isActiveCondition.property(), isActiveCondition.isActive());
+      }
+      case IsEmpty isEmptyCondition -> {
+        if (!siblingIds.contains(isEmptyCondition.property())) {
+          return isEmptyCondition;
+        }
+        return new IsEmpty(path + "." + isEmptyCondition.property(), isEmptyCondition.isEmpty());
+      }
     }
   }
 
@@ -542,6 +598,13 @@ public class TemplatePropertiesUtil {
     return builders;
   }
 
+  private static Set<Class<?>> excludedSubTypes(TemplateProperty annotation) {
+    if (annotation == null || annotation.excludeSubTypes().length == 0) {
+      return Set.of();
+    }
+    return Set.of(annotation.excludeSubTypes());
+  }
+
   public static boolean isOutbound(TemplateGenerationContext context) {
     return switch (context) {
       case TemplateGenerationContext.Inbound unused -> false;
@@ -550,7 +613,7 @@ public class TemplatePropertiesUtil {
   }
 
   private static List<PropertyBuilder> handleSealedType(
-      Class<?> type, TemplateGenerationContext context) {
+      Class<?> type, TemplateGenerationContext context, Set<Class<?>> excludedSubTypes) {
     var subTypes =
         Arrays.stream(type.getPermittedSubclasses())
             .filter(
@@ -558,6 +621,7 @@ public class TemplatePropertiesUtil {
                   var annotation = subType.getAnnotation(TemplateSubType.class);
                   return annotation == null || !annotation.ignore();
                 })
+            .filter(subType -> !excludedSubTypes.contains(subType))
             .toList();
     var properties = new ArrayList<PropertyBuilder>();
 
@@ -583,7 +647,9 @@ public class TemplatePropertiesUtil {
       values.put(subTypeIdAndName.getKey(), subTypeIdAndName.getValue());
 
       var currentSubTypeProperties =
-          extractTemplatePropertiesFromType(subType, context).stream()
+          // Set.of(): an exclusion applies to the hierarchy it was declared on, not to hierarchies
+          // nested inside its subtypes.
+          extractTemplatePropertiesFromType(subType, context, Set.of()).stream()
               .peek(
                   property -> {
                     if (property.getCondition() == null) {
@@ -649,8 +715,13 @@ public class TemplatePropertiesUtil {
                 discriminatorAnnotation == null || discriminatorAnnotation.tooltip().isBlank()
                     ? null
                     : discriminatorAnnotation.tooltip())
+            // A defaultValue naming an excluded subtype is no longer a valid choice, so it is
+            // dropped rather than emitted (it would fail the template validator's
+            // DefaultValueInChoicesRule and preselect a value the editor cannot offer).
             .value(
-                discriminatorAnnotation == null || discriminatorAnnotation.defaultValue().isBlank()
+                discriminatorAnnotation == null
+                        || discriminatorAnnotation.defaultValue().isBlank()
+                        || !values.containsKey(discriminatorAnnotation.defaultValue())
                     ? null
                     : discriminatorAnnotation.defaultValue());
 

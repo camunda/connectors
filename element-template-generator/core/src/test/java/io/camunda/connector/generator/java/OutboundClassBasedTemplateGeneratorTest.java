@@ -49,14 +49,19 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.dsl.PropertyCondition.IsEmpty;
 import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.generator.java.example.outbound.ClassBasedConnectorWithLinkedResource;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
@@ -2233,6 +2238,193 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     void bareMajorAboveFloor_isAccepted() {
       var template = generator.generate(BareMajorAboveFloorConnector.class).getFirst();
       assertThat(template.engines()).isNotNull();
+    }
+  }
+
+  // --- Configuration chooser gating a sealed-type inline fallback via isEmpty, reproducing the
+  // AWS-credential shape: chooser declared first, fallback's @NestedProperties condition must be
+  // merged (not replace) with the sealed type's own per-subtype discriminator condition, and the
+  // merge must run after the discriminator has already prefixed its dependants' conditions. ---
+  @Nested
+  class ConfigurationGatedFallback {
+
+    @TemplateDiscriminatorProperty(name = "type", group = "authentication")
+    sealed interface FallbackAuth permits StaticCredentials, DefaultChain {}
+
+    @TemplateSubType(id = "credentials", label = "Credentials")
+    record StaticCredentials(
+        @TemplateProperty(group = "authentication", label = "Access key") String accessKey)
+        implements FallbackAuth {}
+
+    @TemplateSubType(id = "defaultChain", label = "Default Chain")
+    record DefaultChain() implements FallbackAuth {}
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:gated-credential:1",
+        version = 1,
+        name = "Gated Credential")
+    record GatedCredential(String field) {}
+
+    static class GatedRequest {
+      @TemplateProperty(
+          id = "configuration",
+          label = "Credential",
+          group = "authentication",
+          type = TemplateProperty.PropertyType.Configuration,
+          optional = true,
+          binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+      private GatedCredential configuration;
+
+      @NestedProperties(
+          condition =
+              @TemplateProperty.PropertyCondition(
+                  property = "configuration",
+                  isEmpty = NullableBoolean.TRUE))
+      private FallbackAuth authentication;
+    }
+
+    @OutboundConnector(name = "Gated", type = "test:gated")
+    @ElementTemplate(
+        id = "test-gated",
+        name = "Gated",
+        version = 1,
+        engineVersion = "^8.10",
+        inputDataClass = GatedRequest.class,
+        configurations = {GatedCredential.class})
+    static class GatedConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void discriminator_getsBareIsEmptyCondition() {
+      var template = generator.generate(GatedConnector.class).getFirst();
+      var discriminator = getPropertyById("authentication.type", template);
+
+      assertThat(discriminator.getCondition()).isEqualTo(new IsEmpty("configuration", true));
+    }
+
+    @Test
+    void fallbackLeafField_getsMergedAllMatchCondition() {
+      var template = generator.generate(GatedConnector.class).getFirst();
+      var discriminator = getPropertyById("authentication.type", template);
+      var accessKey = getPropertyById("authentication.accessKey", template);
+
+      assertThat(accessKey.getCondition()).isInstanceOf(AllMatch.class);
+      assertThat(((AllMatch) accessKey.getCondition()).allMatch())
+          .containsExactlyInAnyOrder(
+              new Equals(discriminator.getId(), "credentials"), new IsEmpty("configuration", true));
+    }
+
+    @Test
+    void embeddedConfigurationTemplate_doesNotLeakIsEmptyCondition() {
+      var template = generator.generate(GatedConnector.class).getFirst();
+      var configurationTemplate = template.configurationTemplates().getFirst();
+
+      assertThat(configurationTemplate.properties())
+          .noneMatch(p -> p.getCondition() instanceof IsEmpty);
+    }
+  }
+
+  // A shared sealed union narrowed for one usage: the credential supports fewer authentication
+  // mechanisms than the inline fields it substitutes for, so the excluded subtype must disappear
+  // from the credential's dropdown while the inline usage of the same union keeps it. ---
+  @Nested
+  class ExcludedSubTypes {
+
+    @TemplateDiscriminatorProperty(name = "type", group = "authentication", defaultValue = "noAuth")
+    sealed interface SharedAuth permits NoAuth, TokenAuth {}
+
+    @TemplateSubType(id = "noAuth", label = "None")
+    record NoAuth() implements SharedAuth {}
+
+    @TemplateSubType(id = "token", label = "Token")
+    record TokenAuth(
+        @TemplateProperty(group = "authentication", label = "Token") String token,
+        @TemplateProperty(group = "authentication", label = "Realm") String realm)
+        implements SharedAuth {}
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:narrowed-credential:1",
+        version = 1,
+        name = "Narrowed Credential")
+    record NarrowedCredential(
+        @TemplateProperty(group = "authentication", excludeSubTypes = NoAuth.class)
+            SharedAuth authentication) {}
+
+    static class NarrowedRequest {
+      @TemplateProperty(
+          id = "credential",
+          label = "Credential",
+          group = "authentication",
+          type = TemplateProperty.PropertyType.Configuration,
+          optional = true,
+          binding = @TemplateProperty.PropertyBinding(name = "credential"))
+      private NarrowedCredential credential;
+
+      // Same union, no exclusion: keeps every subtype.
+      private SharedAuth authentication;
+    }
+
+    @OutboundConnector(name = "Narrowed", type = "test:narrowed")
+    @ElementTemplate(
+        id = "test-narrowed",
+        name = "Narrowed",
+        version = 1,
+        engineVersion = "^8.10",
+        inputDataClass = NarrowedRequest.class,
+        configurations = {NarrowedCredential.class})
+    static class NarrowedConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    private Property credentialDiscriminator() {
+      var template = generator.generate(NarrowedConnector.class).getFirst();
+      return template.configurationTemplates().getFirst().properties().stream()
+          .filter(p -> "authentication.type".equals(p.getId()))
+          .findFirst()
+          .orElseThrow();
+    }
+
+    @Test
+    void excludedSubType_isNotOfferedInTheCredentialDropdown() {
+      assertThat(((DropdownProperty) credentialDiscriminator()).getChoices())
+          .extracting(DropdownChoice::value)
+          .containsExactly("token")
+          .doesNotContain("noAuth");
+    }
+
+    @Test
+    void defaultValueNamingAnExcludedSubType_isDropped() {
+      assertThat(credentialDiscriminator().getValue()).isNull();
+    }
+
+    @Test
+    void excludedSubTypeProperties_areNotEmitted() {
+      var template = generator.generate(NarrowedConnector.class).getFirst();
+      var credentialPropertyIds =
+          template.configurationTemplates().getFirst().properties().stream()
+              .map(Property::getId)
+              .toList();
+
+      assertThat(credentialPropertyIds)
+          .containsExactly("authentication.type", "authentication.token", "authentication.realm");
+    }
+
+    @Test
+    void sameUnionWithoutTheExclusion_keepsEverySubType() {
+      var template = generator.generate(NarrowedConnector.class).getFirst();
+      var inlineDiscriminator = getPropertyById("authentication.type", template);
+
+      assertThat(((DropdownProperty) inlineDiscriminator).getChoices())
+          .extracting(DropdownChoice::value)
+          .containsExactlyInAnyOrder("noAuth", "token");
+      assertThat(inlineDiscriminator.getValue()).isEqualTo("noAuth");
     }
   }
 }

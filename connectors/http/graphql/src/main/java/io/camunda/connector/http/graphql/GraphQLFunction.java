@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
     },
     inputDataClass = GraphQLRequest.class,
     configurations = {RestAuthenticationConfiguration.class},
-    version = 12,
+    version = 14,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),

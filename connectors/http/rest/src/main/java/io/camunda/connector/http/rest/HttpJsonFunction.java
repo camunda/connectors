@@ -69,7 +69,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
     inputDataClass = HttpJsonRequest.class,
     configurations = {RestAuthenticationConfiguration.class},
     outputDataClass = HttpCommonResult.class,
-    version = 17,
+    version = 19,
     defaultResultExpression =
         "{\n"
             + "  myResponseBody: response.body\n"

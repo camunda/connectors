@@ -31,7 +31,8 @@ class PollingRuntimePropertiesCredentialValidationTest {
           "url": "http://localhost:8085/http-endpoint",
           "method": "GET",
           "authenticationConfiguration": {
-            "authentication": { "type": "bearer", "token": "" }
+            "authentication": { "type": "bearer", "token": "" },
+            "url": "http://localhost:8085/http-endpoint"
           }
         }
         """;
@@ -53,7 +54,8 @@ class PollingRuntimePropertiesCredentialValidationTest {
           "url": "http://localhost:8085/http-endpoint",
           "method": "GET",
           "authenticationConfiguration": {
-            "authentication": { "type": "bearer", "token": "valid-token" }
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8085/http-endpoint"
           }
         }
         """;
@@ -65,5 +67,104 @@ class PollingRuntimePropertiesCredentialValidationTest {
 
     var boundProperties = context.bindProperties(PollingRuntimeProperties.class);
     assertThat(boundProperties.getAuthentication()).isInstanceOf(BearerAuthentication.class);
+  }
+
+  @Test
+  void credentialUrlSatisfiesTheUrlRequirementWithoutAnInlineUrl() {
+    String properties =
+        """
+        {
+          "method": "GET",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8085/http-endpoint"
+          }
+        }
+        """;
+    var context =
+        InboundConnectorContextBuilder.create()
+            .properties(properties)
+            .validation(new TestValidationProvider())
+            .build();
+
+    assertThat(context.bindProperties(PollingRuntimeProperties.class).getUrl())
+        .isEqualTo("http://localhost:8085/http-endpoint");
+  }
+
+  /**
+   * The blank case, distinct from the absent one above: Modeler may write an empty property when
+   * the optional override is cleared, so a blank inline URL must fall back to the credential rather
+   * than trip the shape check.
+   */
+  @Test
+  void blankInlineUrlFallsBackToCredentialUrl() {
+    String properties =
+        """
+        {
+          "method": "GET",
+          "url": "",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8085/http-endpoint"
+          }
+        }
+        """;
+    var context =
+        InboundConnectorContextBuilder.create()
+            .properties(properties)
+            .validation(new TestValidationProvider())
+            .build();
+
+    assertThat(context.bindProperties(PollingRuntimeProperties.class).getUrl())
+        .isEqualTo("http://localhost:8085/http-endpoint");
+  }
+
+  @Test
+  void credentialWithoutUrlIsRejectedForAHostBoundAuthenticationType() {
+    String properties =
+        """
+        {
+          "method": "GET",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" }
+          }
+        }
+        """;
+    var context =
+        InboundConnectorContextBuilder.create()
+            .properties(properties)
+            .validation(new TestValidationProvider())
+            .build();
+
+    assertThatThrownBy(() -> context.bindProperties(PollingRuntimeProperties.class))
+        .hasMessageContaining("URL is required");
+  }
+
+  @Test
+  void oauthCredentialCarriesNoUrlSoTheInlineUrlIsUsed() {
+    String properties =
+        """
+        {
+          "method": "GET",
+          "url": "http://localhost:8085/http-endpoint",
+          "authenticationConfiguration": {
+            "authentication": {
+              "type": "oauth-client-credentials-flow",
+              "oauthTokenEndpoint": "http://localhost:8085/token",
+              "clientId": "id",
+              "clientSecret": "secret",
+              "clientAuthentication": "credentialsBody"
+            }
+          }
+        }
+        """;
+    var context =
+        InboundConnectorContextBuilder.create()
+            .properties(properties)
+            .validation(new TestValidationProvider())
+            .build();
+
+    assertThat(context.bindProperties(PollingRuntimeProperties.class).getUrl())
+        .isEqualTo("http://localhost:8085/http-endpoint");
   }
 }

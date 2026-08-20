@@ -59,4 +59,19 @@ public class HttpJsonRequest extends HttpCommonRequest {
     }
     return super.getAuthentication();
   }
+
+  /**
+   * The URL is the one place where the inline value wins over the credential rather than the other
+   * way round: the credential carries the endpoint it is bound to, and the model may override it
+   * per task (the {@code urlOverride} template property). An OAuth credential carries no URL at
+   * all, so the inline value is the only source there.
+   */
+  @Override
+  public String getUrl() {
+    String inlineUrl = super.getUrl();
+    if (inlineUrl != null && !inlineUrl.isBlank()) {
+      return inlineUrl;
+    }
+    return authenticationConfiguration != null ? authenticationConfiguration.url() : null;
+  }
 }

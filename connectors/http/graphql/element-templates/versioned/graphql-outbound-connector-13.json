@@ -5,7 +5,7 @@
   "description" : "Execute GraphQL query",
   "keywords" : [ "API", "query", "mutation", "HTTP", "web request", "GraphQL", "fetch data", "data query", "execute query", "API call" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/graphql/",
-  "version" : 14,
+  "version" : 13,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -585,11 +585,6 @@
       "name" : "graphql.url",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "authenticationConfiguration",
-      "isEmpty" : true,
-      "type" : "simple"
-    },
     "type" : "String"
   }, {
     "id" : "graphql.headers",
@@ -638,30 +633,6 @@
     "condition" : {
       "property" : "documentReturnFormat",
       "equals" : "TEXT",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "urlOverride",
-    "label" : "URL",
-    "description" : "Optional. Overrides the URL of the selected credential; leave empty to use the credential's own URL.",
-    "optional" : true,
-    "constraints" : {
-      "notEmpty" : false,
-      "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
-        "message" : "Must be a http(s) URL"
-      }
-    },
-    "feel" : "optional",
-    "group" : "endpoint",
-    "binding" : {
-      "name" : "graphql.url",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authenticationConfiguration",
-      "isEmpty" : false,
       "type" : "simple"
     },
     "type" : "String"
@@ -721,7 +692,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "14",
+    "value" : "13",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -815,6 +786,7 @@
       "id" : "authentication.type",
       "label" : "Type",
       "description" : "Choose the authentication type. Select 'None' if no authentication is necessary",
+      "value" : "noAuth",
       "group" : "authentication",
       "binding" : {
         "name" : "authentication.type",
@@ -830,6 +802,9 @@
       }, {
         "name" : "Bearer token",
         "value" : "bearer"
+      }, {
+        "name" : "None",
+        "value" : "noAuth"
       }, {
         "name" : "OAuth 2.0",
         "value" : "oauth-client-credentials-flow"
@@ -1153,28 +1128,6 @@
         "type" : "simple"
       },
       "tooltip" : "The scopes to request authorization for (space-separated)",
-      "type" : "String"
-    }, {
-      "id" : "url",
-      "label" : "URL",
-      "description" : "The endpoint this credential is bound to. A connector using it may override this URL.",
-      "constraints" : {
-        "notEmpty" : true,
-        "pattern" : {
-          "value" : "^((http://|https://|secrets|\\{\\{).*$)",
-          "message" : "Must be a http(s) URL"
-        }
-      },
-      "group" : "endpoint",
-      "binding" : {
-        "name" : "url",
-        "type" : "property"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "oneOf" : [ "basic", "bearer", "apiKey" ],
-        "type" : "simple"
-      },
       "type" : "String"
     } ]
   } ],

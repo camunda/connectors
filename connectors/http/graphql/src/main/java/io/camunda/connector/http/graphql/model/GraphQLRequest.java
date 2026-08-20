@@ -6,17 +6,23 @@
  */
 package io.camunda.connector.http.graphql.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.hostvalidator.VerifiedHost;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.auth.Authentication;
 import io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -29,13 +35,14 @@ import java.util.Map;
  * switch of the underlying http library
  *
  * @param graphql
- * @param authentication
  * @param authenticationConfiguration reusable REST authentication credential; when bound, takes
- *     precedence over {@code authentication} (see {@link #authentication()})
+ *     precedence over {@code authentication} (see {@link #authentication()}). Declared before
+ *     {@code authentication} so it renders first and satisfies ConditionPropertyOrderRule for the
+ *     isEmpty condition below.
+ * @param authentication hidden and un-required once a credential is bound above.
  */
 public record GraphQLRequest(
     @Valid GraphQL graphql,
-    @Valid Authentication authentication,
     @TemplateProperty(
             id = "authenticationConfiguration",
             label = "Authentication credential",
@@ -47,7 +54,77 @@ public record GraphQLRequest(
                 "Choose a reusable REST authentication credential. When set, it is bound as a"
                     + " whole to the connector's 'authenticationConfiguration' input.")
         @Valid
-        RestAuthenticationConfiguration authenticationConfiguration) {
+        RestAuthenticationConfiguration authenticationConfiguration,
+    @NestedProperties(
+            condition =
+                @PropertyCondition(
+                    property = "authenticationConfiguration",
+                    isEmpty = NullableBoolean.TRUE))
+        @Valid
+        Authentication authentication,
+    // Template-only twin of `graphql.url`, bound to the same input and shown in its place once a
+    // credential is chosen: there the URL may come from the credential, so the inline value is an
+    // optional override rather than a required field. Declared on the outer record (rather than
+    // inside GraphQL) so the nested record's canonical constructor stays untouched; the explicit
+    // binding is what places it on `graphql.url`. Never populated - the engine writes a single
+    // `graphql.url` input, which Jackson binds to GraphQL#url above.
+    @TemplateProperty(
+            id = "urlOverride",
+            group = "endpoint",
+            label = "URL",
+            optional = true,
+            binding = @TemplateProperty.PropertyBinding(name = "graphql.url"),
+            condition =
+                @PropertyCondition(
+                    property = "authenticationConfiguration",
+                    isEmpty = NullableBoolean.FALSE),
+            constraints =
+                @TemplateProperty.PropertyConstraints(
+                    pattern =
+                        @TemplateProperty.Pattern(
+                            value = HttpCommonRequest.URL_PATTERN,
+                            message = HttpCommonRequest.URL_PATTERN_MESSAGE)),
+            description =
+                "Optional. Overrides the URL of the selected credential; leave empty to use the"
+                    + " credential's own URL.")
+        String urlOverride) {
+
+  /** Convenience constructor for the shape without the template-only URL-override component. */
+  public GraphQLRequest(
+      GraphQL graphql,
+      RestAuthenticationConfiguration authenticationConfiguration,
+      Authentication authentication) {
+    this(graphql, authenticationConfiguration, authentication, null);
+  }
+
+  /**
+   * The URL is the one place where the inline value wins over the credential rather than the other
+   * way round: the credential carries the endpoint it is bound to, and the model may override it
+   * per task (the {@code urlOverride} template property). An OAuth credential carries no URL at
+   * all, so the inline value is the only source there. Named as a getter so bean validation treats
+   * it as a property - a record-style {@code effectiveUrl()} accessor would not be validated.
+   */
+  @JsonIgnore
+  public String getEffectiveUrl() {
+    String inlineUrl = graphql != null ? graphql.url() : null;
+    if (inlineUrl != null && !inlineUrl.isBlank()) {
+      return inlineUrl;
+    }
+    return authenticationConfiguration != null ? authenticationConfiguration.url() : null;
+  }
+
+  /**
+   * The URL is required, but it may come from the bound credential instead of the inline field, so
+   * requiredness is asserted on the effective value (see {@link #getEffectiveUrl()}) - the same
+   * shape as {@code JdbcRequest#isConnectionSourceProvided()}. A component-level {@code @NotBlank}
+   * could not do this: the inline field is legitimately blank when the credential supplies the URL.
+   */
+  @AssertTrue(message = "URL is required")
+  @JsonIgnore
+  public boolean isUrlPresent() {
+    String effectiveUrl = getEffectiveUrl();
+    return effectiveUrl != null && !effectiveUrl.isBlank();
+  }
 
   /**
    * Per-connector consumption of the bound authentication credential: when a credential
@@ -98,13 +175,35 @@ public record GraphQLRequest(
                 @TemplateProperty.DropdownPropertyChoice(label = "POST", value = "post")
               })
           HttpMethod method,
+      // Only @NotBlank moved off this component: once a credential can supply the URL, the inline
+      // value may legitimately be absent, so presence is asserted on the effective value in
+      // GraphQLRequest#isUrlPresent(). The shape checks stay here so a malformed inline value is
+      // still reported against `graphql.url` rather than against a synthetic property - they pass
+      // on a null value and reject a blank one, which is exactly right: Modeler omits the input
+      // when the optional override is left empty. A URL coming from the credential is shape-checked
+      // by RestAuthenticationConfiguration's own constraints. notEmpty is spelled out in the
+      // template constraints because the generator derives it from @NotBlank, which this component
+      // no longer carries.
       @FEEL
-          @NotBlank
           @Pattern(
-              regexp = "^(=|(http://|https://|secrets|\\{\\{).*$)",
-              message = "Must be a http(s) URL")
-          @TemplateProperty(id = "url", group = "endpoint", label = "URL")
+              regexp = HttpCommonRequest.URL_PATTERN,
+              message = HttpCommonRequest.URL_PATTERN_MESSAGE)
           @VerifiedHost(isUri = true)
+          @TemplateProperty(
+              id = "url",
+              group = "endpoint",
+              label = "URL",
+              condition =
+                  @PropertyCondition(
+                      property = "authenticationConfiguration",
+                      isEmpty = NullableBoolean.TRUE),
+              constraints =
+                  @TemplateProperty.PropertyConstraints(
+                      notEmpty = true,
+                      pattern =
+                          @TemplateProperty.Pattern(
+                              value = HttpCommonRequest.URL_PATTERN,
+                              message = HttpCommonRequest.URL_PATTERN_MESSAGE)))
           String url,
       @FEEL
           @TemplateProperty(
@@ -128,5 +227,17 @@ public record GraphQLRequest(
               defaultValueType = TemplateProperty.DefaultValueType.Number,
               optional = true,
               tooltip = "Use 0 for an infinite timeout")
-          Integer readTimeoutInSeconds) {}
+          Integer readTimeoutInSeconds) {
+
+    /**
+     * A blank inline URL means "not set", not "set to an invalid value". Normalizing it to {@code
+     * null} is what lets the shape check stay on the component: Modeler may write an empty input
+     * when the optional override is cleared, and a bound credential's URL must then take over
+     * rather than {@code @Pattern} rejecting {@code ""}. It also turns a blank URL with no
+     * credential into the accurate "URL is required" rather than "Must be a http(s) URL".
+     */
+    public GraphQL {
+      url = url == null || url.isBlank() ? null : url;
+    }
+  }
 }

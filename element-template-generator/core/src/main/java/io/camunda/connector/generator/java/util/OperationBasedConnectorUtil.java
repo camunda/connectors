@@ -211,6 +211,9 @@ public class OperationBasedConnectorUtil {
       case PropertyCondition.IsActive isActive ->
           new PropertyCondition.AllMatch(
               List.of(operationCondition, mapPropertyCondition(isActive, operationId)));
+      case PropertyCondition.IsEmpty isEmpty ->
+          new PropertyCondition.AllMatch(
+              List.of(operationCondition, mapPropertyCondition(isEmpty, operationId)));
       case PropertyCondition.AllMatch allMatch -> {
         PropertyCondition.AllMatch allMatchPatched = mapPropertyCondition(allMatch, operationId);
         allMatchPatched.allMatch().add(operationCondition);
@@ -233,6 +236,10 @@ public class OperationBasedConnectorUtil {
               new PropertyCondition.IsActive(
                   concatenateOperationIdAndPropertyId(operationId, isActive.property()),
                   isActive.isActive());
+          case PropertyCondition.IsEmpty isEmpty ->
+              new PropertyCondition.IsEmpty(
+                  concatenateOperationIdAndPropertyId(operationId, isEmpty.property()),
+                  isEmpty.isEmpty());
           case PropertyCondition.OneOf oneOf ->
               new PropertyCondition.OneOf(
                   concatenateOperationIdAndPropertyId(operationId, oneOf.property()),

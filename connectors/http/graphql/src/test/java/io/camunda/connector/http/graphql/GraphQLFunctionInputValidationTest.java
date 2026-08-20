@@ -66,7 +66,7 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"", " ", "iAmWrongUrl", "ftp://camunda.org/", "camunda@camunda.com"})
+  @ValueSource(strings = {"iAmWrongUrl", "ftp://camunda.org/", "camunda@camunda.com"})
   void shouldRaiseException_WhenExecuted_EndpointMalformed(final String input) {
     // Given
     OutboundConnectorContext ctx =
@@ -80,6 +80,28 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
     // Then
     assertThat(exception.getMessage())
         .contains("Found constraints violated while validating input", "graphql.url");
+  }
+
+  /**
+   * A blank URL is normalized to absent (see {@code GraphQLRequest.GraphQL}'s constructor), so it
+   * is now reported as missing rather than malformed - the accurate diagnosis, and what lets a
+   * bound credential supply the URL when the optional override is left empty.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"", " "})
+  void shouldRaiseException_WhenExecuted_EndpointBlank(final String input) {
+    // Given
+    OutboundConnectorContext ctx =
+        getContextBuilderWithSecrets()
+            .validation(new DefaultValidationProvider())
+            .variables(String.format(REQUEST_ENDPOINT_OBJECT_PLACEHOLDER, input))
+            .build();
+    // When
+    Throwable exception =
+        assertThrows(ConnectorInputException.class, () -> functionUnderTest.execute(ctx));
+    // Then
+    assertThat(exception.getMessage())
+        .contains("Found constraints violated while validating input", "URL is required");
   }
 
   @ParameterizedTest(name = "Validate null field # {index}")

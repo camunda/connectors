@@ -6,17 +6,20 @@
  */
 package io.camunda.connector.http.base.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.hostvalidator.VerifiedHost;
 import io.camunda.connector.http.base.model.auth.Authentication;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import java.util.Map;
@@ -32,6 +35,13 @@ import java.util.Optional;
             + " you can access via dot notation.")
 public class HttpCommonRequest {
 
+  /** Shared by every URL property built on this model, inline or credential-override. */
+  @TemplateProperty(ignore = true)
+  public static final String URL_PATTERN = "^(=|(http://|https://|secrets|\\{\\{).*$)";
+
+  @TemplateProperty(ignore = true)
+  public static final String URL_PATTERN_MESSAGE = "Must be a http(s) URL";
+
   @TemplateProperty(ignore = true)
   private static final int DEFAULT_TIMEOUT = 20;
 
@@ -40,14 +50,67 @@ public class HttpCommonRequest {
   @TemplateProperty(group = "endpoint", id = "method", defaultValue = "GET")
   private HttpMethod method;
 
+  // Only @NotBlank moved off this field: once a credential can supply the URL, the inline value may
+  // legitimately be absent, so presence is asserted on the effective value in isUrlPresent() below.
+  // The shape checks stay here so a malformed inline value is still reported against `url` rather
+  // than against a synthetic property - they pass on a null value and reject a blank one, which is
+  // exactly right: Modeler omits the input when the optional override is left empty. A URL coming
+  // from the credential is shape-checked by RestAuthenticationConfiguration's own constraints.
+  // notEmpty is spelled out in the template constraints below because the generator derives it from
+  // @NotBlank, which this field no longer carries.
   @FEEL
-  @NotBlank
-  @Pattern(regexp = "^(=|(http://|https://|secrets|\\{\\{).*$)", message = "Must be a http(s) URL")
+  @Pattern(regexp = URL_PATTERN, message = URL_PATTERN_MESSAGE)
   @VerifiedHost(isUri = true)
-  @TemplateProperty(group = "endpoint", label = "URL", feel = FeelMode.optional)
+  @TemplateProperty(
+      group = "endpoint",
+      label = "URL",
+      feel = FeelMode.optional,
+      condition =
+          @PropertyCondition(
+              property = "authenticationConfiguration",
+              isEmpty = NullableBoolean.TRUE),
+      constraints =
+          @TemplateProperty.PropertyConstraints(
+              notEmpty = true,
+              pattern =
+                  @TemplateProperty.Pattern(value = URL_PATTERN, message = URL_PATTERN_MESSAGE)))
   private String url;
 
-  @Valid private Authentication authentication;
+  // Template-only twin of `url`, bound to the same `url` input and shown in its place once a
+  // credential is chosen: there the URL may come from the credential, so the inline value is an
+  // optional override rather than a required field. Never populated - the engine writes a single
+  // `url` input, which Jackson binds to the field above.
+  @JsonIgnore
+  @TemplateProperty(
+      id = "urlOverride",
+      group = "endpoint",
+      label = "URL",
+      feel = FeelMode.optional,
+      optional = true,
+      binding = @TemplateProperty.PropertyBinding(name = "url"),
+      condition =
+          @PropertyCondition(
+              property = "authenticationConfiguration",
+              isEmpty = NullableBoolean.FALSE),
+      constraints =
+          @TemplateProperty.PropertyConstraints(
+              pattern =
+                  @TemplateProperty.Pattern(value = URL_PATTERN, message = URL_PATTERN_MESSAGE)),
+      description =
+          "Optional. Overrides the URL of the selected credential; leave empty to use the"
+              + " credential's own URL.")
+  private String urlOverride;
+
+  // Hidden and un-required (via the isEmpty condition) once a credential is chosen. The chooser
+  // (authenticationConfiguration) is declared in the HttpJsonRequest subclass, which renders
+  // before this field since subclass fields precede superclass fields.
+  @NestedProperties(
+      condition =
+          @PropertyCondition(
+              property = "authenticationConfiguration",
+              isEmpty = NullableBoolean.TRUE))
+  @Valid
+  private Authentication authentication;
 
   @Valid private ClientTls clientTls;
 
@@ -153,8 +216,29 @@ public class HttpCommonRequest {
     return url;
   }
 
+  /**
+   * A blank inline URL means "not set", not "set to an invalid value". Normalizing it to {@code
+   * null} on the way in is what lets the shape check stay on the field: Modeler may write an empty
+   * input when the optional override is cleared, and a bound credential's URL must then take over
+   * rather than {@code @Pattern} rejecting {@code ""}. It also turns a blank URL with no credential
+   * into the accurate "URL is required" rather than "Must be a http(s) URL".
+   */
   public void setUrl(final String url) {
-    this.url = url;
+    this.url = url == null || url.isBlank() ? null : url;
+  }
+
+  /**
+   * The URL is required, but a subclass may source it from a bound credential by overriding {@link
+   * #getUrl()}. Asserting on the getter (not the field) respects that override while preserving the
+   * original requirement for subclasses without a credential - the same shape as {@code
+   * JdbcRequest#isConnectionSourceProvided()}. A field-level {@code @NotBlank} could not do this:
+   * the inline field is legitimately blank when the credential supplies the URL.
+   */
+  @AssertTrue(message = "URL is required")
+  @JsonIgnore
+  public boolean isUrlPresent() {
+    String effectiveUrl = getUrl();
+    return effectiveUrl != null && !effectiveUrl.isBlank();
   }
 
   public Authentication getAuthentication() {

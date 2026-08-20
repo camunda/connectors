@@ -19,6 +19,7 @@ package io.camunda.connector.http.rest;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -30,6 +31,8 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.http.base.model.HttpCommonResult;
+import io.camunda.connector.http.base.model.auth.BearerAuthentication;
+import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
@@ -164,6 +167,218 @@ public class HttpJsonFunctionTest extends BaseTest {
     JsonNode jsonBody = objectMapper.readValue(body, JsonNode.class);
     assertThat(jsonBody.has("test")).isTrue();
     assertThat(jsonBody.has("second")).isFalse();
+  }
+
+  /**
+   * Guards the {@code @Valid} cascade on the bound credential: validation must descend through
+   * {@code authenticationConfiguration -> RestAuthenticationConfiguration.authentication ->
+   * BearerAuthentication} so a credential carrying a blank token (which {@code @NotEmpty} forbids)
+   * is rejected the same way inline authentication would be. Runs through the real runtime
+   * validation path ({@code bindVariables}) with no inline {@code authentication} present at all -
+   * the shape Modeler sends once the fallback fields are hidden by the isEmpty condition.
+   */
+  @Test
+  void credentialWithBlankTokenIsRejectedByCascadingValidation() {
+    String variables =
+        """
+        {
+          "method": "get",
+          "url": "http://localhost:8086/http-endpoint",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "" },
+            "url": "http://localhost:8086/http-endpoint"
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .includeAllValidators()
+            .variables(variables)
+            .build();
+
+    assertThatThrownBy(() -> context.bindVariables(HttpJsonRequest.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("token");
+  }
+
+  @Test
+  void credentialWithValidTokenDoesNotTripAuthValidation() {
+    String variables =
+        """
+        {
+          "method": "get",
+          "url": "http://localhost:8086/http-endpoint",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8086/http-endpoint"
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .includeAllValidators()
+            .variables(variables)
+            .build();
+
+    var request = context.bindVariables(HttpJsonRequest.class);
+    assertThat(request.getAuthentication()).isInstanceOf(BearerAuthentication.class);
+  }
+
+  /**
+   * The URL may come from the credential instead of the model, so it is asserted on the effective
+   * value ({@code isUrlPresent()}) rather than by a {@code @NotBlank} on the field - a model that
+   * binds a credential and leaves the URL empty is exactly what Modeler sends when the required
+   * inline field is hidden by the isEmpty condition.
+   */
+  @Test
+  void credentialUrlSatisfiesTheUrlRequirementWithoutAnInlineUrl() {
+    String variables =
+        """
+        {
+          "method": "get",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8086/http-endpoint"
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .includeAllValidators()
+            .variables(variables)
+            .build();
+
+    assertThat(context.bindVariables(HttpJsonRequest.class).getUrl())
+        .isEqualTo("http://localhost:8086/http-endpoint");
+  }
+
+  /**
+   * The blank case, distinct from the absent one above: Modeler may write an empty input when the
+   * optional override is cleared, so a blank inline URL must fall back to the credential rather
+   * than trip the shape check.
+   */
+  @Test
+  void blankInlineUrlFallsBackToCredentialUrl() {
+    String variables =
+        """
+        {
+          "method": "get",
+          "url": "",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8086/http-endpoint"
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .includeAllValidators()
+            .variables(variables)
+            .build();
+
+    assertThat(context.bindVariables(HttpJsonRequest.class).getUrl())
+        .isEqualTo("http://localhost:8086/http-endpoint");
+  }
+
+  @Test
+  void neitherInlineNorCredentialUrlIsRejected() {
+    String variables =
+        """
+        {
+          "method": "get",
+          "authenticationConfiguration": {
+            "authentication": {
+              "type": "oauth-client-credentials-flow",
+              "oauthTokenEndpoint": "http://localhost:8086/token",
+              "clientId": "id",
+              "clientSecret": "secret",
+              "clientAuthentication": "credentialsBody"
+            }
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .includeAllValidators()
+            .variables(variables)
+            .build();
+
+    assertThatThrownBy(() -> context.bindVariables(HttpJsonRequest.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("URL is required");
+  }
+
+  /**
+   * "None" is excluded from the credential's dropdown by {@code excludeSubTypes}, so the editor
+   * cannot produce this shape - the runtime check covers the hand-edited model.
+   */
+  @Test
+  void credentialWithNoAuthenticationIsRejected() {
+    String variables =
+        """
+        {
+          "method": "get",
+          "url": "http://localhost:8086/http-endpoint",
+          "authenticationConfiguration": {
+            "authentication": { "type": "noAuth" }
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .includeAllValidators()
+            .variables(variables)
+            .build();
+
+    assertThatThrownBy(() -> context.bindVariables(HttpJsonRequest.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("authentication mechanism other than 'None'");
+  }
+
+  @Test
+  void credentialWithoutAnyAuthenticationIsRejected() {
+    String variables =
+        """
+        {
+          "method": "get",
+          "url": "http://localhost:8086/http-endpoint",
+          "authenticationConfiguration": {
+            "url": "http://localhost:8086/http-endpoint"
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .includeAllValidators()
+            .variables(variables)
+            .build();
+
+    assertThatThrownBy(() -> context.bindVariables(HttpJsonRequest.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("authentication mechanism other than 'None'");
+  }
+
+  @Test
+  void credentialWithoutUrlIsRejectedForAHostBoundAuthenticationType() {
+    String variables =
+        """
+        {
+          "method": "get",
+          "url": "http://localhost:8086/http-endpoint",
+          "authenticationConfiguration": {
+            "authentication": { "type": "basic", "username": "u", "password": "p" }
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .includeAllValidators()
+            .variables(variables)
+            .build();
+
+    assertThatThrownBy(() -> context.bindVariables(HttpJsonRequest.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("URL is required for this authentication type");
   }
 
   private HttpCommonResult arrange(String input) throws Exception {
