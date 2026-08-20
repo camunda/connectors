@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GOOGLE_GEMINI_ID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -78,8 +79,16 @@ public class GeminiContentConverter {
         case TextContent text -> parts.add(toTextPart(text));
         case DocumentContent doc -> parts.add(toDocumentPart(doc));
         case ObjectContent obj -> parts.add(Part.fromText(writeAsJson(obj.content())));
-        case ReasoningContent rc -> parts.add(toThoughtPart(rc));
-        case ProviderContent pc -> parts.add(toProviderPart(pc));
+        // Content tagged for a different provider is dropped rather than replayed: a Gemini part
+        // built from an Anthropic/OpenAI-native payload can fail conversion or send invalid
+        // history if a persisted conversation is resumed after switching providers. Matches
+        // AnthropicContentConverter#toContentBlockParams.
+        case ReasoningContent rc when GOOGLE_GEMINI_ID.equals(rc.provider()) ->
+            parts.add(toThoughtPart(rc));
+        case ReasoningContent ignored -> {}
+        case ProviderContent pc when GOOGLE_GEMINI_ID.equals(pc.provider()) ->
+            parts.add(toProviderPart(pc));
+        case ProviderContent ignored -> {}
       }
     }
     return parts;
