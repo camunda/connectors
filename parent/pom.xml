@@ -80,7 +80,7 @@ limitations under the License.</license.inlineheader>
     <version.grpc>1.83.1</version.grpc>
 
     <!-- Protobuf version has to be equal or greater than the one from the Camunda client -->
-    <version.protobuf>4.35.1</version.protobuf>
+    <version.protobuf>4.36.0</version.protobuf>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.23.0</version.mockito>
@@ -98,7 +98,7 @@ limitations under the License.</license.inlineheader>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
-    <version.spring-boot>4.1.0</version.spring-boot>
+    <version.spring-boot>4.1.1</version.spring-boot>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
@@ -109,7 +109,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.53.3</version.aws-sdk2>
+    <version.aws-sdk2>2.54.1</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -135,7 +135,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260610-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.66.0</version.google-genai>
+    <version.google-genai>1.67.0</version.google-genai>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 
@@ -195,7 +195,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
     <version.langchain4j>1.19.0</version.langchain4j>
-    <version.mcp-sdk>2.0.0</version.mcp-sdk>
+    <version.mcp-sdk>2.0.1</version.mcp-sdk>
     <version.elasticsearch-java>8.19.20</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.20</version.elasticsearch-rest-client>
 
