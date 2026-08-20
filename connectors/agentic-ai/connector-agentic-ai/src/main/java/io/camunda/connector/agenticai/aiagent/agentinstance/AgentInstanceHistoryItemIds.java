@@ -8,7 +8,10 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
-import java.util.Objects;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -31,6 +34,13 @@ public final class AgentInstanceHistoryItemIds {
     if (StringUtils.isNotBlank(result.id())) {
       return result.id();
     }
-    return Integer.toHexString(Objects.hash(result.elementId(), result.completedAt()));
+    var input = result.elementId() + " " + result.completedAt();
+    try {
+      var digest =
+          MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8));
+      return HexFormat.of().formatHex(digest);
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("SHA-256 is not available", e);
+    }
   }
 }
