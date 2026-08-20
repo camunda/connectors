@@ -26,6 +26,7 @@ import com.openai.models.responses.ResponseOutputText;
 import com.openai.models.responses.ResponseTextConfig;
 import com.openai.models.responses.Tool;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiStrictJsonSchemas;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -364,7 +365,8 @@ public class OpenAiResponsesRequestConverter {
                         .name(json.schemaName())
                         .schema(
                             objectMapper.convertValue(
-                                json.schema(), ResponseFormatTextJsonSchemaConfig.Schema.class))
+                                OpenAiStrictJsonSchemas.forStrictMode(json.schema(), objectMapper),
+                                ResponseFormatTextJsonSchemaConfig.Schema.class))
                         .strict(true)
                         .build()))
             .build());

@@ -106,8 +106,7 @@ class RealProviderApiSmokeIT {
   private static final String RESPONSE_SCHEMA =
       "{\"type\":\"object\","
           + "\"properties\":{\"codeName\":{\"type\":\"string\"},\"clearanceLevel\":{\"type\":\"string\"}},"
-          + "\"required\":[\"codeName\",\"clearanceLevel\"],"
-          + "\"additionalProperties\":false}";
+          + "\"required\":[\"codeName\",\"clearanceLevel\"]}";
 
   // Repeated to clear Anthropic's minimum cacheable-prefix size (~1024 tokens for Sonnet-class
   // models); each repeat is ~65 tokens, so 24 repeats gives comfortable margin.
