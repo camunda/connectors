@@ -13,6 +13,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class AgentConversationTest {
@@ -203,6 +205,30 @@ class AgentConversationTest {
     assertThat(conv.currentTurn().assistantMessage()).isNull();
     var ctx = conv.toAgentContext();
     assertThat(ctx.metadata().lastIterationKey()).isEqualTo(4);
+  }
+
+  @Test
+  void toAgentContext_recordsConfigurationChange_evenAcrossContinuationRounds() {
+    var priorTurn =
+        new AgentConversationTurn(
+            1, List.of(), assistantMessage("done"), AgentMetrics.empty(), "old-fp");
+    var previousConversation = new PreviousConversation(Optional.empty(), List.of(priorTurn));
+    var contextWithMetadata =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .metadata(new AgentMetadata(1L, 1L, null, 1, Map.of(1, "old-fp")))
+            .build();
+
+    var conv =
+        AgentConversation.rehydrate(
+                CONFIG, contextWithMetadata, previousConversation, null, List.of(userMessage("hi")))
+            .ingest(assistantMessage("round one"), AgentMetrics.empty())
+            .nextContinuationRound()
+            .ingest(assistantMessage("round two"), AgentMetrics.empty());
+
+    var ctx = conv.toAgentContext();
+    assertThat(ctx.metadata().configurationFingerprintHistory())
+        .containsEntry(2, CONFIG.fingerprint());
   }
 
   @Test

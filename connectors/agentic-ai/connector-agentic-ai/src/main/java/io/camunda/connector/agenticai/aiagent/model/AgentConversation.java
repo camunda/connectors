@@ -41,19 +41,25 @@ public final class AgentConversation {
   private final @Nullable SystemMessage systemMessage;
   private final List<AgentConversationTurn> previousTurns;
   private final AgentConversationTurn currentTurn;
+  private final int invocationStartIterationKey;
+  private final @Nullable String precedingConfigurationFingerprint;
 
   private AgentConversation(
       AgentConfiguration configuration,
       AgentContext currentContext,
       @Nullable SystemMessage systemMessage,
       List<AgentConversationTurn> previousTurns,
-      AgentConversationTurn currentTurn) {
+      AgentConversationTurn currentTurn,
+      int invocationStartIterationKey,
+      @Nullable String precedingConfigurationFingerprint) {
     this.configuration = configuration;
     this.currentContext = currentContext;
     this.systemMessage = systemMessage;
     this.previousTurns = List.copyOf(previousTurns);
     this.currentTurn = currentTurn;
     this.agentInstanceKey = AgentInstanceKey.from(currentContext.metadata());
+    this.invocationStartIterationKey = invocationStartIterationKey;
+    this.precedingConfigurationFingerprint = precedingConfigurationFingerprint;
   }
 
   /**
@@ -78,8 +84,17 @@ public final class AgentConversation {
     var currentTurn =
         new AgentConversationTurn(
             nextKey, inputMessages, null, AgentMetrics.empty(), configuration.fingerprint());
+    var precedingTurns = previousConversation.turns();
+    var precedingFingerprint =
+        precedingTurns.isEmpty() ? null : precedingTurns.getLast().configurationFingerprint();
     return new AgentConversation(
-        configuration, agentContext, systemMessage, previousConversation.turns(), currentTurn);
+        configuration,
+        agentContext,
+        systemMessage,
+        precedingTurns,
+        currentTurn,
+        nextKey,
+        precedingFingerprint);
   }
 
   /**
@@ -118,7 +133,13 @@ public final class AgentConversation {
     }
     var completedTurn = currentTurn.withAssistantMessage(assistantMessage, turnMetrics);
     return new AgentConversation(
-        configuration, currentContext, systemMessage, previousTurns, completedTurn);
+        configuration,
+        currentContext,
+        systemMessage,
+        previousTurns,
+        completedTurn,
+        invocationStartIterationKey,
+        precedingConfigurationFingerprint);
   }
 
   /**
@@ -145,7 +166,13 @@ public final class AgentConversation {
             AgentMetrics.empty(),
             currentTurn.configurationFingerprint());
     return new AgentConversation(
-        configuration, currentContext, systemMessage, updatedPreviousTurns, nextTurn);
+        configuration,
+        currentContext,
+        systemMessage,
+        updatedPreviousTurns,
+        nextTurn,
+        invocationStartIterationKey,
+        precedingConfigurationFingerprint);
   }
 
   /**
@@ -155,7 +182,13 @@ public final class AgentConversation {
   public AgentConversation withStoredConversation(ConversationContext ref) {
     var updatedCtx = currentContext.withConversation(ref);
     return new AgentConversation(
-        configuration, updatedCtx, systemMessage, previousTurns, currentTurn);
+        configuration,
+        updatedCtx,
+        systemMessage,
+        previousTurns,
+        currentTurn,
+        invocationStartIterationKey,
+        precedingConfigurationFingerprint);
   }
 
   /** Returns the composed system message for this invocation, or {@code null} when it was blank. */
@@ -236,11 +269,10 @@ public final class AgentConversation {
       return withMetrics;
     }
     var updatedMetadata = metadata.withLastIterationKey(currentTurn.iterationKey());
-    var precedingFingerprint =
-        previousTurns.isEmpty() ? null : previousTurns.getLast().configurationFingerprint();
-    if (!Objects.equals(currentTurn.configurationFingerprint(), precedingFingerprint)) {
+    if (!Objects.equals(
+        currentTurn.configurationFingerprint(), precedingConfigurationFingerprint)) {
       var history = new LinkedHashMap<>(updatedMetadata.configurationFingerprintHistory());
-      history.put(currentTurn.iterationKey(), currentTurn.configurationFingerprint());
+      history.put(invocationStartIterationKey, currentTurn.configurationFingerprint());
       updatedMetadata = updatedMetadata.withConfigurationFingerprintHistory(history);
     }
     return withMetrics.withMetadata(updatedMetadata);
