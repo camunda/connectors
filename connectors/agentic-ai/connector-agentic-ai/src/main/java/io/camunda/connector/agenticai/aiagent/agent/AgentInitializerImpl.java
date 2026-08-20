@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.De
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
@@ -19,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -28,6 +30,9 @@ import org.springframework.util.CollectionUtils;
 public class AgentInitializerImpl implements AgentInitializer {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AgentInitializerImpl.class);
+
+  private static final String AGENT_DEFINITION_KEY_HEADER_NAME =
+      "io.camunda.zeebe:agentDefinitionKey";
 
   private final AgentToolsResolver toolsResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
@@ -49,7 +54,7 @@ public class AgentInitializerImpl implements AgentInitializer {
   public AgentInitializationResult initializeAgent(AgentExecutionContext executionContext) {
     AgentContext agentContext =
         Optional.ofNullable(executionContext.initialAgentContext())
-            .orElseGet(() -> provisionAgentInstance(executionContext));
+            .orElseGet(() -> createAgentContext(executionContext));
 
     List<ToolCallResult> initialToolCallResults =
         Optional.ofNullable(executionContext.initialToolCallResults()).orElseGet(List::of);
@@ -67,18 +72,42 @@ public class AgentInitializerImpl implements AgentInitializer {
   }
 
   /**
-   * Creates the initial agent context by first registering the agent instance on the engine. The
-   * returned key is embedded in the context metadata.
+   * Builds the initial agent context for a new agent, provisioning an agent instance on the engine
+   * when the job carries a non-blank {@code agentDefinitionKey} custom header.
+   */
+  private AgentContext createAgentContext(AgentExecutionContext executionContext) {
+    final var jobContext = executionContext.jobContext();
+    var metadata = AgentMetadata.of(jobContext);
+
+    if (hasAgentDefinitionKeyHeader(jobContext)) {
+      final var agentInstanceKey = provisionAgentInstance(executionContext);
+      LOGGER.debug("Created agent instance {}", agentInstanceKey.value());
+      metadata = metadata.withAgentInstanceKey(agentInstanceKey.value());
+    } else {
+      LOGGER.warn(
+          "Skipping agent instance creation: element was not marked with an agent definition");
+    }
+
+    return AgentContext.empty().withMetadata(metadata);
+  }
+
+  private boolean hasAgentDefinitionKeyHeader(JobContext jobContext) {
+    final var customHeaders = jobContext.getCustomHeaders();
+    if (customHeaders == null) {
+      return false;
+    }
+    final var agentDefinitionKey = customHeaders.get(AGENT_DEFINITION_KEY_HEADER_NAME);
+    return agentDefinitionKey != null && !agentDefinitionKey.isBlank();
+  }
+
+  /**
+   * Registers the agent instance on the engine.
    *
    * @throws io.camunda.connector.api.error.ConnectorException with code {@code
    *     AGENT_INSTANCE_CREATION_FAILED} when retries are exhausted or a non-retryable error occurs
    */
-  private AgentContext provisionAgentInstance(AgentExecutionContext executionContext) {
-    final var agentInstanceKey = agentInstanceClient.create(executionContext);
-    return AgentContext.empty()
-        .withMetadata(
-            AgentMetadata.of(executionContext.jobContext())
-                .withAgentInstanceKey(agentInstanceKey.value()));
+  private AgentInstanceKey provisionAgentInstance(AgentExecutionContext executionContext) {
+    return agentInstanceClient.create(executionContext);
   }
 
   private AgentInitializationResult resumeReadyAgent(
