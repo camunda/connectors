@@ -312,25 +312,27 @@ class GeminiContentConverterTest {
     }
 
     @Test
-    void mapsDocumentContentToTextPartReference() {
+    void mapsDocumentContentToFunctionResponsePartWithJsonReference() {
       // never embedded natively here, regardless of content type - the composer's synthetic
       // <doc/> fallback message already delivers the actual bytes for tool results, so this
-      // renders the same JSON reference ObjectContent would, avoiding a double-send
+      // renders the same JSON reference ObjectContent would, avoiding a double-send. Still wrapped
+      // in a functionResponse (not a bare text Part): a document-only tool result must close out
+      // the preceding functionCall like any other result content.
       final var doc = mockDocument("image/jpeg", "ABC".getBytes(StandardCharsets.UTF_8));
 
       final var parts = converter.toFunctionResponseParts(List.of(new DocumentContent(doc, null)));
 
       assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).functionResponse()).isEmpty();
       assertThat(parts.get(0).inlineData()).isEmpty();
-      assertThat(parts.get(0).text().orElseThrow())
+      final var response = parts.get(0).functionResponse().orElseThrow();
+      assertThat(response.response().orElseThrow().get("output"))
           .isEqualTo(
               "{\"url\":\"https://example.com/document\",\"name\":\"document\","
                   + "\"camunda.document.type\":\"external\"}");
     }
 
     @Test
-    void mapsUnsupportedDocumentContentTypeToTextPartReference() {
+    void mapsUnsupportedDocumentContentTypeToFunctionResponsePart() {
       // an unsupported content type is fine here, unlike toParts's native-embedding path -
       // classification never runs since the document is always flattened to a reference
       final var doc =
@@ -339,11 +341,11 @@ class GeminiContentConverterTest {
       final var parts = converter.toFunctionResponseParts(List.of(new DocumentContent(doc, null)));
 
       assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).text()).isPresent();
+      assertThat(parts.get(0).functionResponse()).isPresent();
     }
 
     @Test
-    void mapsReasoningContentToJsonTextPartFallback() {
+    void mapsReasoningContentToFunctionResponsePartWithJsonFallback() {
       final var parts =
           converter.toFunctionResponseParts(
               List.of(
@@ -351,19 +353,20 @@ class GeminiContentConverterTest {
                       "gemini", Map.of("thinking", "some reasoning"), null, null)));
 
       assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).text().orElseThrow()).contains("some reasoning");
-      assertThat(parts.get(0).functionResponse()).isEmpty();
+      final var response = parts.get(0).functionResponse().orElseThrow();
+      assertThat(response.response().orElseThrow().get("output").toString())
+          .contains("some reasoning");
     }
 
     @Test
-    void mapsProviderContentToJsonTextPartFallback() {
+    void mapsProviderContentToFunctionResponsePartWithJsonFallback() {
       final var parts =
           converter.toFunctionResponseParts(
               List.of(new ProviderContent("gemini", Map.of("foo", "bar"), null)));
 
       assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).text().orElseThrow()).contains("bar");
-      assertThat(parts.get(0).functionResponse()).isEmpty();
+      final var response = parts.get(0).functionResponse().orElseThrow();
+      assertThat(response.response().orElseThrow().get("output").toString()).contains("bar");
     }
   }
 }

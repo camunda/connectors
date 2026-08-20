@@ -413,7 +413,7 @@ class GeminiContentRequestConverterTest {
   }
 
   @Test
-  void toolResultWithTextAndDocumentContentKeepsNonFunctionResponsePartAsSibling() {
+  void toolResultWithTextAndDocumentContentMergesIntoSingleFunctionResponse() {
     final var doc = mockDocument("image/png", "ABC".getBytes(StandardCharsets.UTF_8));
     final var snapshot =
         new ConversationSnapshot(
@@ -435,17 +435,53 @@ class GeminiContentRequestConverterTest {
     final var contents = converter.toContents(snapshot);
 
     final var parts = contents.get(0).parts().orElseThrow();
-    assertThat(parts).hasSize(2);
+    assertThat(parts).hasSize(1);
 
+    // the document is flattened to a JSON reference rather than embedded natively (see
+    // GeminiContentConverter#toFunctionResponseParts), but still wrapped in a functionResponse
+    // like the text content, so both merge into one functionResponse instead of leaving the
+    // document as an uncorrelated sibling part.
     final var functionResponse = parts.get(0).functionResponse().orElseThrow();
     assertThat(functionResponse.id()).contains("call-1");
-    assertThat(functionResponse.response().orElseThrow()).isEqualTo(Map.of("output", "described"));
+    assertThat(functionResponse.response().orElseThrow().get("output"))
+        .isEqualTo(
+            List.of(
+                "described",
+                "{\"url\":\"https://example.com/document\",\"name\":\"document\","
+                    + "\"camunda.document.type\":\"external\"}"));
+  }
 
-    // flattened to a JSON reference, not embedded natively - see GeminiContentConverter
-    // #toFunctionResponseParts
-    assertThat(parts.get(1).functionResponse()).isEmpty();
-    assertThat(parts.get(1).inlineData()).isEmpty();
-    assertThat(parts.get(1).text()).isPresent();
+  @Test
+  void toolResultWithOnlyDocumentContentStillClosesOutTheFunctionCall() {
+    final var doc = mockDocument("image/png", "ABC".getBytes(StandardCharsets.UTF_8));
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                ToolCallResultMessage.builder()
+                    .results(
+                        List.of(
+                            ToolCallResultContent.builder()
+                                .id("call-1")
+                                .name("readDocument")
+                                .content(List.of(new DocumentContent(doc, null)))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var contents = converter.toContents(snapshot);
+
+    final var parts = contents.get(0).parts().orElseThrow();
+    assertThat(parts).hasSize(1);
+
+    // a document-only result must still produce a functionResponse carrying name/id - a bare
+    // text Part here would never correlate with the preceding functionCall
+    final var functionResponse = parts.get(0).functionResponse().orElseThrow();
+    assertThat(functionResponse.id()).contains("call-1");
+    assertThat(functionResponse.name()).contains("readDocument");
+    assertThat(functionResponse.response().orElseThrow().get("output"))
+        .isEqualTo(
+            "{\"url\":\"https://example.com/document\",\"name\":\"document\","
+                + "\"camunda.document.type\":\"external\"}");
   }
 
   @Test

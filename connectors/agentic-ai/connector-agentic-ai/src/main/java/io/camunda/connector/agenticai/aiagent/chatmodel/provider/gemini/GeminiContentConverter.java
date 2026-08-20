@@ -101,7 +101,11 @@ public class GeminiContentConverter {
    * embedded natively as {@code inlineData}: the document's actual bytes are already delivered to
    * the model elsewhere for tool results, so embedding it here as well would send it twice. Matches
    * {@code AnthropicContentConverter#toToolResultBlocks} and {@code
-   * OpenAiContentConverter#toResponsesToolResultOutputItems}.
+   * OpenAiContentConverter#toResponsesToolResultOutputItems}. Every branch still wraps its payload
+   * in a {@code functionResponse}, the reference-only document included: a plain text {@link Part}
+   * would carry no {@code name}/{@code id} to correlate with the preceding {@code functionCall}, so
+   * a tool result whose only content is a document (or reasoning/provider content) would never
+   * close out that call.
    */
   public List<Part> toFunctionResponseParts(List<Content> content) {
     final List<Part> parts = new ArrayList<>();
@@ -109,8 +113,8 @@ public class GeminiContentConverter {
       switch (c) {
         case TextContent text -> parts.add(toFunctionResponsePart(text.text()));
         case ObjectContent obj -> parts.add(toFunctionResponsePart(obj.content()));
-        case DocumentContent doc -> parts.add(Part.fromText(writeAsJson(doc.document())));
-        default -> parts.add(Part.fromText(writeAsJson(c)));
+        case DocumentContent doc -> parts.add(toFunctionResponsePart(writeAsJson(doc.document())));
+        default -> parts.add(toFunctionResponsePart(writeAsJson(c)));
       }
     }
     return parts;
