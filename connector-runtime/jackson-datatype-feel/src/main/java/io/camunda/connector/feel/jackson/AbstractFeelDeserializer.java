@@ -176,13 +176,7 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
       // cluster as a NEW expression. That second evaluation would legitimately reference the
       // secret and resolve it — laundering data the cluster reported no reference for into a
       // resolved value. An evaluation result is never expression source.
-      Object outerMarker = ctx.getAttribute(EVALUATION_RESULT_ATTRIBUTE);
-      ctx.setAttribute(EVALUATION_RESULT_ATTRIBUTE, Boolean.TRUE);
-      try {
-        return ctx.readTreeAsValue(jsonNode, targetType);
-      } finally {
-        ctx.setAttribute(EVALUATION_RESULT_ATTRIBUTE, outerMarker);
-      }
+      return convertingEvaluationResult(ctx, () -> ctx.readTreeAsValue(jsonNode, targetType));
     } catch (IOException e) {
       throw new FeelEngineWrapperException(
           "Failed to convert FEEL evaluation result to the target type", expression, variables, e);
@@ -201,6 +195,28 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
   protected abstract T doDeserialize(
       JsonNode node, JsonNode feelContext, DeserializationContext deserializationContext)
       throws IOException;
+
+  /** A conversion of an already-evaluated value into its target type. */
+  @FunctionalInterface
+  protected interface ResultConversion<T> {
+    T convert() throws IOException;
+  }
+
+  /**
+   * Converts an evaluated value with the evaluation-result marker set, so that nothing reached
+   * during the conversion evaluates it again. Restores whatever the marker was, so a nested
+   * conversion cannot clear it for the conversion that contains it.
+   */
+  protected static <T> T convertingEvaluationResult(
+      DeserializationContext ctx, ResultConversion<T> conversion) throws IOException {
+    Object outerMarker = ctx.getAttribute(EVALUATION_RESULT_ATTRIBUTE);
+    ctx.setAttribute(EVALUATION_RESULT_ATTRIBUTE, Boolean.TRUE);
+    try {
+      return conversion.convert();
+    } finally {
+      ctx.setAttribute(EVALUATION_RESULT_ATTRIBUTE, outerMarker);
+    }
+  }
 
   /**
    * Whether the value currently being deserialized came out of a FEEL evaluation rather than from

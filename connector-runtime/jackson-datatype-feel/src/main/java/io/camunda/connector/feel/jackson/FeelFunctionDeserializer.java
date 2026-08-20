@@ -60,7 +60,13 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
         if (outputType.getRawClass() == String.class && jsonNode.isObject()) {
           return (OUT) BLANK_OBJECT_MAPPER.writeValueAsString(jsonNode);
         } else {
-          return deserializationContext.readTreeAsValue(jsonNode, outputType);
+          // The callback runs on runtime data — a webhook request, an HTTP response — so its
+          // result is data, whatever it looks like. Converting it without the marker would let a
+          // string such as "=camunda.secrets.TOKEN" that the caller supplied be evaluated and
+          // resolved.
+          return convertingEvaluationResult(
+              deserializationContext,
+              () -> deserializationContext.readTreeAsValue(jsonNode, outputType));
         }
       } catch (IOException e) {
         throw new RuntimeException(e);

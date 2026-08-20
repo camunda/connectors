@@ -37,6 +37,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class SecretReferenceDeserializerTest {
 
   private final RecordingEvaluator evaluator = new RecordingEvaluator();
+
   private final ObjectMapper mapper =
       new ObjectMapper()
           .registerModule(new JacksonModuleFeelFunction(true, evaluator))
@@ -158,6 +159,33 @@ class SecretReferenceDeserializerTest {
 
     assertThat(bound.token()).isEqualTo("tok-1");
     assertThat(evaluator.evaluated).containsExactly("=camunda.secrets.TOKEN");
+  }
+
+  record WithLocator(java.util.function.Function<Object, String> apiKeyLocator) {}
+
+  @Test
+  void leavesAReferenceReturnedByADeferredCallbackAlone() throws Exception {
+    // Mirrors the webhook API-key path: apiKeyLocator is a Function<Object, String> applied to the
+    // incoming request at request time. Its result is attacker-controlled data, and converting it
+    // must not evaluate it — otherwise a caller could send a header reading "=camunda.secrets.X"
+    // and have the runtime hand back the real secret it is about to be compared against.
+    evaluator.resolves("=request.headers.authorization", "=camunda.secrets.API_KEY");
+    evaluator.resolves("=camunda.secrets.API_KEY", "the-real-key");
+    // A Function property keeps its module-configured evaluator, so it has to be wired as the
+    // function evaluator for the callback to run against the recording double at all.
+    var withCallback =
+        new ObjectMapper()
+            .registerModule(new JacksonModuleFeelFunction(true, evaluator, evaluator))
+            .registerModule(new JacksonModuleSecretReference());
+
+    WithLocator bound =
+        FeelContextAwareObjectReader.of(withCallback)
+            .withEvaluator(evaluator)
+            .readValue("{\"apiKeyLocator\":\"=request.headers.authorization\"}", WithLocator.class);
+    String located = bound.apiKeyLocator().apply(Map.of("headers", Map.of("authorization", "x")));
+
+    assertThat(located).isEqualTo("=camunda.secrets.API_KEY");
+    assertThat(evaluator.evaluated).doesNotContain("=camunda.secrets.API_KEY");
   }
 
   @Test
