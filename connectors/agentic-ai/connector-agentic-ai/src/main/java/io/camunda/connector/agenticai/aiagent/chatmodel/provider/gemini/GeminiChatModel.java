@@ -8,11 +8,14 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.Client;
+import com.google.genai.JsonSerializable;
 import com.google.genai.ResponseStream;
 import com.google.genai.errors.ApiException;
 import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
+import com.google.genai.types.GenerateContentParameters;
 import com.google.genai.types.GenerateContentResponse;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
@@ -20,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.List;
@@ -40,6 +44,7 @@ import org.slf4j.LoggerFactory;
 public class GeminiChatModel implements ChatModel {
 
   private static final Logger LOG = LoggerFactory.getLogger(GeminiChatModel.class);
+  private static final ObjectMapper MAPPER = JsonSerializable.objectMapper();
 
   private final Client client;
   private final GeminiChatModelConfiguration configuration;
@@ -82,12 +87,27 @@ public class GeminiChatModel implements ChatModel {
             request.snapshot());
     final List<Content> contents = requestConverter.toContents(request.snapshot());
 
+    if (LOG.isTraceEnabled()) {
+      LOG.trace(
+          "Gemini generateContent request: {}",
+          LoggingSupport.toJson(
+              MAPPER,
+              GenerateContentParameters.builder()
+                  .model(configuration.model())
+                  .contents(contents)
+                  .config(config)
+                  .build()));
+    }
+
     final long startNanos = System.nanoTime();
     try {
       final GenerateContentResponse response;
       try (ResponseStream<GenerateContentResponse> stream =
           client.models.generateContentStream(configuration.model(), contents, config)) {
         response = streamAssembler.assemble(stream);
+      }
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("Gemini generateContent response: {}", LoggingSupport.toJson(MAPPER, response));
       }
       final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
       return responseConverter.toResult(response, executionTime);
