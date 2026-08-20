@@ -275,12 +275,13 @@ Do not list `hybrid/` templates in the README. They are intentionally omitted.
 
 ### Agent definition marker
 
-The v2 AI Agent Task and Sub-process templates (all flavors, including hybrid) carry a hidden
-`zeebe:agentDefinition` property so the engine detects a native agent at deploy time
-(camunda/connectors#8176). `transform-ai-agent-task-template.groovy` adds it to the task template
+All AI Agent Task and Sub-process templates (v1 and v2, all flavors, including hybrid) carry a
+hidden `zeebe:agentDefinition` property so the engine detects a native agent at deploy time
+(camunda/connectors#8176). `transform-ai-agent-task-template.groovy` adds it to each task template
 (`agentType=aiAgentTask`); `transform-ai-agent-sub-process-template.groovy` adds its own
 (`agentType=aiAgentSubProcess`) to the derived sub-process template. Both take `agentType` as a
-Maven property; it's left unset for the v1 job-worker template, so that one gets no marker.
+Maven property. The task-marker script must run after the sub-process template is derived from that
+same task template file, otherwise the marker gets carried into the derived template too.
 
 ## Key entry points
 

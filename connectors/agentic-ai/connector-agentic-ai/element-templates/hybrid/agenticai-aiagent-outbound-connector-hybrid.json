@@ -80,6 +80,13 @@
     },
     "type" : "String"
   }, {
+    "value" : "aiAgentTask",
+    "binding" : {
+      "type" : "zeebe:agentDefinition",
+      "property" : "agentType"
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "provider.type",
     "label" : "Provider",
     "description" : "Specify the LLM provider to use.",
