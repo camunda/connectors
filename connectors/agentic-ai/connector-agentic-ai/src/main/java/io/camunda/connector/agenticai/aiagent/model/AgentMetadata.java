@@ -35,6 +35,15 @@ public record AgentMetadata(
     Map<Integer, String> configurationFingerprintHistory)
     implements AgentMetadataBuilder.With {
 
+  public AgentMetadata {
+    // Jackson binds a missing JSON field to null for a pre-existing persisted AgentContext whose
+    // metadata was written before this field was introduced.
+    configurationFingerprintHistory =
+        configurationFingerprintHistory != null
+            ? Map.copyOf(configurationFingerprintHistory)
+            : Map.of();
+  }
+
   /**
    * Convenience constructor for callers that don't care about {@link
    * #configurationFingerprintHistory()} (e.g. most existing tests); defaults it to empty.
