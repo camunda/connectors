@@ -109,6 +109,9 @@ public class CamundaClientFeelExpressionEvaluator implements FeelExpressionEvalu
   public <T> T evaluate(String expression, Object... variables) {
     try {
       return (T) evaluateInternal(expression, variables);
+    } catch (EvaluationResultRejectedException e) {
+      // A processor's deliberate rejection of the result, not an evaluation failure.
+      throw e;
     } catch (Exception e) {
       throw new FeelEngineWrapperException(e.getMessage(), expression, variables, e);
     }
@@ -134,6 +137,9 @@ public class CamundaClientFeelExpressionEvaluator implements FeelExpressionEvalu
         return null;
       }
       return objectMapper.writeValueAsString(result);
+    } catch (EvaluationResultRejectedException e) {
+      // A processor's deliberate rejection of the result, not an evaluation failure.
+      throw e;
     } catch (JsonProcessingException e) {
       throw new FeelEngineWrapperException(
           "Failed to serialize FEEL result to JSON", expression, variables, e);

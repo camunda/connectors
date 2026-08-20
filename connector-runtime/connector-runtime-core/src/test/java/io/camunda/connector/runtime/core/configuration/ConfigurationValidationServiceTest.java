@@ -17,6 +17,9 @@
 package io.camunda.connector.runtime.core.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -268,6 +271,37 @@ class ConfigurationValidationServiceTest {
     service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant", "engine-b"));
 
     assertThat(calls).containsExactly("engine-b");
+  }
+
+  @Test
+  void rejectsLegacySyntaxThroughTheRealEvaluator() {
+    // The other legacy-syntax tests use a FeelExpressionEvaluator double, which does not wrap
+    // exceptions the way CamundaClientFeelExpressionEvaluator does. This one goes through the real
+    // evaluator so the message the caller actually receives is what is asserted.
+    var client =
+        mock(io.camunda.client.CamundaClient.class, org.mockito.Mockito.RETURNS_DEEP_STUBS);
+    var step2 =
+        mock(
+            io.camunda.client.api.command.EvaluateExpressionCommandStep1
+                .EvaluateExpressionCommandStep2.class,
+            org.mockito.Mockito.RETURNS_DEEP_STUBS);
+    var response = mock(io.camunda.client.api.response.EvaluateExpressionResponse.class);
+    when(response.getResult()).thenReturn(Map.of("value", "{{secrets.TOKEN}}"));
+    when(response.getReferencedSecrets()).thenReturn(List.of());
+    when(client.newEvaluateExpressionCommand().expression(any())).thenReturn(step2);
+    when(step2.send().join()).thenReturn(response);
+
+    var evaluator =
+        io.camunda.connector.feel.FeelExpressionEvaluatorBuilder.camundaClient(client)
+            .resultProcessor(new LegacySecretSyntaxRejectingProcessor((result, refs) -> result))
+            .build();
+    var service = serviceWith(Map.of("engine-a", evaluator));
+
+    var result =
+        service.validate(new ConfigurationValidationRequest("ok", "=ref", "tenant", "engine-a"));
+
+    assertThat(result.status()).isEqualTo(Status.FAILURE);
+    assertThat(result.message()).contains("camunda.secrets.<name>");
   }
 
   @Test

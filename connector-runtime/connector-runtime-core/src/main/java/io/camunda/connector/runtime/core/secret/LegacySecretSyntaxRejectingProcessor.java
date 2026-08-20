@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.secret;
 
 import io.camunda.client.api.response.SecretReference;
 import io.camunda.connector.feel.EvaluationResultProcessor;
+import io.camunda.connector.feel.EvaluationResultRejectedException;
 import java.util.List;
 import java.util.Map;
 
@@ -58,10 +59,14 @@ public class LegacySecretSyntaxRejectingProcessor implements EvaluationResultPro
     }
   }
 
-  /** Signals that a resolved value still carries the unsupported legacy secret syntax. */
-  public static final class LegacySecretSyntaxException extends RuntimeException {
+  /**
+   * Signals that an evaluated value still carries the unsupported legacy secret syntax. Extends
+   * {@link EvaluationResultRejectedException} so the evaluator passes it through rather than
+   * wrapping it as an evaluation failure, which would cost the caller the reason.
+   */
+  public static final class LegacySecretSyntaxException extends EvaluationResultRejectedException {
     public LegacySecretSyntaxException() {
-      super(null, null, false, false);
+      super("The evaluated value contains the legacy secret syntax, which is not supported here");
     }
   }
 }
