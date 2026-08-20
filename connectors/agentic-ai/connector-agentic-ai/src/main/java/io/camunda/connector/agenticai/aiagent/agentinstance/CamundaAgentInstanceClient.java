@@ -12,10 +12,10 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
+import io.camunda.client.api.command.AgentInstanceHistoryItem;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.ProblemException;
-import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.HistoryItem;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -247,7 +247,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       return;
     }
 
-    final List<HistoryItem> historyItems = new ArrayList<>();
+    final List<AgentInstanceHistoryItem> historyItems = new ArrayList<>();
     if (configurationChanged(previousTurn, configuration)) {
       historyItems.add(
           configurationHistoryItem(configuration, turn.iterationKey(), turnIngestionTimestamp));
@@ -270,9 +270,9 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         .orElse(true);
   }
 
-  private HistoryItem configurationHistoryItem(
+  private AgentInstanceHistoryItem configurationHistoryItem(
       AgentConfiguration configuration, int iterationKey, OffsetDateTime producedAt) {
-    return new HistoryItem()
+    return new AgentInstanceHistoryItem()
         .historyItemId(configuration.fingerprint())
         .role(AgentInstanceHistoryRole.CONFIGURATION)
         .content(List.of())
@@ -283,14 +283,14 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         .tools(toolMapper.mapTools(configuration.tools()));
   }
 
-  private List<HistoryItem> inputHistoryItems(
+  private List<AgentInstanceHistoryItem> inputHistoryItems(
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
       int iterationKey) {
     final Map<String, ToolCall> toolCallsById =
         previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
-    final List<HistoryItem> items = new ArrayList<>();
+    final List<AgentInstanceHistoryItem> items = new ArrayList<>();
     for (final Message message : turn.inputMessages()) {
       for (final var item :
           historyMapper.inputHistoryItems(message, toolCallsById, turnIngestionTimestamp)) {
@@ -300,9 +300,9 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     return items;
   }
 
-  private HistoryItem toHistoryItem(
+  private AgentInstanceHistoryItem toHistoryItem(
       AgentInstanceHistoryMapper.InputHistoryItem item, int iterationKey) {
-    return new HistoryItem()
+    return new AgentInstanceHistoryItem()
         .historyItemId(item.historyItemId())
         .role(item.role())
         .content(item.content())
@@ -335,8 +335,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
           "Cannot create assistant history item with neither content nor tool calls");
     }
 
-    final HistoryItem item =
-        new HistoryItem()
+    final AgentInstanceHistoryItem item =
+        new AgentInstanceHistoryItem()
             .historyItemId(AgentInstanceHistoryItemIds.forMessage(assistantMessage))
             .role(AgentInstanceHistoryRole.ASSISTANT)
             .content(content)
@@ -366,7 +366,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     final var toolCallsById = previousTurn.toolCallsById();
     final var iteration = previousTurn.iterationKey() + 1;
 
-    final List<HistoryItem> items = new ArrayList<>();
+    final List<AgentInstanceHistoryItem> items = new ArrayList<>();
     // turnIngestionTimestamp is unused for TOOL_RESULT items -- each uses its own resolved
     // completedAt
     for (final var item :
@@ -381,7 +381,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentExecutionContext executionContext,
       long agentInstanceKey,
       @Nullable AgentInstanceUpdateStatus status,
-      List<HistoryItem> historyItems) {
+      List<AgentInstanceHistoryItem> historyItems) {
     CamundaApiRetry.execute(
         () -> {
           executeBatchedUpdate(executionContext, agentInstanceKey, status, historyItems);
@@ -398,7 +398,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentExecutionContext executionContext,
       long agentInstanceKey,
       @Nullable AgentInstanceUpdateStatus status,
-      List<HistoryItem> historyItems) {
+      List<AgentInstanceHistoryItem> historyItems) {
     LOGGER.debug(
         "Updating agent instance {} with batched history: status={}, items={}",
         agentInstanceKey,
