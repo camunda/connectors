@@ -96,11 +96,15 @@ rejected before any model tokens are spent.
 
 ## Deferred
 
-**History batch on create (Req 1).** camunda#59784 (engine) has no PR yet. Until it lands, `create()`
-keeps sending its mandatory `model`/`provider`/`systemPrompt` (+ `limits`) fields directly on the create
-command, and the change-detection fingerprint is seeded from those same values so the first turn's
-`CONFIGURATION` item is only emitted when they already differ from what create sent. When camunda#59784
-lands, create should carry a `CONFIGURATION` item instead and this seeding drops out.
+**History batch on create (Req 1).** `create()` still sends its mandatory `model`/`provider`/
+`systemPrompt` (+ `limits`) fields directly on the create command rather than as a `CONFIGURATION`
+history item — the engine's create-instance API does not yet accept the `jobKey`/`jobLease`/
+`history[]` batch that `update()` does (camunda#59784). No fingerprint seeding happens to compensate:
+`AgentMetadata` starts with an empty `configurationFingerprintHistory`, so the first turn's
+`applyTurnStart` always finds no previous fingerprint and always emits a `CONFIGURATION` item —
+redundant with what `create()` already sent moments earlier, but harmless. Once the engine's create
+command accepts a history batch, `create()` should send a `CONFIGURATION` item instead of the direct
+fields, and this first-turn redundancy can be removed.
 
 **Per-item dedup.** camunda#58792 (engine) has no PR yet. `historyItemId` values are already chosen so
 dedup works transparently once it lands; until then, the ADR 011 streamed-early duplicate row (one from
