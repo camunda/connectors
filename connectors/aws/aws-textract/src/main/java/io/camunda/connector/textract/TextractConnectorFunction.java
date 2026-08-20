@@ -56,7 +56,7 @@ import software.amazon.awssdk.services.textract.TextractClient;
     },
     inputDataClass = TextractRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 7,
+    version = 8,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

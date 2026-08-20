@@ -7,7 +7,9 @@
 package io.camunda.connector.aws.model.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertFalse;
@@ -16,16 +18,9 @@ import java.util.Objects;
 
 public class AwsBaseRequest {
 
-  // Not @NotNull on the field: a subclass may supply authentication from a bound credential by
-  // overriding getAuthentication(). Requiredness is enforced via getter-based validation below,
-  // which respects that override; for subclasses without a credential the behaviour is unchanged.
-  @TemplateProperty(group = "authentication", id = "type")
-  @Valid
-  private AwsAuthentication authentication;
-
-  @TemplateProperty(group = "configuration")
-  private AwsBaseConfiguration configuration;
-
+  // Declared first so it renders (and is emitted in properties[]) before the fallback fields it
+  // gates below - required both for UX (pick a credential before falling back to inline auth) and
+  // by ConditionPropertyOrderRule (a condition's referenced property must appear earlier).
   @TemplateProperty(
       id = "awsCredential",
       label = "AWS credential",
@@ -38,6 +33,21 @@ public class AwsBaseRequest {
               + " 'awsCredential' input.")
   @Valid
   private AwsCredentialConfiguration awsCredential;
+
+  // Not @NotNull on the field: a subclass may supply authentication from a bound credential by
+  // overriding getAuthentication(). Requiredness is enforced via getter-based validation below,
+  // which respects that override; for subclasses without a credential the behaviour is unchanged.
+  // Hidden and un-required (via the isEmpty condition) once a credential is chosen above.
+  @NestedProperties(
+      condition =
+          @TemplateProperty.PropertyCondition(
+              property = "awsCredential",
+              isEmpty = NullableBoolean.TRUE))
+  @Valid
+  private AwsAuthentication authentication;
+
+  @TemplateProperty(group = "configuration")
+  private AwsBaseConfiguration configuration;
 
   public AwsCredentialConfiguration getAwsCredential() {
     return awsCredential;
