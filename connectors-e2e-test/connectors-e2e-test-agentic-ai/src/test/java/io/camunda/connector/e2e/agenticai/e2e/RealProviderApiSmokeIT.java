@@ -33,7 +33,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.BpmnUtil;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
@@ -917,9 +916,8 @@ class RealProviderApiSmokeIT {
     try {
       var templateFile = template.writeTo(new File(tempDir, "template.json"));
       var bpmnFile = resourceLoader.getResource(bpmnResource).getFile();
-      var modelInstance =
-          new BpmnFile(bpmnFile).apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
-      return BpmnUtil.withAgentDefinitionMarker(modelInstance, "AI_Agent", "aiAgentSubProcess");
+      return new BpmnFile(bpmnFile)
+          .apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
     } catch (Exception e) {
       throw new RuntimeException("Failed to build BPMN model for " + provider.label(), e);
     }
