@@ -32,6 +32,11 @@ def json = mapper.readValue(file, Map.class)
 def updatedProperties = []
 
 ((List) json.get('properties')).each { property ->
+    // never carry over a marker from the source template; this script adds its own below
+    if (property.binding?.type == "zeebe:agentDefinition") {
+        return
+    }
+
     updatedProperties.add(property)
 
     // Mark the element as a native agent definition so the engine creates an agent-definition

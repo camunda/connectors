@@ -120,6 +120,11 @@ def updatedProperties = []
         return
     }
 
+    // never carry over a marker from the source template; this script adds its own below
+    if (property.binding?.type == "zeebe:agentDefinition") {
+        return
+    }
+
     if (property.description) {
         property.description = replaceDocumentationLinks(property.description)
     }
