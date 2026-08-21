@@ -74,4 +74,11 @@ class OpenAiFoundryCredentialResolverTest {
     assertThat(OpenAiFoundryCredentialResolver.scopeFor("https://example.com"))
         .isEqualTo("https://cognitiveservices.azure.com/.default");
   }
+
+  @Test
+  void resolvesUnifiedFoundryScopeCaseInsensitively() {
+    assertThat(
+            OpenAiFoundryCredentialResolver.scopeFor("https://MY-RESOURCE.SERVICES.AI.AZURE.COM"))
+        .isEqualTo("https://ai.azure.com/.default");
+  }
 }

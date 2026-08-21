@@ -14,6 +14,7 @@ import com.openai.credential.Credential;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
 import java.net.URI;
+import java.util.Locale;
 
 /**
  * Resolves the openai-java {@link Credential} for the {@code foundry} backend's {@link
@@ -97,7 +98,7 @@ public class OpenAiFoundryCredentialResolver {
    */
   static String scopeFor(String endpoint) {
     final var host = URI.create(endpoint).getHost();
-    return host != null && host.endsWith(".services.ai.azure.com")
+    return host != null && host.toLowerCase(Locale.ROOT).endsWith(".services.ai.azure.com")
         ? AZURE_AI_FOUNDRY_SCOPE
         : AZURE_OPENAI_SCOPE;
   }
