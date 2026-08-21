@@ -252,7 +252,7 @@ public final class AgentConversation {
    */
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
-    return new ConversationSnapshot(windowed, configuration.tools());
+    return new ConversationSnapshot(windowed, configuration.toolDefinitions());
   }
 
   /**

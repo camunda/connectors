@@ -280,7 +280,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         .producedAt(producedAt)
         .systemPrompt(
             List.of(AgentInstanceHistoryContent.text(configuration.systemPrompt().prompt())))
-        .tools(toolMapper.mapTools(configuration.tools()));
+        .tools(toolMapper.mapTools(configuration.toolDefinitions()));
   }
 
   private List<AgentInstanceHistoryItem> inputHistoryItems(

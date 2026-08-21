@@ -116,7 +116,7 @@ public abstract class BaseAgentRequestHandler<
       // AgentConfiguration#tools() becomes the authoritative current tool list for the rest of
       // this invocation once populated here from the durable AgentContext.
       final var configuration =
-          executionContext.configuration().withTools(agentContext.toolDefinitions());
+          executionContext.configuration().withToolDefinitions(agentContext.toolDefinitions());
       final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
