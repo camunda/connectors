@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GOOGLE_GEMINI_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend.GOOGLE_GEMINI_API_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend.GOOGLE_VERTEX_AI_ID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,6 +16,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -54,14 +56,17 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
-    @JsonSubTypes.Type(value = GeminiBackend.GeminiApiBackend.class, name = GOOGLE_GEMINI_API_ID)
+    @JsonSubTypes.Type(value = GeminiBackend.GeminiApiBackend.class, name = GOOGLE_GEMINI_API_ID),
+    @JsonSubTypes.Type(
+        value = GeminiBackend.GeminiVertexAiBackend.class,
+        name = GOOGLE_VERTEX_AI_ID)
   })
   @TemplateDiscriminatorProperty(
       label = "Backend",
       group = "provider",
       name = "type",
       defaultValue = GOOGLE_GEMINI_API_ID,
-      description = "Specify how the Gemini Developer API is reached.")
+      description = "Specify which Google backend serves the Gemini model.")
   public sealed interface GeminiBackend {
 
     /** The backend discriminator string. */

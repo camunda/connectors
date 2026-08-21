@@ -6,7 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.genai.Client;
+import com.google.genai.errors.GenAiIOException;
 import com.google.genai.types.ClientOptions;
 import com.google.genai.types.HttpOptions;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
@@ -15,10 +18,16 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.http.client.proxy.NonProxyHosts;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Optional;
 import okhttp3.Credentials;
@@ -55,6 +64,12 @@ public class GeminiChatModelFactory implements ChatModelFactory {
    * connect bounded and {@code callTimeout} governing the overall budget.
    */
   private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
+
+  private static final String GOOGLE_CLOUD_PLATFORM_SCOPE =
+      "https://www.googleapis.com/auth/cloud-platform";
+
+  private static final String DEFAULT_GEMINI_API_BASE_URL =
+      "https://generativelanguage.googleapis.com";
 
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final GeminiContentRequestConverter requestConverter;
@@ -94,20 +109,31 @@ public class GeminiChatModelFactory implements ChatModelFactory {
       GeminiBackend backend,
       @Nullable Duration timeout,
       AgenticAiHttpProxySupport httpProxySupport) {
-    // Only one backend variant exists today (google-gemini-api), so this cast is safe.
-    final var apiBackend = (GeminiApiBackend) backend;
-    final var googleGeminiApi = apiBackend.googleGeminiApi();
-    final String endpoint = googleGeminiApi.endpoint();
+    // the configured endpoint override, if any - only ever set for e2e tests (see the field's
+    // javadoc); when unset, the SDK derives its own production base URL for the backend at build
+    // time (which, for google-vertex-ai, is not always byte-identical to
+    // AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl - e.g. the "us"/"eu" multi-region
+    // hosts), so it must not be pinned here.
+    final String endpointOverride = configuredEndpoint(backend);
 
     final var httpOptionsBuilder = HttpOptions.builder();
-    if (endpoint != null) {
-      httpOptionsBuilder.baseUrl(endpoint);
+    if (endpointOverride != null) {
+      httpOptionsBuilder.baseUrl(endpointOverride);
     }
     // Stored for introspection/consistency only -- because a customHttpClient is always supplied
     // below, the SDK never reads this value itself; okHttpClientBuilder.callTimeout is what
     // actually enforces the overall timeout.
     if (timeout != null) {
       httpOptionsBuilder.timeout(toGeminiTimeoutMillis(timeout));
+    }
+
+    final var clientBuilder = Client.builder().httpOptions(httpOptionsBuilder.build());
+
+    switch (backend) {
+      case GeminiApiBackend apiBackend ->
+          clientBuilder.apiKey(apiBackend.googleGeminiApi().apiKey());
+      case GeminiVertexAiBackend vertexAiBackend ->
+          applyVertexAiBackend(clientBuilder, vertexAiBackend);
     }
 
     final var okHttpClientBuilder =
@@ -119,18 +145,88 @@ public class GeminiChatModelFactory implements ChatModelFactory {
       okHttpClientBuilder.callTimeout(Duration.ofMillis(toGeminiTimeoutMillis(timeout)));
     }
 
+    // the proxy scheme is derived from the endpoint override, if any; when unset, the proxy
+    // configuration's default scheme (https) is used
     final String scheme =
-        Optional.ofNullable(endpoint).map(e -> URI.create(e).getScheme()).orElse(null);
-    httpProxySupport
-        .okHttpProxy(scheme != null ? scheme : ProxyConfiguration.SCHEME_HTTPS)
-        .ifPresent(proxy -> applyProxy(okHttpClientBuilder, proxy));
+        Optional.ofNullable(endpointOverride).map(url -> URI.create(url).getScheme()).orElse(null);
+    final String targetHost = resolveTargetHost(backend, endpointOverride);
+    if (!NonProxyHosts.isNonProxyHost(targetHost)) {
+      httpProxySupport
+          .okHttpProxy(scheme != null ? scheme : ProxyConfiguration.SCHEME_HTTPS)
+          .ifPresent(proxy -> applyProxy(okHttpClientBuilder, proxy));
+    }
 
-    return Client.builder()
-        .apiKey(googleGeminiApi.apiKey())
-        .httpOptions(httpOptionsBuilder.build())
-        .clientOptions(
-            ClientOptions.builder().customHttpClient(okHttpClientBuilder.build()).build())
-        .build();
+    clientBuilder.clientOptions(
+        ClientOptions.builder().customHttpClient(okHttpClientBuilder.build()).build());
+
+    try {
+      // for the google-vertex-ai backend with application default credentials, the credentials
+      // are resolved here, eagerly, by the SDK
+      return clientBuilder.build();
+    } catch (GenAiIOException | IllegalArgumentException e) {
+      throw new ConnectorInputException("Failed to create Google GenAI client", e);
+    }
+  }
+
+  private static @Nullable String configuredEndpoint(GeminiBackend backend) {
+    return switch (backend) {
+      case GeminiApiBackend apiBackend -> apiBackend.googleGeminiApi().endpoint();
+      case GeminiVertexAiBackend vertexAiBackend -> vertexAiBackend.googleVertexAi().endpoint();
+    };
+  }
+
+  /**
+   * Resolves the host the SDK will actually target, so the proxy can be skipped when it matches a
+   * configured non-proxy host pattern. {@code com.google.genai.types.ProxyOptions} -- the SDK's own
+   * proxy mechanism, which does understand a bypass list, see the v1 Vertex AI provider's {@code
+   * ChatModelHttpProxySupport#createGoogleGenAiProxyOptions} -- is never used here, because
+   * supplying a {@code customHttpClient} (required for the timeout/streaming behavior documented on
+   * {@link #CONNECT_TIMEOUT}) makes the SDK ignore it entirely, so the same bypass has to be
+   * reimplemented against the raw OkHttp client instead.
+   */
+  private static String resolveTargetHost(
+      GeminiBackend backend, @Nullable String endpointOverride) {
+    if (endpointOverride != null) {
+      return URI.create(endpointOverride).getHost();
+    }
+    return switch (backend) {
+      case GeminiApiBackend ignored -> URI.create(DEFAULT_GEMINI_API_BASE_URL).getHost();
+      case GeminiVertexAiBackend vertexAiBackend ->
+          URI.create(
+                  AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl(
+                      vertexAiBackend.googleVertexAi().region()))
+              .getHost();
+    };
+  }
+
+  private static void applyVertexAiBackend(
+      Client.Builder clientBuilder, GeminiVertexAiBackend vertexAiBackend) {
+    final var googleVertexAi = vertexAiBackend.googleVertexAi();
+    clientBuilder
+        .vertexAI(true)
+        .project(googleVertexAi.projectId())
+        .location(googleVertexAi.region());
+
+    // application default credentials are left unset here - the SDK resolves them itself when
+    // the client is built
+    if (googleVertexAi.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
+      clientBuilder.credentials(createServiceAccountCredentials(sac));
+    }
+  }
+
+  private static GoogleCredentials createServiceAccountCredentials(
+      ServiceAccountCredentialsAuthentication sac) {
+    try {
+      // Credentials read from a key file carry no scopes. google-genai only scopes the
+      // application default credentials it resolves itself and passes these through verbatim,
+      // so without this the token request fails with invalid_scope.
+      return ServiceAccountCredentials.fromStream(
+              new ByteArrayInputStream(sac.jsonKey().getBytes(StandardCharsets.UTF_8)))
+          .createScoped(GOOGLE_CLOUD_PLATFORM_SCOPE);
+    } catch (IOException e) {
+      throw new ConnectorInputException(
+          "Authentication failed for provided service account credentials", e);
+    }
   }
 
   /**
