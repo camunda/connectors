@@ -27,7 +27,13 @@ public record AgenticAiConnectorsConfigurationProperties(
 
   public record AiAgentProperties(
       @Valid @DefaultValue ChatModelProperties chatModel,
-      @Valid @DefaultValue AgentInstanceProperties agentInstance) {
+      @Valid @DefaultValue AgentInstanceProperties agentInstance,
+      /**
+       * When {@code true} (the default), v1 provider configurations are rewritten to their v2
+       * equivalent and executed through the v2 provider path. When {@code false}, the original v1
+       * path is used. This is a temporary switch, removed when the v1 path is dropped.
+       */
+      @DefaultValue("true") boolean rewriteV1ProviderConfigToV2) {
 
     public record AgentInstanceProperties(@Valid @DefaultValue RetriesProperties retries) {}
   }
