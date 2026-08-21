@@ -43,7 +43,7 @@ import org.junit.jupiter.api.Test;
  * response.
  */
 @SlowTest
-class AgentTaskGeminiToolCallingTests extends BaseGeminiNativeTaskV2Test {
+class AgentTaskGeminiToolCallingTests extends BaseGeminiNativeTaskTest {
 
   private static final String TOOL_NAME = "SuperfluxProduct";
 

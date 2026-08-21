@@ -46,7 +46,7 @@ import java.util.function.Function;
  * helper lives in the wiremock package instead of on a base class the way Anthropic's single base
  * class could afford to.
  */
-abstract class BaseGeminiNativeTaskV2Test extends BaseAgentTaskV2Test {
+abstract class BaseGeminiNativeTaskTest extends BaseAgentTaskV2Test {
 
   private static final String DEFAULT_MODEL = "gemini-3-pro-preview";
 
