@@ -79,7 +79,7 @@
   }, {
     "id" : "connectionConfiguration",
     "label" : "Connection credential",
-    "description" : "Choose a reusable JDBC connection credential. When set, it is bound as a whole to the connector's 'configuration' input.",
+    "description" : "Choose a reusable JDBC connection credential, or configure one-time connection parameters below.",
     "optional" : true,
     "group" : "connection",
     "binding" : {

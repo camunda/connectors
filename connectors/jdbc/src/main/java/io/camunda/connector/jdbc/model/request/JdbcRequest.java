@@ -51,8 +51,8 @@ public record JdbcRequest(
             optional = true,
             binding = @TemplateProperty.PropertyBinding(name = "configuration"),
             description =
-                "Choose a reusable JDBC connection credential. When set, it is bound as a whole to"
-                    + " the connector's 'configuration' input.")
+                "Choose a reusable JDBC connection credential, or configure one-time connection"
+                    + " parameters below.")
         @Valid
         JdbcConnectionConfiguration configuration,
     // Not @NotNull, and not @Valid: a bound connection credential (configuration) may substitute
