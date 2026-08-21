@@ -196,7 +196,7 @@ jobs:
 
       - name: Publish Test Report
         if: always()
-        uses: scacap/action-surefire-report@v1
+        uses: ScalableCapital/action-surefire-report@v2
         with:
           check_name: Tests (${{ inputs.branch }} / ${{ matrix.entry.module }})
 

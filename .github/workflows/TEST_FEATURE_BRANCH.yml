@@ -151,7 +151,7 @@ jobs:
 
       - name: Publish Test Report
         if: always() && steps.internal.outputs.internal == 'true'
-        uses: scacap/action-surefire-report@v1
+        uses: ScalableCapital/action-surefire-report@v2
         with:
           check_name: 'Publish Test Report'
 

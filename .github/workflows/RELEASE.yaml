@@ -175,7 +175,9 @@ jobs:
 
       - name: Publish Test Report
         if: always()
-        uses: scacap/action-surefire-report@v1
+        uses: ScalableCapital/action-surefire-report@v2
+        with:
+          report_mode: check-run
 
       - name: Upload detailed surefire reports
         if: always()
@@ -311,9 +313,10 @@ jobs:
 
       - name: Publish Test Report
         if: always()
-        uses: scacap/action-surefire-report@v1
+        uses: ScalableCapital/action-surefire-report@v2
         with:
           report_paths: 'connectors-e2e-test/**/target/surefire-reports/*.xml'
+          report_mode: check-run
 
       - name: Upload detailed surefire reports
         if: always()
