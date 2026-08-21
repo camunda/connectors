@@ -109,20 +109,12 @@ public class GeminiChatModelFactory implements ChatModelFactory {
       GeminiBackend backend,
       @Nullable Duration timeout,
       AgenticAiHttpProxySupport httpProxySupport) {
-    // the configured endpoint override, if any - only ever set for e2e tests (see the field's
-    // javadoc); when unset, the SDK derives its own production base URL for the backend at build
-    // time (which, for google-vertex-ai, is not always byte-identical to
-    // AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl - e.g. the "us"/"eu" multi-region
-    // hosts), so it must not be pinned here.
     final String endpointOverride = configuredEndpoint(backend);
 
     final var httpOptionsBuilder = HttpOptions.builder();
     if (endpointOverride != null) {
       httpOptionsBuilder.baseUrl(endpointOverride);
     }
-    // Stored for introspection/consistency only -- because a customHttpClient is always supplied
-    // below, the SDK never reads this value itself; okHttpClientBuilder.callTimeout is what
-    // actually enforces the overall timeout.
     if (timeout != null) {
       httpOptionsBuilder.timeout(toGeminiTimeoutMillis(timeout));
     }
@@ -145,8 +137,6 @@ public class GeminiChatModelFactory implements ChatModelFactory {
       okHttpClientBuilder.callTimeout(Duration.ofMillis(toGeminiTimeoutMillis(timeout)));
     }
 
-    // the proxy scheme is derived from the endpoint override, if any; when unset, the proxy
-    // configuration's default scheme (https) is used
     final String scheme =
         Optional.ofNullable(endpointOverride).map(url -> URI.create(url).getScheme()).orElse(null);
     final String targetHost = resolveTargetHost(backend, endpointOverride);

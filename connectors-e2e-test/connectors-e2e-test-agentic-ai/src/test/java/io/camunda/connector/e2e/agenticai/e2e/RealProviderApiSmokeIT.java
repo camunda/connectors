@@ -545,9 +545,6 @@ class RealProviderApiSmokeIT {
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
-            // Gemini 3.x models use a qualitative thinkingLevel rather than a token budget.
-            // No PROMPT_CACHING claim, since it has not been manually verified against a live
-            // Gemini endpoint yet.
             googleGeminiApi(
                 "gemini-3.7-flash",
                 Map.of(
@@ -560,12 +557,6 @@ class RealProviderApiSmokeIT {
                     Capability.REASONING,
                     Map.of(
                         "provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"))),
-            // No PROMPT_CACHING claim, since it has not been manually verified against a live
-            // Vertex endpoint yet. STRUCTURED_OUTPUT, REASONING and the multimodal capabilities are
-            // claimed because the request/response converters contain no backend branching at all
-            // (only GeminiChatModelFactory branches on backend, for client/auth/base-URL
-            // construction), so this claim is expected to hold. Model id matches the existing
-            // Vertex AI e2e precedent on this branch (BaseGeminiVertexAiNativeTaskV2Test).
             googleVertexAi(
                 "gemini-3.7-flash",
                 Map.of(
@@ -578,10 +569,6 @@ class RealProviderApiSmokeIT {
                             "high"))),
             // Gemini 2.5 models use a numeric thinkingBudget rather than a qualitative level.
             // No STRUCTURED_OUTPUT claim: the Gemini API rejects a JSON response mime type
-            // whenever function declarations are also present in the request, and this scenario
-            // always wires the Lookup_Classified_Fact tool via the ad-hoc sub-process BPMN
-            // (confirmed with a live 400 INVALID_ARGUMENT: "Function calling with a response mime
-            // type: 'application/json' is unsupported" on gemini-2.5-pro).
             googleGeminiApi(
                 "gemini-2.5-pro",
                 Map.of(
