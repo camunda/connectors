@@ -193,6 +193,13 @@ object is reused. `EntraIdCredentialCache` is deliberately provider-agnostic (it
 `TokenCredential`, no vendor SDK type) so a future Anthropic-on-Foundry backend (issue #8060) can reuse
 it directly instead of re-implementing the same azure-identity plumbing.
 
+`EntraIdCredentialCache` also applies the configured HTTP proxy (`AgenticAiHttpProxySupport
+.azureProxyOptions`) to the `ClientSecretCredentialBuilder`, so the client-credentials flow's token
+exchange with `login.microsoftonline.com` goes through the same proxy as the OpenAI API calls rather
+than bypassing it. Managed identity is deliberately excluded: its token request targets the
+link-local IMDS endpoint (or an environment-provided local sidecar endpoint), neither reachable via
+an internet-facing egress proxy.
+
 ### Reasoning effort
 
 One nullable `OpenAiEffort` enum per family. Completions maps it to `reasoningEffort` (input-only; no

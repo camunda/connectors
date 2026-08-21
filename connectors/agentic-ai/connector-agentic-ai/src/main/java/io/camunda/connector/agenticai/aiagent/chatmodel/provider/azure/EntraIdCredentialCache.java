@@ -12,6 +12,8 @@ import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
+import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -35,6 +37,12 @@ import org.jspecify.annotations.Nullable;
  * CaffeineOAuthTokenCache} in connector-commons/http-client), computed and consumed entirely inside
  * this class so that raw credential material such as a client secret is never stored in plain text
  * as a map key.
+ *
+ * <p>The client-credentials flow also routes its token-exchange request to Microsoft Entra ID
+ * through the configured HTTP proxy ({@link AgenticAiHttpProxySupport}), so a Foundry deployment
+ * that requires an egress proxy for its OpenAI API calls doesn't unexpectedly bypass it for the
+ * token exchange too. Managed identity does not: see {@link
+ * #buildManagedIdentityCredential(String)}.
  */
 public class EntraIdCredentialCache {
 
@@ -42,8 +50,11 @@ public class EntraIdCredentialCache {
       ThreadLocal.withInitial(EntraIdCredentialCache::createSha256Digest);
 
   private final Cache<String, TokenCredential> cache;
+  private final AgenticAiHttpProxySupport httpProxySupport;
 
-  public EntraIdCredentialCache(CredentialCacheProperties properties) {
+  public EntraIdCredentialCache(
+      AgenticAiHttpProxySupport httpProxySupport, CredentialCacheProperties properties) {
+    this.httpProxySupport = httpProxySupport;
     final long maximumSize = properties.enabled() ? properties.maximumSize() : 0;
     this.cache =
         Caffeine.newBuilder()
@@ -63,7 +74,9 @@ public class EntraIdCredentialCache {
             "\0", tenantId, clientId, clientSecret, Objects.requireNonNullElse(authorityHost, ""));
     return cache.get(
         sha256Hex(key),
-        k -> buildClientSecretCredential(tenantId, clientId, clientSecret, authorityHost));
+        k ->
+            buildClientSecretCredential(
+                httpProxySupport, tenantId, clientId, clientSecret, authorityHost));
   }
 
   /**
@@ -77,7 +90,11 @@ public class EntraIdCredentialCache {
   }
 
   private static TokenCredential buildClientSecretCredential(
-      String tenantId, String clientId, String clientSecret, @Nullable String authorityHost) {
+      AgenticAiHttpProxySupport httpProxySupport,
+      String tenantId,
+      String clientId,
+      String clientSecret,
+      @Nullable String authorityHost) {
     final var clientSecretCredentialBuilder =
         new ClientSecretCredentialBuilder()
             .clientId(clientId)
@@ -86,9 +103,18 @@ public class EntraIdCredentialCache {
     if (authorityHost != null && !authorityHost.isBlank()) {
       clientSecretCredentialBuilder.authorityHost(authorityHost);
     }
+    httpProxySupport
+        .azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS)
+        .ifPresent(clientSecretCredentialBuilder::proxyOptions);
     return clientSecretCredentialBuilder.build();
   }
 
+  /**
+   * The managed-identity token request never goes through the configured proxy: it targets the
+   * link-local IMDS endpoint ({@code 169.254.169.254}) or an environment-provided local sidecar
+   * endpoint, neither of which is reachable via an internet-facing egress proxy -- Microsoft's own
+   * IMDS guidance explicitly calls out bypassing any configured proxy for this address.
+   */
   private static TokenCredential buildManagedIdentityCredential(@Nullable String clientId) {
     final var managedIdentityCredentialBuilder = new ManagedIdentityCredentialBuilder();
     if (clientId != null && !clientId.isBlank()) {

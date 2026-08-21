@@ -356,6 +356,7 @@ class OpenAiChatModelFactoryClientTest {
                 OpenAiResponsesStreamAssembler.accumulating()),
             new FoundryCredentialResolver(
                 new EntraIdCredentialCache(
+                    httpProxySupport,
                     new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
     final var configuration =
         new OpenAiChatModelConfiguration(

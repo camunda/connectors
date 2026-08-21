@@ -69,9 +69,10 @@ public class AgenticAiNativeProvidersConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public EntraIdCredentialCache aiAgentEntraIdCredentialCache(
-      AgenticAiConnectorsConfigurationProperties configuration) {
+      AgenticAiConnectorsConfigurationProperties configuration,
+      AgenticAiHttpProxySupport httpProxySupport) {
     return new EntraIdCredentialCache(
-        configuration.aiagent().chatModel().azure().credentialCache());
+        httpProxySupport, configuration.aiagent().chatModel().azure().credentialCache());
   }
 
   @Bean

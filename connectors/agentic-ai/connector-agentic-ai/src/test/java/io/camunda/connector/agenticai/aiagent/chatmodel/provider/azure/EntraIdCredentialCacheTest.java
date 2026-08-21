@@ -7,15 +7,27 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
+import com.azure.core.http.ProxyOptions;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
+import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class EntraIdCredentialCacheTest {
 
+  private final AgenticAiHttpProxySupport httpProxySupport = mock(AgenticAiHttpProxySupport.class);
+
   private final EntraIdCredentialCache cache =
-      new EntraIdCredentialCache(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)));
+      new EntraIdCredentialCache(
+          httpProxySupport, new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)));
 
   @Test
   void reusesTheSameTokenCredentialForIdenticalClientCredentialsConfig() {
@@ -47,5 +59,26 @@ class EntraIdCredentialCacheTest {
     final var userAssigned = cache.managedIdentity("user-assigned-id");
 
     assertThat(userAssigned).isNotSameAs(systemAssigned);
+  }
+
+  @Test
+  void appliesConfiguredProxyToClientCredentialsTokenExchange() {
+    final var proxyOptions =
+        new ProxyOptions(ProxyOptions.Type.HTTP, new InetSocketAddress("proxy.example.com", 8080));
+    when(httpProxySupport.azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS))
+        .thenReturn(Optional.of(proxyOptions));
+
+    cache.clientCredentials("tenant-id", "client-id", "client-secret", null);
+
+    verify(httpProxySupport).azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS);
+  }
+
+  @Test
+  void doesNotRouteManagedIdentityTokenExchangeThroughTheProxy() {
+    // IMDS lives at a link-local address (or an environment-provided local sidecar endpoint),
+    // neither of which is reachable via an internet-facing egress proxy.
+    cache.managedIdentity(null);
+
+    verifyNoInteractions(httpProxySupport);
   }
 }
