@@ -280,8 +280,9 @@ hidden `zeebe:agentDefinition` property so the engine detects a native agent at 
 (camunda/connectors#8176). `transform-ai-agent-task-template.groovy` adds it to each task template
 (`agentType=aiAgentTask`); `transform-ai-agent-sub-process-template.groovy` adds its own
 (`agentType=aiAgentSubProcess`) to the derived sub-process template. Both take `agentType` as a
-Maven property. The task-marker script must run after the sub-process template is derived from that
-same task template file, otherwise the marker gets carried into the derived template too.
+Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
+execution order does not matter — the sub-process transformer cannot carry the task marker into the
+derived template regardless of when the task-marker script runs.
 
 ## Key entry points
 
