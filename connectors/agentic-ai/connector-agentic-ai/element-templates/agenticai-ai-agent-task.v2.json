@@ -962,14 +962,40 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.openai.backend.foundry.authentication.managedIdentityClientId",
+    "id" : "provider.openai.backend.foundry.authentication.entraIdScope",
+    "label" : "Entra ID scope",
+    "description" : "Overrides the Microsoft Entra ID token scope requested for this authentication flow. Leave unset to let the automatically detected Azure cloud pick its own default.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.entraIdScope",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.managedIdentity.clientId",
     "label" : "Client ID",
     "description" : "Client ID of a user-assigned managed identity. Leave unset to use the system-assigned managed identity.",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.backend.foundry.authentication.managedIdentityClientId",
+      "name" : "provider.openai.backend.foundry.authentication.clientId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -988,6 +1014,32 @@
       } ]
     },
     "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.managedIdentity.entraIdScope",
+    "label" : "Entra ID scope",
+    "description" : "Overrides the Microsoft Entra ID token scope requested for this authentication flow. Leave unset to let the automatically detected Azure cloud pick its own default.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.entraIdScope",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "managedIdentity",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
   }, {
     "id" : "provider.openai.backend.custom.endpoint",
     "label" : "API endpoint",

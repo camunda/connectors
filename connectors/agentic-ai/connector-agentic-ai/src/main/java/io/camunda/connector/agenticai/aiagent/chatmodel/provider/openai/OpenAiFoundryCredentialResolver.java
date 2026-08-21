@@ -53,7 +53,11 @@ public class OpenAiFoundryCredentialResolver {
     this.entraIdTokenCredentialFactory = entraIdTokenCredentialFactory;
   }
 
-  /** Resolves the openai-java {@link Credential} to apply for the given authentication variant. */
+  /**
+   * Resolves the openai-java {@link Credential} to apply for the given authentication variant. For
+   * either Entra ID flow, that variant's own {@code entraIdScope} escape hatch, when set, wins over
+   * the scope this class would otherwise derive.
+   */
   public Credential credential(FoundryAuthentication authentication) {
     return switch (authentication) {
       case FoundryAuthentication.ApiKeyAuthentication auth ->
@@ -62,12 +66,13 @@ public class OpenAiFoundryCredentialResolver {
           entraIdBearerTokenCredential(
               entraIdTokenCredentialFactory.clientCredentials(
                   auth.tenantId(), auth.clientId(), auth.clientSecret(), auth.authorityHost()),
-              scopeFor(auth.authorityHost()));
-      // No authorityHost field to key off for managed identity -- Azure Public Cloud only for now.
+              resolveScope(scopeFor(auth.authorityHost()), auth.entraIdScope()));
+      // No authorityHost field to key off for managed identity -- Azure Public Cloud only for now,
+      // unless entraIdScope steps in.
       case FoundryAuthentication.ManagedIdentityAuthentication auth ->
           entraIdBearerTokenCredential(
-              entraIdTokenCredentialFactory.managedIdentity(auth.managedIdentityClientId()),
-              AZURE_PUBLIC_CLOUD_SCOPE);
+              entraIdTokenCredentialFactory.managedIdentity(auth.clientId()),
+              resolveScope(AZURE_PUBLIC_CLOUD_SCOPE, auth.entraIdScope()));
     };
   }
 
@@ -85,6 +90,10 @@ public class OpenAiFoundryCredentialResolver {
         normalizeAuthorityHost(authorityHost)
             .equals(normalizeAuthorityHost(AzureAuthorityHosts.AZURE_GOVERNMENT));
     return isGovernmentCloud ? AZURE_GOVERNMENT_SCOPE : AZURE_PUBLIC_CLOUD_SCOPE;
+  }
+
+  private static String resolveScope(String derivedScope, @Nullable String scopeOverride) {
+    return scopeOverride != null && !scopeOverride.isBlank() ? scopeOverride : derivedScope;
   }
 
   private static String normalizeAuthorityHost(String authorityHost) {

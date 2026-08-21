@@ -500,7 +500,18 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
                   optional = true)
-              @Nullable String authorityHost)
+              @Nullable String authorityHost,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Entra ID scope",
+                  description =
+                      "Overrides the Microsoft Entra ID token scope requested for this "
+                          + "authentication flow. Leave unset to let the automatically detected "
+                          + "Azure cloud pick its own default.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable String entraIdScope)
           implements FoundryAuthentication {
 
         @Override
@@ -511,6 +522,8 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
               + tenantId
               + ", authorityHost="
               + authorityHost
+              + ", entraIdScope="
+              + entraIdScope
               + "}";
         }
       }
@@ -520,6 +533,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
           label = "Entra ID: Managed identity (Hybrid/Self-Managed only)")
       record ManagedIdentityAuthentication(
           @TemplateProperty(
+                  id = "managedIdentity.clientId",
                   group = "provider",
                   label = "Client ID",
                   description =
@@ -528,7 +542,19 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
                   optional = true)
-              @Nullable String managedIdentityClientId)
+              @Nullable String clientId,
+          @TemplateProperty(
+                  id = "managedIdentity.entraIdScope",
+                  group = "provider",
+                  label = "Entra ID scope",
+                  description =
+                      "Overrides the Microsoft Entra ID token scope requested for this "
+                          + "authentication flow. Leave unset to let the automatically detected "
+                          + "Azure cloud pick its own default.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable String entraIdScope)
           implements FoundryAuthentication {
 
         @JsonIgnore

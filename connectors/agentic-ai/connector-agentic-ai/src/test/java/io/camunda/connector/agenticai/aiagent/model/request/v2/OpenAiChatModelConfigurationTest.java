@@ -373,7 +373,7 @@ class OpenAiChatModelConfigurationTest {
     assertThat(foundry.foundry().authentication())
         .isEqualTo(
             new FoundryAuthentication.ClientCredentialsAuthentication(
-                "client-123", "secret-123", "tenant-123", null));
+                "client-123", "secret-123", "tenant-123", null, null));
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
@@ -387,7 +387,7 @@ class OpenAiChatModelConfigurationTest {
                 "https://my-resource.openai.azure.com",
                 null,
                 new FoundryAuthentication.ClientCredentialsAuthentication(
-                    "client-123", "secret-super-secret", "tenant-123", null),
+                    "client-123", "secret-super-secret", "tenant-123", null, null),
                 Map.of("Authorization", "Bearer secret"),
                 Map.of("api-version", "2026-01-01"),
                 Map.of("large_field", "large_value")));
@@ -439,7 +439,8 @@ class OpenAiChatModelConfigurationTest {
   @Test
   void foundryManagedIdentityRejectedOnSaaS() {
     environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
-    final var config = foundryConfig(new FoundryAuthentication.ManagedIdentityAuthentication(null));
+    final var config =
+        foundryConfig(new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
 
     assertThat(validator.validate(config))
         .extracting(ConstraintViolation::getMessage)
@@ -448,7 +449,8 @@ class OpenAiChatModelConfigurationTest {
 
   @Test
   void foundryManagedIdentityAllowedWhenNotSaaS() {
-    final var config = foundryConfig(new FoundryAuthentication.ManagedIdentityAuthentication(null));
+    final var config =
+        foundryConfig(new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
 
     assertThat(validator.validate(config)).isEmpty();
   }

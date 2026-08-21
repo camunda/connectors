@@ -186,10 +186,20 @@ for Azure Public Cloud, `https://ai.azure.us/.default` for Azure US Government �
 sovereign cloud Foundry supports today. `ClientCredentialsAuthentication`'s `authorityHost` field
 selects between them (matched against `com.azure.identity.AzureAuthorityHosts.AZURE_GOVERNMENT`;
 anything else, including an unset host, is Azure Public Cloud); `ManagedIdentityAuthentication` has no
-such field — its scope is always Azure Public Cloud, since IMDS-based managed identity is inherently
-tied to the cloud the identity already runs in and there's currently no field to signal otherwise. `apiVersion` exists only as a hidden,
-optional escape hatch for pinning a specific version, wired through the SDK's dedicated
-`azureServiceVersion(...)` builder method — the unified surface otherwise uses implicit versioning.
+such field — its derived scope is always Azure Public Cloud, since IMDS-based managed identity is
+inherently tied to the cloud the identity already runs in and there's currently no field to signal
+otherwise. Each Entra ID variant carries its own hidden `entraIdScope` escape hatch for a wrong guess:
+a custom `authorityHost` this resolver doesn't recognize, or a managed identity that does need a
+non-default scope. `ManagedIdentityAuthentication.clientId` (the identity's own client ID field) and
+`entraIdScope` share their field names with `ClientCredentialsAuthentication`'s fields of the same
+name rather than being disambiguated in Java, since the generator only requires distinct *template
+property IDs*, not distinct field names or binding paths — sibling sealed variants never coexist in
+one config, so both variants safely reusing the same runtime binding path is fine. Only
+`ManagedIdentityAuthentication`'s two fields set an explicit, path-relative `@TemplateProperty(id =
+...)` (e.g. `"managedIdentity.clientId"`) to break the tie; giving both sides an explicit id isn't
+needed once one side diverges from its default. This mirrors `apiVersion`, which exists only as a
+hidden, optional escape hatch for pinning a specific version, wired through the SDK's dedicated
+`azureServiceVersion(...)` builder method; the unified surface otherwise uses implicit versioning.
 
 Since a `ChatModel` (and the underlying `OpenAIClient`) is rebuilt on every agent turn, azure-identity
 `TokenCredential` instances (`ClientSecretCredential`, `ManagedIdentityCredential`) are cached and

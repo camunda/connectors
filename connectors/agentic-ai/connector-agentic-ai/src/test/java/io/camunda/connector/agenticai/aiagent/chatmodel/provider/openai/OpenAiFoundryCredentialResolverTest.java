@@ -49,9 +49,9 @@ class OpenAiFoundryCredentialResolverTest {
     final var clientCredentials =
         resolver.credential(
             new FoundryAuthentication.ClientCredentialsAuthentication(
-                "client-id", "client-secret", "tenant-id", null));
+                "client-id", "client-secret", "tenant-id", null, null));
     final var managedIdentity =
-        resolver.credential(new FoundryAuthentication.ManagedIdentityAuthentication(null));
+        resolver.credential(new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
 
     assertThat(clientCredentials).isNotNull();
     assertThat(managedIdentity).isNotNull();
@@ -67,7 +67,7 @@ class OpenAiFoundryCredentialResolverTest {
           .thenReturn(tokenSupplier);
       resolver.credential(
           new FoundryAuthentication.ClientCredentialsAuthentication(
-              "client-id", "client-secret", "tenant-id", null));
+              "client-id", "client-secret", "tenant-id", null, null));
 
       authenticationUtil.verify(
           () ->
@@ -84,7 +84,7 @@ class OpenAiFoundryCredentialResolverTest {
       authenticationUtil
           .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
           .thenReturn(tokenSupplier);
-      resolver.credential(new FoundryAuthentication.ManagedIdentityAuthentication(null));
+      resolver.credential(new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
 
       authenticationUtil.verify(
           () ->
@@ -104,7 +104,11 @@ class OpenAiFoundryCredentialResolverTest {
 
       resolver.credential(
           new FoundryAuthentication.ClientCredentialsAuthentication(
-              "client-id", "client-secret", "tenant-id", "https://login.microsoftonline.us/"));
+              "client-id",
+              "client-secret",
+              "tenant-id",
+              "https://login.microsoftonline.us/",
+              null));
 
       authenticationUtil.verify(
           () ->
@@ -126,7 +130,71 @@ class OpenAiFoundryCredentialResolverTest {
               "client-id",
               "client-secret",
               "tenant-id",
-              "https://login.someprivatecloud.example/"));
+              "https://login.someprivatecloud.example/",
+              null));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(
+                  any(), eq("https://ai.azure.com/.default")));
+    }
+  }
+
+  @Test
+  void scopeOverrideWinsOverDerivedScopeForClientCredentials() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+
+      resolver.credential(
+          new FoundryAuthentication.ClientCredentialsAuthentication(
+              "client-id",
+              "client-secret",
+              "tenant-id",
+              "https://login.microsoftonline.us/",
+              "https://custom.scope/.default"));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(
+                  any(), eq("https://custom.scope/.default")));
+    }
+  }
+
+  @Test
+  void scopeOverrideWinsOverDefaultScopeForManagedIdentity() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+
+      resolver.credential(
+          new FoundryAuthentication.ManagedIdentityAuthentication(
+              null, "https://ai.azure.us/.default"));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(any(), eq("https://ai.azure.us/.default")));
+    }
+  }
+
+  @Test
+  void blankScopeOverrideIsIgnored() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+
+      resolver.credential(
+          new FoundryAuthentication.ClientCredentialsAuthentication(
+              "client-id", "client-secret", "tenant-id", null, "   "));
 
       authenticationUtil.verify(
           () ->

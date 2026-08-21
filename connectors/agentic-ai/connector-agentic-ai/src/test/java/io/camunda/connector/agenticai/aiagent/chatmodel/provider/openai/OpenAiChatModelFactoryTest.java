@@ -157,11 +157,12 @@ class OpenAiChatModelFactoryTest {
     return foundryConfig(
         modelId,
         new FoundryAuthentication.ClientCredentialsAuthentication(
-            "client-test", "secret-test", "tenant-test", null));
+            "client-test", "secret-test", "tenant-test", null, null));
   }
 
   private static OpenAiChatModelConfiguration foundryManagedIdentityConfig(String modelId) {
-    return foundryConfig(modelId, new FoundryAuthentication.ManagedIdentityAuthentication(null));
+    return foundryConfig(
+        modelId, new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
   }
 
   private static OpenAiChatModelConfiguration foundryConfig(
