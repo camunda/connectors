@@ -33,7 +33,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
-import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
+import io.camunda.connector.agenticai.aiagent.AgentProcessVariables;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DeferConversation;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
@@ -290,17 +290,17 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.elementActivations().get(0).variables())
         .isEqualTo(
             Map.of(
-                AgentSubProcessV1Function.TOOL_CALL_VARIABLE,
+                AgentProcessVariables.TOOL_CALL,
                 agentResponse.toolCalls().get(0),
-                AgentSubProcessV1Function.TOOL_CALL_RESULT_VARIABLE,
+                AgentProcessVariables.TOOL_CALL_RESULT,
                 ""));
     assertThat(response.elementActivations().get(1).elementId()).isEqualTo("getDateTime");
     assertThat(response.elementActivations().get(1).variables())
         .isEqualTo(
             Map.of(
-                AgentSubProcessV1Function.TOOL_CALL_VARIABLE,
+                AgentProcessVariables.TOOL_CALL,
                 agentResponse.toolCalls().get(1),
-                AgentSubProcessV1Function.TOOL_CALL_RESULT_VARIABLE,
+                AgentProcessVariables.TOOL_CALL_RESULT,
                 ""));
   }
 
