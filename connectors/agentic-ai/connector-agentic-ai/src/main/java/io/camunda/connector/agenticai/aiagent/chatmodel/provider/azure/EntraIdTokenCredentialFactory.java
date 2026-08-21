@@ -7,6 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure;
 
 import com.azure.core.credential.TokenCredential;
+import com.azure.core.http.HttpClient;
+import com.azure.core.util.HttpClientOptions;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -105,7 +107,11 @@ public class EntraIdTokenCredentialFactory {
     }
     httpProxySupport
         .azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS)
-        .ifPresent(clientSecretCredentialBuilder::proxyOptions);
+        .ifPresent(
+            proxyOptions ->
+                clientSecretCredentialBuilder.httpClient(
+                    HttpClient.createDefault(
+                        new HttpClientOptions().setProxyOptions(proxyOptions))));
     return clientSecretCredentialBuilder.build();
   }
 
