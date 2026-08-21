@@ -121,10 +121,8 @@ public class BedrockConverseContentConverter {
     for (final Content c : content) {
       switch (c) {
         case TextContent text -> blocks.add(ToolResultContentBlock.fromText(text.text()));
-        case DocumentContent doc ->
-            blocks.add(ToolResultContentBlock.fromJson(toBedrockDocument(doc.document())));
-        case ObjectContent obj ->
-            blocks.add(ToolResultContentBlock.fromJson(toBedrockDocument(obj.content())));
+        case DocumentContent doc -> blocks.add(toolResultContentBlock(doc.document()));
+        case ObjectContent obj -> blocks.add(toolResultContentBlock(obj.content()));
         case ReasoningContent rc ->
             throw new ConnectorException(
                 ERROR_CODE_FAILED_MODEL_CALL,
@@ -258,11 +256,28 @@ public class BedrockConverseContentConverter {
     return BedrockConverseDocuments.toAwsDocument(value, objectMapper);
   }
 
+  /**
+   * Builds a {@link ToolResultContentBlock} for an arbitrary tool-result value, preferring the
+   * native {@code json} member but falling back to {@code text} when the value isn't map-shaped at
+   * the top level.
+   *
+   * <p>Bedrock's API advertises {@code ToolResultContentBlock.json} as accepting any JSON value,
+   * but its runtime validation actually rejects a top-level array, string, number, boolean, or null
+   * there with {@code ValidationException: ... Provide a json object for the field}. Only a
+   * top-level JSON object is accepted, so anything else is sent as serialized text instead.
+   */
+  private ToolResultContentBlock toolResultContentBlock(@Nullable Object value) {
+    final var document = toBedrockDocument(value);
+    return document.isMap()
+        ? ToolResultContentBlock.fromJson(document)
+        : ToolResultContentBlock.fromText(writeAsJson(value));
+  }
+
   private static String decodeUtf8(Document document) {
     return new String(document.asByteArray(), StandardCharsets.UTF_8);
   }
 
-  private String writeAsJson(Object value) {
+  private String writeAsJson(@Nullable Object value) {
     try {
       return objectMapper.writeValueAsString(value);
     } catch (JsonProcessingException e) {

@@ -433,6 +433,28 @@ class BedrockConverseContentConverterTest {
     }
 
     @Test
+    void mapsListObjectContentToTextBlockSinceBedrockRejectsTopLevelJsonArrays() {
+      // Bedrock's ToolResultContentBlock.json advertises "any JSON value" but its runtime
+      // validation actually rejects a top-level array with "Provide a json object for the
+      // field" - a real REST-style tool result (e.g. a list endpoint) is exactly this shape.
+      final var blocks =
+          converter.toToolResultBlocks(List.of(new ObjectContent(List.of("a", "b", "c"), null)));
+
+      assertThat(blocks).hasSize(1);
+      assertThat(blocks.get(0).json()).isNull();
+      assertThat(blocks.get(0).text()).isEqualTo("[\"a\",\"b\",\"c\"]");
+    }
+
+    @Test
+    void mapsScalarObjectContentToTextBlockSinceBedrockRejectsTopLevelJsonScalars() {
+      final var blocks = converter.toToolResultBlocks(List.of(new ObjectContent(42, null)));
+
+      assertThat(blocks).hasSize(1);
+      assertThat(blocks.get(0).json()).isNull();
+      assertThat(blocks.get(0).text()).isEqualTo("42");
+    }
+
+    @Test
     void throwsForReasoningContent() {
       assertThatThrownBy(
               () ->
