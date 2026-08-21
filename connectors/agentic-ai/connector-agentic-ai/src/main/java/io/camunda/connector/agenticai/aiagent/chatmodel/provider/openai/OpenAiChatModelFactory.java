@@ -24,8 +24,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
@@ -175,18 +177,43 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
    * currently recommends for both classic Azure OpenAI ({@code *.openai.azure.com}) and Foundry
    * ({@code *.services.ai.azure.com}) resources alike (see the <a
    * href="https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/endpoints">Microsoft
-   * Foundry endpoints documentation</a>) by appending {@code /openai/v1} if the configured endpoint
-   * doesn't already end with it. Without this, a bare resource endpoint -- exactly what this
+   * Foundry endpoints documentation</a>) by appending {@code /openai/v1} to the URI's <em>path</em>
+   * if it doesn't already end with it. Without this, a bare resource endpoint -- exactly what this
    * backend's own template field asks for -- gets routed by the SDK's default {@code
    * AzureUrlPathMode.AUTO} detection as the legacy, deployments-based API instead.
+   *
+   * <p>A query string or fragment on the endpoint is rejected rather than carried through: the
+   * openai-java SDK builds each request URL by appending the service path directly onto the base
+   * URL string (see {@code com.openai.core.http.HttpRequest#url()}), so anything after a {@code ?}
+   * or {@code #} would leave the {@code /responses} (etc.) path segment stranded inside the query
+   * or fragment. A Foundry/Azure OpenAI resource endpoint never legitimately carries either; the
+   * backend's dedicated {@code queryParameters} field is the correct place for request query
+   * parameters. All trailing slashes are stripped, not just one, so a doubled slash (accidental or
+   * already ending in {@code /openai/v1//}) doesn't produce a broken or duplicated suffix.
+   *
+   * @throws ConnectorInputException if the endpoint is malformed or carries a query/fragment
    */
   static String unifiedEndpoint(String endpoint) {
-    final var trimmed = endpoint.strip();
-    final var withoutTrailingSlash =
-        trimmed.endsWith("/") ? trimmed.substring(0, trimmed.length() - 1) : trimmed;
-    return withoutTrailingSlash.endsWith("/openai/v1")
-        ? withoutTrailingSlash
-        : withoutTrailingSlash + "/openai/v1";
+    final URI uri;
+    try {
+      uri = new URI(endpoint.strip());
+    } catch (URISyntaxException e) {
+      throw new ConnectorInputException("Invalid Foundry endpoint: " + endpoint, e);
+    }
+    if (uri.getRawQuery() != null || uri.getRawFragment() != null) {
+      throw new ConnectorInputException(
+          "The Foundry endpoint must not contain a query string or fragment: " + endpoint);
+    }
+
+    var path = uri.getRawPath() == null ? "" : uri.getRawPath();
+    while (path.endsWith("/")) {
+      path = path.substring(0, path.length() - 1);
+    }
+    if (!path.endsWith("/openai/v1")) {
+      path = path + "/openai/v1";
+    }
+
+    return uri.getScheme() + "://" + uri.getRawAuthority() + path;
   }
 
   /**

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -39,6 +40,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.api.error.ConnectorInputException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -49,6 +51,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -203,7 +206,30 @@ class OpenAiChatModelFactoryTest {
             "https://my-resource.openai.azure.com/openai/v1",
             "https://my-resource.openai.azure.com/openai/v1"),
         Arguments.of(
+            "https://my-resource.openai.azure.com//",
+            "https://my-resource.openai.azure.com/openai/v1"),
+        Arguments.of(
+            "https://my-resource.openai.azure.com/openai/v1//",
+            "https://my-resource.openai.azure.com/openai/v1"),
+        Arguments.of(
             "https://my-resource.openai.azure.com/openai/v1/",
             "https://my-resource.openai.azure.com/openai/v1"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "https://my-resource.openai.azure.com?api-version=2025-03-01-preview",
+        "https://my-resource.openai.azure.com/openai/v1?token=a%26b",
+        "https://my-resource.openai.azure.com#fragment",
+        "https://my-resource.openai.azure.com/openai/v1?foo=bar#frag"
+      })
+  void unifiedEndpointRejectsQueryOrFragment(String endpoint) {
+    // The openai-java SDK appends the service path directly onto the base URL string, so a query or
+    // fragment on the endpoint would strand the path segment inside it -- reject rather than carry
+    // it through. Request query parameters belong on the backend's dedicated queryParameters field.
+    assertThatThrownBy(() -> OpenAiChatModelFactory.unifiedEndpoint(endpoint))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("query string or fragment");
   }
 }
