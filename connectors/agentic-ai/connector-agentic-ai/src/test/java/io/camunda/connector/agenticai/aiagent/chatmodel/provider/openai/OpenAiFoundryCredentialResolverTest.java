@@ -92,4 +92,46 @@ class OpenAiFoundryCredentialResolverTest {
                   any(), eq("https://ai.azure.com/.default")));
     }
   }
+
+  @Test
+  void requestsTheGovernmentCloudScopeForMatchingAuthorityHost() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+
+      resolver.credential(
+          new FoundryAuthentication.ClientCredentialsAuthentication(
+              "client-id", "client-secret", "tenant-id", "https://login.microsoftonline.us/"));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(any(), eq("https://ai.azure.us/.default")));
+    }
+  }
+
+  @Test
+  void requestsThePublicCloudScopeForUnknownAuthorityHost() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+
+      resolver.credential(
+          new FoundryAuthentication.ClientCredentialsAuthentication(
+              "client-id",
+              "client-secret",
+              "tenant-id",
+              "https://login.someprivatecloud.example/"));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(
+                  any(), eq("https://ai.azure.com/.default")));
+    }
+  }
 }

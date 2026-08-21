@@ -8,11 +8,14 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.AuthenticationUtil;
+import com.azure.identity.AzureAuthorityHosts;
 import com.openai.azure.credential.AzureApiKeyCredential;
 import com.openai.credential.BearerTokenCredential;
 import com.openai.credential.Credential;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
+import java.util.Locale;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Resolves the openai-java {@link Credential} for the {@code foundry} backend's {@link
@@ -26,14 +29,22 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 public class OpenAiFoundryCredentialResolver {
 
   /**
-   * Scope requested when acquiring a Microsoft Entra ID token, per the <a
+   * Scope requested for tenants in the Azure Public Cloud, per the <a
    * href="https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/endpoints">Microsoft
    * Foundry endpoints documentation</a>: the unified OpenAI/v1 API surface -- which {@link
    * OpenAiChatModelFactory} always targets, for both classic Azure OpenAI ({@code
    * *.openai.azure.com}) and Foundry ({@code *.services.ai.azure.com}) resources alike -- uses this
-   * one scope regardless of host.
+   * one scope regardless of host, within a given cloud.
    */
-  private static final String AZURE_AI_FOUNDRY_SCOPE = "https://ai.azure.com/.default";
+  private static final String AZURE_PUBLIC_CLOUD_SCOPE = "https://ai.azure.com/.default";
+
+  /**
+   * Scope for tenants in the Azure US Government Cloud, per <a
+   * href="https://learn.microsoft.com/en-us/azure/foundry/concepts/foundry-azure-government">Microsoft
+   * Foundry in Azure Government</a> (portal/endpoints under {@code *.azure.us}) -- the only other
+   * sovereign cloud Foundry supports today.
+   */
+  private static final String AZURE_GOVERNMENT_SCOPE = "https://ai.azure.us/.default";
 
   private final EntraIdTokenCredentialFactory entraIdTokenCredentialFactory;
 
@@ -50,11 +61,35 @@ public class OpenAiFoundryCredentialResolver {
       case FoundryAuthentication.ClientCredentialsAuthentication auth ->
           entraIdBearerTokenCredential(
               entraIdTokenCredentialFactory.clientCredentials(
-                  auth.tenantId(), auth.clientId(), auth.clientSecret(), auth.authorityHost()));
+                  auth.tenantId(), auth.clientId(), auth.clientSecret(), auth.authorityHost()),
+              scopeFor(auth.authorityHost()));
+      // No authorityHost field to key off for managed identity -- Azure Public Cloud only for now.
       case FoundryAuthentication.ManagedIdentityAuthentication auth ->
           entraIdBearerTokenCredential(
-              entraIdTokenCredentialFactory.managedIdentity(auth.managedIdentityClientId()));
+              entraIdTokenCredentialFactory.managedIdentity(auth.managedIdentityClientId()),
+              AZURE_PUBLIC_CLOUD_SCOPE);
     };
+  }
+
+  /**
+   * Maps an (optional) Microsoft Entra ID {@code authorityHost} override to the matching Foundry
+   * scope: an unset/blank host, or one that doesn't match a known sovereign cloud, is Azure Public
+   * Cloud; {@link AzureAuthorityHosts#AZURE_GOVERNMENT} is the one other cloud Foundry ships in.
+   */
+  private static String scopeFor(@Nullable String authorityHost) {
+    if (authorityHost == null || authorityHost.isBlank()) {
+      return AZURE_PUBLIC_CLOUD_SCOPE;
+    }
+
+    final var isGovernmentCloud =
+        normalizeAuthorityHost(authorityHost)
+            .equals(normalizeAuthorityHost(AzureAuthorityHosts.AZURE_GOVERNMENT));
+    return isGovernmentCloud ? AZURE_GOVERNMENT_SCOPE : AZURE_PUBLIC_CLOUD_SCOPE;
+  }
+
+  private static String normalizeAuthorityHost(String authorityHost) {
+    final var lowerCased = authorityHost.strip().toLowerCase(Locale.ROOT);
+    return lowerCased.endsWith("/") ? lowerCased : lowerCased + "/";
   }
 
   /**
@@ -63,8 +98,9 @@ public class OpenAiFoundryCredentialResolver {
    * request, so this never caches a token itself, relying entirely on the wrapped credential's own
    * token cache and refresh logic.
    */
-  private static Credential entraIdBearerTokenCredential(TokenCredential tokenCredential) {
+  private static Credential entraIdBearerTokenCredential(
+      TokenCredential tokenCredential, String scope) {
     return BearerTokenCredential.create(
-        AuthenticationUtil.getBearerTokenSupplier(tokenCredential, AZURE_AI_FOUNDRY_SCOPE));
+        AuthenticationUtil.getBearerTokenSupplier(tokenCredential, scope));
   }
 }
