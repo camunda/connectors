@@ -33,8 +33,8 @@ public class PollingRuntimeProperties {
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "authenticationConfiguration"),
       description =
-          "Choose a reusable REST authentication credential. When set, it is bound as a whole to"
-              + " the connector's 'authenticationConfiguration' input.")
+          "Choose a reusable REST authentication credential, or configure one-time"
+              + " authentication parameters below.")
   @Valid
   private RestAuthenticationConfiguration authenticationConfiguration;
 
