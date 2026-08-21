@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdCredentialCache;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
@@ -17,14 +17,14 @@ import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
 /**
- * Credential-object reuse/distinctness is covered by {@code EntraIdCredentialCacheTest}; this class
- * only verifies the openai-java {@code Credential} mapping per authentication variant.
+ * Credential-object reuse/distinctness is covered by {@code EntraIdTokenCredentialFactoryTest};
+ * this class only verifies the openai-java {@code Credential} mapping per authentication variant.
  */
 class FoundryCredentialResolverTest {
 
   private final FoundryCredentialResolver resolver =
       new FoundryCredentialResolver(
-          new EntraIdCredentialCache(
+          new EntraIdTokenCredentialFactory(
               mock(AgenticAiHttpProxySupport.class),
               new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
 

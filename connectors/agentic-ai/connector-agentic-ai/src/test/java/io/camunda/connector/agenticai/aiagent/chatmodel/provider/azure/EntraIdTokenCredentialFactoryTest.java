@@ -21,42 +21,42 @@ import java.time.Duration;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-class EntraIdCredentialCacheTest {
+class EntraIdTokenCredentialFactoryTest {
 
   private final AgenticAiHttpProxySupport httpProxySupport = mock(AgenticAiHttpProxySupport.class);
 
-  private final EntraIdCredentialCache cache =
-      new EntraIdCredentialCache(
+  private final EntraIdTokenCredentialFactory factory =
+      new EntraIdTokenCredentialFactory(
           httpProxySupport, new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)));
 
   @Test
   void reusesTheSameTokenCredentialForIdenticalClientCredentialsConfig() {
-    final var first = cache.clientCredentials("tenant-id", "client-id", "client-secret", null);
-    final var second = cache.clientCredentials("tenant-id", "client-id", "client-secret", null);
+    final var first = factory.clientCredentials("tenant-id", "client-id", "client-secret", null);
+    final var second = factory.clientCredentials("tenant-id", "client-id", "client-secret", null);
 
     assertThat(second).isSameAs(first);
   }
 
   @Test
   void buildsDistinctTokenCredentialsForDifferentClientCredentialsConfig() {
-    final var first = cache.clientCredentials("tenant-id", "client-one", "secret-one", null);
-    final var second = cache.clientCredentials("tenant-id", "client-two", "secret-two", null);
+    final var first = factory.clientCredentials("tenant-id", "client-one", "secret-one", null);
+    final var second = factory.clientCredentials("tenant-id", "client-two", "secret-two", null);
 
     assertThat(second).isNotSameAs(first);
   }
 
   @Test
   void reusesTheSameTokenCredentialForIdenticalManagedIdentityConfig() {
-    final var first = cache.managedIdentity("user-assigned-id");
-    final var second = cache.managedIdentity("user-assigned-id");
+    final var first = factory.managedIdentity("user-assigned-id");
+    final var second = factory.managedIdentity("user-assigned-id");
 
     assertThat(second).isSameAs(first);
   }
 
   @Test
   void buildsDistinctTokenCredentialsForDifferentManagedIdentityConfig() {
-    final var systemAssigned = cache.managedIdentity(null);
-    final var userAssigned = cache.managedIdentity("user-assigned-id");
+    final var systemAssigned = factory.managedIdentity(null);
+    final var userAssigned = factory.managedIdentity("user-assigned-id");
 
     assertThat(userAssigned).isNotSameAs(systemAssigned);
   }
@@ -68,7 +68,7 @@ class EntraIdCredentialCacheTest {
     when(httpProxySupport.azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS))
         .thenReturn(Optional.of(proxyOptions));
 
-    cache.clientCredentials("tenant-id", "client-id", "client-secret", null);
+    factory.clientCredentials("tenant-id", "client-id", "client-secret", null);
 
     verify(httpProxySupport).azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS);
   }
@@ -77,7 +77,7 @@ class EntraIdCredentialCacheTest {
   void doesNotRouteManagedIdentityTokenExchangeThroughTheProxy() {
     // IMDS lives at a link-local address (or an environment-provided local sidecar endpoint),
     // neither of which is reachable via an internet-facing egress proxy.
-    cache.managedIdentity(null);
+    factory.managedIdentity(null);
 
     verifyNoInteractions(httpProxySupport);
   }

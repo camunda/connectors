@@ -44,15 +44,15 @@ import org.jspecify.annotations.Nullable;
  * token exchange too. Managed identity does not: see {@link
  * #buildManagedIdentityCredential(String)}.
  */
-public class EntraIdCredentialCache {
+public class EntraIdTokenCredentialFactory {
 
   private static final ThreadLocal<MessageDigest> SHA_256_DIGEST =
-      ThreadLocal.withInitial(EntraIdCredentialCache::createSha256Digest);
+      ThreadLocal.withInitial(EntraIdTokenCredentialFactory::createSha256Digest);
 
   private final Cache<String, TokenCredential> cache;
   private final AgenticAiHttpProxySupport httpProxySupport;
 
-  public EntraIdCredentialCache(
+  public EntraIdTokenCredentialFactory(
       AgenticAiHttpProxySupport httpProxySupport, CredentialCacheProperties properties) {
     this.httpProxySupport = httpProxySupport;
     final long maximumSize = properties.enabled() ? properties.maximumSize() : 0;

@@ -11,17 +11,17 @@ import com.azure.identity.AuthenticationUtil;
 import com.openai.azure.credential.AzureApiKeyCredential;
 import com.openai.credential.BearerTokenCredential;
 import com.openai.credential.Credential;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdCredentialCache;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
 
 /**
  * Resolves the openai-java {@link Credential} for the {@code foundry} backend's {@link
  * FoundryAuthentication}: maps API-key auth directly to {@link AzureApiKeyCredential}, and wraps
  * the {@link TokenCredential} resolved by the shared, provider-agnostic {@link
- * EntraIdCredentialCache} as a {@link BearerTokenCredential} for the two Microsoft Entra ID flows.
- * {@link OpenAiChatModelFactory} only ever calls {@link #credential(FoundryAuthentication)}; it
- * never sees a raw {@link TokenCredential}, a cache key, or any secret material one is derived from
- * -- all of that lives in {@link EntraIdCredentialCache}.
+ * EntraIdTokenCredentialFactory} as a {@link BearerTokenCredential} for the two Microsoft Entra ID
+ * flows. {@link OpenAiChatModelFactory} only ever calls {@link #credential(FoundryAuthentication)};
+ * it never sees a raw {@link TokenCredential}, a cache key, or any secret material one is derived
+ * from -- all of that lives in {@link EntraIdTokenCredentialFactory}.
  */
 public class FoundryCredentialResolver {
 
@@ -33,10 +33,10 @@ public class FoundryCredentialResolver {
    */
   private static final String AZURE_AI_FOUNDRY_SCOPE = "https://ai.azure.com/.default";
 
-  private final EntraIdCredentialCache entraIdCredentialCache;
+  private final EntraIdTokenCredentialFactory entraIdTokenCredentialFactory;
 
-  public FoundryCredentialResolver(EntraIdCredentialCache entraIdCredentialCache) {
-    this.entraIdCredentialCache = entraIdCredentialCache;
+  public FoundryCredentialResolver(EntraIdTokenCredentialFactory entraIdTokenCredentialFactory) {
+    this.entraIdTokenCredentialFactory = entraIdTokenCredentialFactory;
   }
 
   /** Resolves the openai-java {@link Credential} to apply for the given authentication variant. */
@@ -46,11 +46,11 @@ public class FoundryCredentialResolver {
           AzureApiKeyCredential.create(auth.apiKey());
       case FoundryAuthentication.ClientCredentialsAuthentication auth ->
           entraIdBearerTokenCredential(
-              entraIdCredentialCache.clientCredentials(
+              entraIdTokenCredentialFactory.clientCredentials(
                   auth.tenantId(), auth.clientId(), auth.clientSecret(), auth.authorityHost()));
       case FoundryAuthentication.ManagedIdentityAuthentication auth ->
           entraIdBearerTokenCredential(
-              entraIdCredentialCache.managedIdentity(auth.managedIdentityClientId()));
+              entraIdTokenCredentialFactory.managedIdentity(auth.managedIdentityClientId()));
     };
   }
 

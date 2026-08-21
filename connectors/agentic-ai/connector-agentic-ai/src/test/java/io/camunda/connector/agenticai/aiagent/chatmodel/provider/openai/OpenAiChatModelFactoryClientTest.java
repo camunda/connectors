@@ -24,7 +24,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdCredentialCache;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
@@ -355,7 +355,7 @@ class OpenAiChatModelFactoryClientTest {
                 new OpenAiResponsesResponseConverter(objectMapper),
                 OpenAiResponsesStreamAssembler.accumulating()),
             new FoundryCredentialResolver(
-                new EntraIdCredentialCache(
+                new EntraIdTokenCredentialFactory(
                     httpProxySupport,
                     new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
     final var configuration =

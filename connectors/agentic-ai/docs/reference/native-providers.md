@@ -171,7 +171,7 @@ Resolving a `FoundryAuthentication` into the openai-java `Credential` the SDK bu
 credential type each variant maps to and the Entra ID token scope — is encapsulated in
 `FoundryCredentialResolver`; `OpenAiChatModelFactory` only calls `resolver.credential(authentication)`
 and never sees a raw `TokenCredential` or any secret material. The credential caching itself (see
-below) lives one layer further down, in the provider-agnostic `EntraIdCredentialCache`.
+below) lives one layer further down, in the provider-agnostic `EntraIdTokenCredentialFactory`.
 
 The openai-java SDK detects the Azure API surface (legacy dated `api-version` + deployment-in-path vs.
 the newer unified `/openai/v1` GA API) automatically from the endpoint hostname, so neither an
@@ -183,17 +183,17 @@ when combined with Entra ID auth on a legacy-style endpoint.
 
 Since a `ChatModel` (and the underlying `OpenAIClient`) is rebuilt on every agent turn, azure-identity
 `TokenCredential` instances (`ClientSecretCredential`, `ManagedIdentityCredential`) are cached and
-reused across turns by `EntraIdCredentialCache`, a bounded Caffeine cache
+reused across turns by `EntraIdTokenCredentialFactory`, a bounded Caffeine cache
 (`camunda.connector.agenticai.aiagent.chat-model.azure.credential-cache.*`) keyed by a SHA-256 hash of
 the credential configuration — never the raw secret material itself, mirroring
 `CaffeineOAuthTokenCache` in connector-commons/http-client. Only the credential *object* is cached;
 azure-identity's credentials already cache and auto-refresh their own tokens internally, so rebuilding
 the `OpenAIClient` each turn never forces a fresh Entra ID token request as long as the credential
-object is reused. `EntraIdCredentialCache` is deliberately provider-agnostic (it returns a plain
+object is reused. `EntraIdTokenCredentialFactory` is deliberately provider-agnostic (it returns a plain
 `TokenCredential`, no vendor SDK type) so a future Anthropic-on-Foundry backend (issue #8060) can reuse
 it directly instead of re-implementing the same azure-identity plumbing.
 
-`EntraIdCredentialCache` also applies the configured HTTP proxy (`AgenticAiHttpProxySupport
+`EntraIdTokenCredentialFactory` also applies the configured HTTP proxy (`AgenticAiHttpProxySupport
 .azureProxyOptions`) to the `ClientSecretCredentialBuilder`, so the client-credentials flow's token
 exchange with `login.microsoftonline.com` goes through the same proxy as the OpenAI API calls rather
 than bypassing it. Managed identity is deliberately excluded: its token request targets the

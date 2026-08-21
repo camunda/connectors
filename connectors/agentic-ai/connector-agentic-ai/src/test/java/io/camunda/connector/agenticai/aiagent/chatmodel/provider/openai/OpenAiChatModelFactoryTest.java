@@ -13,7 +13,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdCredentialCache;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
@@ -77,7 +77,7 @@ class OpenAiChatModelFactoryTest {
                 new OpenAiResponsesResponseConverter(objectMapper),
                 OpenAiResponsesStreamAssembler.accumulating()),
             new FoundryCredentialResolver(
-                new EntraIdCredentialCache(
+                new EntraIdTokenCredentialFactory(
                     httpProxySupport,
                     new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
   }
