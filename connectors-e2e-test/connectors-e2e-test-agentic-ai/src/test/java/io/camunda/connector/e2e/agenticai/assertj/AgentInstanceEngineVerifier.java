@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryCommitStatus;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.client.api.search.enums.AgentInstanceStatus;
@@ -31,21 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-/**
- * Verifies the agent instance state the connector actually persisted on the engine, read back
- * through the query API (get-by-key + history search) from secondary storage.
- *
- * <p>Complements {@link AgentInstanceClientVerifier}: that one proves the ordered sequence of
- * client <em>calls</em> the connector made (a Mockito spy); this one proves those calls committed
- * and accumulated on the broker, which the spy fundamentally cannot show.
- *
- * <p>Secondary storage is eventually consistent, so every assertion is collected up front and
- * evaluated together inside a single {@link org.awaitility.Awaitility} block — instance-level and
- * history-level rows propagate independently, so splitting the await would flake. History reads are
- * filtered to {@link AgentInstanceHistoryCommitStatus#COMMITTED} (what "correctly stored" means)
- * and sorted by the engine-assigned, monotonic {@code historyItemKey} (items in one batched update
- * carry near-identical connector timestamps and would tie on {@code producedAt}).
- */
+/** Reads an agent instance back through the query API and asserts its persisted state. */
 public class AgentInstanceEngineVerifier {
 
   private final CamundaClient client;
@@ -62,18 +49,12 @@ public class AgentInstanceEngineVerifier {
     return new AgentInstanceEngineVerifier(client, agentInstanceKey);
   }
 
-  /** The instance reached its terminal status (the engine transitions to COMPLETED on close). */
   public AgentInstanceEngineVerifier hasStatus(AgentInstanceStatus status) {
     instanceChecks.add(
         instance -> assertThat(instance.getStatus()).as("agent instance status").isEqualTo(status));
     return this;
   }
 
-  /**
-   * The accumulated counter metrics stored on the instance equal {@code expected} — the batched
-   * turn updates committed and summed on the broker. {@code executionTime} is per-turn and not
-   * accumulated, so it is ignored here.
-   */
   public AgentInstanceEngineVerifier hasMetrics(AgentMetrics expected) {
     instanceChecks.add(
         instance -> {
@@ -90,9 +71,6 @@ public class AgentInstanceEngineVerifier {
     return this;
   }
 
-  /**
-   * The instance definition carries the configured model/provider and a non-empty system prompt.
-   */
   public AgentInstanceEngineVerifier hasDefinition(String model, String provider) {
     instanceChecks.add(
         instance -> {
@@ -104,7 +82,6 @@ public class AgentInstanceEngineVerifier {
     return this;
   }
 
-  /** The instance advertises (at least) the given resolved tool names. */
   public AgentInstanceEngineVerifier hasToolsContaining(String... toolNames) {
     instanceChecks.add(
         instance ->
@@ -115,16 +92,7 @@ public class AgentInstanceEngineVerifier {
     return this;
   }
 
-  /**
-   * The create-time CONFIGURATION history item is present with the configuration the connector sent
-   * on {@code create}: model, provider, a non-empty system prompt, the create job's key and lease,
-   * and the 1-based first loop iteration. This is the end-to-end proof of issue #8390
-   * (configuration sent as a CONFIGURATION item, lease-fenced via jobKey/jobLease) — previously
-   * covered only at the Mockito level.
-   *
-   * <p>The lowest-keyed CONFIGURATION item is the create-time one; further CONFIGURATION items from
-   * each {@code applyTurnStart} follow (see {@link #hasConfigurationItemsAtLeast}).
-   */
+  /** Asserts the create-time CONFIGURATION item, i.e. the lowest-keyed one. */
   public AgentInstanceEngineVerifier createdWithConfigurationItem(String model, String provider) {
     historyChecks.add(
         history -> {
@@ -145,16 +113,8 @@ public class AgentInstanceEngineVerifier {
   }
 
   /**
-   * The committed non-CONFIGURATION history items carry exactly these roles in {@code
-   * historyItemKey} order — the conversation backbone (USER prompt, ASSISTANT responses,
-   * TOOL_RESULT inputs).
-   *
-   * <p>CONFIGURATION items are filtered out first because their count is not stable: {@code create}
-   * emits one, and every turn-start re-emits one (the previous turn's configuration fingerprint is
-   * not retained across job activations, so the change-detection in {@code
-   * CamundaAgentInstanceClient} treats each turn as a change). Surplus CONFIGURATION rows are
-   * tolerated per ADR 013 pending per-item dedup (camunda/camunda#58792); their presence is
-   * asserted separately via {@link #hasConfigurationItemsAtLeast}.
+   * Asserts the non-CONFIGURATION roles in {@code historyItemKey} order. CONFIGURATION items are
+   * excluded because one is emitted per turn-start, not only on configuration change.
    */
   public AgentInstanceEngineVerifier hasConversationRoles(AgentInstanceHistoryRole... roles) {
     historyChecks.add(
@@ -167,11 +127,6 @@ public class AgentInstanceEngineVerifier {
     return this;
   }
 
-  /**
-   * At least {@code min} committed CONFIGURATION items are present: the create-time one plus at
-   * least the first turn-start's. See {@link #hasConversationRoles} for why the exact count is not
-   * pinned.
-   */
   public AgentInstanceEngineVerifier hasConfigurationItemsAtLeast(int min) {
     historyChecks.add(
         history ->
@@ -182,11 +137,7 @@ public class AgentInstanceEngineVerifier {
     return this;
   }
 
-  /**
-   * A committed TOOL_RESULT history item exists for each of the given tool names (matched on the
-   * originating tool call). Order-agnostic and tolerant of the streamed-early duplicate rows ADR
-   * 013 documents, so it fits the staggered-tool cases.
-   */
+  /** Asserts a committed TOOL_RESULT exists for each named tool, order-agnostic. */
   public AgentInstanceEngineVerifier hasToolResultsFor(String... toolNames) {
     historyChecks.add(
         history -> {
@@ -194,14 +145,14 @@ public class AgentInstanceEngineVerifier {
               history.stream()
                   .filter(item -> item.getRole() == AgentInstanceHistoryRole.TOOL_RESULT)
                   .flatMap(item -> item.getToolCalls().stream())
-                  .map(toolCall -> toolCall.getToolName())
+                  .map(AgentInstanceHistoryToolCall::getToolName)
                   .toList();
           assertThat(resultToolNames).as("tool result tool names").contains(toolNames);
         });
     return this;
   }
 
-  /** Runs every collected assertion together, awaiting eventual-consistency propagation. */
+  /** Awaits eventual consistency and evaluates all collected checks together. */
   public void verify() {
     await()
         .alias("agent instance state via query API")

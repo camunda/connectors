@@ -103,9 +103,6 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
                     .answering("The superflux calculation of 5 and 3 is complete."))
         .noMoreInteractions();
 
-    // Read the persisted state back through the query API and assert what actually landed on the
-    // broker: the accumulated metrics (which the spy above cannot prove committed), the create-time
-    // CONFIGURATION item, and the full committed history sequence.
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasStatus(AgentInstanceStatus.COMPLETED)
         .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1))
@@ -182,7 +179,6 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
                     .answering("The superflux calculation of 5 and 3 is complete."))
         .noMoreInteractions();
 
-    // Two tool-call rounds → one extra TOOL_RESULT + ASSISTANT pair in the persisted history.
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasStatus(AgentInstanceStatus.COMPLETED)
         .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2))
@@ -274,9 +270,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
 
     verifier.noMoreInteractions();
 
-    // Both tool results must be persisted on the engine, regardless of completion order. Roles are
-    // asserted loosely here (not the exact sequence) because the staggered early-report path can
-    // write a TOOL_RESULT row twice until per-item dedup lands (ADR 013, "Deferred").
+    // Loose role check: the staggered early-report path can write a TOOL_RESULT row twice.
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasStatus(AgentInstanceStatus.COMPLETED)
         .hasToolResultsFor("SuperfluxProduct", "Download_A_File")
