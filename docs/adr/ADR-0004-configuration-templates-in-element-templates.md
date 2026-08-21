@@ -108,10 +108,26 @@ Resulting template fragment (chooser + embedded template):
 ```
 
 **Scope / non-goals** (per connections-design `GAPS.md`):
-- Chooser-only; the inline **fallback** path (gated by the not-yet-implemented `isEmpty` condition) is deferred.
-- The **connector-side consumption** of the `configuration` object (reading it as a whole, and the configuration → inline-fallback precedence) is **not** part of the ETG and not implemented here — see [Open questions](#open-questions) (b) for the resolved per-connector-merge approach.
+- The **connector-side consumption** of the `configuration` object (reading it as a whole, and the configuration → inline-fallback precedence) is **not** part of the ETG — see [Open questions](#open-questions) (b) for the resolved per-connector-merge approach.
 - **`configuresCredential`** conditions and the cached **`modelerConfigurationTemplateVersion`** attribute are **dropped** (connections-design GAP-007); per-type `Configuration` property + `isEmpty: false` distinguishes which configuration is chosen.
 - Runtime secret resolution (`SecretUtil`, PDP-3040) is deferred and provisional (GAP-005/006) — does not affect template generation.
+
+### Inline fallback: `PropertyCondition.IsEmpty`
+
+The chooser-only limitation above is resolved. `PropertyCondition.IsEmpty` was added end-to-end
+(DSL, annotation, processor) so an element template can gate its inline fallback fields on whether
+the chooser field is empty — `isEmpty: true` shows the inline fields when no credential is chosen,
+`isEmpty: false` shows a credential-only field (e.g. a value override) when one is. Chooser-first
+field ordering (the chooser renders before the fields its condition gates, both for
+`ConditionPropertyOrderRule` and for UX) and `@NestedProperties.condition()` merging with — rather
+than replacing — an existing condition landed alongside it.
+
+REST, GraphQL, Polling, JDBC, and the AWS connector family (~14 connectors + idp-extraction +
+aws-sqs) now use this pattern. The concrete techniques and pitfalls — field ordering inside nested
+objects, when to add an inline override vs. a chooser-only field, validation and wording gotchas —
+are documented in
+[credentials-in-element-templates.md](../credentials-in-element-templates.md), which any connector
+adopting a credential chooser should follow.
 
 ## Open questions
 
@@ -137,4 +153,7 @@ This choice does not block the ETG work: the element template emits the identica
 ### Negative
 - New generator surface beyond the annotations: a `property` `PropertyBinding` type, a `secret` attribute on `@TemplateProperty`, a `kind` field, and a configuration-template extraction mode (property bindings, no `feel`) distinct from the host-element extraction.
 - The whole-object model shifts effort **onto the connector-consumption side** (reading the `configuration` object + precedence) — work the ETG does not do; see [Open questions](#open-questions) (b) for where that merge lives (resolved: per-connector).
-- A connector that binds a `configuration` object and has its inline fields become chooser-driven produces a **chooser-only** template until the deferred inline-fallback mechanism (and the not-yet-implemented `isEmpty` condition) lands.
+- Getting the inline fallback right per connector is easy to get subtly wrong: field ordering
+  inside nested objects, requiredness moved off the raw field onto the effective value, and
+  client-side pattern constraints that must explicitly allow blank all need attention per field —
+  see [credentials-in-element-templates.md](../credentials-in-element-templates.md#validation-pitfalls).
