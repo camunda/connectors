@@ -1,3 +1,11 @@
 camunda:
   process-test:
     runtime-mode: shared
+  connector:
+    agenticai:
+      aiagent:
+        # The product default is ON (v1 provider config is rewritten to the native v2 providers).
+        # It is pinned OFF here so the existing v1 e2e suites keep exercising the LangChain4j
+        # implementations they were written against (buffered, non-streaming wire format).
+        # Migrating the suite to run over the native providers (switch ON) is a dedicated follow-up.
+        rewrite-v1-provider-config-to-v2: false
