@@ -213,7 +213,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Null safety tooling -->
     <version.error-prone>2.50.0</version.error-prone>
-    <version.nullaway>0.13.8</version.nullaway>
+    <version.nullaway>0.14.0</version.nullaway>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
   </properties>
 
