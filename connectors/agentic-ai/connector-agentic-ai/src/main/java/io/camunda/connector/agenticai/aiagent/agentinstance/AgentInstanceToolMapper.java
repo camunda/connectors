@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
-import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.AgentTool;
+import io.camunda.client.api.command.AgentTool;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import java.util.List;
