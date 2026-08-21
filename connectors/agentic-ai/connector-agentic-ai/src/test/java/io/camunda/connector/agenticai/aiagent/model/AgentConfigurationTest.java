@@ -42,11 +42,11 @@ class AgentConfigurationTest {
             maxModelCalls != null ? new LimitsConfiguration(maxModelCalls) : null,
             null,
             null)
-        .withTools(tools);
+        .withToolDefinitions(tools);
   }
 
   @Nested
-  class WithTools {
+  class WithToolDefinitions {
 
     @Test
     void returnsACopyCarryingTheGivenTools() {
@@ -54,10 +54,10 @@ class AgentConfigurationTest {
       final var tools =
           List.of(ToolDefinition.builder().name("getWeather").description("d").build());
 
-      final var updated = original.withTools(tools);
+      final var updated = original.withToolDefinitions(tools);
 
-      assertThat(original.tools()).isEmpty();
-      assertThat(updated.tools()).isEqualTo(tools);
+      assertThat(original.toolDefinitions()).isEmpty();
+      assertThat(updated.toolDefinitions()).isEqualTo(tools);
     }
   }
 

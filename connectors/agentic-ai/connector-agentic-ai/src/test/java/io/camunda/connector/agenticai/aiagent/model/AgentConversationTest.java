@@ -24,7 +24,7 @@ class AgentConversationTest {
 
   private static final AgentConfiguration CONFIG =
       new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
-          .withTools(TOOL_DEFINITIONS);
+          .withToolDefinitions(TOOL_DEFINITIONS);
 
   private static final SystemMessage SYSTEM_MESSAGE = systemMessage("sys");
 

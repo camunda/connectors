@@ -595,7 +595,7 @@ class CamundaAgentInstanceClientTest {
               null,
               null,
               null)
-          .withTools(tools);
+          .withToolDefinitions(tools);
     }
 
     private AgentConversationTurn userTurn(String text, String configurationFingerprint) {

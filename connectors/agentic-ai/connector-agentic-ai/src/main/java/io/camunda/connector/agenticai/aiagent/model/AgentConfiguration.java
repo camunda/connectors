@@ -24,9 +24,10 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Static per-invocation configuration. Built once from AgentExecutionContext at the start of each
- * handler invocation; does not change mid-conversation, with the exception of {@link #tools()},
- * which the handler fills in once tool resolution has run (see {@link #withTools}) and which then
- * becomes the authoritative source of the current tool list for the rest of the invocation.
+ * handler invocation; does not change mid-conversation, with the exception of {@link
+ * #toolDefinitions()}, which the handler fills in once tool resolution has run (see {@link
+ * #withToolDefinitions}) and which then becomes the authoritative source of the current tool list
+ * for the rest of the invocation.
  */
 public record AgentConfiguration(
     ChatModelConfiguration chatModel,
@@ -36,7 +37,7 @@ public record AgentConfiguration(
     @Nullable LimitsConfiguration limits,
     @Nullable EventHandlingConfiguration events,
     @Nullable ResponseConfiguration response,
-    List<ToolDefinition> tools) {
+    List<ToolDefinition> toolDefinitions) {
 
   public static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
   public static final int DEFAULT_MAX_MODEL_CALLS = 10;
@@ -65,9 +66,9 @@ public record AgentConfiguration(
   }
 
   /** Returns a copy carrying the given tool definitions in place of the current ones. */
-  public AgentConfiguration withTools(List<ToolDefinition> tools) {
+  public AgentConfiguration withToolDefinitions(List<ToolDefinition> toolDefinitions) {
     return new AgentConfiguration(
-        chatModel, systemPrompt, userPrompt, memory, limits, events, response, tools);
+        chatModel, systemPrompt, userPrompt, memory, limits, events, response, toolDefinitions);
   }
 
   /**
@@ -85,7 +86,7 @@ public record AgentConfiguration(
             chatModel.provider(),
             systemPrompt.prompt(),
             String.valueOf(limits != null ? limits.maxModelCalls() : null),
-            String.valueOf(tools));
+            String.valueOf(toolDefinitions));
     try {
       var digest =
           MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8));
