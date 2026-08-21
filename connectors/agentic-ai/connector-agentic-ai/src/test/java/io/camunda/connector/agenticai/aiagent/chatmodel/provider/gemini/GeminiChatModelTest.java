@@ -80,9 +80,8 @@ class GeminiChatModelTest {
     // Client#models is a plain public final field populated by the SDK's real constructor, which a
     // Mockito mock never runs -- inject the mocked Models directly onto the mocked Client instance.
     ReflectionTestUtils.setField(client, "models", models);
-    api =
-        new GeminiChatModel(
-            client, configuration, requestConverter, responseConverter, streamAssembler);
+    api = new GeminiChatModel(client, configuration, requestConverter, responseConverter);
+    ReflectionTestUtils.setField(api, "streamAssembler", streamAssembler);
   }
 
   @Test

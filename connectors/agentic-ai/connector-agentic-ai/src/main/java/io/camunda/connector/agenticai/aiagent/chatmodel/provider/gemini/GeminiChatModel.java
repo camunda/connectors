@@ -57,25 +57,11 @@ public class GeminiChatModel implements ChatModel {
       GeminiChatModelConfiguration configuration,
       GeminiContentRequestConverter requestConverter,
       GeminiContentResponseConverter responseConverter) {
-    this(
-        client,
-        configuration,
-        requestConverter,
-        responseConverter,
-        new GeminiContentStreamAssemblerImpl());
-  }
-
-  GeminiChatModel(
-      Client client,
-      GeminiChatModelConfiguration configuration,
-      GeminiContentRequestConverter requestConverter,
-      GeminiContentResponseConverter responseConverter,
-      GeminiContentStreamAssembler streamAssembler) {
     this.client = client;
     this.configuration = configuration;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
-    this.streamAssembler = streamAssembler;
+    this.streamAssembler = new GeminiContentStreamAssemblerImpl();
   }
 
   @Override
