@@ -111,8 +111,9 @@ class RealProviderApiSmokeIT {
           + "\"properties\":{\"codeName\":{\"type\":\"string\"},\"clearanceLevel\":{\"type\":\"string\"}},"
           + "\"required\":[\"codeName\",\"clearanceLevel\"]}";
 
-  // Repeated to clear Anthropic's minimum cacheable-prefix size (~1024 tokens for Sonnet-class
-  // models); each repeat is ~65 tokens, so 24 repeats gives comfortable margin.
+  // Repeated to clear the largest minimum cacheable-prefix size among providers under test:
+  // Anthropic needs ~1024 tokens (Sonnet-class models), Gemini needs ~4096. Each repeat is ~65
+  // tokens, so 80 repeats (~5200 tokens) gives comfortable margin over both.
   private static final String LONG_SYSTEM_PROMPT =
       """
       You are an assistant operating under a detailed classified-information handling protocol. \
@@ -121,7 +122,7 @@ class RealProviderApiSmokeIT {
       its result verbatim without paraphrasing. Follow every rule in this protocol \
       carefully and consistently across the whole conversation. \
       """
-          .repeat(24);
+          .repeat(80);
 
   private static final String DOC_DIR = "document-tool-call-results/";
   private static final String DOC_PROJECT_LAUNCH = DOC_DIR + "project-launch.pdf";
@@ -369,6 +370,33 @@ class RealProviderApiSmokeIT {
         false);
   }
 
+  static Provider googleVertexAi(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new Provider(
+        "google-vertex-ai/" + model,
+        List.of(
+            "GOOGLE_VERTEX_AI_PROJECT_ID",
+            "GOOGLE_VERTEX_AI_REGION",
+            "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON"),
+        Map.of(
+            "provider.type",
+            "google-gemini",
+            "provider.googleGemini.backend.type",
+            "google-vertex-ai",
+            "provider.googleGemini.backend.googleVertexAi.projectId",
+            envOrPlaceholder("GOOGLE_VERTEX_AI_PROJECT_ID"),
+            "provider.googleGemini.backend.googleVertexAi.region",
+            envOrPlaceholder("GOOGLE_VERTEX_AI_REGION"),
+            "provider.googleGemini.backend.googleVertexAi.authentication.type",
+            "serviceAccountCredentials",
+            "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
+            envOrPlaceholder("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON"),
+            "provider.googleGemini.model.model",
+            model),
+        capabilityProperties,
+        false);
+  }
+
   static Stream<Provider> providers() {
     return Stream.of(
             // claude-sonnet-4-6 only supports thinking mode "enabled" (explicit budget) — the model
@@ -517,13 +545,48 @@ class RealProviderApiSmokeIT {
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
-            // Conservative row: no REASONING/PROMPT_CACHING claim, since neither has been manually
-            // verified against a live Gemini endpoint yet.
             googleGeminiApi(
-                "gemini-3-pro-preview",
+                "gemini-3.7-flash",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT,
+                    Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE,
+                    Map.of(),
+                    Capability.PROMPT_CACHING,
+                    Map.of(),
+                    Capability.REASONING,
+                    Map.of(
+                        "provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"))),
+            googleVertexAi(
+                "gemini-3.7-flash",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
-                    Capability.MULTIMODAL_USER_MESSAGE, Map.of())))
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
+                    Capability.REASONING,
+                        Map.of(
+                            "provider.googleGemini.model.parameters.thinking.thinkingLevel",
+                            "high"))),
+            // Gemini 2.5 models use a numeric thinkingBudget rather than a qualitative level.
+            // No STRUCTURED_OUTPUT claim: the Gemini API rejects a JSON response mime type
+            googleGeminiApi(
+                "gemini-2.5-pro",
+                Map.of(
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
+                    Capability.REASONING,
+                        Map.of(
+                            "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+                            "24576"))),
+            googleVertexAi(
+                "gemini-2.5-pro",
+                Map.of(
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
+                    Capability.REASONING,
+                        Map.of(
+                            "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+                            "24576"))))
         .filter(Provider::isEnabled);
   }
 
@@ -644,14 +707,14 @@ class RealProviderApiSmokeIT {
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
-            "You are a careful reasoner. Think step by step before answering.",
+            "You are a careful reasoner. Think step by step before answering. Before providing your final answer, break down your reasoning step-by-step.",
             template -> provider.propertiesFor(Capability.REASONING).forEach(template::property));
 
     var instance =
         startAgent(
             model,
             PROCESS_ID,
-            "You are a careful reasoner. Think step by step before answering.",
+            "You are a careful reasoner. Think step by step before answering. Before providing your final answer, break down your reasoning step-by-step.",
             Map.of(
                 "userPrompt",
                 "A farmer has chickens and rabbits. Together they have 35 heads and 94 legs. How "

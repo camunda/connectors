@@ -164,6 +164,9 @@ class AgentSubProcessGeminiStreamingResponseTests extends BaseGeminiNativeSubPro
         agentResponse ->
             AgentSubProcessResponseAssert.assertThat(agentResponse)
                 .isReady()
+                // the two TextContent blocks are joined with no separator into the response text
+                // - it must not be truncated to just the first, signature-carrying block
+                .hasResponseText("First half.Second half.")
                 .hasResponseMessageSatisfying(
                     message -> {
                       assertThat(message.content())

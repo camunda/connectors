@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GOOGLE_GEMINI_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend.GOOGLE_GEMINI_API_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend.GOOGLE_VERTEX_AI_ID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,6 +16,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -54,14 +56,17 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
-    @JsonSubTypes.Type(value = GeminiBackend.GeminiApiBackend.class, name = GOOGLE_GEMINI_API_ID)
+    @JsonSubTypes.Type(value = GeminiBackend.GeminiApiBackend.class, name = GOOGLE_GEMINI_API_ID),
+    @JsonSubTypes.Type(
+        value = GeminiBackend.GeminiVertexAiBackend.class,
+        name = GOOGLE_VERTEX_AI_ID)
   })
   @TemplateDiscriminatorProperty(
       label = "Backend",
       group = "provider",
       name = "type",
       defaultValue = GOOGLE_GEMINI_API_ID,
-      description = "Specify how the Gemini Developer API is reached.")
+      description = "Specify which Google backend serves the Gemini model.")
   public sealed interface GeminiBackend {
 
     /** The backend discriminator string. */
@@ -102,6 +107,103 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
           return "GoogleGeminiApi{apiKey=[REDACTED], endpoint=" + endpoint + "}";
         }
       }
+    }
+
+    @TemplateSubType(id = GOOGLE_VERTEX_AI_ID, label = "Google Vertex AI")
+    record GeminiVertexAiBackend(@Valid @NotNull GoogleVertexAi googleVertexAi)
+        implements GeminiBackend {
+
+      @TemplateProperty(ignore = true)
+      public static final String GOOGLE_VERTEX_AI_ID = "google-vertex-ai";
+
+      @Override
+      public String type() {
+        return GOOGLE_VERTEX_AI_ID;
+      }
+
+      public record GoogleVertexAi(
+          @NotBlank
+              @TemplateProperty(
+                  group = "provider",
+                  label = "Project ID",
+                  description = "Specify Google Cloud project ID",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = FeelMode.optional,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              String projectId,
+          @NotBlank
+              @TemplateProperty(
+                  group = "provider",
+                  label = "Region",
+                  description = "Specify the region where AI inference should take place",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = FeelMode.optional,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              String region,
+          // Hidden: never shown in the modeler. Exists solely so e2e tests can point the client
+          // at a local WireMock server via HttpOptions.baseUrl(); real deployments never set it.
+          // Mirrors GoogleGeminiApi's own hidden endpoint field 1:1 (same rationale).
+          @HttpUrl
+              @TemplateProperty(
+                  group = "provider",
+                  label = "API endpoint",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable String endpoint,
+          @Valid @NotNull GoogleVertexAiAuthentication authentication) {
+
+        @JsonIgnore
+        @AssertFalse(
+            message =
+                "Application default credentials for Google Vertex AI are not supported on SaaS")
+        public boolean isApplicationDefaultCredentialsUsedInSaaS() {
+          return ConnectorUtils.isSaaS()
+              && authentication
+                  instanceof
+                  GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+        }
+      }
+    }
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes({
+      @JsonSubTypes.Type(
+          value = GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication.class,
+          name = "serviceAccountCredentials"),
+      @JsonSubTypes.Type(
+          value = GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication.class,
+          name = "applicationDefaultCredentials")
+    })
+    @TemplateDiscriminatorProperty(
+        label = "Authentication",
+        group = "provider",
+        name = "type",
+        defaultValue = "serviceAccountCredentials",
+        description = "Specify the Google Vertex AI authentication strategy.")
+    sealed interface GoogleVertexAiAuthentication {
+      @TemplateSubType(id = "serviceAccountCredentials", label = "Service account credentials")
+      record ServiceAccountCredentialsAuthentication(
+          @NotBlank
+              @TemplateProperty(
+                  group = "provider",
+                  label = "JSON key of the service account",
+                  description = "This is the key of the service account in JSON format.",
+                  feel = FeelMode.optional,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              String jsonKey)
+          implements GoogleVertexAiAuthentication {
+        @Override
+        public String toString() {
+          return "ServiceAccountCredentialsAuthentication{jsonKey=[REDACTED]}";
+        }
+      }
+
+      @TemplateSubType(
+          id = "applicationDefaultCredentials",
+          label = "Application default credentials (Hybrid/Self-Managed only)")
+      record ApplicationDefaultCredentialsAuthentication()
+          implements GoogleVertexAiAuthentication {}
     }
   }
 

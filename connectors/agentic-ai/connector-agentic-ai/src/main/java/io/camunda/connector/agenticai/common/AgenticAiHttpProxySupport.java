@@ -13,7 +13,9 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -168,6 +170,9 @@ public class AgenticAiHttpProxySupport {
         proxyDetails.scheme() + "://" + proxyDetails.host() + ":" + proxyDetails.port());
   }
 
+  /** Vertex AI's two multi-regional locations, mirroring {@code com.google.genai.ApiClient}. */
+  private static final Set<String> MULTI_REGIONAL_LOCATIONS = Set.of("us", "eu");
+
   /**
    * Returns the {@link ProxyOptions} configured for the target scheme, if any, for azure-core/
    * azure-identity based clients (e.g. {@code ClientSecretCredentialBuilder}, {@code
@@ -197,5 +202,21 @@ public class AgenticAiHttpProxySupport {
               }
               return options;
             });
+  }
+
+  /**
+   * Resolves the default Google GenAI API host for the given Vertex AI region, mirroring {@code
+   * com.google.genai.ApiClient}'s own (package-private, unexported) resolution: the global endpoint
+   * host for {@code global}, the multi-regional host for {@code us}/{@code eu}, otherwise the
+   * regional endpoint host.
+   */
+  public static String defaultGoogleGenAiBaseUrl(String region) {
+    if ("global".equalsIgnoreCase(region)) {
+      return "https://aiplatform.googleapis.com";
+    }
+    if (MULTI_REGIONAL_LOCATIONS.contains(region.toLowerCase(Locale.ROOT))) {
+      return "https://aiplatform.%s.rep.googleapis.com".formatted(region.toLowerCase(Locale.ROOT));
+    }
+    return "https://%s-aiplatform.googleapis.com".formatted(region);
   }
 }

@@ -27,6 +27,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,19 +76,21 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
       builder.responseMessage(assistantMessage);
     }
 
-    findFirstResponseText(assistantMessage)
+    deriveResponseText(assistantMessage)
         .ifPresent(
             responseText -> handleFirstResponseText(responseConfiguration, builder, responseText));
 
     return builder.build();
   }
 
-  private Optional<String> findFirstResponseText(AssistantMessage assistantMessage) {
-    return assistantMessage.content().stream()
-        .filter(c -> c instanceof TextContent)
-        .map(c -> ((TextContent) c).text())
-        .filter(StringUtils::isNotBlank)
-        .findFirst();
+  private Optional<String> deriveResponseText(AssistantMessage assistantMessage) {
+    return Optional.of(
+            assistantMessage.content().stream()
+                .filter(c -> c instanceof TextContent)
+                .map(c -> ((TextContent) c).text())
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.joining()))
+        .filter(StringUtils::isNotBlank);
   }
 
   private void handleFirstResponseText(

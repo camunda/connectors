@@ -10,28 +10,44 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend.GoogleVertexAi;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinking;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinkingLevel;
+import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith({SpringExtension.class, SystemStubsExtension.class})
 @Import(ValidationAutoConfiguration.class)
 class GeminiChatModelConfigurationTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
 
   @Autowired private Validator validator;
+  @SystemStub private EnvironmentVariables environment;
+
+  @BeforeEach
+  void setUp() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, null);
+  }
 
   @Test
   void deserialisesGeminiApiBackendWithModelParametersAndRoundTrips() throws Exception {
@@ -245,5 +261,198 @@ class GeminiChatModelConfigurationTest {
               assertThat(v.getPropertyPath().toString()).isEqualTo("googleGemini.model.model");
               assertThat(v.getMessage()).isEqualTo("must not be blank");
             });
+  }
+
+  @Test
+  void deserialisesVertexAiBackendWithServiceAccountCredentialsAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "google-gemini",
+          "googleGemini": {
+            "backend": {
+              "type": "google-vertex-ai",
+              "googleVertexAi": {
+                "projectId": "my-project",
+                "region": "us-central1",
+                "authentication": {
+                  "type": "serviceAccountCredentials",
+                  "jsonKey": "{\\"type\\":\\"service_account\\"}"
+                }
+              }
+            },
+            "model": { "model": "gemini-3-pro-preview" }
+          }
+        }
+        """;
+
+    final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
+
+    assertThat(parsed).isInstanceOf(GeminiChatModelConfiguration.class);
+    assertThat(parsed.provider()).isEqualTo("google-gemini");
+    assertThat(parsed.model()).isEqualTo("gemini-3-pro-preview");
+
+    final GeminiChatModelConfiguration gemini = (GeminiChatModelConfiguration) parsed;
+    assertThat(gemini.googleGemini().backend()).isInstanceOf(GeminiVertexAiBackend.class);
+
+    final GoogleVertexAi vertexAi =
+        ((GeminiVertexAiBackend) gemini.googleGemini().backend()).googleVertexAi();
+    assertThat(vertexAi.projectId()).isEqualTo("my-project");
+    assertThat(vertexAi.region()).isEqualTo("us-central1");
+    assertThat(vertexAi.endpoint()).isNull();
+    assertThat(vertexAi.authentication())
+        .isEqualTo(new ServiceAccountCredentialsAuthentication("{\"type\":\"service_account\"}"));
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesVertexAiBackendWithApplicationDefaultCredentialsAndRoundTrips()
+      throws Exception {
+    final String json =
+        """
+        {
+          "type": "google-gemini",
+          "googleGemini": {
+            "backend": {
+              "type": "google-vertex-ai",
+              "googleVertexAi": {
+                "projectId": "my-project",
+                "region": "us-central1",
+                "endpoint": "https://example.com",
+                "authentication": { "type": "applicationDefaultCredentials" }
+              }
+            },
+            "model": { "model": "gemini-3-pro-preview" }
+          }
+        }
+        """;
+
+    final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
+    final GeminiChatModelConfiguration gemini = (GeminiChatModelConfiguration) parsed;
+    final GoogleVertexAi vertexAi =
+        ((GeminiVertexAiBackend) gemini.googleGemini().backend()).googleVertexAi();
+
+    assertThat(vertexAi.endpoint()).isEqualTo("https://example.com");
+    assertThat(vertexAi.authentication())
+        .isEqualTo(new ApplicationDefaultCredentialsAuthentication());
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void serviceAccountCredentialsAuthenticationRedactsJsonKeyInToString() {
+    final var authentication = new ServiceAccountCredentialsAuthentication("super-secret-key");
+
+    final String toString = authentication.toString();
+
+    assertThat(toString).doesNotContain("super-secret-key");
+    assertThat(toString).isEqualTo("ServiceAccountCredentialsAuthentication{jsonKey=[REDACTED]}");
+  }
+
+  @Test
+  void vertexAiBackendRejectsBlankProjectIdAndRegion() {
+    final var authentication = new ServiceAccountCredentialsAuthentication("key-json");
+    final var backendWithBlanks =
+        new GeminiVertexAiBackend(new GoogleVertexAi("  ", "  ", null, authentication));
+
+    final var violations =
+        validator.validate(
+            new GeminiChatModelConfiguration(
+                new GeminiConnection(
+                    backendWithBlanks, new GeminiModel("gemini-3-pro-preview", null), null)));
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("googleGemini.backend.googleVertexAi.projectId");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            })
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("googleGemini.backend.googleVertexAi.region");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            });
+  }
+
+  @Test
+  void vertexAiServiceAccountCredentialsRejectsBlankJsonKey() {
+    final var config =
+        vertexAiChatModelConfiguration(new ServiceAccountCredentialsAuthentication("  "));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("googleGemini.backend.googleVertexAi.authentication.jsonKey");
+              assertThat(v.getMessage()).isEqualTo("must not be blank");
+            });
+  }
+
+  @Test
+  void vertexAiBackendRejectsMissingAuthentication() {
+    final var config =
+        new GeminiChatModelConfiguration(
+            new GeminiConnection(
+                new GeminiVertexAiBackend(
+                    new GoogleVertexAi("my-project", "us-central1", null, null)),
+                new GeminiModel("gemini-3-pro-preview", null),
+                null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("googleGemini.backend.googleVertexAi.authentication");
+              assertThat(v.getMessage()).isEqualTo("must not be null");
+            });
+  }
+
+  @Test
+  void validVertexAiConfigurationHasNoViolations() {
+    final var config =
+        vertexAiChatModelConfiguration(new ServiceAccountCredentialsAuthentication("key-json"));
+
+    assertThat(validator.validate(config)).isEmpty();
+  }
+
+  @Test
+  void vertexAiApplicationDefaultCredentialsRejectedOnSaaS() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
+    final var config =
+        vertexAiChatModelConfiguration(new ApplicationDefaultCredentialsAuthentication());
+
+    assertThat(validator.validate(config))
+        .extracting(ConstraintViolation::getMessage)
+        .contains("Application default credentials for Google Vertex AI are not supported on SaaS");
+  }
+
+  @Test
+  void vertexAiApplicationDefaultCredentialsAllowedWhenNotSaaS() {
+    final var config =
+        vertexAiChatModelConfiguration(new ApplicationDefaultCredentialsAuthentication());
+
+    assertThat(validator.validate(config)).isEmpty();
+  }
+
+  private static GoogleVertexAi vertexAiConfig(GoogleVertexAiAuthentication authentication) {
+    return new GoogleVertexAi("my-project", "us-central1", null, authentication);
+  }
+
+  private static GeminiChatModelConfiguration vertexAiChatModelConfiguration(
+      GoogleVertexAiAuthentication authentication) {
+    return new GeminiChatModelConfiguration(
+        new GeminiConnection(
+            new GeminiVertexAiBackend(vertexAiConfig(authentication)),
+            new GeminiModel("gemini-3-pro-preview", null),
+            null));
   }
 }

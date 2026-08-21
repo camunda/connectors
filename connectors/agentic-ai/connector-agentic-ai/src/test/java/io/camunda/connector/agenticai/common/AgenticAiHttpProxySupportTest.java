@@ -258,6 +258,16 @@ class AgenticAiHttpProxySupportTest {
     }
   }
 
+  @Test
+  void shouldResolveMultiRegionalDefaultHost() {
+    assertThat(AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl("us"))
+        .isEqualTo("https://aiplatform.us.rep.googleapis.com");
+    assertThat(AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl("eu"))
+        .isEqualTo("https://aiplatform.eu.rep.googleapis.com");
+    assertThat(AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl("EU"))
+        .isEqualTo("https://aiplatform.eu.rep.googleapis.com");
+  }
+
   private static ProxyConfiguration testProxyConfiguration(
       String host, int port, String user, String password) {
     return protocol -> {

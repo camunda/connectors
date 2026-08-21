@@ -9,10 +9,18 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.genai.ApiClient;
 import com.google.genai.Client;
 import com.google.genai.types.ClientOptions;
@@ -24,11 +32,18 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderCon
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend.GoogleGeminiApi;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend.GoogleVertexAi;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.http.client.proxy.NonProxyHosts;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.time.Duration;
@@ -39,7 +54,11 @@ import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -48,8 +67,13 @@ class GeminiChatModelFactoryTest {
 
   private static final String MODEL_ID = "gemini-3-pro-preview";
   private static final String API_KEY = "test-api-key";
+  private static final String PROJECT_ID = "test-project";
+  private static final String REGION = "us-central1";
 
   @Mock private AgenticAiHttpProxySupport httpProxySupport;
+
+  @Captor private ArgumentCaptor<HttpOptions> httpOptionsCaptor;
+  @Captor private ArgumentCaptor<ClientOptions> clientOptionsCaptor;
 
   private GeminiChatModelFactory factory;
 
@@ -109,12 +133,45 @@ class GeminiChatModelFactoryTest {
   }
 
   @Test
+  void createSkipsProxyWhenDefaultGeminiApiHostIsNonProxyHost() {
+    try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
+      nonProxyHostsMock.when(() -> NonProxyHosts.isNonProxyHost(any())).thenReturn(true);
+
+      final ChatModel model = factory.create(apiConfig(null, null));
+
+      nonProxyHostsMock.verify(
+          () -> NonProxyHosts.isNonProxyHost("generativelanguage.googleapis.com"));
+      verify(httpProxySupport, never()).okHttpProxy(any());
+
+      model.close();
+    }
+  }
+
+  @Test
+  void createSkipsProxyWhenConfiguredEndpointHostIsNonProxyHost() {
+    try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
+      nonProxyHostsMock.when(() -> NonProxyHosts.isNonProxyHost(any())).thenReturn(true);
+
+      final ChatModel model = factory.create(apiConfig("http://localhost:8080", null));
+
+      nonProxyHostsMock.verify(() -> NonProxyHosts.isNonProxyHost("localhost"));
+      verify(httpProxySupport, never()).okHttpProxy(any());
+
+      model.close();
+    }
+  }
+
+  @Test
   void createSetsConfiguredTimeout() {
     noProxyConfigured();
 
     final ChatModel model = factory.create(apiConfig(null, Duration.ofSeconds(30)));
 
+    // httpOptions().timeout() is stored for introspection/consistency only - the SDK never reads
+    // it once a customHttpClient is supplied; callTimeoutMillis() on that client is what actually
+    // enforces the overall timeout, see GeminiChatModelFactory#buildClient's javadoc.
     assertThat(httpOptionsOf(model).timeout()).contains(30_000);
+    assertThat(callTimeoutMillisOf(model)).isEqualTo(30_000);
 
     model.close();
   }
@@ -126,6 +183,7 @@ class GeminiChatModelFactoryTest {
     final ChatModel model = factory.create(apiConfig(null, Duration.ofNanos(500)));
 
     assertThat(httpOptionsOf(model).timeout()).contains(1);
+    assertThat(callTimeoutMillisOf(model)).isEqualTo(1);
 
     model.close();
   }
@@ -136,10 +194,12 @@ class GeminiChatModelFactoryTest {
 
     final ChatModel zeroTimeoutModel = factory.create(apiConfig(null, Duration.ZERO));
     assertThat(httpOptionsOf(zeroTimeoutModel).timeout()).isEmpty();
+    assertThat(callTimeoutMillisOf(zeroTimeoutModel)).isZero();
     zeroTimeoutModel.close();
 
     final ChatModel negativeTimeoutModel = factory.create(apiConfig(null, Duration.ofSeconds(-1)));
     assertThat(httpOptionsOf(negativeTimeoutModel).timeout()).isEmpty();
+    assertThat(callTimeoutMillisOf(negativeTimeoutModel)).isZero();
     negativeTimeoutModel.close();
   }
 
@@ -223,6 +283,148 @@ class GeminiChatModelFactoryTest {
     model.close();
   }
 
+  @Test
+  void createBuildsVertexAiClientWithApplicationDefaultCredentials() {
+    noProxyConfigured();
+
+    final var clientBuilder =
+        createVertexAiChatModel(
+            vertexConfig(null, new ApplicationDefaultCredentialsAuthentication()));
+
+    verify(clientBuilder).vertexAI(true);
+    verify(clientBuilder).project(PROJECT_ID);
+    verify(clientBuilder).location(REGION);
+    verify(clientBuilder, never()).credentials(any());
+
+    // no endpoint override configured: the base URL is left for the SDK to derive itself at
+    // build time (its own per-region formula, e.g. for "us"/"eu" multi-region hosts, is not
+    // byte-identical to AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl, which is why that
+    // function is never used to pin the base URL here)
+    verify(clientBuilder).httpOptions(httpOptionsCaptor.capture());
+    assertThat(httpOptionsCaptor.getValue().baseUrl()).isEmpty();
+
+    // .. and with no endpoint override configured, the proxy scheme falls back to the default
+    // https scheme
+    verify(httpProxySupport).okHttpProxy(ProxyConfiguration.SCHEME_HTTPS);
+  }
+
+  /**
+   * Service account credentials must be scoped explicitly. google-genai only scopes the application
+   * default credentials it resolves itself and passes user-supplied credentials through verbatim,
+   * so an unscoped credential would make the token request fail with {@code invalid_scope}.
+   */
+  @Test
+  void createBuildsVertexAiClientWithServiceAccountCredentials() {
+    noProxyConfigured();
+
+    try (MockedStatic<ServiceAccountCredentials> sacMock =
+        mockStatic(ServiceAccountCredentials.class)) {
+      final var mockedSac = mock(ServiceAccountCredentials.class);
+      final var scopedSac = mock(GoogleCredentials.class);
+      when(mockedSac.createScoped("https://www.googleapis.com/auth/cloud-platform"))
+          .thenReturn(scopedSac);
+      sacMock.when(() -> ServiceAccountCredentials.fromStream(any())).thenReturn(mockedSac);
+
+      final var clientBuilder =
+          createVertexAiChatModel(
+              vertexConfig(null, new ServiceAccountCredentialsAuthentication("{}")));
+
+      verify(clientBuilder).credentials(scopedSac);
+    }
+  }
+
+  @Test
+  void createAppliesVertexAiEndpointOverride() {
+    noProxyConfigured();
+    final String endpoint = "http://localhost:8888";
+
+    final var clientBuilder =
+        createVertexAiChatModel(
+            vertexConfig(endpoint, new ApplicationDefaultCredentialsAuthentication()));
+
+    verify(clientBuilder).httpOptions(httpOptionsCaptor.capture());
+    assertThat(httpOptionsCaptor.getValue().baseUrl()).contains(endpoint);
+
+    verify(httpProxySupport).okHttpProxy(ProxyConfiguration.SCHEME_HTTP);
+  }
+
+  @Test
+  void createWiresProxyOptionsForVertexAiBackendWhenProxyConfigured() {
+    when(httpProxySupport.okHttpProxy(any()))
+        .thenReturn(Optional.of(proxyOf("proxy.example.com", 8080, "proxy-user", "proxy-pass")));
+
+    final var clientBuilder =
+        createVertexAiChatModel(
+            vertexConfig(null, new ApplicationDefaultCredentialsAuthentication()));
+
+    // applied directly to the custom OkHttp client, not via ClientOptions.proxyOptions() - see
+    // GeminiChatModelFactory#buildClient's javadoc on CONNECT_TIMEOUT
+    verify(clientBuilder).clientOptions(clientOptionsCaptor.capture());
+    final var customHttpClient = clientOptionsCaptor.getValue().customHttpClient();
+    assertThat(customHttpClient).isPresent();
+    final var proxyAddress = (InetSocketAddress) customHttpClient.get().proxy().address();
+    assertThat(proxyAddress.getHostString()).isEqualTo("proxy.example.com");
+    assertThat(proxyAddress.getPort()).isEqualTo(8080);
+    assertThat(customHttpClient.get().proxyAuthenticator()).isNotEqualTo(Authenticator.NONE);
+
+    verify(httpProxySupport).okHttpProxy(ProxyConfiguration.SCHEME_HTTPS);
+  }
+
+  @Test
+  void createSkipsProxyWhenDefaultVertexAiHostIsNonProxyHost() {
+    try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
+      nonProxyHostsMock.when(() -> NonProxyHosts.isNonProxyHost(any())).thenReturn(true);
+
+      createVertexAiChatModel(
+          vertexConfig(null, new ApplicationDefaultCredentialsAuthentication()));
+
+      nonProxyHostsMock.verify(
+          () -> NonProxyHosts.isNonProxyHost(REGION + "-aiplatform.googleapis.com"));
+      verify(httpProxySupport, never()).okHttpProxy(any());
+    }
+  }
+
+  @Test
+  void createThrowsConnectorInputExceptionWhenVertexAiClientBuildFails() {
+    noProxyConfigured();
+
+    final var clientBuilder = spy(Client.builder());
+    doAnswer(
+            invocation -> {
+              throw new IllegalArgumentException("boom");
+            })
+        .when(clientBuilder)
+        .build();
+
+    try (MockedStatic<Client> clientMock = mockStatic(Client.class, Answers.CALLS_REAL_METHODS)) {
+      clientMock.when(Client::builder).thenReturn(clientBuilder);
+
+      assertThatThrownBy(
+              () ->
+                  factory.create(
+                      vertexConfig(null, new ApplicationDefaultCredentialsAuthentication())))
+          .isInstanceOf(ConnectorInputException.class)
+          .hasMessageContaining("Failed to create Google GenAI client");
+    }
+  }
+
+  @Test
+  void createThrowsConnectorInputExceptionWhenServiceAccountCredentialsAreInvalid() {
+    try (MockedStatic<ServiceAccountCredentials> sacMock =
+        mockStatic(ServiceAccountCredentials.class)) {
+      sacMock
+          .when(() -> ServiceAccountCredentials.fromStream(any()))
+          .thenThrow(new IOException("bad key"));
+
+      assertThatThrownBy(
+              () ->
+                  factory.create(
+                      vertexConfig(null, new ServiceAccountCredentialsAuthentication("{}"))))
+          .isInstanceOf(ConnectorInputException.class)
+          .hasMessageContaining("Authentication failed for provided service account credentials");
+    }
+  }
+
   private void noProxyConfigured() {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
   }
@@ -231,6 +433,38 @@ class GeminiChatModelFactoryTest {
       String host, int port, @Nullable String username, @Nullable String password) {
     return new AgenticAiHttpProxySupport.OkHttpProxy(
         new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port)), username, password);
+  }
+
+  /**
+   * Builds a {@link GeminiChatModel} for a Vertex AI backend with a statically mocked {@link
+   * Client.Builder} spy so no real client (and, for application default credentials, no real OAuth
+   * resolution) is ever built - only the wiring onto the builder is inspected.
+   */
+  private Client.Builder createVertexAiChatModel(GeminiChatModelConfiguration config) {
+    final var client = mock(Client.class);
+    final var clientBuilder = spy(Client.builder());
+    doReturn(client).when(clientBuilder).build();
+
+    try (MockedStatic<Client> clientMock = mockStatic(Client.class, Answers.CALLS_REAL_METHODS)) {
+      clientMock.when(Client::builder).thenReturn(clientBuilder);
+
+      final ChatModel model = factory.create(config);
+      assertThat(model).isNotNull().isInstanceOf(GeminiChatModel.class);
+      assertThat(ReflectionTestUtils.getField(model, "client")).isSameAs(client);
+      model.close();
+    }
+
+    return clientBuilder;
+  }
+
+  private static GeminiChatModelConfiguration vertexConfig(
+      @Nullable String endpoint, GoogleVertexAiAuthentication authentication) {
+    return new GeminiChatModelConfiguration(
+        new GeminiConnection(
+            new GeminiVertexAiBackend(
+                new GoogleVertexAi(PROJECT_ID, REGION, endpoint, authentication)),
+            new GeminiModel(MODEL_ID, null),
+            null));
   }
 
   private static Client clientOf(ChatModel model) {
@@ -249,6 +483,14 @@ class GeminiChatModelFactoryTest {
   private static Optional<ClientOptions> clientOptionsOf(ChatModel model) {
     return (Optional<ClientOptions>)
         ReflectionTestUtils.getField(apiClientOf(model), "clientOptions");
+  }
+
+  private static int callTimeoutMillisOf(ChatModel model) {
+    return clientOptionsOf(model)
+        .orElseThrow()
+        .customHttpClient()
+        .orElseThrow()
+        .callTimeoutMillis();
   }
 
   private static GeminiChatModelConfiguration apiConfig(

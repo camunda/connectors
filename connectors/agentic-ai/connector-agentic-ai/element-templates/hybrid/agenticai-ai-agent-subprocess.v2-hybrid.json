@@ -1123,7 +1123,7 @@
   }, {
     "id" : "provider.googleGemini.backend.type",
     "label" : "Backend",
-    "description" : "Specify how the Gemini Developer API is reached.",
+    "description" : "Specify which Google backend serves the Gemini model.",
     "value" : "google-gemini-api",
     "group" : "provider",
     "binding" : {
@@ -1139,6 +1139,9 @@
     "choices" : [ {
       "name" : "Google Gemini API",
       "value" : "google-gemini-api"
+    }, {
+      "name" : "Google Vertex AI",
+      "value" : "google-vertex-ai"
     } ]
   }, {
     "id" : "provider.googleGemini.backend.googleGeminiApi.apiKey",
@@ -1186,6 +1189,138 @@
       } ]
     },
     "type" : "Hidden"
+  }, {
+    "id" : "provider.googleGemini.backend.googleVertexAi.projectId",
+    "label" : "Project ID",
+    "description" : "Specify Google Cloud project ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleVertexAi.projectId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleGemini.backend.googleVertexAi.region",
+    "label" : "Region",
+    "description" : "Specify the region where AI inference should take place",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleVertexAi.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleGemini.backend.googleVertexAi.endpoint",
+    "label" : "API endpoint",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleVertexAi.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.googleGemini.backend.googleVertexAi.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the Google Vertex AI authentication strategy.",
+    "value" : "serviceAccountCredentials",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleVertexAi.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Service account credentials",
+      "value" : "serviceAccountCredentials"
+    }, {
+      "name" : "Application default credentials (Hybrid/Self-Managed only)",
+      "value" : "applicationDefaultCredentials"
+    } ]
+  }, {
+    "id" : "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
+    "label" : "JSON key of the service account",
+    "description" : "This is the key of the service account in JSON format.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.googleVertexAi.authentication.type",
+        "equals" : "serviceAccountCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "provider.googleGemini.timeouts.timeout",
     "label" : "Timeout",
