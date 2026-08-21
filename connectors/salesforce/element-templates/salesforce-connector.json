@@ -105,6 +105,11 @@
         "name" : "authentication.type",
         "type" : "zeebe:input"
       },
+      "condition" : {
+        "property" : "authenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      },
       "type" : "Dropdown",
       "choices" : [
         {
@@ -131,9 +136,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "authentication.type",
-        "equals" : "bearer",
-        "type" : "simple"
+        "allMatch" : [
+          {
+            "property" : "authentication.type",
+            "equals" : "bearer",
+            "type" : "simple"
+          },
+          {
+            "property" : "authenticationConfiguration",
+            "isEmpty" : true,
+            "type" : "simple"
+          }
+        ]
       },
       "type" : "String",
       "secret" : true
@@ -152,9 +166,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
+        "allMatch" : [
+          {
+            "property" : "authentication.type",
+            "equals" : "oauth-client-credentials-flow",
+            "type" : "simple"
+          },
+          {
+            "property" : "authenticationConfiguration",
+            "isEmpty" : true,
+            "type" : "simple"
+          }
+        ]
       },
       "tooltip" : "Your application's client ID from the OAuth client",
       "type" : "String"
@@ -173,9 +196,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
+        "allMatch" : [
+          {
+            "property" : "authentication.type",
+            "equals" : "oauth-client-credentials-flow",
+            "type" : "simple"
+          },
+          {
+            "property" : "authenticationConfiguration",
+            "isEmpty" : true,
+            "type" : "simple"
+          }
+        ]
       },
       "tooltip" : "Your application's client secret from the OAuth client",
       "type" : "String",
