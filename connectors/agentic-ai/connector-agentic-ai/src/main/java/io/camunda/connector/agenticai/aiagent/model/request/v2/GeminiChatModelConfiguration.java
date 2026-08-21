@@ -88,9 +88,6 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                   feel = FeelMode.optional,
                   constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
               String apiKey,
-          // Hidden: never shown in the modeler. Exists solely so e2e tests can point the client
-          // at a local WireMock server via HttpOptions.baseUrl(); real deployments never set it.
-          // Mirrors AnthropicApiBackend's own hidden endpoint field 1:1 (same rationale).
           @HttpUrl
               @TemplateProperty(
                   group = "provider",
@@ -179,7 +176,7 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
      */
     public record GeminiThinking(
         @TemplateProperty(
-                group = "model-options",
+                group = "model",
                 label = "Enable thinking",
                 tooltip =
                     "Enables Gemini's extended-thinking mode. Configure a token budget (Gemini 2.5) or a qualitative level (Gemini 3.x) below once enabled. <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
@@ -188,7 +185,7 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
             Boolean enabled,
         @Min(-1)
             @TemplateProperty(
-                group = "model-options",
+                group = "model",
                 label = "Thinking budget (tokens)",
                 tooltip =
                     "Gemini 2.5 models: token budget for extended thinking. -1 = dynamic, 0 = disabled. Mutually exclusive with Thinking level (Gemini 3.x). <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
@@ -201,7 +198,7 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                         equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
             @Nullable Integer thinkingBudget,
         @TemplateProperty(
-                group = "model-options",
+                group = "model",
                 label = "Thinking level",
                 tooltip =
                     "Gemini 3.x models: qualitative thinking effort. \"Model default\" lets the model choose its own reasoning depth. Mutually exclusive with Thinking budget (Gemini 2.5). <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",

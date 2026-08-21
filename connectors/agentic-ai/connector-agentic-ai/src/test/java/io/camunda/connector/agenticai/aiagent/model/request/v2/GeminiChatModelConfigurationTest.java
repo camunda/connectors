@@ -183,20 +183,6 @@ class GeminiChatModelConfigurationTest {
   }
 
   @Test
-  void onlyThinkingLevelSetHasNoViolations() {
-    final var thinking = new GeminiThinking(true, null, GeminiThinkingLevel.LOW);
-    final var parameters = new GeminiModelParameters(null, null, null, null, thinking);
-    final var config =
-        new GeminiChatModelConfiguration(
-            new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
-                new GeminiModel("gemini-3-pro-preview", parameters),
-                null));
-
-    assertThat(validator.validate(config)).isEmpty();
-  }
-
-  @Test
   void budgetWithModelDefaultLevelHasNoViolations() {
     final var thinking = new GeminiThinking(true, 1024, GeminiThinkingLevel.MODEL_DEFAULT);
     final var parameters = new GeminiModelParameters(null, null, null, null, thinking);
@@ -215,6 +201,20 @@ class GeminiChatModelConfigurationTest {
     final var thinking = new GeminiThinking(true, 1024, null);
 
     assertThat(thinking.thinkingLevel()).isEqualTo(GeminiThinkingLevel.MODEL_DEFAULT);
+  }
+
+  @Test
+  void onlyThinkingLevelSetHasNoViolations() {
+    final var thinking = new GeminiThinking(true, null, GeminiThinkingLevel.LOW);
+    final var parameters = new GeminiModelParameters(null, null, null, null, thinking);
+    final var config =
+        new GeminiChatModelConfiguration(
+            new GeminiConnection(
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiModel("gemini-3-pro-preview", parameters),
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
   }
 
   @Test
