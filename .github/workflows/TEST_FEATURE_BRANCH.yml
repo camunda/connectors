@@ -150,10 +150,11 @@ jobs:
           fi
 
       - name: Publish Test Report
-        if: always() && steps.internal.outputs.internal == 'true'
+        if: always()
         uses: ScalableCapital/action-surefire-report@v2
         with:
           check_name: 'Publish Test Report'
+          report_mode: ${{ steps.internal.outputs.internal == 'true' && 'check-run' || 'workflow' }}
 
       - name: Upload detailed surefire reports
         if: always() && steps.internal.outputs.internal == 'true'
