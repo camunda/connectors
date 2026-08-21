@@ -7,14 +7,20 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 
+import com.azure.identity.AuthenticationUtil;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.time.Duration;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 /**
  * Credential-object reuse/distinctness is covered by {@code EntraIdTokenCredentialFactoryTest};
@@ -49,5 +55,41 @@ class OpenAiFoundryCredentialResolverTest {
 
     assertThat(clientCredentials).isNotNull();
     assertThat(managedIdentity).isNotNull();
+  }
+
+  @Test
+  void requestsTheFoundryScopeForClientCredentials() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+      resolver.credential(
+          new FoundryAuthentication.ClientCredentialsAuthentication(
+              "client-id", "client-secret", "tenant-id", null));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(
+                  any(), eq("https://ai.azure.com/.default")));
+    }
+  }
+
+  @Test
+  void requestsTheFoundryScopeForManagedIdentity() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+      resolver.credential(new FoundryAuthentication.ManagedIdentityAuthentication(null));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(
+                  any(), eq("https://ai.azure.com/.default")));
+    }
   }
 }
