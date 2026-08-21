@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
@@ -218,6 +219,25 @@ class AgentResponseHandlerTest {
       assertThat(response.responseMessage()).isNotNull().isEqualTo(assistantMessage);
       assertThat(response.responseText()).isEqualTo(HAIKU_TEXT);
       assertThat(response.responseJson()).isNull();
+    }
+
+    @Test
+    void joinsAllTextContentBlocksWhenAssistantMessageHasMultipleTextContentBlocks() {
+      // Gemini 2.5 models can return several TextContent blocks in one assistant message (e.g.
+      // split at a thoughtSignature boundary); the response text must not silently drop anything
+      // after the first block.
+      final var assistantMessage =
+          assistantMessage(
+              List.of(
+                  TextContent.textContent("First half. "),
+                  TextContent.textContent("Second half.")));
+
+      final var response =
+          createResponse(
+              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false),
+              assistantMessage);
+
+      assertThat(response.responseText()).isEqualTo("First half. Second half.");
     }
 
     static Stream<AssistantMessage> emptyAssistantMessages() {
