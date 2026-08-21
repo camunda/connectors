@@ -664,7 +664,8 @@ class RealProviderApiSmokeIT {
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
                 .hasResponseTextSatisfying(
-                    text -> Assertions.assertThat(text).contains(NONCE_CLEARANCE)));
+                    text ->
+                        Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CLEARANCE)));
   }
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
