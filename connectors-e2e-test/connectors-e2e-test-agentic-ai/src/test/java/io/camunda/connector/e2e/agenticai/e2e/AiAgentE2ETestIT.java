@@ -261,8 +261,9 @@ public class AiAgentE2ETestIT {
     assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
     assertThatProcessInstance(processInstance).hasCompletedElement("GetJoke", 1);
 
-    // both tools are requested in the same call, so this stays at two
-    var response = assertAgentResponse(processInstance, 2);
+    // exactly two: requesting the two tools in separate rounds would make it three, and that is
+    // the batching this scenario exists to catch
+    var response = assertAgentResponseWithExactly(processInstance, 2);
     assertThat(response.responseText()).contains(DAY_OF_WEEK).contains(JOKE_NONCE);
   }
 
@@ -756,20 +757,38 @@ public class AiAgentE2ETestIT {
         .isEmpty();
   }
 
-  /** Reads the agent response and asserts the number of model calls it took to produce it. */
+  /**
+   * Reads the agent response and asserts it took at least {@code minModelCalls} model calls — for
+   * scenarios whose guarantee is a lower bound, where a model taking an extra turn is allowed.
+   */
   private AgentResponse assertAgentResponse(ProcessInstanceEvent instance, int minModelCalls) {
+    var response = agentResponse(instance);
+    assertThat(response.context().metrics().modelCalls())
+        .as("model calls")
+        .isGreaterThanOrEqualTo(minModelCalls);
+    return response;
+  }
+
+  /**
+   * Reads the agent response and asserts it took exactly {@code modelCalls} model calls — for
+   * scenarios where an extra call means the interaction did not have the shape being tested, so a
+   * lower bound would let the very thing under test slip through.
+   */
+  private AgentResponse assertAgentResponseWithExactly(
+      ProcessInstanceEvent instance, int modelCalls) {
+    var response = agentResponse(instance);
+    assertThat(response.context().metrics().modelCalls()).as("model calls").isEqualTo(modelCalls);
+    return response;
+  }
+
+  private AgentResponse agentResponse(ProcessInstanceEvent instance) {
     var captured = new AtomicReference<AgentResponse>();
     // The lambda only captures: CamundaAssert treats it as a polling predicate, so an assertion
     // raised inside it would be retried for the full assertion timeout even though the instance is
     // already completed and the variable value can no longer change.
     assertThatProcessInstance(instance)
         .hasVariableSatisfies("agent", AgentResponse.class, captured::set);
-
-    var response = captured.get();
-    assertThat(response.context().metrics().modelCalls())
-        .as("model calls")
-        .isGreaterThanOrEqualTo(minModelCalls);
-    return response;
+    return captured.get();
   }
 
   /** Waits for a created user task on {@code elementId} — the feedback loop re-enters its own. */
