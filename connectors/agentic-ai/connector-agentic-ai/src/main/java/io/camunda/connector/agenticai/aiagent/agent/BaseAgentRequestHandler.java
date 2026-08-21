@@ -113,8 +113,8 @@ public abstract class BaseAgentRequestHandler<
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
 
     try (var session = store.createSession(executionContext, agentContext)) {
-      // AgentConfiguration#tools() becomes the authoritative current tool list for the rest of
-      // this invocation once populated here from the durable AgentContext.
+      // AgentConfiguration#toolDefinitions() becomes the authoritative current tool list for the
+      // rest of this invocation once populated here from the durable AgentContext.
       final var configuration =
           executionContext.configuration().withToolDefinitions(agentContext.toolDefinitions());
       final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
