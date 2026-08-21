@@ -369,12 +369,14 @@
       <artifactId>feel-engine</artifactId>
     </dependency>
 
-    <!-- Test dependencies -->
+    <!-- Compile scope: javac (running with -XDaddTypeAnnotationsToSymbol=true) needs Guava's
+         class files to complete the google-genai SDK types it's transitively pulled in from. -->
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <scope>test</scope>
     </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-object-mapper</artifactId>
@@ -491,10 +493,10 @@
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-core</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-json</ignoredDependency>
-                <!-- okhttp-jvm has no direct source import (it's only reflectively required by
-                     anthropic-java-client-okhttp's AnthropicOkHttpClient at runtime, see the
-                     dependency declaration above); the analyzer would otherwise flag it unused. -->
-                <ignoredDependency>com.squareup.okhttp3:okhttp-jvm</ignoredDependency>
+                <!-- guava is compile-scoped for javac's benefit only (see the dependency
+                     declaration above): main code never imports it, so the analyzer would
+                     otherwise flag it as a non-test scoped test-only dependency. -->
+                <ignoredDependency>com.google.guava:guava</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>
