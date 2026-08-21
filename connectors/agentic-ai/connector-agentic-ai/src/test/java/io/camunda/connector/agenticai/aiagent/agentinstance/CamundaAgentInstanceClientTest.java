@@ -623,11 +623,11 @@ class CamundaAgentInstanceClientTest {
 
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
+          configuration,
           null,
           userTurn("hi", configuration.fingerprint()),
           Optional.empty(),
-          TURN_INGESTION_TIMESTAMP,
-          configuration);
+          TURN_INGESTION_TIMESTAMP);
 
       verifyNoInteractions(camundaClient);
     }
@@ -644,11 +644,11 @@ class CamundaAgentInstanceClientTest {
 
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
+          configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
           Optional.of(precedingTurn(configuration.fingerprint())),
-          TURN_INGESTION_TIMESTAMP,
-          configuration);
+          TURN_INGESTION_TIMESTAMP);
 
       verify(updateCommandStep2).status(AgentInstanceUpdateStatus.THINKING);
       verify(updateCommandStep2).jobKey(JOB_KEY);
@@ -675,11 +675,11 @@ class CamundaAgentInstanceClientTest {
 
       client.applyTurnStart(
           TestAgentExecutionContext.withLeaseToken("lease-token-abc"),
+          configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(configuration.fingerprint())),
-          TURN_INGESTION_TIMESTAMP,
-          configuration);
+          TURN_INGESTION_TIMESTAMP);
 
       verify(updateCommandStep2).jobLease("lease-token-abc");
     }
@@ -698,11 +698,11 @@ class CamundaAgentInstanceClientTest {
 
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
+          configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(configuration.fingerprint())),
-          TURN_INGESTION_TIMESTAMP,
-          configuration);
+          TURN_INGESTION_TIMESTAMP);
 
       verify(updateCommandStep2).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue())
@@ -725,11 +725,11 @@ class CamundaAgentInstanceClientTest {
 
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
+          configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.empty(),
-          TURN_INGESTION_TIMESTAMP,
-          configuration);
+          TURN_INGESTION_TIMESTAMP);
 
       verify(updateCommandStep2).history(historyCaptor.capture());
       final var history = historyCaptor.getValue();
@@ -763,11 +763,11 @@ class CamundaAgentInstanceClientTest {
 
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
+          configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
-          TURN_INGESTION_TIMESTAMP,
-          configuration);
+          TURN_INGESTION_TIMESTAMP);
 
       verify(updateCommandStep2).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue()).hasSize(2);
@@ -786,11 +786,11 @@ class CamundaAgentInstanceClientTest {
 
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
+          configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
-          TURN_INGESTION_TIMESTAMP,
-          configuration);
+          TURN_INGESTION_TIMESTAMP);
 
       verify(updateCommandStep2).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue()).hasSize(2);
@@ -839,11 +839,11 @@ class CamundaAgentInstanceClientTest {
 
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
+          configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
           Optional.of(previousTurn),
-          TURN_INGESTION_TIMESTAMP,
-          configuration);
+          TURN_INGESTION_TIMESTAMP);
 
       verify(updateCommandStep2).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue())
@@ -887,11 +887,11 @@ class CamundaAgentInstanceClientTest {
               () ->
                   client.applyTurnStart(
                       TestAgentExecutionContext.withLimits(),
+                      configuration,
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       turn,
                       Optional.empty(),
-                      TURN_INGESTION_TIMESTAMP,
-                      configuration))
+                      TURN_INGESTION_TIMESTAMP))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("No originating tool call found")
           .hasMessageContaining("orphan");
@@ -1137,11 +1137,11 @@ class CamundaAgentInstanceClientTest {
               () ->
                   client.applyTurnStart(
                       TestAgentExecutionContext.withLimits(),
+                      configuration(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       userMessageTurn(),
                       Optional.empty(),
-                      TURN_INGESTION_TIMESTAMP,
-                      configuration()))
+                      TURN_INGESTION_TIMESTAMP))
           .isInstanceOfSatisfying(
               ConnectorRetryException.class,
               e -> {
@@ -1233,11 +1233,11 @@ class CamundaAgentInstanceClientTest {
               () ->
                   client.applyTurnStart(
                       TestAgentExecutionContext.withLimits(),
+                      configuration(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       userMessageTurn(),
                       Optional.empty(),
-                      TURN_INGESTION_TIMESTAMP,
-                      configuration()))
+                      TURN_INGESTION_TIMESTAMP))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED))
@@ -1255,11 +1255,11 @@ class CamundaAgentInstanceClientTest {
               () ->
                   client.applyTurnStart(
                       TestAgentExecutionContext.withLimits(),
+                      configuration(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       userMessageTurn(),
                       Optional.empty(),
-                      TURN_INGESTION_TIMESTAMP,
-                      configuration()))
+                      TURN_INGESTION_TIMESTAMP))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED))

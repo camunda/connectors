@@ -97,7 +97,7 @@ public class AgentInstanceClientVerifier {
       Consumer<ChatTurnAssert> turnAssertions) {
     inOrder
         .verify(client)
-        .applyTurnStart(any(), any(), beforeChatTurns.capture(), any(), any(), any());
+        .applyTurnStart(any(), any(), any(), beforeChatTurns.capture(), any(), any());
     inOrder
         .verify(client)
         .applyTurnCompletion(any(), any(), afterChatTurns.capture(), any(), eq(endStatus));

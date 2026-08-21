@@ -791,7 +791,7 @@ class AgentSubProcessRequestHandlerTest {
       AgentMetrics expectedMetrics) {
     verify(agentInstanceClient)
         .applyTurnStart(
-            eq(agentExecutionContext), any(), turnCaptor.capture(), any(), any(), any());
+            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any());
     assertThat(turnCaptor.getValue().inputMessages()).containsExactly(USER_MESSAGE);
 
     verify(agentInstanceClient)

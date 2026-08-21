@@ -57,11 +57,11 @@ public interface AgentInstanceClient {
    */
   void applyTurnStart(
       AgentExecutionContext executionContext,
+      AgentConfiguration configuration,
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
-      OffsetDateTime turnIngestionTimestamp,
-      AgentConfiguration configuration);
+      OffsetDateTime turnIngestionTimestamp);
 
   /**
    * Records the completion of a turn: sets the agent instance's status to {@code status} and
