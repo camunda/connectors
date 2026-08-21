@@ -173,13 +173,33 @@ credential type each variant maps to and the Entra ID token scope — is encapsu
 and never sees a raw `TokenCredential` or any secret material. The credential caching itself (see
 below) lives one layer further down, in the provider-agnostic `EntraIdTokenCredentialFactory`.
 
-The openai-java SDK detects the Azure API surface (legacy dated `api-version` + deployment-in-path vs.
-the newer unified `/openai/v1` GA API) automatically from the endpoint hostname, so neither an
-api-version nor a URL-path-mode field is exposed as a normal config property. `apiVersion` exists only
-as a hidden, optional escape hatch for pinning a specific legacy-style API version, wired through the
-SDK's dedicated `azureServiceVersion(...)` builder method rather than the generic hidden
-`queryParameters` map — a manually-set `api-version` query parameter is silently dropped by the SDK
-when combined with Entra ID auth on a legacy-style endpoint.
+`OpenAiChatModelFactory` normalizes the configured `endpoint` onto the unified `/openai/v1` API surface
+(appending it if missing) for both classic Azure OpenAI (`*.openai.azure.com`) and Foundry
+(`*.services.ai.azure.com`) hosts alike, per
+[Microsoft's current Foundry endpoints guidance](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/endpoints).
+This isn't optional: the openai-java SDK's own Azure-surface detection (`AzureUrlPathMode.AUTO`) only
+classifies a base URL as unified if its *path* already ends in `/openai/v1` — a bare resource endpoint,
+which is exactly what this backend's own `endpoint` field asks for, would otherwise be routed as the
+legacy, deployments-based API regardless of host. Since every request now targets the unified surface,
+the Entra ID token scope is fixed per Azure cloud rather than derived per endpoint: `https://ai.azure.com/.default`
+for Azure Public Cloud, `https://ai.azure.us/.default` for Azure US Government — the only other
+sovereign cloud Foundry supports today. `ClientCredentialsAuthentication`'s `authorityHost` field
+selects between them (matched against `com.azure.identity.AzureAuthorityHosts.AZURE_GOVERNMENT`;
+anything else, including an unset host, is Azure Public Cloud); `ManagedIdentityAuthentication` has no
+such field — its derived scope is always Azure Public Cloud, since IMDS-based managed identity is
+inherently tied to the cloud the identity already runs in and there's currently no field to signal
+otherwise. Each Entra ID variant carries its own hidden `entraIdScope` escape hatch for a wrong guess:
+a custom `authorityHost` this resolver doesn't recognize, or a managed identity that does need a
+non-default scope. `ManagedIdentityAuthentication.clientId` (the identity's own client ID field) and
+`entraIdScope` share their field names with `ClientCredentialsAuthentication`'s fields of the same
+name rather than being disambiguated in Java, since the generator only requires distinct *template
+property IDs*, not distinct field names or binding paths — sibling sealed variants never coexist in
+one config, so both variants safely reusing the same runtime binding path is fine. Only
+`ManagedIdentityAuthentication`'s two fields set an explicit, path-relative `@TemplateProperty(id =
+...)` (e.g. `"managedIdentity.clientId"`) to break the tie; giving both sides an explicit id isn't
+needed once one side diverges from its default. This mirrors `apiVersion`, which exists only as a
+hidden, optional escape hatch for pinning a specific version, wired through the SDK's dedicated
+`azureServiceVersion(...)` builder method; the unified surface otherwise uses implicit versioning.
 
 Since a `ChatModel` (and the underlying `OpenAIClient`) is rebuilt on every agent turn, azure-identity
 `TokenCredential` instances (`ClientSecretCredential`, `ManagedIdentityCredential`) are cached and

@@ -192,8 +192,10 @@ class OpenAiChatModelFactoryClientTest {
                 null)));
 
     // Azure wants the API key on a dedicated `api-key` header, never `Authorization: Bearer`.
+    // The endpoint is normalized onto the unified OpenAI/v1 API surface, so the request lands on
+    // /openai/v1/responses rather than the bare /responses path.
     verify(
-        postRequestedFor(urlPathEqualTo("/responses"))
+        postRequestedFor(urlPathEqualTo("/openai/v1/responses"))
             .withHeader("api-key", equalTo("foundry-secret-key")));
   }
 
@@ -210,9 +212,30 @@ class OpenAiChatModelFactoryClientTest {
                 null)));
 
     verify(
-        postRequestedFor(urlPathEqualTo("/responses"))
+        postRequestedFor(urlPathEqualTo("/openai/v1/responses"))
             .withHeader("X-Custom-Header", equalTo("header-value"))
             .withQueryParam("custom-query-param", equalTo("query-value")));
+  }
+
+  @Test
+  void appliesApiVersionForFoundryBackendRegardlessOfHost(WireMockRuntimeInfo wireMock) {
+    // WireMock's host (127.0.0.1) is not on the openai-java SDK's AzureUrlPathMode.AUTO host
+    // allowlist -- same as a real Azure Government (*.azure.us) endpoint. Without explicitly
+    // forcing AzureUrlPathMode.UNIFIED, AUTO would classify this as NON_AZURE and silently drop
+    // the apiVersion escape hatch below.
+    executeAgainst(
+        new OpenAiFoundryBackend(
+            new FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                "2025-03-01-preview",
+                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                null,
+                null,
+                null)));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/openai/v1/responses"))
+            .withQueryParam("api-version", equalTo("2025-03-01-preview")));
   }
 
   @Test

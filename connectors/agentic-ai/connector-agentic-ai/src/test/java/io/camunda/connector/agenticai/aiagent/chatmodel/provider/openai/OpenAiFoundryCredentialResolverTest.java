@@ -7,14 +7,20 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 
+import com.azure.identity.AuthenticationUtil;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.time.Duration;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 /**
  * Credential-object reuse/distinctness is covered by {@code EntraIdTokenCredentialFactoryTest};
@@ -31,9 +37,7 @@ class OpenAiFoundryCredentialResolverTest {
   @Test
   void resolvesApiKeyCredential() {
     final var credential =
-        resolver.credential(
-            "https://my-resource.openai.azure.com",
-            new FoundryAuthentication.ApiKeyAuthentication("foundry-secret"));
+        resolver.credential(new FoundryAuthentication.ApiKeyAuthentication("foundry-secret"));
 
     assertThat(credential).isNotNull();
   }
@@ -44,34 +48,158 @@ class OpenAiFoundryCredentialResolverTest {
     // token supplier (i.e. issuing a real request) would.
     final var clientCredentials =
         resolver.credential(
-            "https://my-resource.openai.azure.com",
             new FoundryAuthentication.ClientCredentialsAuthentication(
-                "client-id", "client-secret", "tenant-id", null));
+                "client-id", "client-secret", "tenant-id", null, null));
     final var managedIdentity =
-        resolver.credential(
-            "https://my-resource.openai.azure.com",
-            new FoundryAuthentication.ManagedIdentityAuthentication(null));
+        resolver.credential(new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
 
     assertThat(clientCredentials).isNotNull();
     assertThat(managedIdentity).isNotNull();
   }
 
   @Test
-  void resolvesClassicAzureOpenAiScope() {
-    assertThat(OpenAiFoundryCredentialResolver.scopeFor("https://my-resource.openai.azure.com"))
-        .isEqualTo("https://cognitiveservices.azure.com/.default");
+  void requestsTheFoundryScopeForClientCredentials() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+      resolver.credential(
+          new FoundryAuthentication.ClientCredentialsAuthentication(
+              "client-id", "client-secret", "tenant-id", null, null));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(
+                  any(), eq("https://ai.azure.com/.default")));
+    }
   }
 
   @Test
-  void resolvesUnifiedFoundryScope() {
-    assertThat(
-            OpenAiFoundryCredentialResolver.scopeFor("https://my-resource.services.ai.azure.com"))
-        .isEqualTo("https://ai.azure.com/.default");
+  void requestsTheFoundryScopeForManagedIdentity() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+      resolver.credential(new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(
+                  any(), eq("https://ai.azure.com/.default")));
+    }
   }
 
   @Test
-  void defaultsToClassicScopeForNonFoundryHost() {
-    assertThat(OpenAiFoundryCredentialResolver.scopeFor("https://example.com"))
-        .isEqualTo("https://cognitiveservices.azure.com/.default");
+  void requestsTheGovernmentCloudScopeForMatchingAuthorityHost() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+
+      resolver.credential(
+          new FoundryAuthentication.ClientCredentialsAuthentication(
+              "client-id",
+              "client-secret",
+              "tenant-id",
+              "https://login.microsoftonline.us/",
+              null));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(any(), eq("https://ai.azure.us/.default")));
+    }
+  }
+
+  @Test
+  void requestsThePublicCloudScopeForUnknownAuthorityHost() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+
+      resolver.credential(
+          new FoundryAuthentication.ClientCredentialsAuthentication(
+              "client-id",
+              "client-secret",
+              "tenant-id",
+              "https://login.someprivatecloud.example/",
+              null));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(
+                  any(), eq("https://ai.azure.com/.default")));
+    }
+  }
+
+  @Test
+  void scopeOverrideWinsOverDerivedScopeForClientCredentials() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+
+      resolver.credential(
+          new FoundryAuthentication.ClientCredentialsAuthentication(
+              "client-id",
+              "client-secret",
+              "tenant-id",
+              "https://login.microsoftonline.us/",
+              "https://custom.scope/.default"));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(
+                  any(), eq("https://custom.scope/.default")));
+    }
+  }
+
+  @Test
+  void scopeOverrideWinsOverDefaultScopeForManagedIdentity() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+
+      resolver.credential(
+          new FoundryAuthentication.ManagedIdentityAuthentication(
+              null, "https://ai.azure.us/.default"));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(any(), eq("https://ai.azure.us/.default")));
+    }
+  }
+
+  @Test
+  void blankScopeOverrideIsIgnored() {
+    try (MockedStatic<AuthenticationUtil> authenticationUtil =
+        mockStatic(AuthenticationUtil.class)) {
+      final Supplier<String> tokenSupplier = () -> "test-token";
+      authenticationUtil
+          .when(() -> AuthenticationUtil.getBearerTokenSupplier(any(), any()))
+          .thenReturn(tokenSupplier);
+
+      resolver.credential(
+          new FoundryAuthentication.ClientCredentialsAuthentication(
+              "client-id", "client-secret", "tenant-id", null, "   "));
+
+      authenticationUtil.verify(
+          () ->
+              AuthenticationUtil.getBearerTokenSupplier(
+                  any(), eq("https://ai.azure.com/.default")));
+    }
   }
 }
