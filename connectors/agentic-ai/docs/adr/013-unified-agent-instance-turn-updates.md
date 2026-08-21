@@ -25,7 +25,7 @@ in play — a distinction that existed only to decide whether a PATCH was safe t
 data itself differed.
 
 The engine gained a batched `history[]` list on the `UPDATE` command plus `jobKey`/`jobLease` and
-per-item `historyItemId` (camunda#58789, camunda#59714, camunda#59756), making it possible to collapse
+per-item `historyItemId` (camunda/camunda#58789, camunda/camunda#59714, camunda/camunda#59756), making it possible to collapse
 a turn's writes into one all-or-nothing, lease-fenced request. The question is how to restructure the
 connector's agent-instance client and handler around that primitive.
 
@@ -99,16 +99,16 @@ rejected before any model tokens are spent.
 **History batch on create (Req 1).** `create()` still sends its mandatory `model`/`provider`/
 `systemPrompt` (+ `limits`) fields directly on the create command rather than as a `CONFIGURATION`
 history item — the engine's create-instance API does not yet accept the `jobKey`/`jobLease`/
-`history[]` batch that `update()` does (camunda#59784). No fingerprint seeding happens to compensate:
+`history[]` batch that `update()` does (camunda/camunda#59784). No fingerprint seeding happens to compensate:
 `AgentMetadata` starts with an empty `configurationFingerprintHistory`, so the first turn's
 `applyTurnStart` always finds no previous fingerprint and always emits a `CONFIGURATION` item —
 redundant with what `create()` already sent moments earlier, but harmless. Once the engine's create
 command accepts a history batch, `create()` should send a `CONFIGURATION` item instead of the direct
 fields, and this first-turn redundancy can be removed.
 
-**Per-item dedup.** camunda#58792 (engine) has no PR yet. `historyItemId` values are already chosen so
+**Per-item dedup.** camunda/camunda#58792 (engine) has no PR yet. `historyItemId` values are already chosen so
 dedup works transparently once it lands; until then, the ADR 011 streamed-early duplicate row (one from
 `applyToolCallResults`, one written again by the next `applyTurnStart`) persists.
 
-**Reasoning/cache token counts on history items.** Blocked on camunda#59627. No regression: the
+**Reasoning/cache token counts on history items.** Blocked on camunda/camunda#59627. No regression: the
 request-level update this design replaces never carried them either.
