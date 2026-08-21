@@ -369,10 +369,8 @@
       <artifactId>feel-engine</artifactId>
     </dependency>
 
-    <!-- Compile-scoped (the natural transitive scope from google-genai, which returns Guava
-         types such as ImmutableList from GenerateContentResponse#parts()): main compilation runs
-         with -XDaddTypeAnnotationsToSymbol=true, and javac cannot complete those SDK types
-         without Guava's class files on the compile classpath. Also used directly by tests. -->
+    <!-- Compile scope: javac (running with -XDaddTypeAnnotationsToSymbol=true) needs Guava's
+         class files to complete the google-genai SDK types it's transitively pulled in from. -->
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
