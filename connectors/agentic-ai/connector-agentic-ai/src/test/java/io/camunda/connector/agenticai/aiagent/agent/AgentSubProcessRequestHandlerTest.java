@@ -671,8 +671,7 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(e.getErrorVariables()).isEmpty();
             });
 
-    verify(agentInstanceClient, never())
-        .createHistoryForAssistantMessage(any(), any(), any(), any());
+    verify(agentInstanceClient, never()).applyTurnCompletion(any(), any(), any(), any(), any());
     verifyNoInteractions(responseHandler);
   }
 
