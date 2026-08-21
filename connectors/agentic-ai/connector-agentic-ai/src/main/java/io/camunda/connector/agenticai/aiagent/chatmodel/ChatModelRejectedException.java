@@ -21,7 +21,9 @@ import org.jspecify.annotations.Nullable;
  * exhaustively, rather than inspecting an error code or stop reason string.
  */
 public abstract sealed class ChatModelRejectedException extends RuntimeException
-    permits ContextWindowExceededException, ContentFilteredException {
+    permits ContextWindowExceededException,
+        ContentFilteredException,
+        GuardrailInterventionException {
 
   private final @Nullable PartialResult partialResult;
 

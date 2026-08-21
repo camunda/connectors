@@ -16,20 +16,17 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 
 /**
- * Plugs AWS Bedrock's Converse API wire format into the provider-agnostic {@link
- * ProviderWireFormatFixture} SPI.
+ * Shared wire-format plumbing for AWS Bedrock's Converse API, common to both the non-streaming
+ * ({@link BedrockConverseV1WireFormatFixture}, plain buffered JSON via {@code converse}) and
+ * streaming ({@link BedrockConverseV2WireFormatFixture}, AWS EventStream via {@code
+ * converseStream}) fixtures — the request wire format and the recorded-request parsing are
+ * identical between the two; only the response framing differs, so each fixture stubs its own
+ * conversation independently.
  *
  * <p>Notable wire-level differences from OpenAI/Anthropic:
  *
@@ -46,52 +43,11 @@ import java.util.function.Function;
  *       uppercase Java SDK constant name ({@code OutputFormatType.JSON_SCHEMA}).
  * </ul>
  */
-public final class BedrockConverseWireFormatFixture implements ProviderWireFormatFixture {
-
-  @Override
-  public String apiName() {
-    return "BedrockConverse";
-  }
+abstract class AbstractBedrockConverseWireFormatFixture implements ProviderWireFormatFixture {
 
   @Override
   public String toString() {
     return apiName();
-  }
-
-  @Override
-  public Function<ElementTemplate, ElementTemplate> configureProvider(
-      WireMockRuntimeInfo wireMock) {
-    return template ->
-        template
-            .property("provider.type", "bedrock")
-            .property("provider.bedrock.region", "us-east-1")
-            .property("provider.bedrock.endpoint", wireMock.getHttpBaseUrl())
-            .property("provider.bedrock.authentication.type", "credentials")
-            .property("provider.bedrock.authentication.accessKey", "dummy")
-            .property("provider.bedrock.authentication.secretKey", "dummy")
-            .property("provider.bedrock.model.model", "test-model");
-  }
-
-  @Override
-  public void stubConversation(TurnStub... turns) {
-    BedrockConverseChatModelStubs.stubConversation(
-        Arrays.stream(turns)
-            .map(BedrockConverseWireFormatFixture::toStubTurn)
-            .toArray(Turn[]::new));
-  }
-
-  private static Turn toStubTurn(TurnStub turn) {
-    return switch (turn) {
-      case TurnStub.Text text -> Turn.text(text.text(), text.inputTokens(), text.outputTokens());
-      case TurnStub.ToolCalls toolCalls ->
-          Turn.toolCalls(
-              toolCalls.text(),
-              toolCalls.inputTokens(),
-              toolCalls.outputTokens(),
-              toolCalls.toolCalls().stream()
-                  .map(tc -> ToolCall.of(tc.id(), tc.name(), tc.argumentsJson()))
-                  .toArray(ToolCall[]::new));
-    };
   }
 
   @Override

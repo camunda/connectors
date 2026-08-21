@@ -43,6 +43,7 @@ import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +74,7 @@ import org.springframework.core.io.ResourceLoader;
       "camunda.connector.webhook.enabled=false",
       "camunda.connector.polling.enabled=false",
       "camunda.connector.agenticai.tools.process-definition.cache.enabled=false",
+      "camunda.connector.agenticai.aiagent.chat-model.api.default-timeout=PT2M",
       "logging.level.io.camunda.connector.agenticai=TRACE"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -87,6 +89,7 @@ class RealProviderApiSmokeIT {
   static final String PROCESS_ID = "real_provider_api_smoke";
   static final String TOOL_JOB_TYPE = "lookup-classified-fact";
   static final Duration PROCESS_TIMEOUT = Duration.ofMinutes(3);
+  private static final Duration INCIDENT_POLL_TIMEOUT = Duration.ofSeconds(1);
 
   // Fabricated nonce facts — cannot originate from model training, so their presence in the answer
   // proves the tool was actually invoked and consumed.
@@ -254,6 +257,26 @@ class RealProviderApiSmokeIT {
         true);
   }
 
+  static Provider bedrockConverse(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new Provider(
+        "bedrock-converse/" + model,
+        List.of("AWS_BEDROCK_API_KEY"),
+        Map.of(
+            "provider.type",
+            "bedrock",
+            "provider.bedrock.region",
+            envOrDefault("AWS_BEDROCK_REGION", "us-east-1"),
+            "provider.bedrock.authentication.type",
+            "apiKey",
+            "provider.bedrock.authentication.apiKey",
+            envOrPlaceholder("AWS_BEDROCK_API_KEY"),
+            "provider.bedrock.model.model",
+            model),
+        capabilityProperties,
+        true);
+  }
+
   // Always targets the openai-api backend, mirroring anthropicApi above.
   static Provider openAiCompletionsApi(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
@@ -330,6 +353,56 @@ class RealProviderApiSmokeIT {
                         Map.of(
                             "provider.anthropic.model.parameters.thinking.mode", "adaptive",
                             "provider.anthropic.model.parameters.effort", "high"))),
+            // Amazon's own Nova 2 Lite Converse model (cheap tier): multimodal + prompt caching +
+            // reasoning. STRUCTURED_OUTPUT is deliberately NOT declared: AWS rejects outputConfig
+            // for this model ("This model doesn't support the outputConfig field"), matching its
+            // model card ("Structured outputs" listed as Not Supported). Disabled for now: prone
+            // to misspelling nonce words in its output.
+            bedrockConverse(
+                    "us.amazon.nova-2-lite-v1:0",
+                    Map.of(
+                        Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                        Capability.PROMPT_CACHING,
+                            Map.of(
+                                "provider.bedrock.model.parameters.promptCaching.enabled", "true"),
+                        Capability.REASONING,
+                            Map.of(
+                                "provider.bedrock.bodyProperties",
+                                "={reasoningConfig: {type: \"enabled\", maxReasoningEffort: \"medium\"}}")))
+                .disabled(),
+            // A non-Amazon Converse model: gpt-oss-120b's model card lists text-only input
+            // modalities, and neither structured output nor explicit prompt caching is documented
+            // for it, so those capabilities are left undeclared. Its reasoning uses a
+            // "reasoning_effort" shape (no "type", no budget), proving a third incompatible
+            // reasoning request shape works through the same provider-agnostic scenario.
+            bedrockConverse(
+                "openai.gpt-oss-120b-1:0",
+                Map.of(
+                    Capability.REASONING,
+                    Map.of("provider.bedrock.bodyProperties", "={reasoning_effort: \"medium\"}"))),
+            // Claude via the native Converse path: a permanent cross-check that the generic
+            // sdkFields() codec round-trips Anthropic's own block shapes correctly too. Global
+            // cross-region inference ID (no in-region endpoint for this model). claude-sonnet-5
+            // only
+            // allows thinking type "adaptive", not "enabled". STRUCTURED_OUTPUT is deliberately NOT
+            // declared: outputConfig.textFormat is a genuine Converse field (confirmed via the
+            // SDK's
+            // own ConverseRequest.outputConfig()), but AWS's Converse structured-output model
+            // allow-list (docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html) does
+            // not yet include claude-sonnet-5 — the model itself rejects it with a 400
+            // ("output_config.format: Extra inputs are not permitted"), confirmed against a real
+            // API
+            // call.
+            bedrockConverse(
+                "global.anthropic.claude-sonnet-5",
+                Map.of(
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING,
+                        Map.of("provider.bedrock.model.parameters.promptCaching.enabled", "true"),
+                    Capability.REASONING,
+                        Map.of(
+                            "provider.bedrock.bodyProperties",
+                            "={thinking: {type: \"adaptive\"}}"))),
             // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
             // domain block in addition to reasoning_tokens, so REASONING is exercisable here.
             openAiResponsesApi(
@@ -399,7 +472,7 @@ class RealProviderApiSmokeIT {
                     .join());
   }
 
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providers")
   void toolCallLoopSurfacesPlantedFact(Provider provider) {
     var model =
@@ -424,10 +497,11 @@ class RealProviderApiSmokeIT {
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
                 .hasResponseTextSatisfying(
-                    text -> Assertions.assertThat(text).contains(NONCE_CODE_NAME)));
+                    text ->
+                        Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME)));
   }
 
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithStructuredOutput")
   void structuredOutputReturnsSchemaConformingJson(Provider provider) {
     var model =
@@ -462,14 +536,15 @@ class RealProviderApiSmokeIT {
                       @SuppressWarnings("unchecked")
                       var map = (Map<String, Object>) json;
                       Assertions.assertThat(map).containsKeys("codeName", "clearanceLevel");
-                      Assertions.assertThat(String.valueOf(map.get("codeName")))
+                      Assertions.assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
                           .contains(NONCE_CODE_NAME);
-                      Assertions.assertThat(String.valueOf(map.get("clearanceLevel")))
+                      Assertions.assertThat(
+                              normalizeDashes(String.valueOf(map.get("clearanceLevel"))))
                           .contains(NONCE_CLEARANCE);
                     }));
   }
 
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithReasoning")
   void reasoningEnabledProducesReasoningContent(Provider provider) {
     var model =
@@ -500,7 +575,7 @@ class RealProviderApiSmokeIT {
                 .hasResponseTextSatisfying(text -> Assertions.assertThat(text).contains("23")));
   }
 
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithPromptCaching")
   void promptCachingReportsCacheReadAndWriteTokens(Provider provider) {
     var model =
@@ -545,7 +620,7 @@ class RealProviderApiSmokeIT {
                           .as("cache read token count")
                           .isPositive())
               .hasResponseTextSatisfying(
-                  text -> Assertions.assertThat(text).contains(NONCE_CODE_NAME));
+                  text -> Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME));
         });
   }
 
@@ -589,10 +664,11 @@ class RealProviderApiSmokeIT {
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
                 .hasResponseTextSatisfying(
-                    text -> Assertions.assertThat(text).contains(NONCE_CLEARANCE)));
+                    text ->
+                        Assertions.assertThat(normalizeDashes(text)).contains(NONCE_CLEARANCE)));
   }
 
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithMultimodalUserMessage")
   void documentInUserMessageIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
     stubPdfDownloads();
@@ -628,7 +704,7 @@ class RealProviderApiSmokeIT {
     assertResponseTextContains(instance, "Zypherion");
   }
 
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithMultimodalUserMessage")
   void documentInToolResultIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
     stubPdfDownloads();
@@ -746,10 +822,10 @@ class RealProviderApiSmokeIT {
    */
   private void assertAgentResponse(
       ProcessInstanceEvent instance, ThrowingConsumer<AgentSubProcessResponse> assertions) {
+    awaitCompletionOrIncident(instance);
+
     final var responseRef = new AtomicReference<AgentSubProcessResponse>();
     assertThat(instance)
-        .withAssertionTimeout(PROCESS_TIMEOUT)
-        .isCompleted()
         .hasVariableSatisfies(
             AGENT_RESPONSE_VARIABLE,
             Map.class,
@@ -769,16 +845,73 @@ class RealProviderApiSmokeIT {
    */
   private void assertResponseTextContains(
       ProcessInstanceEvent instance, String... expectedSubstrings) {
+    awaitCompletionOrIncident(instance);
+
     final var responseTextRef = new AtomicReference<String>();
     assertThat(instance)
-        .withAssertionTimeout(PROCESS_TIMEOUT)
-        .isCompleted()
         .hasVariableSatisfies(
             AGENT_RESPONSE_VARIABLE,
             Map.class,
             map -> responseTextRef.set(String.valueOf(map.get("responseText"))));
 
-    Assertions.assertThat(responseTextRef.get()).contains(expectedSubstrings);
+    Assertions.assertThat(normalizeDashes(responseTextRef.get())).contains(expectedSubstrings);
+  }
+
+  /**
+   * Normalizes Unicode dash/hyphen variants (e.g. U+2011 non-breaking hyphen, which models
+   * sometimes substitute for a plain ASCII '-' when markdown-formatting a nonce fact) to a plain
+   * '-', so a model's typographic choice doesn't break a literal {@code contains} check.
+   */
+  private static String normalizeDashes(String text) {
+    // U+2010 hyphen, U+2011 non-breaking hyphen, U+2012 figure dash, U+2013 en dash,
+    // U+2014 em dash, U+2212 minus sign.
+    return text.replaceAll("[\u2010\u2011\u2012\u2013\u2014\u2212]", "-");
+  }
+
+  /**
+   * Waits for the process instance to complete, but fails fast on an active incident instead of
+   * waiting out the full {@link #PROCESS_TIMEOUT} for a completion that will never come - a job
+   * failure (e.g. the model call itself throwing) surfaces as an incident, not as a completed
+   * instance, and {@code isCompleted()} alone has no way to notice that and stop waiting early.
+   * Polls both conditions on this thread with a short per-check timeout: {@code CamundaAssert}'s
+   * data source is bound to the test thread, so checking off a background thread (e.g. racing two
+   * {@code CompletableFuture}s) fails with "No data source is set".
+   */
+  private void awaitCompletionOrIncident(ProcessInstanceEvent instance) {
+    final Instant deadline = Instant.now().plus(PROCESS_TIMEOUT);
+    while (Instant.now().isBefore(deadline)) {
+      if (hasActiveIncident(instance)) {
+        throw new AssertionError(
+            ("Process instance %d raised an incident instead of completing - failing fast "
+                    + "instead of waiting out the remaining timeout")
+                .formatted(instance.getProcessInstanceKey()));
+      }
+      if (isCompleted(instance)) {
+        return;
+      }
+    }
+
+    throw new AssertionError(
+        "Timed out waiting for process instance %d to complete"
+            .formatted(instance.getProcessInstanceKey()));
+  }
+
+  private static boolean hasActiveIncident(ProcessInstanceEvent instance) {
+    try {
+      assertThat(instance).withAssertionTimeout(INCIDENT_POLL_TIMEOUT).hasActiveIncidents();
+      return true;
+    } catch (AssertionError e) {
+      return false;
+    }
+  }
+
+  private static boolean isCompleted(ProcessInstanceEvent instance) {
+    try {
+      assertThat(instance).withAssertionTimeout(INCIDENT_POLL_TIMEOUT).isCompleted();
+      return true;
+    } catch (AssertionError e) {
+      return false;
+    }
   }
 
   private void stubPdfDownloads() {

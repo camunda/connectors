@@ -36,13 +36,13 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.AzureOpenAiChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.BedrockChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.GoogleVertexAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.LangChain4JChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.OpenAiCompatibleChatModelFactory;
@@ -133,6 +133,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentInstanceClient.class,
           ChatModelRegistry.class,
           AnthropicChatModelFactory.class,
+          BedrockConverseChatModelFactory.class,
           OpenAiChatModelFactory.class);
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
@@ -147,7 +148,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
               .AnthropicChatModelFactory.class,
           AzureOpenAiChatModelFactory.class,
-          BedrockChatModelFactory.class,
+          io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .BedrockChatModelFactory.class,
           GoogleVertexAiChatModelFactory.class,
           io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
               .OpenAiChatModelFactory.class,
@@ -391,7 +393,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     new AwsDefaultCredentialsChainAuthentication(),
                     null,
                     new BedrockModel("anthropic.claude-3-sonnet", null))),
-            BedrockChatModelFactory.class),
+            io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+                .BedrockChatModelFactory.class),
         new ChatModelResolutionCase(
             // Google's genai SDK resolves application default credentials eagerly when the
             // client is built, which would require real GCP credentials in this environment.
@@ -486,7 +489,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           new FactoryOverrideCase(
               CustomBedrockProviderConfig.class,
               "customBedrockChatModelFactory",
-              BedrockChatModelFactory.class,
+              io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+                  .BedrockChatModelFactory.class,
               CustomBedrockChatModelFactory.class),
           new FactoryOverrideCase(
               CustomGoogleVertexAiProviderConfig.class,
@@ -574,16 +578,20 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
     static class CustomBedrockProviderConfig {
       @Bean
-      BedrockChatModelFactory customBedrockChatModelFactory() {
+      io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .BedrockChatModelFactory
+          customBedrockChatModelFactory() {
         return new CustomBedrockChatModelFactory();
       }
 
-      static class CustomBedrockChatModelFactory extends BedrockChatModelFactory {
+      static class CustomBedrockChatModelFactory
+          extends io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .BedrockChatModelFactory {
 
         CustomBedrockChatModelFactory() {
           super(
               mock(AgenticAiConnectorsConfigurationProperties.ChatModelProperties.class),
-              mock(ChatModelHttpProxySupport.class),
+              mock(AgenticAiHttpProxySupport.class),
               mock(ChatMessageConverter.class),
               mock(ToolSpecificationConverter.class),
               mock(JsonSchemaConverter.class));

@@ -1165,6 +1165,7 @@ on).
 | `ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION`            | `UNSUPPORTED_MODEL_CONFIGURATION`              | model configuration is invalid for the provider                         |
 | `ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED`            | `MODEL_RESPONSE_CONTENT_FILTERED`              | provider blocked the model response with content filtering              |
 | `ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED`              | `MODEL_CONTEXT_WINDOW_EXCEEDED`                | model's context window was exceeded before it finished responding       |
+| `ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED`        | `MODEL_RESPONSE_GUARDRAIL_INTERVENED`          | provider blocked the model response with a guardrail policy             |
 | `ERROR_CODE_MIGRATION_MISSING_TOOLS`                    | `MIGRATION_MISSING_TOOLS`                      | existing tools were removed after a process migration                   |
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
@@ -1314,6 +1315,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 
 **v2 (fully native, no LangChain4j)**, one package per provider under `aiagent/chatmodel/provider/**`:
 - `anthropic.AnthropicChatModelFactory` / `anthropic.AnthropicChatModel.execute()` → Drives the Anthropic Java SDK's stable Messages client directly, for `AnthropicChatModelConfiguration`
+- `bedrock.BedrockConverseChatModelFactory` / `bedrock.BedrockConverseChatModel.execute()` → Drives the AWS SDK's async `converseStream` operation (the synchronous `BedrockRuntimeClient` has no streaming operation), assembling the streamed events into a `ConverseResponse` via `BedrockConverseStreamAssembler`, for `BedrockConverseChatModelConfiguration`
 - `openai.OpenAiChatModelFactory` / `openai.OpenAiChatModel.execute()` → Drives the OpenAI Java SDK directly across both wire formats (Chat Completions, Responses) via the per-family `OpenAiApiFamilyStrategy` seam, for `OpenAiChatModelConfiguration`
 
 ### Configuration
