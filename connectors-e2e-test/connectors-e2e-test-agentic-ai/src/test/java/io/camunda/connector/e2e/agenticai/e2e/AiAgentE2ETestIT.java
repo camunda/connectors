@@ -69,6 +69,8 @@ import org.junit.jupiter.params.provider.MethodSource;
  * export OPENAI_API_KEY=...                  # the OpenAI rows
  * export ANTHROPIC_API_KEY=...               # the Anthropic rows
  * export ANTHROPIC_BEDROCK_API_KEY=...       # the Anthropic Bedrock Mantle row
+ * export AWS_BEDROCK_API_KEY=...             # the Bedrock Converse row
+ * export GOOGLE_GEMINI_API_KEY=...           # the Gemini Developer API row
  * export GOOGLE_VERTEX_AI_PROJECT_ID=... GOOGLE_VERTEX_AI_REGION=... \
  *        GOOGLE_VERTEX_AI_SERVICE_ACCOUNT="$(cat sa-key.json)"   # the Vertex AI rows
  *
@@ -171,6 +173,8 @@ public class AiAgentE2ETestIT {
           .withConnectorsSecret("OPENAI_API_KEY", env("OPENAI_API_KEY", ""))
           .withConnectorsSecret("ANTHROPIC_API_KEY", env("ANTHROPIC_API_KEY", ""))
           .withConnectorsSecret("ANTHROPIC_BEDROCK_API_KEY", env("ANTHROPIC_BEDROCK_API_KEY", ""))
+          .withConnectorsSecret("AWS_BEDROCK_API_KEY", env("AWS_BEDROCK_API_KEY", ""))
+          .withConnectorsSecret("GOOGLE_GEMINI_API_KEY", env("GOOGLE_GEMINI_API_KEY", ""))
           .withConnectorsSecret(
               "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", env("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", ""))
           .withConnectorsSecret(
@@ -376,10 +380,20 @@ public class AiAgentE2ETestIT {
             anthropicV2("claude-haiku-4-5-20251001"),
             // Anthropic (v2), AWS Bedrock Mantle backend
             anthropicBedrockMantleV2("claude-haiku-4-5"),
+            // AWS Bedrock (v2), native Converse API
+            bedrockConverseV2("global.anthropic.claude-sonnet-5"),
             // Google Vertex AI (v1)
             googleVertexAiV1("gemini-2.5-flash"),
             // Gemini 3 models are served on the global endpoint, not the regional ones
-            googleVertexAiV1("gemini-3.5-flash-lite", GLOBAL_REGION))
+            googleVertexAiV1("gemini-3.5-flash-lite", GLOBAL_REGION),
+            // Google Gemini (v2) — the same model on both backends of the provider, so the rows
+            // differ only in how the request is authenticated and where it is sent
+            googleGeminiV2("gemini-2.5-flash"),
+            googleGeminiVertexAiV2("gemini-2.5-flash"),
+            // Gemini 3 rejects a follow-up tool-calling request whose history dropped the
+            // thoughtSignature, so only a Gemini 3 row exercises the signature round-trip
+            googleGeminiV2("gemini-3.5-flash-lite"),
+            googleGeminiVertexAiV2("gemini-3.5-flash-lite", GLOBAL_REGION))
         .filter(ProviderConfig::isEnabled);
   }
 
@@ -504,6 +518,80 @@ public class AiAgentE2ETestIT {
             "provider.googleVertexAi.authentication.jsonKey",
             "{{secrets.GOOGLE_VERTEX_AI_SERVICE_ACCOUNT}}",
             "provider.googleVertexAi.model.model",
+            model));
+  }
+
+  /** AWS Bedrock, v2, on the native Converse API. */
+  static ProviderConfig bedrockConverseV2(String model) {
+    return new ProviderConfig(
+        "bedrock-converse-v2/" + model,
+        List.of("AWS_BEDROCK_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type", "bedrock",
+            "provider.bedrock.region", env("AWS_BEDROCK_REGION", "us-east-1"),
+            "provider.bedrock.authentication.type", "apiKey",
+            "provider.bedrock.authentication.apiKey", "{{secrets.AWS_BEDROCK_API_KEY}}",
+            "provider.bedrock.model.model", model));
+  }
+
+  /** Google Gemini, v2, on the {@code google-gemini-api} backend. */
+  static ProviderConfig googleGeminiV2(String model) {
+    return new ProviderConfig(
+        "google-gemini-v2/" + model,
+        List.of("GOOGLE_GEMINI_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type", "google-gemini",
+            "provider.googleGemini.backend.type", "google-gemini-api",
+            "provider.googleGemini.backend.googleGeminiApi.apiKey",
+                "{{secrets.GOOGLE_GEMINI_API_KEY}}",
+            "provider.googleGemini.model.model", model));
+  }
+
+  /**
+   * Google Gemini, v2, on the {@code google-vertex-ai} backend — the same provider as {@link
+   * #googleGeminiV2}, reached through Vertex AI with service account credentials instead of an API
+   * key, in the region {@code GOOGLE_VERTEX_AI_REGION} names. Reuses the credentials the v1 Vertex
+   * rows already need.
+   */
+  static ProviderConfig googleGeminiVertexAiV2(String model) {
+    return googleGeminiVertexAiV2(
+        model, model, "{{secrets.GOOGLE_VERTEX_AI_REGION}}", List.of("GOOGLE_VERTEX_AI_REGION"));
+  }
+
+  /**
+   * Google Gemini, v2, on the {@code google-vertex-ai} backend, pinned to {@code region} — for
+   * models the configured region does not serve. A pinned region needs no {@code
+   * GOOGLE_VERTEX_AI_REGION} to be set.
+   */
+  static ProviderConfig googleGeminiVertexAiV2(String model, String region) {
+    return googleGeminiVertexAiV2(model + "@" + region, model, region, List.of());
+  }
+
+  private static ProviderConfig googleGeminiVertexAiV2(
+      String id, String model, String region, List<String> regionEnvVars) {
+    return new ProviderConfig(
+        "google-gemini-vertex-ai-v2/" + id,
+        Stream.concat(
+                Stream.of("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", "GOOGLE_VERTEX_AI_PROJECT_ID"),
+                regionEnvVars.stream())
+            .toList(),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "google-gemini",
+            "provider.googleGemini.backend.type",
+            "google-vertex-ai",
+            "provider.googleGemini.backend.googleVertexAi.projectId",
+            "{{secrets.GOOGLE_VERTEX_AI_PROJECT_ID}}",
+            "provider.googleGemini.backend.googleVertexAi.region",
+            region,
+            "provider.googleGemini.backend.googleVertexAi.authentication.type",
+            "serviceAccountCredentials",
+            "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
+            "{{secrets.GOOGLE_VERTEX_AI_SERVICE_ACCOUNT}}",
+            "provider.googleGemini.model.model",
             model));
   }
 
