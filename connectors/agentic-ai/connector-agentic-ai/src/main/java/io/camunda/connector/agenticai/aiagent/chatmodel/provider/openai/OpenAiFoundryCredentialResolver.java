@@ -23,7 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
  * it never sees a raw {@link TokenCredential}, a cache key, or any secret material one is derived
  * from -- all of that lives in {@link EntraIdTokenCredentialFactory}.
  */
-public class FoundryCredentialResolver {
+public class OpenAiFoundryCredentialResolver {
 
   /**
    * Scope requested when acquiring a Microsoft Entra ID token for Foundry Models, per the <a
@@ -35,7 +35,8 @@ public class FoundryCredentialResolver {
 
   private final EntraIdTokenCredentialFactory entraIdTokenCredentialFactory;
 
-  public FoundryCredentialResolver(EntraIdTokenCredentialFactory entraIdTokenCredentialFactory) {
+  public OpenAiFoundryCredentialResolver(
+      EntraIdTokenCredentialFactory entraIdTokenCredentialFactory) {
     this.entraIdTokenCredentialFactory = entraIdTokenCredentialFactory;
   }
 

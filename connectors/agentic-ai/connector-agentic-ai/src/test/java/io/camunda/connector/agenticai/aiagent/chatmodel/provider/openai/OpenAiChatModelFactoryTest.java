@@ -76,7 +76,7 @@ class OpenAiChatModelFactoryTest {
                 new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
                 new OpenAiResponsesResponseConverter(objectMapper),
                 OpenAiResponsesStreamAssembler.accumulating()),
-            new FoundryCredentialResolver(
+            new OpenAiFoundryCredentialResolver(
                 new EntraIdTokenCredentialFactory(
                     httpProxySupport,
                     new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));

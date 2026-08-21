@@ -16,9 +16,9 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.Bedrock
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseResponseConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiFoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
@@ -77,17 +77,17 @@ public class AgenticAiNativeProvidersConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public FoundryCredentialResolver aiAgentOpenAiFoundryCredentialResolver(
+  public OpenAiFoundryCredentialResolver aiAgentOpenAiFoundryCredentialResolver(
       EntraIdTokenCredentialFactory entraIdTokenCredentialFactory) {
-    return new FoundryCredentialResolver(entraIdTokenCredentialFactory);
+    return new OpenAiFoundryCredentialResolver(entraIdTokenCredentialFactory);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public OpenAiChatModelFactory aiAgentOpenAiChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport,
-      @ConnectorsObjectMapper ObjectMapper objectMapper,
-      FoundryCredentialResolver foundryCredentialResolver) {
+      OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var completionsStrategy =
         new OpenAiCompletionsStrategy(
@@ -100,6 +100,6 @@ public class AgenticAiNativeProvidersConfiguration {
             new OpenAiResponsesResponseConverter(objectMapper),
             OpenAiResponsesStreamAssembler.accumulating());
     return new OpenAiChatModelFactory(
-        httpProxySupport, completionsStrategy, responsesStrategy, foundryCredentialResolver);
+        httpProxySupport, completionsStrategy, responsesStrategy, openAiFoundryCredentialResolver);
   }
 }

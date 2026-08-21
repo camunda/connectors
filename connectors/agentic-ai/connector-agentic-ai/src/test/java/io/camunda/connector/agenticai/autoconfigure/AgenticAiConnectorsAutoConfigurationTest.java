@@ -49,8 +49,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.fac
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiFoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
@@ -766,7 +766,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
               mock(AgenticAiHttpProxySupport.class),
               mock(OpenAiApiFamilyStrategy.class),
               mock(OpenAiApiFamilyStrategy.class),
-              mock(FoundryCredentialResolver.class));
+              mock(OpenAiFoundryCredentialResolver.class));
         }
 
         @Override

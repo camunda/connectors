@@ -20,10 +20,10 @@ import org.junit.jupiter.api.Test;
  * Credential-object reuse/distinctness is covered by {@code EntraIdTokenCredentialFactoryTest};
  * this class only verifies the openai-java {@code Credential} mapping per authentication variant.
  */
-class FoundryCredentialResolverTest {
+class OpenAiFoundryCredentialResolverTest {
 
-  private final FoundryCredentialResolver resolver =
-      new FoundryCredentialResolver(
+  private final OpenAiFoundryCredentialResolver resolver =
+      new OpenAiFoundryCredentialResolver(
           new EntraIdTokenCredentialFactory(
               mock(AgenticAiHttpProxySupport.class),
               new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));

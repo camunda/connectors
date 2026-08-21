@@ -34,24 +34,25 @@ import org.jspecify.annotations.Nullable;
  * foundry} (Microsoft Foundry / Azure OpenAI) and {@code custom} (OpenAI-compatible endpoint)
  * backends, for both the Responses and Chat Completions API families. Client construction is folded
  * in here rather than a separate client-factory class; {@code foundry}'s Azure/Entra ID specifics
- * are delegated to {@link FoundryCredentialResolver} to keep this class provider-shape-agnostic.
+ * are delegated to {@link OpenAiFoundryCredentialResolver} to keep this class
+ * provider-shape-agnostic.
  */
 public class OpenAiChatModelFactory implements ChatModelFactory {
 
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final OpenAiApiFamilyStrategy completionsStrategy;
   private final OpenAiApiFamilyStrategy responsesStrategy;
-  private final FoundryCredentialResolver foundryCredentialResolver;
+  private final OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver;
 
   public OpenAiChatModelFactory(
       AgenticAiHttpProxySupport httpProxySupport,
       OpenAiApiFamilyStrategy completionsStrategy,
       OpenAiApiFamilyStrategy responsesStrategy,
-      FoundryCredentialResolver foundryCredentialResolver) {
+      OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver) {
     this.httpProxySupport = httpProxySupport;
     this.completionsStrategy = completionsStrategy;
     this.responsesStrategy = responsesStrategy;
-    this.foundryCredentialResolver = foundryCredentialResolver;
+    this.openAiFoundryCredentialResolver = openAiFoundryCredentialResolver;
   }
 
   @Override
@@ -66,7 +67,8 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
     final var timeout = connection.timeouts() != null ? connection.timeouts().timeout() : null;
 
     final var client =
-        buildClient(connection.backend(), timeout, httpProxySupport, foundryCredentialResolver);
+        buildClient(
+            connection.backend(), timeout, httpProxySupport, openAiFoundryCredentialResolver);
     final var strategy = strategyFor(connection.api());
     return new OpenAiChatModel(client, model, strategy);
   }
@@ -82,13 +84,13 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
       OpenAiBackend backend,
       @Nullable Duration timeout,
       AgenticAiHttpProxySupport httpProxySupport,
-      FoundryCredentialResolver foundryCredentialResolver) {
+      OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver) {
     final var builder = OpenAIOkHttpClient.builder();
 
     switch (backend) {
       case OpenAiApiBackend apiBackend -> applyApiBackend(builder, apiBackend);
       case OpenAiFoundryBackend foundryBackend ->
-          applyFoundryBackend(builder, foundryBackend, foundryCredentialResolver);
+          applyFoundryBackend(builder, foundryBackend, openAiFoundryCredentialResolver);
       case OpenAiCustomBackend custom -> applyCustomBackend(builder, custom);
     }
 
@@ -138,16 +140,16 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
 
   /**
    * Applies the {@code foundry} backend: base URL, an optional {@code apiVersion} pin, and the
-   * {@link com.openai.credential.Credential} resolved by {@link FoundryCredentialResolver} for the
-   * configured authentication variant -- this class never builds or inspects that credential
-   * itself. The SDK detects the Azure API surface (legacy vs. unified) automatically from the
-   * endpoint's hostname; {@code apiVersion} is only wired when explicitly set, as an escape hatch
-   * for pinning a specific legacy-style API version.
+   * {@link com.openai.credential.Credential} resolved by {@link OpenAiFoundryCredentialResolver}
+   * for the configured authentication variant -- this class never builds or inspects that
+   * credential itself. The SDK detects the Azure API surface (legacy vs. unified) automatically
+   * from the endpoint's hostname; {@code apiVersion} is only wired when explicitly set, as an
+   * escape hatch for pinning a specific legacy-style API version.
    */
   private static void applyFoundryBackend(
       OpenAIOkHttpClient.Builder builder,
       OpenAiFoundryBackend foundryBackend,
-      FoundryCredentialResolver foundryCredentialResolver) {
+      OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver) {
     final var foundry = foundryBackend.foundry();
     builder.baseUrl(foundry.endpoint());
 
@@ -155,7 +157,7 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
       builder.azureServiceVersion(AzureOpenAIServiceVersion.fromString(foundry.apiVersion()));
     }
 
-    builder.credential(foundryCredentialResolver.credential(foundry.authentication()));
+    builder.credential(openAiFoundryCredentialResolver.credential(foundry.authentication()));
   }
 
   /**

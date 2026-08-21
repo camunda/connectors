@@ -169,7 +169,7 @@ azure-identity `TokenCredential`. `ManagedIdentityAuthentication` is blocked on 
 (`ConnectorUtils.isSaaS()`) since a SaaS runtime doesn't execute inside the customer's Azure tenant.
 Resolving a `FoundryAuthentication` into the openai-java `Credential` the SDK builder needs — which
 credential type each variant maps to and the Entra ID token scope — is encapsulated in
-`FoundryCredentialResolver`; `OpenAiChatModelFactory` only calls `resolver.credential(authentication)`
+`OpenAiFoundryCredentialResolver`; `OpenAiChatModelFactory` only calls `resolver.credential(authentication)`
 and never sees a raw `TokenCredential` or any secret material. The credential caching itself (see
 below) lives one layer further down, in the provider-agnostic `EntraIdTokenCredentialFactory`.
 
