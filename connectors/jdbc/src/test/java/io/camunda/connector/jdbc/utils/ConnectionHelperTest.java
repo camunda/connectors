@@ -24,7 +24,8 @@ class ConnectionHelperTest {
   private static final JdbcRequestData DATA = new JdbcRequestData(false, "SELECT 1");
 
   private static final JdbcConnectionConfiguration CREDENTIAL =
-      new JdbcConnectionConfiguration("cred-host", "5432", "cred-db", "cred-user", "cred-pass");
+      new JdbcConnectionConfiguration(
+          SupportedDatabase.POSTGRESQL, "cred-host", "5432", "cred-db", "cred-user", "cred-pass");
 
   private static final DetailedConnection INLINE =
       new DetailedConnection(
@@ -32,7 +33,7 @@ class ConnectionHelperTest {
 
   @Test
   void usesConfigurationWhenBound() {
-    var request = new JdbcRequest(SupportedDatabase.POSTGRESQL, CREDENTIAL, null, DATA);
+    var request = new JdbcRequest(CREDENTIAL, SupportedDatabase.POSTGRESQL, null, DATA);
 
     JdbcConnection resolved = ConnectionHelper.resolveConnection(request);
 
@@ -56,11 +57,28 @@ class ConnectionHelperTest {
 
   @Test
   void configurationTakesPrecedenceOverInline() {
-    var request = new JdbcRequest(SupportedDatabase.POSTGRESQL, CREDENTIAL, INLINE, DATA);
+    var request = new JdbcRequest(CREDENTIAL, SupportedDatabase.POSTGRESQL, INLINE, DATA);
 
     var resolved = (DetailedConnection) ConnectionHelper.resolveConnection(request);
 
     assertThat(resolved.host()).isEqualTo("cred-host");
+  }
+
+  @Test
+  void configurationDatabaseTakesPrecedenceOverInlineDatabase() {
+    var credentialWithMysql =
+        new JdbcConnectionConfiguration(
+            SupportedDatabase.MYSQL, "cred-host", "5432", "cred-db", "cred-user", "cred-pass");
+    var request = new JdbcRequest(credentialWithMysql, SupportedDatabase.ORACLE, null, DATA);
+
+    assertThat(request.database()).isEqualTo(SupportedDatabase.MYSQL);
+  }
+
+  @Test
+  void fallsBackToInlineDatabaseWhenNoConfiguration() {
+    var request = new JdbcRequest(SupportedDatabase.MYSQL, INLINE, DATA);
+
+    assertThat(request.database()).isEqualTo(SupportedDatabase.MYSQL);
   }
 
   @Test

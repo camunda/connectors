@@ -94,8 +94,9 @@ public class JdbcRequestTest extends BaseTest {
     String variables =
         """
         {
-          "database": "POSTGRESQL",
+          "database": "MYSQL",
           "configuration": {
+            "database": "POSTGRESQL",
             "host": "cred-host",
             "port": "5432",
             "databaseName": "cred-db",
@@ -112,6 +113,8 @@ public class JdbcRequestTest extends BaseTest {
     assertThat(request.connection()).isNull();
     assertThat(request.configuration()).isNotNull();
     assertThat(request.configuration().host()).isEqualTo("cred-host");
+    // The credential's mandatory database selection wins over the (hidden, ignored) inline value.
+    assertThat(request.database()).isEqualTo(SupportedDatabase.POSTGRESQL);
   }
 
   /** Only inline connection fields are present; no bound configuration. */
@@ -174,6 +177,7 @@ public class JdbcRequestTest extends BaseTest {
           "database": "POSTGRESQL",
           "connection": { "authType": "uri" },
           "configuration": {
+            "database": "POSTGRESQL",
             "host": "cred-host",
             "port": "5432",
             "databaseName": "cred-db",

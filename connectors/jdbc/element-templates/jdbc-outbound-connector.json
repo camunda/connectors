@@ -18,9 +18,6 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "database",
-    "label" : "Database"
-  }, {
     "id" : "connection",
     "label" : "Connection"
   }, {
@@ -47,16 +44,34 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "connectionConfiguration",
+    "label" : "Connection credential",
+    "description" : "Choose a reusable JDBC connection credential, or configure one-time connection parameters below.",
+    "optional" : true,
+    "group" : "connection",
+    "binding" : {
+      "name" : "configuration",
+      "type" : "zeebe:input"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:jdbc-connection:1"
+  }, {
     "id" : "database",
     "label" : "Select a database",
     "optional" : false,
+    "value" : "POSTGRESQL",
     "constraints" : {
       "notEmpty" : true
     },
-    "group" : "database",
+    "group" : "connection",
     "binding" : {
       "name" : "database",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connectionConfiguration",
+      "isEmpty" : true,
+      "type" : "simple"
     },
     "tooltip" : "If you choose Oracle, make sure the Oracle JDBC driver is included. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/sql/#database\">Oracle JDBC driver setup</a>.",
     "type" : "Dropdown",
@@ -76,18 +91,6 @@
       "name" : "Oracle",
       "value" : "ORACLE"
     } ]
-  }, {
-    "id" : "connectionConfiguration",
-    "label" : "Connection credential",
-    "description" : "Choose a reusable JDBC connection credential, or configure one-time connection parameters below.",
-    "optional" : true,
-    "group" : "connection",
-    "binding" : {
-      "name" : "configuration",
-      "type" : "zeebe:input"
-    },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:jdbc-connection:1"
   }, {
     "id" : "connection.authType",
     "label" : "Connection type",
@@ -434,9 +437,38 @@
   "configurationTemplates" : [ {
     "id" : "io.camunda.connectors:jdbc-connection:1",
     "kind" : "CREDENTIAL",
-    "version" : 1,
+    "version" : 2,
     "name" : "JDBC Connection",
     "properties" : [ {
+      "id" : "database",
+      "label" : "Select a database",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "connection",
+      "binding" : {
+        "name" : "database",
+        "type" : "property"
+      },
+      "tooltip" : "If you choose Oracle, make sure the Oracle JDBC driver is included. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/sql/#database\">Oracle JDBC driver setup</a>.",
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "MariaDB",
+        "value" : "MARIADB"
+      }, {
+        "name" : "Microsoft SQL Server",
+        "value" : "MSSQL"
+      }, {
+        "name" : "MySQL",
+        "value" : "MYSQL"
+      }, {
+        "name" : "PostgreSQL",
+        "value" : "POSTGRESQL"
+      }, {
+        "name" : "Oracle",
+        "value" : "ORACLE"
+      } ]
+    }, {
       "id" : "host",
       "label" : "Host",
       "constraints" : {
