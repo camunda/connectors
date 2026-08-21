@@ -517,8 +517,8 @@ class RealProviderApiSmokeIT {
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
-            // Conservative row, matching the Vertex AI row below: no REASONING/PROMPT_CACHING
-            // claim, since neither has been manually verified against a live Gemini endpoint yet.
+            // Conservative row: no REASONING/PROMPT_CACHING claim, since neither has been manually
+            // verified against a live Gemini endpoint yet.
             googleGeminiApi(
                 "gemini-3-pro-preview",
                 Map.of(
