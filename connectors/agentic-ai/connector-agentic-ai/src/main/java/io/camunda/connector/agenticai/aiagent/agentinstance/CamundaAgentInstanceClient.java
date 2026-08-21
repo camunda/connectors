@@ -237,11 +237,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   @Override
   public void applyTurnStart(
       AgentExecutionContext executionContext,
+      AgentConfiguration configuration,
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
-      OffsetDateTime turnIngestionTimestamp,
-      AgentConfiguration configuration) {
+      OffsetDateTime turnIngestionTimestamp) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance turn start: no agent instance key");
       return;

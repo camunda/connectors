@@ -192,11 +192,11 @@ public abstract class BaseAgentRequestHandler<
     // timestamp; tool-result items use their own resolved completedAt instead (ADR 008).
     agentInstanceClient.applyTurnStart(
         executionContext,
+        agentConfiguration,
         agentInstanceKey,
         conversation.currentTurn(),
         conversation.lastTurn(),
-        OffsetDateTime.now(),
-        agentConfiguration);
+        OffsetDateTime.now());
 
     final AgentConversation updatedConversation;
     try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
