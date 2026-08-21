@@ -16,399 +16,811 @@
  */
 package io.camunda.connector.e2e.agenticai.e2e;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.process.test.api.CamundaAssert.assertThatProcessInstance;
 import static io.camunda.process.test.api.CamundaAssert.setAssertionTimeout;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.client.api.search.enums.IncidentState;
+import io.camunda.client.api.search.enums.ProcessInstanceState;
+import io.camunda.client.api.search.enums.UserTaskState;
+import io.camunda.client.api.search.response.UserTask;
+import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.e2e.BpmnFile;
+import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.BpmnUtil;
 import io.camunda.process.test.api.CamundaProcessTestContext;
-import io.camunda.process.test.api.CamundaSpringProcessTest;
+import io.camunda.process.test.api.CamundaProcessTestExtension;
+import io.camunda.process.test.api.CamundaProcessTestRuntimeMode;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import java.io.File;
 import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.time.format.TextStyle;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.junit.jupiter.api.condition.EnabledIf;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-@SpringBootTest(classes = AiAgentE2ETestApplication.class)
-@CamundaSpringProcessTest
-@ActiveProfiles("it-real-llm")
-@EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
+/**
+ * Real-LLM CPT coverage for the AI Agent sub-process, run against every configured provider.
+ *
+ * <p>Runs the agent and its tools inside the connectors bundle Docker image. To run locally, build
+ * and tag that image, then point the test at it and supply the provider credentials:
+ *
+ * <pre>{@code
+ * ./mvnw package -pl apps/bundle/default-bundle -DskipTests
+ * cd apps/bundle/default-bundle && docker build -t camunda/connectors-bundle:local .
+ *
+ * export CONNECTORS_IMAGE_NAME=camunda/connectors-bundle CONNECTORS_IMAGE_VERSION=local
+ * export OPENAI_API_KEY=...                  # the OpenAI rows
+ * export ANTHROPIC_API_KEY=...               # the Anthropic rows
+ * export ANTHROPIC_BEDROCK_API_KEY=...       # the Anthropic Bedrock Mantle row
+ * export AWS_BEDROCK_API_KEY=...             # the Bedrock Converse row
+ * export GOOGLE_GEMINI_API_KEY=...           # the Gemini Developer API row
+ * export GOOGLE_VERTEX_AI_PROJECT_ID=... GOOGLE_VERTEX_AI_REGION=... \
+ *        GOOGLE_VERTEX_AI_SERVICE_ACCOUNT="$(cat sa-key.json)"   # the Vertex AI rows
+ *
+ * ./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -Pit-real-llm
+ * }</pre>
+ *
+ * <p>The service account variable holds the whole key file verbatim. Each row skips itself when its
+ * own credentials are absent, so a partial credential set runs a subset. Narrow a run further with
+ * {@code -Dit.test='AiAgentE2ETestIT#someScenario'} and {@link ProviderConfig#disabled()}.
+ *
+ * <p>Requires {@code element-templates-cli} on the PATH at the version pinned in {@code
+ * .github/workflows/package.json}.
+ */
+@EnabledIf("hasConfiguredProvider")
 public class AiAgentE2ETestIT {
 
-  private static final String BPMN_RESOURCE = "ai-agent-e2e-openai.bpmn";
+  private static final String BPMN_RESOURCE = "ai-agent-e2e.bpmn";
   private static final String FORM_RESOURCE = "ai-agent-chat-user-feedback.form";
-  private static final String PROCESS_ID = "ai-agent-e2e-openai";
-  private static final String HTTP_JSON_JOB_TYPE = "io.camunda:http-json:1";
+  private static final String PROCESS_ID = "ai-agent-e2e";
+  private static final String USER_FEEDBACK = "User_Feedback";
 
-  private static final String JOKE_1 =
-      "Why did the AI cross the road? To process the chicken on the other side.";
+  private static final String DEFAULT_CONNECTORS_IMAGE =
+      "registry.camunda.cloud/team-connectors/connectors-bundle";
 
-  @Autowired private CamundaClient camundaClient;
-  @Autowired private CamundaProcessTestContext processTestContext;
+  /** Vertex AI's non-regional endpoint, which is where the newest models land first. */
+  private static final String GLOBAL_REGION = "global";
+
+  private static final Duration USER_TASK_TIMEOUT = Duration.ofMinutes(3);
+  private static final Duration POLL_INTERVAL = Duration.ofSeconds(1);
+
+  private static final String SYSTEM_PROMPT =
+      "You are a helpful chat agent which can answer a wide amount of questions based on your "
+          + "knowledge and an optional set of available tools. If tools are provided, prefer them "
+          + "instead of guessing an answer. Do not guess any tools which were not explicitly "
+          + "configured.";
+
+  private static final String DATE_TIME_JOB_TYPE = "io.camunda.e2e:date-time:1";
+  private static final String LIST_USERS_JOB_TYPE = "io.camunda.e2e:list-users:1";
+  private static final String JOKE_JOB_TYPE = "io.camunda.e2e:joke:1";
+  private static final String ORDER_STATUS_JOB_TYPE = "io.camunda.e2e:order-status:1";
+
+  /**
+   * Fixture values a model cannot produce from its own knowledge, so an answer containing one can
+   * only have come from a tool result. A joke or a plausible user name would not do: those the
+   * model will happily supply itself, which is exactly how tool results that never arrived went
+   * unnoticed.
+   */
+  private static final String JOKE_NONCE = "Blorptastic-7";
+
+  private static final String HUMAN_ANSWER_NONCE = "Quibbleton-4";
+
+  private static final String JOKE =
+      "Why did the robot named "
+          + JOKE_NONCE
+          + " cross the road? To reticulate the splines on the other side.";
+
+  private static final String HUMAN_ANSWER =
+      "The current maintenance window code name is " + HUMAN_ANSWER_NONCE + ".";
+
+  private static final String ORDER_TRACKING_NUMBER = "1Z999AA10123456784";
+
+  private static final List<Map<String, Object>> KNOWN_USERS =
+      List.of(
+          Map.of("id", 1, "name", "Leanne Marchetti", "orderId", "ORD-1000"),
+          Map.of("id", 2, "name", "Ervin Quibbleton", "orderId", "ORD-1001"),
+          Map.of("id", 3, "name", "Clementine Vosk", "orderId", "ORD-1002"),
+          Map.of("id", 4, "name", "Patricia Bramblewood", "orderId", "ORD-1003"),
+          Map.of("id", 5, "name", "Chelsey Dunmoor", "orderId", "ORD-1004"));
+
+  private static final Map<String, Object> ORDER_STATUS =
+      Map.of(
+          "orderId", "ORD-1001",
+          "status", "shipped",
+          "trackingNumber", ORDER_TRACKING_NUMBER,
+          "estimatedDelivery", "2026-08-10");
+
+  /** A Saturday, so the weekday holds whether the model echoes it or derives it from the date. */
+  private static final ZonedDateTime FIXED_DATE_AND_TIME =
+      ZonedDateTime.parse("2026-03-14T15:09:26+01:00[Europe/Berlin]");
+
+  private static final String DAY_OF_WEEK =
+      FIXED_DATE_AND_TIME.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+
+  private static final Map<String, Object> DATE_AND_TIME =
+      Map.of(
+          "iso", FIXED_DATE_AND_TIME.toOffsetDateTime().toString(),
+          "dayOfWeek", DAY_OF_WEEK,
+          "timeZone", FIXED_DATE_AND_TIME.getZone().getId());
+
+  @RegisterExtension
+  static final CamundaProcessTestExtension EXTENSION =
+      new CamundaProcessTestExtension()
+          .withRuntimeMode(CamundaProcessTestRuntimeMode.SHARED)
+          .withConnectorsEnabled(true)
+          .withConnectorsDockerImageName(env("CONNECTORS_IMAGE_NAME", DEFAULT_CONNECTORS_IMAGE))
+          .withConnectorsDockerImageVersion(env("CONNECTORS_IMAGE_VERSION", "SNAPSHOT"))
+          // Container-side logging: the agent runs in the bundle, so its own log is the only place
+          // a provider request, a tool result or a failed agent-instance history write shows up.
+          .withConnectorsEnv("LOGGING_LEVEL_IO_CAMUNDA_CONNECTOR", "DEBUG")
+          .withConnectorsEnv("LOGGING_LEVEL_IO_CAMUNDA_CONNECTOR_AGENTICAI", "TRACE")
+          .withConnectorsSecret("OPENAI_API_KEY", env("OPENAI_API_KEY", ""))
+          .withConnectorsSecret("ANTHROPIC_API_KEY", env("ANTHROPIC_API_KEY", ""))
+          .withConnectorsSecret("ANTHROPIC_BEDROCK_API_KEY", env("ANTHROPIC_BEDROCK_API_KEY", ""))
+          .withConnectorsSecret("AWS_BEDROCK_API_KEY", env("AWS_BEDROCK_API_KEY", ""))
+          .withConnectorsSecret("GOOGLE_GEMINI_API_KEY", env("GOOGLE_GEMINI_API_KEY", ""))
+          .withConnectorsSecret(
+              "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", env("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", ""))
+          .withConnectorsSecret(
+              "GOOGLE_VERTEX_AI_PROJECT_ID", env("GOOGLE_VERTEX_AI_PROJECT_ID", ""))
+          .withConnectorsSecret("GOOGLE_VERTEX_AI_REGION", env("GOOGLE_VERTEX_AI_REGION", ""));
+
+  // Injected by the extension before each test.
+  private CamundaClient camundaClient;
+  private CamundaProcessTestContext processTestContext;
+
+  @TempDir private File tempDir;
 
   @BeforeAll
   static void setUp() {
-    setAssertionTimeout(Duration.ofMinutes(3));
+    setAssertionTimeout(USER_TASK_TIMEOUT);
   }
 
+  /**
+   * Every tool runs on its own job type, which no connector in the bundle implements, so these
+   * mocks are the only thing that can answer a tool job and every tool result is fixed.
+   */
   @BeforeEach
-  void mockHttpTools() {
-    // Intercept ListUsers and Jokes_API HTTP jobs — the HTTP connector is disabled in the Docker
-    // bundle via CONNECTOR_OUTBOUND_DISABLED so these jobs stay open for the test to complete
+  void mockTools() {
+    mockTool(DATE_TIME_JOB_TYPE, DATE_AND_TIME);
+    mockTool(LIST_USERS_JOB_TYPE, KNOWN_USERS);
+    mockTool(JOKE_JOB_TYPE, JOKE);
+    mockTool(ORDER_STATUS_JOB_TYPE, ORDER_STATUS);
+  }
+
+  private void mockTool(String jobType, Object toolCallResult) {
     processTestContext
-        .mockJobWorker(HTTP_JSON_JOB_TYPE)
+        .mockJobWorker(jobType)
         .withHandler(
-            (jobClient, job) -> {
-              var result =
-                  switch (job.getElementId()) {
-                    case "ListUsers" -> knownUsers();
-                    case "Jokes_API" -> JOKE_1;
-                    default -> null;
-                  };
-              var cmd = jobClient.newCompleteCommand(job);
-              if (result != null) {
-                cmd = cmd.variable("toolCallResult", result);
-              }
-              cmd.send().join();
-            });
+            (jobClient, job) ->
+                jobClient
+                    .newCompleteCommand(job)
+                    .variable("toolCallResult", toolCallResult)
+                    .send()
+                    .join());
   }
 
-  @Test
-  void shouldCompleteHappyPath() {
-    // given
+  // ---------------------------------------------------------------------------
+  // Scenarios
+  // ---------------------------------------------------------------------------
+
+  /** One tool call in a single round, with the tool named outright. */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providers")
+  void shouldCompleteWithToolCall(ProviderConfig provider) {
+    var processInstance =
+        deployAndStart(
+            provider,
+            """
+            Use your user lookup tool to list the available users and tell me the name of the \
+            second user in the list. Reply with that name only.""");
+
+    completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
+
+    awaitCompletion(processInstance);
+    assertThatProcessInstance(processInstance).hasCompletedElement("ListUsers", 1);
+
+    // one call to request the tool, one to answer from its result
+    var response = assertAgentResponse(processInstance, 2);
+    assertThat(response.responseText()).contains((String) KNOWN_USERS.get(1).get("name"));
+  }
+
+  /** Two tools requested at once, so both calls have to be emitted in the same round. */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providers")
+  void shouldCompleteWithMultipleToolCallsInOneRound(ProviderConfig provider) {
+    var processInstance =
+        deployAndStart(
+            provider,
+            """
+            I need two things: use your date and time tool to tell me which day of the week it \
+            is, and also use your joke tool to fetch a random joke for me. Repeat the joke \
+            exactly as the tool returns it.""");
+
+    completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
+
+    awaitCompletion(processInstance);
+    assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
+    assertThatProcessInstance(processInstance).hasCompletedElement("GetJoke", 1);
+
+    // exactly two: requesting the two tools in separate rounds would make it three, and that is
+    // the batching this scenario exists to catch
+    var response = assertAgentResponseWithExactly(processInstance, 2);
+    assertThat(response.responseText()).contains(DAY_OF_WEEK).contains(JOKE_NONCE);
+  }
+
+  /**
+   * Two tool calls the model cannot batch: the order ID it needs for the second is only known from
+   * the result of the first. The model-call count is what proves the rounds were sequential — one
+   * call to request the lookup, one to request the order status, one to answer.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providers")
+  void shouldCompleteWithMultipleToolCallRounds(ProviderConfig provider) {
+    var processInstance =
+        deployAndStart(
+            provider,
+            """
+            Look up the list of users, take the second user in that list, and then check the \
+            status of the order that user has placed. Tell me the order status and the tracking \
+            number.""");
+
+    completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
+
+    awaitCompletion(processInstance);
+    assertThatProcessInstance(processInstance).hasCompletedElement("ListUsers", 1);
+    assertThatProcessInstance(processInstance).hasCompletedElement("GetOrderStatus", 1);
+
+    // one call per tool request plus one to answer: the rounds cannot have been batched
+    var response = assertAgentResponse(processInstance, 3);
+    assertThat(response.responseText())
+        .containsIgnoringCase("shipped")
+        .contains(ORDER_TRACKING_NUMBER);
+  }
+
+  /**
+   * A user task as a tool — the human-in-the-loop pattern. The agent pauses inside the ad-hoc
+   * sub-process until the task is completed, and the answer supplied here reaches its response.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providers")
+  void shouldCompleteWithUserTaskTool(ProviderConfig provider) {
+    var processInstance =
+        deployAndStart(
+            provider,
+            """
+            I need the internal code name of the current maintenance window. You do not know it, \
+            so ask a human expert for it, then tell me their answer verbatim.""");
+
+    camundaClient
+        .newCompleteUserTaskCommand(awaitUserTask(processInstance, "AskHuman"))
+        .variables(Map.of("humanAnswer", HUMAN_ANSWER))
+        .send()
+        .join();
+
+    completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
+
+    awaitCompletion(processInstance);
+    assertThatProcessInstance(processInstance).hasCompletedElement("AskHuman", 1);
+
+    // one call to ask the human, one to answer once they replied
+    var response = assertAgentResponse(processInstance, 2);
+    assertThat(response.responseText()).contains(HUMAN_ANSWER_NONCE);
+  }
+
+  /**
+   * Leaves the ad-hoc sub-process and re-enters it with follow-up input, so any regression in
+   * conversation-history round-tripping — tool calls, tool results, or a provider's own
+   * reasoning/thought metadata — surfaces here. The {@code hasCompletedElement} count is what
+   * proves the second round reused the retained result rather than silently calling the tool again.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providers")
+  void shouldCompleteWithUserFeedbackLoop(ProviderConfig provider) {
+    var processInstance =
+        deployAndStart(
+            provider, "Use your date and time tool to tell me the exact current date and time");
+
+    completeUserTask(
+        awaitUserTask(processInstance, USER_FEEDBACK),
+        false,
+        """
+        Based on the date and time you just looked up, which day of the week was that? Reply with \
+        the weekday only.""");
+
+    completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
+
+    awaitCompletion(processInstance);
+    assertThatProcessInstance(processInstance).hasCompletedElement("GetDateAndTime", 1);
+
+    // two calls for the first round, at least one more after re-entering with the follow-up
+    var response = assertAgentResponse(processInstance, 3);
+    assertThat(response.responseText()).contains(DAY_OF_WEEK);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Provider configurations
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Guards the class rather than the individual rows: with no credentials at all {@link
+   * #providers()} is empty, and an empty {@code @MethodSource} is a JUnit configuration error
+   * rather than a skip.
+   */
+  static boolean hasConfiguredProvider() {
+    return providers().findAny().isPresent();
+  }
+
+  static Stream<ProviderConfig> providers() {
+    return Stream.of(
+            // OpenAI (v1)
+            openAiV1("gpt-4o"),
+            // OpenAI (v2) — both API families build different wire requests and unwrap tool calls
+            // and tool results differently, so each needs to run the scenarios
+            openAiResponsesV2("gpt-4.1"),
+            openAiCompletionsV2("gpt-4.1"),
+            // Anthropic (v1)
+            anthropicV1("claude-haiku-4-5-20251001"),
+            // Anthropic (v2)
+            anthropicV2("claude-haiku-4-5-20251001"),
+            // Anthropic (v2), AWS Bedrock Mantle backend
+            anthropicBedrockMantleV2("claude-haiku-4-5"),
+            // AWS Bedrock (v2), native Converse API
+            bedrockConverseV2("global.anthropic.claude-sonnet-5"),
+            // Google Vertex AI (v1)
+            googleVertexAiV1("gemini-2.5-flash"),
+            // Gemini 3 models are served on the global endpoint, not the regional ones
+            googleVertexAiV1("gemini-3.5-flash-lite", GLOBAL_REGION),
+            // Google Gemini (v2) — the same model on both backends of the provider, so the rows
+            // differ only in how the request is authenticated and where it is sent
+            googleGeminiV2("gemini-2.5-flash"),
+            googleGeminiVertexAiV2("gemini-2.5-flash"),
+            // Gemini 3 rejects a follow-up tool-calling request whose history dropped the
+            // thoughtSignature, so only a Gemini 3 row exercises the signature round-trip
+            googleGeminiV2("gemini-3.5-flash-lite"),
+            googleGeminiVertexAiV2("gemini-3.5-flash-lite", GLOBAL_REGION))
+        .filter(ProviderConfig::isEnabled);
+  }
+
+  /** OpenAI, v1. */
+  static ProviderConfig openAiV1(String model) {
+    return new ProviderConfig(
+        "openai-v1/" + model,
+        List.of("OPENAI_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type", "openai",
+            "provider.openai.authentication.apiKey", "{{secrets.OPENAI_API_KEY}}",
+            "provider.openai.model.model", model));
+  }
+
+  /** OpenAI, v2, Responses family, on the {@code openai-api} backend. */
+  static ProviderConfig openAiResponsesV2(String model) {
+    return openAiV2("responses", model);
+  }
+
+  /** OpenAI, v2, Completions family, on the {@code openai-api} backend. */
+  static ProviderConfig openAiCompletionsV2(String model) {
+    return openAiV2("completions", model);
+  }
+
+  private static ProviderConfig openAiV2(String apiFamily, String model) {
+    return new ProviderConfig(
+        "openai-" + apiFamily + "-v2/" + model,
+        List.of("OPENAI_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type", "openai",
+            "provider.openai.backend.type", "openai-api",
+            "provider.openai.backend.openai.apiKey", "{{secrets.OPENAI_API_KEY}}",
+            "provider.openai.api.type", apiFamily,
+            "provider.openai.model.model", model));
+  }
+
+  /** Anthropic, v1 (LangChain4j-backed). */
+  static ProviderConfig anthropicV1(String model) {
+    return new ProviderConfig(
+        "anthropic-v1/" + model,
+        List.of("ANTHROPIC_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type", "anthropic",
+            "provider.anthropic.authentication.apiKey", "{{secrets.ANTHROPIC_API_KEY}}",
+            "provider.anthropic.model.model", model));
+  }
+
+  /** Anthropic, v2, on the {@code anthropic-api} backend. */
+  static ProviderConfig anthropicV2(String model) {
+    return new ProviderConfig(
+        "anthropic-v2/" + model,
+        List.of("ANTHROPIC_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type", "anthropic",
+            "provider.anthropic.backend.type", "anthropic-api",
+            "provider.anthropic.backend.anthropic.apiKey", "{{secrets.ANTHROPIC_API_KEY}}",
+            "provider.anthropic.model.model", model));
+  }
+
+  /**
+   * Anthropic, v2, via the AWS Bedrock Mantle backend: the same Messages API wire format as {@link
+   * #anthropicV2}, just SigV4-signed and sent to a Bedrock Mantle endpoint instead of
+   * api.anthropic.com. Bedrock names its models with an {@code anthropic.} prefix and without the
+   * date suffix.
+   */
+  static ProviderConfig anthropicBedrockMantleV2(String model) {
+    return new ProviderConfig(
+        "anthropic-bedrock-mantle-v2/" + model,
+        List.of("ANTHROPIC_BEDROCK_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "anthropic",
+            "provider.anthropic.backend.type",
+            "aws-bedrock-mantle",
+            "provider.anthropic.backend.awsBedrockMantle.region",
+            env("ANTHROPIC_BEDROCK_REGION", "us-east-1"),
+            "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+            "apiKey",
+            "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
+            "{{secrets.ANTHROPIC_BEDROCK_API_KEY}}",
+            "provider.anthropic.model.model",
+            "anthropic." + model));
+  }
+
+  /** Google Vertex AI, v1, in the region {@code GOOGLE_VERTEX_AI_REGION} names. */
+  static ProviderConfig googleVertexAiV1(String model) {
+    return googleVertexAiV1(
+        model, model, "{{secrets.GOOGLE_VERTEX_AI_REGION}}", List.of("GOOGLE_VERTEX_AI_REGION"));
+  }
+
+  /**
+   * Google Vertex AI, v1, pinned to {@code region} — for models the configured region does not
+   * serve. A pinned region needs no {@code GOOGLE_VERTEX_AI_REGION} to be set.
+   */
+  static ProviderConfig googleVertexAiV1(String model, String region) {
+    return googleVertexAiV1(model + "@" + region, model, region, List.of());
+  }
+
+  private static ProviderConfig googleVertexAiV1(
+      String id, String model, String region, List<String> regionEnvVars) {
+    return new ProviderConfig(
+        "google-vertex-ai-v1/" + id,
+        Stream.concat(
+                Stream.of("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", "GOOGLE_VERTEX_AI_PROJECT_ID"),
+                regionEnvVars.stream())
+            .toList(),
+        AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "google-vertex-ai",
+            "provider.googleVertexAi.projectId",
+            "{{secrets.GOOGLE_VERTEX_AI_PROJECT_ID}}",
+            "provider.googleVertexAi.region",
+            region,
+            "provider.googleVertexAi.authentication.type",
+            "serviceAccountCredentials",
+            "provider.googleVertexAi.authentication.jsonKey",
+            "{{secrets.GOOGLE_VERTEX_AI_SERVICE_ACCOUNT}}",
+            "provider.googleVertexAi.model.model",
+            model));
+  }
+
+  /** AWS Bedrock, v2, on the native Converse API. */
+  static ProviderConfig bedrockConverseV2(String model) {
+    return new ProviderConfig(
+        "bedrock-converse-v2/" + model,
+        List.of("AWS_BEDROCK_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type", "bedrock",
+            "provider.bedrock.region", env("AWS_BEDROCK_REGION", "us-east-1"),
+            "provider.bedrock.authentication.type", "apiKey",
+            "provider.bedrock.authentication.apiKey", "{{secrets.AWS_BEDROCK_API_KEY}}",
+            "provider.bedrock.model.model", model));
+  }
+
+  /** Google Gemini, v2, on the {@code google-gemini-api} backend. */
+  static ProviderConfig googleGeminiV2(String model) {
+    return new ProviderConfig(
+        "google-gemini-v2/" + model,
+        List.of("GOOGLE_GEMINI_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type", "google-gemini",
+            "provider.googleGemini.backend.type", "google-gemini-api",
+            "provider.googleGemini.backend.googleGeminiApi.apiKey",
+                "{{secrets.GOOGLE_GEMINI_API_KEY}}",
+            "provider.googleGemini.model.model", model));
+  }
+
+  /**
+   * Google Gemini, v2, on the {@code google-vertex-ai} backend — the same provider as {@link
+   * #googleGeminiV2}, reached through Vertex AI with service account credentials instead of an API
+   * key, in the region {@code GOOGLE_VERTEX_AI_REGION} names. Reuses the credentials the v1 Vertex
+   * rows already need.
+   */
+  static ProviderConfig googleGeminiVertexAiV2(String model) {
+    return googleGeminiVertexAiV2(
+        model, model, "{{secrets.GOOGLE_VERTEX_AI_REGION}}", List.of("GOOGLE_VERTEX_AI_REGION"));
+  }
+
+  /**
+   * Google Gemini, v2, on the {@code google-vertex-ai} backend, pinned to {@code region} — for
+   * models the configured region does not serve. A pinned region needs no {@code
+   * GOOGLE_VERTEX_AI_REGION} to be set.
+   */
+  static ProviderConfig googleGeminiVertexAiV2(String model, String region) {
+    return googleGeminiVertexAiV2(model + "@" + region, model, region, List.of());
+  }
+
+  private static ProviderConfig googleGeminiVertexAiV2(
+      String id, String model, String region, List<String> regionEnvVars) {
+    return new ProviderConfig(
+        "google-gemini-vertex-ai-v2/" + id,
+        Stream.concat(
+                Stream.of("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT", "GOOGLE_VERTEX_AI_PROJECT_ID"),
+                regionEnvVars.stream())
+            .toList(),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "google-gemini",
+            "provider.googleGemini.backend.type",
+            "google-vertex-ai",
+            "provider.googleGemini.backend.googleVertexAi.projectId",
+            "{{secrets.GOOGLE_VERTEX_AI_PROJECT_ID}}",
+            "provider.googleGemini.backend.googleVertexAi.region",
+            region,
+            "provider.googleGemini.backend.googleVertexAi.authentication.type",
+            "serviceAccountCredentials",
+            "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
+            "{{secrets.GOOGLE_VERTEX_AI_SERVICE_ACCOUNT}}",
+            "provider.googleGemini.model.model",
+            model));
+  }
+
+  record ProviderConfig(
+      String label,
+      List<String> requiredEnvVars,
+      boolean enabled,
+      String elementTemplatePath,
+      Map<String, String> properties) {
+
+    ProviderConfig(
+        String label,
+        List<String> requiredEnvVars,
+        String elementTemplatePath,
+        Map<String, String> properties) {
+      this(label, requiredEnvVars, true, elementTemplatePath, properties);
+    }
+
+    ProviderConfig disabled() {
+      return new ProviderConfig(label, requiredEnvVars, false, elementTemplatePath, properties);
+    }
+
+    boolean isEnabled() {
+      return enabled && requiredEnvVars.stream().allMatch(v -> System.getenv(v) != null);
+    }
+
+    @Override
+    public String toString() {
+      return label;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
+  private static String env(String name, String defaultValue) {
+    final var value = System.getenv(name);
+    return value == null || value.isBlank() ? defaultValue : value;
+  }
+
+  private ProcessInstanceEvent deployAndStart(ProviderConfig provider, String inputText) {
     camundaClient
         .newDeployResourceCommand()
-        .addResourceFromClasspath(BPMN_RESOURCE)
+        .addProcessModel(buildModel(provider), PROCESS_ID + ".bpmn")
         .addResourceFromClasspath(FORM_RESOURCE)
         .send()
         .join();
 
-    // when
-    var processInstance =
-        camundaClient
-            .newCreateInstanceCommand()
-            .bpmnProcessId(PROCESS_ID)
-            .latestVersion()
-            .variables(Map.of("inputText", "What is the current date and time in Berlin?"))
-            .send()
-            .join();
-
-    // then — wait for the user task to appear (CamundaAssert polls internally via
-    // setAssertionTimeout)
-    assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
-
-    // complete the user task with satisfaction
-    var tasks =
-        camundaClient
-            .newUserTaskSearchRequest()
-            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
-            .send()
-            .join();
-    long taskKey = tasks.items().getFirst().getUserTaskKey();
-
-    camundaClient
-        .newCompleteUserTaskCommand(taskKey)
-        .variables(Map.of("userSatisfied", true))
+    return camundaClient
+        .newCreateInstanceCommand()
+        .bpmnProcessId(PROCESS_ID)
+        .latestVersion()
+        .variables(Map.of("inputText", inputText))
         .send()
         .join();
-
-    // then — process should complete with an agent response containing Berlin date/time info
-    assertThatProcessInstance(processInstance).isCompleted();
-    assertThatProcessInstance(processInstance)
-        .hasVariableSatisfiesJudge(
-            "agent",
-            "The agent variable contains a responseText field that includes a specific time value (hours and minutes) and explicitly references the CET or CEST timezone or the city name Berlin");
   }
 
-  @Test
-  void shouldCompleteFeedbackLoop() {
-    // given
-    camundaClient
-        .newDeployResourceCommand()
-        .addResourceFromClasspath(BPMN_RESOURCE)
-        .addResourceFromClasspath(FORM_RESOURCE)
-        .send()
-        .join();
+  private BpmnModelInstance buildModel(ProviderConfig provider) {
+    var template =
+        ElementTemplate.from(provider.elementTemplatePath())
+            .property("agentContext", "=agent.context")
+            .property("data.systemPrompt.prompt", "=\"" + SYSTEM_PROMPT + "\"")
+            .property(
+                "data.userPrompt.prompt",
+                "=if (is defined(followUpInput)) then followUpInput else inputText")
+            .property("data.userPrompt.documents", "=[]")
+            .property("data.memory.storage.type", "in-process")
+            .property("data.memory.contextWindowSize", "=20")
+            .property("data.limits.maxModelCalls", "=20")
+            .property("data.response.includeAssistantMessage", "=false")
+            .property("data.response.includeAgentContext", "=true")
+            // the template default is PT30S, which would add minutes to a retried real-LLM run
+            .property("retryBackoff", "PT0S");
 
-    // when
-    var processInstance =
-        camundaClient
-            .newCreateInstanceCommand()
-            .bpmnProcessId(PROCESS_ID)
-            .latestVersion()
-            .variables(Map.of("inputText", "Tell me a joke"))
-            .send()
-            .join();
+    provider.properties().forEach(template::property);
 
-    // then — wait for the first user task (CamundaAssert polls internally via
-    // setAssertionTimeout)
-    assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
-
-    // complete with follow-up (not satisfied)
-    var firstTasks =
-        camundaClient
-            .newUserTaskSearchRequest()
-            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
-            .send()
-            .join();
-    long firstTaskKey = firstTasks.items().getFirst().getUserTaskKey();
-
-    camundaClient
-        .newCompleteUserTaskCommand(firstTaskKey)
-        .variables(
-            Map.of(
-                "userSatisfied",
-                false,
-                "followUpInput",
-                "Can you also tell me a fun fact about cats?"))
-        .send()
-        .join();
-
-    // then — wait for a new user task after the follow-up loop
-    await()
-        .atMost(Duration.ofMinutes(3))
-        .pollInterval(Duration.ofSeconds(5))
-        .untilAsserted(
-            () -> {
-              var tasks =
-                  camundaClient
-                      .newUserTaskSearchRequest()
-                      .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
-                      .send()
-                      .join();
-              // A new task should appear with a different key
-              var activeTasks =
-                  tasks.items().stream().filter(t -> t.getUserTaskKey() != firstTaskKey).toList();
-              assertThat(activeTasks).isNotEmpty();
-            });
-
-    // complete the second user task with satisfaction
-    var secondTasks =
-        camundaClient
-            .newUserTaskSearchRequest()
-            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
-            .send()
-            .join();
-    long secondTaskKey =
-        secondTasks.items().stream()
-            .filter(t -> t.getUserTaskKey() != firstTaskKey)
-            .findFirst()
-            .orElseThrow()
-            .getUserTaskKey();
-
-    camundaClient
-        .newCompleteUserTaskCommand(secondTaskKey)
-        .variables(Map.of("userSatisfied", true))
-        .send()
-        .join();
-
-    // then — process completes
-    assertThatProcessInstance(processInstance).isCompleted();
-    assertThatProcessInstance(processInstance)
-        .hasVariableSatisfiesJudge(
-            "agent",
-            "The agent variable contains a responseText field that mentions something about cats");
+    try {
+      var templateFile = template.writeTo(new File(tempDir, "template.json"));
+      var bpmnFile =
+          new File(AiAgentE2ETestIT.class.getClassLoader().getResource(BPMN_RESOURCE).toURI());
+      var model =
+          new BpmnFile(bpmnFile).apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
+      return BpmnUtil.withAgentDefinitionMarker(model, "AI_Agent", "aiAgentSubProcess");
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to build BPMN model for " + provider.label(), e);
+    }
   }
 
-  @Test
-  void shouldCompleteWithUserLookupTool() {
-    // given
-    camundaClient
-        .newDeployResourceCommand()
-        .addResourceFromClasspath(BPMN_RESOURCE)
-        .addResourceFromClasspath(FORM_RESOURCE)
-        .send()
-        .join();
-
-    // when — prompt explicitly requires the ListUsers HTTP connector tool
-    var processInstance =
-        camundaClient
-            .newCreateInstanceCommand()
-            .bpmnProcessId(PROCESS_ID)
-            .latestVersion()
-            .variables(
-                Map.of(
-                    "inputText",
-                    "Use your user lookup tool to list available users and tell me the name of the first user you find"))
-            .send()
-            .join();
-
-    // then — wait for user task (agent called ListUsers HTTP tool and responded)
-    assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
-
-    var tasks =
-        camundaClient
-            .newUserTaskSearchRequest()
-            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
-            .send()
-            .join();
-    long taskKey = tasks.items().getFirst().getUserTaskKey();
-
-    camundaClient
-        .newCompleteUserTaskCommand(taskKey)
-        .variables(Map.of("userSatisfied", true))
-        .send()
-        .join();
-
-    assertThatProcessInstance(processInstance).isCompleted();
-    assertThatProcessInstance(processInstance)
-        .hasVariableSatisfiesJudge(
-            "agent",
-            "The agent variable contains a responseText field that names one of the known users:"
-                + " Leanne Graham or Ervin Howell, proving the ListUsers tool was invoked");
+  /**
+   * Waits for the process instance to complete, failing as soon as an incident is raised instead of
+   * polling on for the rest of the assertion timeout. A failed agent job — a rejected provider
+   * request, say — leaves the instance sitting in an incident forever, and a plain {@code
+   * isCompleted()} would only report a timeout once the full {@link #USER_TASK_TIMEOUT} has
+   * elapsed, hiding the message that says what actually broke.
+   */
+  private void awaitCompletion(ProcessInstanceEvent instance) {
+    awaitOrFailOnIncident(
+        instance,
+        "completion",
+        () -> isCompleted(instance) ? Optional.of(instance) : Optional.empty());
   }
 
-  @Test
-  void shouldCompleteWithMultipleToolCalls() {
-    // given
-    camundaClient
-        .newDeployResourceCommand()
-        .addResourceFromClasspath(BPMN_RESOURCE)
-        .addResourceFromClasspath(FORM_RESOURCE)
-        .send()
-        .join();
+  private <T> T awaitOrFailOnIncident(
+      ProcessInstanceEvent instance, String awaited, Supplier<Optional<T>> outcome) {
+    final var settled =
+        await()
+            .alias(awaited + " of process instance " + instance.getProcessInstanceKey())
+            .atMost(USER_TASK_TIMEOUT)
+            .pollInterval(POLL_INTERVAL)
+            .until(
+                () -> new Settled<>(outcome.get(), activeIncidents(instance)), Settled::isSettled);
 
-    // when — explicitly request both the date/time tool and the jokes API in one prompt
-    var processInstance =
-        camundaClient
-            .newCreateInstanceCommand()
-            .bpmnProcessId(PROCESS_ID)
-            .latestVersion()
-            .variables(
-                Map.of(
-                    "inputText",
-                    "I need two things: use your date and time tool to tell me the current time,"
-                        + " and also use your jokes API tool to fetch a random joke for me"))
-            .send()
-            .join();
-
-    // then — agent called both tools and produced a combined response
-    assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
-
-    var tasks =
-        camundaClient
-            .newUserTaskSearchRequest()
-            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
-            .send()
-            .join();
-    long taskKey = tasks.items().getFirst().getUserTaskKey();
-
-    camundaClient
-        .newCompleteUserTaskCommand(taskKey)
-        .variables(Map.of("userSatisfied", true))
-        .send()
-        .join();
-
-    assertThatProcessInstance(processInstance).isCompleted();
-    assertThatProcessInstance(processInstance)
-        .hasVariableSatisfiesJudge(
-            "agent",
-            "The agent variable contains a responseText field with a specific current time"
-                + " (including hours and minutes) from the GetDateAndTime tool AND a complete"
-                + " joke with a punchline from the Jokes_API tool, proving both tools were"
-                + " invoked");
+    if (!settled.incidents().isEmpty()) {
+      throw new AssertionError(
+          "Process instance %d raised an incident instead of reaching %s: %s"
+              .formatted(
+                  instance.getProcessInstanceKey(),
+                  awaited,
+                  String.join("; ", settled.incidents())));
+    }
+    return settled.value().orElseThrow();
   }
 
-  private static List<Map<String, Object>> knownUsers() {
-    return List.of(
-        Map.of("id", 1, "name", "Leanne Graham", "username", "Bret"),
-        Map.of("id", 2, "name", "Ervin Howell", "username", "Antonette"));
+  /** Whichever the instance produced first: the awaited outcome, or an active incident. */
+  private record Settled<T>(Optional<T> value, List<String> incidents) {
+    boolean isSettled() {
+      return value.isPresent() || !incidents.isEmpty();
+    }
   }
 
-  @Test
-  void shouldRetainToolResultAcrossFeedbackLoop() {
-    // given
-    camundaClient
-        .newDeployResourceCommand()
-        .addResourceFromClasspath(BPMN_RESOURCE)
-        .addResourceFromClasspath(FORM_RESOURCE)
+  /**
+   * The instance's terminal outcome, or {@link Optional#empty()} while it is still running: an
+   * empty list once it has completed, the active incidents' messages if any were raised.
+   */
+  /** The {@code elementId: message} of every active incident on the instance. */
+  private List<String> activeIncidents(ProcessInstanceEvent instance) {
+    return camundaClient
+        .newIncidentSearchRequest()
+        .filter(
+            f -> f.processInstanceKey(instance.getProcessInstanceKey()).state(IncidentState.ACTIVE))
         .send()
-        .join();
+        .join()
+        .items()
+        .stream()
+        .map(incident -> incident.getElementId() + ": " + incident.getErrorMessage())
+        .toList();
+  }
 
-    // when — first turn: ask for the current time (forces GetDateAndTime tool)
-    var processInstance =
-        camundaClient
-            .newCreateInstanceCommand()
-            .bpmnProcessId(PROCESS_ID)
-            .latestVersion()
-            .variables(
-                Map.of(
-                    "inputText",
-                    "Use your date and time tool to tell me the exact current date and time"))
-            .send()
-            .join();
-
-    assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
-
-    var firstTasks =
-        camundaClient
-            .newUserTaskSearchRequest()
-            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
-            .send()
-            .join();
-    long firstTaskKey = firstTasks.items().getFirst().getUserTaskKey();
-
-    // follow-up explicitly references the previously retrieved time — tests conversation context
-    camundaClient
-        .newCompleteUserTaskCommand(firstTaskKey)
-        .variables(
-            Map.of(
-                "userSatisfied",
-                false,
-                "followUpInput",
-                "Based on the time you just looked up, is it currently daytime or nighttime?"))
+  private boolean isCompleted(ProcessInstanceEvent instance) {
+    return !camundaClient
+        .newProcessInstanceSearchRequest()
+        .filter(
+            f ->
+                f.processInstanceKey(instance.getProcessInstanceKey())
+                    .state(ProcessInstanceState.COMPLETED))
         .send()
-        .join();
+        .join()
+        .items()
+        .isEmpty();
+  }
 
-    // wait for second user task
-    await()
-        .atMost(Duration.ofMinutes(3))
-        .pollInterval(Duration.ofSeconds(5))
-        .untilAsserted(
-            () -> {
-              var tasks =
-                  camundaClient
-                      .newUserTaskSearchRequest()
-                      .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
-                      .send()
-                      .join();
-              assertThat(
-                      tasks.items().stream()
-                          .filter(t -> t.getUserTaskKey() != firstTaskKey)
-                          .toList())
-                  .isNotEmpty();
-            });
+  /**
+   * Reads the agent response and asserts it took at least {@code minModelCalls} model calls — for
+   * scenarios whose guarantee is a lower bound, where a model taking an extra turn is allowed.
+   */
+  private AgentResponse assertAgentResponse(ProcessInstanceEvent instance, int minModelCalls) {
+    var response = agentResponse(instance);
+    assertThat(response.context().metrics().modelCalls())
+        .as("model calls")
+        .isGreaterThanOrEqualTo(minModelCalls);
+    return response;
+  }
 
-    long secondTaskKey =
-        camundaClient
-            .newUserTaskSearchRequest()
-            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
-            .send()
-            .join()
-            .items()
-            .stream()
-            .filter(t -> t.getUserTaskKey() != firstTaskKey)
-            .findFirst()
-            .orElseThrow()
-            .getUserTaskKey();
+  /**
+   * Reads the agent response and asserts it took exactly {@code modelCalls} model calls — for
+   * scenarios where an extra call means the interaction did not have the shape being tested, so a
+   * lower bound would let the very thing under test slip through.
+   */
+  private AgentResponse assertAgentResponseWithExactly(
+      ProcessInstanceEvent instance, int modelCalls) {
+    var response = agentResponse(instance);
+    assertThat(response.context().metrics().modelCalls()).as("model calls").isEqualTo(modelCalls);
+    return response;
+  }
 
-    camundaClient
-        .newCompleteUserTaskCommand(secondTaskKey)
-        .variables(Map.of("userSatisfied", true))
+  private AgentResponse agentResponse(ProcessInstanceEvent instance) {
+    var captured = new AtomicReference<AgentResponse>();
+    // The lambda only captures: CamundaAssert treats it as a polling predicate, so an assertion
+    // raised inside it would be retried for the full assertion timeout even though the instance is
+    // already completed and the variable value can no longer change.
+    assertThatProcessInstance(instance)
+        .hasVariableSatisfies("agent", AgentResponse.class, captured::set);
+    return captured.get();
+  }
+
+  /** Waits for a created user task on {@code elementId} — the feedback loop re-enters its own. */
+  private long awaitUserTask(ProcessInstanceEvent instance, String elementId) {
+    return awaitOrFailOnIncident(
+        instance,
+        "a created user task on " + elementId,
+        () -> createdUserTaskKeys(instance, elementId).stream().findFirst());
+  }
+
+  private List<Long> createdUserTaskKeys(ProcessInstanceEvent instance, String elementId) {
+    return camundaClient
+        .newUserTaskSearchRequest()
+        .filter(
+            f ->
+                f.processInstanceKey(instance.getProcessInstanceKey())
+                    .elementId(elementId)
+                    .state(UserTaskState.CREATED))
         .send()
-        .join();
+        .join()
+        .items()
+        .stream()
+        .map(UserTask::getUserTaskKey)
+        .toList();
+  }
 
-    // then — agent answered the follow-up using the tool result retained in conversation context
-    assertThatProcessInstance(processInstance).isCompleted();
-    assertThatProcessInstance(processInstance)
-        .hasVariableSatisfiesJudge(
-            "agent",
-            "The agent variable contains a responseText that says whether it is daytime or nighttime AND includes a specific time value (hours and minutes) from the GetDateAndTime tool, proving conversation context was retained");
+  private void completeUserTask(long taskKey, boolean satisfied, String followUpInput) {
+    var variables =
+        followUpInput == null
+            ? Map.<String, Object>of("userSatisfied", satisfied)
+            : Map.<String, Object>of("userSatisfied", satisfied, "followUpInput", followUpInput);
+
+    camundaClient.newCompleteUserTaskCommand(taskKey).variables(variables).send().join();
   }
 }
