@@ -93,7 +93,7 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
-    <version.amqp-client>5.34.0</version.amqp-client>
+    <version.amqp-client>5.35.0</version.amqp-client>
     <tomcat.version>10.1.59</tomcat.version>
     <version.spring-cloud-gcp-starter-logging>7.4.10</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.3</version.logback>
