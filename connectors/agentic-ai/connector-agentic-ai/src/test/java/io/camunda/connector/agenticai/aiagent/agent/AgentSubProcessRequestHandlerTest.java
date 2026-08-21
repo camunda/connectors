@@ -46,6 +46,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -648,6 +649,31 @@ class AgentSubProcessRequestHandlerTest {
             e ->
                 assertThat(e.getErrorVariables())
                     .isEqualTo(Map.of("rejection", Map.of("stopReason", "content_filter"))));
+  }
+
+  @Test
+  void throwsWhenGuardrailIntervenesBeforeIngestOrHistoryWrite() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(any()))
+        .thenThrow(new GuardrailInterventionException("blocked by a guardrail policy", null));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode())
+                  .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED);
+              assertThat(e.getErrorVariables()).isEmpty();
+            });
+
+    verify(agentInstanceClient, never())
+        .createHistoryForAssistantMessage(any(), any(), any(), any());
+    verifyNoInteractions(responseHandler);
   }
 
   @Test

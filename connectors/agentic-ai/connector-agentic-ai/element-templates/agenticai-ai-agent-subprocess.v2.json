@@ -126,6 +126,9 @@
       "name" : "Anthropic",
       "value" : "anthropic"
     }, {
+      "name" : "AWS Bedrock Converse",
+      "value" : "bedrock"
+    }, {
       "name" : "OpenAI",
       "value" : "openai"
     }, {
@@ -348,7 +351,7 @@
   }, {
     "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
     "label" : "API key",
-    "description" : "Bearer API key for AWS Bedrock Mantle.",
+    "description" : "Bearer API key for AWS Bedrock.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -475,6 +478,164 @@
     "condition" : {
       "property" : "provider.type",
       "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.region",
+    "label" : "AWS region",
+    "description" : "Specify the AWS region (example: <code>eu-west-1</code>).",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.endpoint",
+    "label" : "Custom endpoint",
+    "description" : "Custom API endpoint for VPC/PrivateLink configurations or other non-standard deployments. Overrides the default Bedrock Runtime endpoint for the specified region.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the AWS authentication strategy.",
+    "value" : "credentials",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Credentials",
+      "value" : "credentials"
+    }, {
+      "name" : "API key",
+      "value" : "apiKey"
+    }, {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
+    } ]
+  }, {
+    "id" : "provider.bedrock.authentication.accessKey",
+    "label" : "Access key",
+    "description" : "AWS IAM access key.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.authentication.secretKey",
+    "label" : "Secret key",
+    "description" : "AWS IAM secret key.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.authentication.apiKey",
+    "label" : "API key",
+    "description" : "Bearer API key for AWS Bedrock.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.timeouts.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.timeouts.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
       "type" : "simple"
     },
     "type" : "String"
@@ -955,6 +1116,57 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.bedrock.headers",
+    "label" : "HTTP headers",
+    "description" : "Map of HTTP headers to add to the request.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.bedrock.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.queryParameters",
+    "label" : "Query parameters",
+    "description" : "Map of query parameters to add to the request URL.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.bedrock.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.bodyProperties",
+    "label" : "Body properties",
+    "description" : "Map of additional properties to include in the request body.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.bedrock.bodyProperties",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.openai.backend.openai.headers",
     "label" : "Headers",
     "optional" : true,
@@ -1238,6 +1450,45 @@
     "tooltip" : "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
     "type" : "Boolean"
   }, {
+    "id" : "provider.bedrock.model.model",
+    "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.bedrock.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "placeholder" : "us.amazon.nova-2-lite-v1:0",
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.model.parameters.promptCaching.enabled",
+    "label" : "Enable prompt caching",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.bedrock.model.parameters.promptCaching.enabled",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "tooltip" : "Enables AWS Bedrock automatic prompt caching. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" target=\"_blank\">documentation</a>.",
+    "type" : "Boolean"
+  }, {
     "id" : "provider.openai.api.completions.effort",
     "label" : "Effort",
     "description" : "Leave unset to use the model default.",
@@ -1429,6 +1680,57 @@
       "type" : "simple"
     },
     "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.bedrock.model.parameters.maxTokens",
+    "label" : "Maximum tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.bedrock.model.parameters.maxTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. Leave unset to use the model default.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.bedrock.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.bedrock.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number. The higher the number, the more randomness will be injected into the response. Supported ranges vary by model.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.bedrock.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.bedrock.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature).",
     "type" : "Number"
   }, {
     "id" : "provider.openai.api.completions.maxCompletionTokens",
