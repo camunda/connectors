@@ -49,6 +49,9 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
 
   private static final int HTTP_STATUS_CONFLICT = 409;
 
+  // Loop iterations are 1-based; the create-time CONFIGURATION item belongs to the first turn.
+  private static final int FIRST_ITERATION = 1;
+
   /**
    * Matches the {@code detail} message of a {@code 409 ALREADY_EXISTS} response from {@code POST
    * /agent-instances}, capturing the existing agent instance key.
@@ -97,7 +100,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   private AgentInstanceKey executeCreate(AgentExecutionContext agentExecutionContext) {
-    final long elementInstanceKey = agentExecutionContext.jobContext().getElementInstanceKey();
+    final var jobContext = agentExecutionContext.jobContext();
+    final long elementInstanceKey = jobContext.getElementInstanceKey();
     final var configuration = agentExecutionContext.configuration();
     LOGGER.debug(
         "Creating agent instance for element instance {}: model={}, provider={}",
@@ -105,17 +109,26 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         configuration.chatModel().model(),
         configuration.chatModel().provider());
 
+    // Establish the instance definition (model/provider/systemPrompt) and tools as a CONFIGURATION
+    // history item rather than direct command fields, matching how every subsequent turn update
+    // records configuration. The first turn's applyTurnStart still emits its own CONFIGURATION item
+    // once tools are resolved -- that redundancy is accepted (ADR 013).
+    // The engine rejects top-level limits (maxModelCalls etc.) alongside a history batch; the
+    // model-call limit lives on the connector side and is recorded on the CONFIGURATION item's
+    // fingerprint, consistent with how turn updates carry configuration.
     var command =
         camundaClient
             .newCreateAgentInstanceCommand()
             .elementInstanceKey(elementInstanceKey)
-            .model(configuration.chatModel().model())
-            .provider(configuration.chatModel().provider())
-            .systemPrompt(configuration.systemPrompt().prompt());
+            .jobKey(jobContext.getJobKey())
+            .history(
+                List.of(
+                    configurationHistoryItem(
+                        configuration, FIRST_ITERATION, OffsetDateTime.now())));
 
-    final var limits = configuration.limits();
-    if (limits != null && limits.maxModelCalls() != null) {
-      command = command.maxModelCalls(limits.maxModelCalls());
+    final String leaseToken = jobContext.getLeaseToken();
+    if (leaseToken != null && !leaseToken.isBlank()) {
+      command = command.jobLease(leaseToken);
     }
 
     try {
@@ -278,6 +291,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         .content(List.of())
         .loopIteration(iterationKey)
         .producedAt(producedAt)
+        .model(configuration.chatModel().model())
+        .provider(configuration.chatModel().provider())
         .systemPrompt(
             List.of(AgentInstanceHistoryContent.text(configuration.systemPrompt().prompt())))
         .tools(toolMapper.mapTools(configuration.toolDefinitions()));

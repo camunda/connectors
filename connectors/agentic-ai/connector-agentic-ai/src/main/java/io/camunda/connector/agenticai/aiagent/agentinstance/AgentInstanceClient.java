@@ -22,7 +22,10 @@ public interface AgentInstanceClient {
 
   /**
    * Creates an agent instance on the engine, or returns the key of the existing one. The engine
-   * command is idempotent by {@code elementInstanceKey}.
+   * command is idempotent by {@code elementInstanceKey}. The instance's configuration (model,
+   * provider, system prompt, tools) is sent as a {@code CONFIGURATION} history item rather than as
+   * direct command fields, and {@code jobKey}/{@code jobLease} are forwarded to fence the batched
+   * history against a superseded activation.
    *
    * @throws ConnectorException with code AGENT_INSTANCE_CREATION_FAILED when retries are exhausted
    *     or a non-retryable error occurs

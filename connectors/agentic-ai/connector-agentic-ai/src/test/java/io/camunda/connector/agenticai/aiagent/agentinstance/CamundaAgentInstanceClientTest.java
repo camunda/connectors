@@ -95,8 +95,10 @@ class CamundaAgentInstanceClientTest {
 
   @Mock private CamundaClient camundaClient;
 
-  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-  private CreateAgentInstanceCommandStep1 commandChain;
+  @Mock private CreateAgentInstanceCommandStep1 createCommandStep1;
+
+  @Mock(answer = Answers.RETURNS_SELF)
+  private CreateAgentInstanceCommandStep2 createCommandStep2;
 
   @Mock private CreateAgentInstanceResponse response;
 
@@ -104,8 +106,6 @@ class CamundaAgentInstanceClientTest {
 
   @Mock(answer = Answers.RETURNS_SELF)
   private UpdateAgentInstanceCommandStep2 updateCommandStep2;
-
-  private CreateAgentInstanceCommandStep2 step5;
 
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
@@ -123,18 +123,9 @@ class CamundaAgentInstanceClientTest {
   }
 
   private void givenCreateCommand() {
-    when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(commandChain);
-    step5 =
-        commandChain
-            .elementInstanceKey(ELEMENT_INSTANCE_KEY)
-            .model("gpt-4o")
-            .provider(OpenAiProviderConfiguration.OPENAI_ID)
-            .systemPrompt("system prompt");
-  }
-
-  private void givenCreateCommandWithMaxModelCalls() {
-    givenCreateCommand();
-    when(step5.maxModelCalls(10)).thenReturn(step5);
+    when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(createCommandStep1);
+    when(createCommandStep1.elementInstanceKey(ELEMENT_INSTANCE_KEY))
+        .thenReturn(createCommandStep2);
   }
 
   private void givenUpdateCommand() {
@@ -147,23 +138,53 @@ class CamundaAgentInstanceClientTest {
   @Nested
   class Create {
 
+    @SuppressWarnings("unchecked")
     @Test
     void shouldReturnAgentInstanceKeyOnFirstSuccessfulAttempt() {
-      givenCreateCommandWithMaxModelCalls();
-      when(step5.execute()).thenReturn(response);
+      givenCreateCommand();
+      when(createCommandStep2.execute()).thenReturn(response);
       when(response.getAgentInstanceKey()).thenReturn(12345L);
 
-      final AgentInstanceKey key = client.create(TestAgentExecutionContext.withLimits());
+      final var executionContext = TestAgentExecutionContext.withLimits();
+      final AgentInstanceKey key = client.create(executionContext);
 
       assertThat(key).isEqualTo(AgentInstanceKey.of(12345L));
       assertThat(recordedSleeps).isEmpty();
       verify(camundaClient, times(1)).newCreateAgentInstanceCommand();
+
+      // definition and tools are established as a CONFIGURATION history item, not direct fields
+      final ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor =
+          ArgumentCaptor.forClass(List.class);
+      verify(createCommandStep1).elementInstanceKey(ELEMENT_INSTANCE_KEY);
+      verify(createCommandStep2).jobKey(JOB_KEY);
+      // top-level limits are forbidden alongside a history batch
+      verify(createCommandStep2, never()).maxModelCalls(anyInt());
+      verify(createCommandStep2, never()).jobLease(any());
+      verify(createCommandStep2).history(historyCaptor.capture());
+
+      assertThat(historyCaptor.getValue())
+          .singleElement()
+          .satisfies(
+              item -> {
+                assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+                assertThat(item.getHistoryItemId())
+                    .isEqualTo(executionContext.configuration().fingerprint());
+                assertThat(item.getLoopIteration()).isEqualTo(1);
+                assertThat(item.getModel()).isEqualTo("gpt-4o");
+                assertThat(item.getProvider()).isEqualTo(OpenAiProviderConfiguration.OPENAI_ID);
+                assertThat(item.getSystemPrompt())
+                    .singleElement()
+                    .isInstanceOfSatisfying(
+                        AgentInstanceHistoryContent.TextContent.class,
+                        text -> assertThat(text.getText()).isEqualTo("system prompt"));
+                assertThat(item.getTools()).isEmpty();
+              });
     }
 
     @Test
     void shouldReturnAgentInstanceKeyOnFirstAttemptWhenMaxModelCallsIsNull() {
       givenCreateCommand();
-      when(step5.execute()).thenReturn(response);
+      when(createCommandStep2.execute()).thenReturn(response);
       when(response.getAgentInstanceKey()).thenReturn(67890L);
 
       final AgentInstanceKey key = client.create(TestAgentExecutionContext.withoutLimits());
@@ -171,12 +192,26 @@ class CamundaAgentInstanceClientTest {
       assertThat(key).isEqualTo(AgentInstanceKey.of(67890L));
       assertThat(recordedSleeps).isEmpty();
       verify(camundaClient, times(1)).newCreateAgentInstanceCommand();
+      verify(createCommandStep2).jobKey(JOB_KEY);
+      verify(createCommandStep2).history(any());
+      verify(createCommandStep2, never()).maxModelCalls(anyInt());
+    }
+
+    @Test
+    void shouldForwardLeaseTokenWhenActivationIsLeased() {
+      givenCreateCommand();
+      when(createCommandStep2.execute()).thenReturn(response);
+      when(response.getAgentInstanceKey()).thenReturn(12345L);
+
+      client.create(TestAgentExecutionContext.withLeaseToken("lease-token-abc"));
+
+      verify(createCommandStep2).jobLease("lease-token-abc");
     }
 
     @Test
     void shouldThrowConnectorExceptionImmediatelyForHttp400PermanentError() {
-      givenCreateCommandWithMaxModelCalls();
-      when(step5.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
+      givenCreateCommand();
+      when(createCommandStep2.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
 
       assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
           .isInstanceOfSatisfying(
@@ -192,8 +227,8 @@ class CamundaAgentInstanceClientTest {
 
     @Test
     void shouldReturnKeyAndRecordOneSleepWhenRetryableErrorPrecedesSuccess() {
-      givenCreateCommandWithMaxModelCalls();
-      when(step5.execute())
+      givenCreateCommand();
+      when(createCommandStep2.execute())
           .thenThrow(new ClientHttpException(503, "Service Unavailable"))
           .thenReturn(response);
       when(response.getAgentInstanceKey()).thenReturn(999L);
@@ -210,8 +245,8 @@ class CamundaAgentInstanceClientTest {
     void shouldThrowConnectorExceptionImmediatelyForHttp404PermanentError() {
       // given: a 404 from the create endpoint (x-eventually-consistent: false) means the
       // referenced element instance genuinely doesn't exist, not a not-yet-visible record
-      givenCreateCommandWithMaxModelCalls();
-      when(step5.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
+      givenCreateCommand();
+      when(createCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
 
       assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
           .isInstanceOfSatisfying(
@@ -227,8 +262,9 @@ class CamundaAgentInstanceClientTest {
 
     @Test
     void shouldThrowConnectorExceptionWithAttemptCountWhenAllRetriesAreExhausted() {
-      givenCreateCommandWithMaxModelCalls();
-      when(step5.execute()).thenThrow(new ClientHttpException(500, "Internal Server Error"));
+      givenCreateCommand();
+      when(createCommandStep2.execute())
+          .thenThrow(new ClientHttpException(500, "Internal Server Error"));
 
       assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
           .isInstanceOfSatisfying(
@@ -252,12 +288,12 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldReturnExistingAgentInstanceKeyOnConflictWithParseableDetail() {
       // given: a 409 ALREADY_EXISTS response whose detail embeds the existing agent instance key
-      givenCreateCommandWithMaxModelCalls();
+      givenCreateCommand();
       final var detail =
           "Command 'CREATE' rejected with code 'ALREADY_EXISTS': Expected to associate element "
               + "instance with key '77' with an agent instance, but it is already associated with "
               + "agent instance with key '999'.";
-      when(step5.execute()).thenThrow(conflictException(detail));
+      when(createCommandStep2.execute()).thenThrow(conflictException(detail));
 
       // when
       final AgentInstanceKey key = client.create(TestAgentExecutionContext.withLimits());
@@ -287,8 +323,8 @@ class CamundaAgentInstanceClientTest {
     void shouldThrowConnectorExceptionImmediatelyOnUnparseableConflictDetail(
         @Nullable String detail) {
       // given: a 409 ALREADY_EXISTS response whose detail doesn't match the expected contract
-      givenCreateCommandWithMaxModelCalls();
-      when(step5.execute()).thenThrow(conflictException(detail));
+      givenCreateCommand();
+      when(createCommandStep2.execute()).thenThrow(conflictException(detail));
 
       // when / then: the conflict cannot be resolved, so it fails permanently, no retry
       assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
@@ -743,6 +779,8 @@ class CamundaAgentInstanceClientTest {
       assertThat(configurationItem.getLoopIteration()).isEqualTo(1);
       // a CONFIGURATION item has no natural content of its own
       assertThat(configurationItem.getContent()).isEmpty();
+      assertThat(configurationItem.getModel()).isEqualTo("gpt-4o");
+      assertThat(configurationItem.getProvider()).isEqualTo(OpenAiProviderConfiguration.OPENAI_ID);
       assertThat(configurationItem.getSystemPrompt())
           .singleElement()
           .isInstanceOfSatisfying(

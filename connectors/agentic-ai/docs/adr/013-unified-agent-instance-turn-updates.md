@@ -91,20 +91,22 @@ rejected before any model tokens are spent.
 * `model`/`provider`/`limits` changes are not currently re-pushed via a `CONFIGURATION` item (see
   Deferred below) even though the engine allows it, since only system prompt and tool list are tracked
   by the change-detection fingerprint today.
-* The engine's create-agent-instance command still carries a single history-item write, not a batch
-  (Req 1, deferred — see below), so the first turn's create is not yet lease-fenced the same way.
+* `create()` sends its configuration as a `CONFIGURATION` history item and is lease-fenced via
+  `jobKey`/`jobLease`, consistent with the turn updates. The separate create call still precedes the
+  first turn's `applyTurnStart`, so that turn's `CONFIGURATION` item remains (see Deferred below).
 
 ## Deferred
 
-**History batch on create (Req 1).** `create()` still sends its mandatory `model`/`provider`/
-`systemPrompt` (+ `limits`) fields directly on the create command rather than as a `CONFIGURATION`
-history item — the engine's create-instance API does not yet accept the `jobKey`/`jobLease`/
-`history[]` batch that `update()` does (camunda/camunda#59784). No fingerprint seeding happens to compensate:
-`AgentMetadata` starts with an empty `configurationFingerprintHistory`, so the first turn's
-`applyTurnStart` always finds no previous fingerprint and always emits a `CONFIGURATION` item —
-redundant with what `create()` already sent moments earlier, but harmless. Once the engine's create
-command accepts a history batch, `create()` should send a `CONFIGURATION` item instead of the direct
-fields, and this first-turn redundancy can be removed.
+**First-turn configuration redundancy (Req 1, partly closed).** `create()` now sends its
+configuration as a `CONFIGURATION` history item (model/provider/system prompt/tools) and forwards
+`jobKey`/`jobLease`, using the `history[]` batch the engine's create-instance API accepts
+(camunda/camunda#59784) — the direct-fields create path is gone. Creation is kept as a standalone
+call, though: it is not folded into the first turn's `applyTurnStart`. `AgentMetadata` starts with
+an empty `configurationFingerprintHistory`, so the first turn's `applyTurnStart` finds no previous
+fingerprint and emits its own `CONFIGURATION` item — redundant with what `create()` sent moments
+earlier, but harmless, and the two items carry different `historyItemId`s (create runs before tools
+are resolved, so its fingerprint differs). Folding creation into the first turn to remove the
+redundancy was declined to keep the change low-risk.
 
 **Per-item dedup.** camunda/camunda#58792 (engine) has no PR yet. `historyItemId` values are already chosen so
 dedup works transparently once it lands; until then, the ADR 011 streamed-early duplicate row (one from
