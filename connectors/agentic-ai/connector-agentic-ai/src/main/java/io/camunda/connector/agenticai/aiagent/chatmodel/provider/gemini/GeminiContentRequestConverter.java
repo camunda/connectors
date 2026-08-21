@@ -139,16 +139,18 @@ public class GeminiContentRequestConverter {
   }
 
   /**
-   * Maps {@code thinking} onto the SDK's {@link ThinkingConfig} when the modeler has opted in via
-   * {@code enabled}. {@code thinkingBudget} xor an explicit {@code thinkingLevel}, never both;
-   * {@link GeminiThinking#isBothThinkingBudgetAndLevelSet()}'s {@code @AssertFalse} bean validation
-   * should already prevent both being set, but this is defended here too rather than silently
-   * picking one.
+   * Maps {@code thinking} onto the SDK's {@link ThinkingConfig}. A {@code thinkingBudget} or an
+   * explicit (non-default) {@code thinkingLevel} is the signal to configure thinking at all;
+   * leaving both unset (the "default" thinking level with no budget) sets no {@link
+   * ThinkingConfig}, letting the model apply its own default behavior. {@code thinkingBudget} xor
+   * an explicit {@code thinkingLevel}, never both; {@link
+   * GeminiThinking#isBothThinkingBudgetAndLevelSet()}'s {@code @AssertFalse} bean validation should
+   * already prevent both being set, but this is defended here too rather than silently picking one.
    */
   private void applyThinking(
       GenerateContentConfig.Builder builder, @Nullable GeminiModelParameters params) {
     final GeminiThinking thinking = params == null ? null : params.thinking();
-    if (thinking == null || !Boolean.TRUE.equals(thinking.enabled())) {
+    if (thinking == null) {
       return;
     }
 
@@ -164,10 +166,13 @@ public class GeminiContentRequestConverter {
           ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION,
           "thinking.thinkingBudget and thinking.thinkingLevel are mutually exclusive");
     }
+    if (budget == null && !explicitLevel) {
+      return;
+    }
 
     // Thoughts are not returned unless explicitly asked for (per ThinkingConfig#includeThoughts:
     // "If true, thoughts are returned only if the model supports thought and thoughts are
-    // available"); enabling thinking at all is the signal to also request them back. Matches
+    // available"); configuring thinking at all is the signal to also request them back. Matches
     // Anthropic, which always returns thinking content once thinking is enabled and only lets
     // ThinkingDisplay control how it is formatted.
     final var thinkingConfigBuilder = ThinkingConfig.builder().includeThoughts(true);

@@ -167,22 +167,13 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
         @Valid @Nullable GeminiThinking thinking) {}
 
     /**
-     * Gemini extended-thinking configuration for a single model, applied only when {@code enabled}.
-     * Gemini 2.5 models use {@code thinkingBudget}; Gemini 3.x models use an explicit {@code
-     * thinkingLevel} (unset defaults to {@code MODEL_DEFAULT}, letting the model choose its own
-     * reasoning depth). Setting a budget alongside an explicit level is a hard API error on 3.x
-     * models &mdash; this is validated below ({@link #isBothThinkingBudgetAndLevelSet()}), not
-     * auto-resolved.
+     * Gemini extended-thinking configuration for a single model. Gemini 2.5 models use {@code
+     * thinkingBudget}; Gemini 3.x models use an explicit {@code thinkingLevel} (unset defaults to
+     * {@code MODEL_DEFAULT}, letting the model choose its own reasoning depth). Setting a budget
+     * alongside an explicit level is a hard API error on 3.x models &mdash; this is validated below
+     * ({@link #isBothThinkingBudgetAndLevelSet()}), not auto-resolved.
      */
     public record GeminiThinking(
-        @TemplateProperty(
-                group = "model",
-                label = "Enable thinking",
-                tooltip =
-                    "Enables Gemini's extended-thinking mode. Configure a token budget (Gemini 2.5) or a qualitative level (Gemini 3.x) below once enabled. <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
-                type = TemplateProperty.PropertyType.Boolean,
-                optional = true)
-            Boolean enabled,
         @Min(-1)
             @TemplateProperty(
                 group = "model",
@@ -194,28 +185,24 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                 optional = true,
                 condition =
                     @TemplateProperty.PropertyCondition(
-                        property = "provider.googleGemini.model.parameters.thinking.enabled",
-                        equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
+                        property = "provider.googleGemini.model.parameters.thinking.thinkingLevel",
+                        equals = "modelDefault"))
             @Nullable Integer thinkingBudget,
         @TemplateProperty(
                 group = "model",
                 label = "Thinking level",
                 tooltip =
-                    "Gemini 3.x models: qualitative thinking effort. \"Model default\" lets the model choose its own reasoning depth. Mutually exclusive with Thinking budget (Gemini 2.5). <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
+                    "Gemini 3.x models: qualitative thinking effort. \"default\" lets the model choose its own reasoning depth. Mutually exclusive with Thinking budget (Gemini 2.5). <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
-                  @DropdownPropertyChoice(value = "modelDefault", label = "Model default"),
+                  @DropdownPropertyChoice(value = "modelDefault", label = "default"),
                   @DropdownPropertyChoice(value = "minimal", label = "minimal"),
                   @DropdownPropertyChoice(value = "low", label = "low"),
                   @DropdownPropertyChoice(value = "medium", label = "medium"),
                   @DropdownPropertyChoice(value = "high", label = "high")
                 },
                 defaultValue = "modelDefault",
-                optional = true,
-                condition =
-                    @TemplateProperty.PropertyCondition(
-                        property = "provider.googleGemini.model.parameters.thinking.enabled",
-                        equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
+                optional = true)
             @Nullable GeminiThinkingLevel thinkingLevel) {
 
       public GeminiThinking {
