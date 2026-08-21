@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import com.openai.azure.AzureOpenAIServiceVersion;
+import com.openai.azure.AzureUrlPathMode;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.core.http.ProxyAuthenticator;
@@ -146,6 +147,13 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
    * credential itself. {@code apiVersion} is only wired when explicitly set: the unified surface
    * uses implicit versioning, so it's an escape hatch for pinning a specific version rather than
    * something every request needs.
+   *
+   * <p>{@code azureUrlPathMode} is forced to {@link AzureUrlPathMode#UNIFIED} rather than left on
+   * the SDK's default {@code AUTO} host-sniffing: the endpoint is already unconditionally
+   * normalized onto {@code /openai/v1} above, and {@code AUTO}'s host allowlist doesn't recognize
+   * Azure Government ({@code *.azure.us}) hosts as Azure at all, which would silently classify
+   * those requests as non-Azure and skip the {@code apiVersion} escape hatch (and other
+   * Azure-specific handling) regardless of path.
    */
   private static void applyFoundryBackend(
       OpenAIOkHttpClient.Builder builder,
@@ -153,6 +161,7 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
       OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver) {
     final var foundry = foundryBackend.foundry();
     builder.baseUrl(unifiedEndpoint(foundry.endpoint()));
+    builder.azureUrlPathMode(AzureUrlPathMode.UNIFIED);
 
     if (foundry.apiVersion() != null && !foundry.apiVersion().isBlank()) {
       builder.azureServiceVersion(AzureOpenAIServiceVersion.fromString(foundry.apiVersion()));

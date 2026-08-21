@@ -218,6 +218,27 @@ class OpenAiChatModelFactoryClientTest {
   }
 
   @Test
+  void appliesApiVersionForFoundryBackendRegardlessOfHost(WireMockRuntimeInfo wireMock) {
+    // WireMock's host (127.0.0.1) is not on the openai-java SDK's AzureUrlPathMode.AUTO host
+    // allowlist -- same as a real Azure Government (*.azure.us) endpoint. Without explicitly
+    // forcing AzureUrlPathMode.UNIFIED, AUTO would classify this as NON_AZURE and silently drop
+    // the apiVersion escape hatch below.
+    executeAgainst(
+        new OpenAiFoundryBackend(
+            new FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                "2025-03-01-preview",
+                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                null,
+                null,
+                null)));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/openai/v1/responses"))
+            .withQueryParam("api-version", equalTo("2025-03-01-preview")));
+  }
+
+  @Test
   void usesConfiguredBaseUrlForCustomBackend(WireMockRuntimeInfo wireMock) {
     executeAgainst(
         new OpenAiCustomBackend(
