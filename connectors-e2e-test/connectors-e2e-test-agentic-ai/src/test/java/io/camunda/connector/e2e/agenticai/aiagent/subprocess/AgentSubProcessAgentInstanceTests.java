@@ -25,6 +25,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 
+import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
+import io.camunda.client.api.search.enums.AgentInstanceStatus;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
@@ -35,6 +37,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceClientVerifier;
+import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceEngineVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.time.Duration;
@@ -100,9 +103,22 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
                     .answering("The superflux calculation of 5 and 3 is complete."))
         .noMoreInteractions();
 
-    // Verify on the engine that the agent instance the connector created actually landed on the
-    // broker and is queryable from secondary storage.
-    assertAgentInstanceCreatedOnEngine(agentInstanceKey.get(), "test-model");
+    // Read the persisted state back through the query API and assert what actually landed on the
+    // broker: the accumulated metrics (which the spy above cannot prove committed), the create-time
+    // CONFIGURATION item, and the full committed history sequence.
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1))
+        .hasDefinition("test-model", "openaiCompatible")
+        .hasToolsContaining("SuperfluxProduct")
+        .createdWithConfigurationItem("test-model", "openaiCompatible")
+        .hasConfigurationItemsAtLeast(2)
+        .hasConversationRoles(
+            AgentInstanceHistoryRole.USER,
+            AgentInstanceHistoryRole.ASSISTANT,
+            AgentInstanceHistoryRole.TOOL_RESULT,
+            AgentInstanceHistoryRole.ASSISTANT)
+        .verify();
   }
 
   /**
@@ -166,7 +182,22 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
                     .answering("The superflux calculation of 5 and 3 is complete."))
         .noMoreInteractions();
 
-    assertAgentInstanceCreatedOnEngine(agentInstanceKey.get(), "test-model");
+    // Two tool-call rounds → one extra TOOL_RESULT + ASSISTANT pair in the persisted history.
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2))
+        .hasDefinition("test-model", "openaiCompatible")
+        .hasToolsContaining("SuperfluxProduct")
+        .createdWithConfigurationItem("test-model", "openaiCompatible")
+        .hasConfigurationItemsAtLeast(2)
+        .hasConversationRoles(
+            AgentInstanceHistoryRole.USER,
+            AgentInstanceHistoryRole.ASSISTANT,
+            AgentInstanceHistoryRole.TOOL_RESULT,
+            AgentInstanceHistoryRole.ASSISTANT,
+            AgentInstanceHistoryRole.TOOL_RESULT,
+            AgentInstanceHistoryRole.ASSISTANT)
+        .verify();
   }
 
   /**
@@ -202,12 +233,15 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
             createProcessInstance(
                 Map.of("userPrompt", "Calculate the superflux product and download a file")));
 
+    final var agentInstanceKey = new AtomicLong();
     assertAgentResponse(
         zeebeTest,
-        agentResponse ->
-            AgentSubProcessResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 2)));
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 2));
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+        });
 
     final var verifier =
         AgentInstanceClientVerifier.verify(agentInstanceClient)
@@ -239,6 +273,14 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
             any(AgentConversationTurn.class));
 
     verifier.noMoreInteractions();
+
+    // Both tool results must be persisted on the engine, regardless of completion order. Roles are
+    // asserted loosely here (not the exact sequence) because the staggered early-report path can
+    // write a TOOL_RESULT row twice until per-item dedup lands (ADR 013, "Deferred").
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasToolResultsFor("SuperfluxProduct", "Download_A_File")
+        .verify();
   }
 
   /**

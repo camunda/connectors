@@ -16,12 +16,15 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
+import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
+import io.camunda.client.api.search.enums.AgentInstanceStatus;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceClientVerifier;
+import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceEngineVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.Map;
@@ -95,9 +98,22 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
                     .answering("The superflux calculation of 5 and 3 is complete."))
         .noMoreInteractions();
 
-    // Verify on the engine that the agent instance the connector created actually landed on the
-    // broker and is queryable from secondary storage.
-    assertAgentInstanceCreatedOnEngine(agentInstanceKey.get(), "gpt-4o");
+    // Read the persisted state back through the query API and assert what actually landed on the
+    // broker: the accumulated metrics (which the spy above cannot prove committed), the create-time
+    // CONFIGURATION item, and the full committed history sequence.
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1))
+        .hasDefinition("gpt-4o", "openaiCompatible")
+        .hasToolsContaining("SuperfluxProduct")
+        .createdWithConfigurationItem("gpt-4o", "openaiCompatible")
+        .hasConfigurationItemsAtLeast(2)
+        .hasConversationRoles(
+            AgentInstanceHistoryRole.USER,
+            AgentInstanceHistoryRole.ASSISTANT,
+            AgentInstanceHistoryRole.TOOL_RESULT,
+            AgentInstanceHistoryRole.ASSISTANT)
+        .verify();
   }
 
   /**
@@ -166,6 +182,21 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
                     .answering("The superflux calculation of 5 and 3 is complete."))
         .noMoreInteractions();
 
-    assertAgentInstanceCreatedOnEngine(agentInstanceKey.get(), "gpt-4o");
+    // Two tool-call rounds → one extra TOOL_RESULT + ASSISTANT pair in the persisted history.
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2))
+        .hasDefinition("gpt-4o", "openaiCompatible")
+        .hasToolsContaining("SuperfluxProduct")
+        .createdWithConfigurationItem("gpt-4o", "openaiCompatible")
+        .hasConfigurationItemsAtLeast(2)
+        .hasConversationRoles(
+            AgentInstanceHistoryRole.USER,
+            AgentInstanceHistoryRole.ASSISTANT,
+            AgentInstanceHistoryRole.TOOL_RESULT,
+            AgentInstanceHistoryRole.ASSISTANT,
+            AgentInstanceHistoryRole.TOOL_RESULT,
+            AgentInstanceHistoryRole.ASSISTANT)
+        .verify();
   }
 }
