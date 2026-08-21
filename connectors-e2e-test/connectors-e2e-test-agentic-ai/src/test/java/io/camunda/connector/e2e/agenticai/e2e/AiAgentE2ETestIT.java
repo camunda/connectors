@@ -46,6 +46,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -99,6 +100,7 @@ public class AiAgentE2ETestIT {
   private static final String GLOBAL_REGION = "global";
 
   private static final Duration USER_TASK_TIMEOUT = Duration.ofMinutes(3);
+  private static final Duration POLL_INTERVAL = Duration.ofSeconds(1);
 
   private static final String SYSTEM_PROMPT =
       "You are a helpful chat agent which can answer a wide amount of questions based on your "
@@ -689,48 +691,69 @@ public class AiAgentE2ETestIT {
    * elapsed, hiding the message that says what actually broke.
    */
   private void awaitCompletion(ProcessInstanceEvent instance) {
-    var incidents =
-        await()
-            .alias("completion of process instance " + instance.getProcessInstanceKey())
-            .atMost(USER_TASK_TIMEOUT)
-            .pollInterval(Duration.ofSeconds(1))
-            .until(() -> completionOutcome(instance), Optional::isPresent)
-            .orElseThrow();
+    awaitOrFailOnIncident(
+        instance,
+        "completion",
+        () -> isCompleted(instance) ? Optional.of(instance) : Optional.empty());
+  }
 
-    assertThat(incidents).as("active incidents").isEmpty();
+  private <T> T awaitOrFailOnIncident(
+      ProcessInstanceEvent instance, String awaited, Supplier<Optional<T>> outcome) {
+    final var settled =
+        await()
+            .alias(awaited + " of process instance " + instance.getProcessInstanceKey())
+            .atMost(USER_TASK_TIMEOUT)
+            .pollInterval(POLL_INTERVAL)
+            .until(
+                () -> new Settled<>(outcome.get(), activeIncidents(instance)), Settled::isSettled);
+
+    if (!settled.incidents().isEmpty()) {
+      throw new AssertionError(
+          "Process instance %d raised an incident instead of reaching %s: %s"
+              .formatted(
+                  instance.getProcessInstanceKey(),
+                  awaited,
+                  String.join("; ", settled.incidents())));
+    }
+    return settled.value().orElseThrow();
+  }
+
+  /** Whichever the instance produced first: the awaited outcome, or an active incident. */
+  private record Settled<T>(Optional<T> value, List<String> incidents) {
+    boolean isSettled() {
+      return value.isPresent() || !incidents.isEmpty();
+    }
   }
 
   /**
    * The instance's terminal outcome, or {@link Optional#empty()} while it is still running: an
    * empty list once it has completed, the active incidents' messages if any were raised.
    */
-  private Optional<List<String>> completionOutcome(ProcessInstanceEvent instance) {
-    var incidents =
-        camundaClient
-            .newIncidentSearchRequest()
-            .filter(
-                f ->
-                    f.processInstanceKey(instance.getProcessInstanceKey())
-                        .state(IncidentState.ACTIVE))
-            .send()
-            .join()
-            .items();
-    if (!incidents.isEmpty()) {
-      return Optional.of(
-          incidents.stream().map(i -> i.getElementId() + ": " + i.getErrorMessage()).toList());
-    }
+  /** The {@code elementId: message} of every active incident on the instance. */
+  private List<String> activeIncidents(ProcessInstanceEvent instance) {
+    return camundaClient
+        .newIncidentSearchRequest()
+        .filter(
+            f -> f.processInstanceKey(instance.getProcessInstanceKey()).state(IncidentState.ACTIVE))
+        .send()
+        .join()
+        .items()
+        .stream()
+        .map(incident -> incident.getElementId() + ": " + incident.getErrorMessage())
+        .toList();
+  }
 
-    var completed =
-        camundaClient
-            .newProcessInstanceSearchRequest()
-            .filter(
-                f ->
-                    f.processInstanceKey(instance.getProcessInstanceKey())
-                        .state(ProcessInstanceState.COMPLETED))
-            .send()
-            .join()
-            .items();
-    return completed.isEmpty() ? Optional.empty() : Optional.of(List.of());
+  private boolean isCompleted(ProcessInstanceEvent instance) {
+    return !camundaClient
+        .newProcessInstanceSearchRequest()
+        .filter(
+            f ->
+                f.processInstanceKey(instance.getProcessInstanceKey())
+                    .state(ProcessInstanceState.COMPLETED))
+        .send()
+        .join()
+        .items()
+        .isEmpty();
   }
 
   /** Reads the agent response and asserts the number of model calls it took to produce it. */
@@ -751,16 +774,10 @@ public class AiAgentE2ETestIT {
 
   /** Waits for a created user task on {@code elementId} — the feedback loop re-enters its own. */
   private long awaitUserTask(ProcessInstanceEvent instance, String elementId) {
-    var keys = new AtomicReference<List<Long>>(List.of());
-    await()
-        .atMost(USER_TASK_TIMEOUT)
-        .pollInterval(Duration.ofSeconds(2))
-        .untilAsserted(
-            () -> {
-              keys.set(createdUserTaskKeys(instance, elementId));
-              assertThat(keys.get()).as("created user task on %s", elementId).isNotEmpty();
-            });
-    return keys.get().getFirst();
+    return awaitOrFailOnIncident(
+        instance,
+        "a created user task on " + elementId,
+        () -> createdUserTaskKeys(instance, elementId).stream().findFirst());
   }
 
   private List<Long> createdUserTaskKeys(ProcessInstanceEvent instance, String elementId) {
