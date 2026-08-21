@@ -1828,7 +1828,7 @@ mismatch.
 arrived so far as a batched, status-less `update()`, one `TOOL_RESULT` item per result, same mapping
 as above. Its iteration key (`previousTurn.iterationKey() + 1`) is best-effort, not authoritative — the
 batch-complete write's key is. These items duplicate what `applyTurnStart` writes again once the batch
-completes; the duplicate row persists until `historyItemId`-based dedup lands (camunda#58792). See
+completes; the duplicate row persists until `historyItemId`-based dedup lands (camunda/camunda#58792). See
 [§9](#9-tool-completion) and
 [ADR 011](../adr/011-stream-tool-call-results-to-agent-instance-history.md).
 
