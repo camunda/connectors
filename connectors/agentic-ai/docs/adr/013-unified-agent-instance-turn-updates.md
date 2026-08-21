@@ -104,9 +104,11 @@ configuration as a `CONFIGURATION` history item (model/provider/system prompt/to
 call, though: it is not folded into the first turn's `applyTurnStart`. `AgentMetadata` starts with
 an empty `configurationFingerprintHistory`, so the first turn's `applyTurnStart` finds no previous
 fingerprint and emits its own `CONFIGURATION` item — redundant with what `create()` sent moments
-earlier, but harmless, and the two items carry different `historyItemId`s (create runs before tools
-are resolved, so its fingerprint differs). Folding creation into the first turn to remove the
-redundancy was declined to keep the change low-risk.
+earlier, but harmless. The two items usually carry different `historyItemId`s, since `create()` runs
+before tools are resolved and the fingerprint folds in the tool list; for a tool-less agent, both
+items see an empty tool list and the fingerprints (and thus `historyItemId`s) coincide, which is
+still harmless since it's an idempotent dedup key over identical content. Folding creation into the
+first turn to remove the redundancy was declined to keep the change low-risk.
 
 **Per-item dedup.** camunda/camunda#58792 (engine) has no PR yet. `historyItemId` values are already chosen so
 dedup works transparently once it lands; until then, the ADR 011 streamed-early duplicate row (one from

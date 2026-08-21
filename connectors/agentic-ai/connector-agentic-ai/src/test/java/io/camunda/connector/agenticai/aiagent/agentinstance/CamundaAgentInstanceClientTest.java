@@ -779,8 +779,9 @@ class CamundaAgentInstanceClientTest {
       assertThat(configurationItem.getLoopIteration()).isEqualTo(1);
       // a CONFIGURATION item has no natural content of its own
       assertThat(configurationItem.getContent()).isEmpty();
-      assertThat(configurationItem.getModel()).isEqualTo("gpt-4o");
-      assertThat(configurationItem.getProvider()).isEqualTo(OpenAiProviderConfiguration.OPENAI_ID);
+      // model/provider are fixed at create time only, not re-pushed by turn-start items
+      assertThat(configurationItem.getModel()).isNull();
+      assertThat(configurationItem.getProvider()).isNull();
       assertThat(configurationItem.getSystemPrompt())
           .singleElement()
           .isInstanceOfSatisfying(

@@ -110,9 +110,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         configuration.chatModel().provider());
 
     // Establish the instance definition (model/provider/systemPrompt) and tools as a CONFIGURATION
-    // history item rather than direct command fields, matching how every subsequent turn update
-    // records configuration. The first turn's applyTurnStart still emits its own CONFIGURATION item
-    // once tools are resolved -- that redundancy is accepted (ADR 013).
+    // history item rather than direct command fields. model/provider are fixed at create time and
+    // not re-pushed by later CONFIGURATION items (ai-agent.md §23); systemPrompt/tools are shared
+    // with configurationHistoryItem, which turn updates reuse. The first turn's applyTurnStart
+    // still emits its own CONFIGURATION item once tools are resolved -- that redundancy is
+    // accepted (ADR 013).
     // The engine rejects top-level limits (maxModelCalls etc.) alongside a history batch; the
     // model-call limit lives on the connector side and is recorded on the CONFIGURATION item's
     // fingerprint, consistent with how turn updates carry configuration.
@@ -123,8 +125,9 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             .jobKey(jobContext.getJobKey())
             .history(
                 List.of(
-                    configurationHistoryItem(
-                        configuration, FIRST_ITERATION, OffsetDateTime.now())));
+                    configurationHistoryItem(configuration, FIRST_ITERATION, OffsetDateTime.now())
+                        .model(configuration.chatModel().model())
+                        .provider(configuration.chatModel().provider())));
 
     final String leaseToken = jobContext.getLeaseToken();
     if (leaseToken != null && !leaseToken.isBlank()) {
@@ -291,8 +294,6 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         .content(List.of())
         .loopIteration(iterationKey)
         .producedAt(producedAt)
-        .model(configuration.chatModel().model())
-        .provider(configuration.chatModel().provider())
         .systemPrompt(
             List.of(AgentInstanceHistoryContent.text(configuration.systemPrompt().prompt())))
         .tools(toolMapper.mapTools(configuration.toolDefinitions()));

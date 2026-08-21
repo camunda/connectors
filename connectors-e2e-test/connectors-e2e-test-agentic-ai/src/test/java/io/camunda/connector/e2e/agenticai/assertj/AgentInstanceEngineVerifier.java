@@ -114,7 +114,8 @@ public class AgentInstanceEngineVerifier {
 
   /**
    * Asserts the non-CONFIGURATION roles in {@code historyItemKey} order. CONFIGURATION items are
-   * excluded because one is emitted per turn-start, not only on configuration change.
+   * excluded because {@code applyTurnStart} emits one only for the first turn or when the
+   * configuration changed since the previous turn, not on every turn-start.
    */
   public AgentInstanceEngineVerifier hasConversationRoles(AgentInstanceHistoryRole... roles) {
     historyChecks.add(
