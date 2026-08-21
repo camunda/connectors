@@ -31,7 +31,9 @@ class OpenAiFoundryCredentialResolverTest {
   @Test
   void resolvesApiKeyCredential() {
     final var credential =
-        resolver.credential(new FoundryAuthentication.ApiKeyAuthentication("foundry-secret"));
+        resolver.credential(
+            "https://my-resource.openai.azure.com",
+            new FoundryAuthentication.ApiKeyAuthentication("foundry-secret"));
 
     assertThat(credential).isNotNull();
   }
@@ -42,12 +44,34 @@ class OpenAiFoundryCredentialResolverTest {
     // token supplier (i.e. issuing a real request) would.
     final var clientCredentials =
         resolver.credential(
+            "https://my-resource.openai.azure.com",
             new FoundryAuthentication.ClientCredentialsAuthentication(
                 "client-id", "client-secret", "tenant-id", null));
     final var managedIdentity =
-        resolver.credential(new FoundryAuthentication.ManagedIdentityAuthentication(null));
+        resolver.credential(
+            "https://my-resource.openai.azure.com",
+            new FoundryAuthentication.ManagedIdentityAuthentication(null));
 
     assertThat(clientCredentials).isNotNull();
     assertThat(managedIdentity).isNotNull();
+  }
+
+  @Test
+  void resolvesClassicAzureOpenAiScope() {
+    assertThat(OpenAiFoundryCredentialResolver.scopeFor("https://my-resource.openai.azure.com"))
+        .isEqualTo("https://cognitiveservices.azure.com/.default");
+  }
+
+  @Test
+  void resolvesUnifiedFoundryScope() {
+    assertThat(
+            OpenAiFoundryCredentialResolver.scopeFor("https://my-resource.services.ai.azure.com"))
+        .isEqualTo("https://ai.azure.com/.default");
+  }
+
+  @Test
+  void defaultsToClassicScopeForNonFoundryHost() {
+    assertThat(OpenAiFoundryCredentialResolver.scopeFor("https://example.com"))
+        .isEqualTo("https://cognitiveservices.azure.com/.default");
   }
 }

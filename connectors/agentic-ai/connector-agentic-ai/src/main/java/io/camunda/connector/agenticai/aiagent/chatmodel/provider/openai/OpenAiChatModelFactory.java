@@ -157,7 +157,8 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
       builder.azureServiceVersion(AzureOpenAIServiceVersion.fromString(foundry.apiVersion()));
     }
 
-    builder.credential(openAiFoundryCredentialResolver.credential(foundry.authentication()));
+    builder.credential(
+        openAiFoundryCredentialResolver.credential(foundry.endpoint(), foundry.authentication()));
   }
 
   /**
