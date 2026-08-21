@@ -201,8 +201,7 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                   @DropdownPropertyChoice(value = "medium", label = "medium"),
                   @DropdownPropertyChoice(value = "high", label = "high")
                 },
-                defaultValue = "modelDefault",
-                optional = true)
+                defaultValue = "modelDefault")
             @Nullable GeminiThinkingLevel thinkingLevel) {
 
       public GeminiThinking {
