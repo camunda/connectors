@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT;
@@ -93,7 +95,9 @@ class AgentResponseHandlerTest {
    */
   private AgentConversation conversationWith(
       ResponseConfiguration responseConfig, AssistantMessage assistantMessage) {
-    var config = new AgentConfiguration(null, null, null, null, null, null, responseConfig);
+    var config =
+        new AgentConfiguration(
+            TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, responseConfig);
     var history = TurnReconstructor.reconstruct(List.of());
     return AgentConversation.rehydrate(
             config, BASE_AGENT_CONTEXT, history, systemMessage("system"), List.of())

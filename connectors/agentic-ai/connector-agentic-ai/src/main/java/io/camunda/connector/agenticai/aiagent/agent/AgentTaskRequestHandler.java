@@ -39,11 +39,6 @@ public class AgentTaskRequestHandler
   }
 
   @Override
-  protected boolean shouldUpdateAgentInstanceBeforeJobCompletion(AgentConversation conversation) {
-    return true;
-  }
-
-  @Override
   protected AgentTaskConnectorResponse handleNoInput(AgentTaskExecutionContext executionContext) {
     throw new ConnectorException(
         AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT,

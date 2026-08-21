@@ -66,7 +66,8 @@ public class AgentInstanceHistoryMapper {
       AgentInstanceHistoryRole role,
       List<AgentInstanceHistoryContent> content,
       @Nullable List<AgentInstanceHistoryToolCall> toolCalls,
-      OffsetDateTime producedAt) {}
+      OffsetDateTime producedAt,
+      String historyItemId) {}
 
   /**
    * @param turnIngestionTimestamp the timestamp for non-tool-result items (e.g. a {@link
@@ -82,7 +83,8 @@ public class AgentInstanceHistoryMapper {
                   AgentInstanceHistoryRole.USER,
                   contentBlocks(userMessage.content()),
                   null,
-                  turnIngestionTimestamp));
+                  turnIngestionTimestamp,
+                  AgentInstanceHistoryItemIds.forMessage(userMessage)));
       case ToolCallResultMessage toolCallResultMessage ->
           toolCallResultMessage.results().stream()
               .map(result -> toolResultHistoryItem(result, toolCallsById))
@@ -107,7 +109,8 @@ public class AgentInstanceHistoryMapper {
                 .toolName(StringUtils.defaultString(result.name()))
                 .elementId(elementIdFor(result.elementId(), result.name()))
                 .arguments(argumentsForResult(result, toolCallsById))),
-        requireCompletedAt(result));
+        requireCompletedAt(result),
+        AgentInstanceHistoryItemIds.forToolCallResult(result));
   }
 
   /**

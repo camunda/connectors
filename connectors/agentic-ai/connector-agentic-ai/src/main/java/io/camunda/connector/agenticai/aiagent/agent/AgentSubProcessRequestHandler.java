@@ -50,15 +50,6 @@ public class AgentSubProcessRequestHandler
   }
 
   @Override
-  protected boolean shouldUpdateAgentInstanceBeforeJobCompletion(AgentConversation conversation) {
-    // When the current turn requested tool calls, the subprocess stays open (tool elements are
-    // activated) and survives job completion, so the agent-instance update can be deferred to the
-    // completion listener. Otherwise (final turn, no tool calls) the subprocess completes and the
-    // update must be sent synchronously before the job completion command.
-    return !conversation.currentTurn().hasToolCalls();
-  }
-
-  @Override
   protected AgentSubProcessConnectorResponse handleNoInput(
       AgentSubProcessExecutionContext executionContext) {
     LOGGER.warn(

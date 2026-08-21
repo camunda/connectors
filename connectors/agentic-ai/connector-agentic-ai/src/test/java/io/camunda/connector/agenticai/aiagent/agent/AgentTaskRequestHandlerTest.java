@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DEFINITIONS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
@@ -40,6 +42,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InPr
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -54,7 +57,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -121,7 +123,7 @@ class AgentTaskRequestHandlerTest {
   }
 
   @Test
-  void toolDiscoveryListenerPatchesStatusOnJobCompletion() {
+  void dispatchesToolDiscoveryStatusUpdateDuringHandleRequest() {
     reset(conversationStoreRegistry);
 
     final var toolDiscoveryToolCalls =
@@ -134,39 +136,17 @@ class AgentTaskRequestHandlerTest {
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    // no agentInstanceClient calls during handleRequest itself
-    verifyNoInteractions(agentInstanceClient);
-
-    // when: job completes — TOOL_DISCOVERY status patch fires
-    response.onJobCompleted();
+    // status update fires synchronously during handleRequest -- no completion listener involved
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
             isNull(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY)));
     verifyNoMoreInteractions(agentInstanceClient);
-  }
 
-  @Test
-  void toolDiscoveryListenerSkipsStatusPatchOnJobCompletionFailure() {
-    reset(conversationStoreRegistry);
-
-    final var toolDiscoveryToolCalls =
-        List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
-    final var discoveryAgentContext =
-        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
-
-    when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
-
-    final var response = requestHandler.handleRequest(agentExecutionContext);
-
-    verifyNoInteractions(agentInstanceClient);
-
-    // when: job completion fails — listener logs and does nothing
-    response.onJobCompletionFailed(
-        new JobCompletionFailure.ExecutionFailed(new RuntimeException(), null));
-    verifyNoInteractions(agentInstanceClient);
+    // job completion triggers no further agent instance calls
+    response.onJobCompleted();
+    verifyNoMoreInteractions(agentInstanceClient);
   }
 
   @Test
@@ -293,7 +273,13 @@ class AgentTaskRequestHandlerTest {
     when(agentExecutionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
-                null, null, USER_PROMPT, null, new LimitsConfiguration(2), null, null));
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                USER_PROMPT,
+                null,
+                new LimitsConfiguration(2),
+                null,
+                null));
 
     final var contextAtLimit =
         AgentContext.builder()
@@ -316,7 +302,7 @@ class AgentTaskRequestHandlerTest {
   }
 
   @Test
-  void shouldEmitThinkingPatchThenMetricsPatchDuringHandleRequest() {
+  void shouldRecordTurnStartThenTurnCompletionWithIdleStatusWhenNoToolCalls() {
     // given
     mockConfiguration();
     mockSystemPrompt();
@@ -330,26 +316,9 @@ class AgentTaskRequestHandlerTest {
     // when
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    // then: THINKING patch first, then metrics+status patch — both emitted during handleRequest
-    verify(agentInstanceClient)
-        .update(
-            eq(agentExecutionContext),
-            any(),
-            eq(
-                AgentInstanceUpdateRequest.builder()
-                    .status(AgentInstanceUpdateStatus.THINKING)
-                    .tools(TOOL_DEFINITIONS)
-                    .build()));
-    verify(agentInstanceClient)
-        .update(
-            eq(agentExecutionContext),
-            any(),
-            eq(
-                AgentInstanceUpdateRequest.builder()
-                    .status(AgentInstanceUpdateStatus.IDLE)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
-                    .build()));
-    verifyHistoryItemsCreated();
+    // then: exactly two batched interactions emitted during handleRequest -- start, then completion
+    verifyTurnLifecycleRecorded(
+        AgentInstanceUpdateStatus.IDLE, new AgentMetrics(1, new TokenUsage(10, 20), 0));
     verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job completes — no additional agent instance calls
@@ -358,7 +327,7 @@ class AgentTaskRequestHandlerTest {
   }
 
   @Test
-  void shouldEmitThinkingPatchThenToolCallingMetricsPatchDuringHandleRequest() {
+  void shouldRecordTurnStartThenTurnCompletionWithToolCallingStatusWhenToolCalls() {
     // given
     mockConfiguration();
     mockSystemPrompt();
@@ -372,26 +341,9 @@ class AgentTaskRequestHandlerTest {
     // when
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    // then: THINKING patch first, then metrics+status patch — both emitted during handleRequest
-    verify(agentInstanceClient)
-        .update(
-            eq(agentExecutionContext),
-            any(),
-            eq(
-                AgentInstanceUpdateRequest.builder()
-                    .status(AgentInstanceUpdateStatus.THINKING)
-                    .tools(TOOL_DEFINITIONS)
-                    .build()));
-    verify(agentInstanceClient)
-        .update(
-            eq(agentExecutionContext),
-            any(),
-            eq(
-                AgentInstanceUpdateRequest.builder()
-                    .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
-                    .build()));
-    verifyHistoryItemsCreated();
+    // then: exactly two batched interactions emitted during handleRequest -- start, then completion
+    verifyTurnLifecycleRecorded(
+        AgentInstanceUpdateStatus.TOOL_CALLING, new AgentMetrics(1, new TokenUsage(10, 20), 2));
     verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job completes — no additional agent instance calls
@@ -399,37 +351,11 @@ class AgentTaskRequestHandlerTest {
     verifyNoMoreInteractions(agentInstanceClient);
   }
 
-  @Test
-  void shouldNotCountToolCallResultsInDeltaWhenLlmRespondsWithoutToolCalls() {
-    // given: tool call results arrive as input, but the LLM responds with plain text (no new tool
-    // calls)
-    mockConfiguration();
-    mockSystemPrompt();
-    mockProceed(USER_MESSAGE);
-    when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-    final var assistantMessage = assistantMessage("Done.");
-    mockChatModelExecution(assistantMessage);
-    mockResponseHandler();
-
-    // when
-    requestHandler.handleRequest(agentExecutionContext);
-
-    // then: toolCalls=0 in delta because the LLM emitted no tool calls
-    verify(agentInstanceClient)
-        .update(
-            eq(agentExecutionContext),
-            any(),
-            eq(
-                AgentInstanceUpdateRequest.builder()
-                    .status(AgentInstanceUpdateStatus.IDLE)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
-                    .build()));
-  }
-
   private void mockConfiguration() {
     when(agentExecutionContext.configuration())
-        .thenReturn(new AgentConfiguration(null, null, USER_PROMPT, null, null, null, null));
+        .thenReturn(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, USER_PROMPT, null, null, null, null));
   }
 
   private void mockSystemPrompt() {
@@ -473,11 +399,16 @@ class AgentTaskRequestHandlerTest {
         .orElse(null);
   }
 
-  private void verifyHistoryItemsCreated() {
+  /** Verifies the two batched agent-instance interactions a chat turn produces, in order. */
+  private void verifyTurnLifecycleRecorded(
+      AgentInstanceUpdateStatus expectedFinalStatus, AgentMetrics expectedMetrics) {
     verify(agentInstanceClient)
-        .createHistoryForInputMessages(eq(agentExecutionContext), any(), any(), any(), any());
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any());
+    final var turnCaptor = ArgumentCaptor.forClass(AgentConversationTurn.class);
     verify(agentInstanceClient)
-        .createHistoryForAssistantMessage(eq(agentExecutionContext), any(), any(), any());
+        .applyTurnCompletion(
+            eq(agentExecutionContext), any(), turnCaptor.capture(), any(), eq(expectedFinalStatus));
+    assertThat(turnCaptor.getValue().metrics().withExecutionTime(null)).isEqualTo(expectedMetrics);
   }
 
   private void mockChatModelExecution(AssistantMessage assistantMessage) {
