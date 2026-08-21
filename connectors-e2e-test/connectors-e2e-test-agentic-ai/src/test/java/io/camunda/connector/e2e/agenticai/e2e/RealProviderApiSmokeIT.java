@@ -558,7 +558,8 @@ class RealProviderApiSmokeIT {
                     Capability.PROMPT_CACHING,
                     Map.of(),
                     Capability.REASONING,
-                    Map.of("provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"))),
+                    Map.of(
+                        "provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"))),
             // No PROMPT_CACHING claim, since it has not been manually verified against a live
             // Vertex endpoint yet. STRUCTURED_OUTPUT, REASONING and the multimodal capabilities are
             // claimed because the request/response converters contain no backend branching at all
@@ -574,7 +575,7 @@ class RealProviderApiSmokeIT {
                     Capability.REASONING,
                         Map.of(
                             "provider.googleGemini.model.parameters.thinking.thinkingLevel",
-                                "high"))),
+                            "high"))),
             // Gemini 2.5 models use a numeric thinkingBudget rather than a qualitative level.
             // No STRUCTURED_OUTPUT claim: the Gemini API rejects a JSON response mime type
             // whenever function declarations are also present in the request, and this scenario
@@ -589,7 +590,7 @@ class RealProviderApiSmokeIT {
                     Capability.REASONING,
                         Map.of(
                             "provider.googleGemini.model.parameters.thinking.thinkingBudget",
-                                "24576"))),
+                            "24576"))),
             googleVertexAi(
                 "gemini-2.5-pro",
                 Map.of(
@@ -598,7 +599,7 @@ class RealProviderApiSmokeIT {
                     Capability.REASONING,
                         Map.of(
                             "provider.googleGemini.model.parameters.thinking.thinkingBudget",
-                                "24576"))))
+                            "24576"))))
         .filter(Provider::isEnabled);
   }
 
