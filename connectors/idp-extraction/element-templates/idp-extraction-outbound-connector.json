@@ -483,9 +483,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "baseRequest.type",
-      "equals" : "aws",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "baseRequest.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "aws",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -499,9 +505,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "baseRequest.type",
-      "equals" : "aws",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "baseRequest.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "aws",
+        "type" : "simple"
+      } ]
     },
     "type" : "Hidden"
   }, {

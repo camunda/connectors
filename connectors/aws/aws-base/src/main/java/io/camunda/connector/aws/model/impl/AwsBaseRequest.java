@@ -46,6 +46,14 @@ public class AwsBaseRequest {
   @Valid
   private AwsAuthentication authentication;
 
+  // Hidden and un-required (via the isEmpty condition) once a credential is chosen above: the
+  // bound credential's own region always wins (see getConfiguration()), so leaving `region`
+  // visible and required here would force a value that's silently discarded.
+  @NestedProperties(
+      condition =
+          @TemplateProperty.PropertyCondition(
+              property = "awsCredential",
+              isEmpty = NullableBoolean.TRUE))
   @TemplateProperty(group = "configuration")
   private AwsBaseConfiguration configuration;
 

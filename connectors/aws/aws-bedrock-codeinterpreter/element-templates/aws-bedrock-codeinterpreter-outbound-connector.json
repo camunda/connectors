@@ -149,6 +149,11 @@
       "name" : "configuration.region",
       "type" : "zeebe:input"
     },
+    "condition" : {
+      "property" : "awsCredential",
+      "isEmpty" : true,
+      "type" : "simple"
+    },
     "type" : "String"
   }, {
     "id" : "configuration.endpoint",
@@ -159,6 +164,11 @@
     "binding" : {
       "name" : "configuration.endpoint",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "awsCredential",
+      "isEmpty" : true,
+      "type" : "simple"
     },
     "type" : "Hidden"
   }, {
