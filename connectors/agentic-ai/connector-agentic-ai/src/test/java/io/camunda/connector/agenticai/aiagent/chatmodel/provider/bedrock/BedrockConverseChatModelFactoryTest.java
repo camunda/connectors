@@ -28,6 +28,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseCh
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
@@ -77,7 +79,9 @@ class BedrockConverseChatModelFactoryTest {
       spy(new AgenticAiHttpProxySupport(proxyConfiguration));
 
   private final ChatModelProperties config =
-      new ChatModelProperties(new ApiProperties(Duration.ofMinutes(3)));
+      new ChatModelProperties(
+          new ApiProperties(Duration.ofMinutes(3)),
+          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
 
   private final BedrockConverseContentConverter contentConverter =
       new BedrockConverseContentConverter(new ObjectMapper());

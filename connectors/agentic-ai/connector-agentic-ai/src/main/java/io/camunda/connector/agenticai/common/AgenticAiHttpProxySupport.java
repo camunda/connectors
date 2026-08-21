@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.common;
 
+import com.azure.core.http.ProxyOptions;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.camunda.connector.http.client.proxy.NonProxyHosts;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -165,5 +166,36 @@ public class AgenticAiHttpProxySupport {
   private static URI toUri(ProxyConfiguration.ProxyDetails proxyDetails) {
     return URI.create(
         proxyDetails.scheme() + "://" + proxyDetails.host() + ":" + proxyDetails.port());
+  }
+
+  /**
+   * Returns the {@link ProxyOptions} configured for the target scheme, if any, for azure-core/
+   * azure-identity based clients (e.g. {@code ClientSecretCredentialBuilder}, {@code
+   * ManagedIdentityCredentialBuilder}) so their own token-exchange requests to Microsoft Entra ID
+   * also go through the configured proxy rather than bypassing it.
+   */
+  public Optional<ProxyOptions> azureProxyOptions(String scheme) {
+    return proxyConfiguration
+        .getProxyDetails(scheme)
+        .map(
+            proxyDetails -> {
+              LOG.debug(
+                  "Using proxy for target scheme [{}] => [{}:{}]",
+                  scheme,
+                  proxyDetails.host(),
+                  proxyDetails.port());
+              final var options =
+                  new ProxyOptions(
+                      ProxyOptions.Type.HTTP,
+                      new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
+              options.setNonProxyHosts(
+                  NonProxyHosts.getNonProxyHostsPatterns()
+                      .distinct()
+                      .collect(Collectors.joining("|")));
+              if (proxyDetails.hasCredentials()) {
+                options.setCredentials(proxyDetails.user(), proxyDetails.password());
+              }
+              return options;
+            });
   }
 }

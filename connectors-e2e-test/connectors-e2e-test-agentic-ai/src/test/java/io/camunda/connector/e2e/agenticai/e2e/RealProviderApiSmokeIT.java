@@ -310,6 +310,47 @@ class RealProviderApiSmokeIT {
         false);
   }
 
+  // Foundry proxies the exact same OpenAI Responses/Completions wire format behind an Azure
+  // resource, so capabilities and reported usage metrics mirror openai-api -- only auth/endpoint
+  // differ. `model` doubles as the Azure deployment name (see native-providers.md), so this
+  // requires a deployment literally named after each model string below to exist on the
+  // configured resource.
+  static Provider openAiFoundryCompletionsApi(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return openAiFoundryApi("completions", model, capabilityProperties);
+  }
+
+  static Provider openAiFoundryResponsesApi(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return openAiFoundryApi("responses", model, capabilityProperties);
+  }
+
+  private static Provider openAiFoundryApi(
+      String family, String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new Provider(
+        "openai-foundry/" + family + "/" + model,
+        List.of("OPENAI_FOUNDRY_API_KEY", "OPENAI_FOUNDRY_ENDPOINT"),
+        Map.of(
+            "provider.type",
+            "openai",
+            "provider.openai.backend.type",
+            "foundry",
+            "provider.openai.backend.foundry.endpoint",
+            envOrPlaceholder("OPENAI_FOUNDRY_ENDPOINT"),
+            "provider.openai.backend.foundry.authentication.type",
+            "apiKey",
+            "provider.openai.backend.foundry.authentication.apiKey",
+            envOrPlaceholder("OPENAI_FOUNDRY_API_KEY"),
+            "provider.openai.api.type",
+            family,
+            "provider.openai.model.model",
+            model),
+        capabilityProperties,
+        // Same wire format and usage-reporting shape as openai-api: a cache-read count, no
+        // distinct cache-creation (write) metric.
+        false);
+  }
+
   static Stream<Provider> providers() {
     return Stream.of(
             // claude-sonnet-4-6 only supports thinking mode "enabled" (explicit budget) — the model
@@ -427,6 +468,32 @@ class RealProviderApiSmokeIT {
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
             openAiCompletionsApi(
+                "gpt-4.1",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
+            // Same models/capabilities as the openai-api rows above, via the foundry backend.
+            openAiFoundryResponsesApi(
+                "gpt-5.5",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
+                    Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
+            openAiFoundryCompletionsApi(
+                "gpt-5.5",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
+            openAiFoundryResponsesApi(
+                "gpt-4.1",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
+            openAiFoundryCompletionsApi(
                 "gpt-4.1",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
