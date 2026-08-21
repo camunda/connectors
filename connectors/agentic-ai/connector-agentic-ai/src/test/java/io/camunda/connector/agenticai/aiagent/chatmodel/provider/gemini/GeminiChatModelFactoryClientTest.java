@@ -14,6 +14,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -173,8 +174,7 @@ class GeminiChatModelFactoryClientTest {
 
   private static AgenticAiHttpProxySupport noProxy() {
     final var httpProxySupport = mock(AgenticAiHttpProxySupport.class);
-    final ProxyConfiguration proxyConfiguration = scheme -> Optional.empty();
-    when(httpProxySupport.getProxyConfiguration()).thenReturn(proxyConfiguration);
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
     return httpProxySupport;
   }
 

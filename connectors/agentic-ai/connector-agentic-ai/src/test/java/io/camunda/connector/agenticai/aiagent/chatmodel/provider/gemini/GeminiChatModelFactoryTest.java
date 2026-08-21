@@ -30,6 +30,7 @@ import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -49,7 +50,6 @@ class GeminiChatModelFactoryTest {
   private static final String API_KEY = "test-api-key";
 
   @Mock private AgenticAiHttpProxySupport httpProxySupport;
-  @Mock private ProxyConfiguration proxyConfiguration;
 
   private GeminiChatModelFactory factory;
 
@@ -89,7 +89,7 @@ class GeminiChatModelFactoryTest {
     assertThat(httpOptions.timeout()).isEmpty();
     assertThat(clientOf(model).apiKey()).isEqualTo(API_KEY);
 
-    verify(proxyConfiguration).getProxyDetails(ProxyConfiguration.SCHEME_HTTPS);
+    verify(httpProxySupport).okHttpProxy(ProxyConfiguration.SCHEME_HTTPS);
 
     model.close();
   }
@@ -103,7 +103,7 @@ class GeminiChatModelFactoryTest {
 
     assertThat(httpOptionsOf(model).baseUrl()).contains(endpoint);
 
-    verify(proxyConfiguration).getProxyDetails(ProxyConfiguration.SCHEME_HTTP);
+    verify(httpProxySupport).okHttpProxy(ProxyConfiguration.SCHEME_HTTP);
 
     model.close();
   }
@@ -158,12 +158,8 @@ class GeminiChatModelFactoryTest {
     // that option entirely, see GeminiChatModelFactory#buildClient's javadoc on CONNECT_TIMEOUT.
     // GeminiChatModelFactoryClientTest exercises the real wire behavior (address + credentials)
     // end to end; this only checks that the client we hand the SDK is configured at all.
-    when(httpProxySupport.getProxyConfiguration()).thenReturn(proxyConfiguration);
-    when(proxyConfiguration.getProxyDetails(any()))
-        .thenReturn(
-            Optional.of(
-                new ProxyConfiguration.ProxyDetails(
-                    "https", "proxy.example.com", 8080, "proxy-user", "proxy-pass")));
+    when(httpProxySupport.okHttpProxy(any()))
+        .thenReturn(Optional.of(proxyOf("proxy.example.com", 8080, "proxy-user", "proxy-pass")));
 
     final ChatModel model = factory.create(apiConfig(null, null));
 
@@ -174,19 +170,15 @@ class GeminiChatModelFactoryTest {
     assertThat(proxyAddress.getPort()).isEqualTo(8080);
     assertThat(customHttpClient.get().proxyAuthenticator()).isNotEqualTo(Authenticator.NONE);
 
-    verify(proxyConfiguration).getProxyDetails(ProxyConfiguration.SCHEME_HTTPS);
+    verify(httpProxySupport).okHttpProxy(ProxyConfiguration.SCHEME_HTTPS);
 
     model.close();
   }
 
   @Test
   void createOmitsProxyAuthenticatorWhenProxyHasNoCredentials() {
-    when(httpProxySupport.getProxyConfiguration()).thenReturn(proxyConfiguration);
-    when(proxyConfiguration.getProxyDetails(any()))
-        .thenReturn(
-            Optional.of(
-                new ProxyConfiguration.ProxyDetails(
-                    "https", "proxy.example.com", 8080, null, null)));
+    when(httpProxySupport.okHttpProxy(any()))
+        .thenReturn(Optional.of(proxyOf("proxy.example.com", 8080, null, null)));
 
     final ChatModel model = factory.create(apiConfig(null, null));
 
@@ -232,8 +224,13 @@ class GeminiChatModelFactoryTest {
   }
 
   private void noProxyConfigured() {
-    when(httpProxySupport.getProxyConfiguration()).thenReturn(proxyConfiguration);
-    when(proxyConfiguration.getProxyDetails(any())).thenReturn(Optional.empty());
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
+  }
+
+  private static AgenticAiHttpProxySupport.OkHttpProxy proxyOf(
+      String host, int port, @Nullable String username, @Nullable String password) {
+    return new AgenticAiHttpProxySupport.OkHttpProxy(
+        new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port)), username, password);
   }
 
   private static Client clientOf(ChatModel model) {

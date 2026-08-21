@@ -18,8 +18,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelCo
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Optional;
@@ -124,9 +122,8 @@ public class GeminiChatModelFactory implements ChatModelFactory {
     final String scheme =
         Optional.ofNullable(endpoint).map(e -> URI.create(e).getScheme()).orElse(null);
     httpProxySupport
-        .getProxyConfiguration()
-        .getProxyDetails(scheme != null ? scheme : ProxyConfiguration.SCHEME_HTTPS)
-        .ifPresent(proxyDetails -> applyProxy(okHttpClientBuilder, proxyDetails));
+        .okHttpProxy(scheme != null ? scheme : ProxyConfiguration.SCHEME_HTTPS)
+        .ifPresent(proxy -> applyProxy(okHttpClientBuilder, proxy));
 
     return Client.builder()
         .apiKey(googleGeminiApi.apiKey())
@@ -136,15 +133,18 @@ public class GeminiChatModelFactory implements ChatModelFactory {
         .build();
   }
 
-  /** Only HTTP proxies are supported today; matches what this connector's proxy support offers. */
+  /**
+   * Resolution and logging are shared with the Anthropic/OpenAI providers via {@link
+   * AgenticAiHttpProxySupport#okHttpProxy}; only the authenticator differs, since those providers'
+   * SDKs accept a {@code Proxy} directly while Gemini's raw {@link OkHttpClient.Builder} needs its
+   * own {@link okhttp3.Authenticator}.
+   */
   private static void applyProxy(
-      OkHttpClient.Builder builder, ProxyConfiguration.ProxyDetails proxyDetails) {
-    builder.proxy(
-        new Proxy(
-            Proxy.Type.HTTP, new InetSocketAddress(proxyDetails.host(), proxyDetails.port())));
+      OkHttpClient.Builder builder, AgenticAiHttpProxySupport.OkHttpProxy proxy) {
+    builder.proxy(proxy.proxy());
 
-    if (proxyDetails.hasCredentials()) {
-      final String credential = Credentials.basic(proxyDetails.user(), proxyDetails.password());
+    if (proxy.hasCredentials()) {
+      final String credential = Credentials.basic(proxy.username(), proxy.password());
       // Only answers a proxy's 407 challenge once per request: if the prior attempt already
       // carried this header, OkHttp calls the authenticator again because the proxy rejected it a
       // second time, and returning the same credential again would retry forever.
