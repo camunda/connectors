@@ -29,8 +29,8 @@ public class AwsBaseRequest {
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "awsCredential"),
       description =
-          "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's"
-              + " 'awsCredential' input.")
+          "Choose a reusable AWS credential, or configure one-time authentication parameters"
+              + " below.")
   @Valid
   private AwsCredentialConfiguration awsCredential;
 

@@ -52,7 +52,7 @@
   }, {
     "id" : "awsCredential",
     "label" : "AWS credential",
-    "description" : "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's 'awsCredential' input.",
+    "description" : "Choose a reusable AWS credential, or configure one-time authentication parameters below.",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
