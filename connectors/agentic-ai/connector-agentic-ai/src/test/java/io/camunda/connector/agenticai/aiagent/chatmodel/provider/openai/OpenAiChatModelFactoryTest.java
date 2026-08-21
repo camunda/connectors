@@ -47,6 +47,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -178,5 +179,30 @@ class OpenAiChatModelFactoryTest {
                     null)),
             new OpenAiModel(modelId),
             null));
+  }
+
+  @ParameterizedTest
+  @MethodSource("endpointsToNormalize")
+  void unifiedEndpointAppendsOpenaiV1WhenMissing(String endpoint, String expected) {
+    assertThat(OpenAiChatModelFactory.unifiedEndpoint(endpoint)).isEqualTo(expected);
+  }
+
+  static Stream<Arguments> endpointsToNormalize() {
+    return Stream.of(
+        Arguments.of(
+            "https://my-resource.openai.azure.com",
+            "https://my-resource.openai.azure.com/openai/v1"),
+        Arguments.of(
+            "https://my-resource.services.ai.azure.com",
+            "https://my-resource.services.ai.azure.com/openai/v1"),
+        Arguments.of(
+            "https://my-resource.openai.azure.com/",
+            "https://my-resource.openai.azure.com/openai/v1"),
+        Arguments.of(
+            "https://my-resource.openai.azure.com/openai/v1",
+            "https://my-resource.openai.azure.com/openai/v1"),
+        Arguments.of(
+            "https://my-resource.openai.azure.com/openai/v1/",
+            "https://my-resource.openai.azure.com/openai/v1"));
   }
 }

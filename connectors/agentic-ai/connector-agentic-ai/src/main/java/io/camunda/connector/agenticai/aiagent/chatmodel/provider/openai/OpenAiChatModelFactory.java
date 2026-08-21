@@ -139,26 +139,45 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
   }
 
   /**
-   * Applies the {@code foundry} backend: base URL, an optional {@code apiVersion} pin, and the
+   * Applies the {@code foundry} backend: base URL (normalized onto the unified OpenAI/v1 API
+   * surface, see {@link #unifiedEndpoint(String)}), an optional {@code apiVersion} pin, and the
    * {@link com.openai.credential.Credential} resolved by {@link OpenAiFoundryCredentialResolver}
    * for the configured authentication variant -- this class never builds or inspects that
-   * credential itself. The SDK detects the Azure API surface (legacy vs. unified) automatically
-   * from the endpoint's hostname; {@code apiVersion} is only wired when explicitly set, as an
-   * escape hatch for pinning a specific legacy-style API version.
+   * credential itself. {@code apiVersion} is only wired when explicitly set: the unified surface
+   * uses implicit versioning, so it's an escape hatch for pinning a specific version rather than
+   * something every request needs.
    */
   private static void applyFoundryBackend(
       OpenAIOkHttpClient.Builder builder,
       OpenAiFoundryBackend foundryBackend,
       OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver) {
     final var foundry = foundryBackend.foundry();
-    builder.baseUrl(foundry.endpoint());
+    builder.baseUrl(unifiedEndpoint(foundry.endpoint()));
 
     if (foundry.apiVersion() != null && !foundry.apiVersion().isBlank()) {
       builder.azureServiceVersion(AzureOpenAIServiceVersion.fromString(foundry.apiVersion()));
     }
 
-    builder.credential(
-        openAiFoundryCredentialResolver.credential(foundry.endpoint(), foundry.authentication()));
+    builder.credential(openAiFoundryCredentialResolver.credential(foundry.authentication()));
+  }
+
+  /**
+   * Normalizes a Foundry {@code endpoint} onto the unified OpenAI/v1 API surface Microsoft
+   * currently recommends for both classic Azure OpenAI ({@code *.openai.azure.com}) and Foundry
+   * ({@code *.services.ai.azure.com}) resources alike (see the <a
+   * href="https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/endpoints">Microsoft
+   * Foundry endpoints documentation</a>) by appending {@code /openai/v1} if the configured endpoint
+   * doesn't already end with it. Without this, a bare resource endpoint -- exactly what this
+   * backend's own template field asks for -- gets routed by the SDK's default {@code
+   * AzureUrlPathMode.AUTO} detection as the legacy, deployments-based API instead.
+   */
+  static String unifiedEndpoint(String endpoint) {
+    final var trimmed = endpoint.strip();
+    final var withoutTrailingSlash =
+        trimmed.endsWith("/") ? trimmed.substring(0, trimmed.length() - 1) : trimmed;
+    return withoutTrailingSlash.endsWith("/openai/v1")
+        ? withoutTrailingSlash
+        : withoutTrailingSlash + "/openai/v1";
   }
 
   /**
