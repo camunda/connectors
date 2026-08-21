@@ -104,6 +104,9 @@
       "name" : "OpenAI",
       "value" : "openai"
     }, {
+      "name" : "Google Gemini",
+      "value" : "google-gemini"
+    }, {
       "name" : "Custom Implementation (Self-Managed/Hybrid only)",
       "value" : "custom"
     } ]
@@ -1085,6 +1088,89 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.googleGemini.backend.type",
+    "label" : "Backend",
+    "description" : "Specify how the Gemini Developer API is reached.",
+    "value" : "google-gemini-api",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Google Gemini API",
+      "value" : "google-gemini-api"
+    } ]
+  }, {
+    "id" : "provider.googleGemini.backend.googleGeminiApi.apiKey",
+    "label" : "Gemini API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleGeminiApi.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-gemini-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleGemini.backend.googleGeminiApi.endpoint",
+    "label" : "API endpoint",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleGeminiApi.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-gemini-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.googleGemini.timeouts.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.timeouts.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.providerType",
     "label" : "Provider type",
     "description" : "Identifier for the custom chat model provider.",
@@ -1890,6 +1976,83 @@
     "placeholder" : "gpt-5.5",
     "type" : "String"
   }, {
+    "id" : "provider.googleGemini.model.model",
+    "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.googleGemini.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "placeholder" : "gemini-3-pro-preview",
+    "type" : "String"
+  }, {
+    "id" : "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+    "label" : "Thinking budget (tokens)",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.model.parameters.thinking.thinkingLevel",
+        "equals" : "modelDefault",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Gemini 2.5 models: token budget for extended thinking. -1 = dynamic, 0 = disabled. Mutually exclusive with Thinking level (Gemini 3.x). <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleGemini.model.parameters.thinking.thinkingLevel",
+    "label" : "Thinking level",
+    "optional" : false,
+    "value" : "modelDefault",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.googleGemini.model.parameters.thinking.thinkingLevel",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "tooltip" : "Gemini 3.x models: qualitative thinking effort. \"default\" lets the model choose its own reasoning depth. Mutually exclusive with Thinking budget (Gemini 2.5). <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "default",
+      "value" : "modelDefault"
+    }, {
+      "name" : "minimal",
+      "value" : "minimal"
+    }, {
+      "name" : "low",
+      "value" : "low"
+    }, {
+      "name" : "medium",
+      "value" : "medium"
+    }, {
+      "name" : "high",
+      "value" : "high"
+    } ]
+  }, {
     "id" : "provider.model",
     "label" : "Model",
     "description" : "Identifier of the model to use.",
@@ -2165,6 +2328,74 @@
       } ]
     },
     "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleGemini.model.parameters.maxTokens",
+    "label" : "Maximum tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.googleGemini.model.parameters.maxTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens to generate before stopping. <br><br>Details in the <a href=\"https://ai.google.dev/api/generate-content#v1beta.GenerationConfig\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleGemini.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.googleGemini.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "tooltip" : "Controls the randomness of the output. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://ai.google.dev/api/generate-content#v1beta.GenerationConfig\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleGemini.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.googleGemini.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://ai.google.dev/api/generate-content#v1beta.GenerationConfig\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleGemini.model.parameters.topK",
+    "label" : "top K",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.googleGemini.model.parameters.topK",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://ai.google.dev/api/generate-content#v1beta.GenerationConfig\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "data.systemPrompt.prompt",
