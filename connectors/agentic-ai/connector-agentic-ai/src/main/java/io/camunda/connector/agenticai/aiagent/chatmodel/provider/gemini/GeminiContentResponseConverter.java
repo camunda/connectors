@@ -106,7 +106,7 @@ public class GeminiContentResponseConverter {
     return new ChatResult.Completed(assistantMessage, metrics);
   }
 
-  AssistantMessage toAssistantMessage(GenerateContentResponse response) {
+  private AssistantMessage toAssistantMessage(GenerateContentResponse response) {
     // Covers both shapes of "no candidate": the absent Optional a blocked prompt actually produces,
     // and a defensively handled empty list.
     final Candidate candidate =
