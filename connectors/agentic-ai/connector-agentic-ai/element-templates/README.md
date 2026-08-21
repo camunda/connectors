@@ -30,7 +30,7 @@ running on the new chat-model provider SPI; it does not supersede the v1 templat
 | Connector         | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
 | AI Agent Task v2  | 8.10 | 1  | [`agenticai-ai-agent-task.v2.json`](./agenticai-ai-agent-task.v2.json) |
-| AI Agent Task     | 8.10 | 11 | [`agenticai-aiagent-outbound-connector.json`](./agenticai-aiagent-outbound-connector.json) |
+| AI Agent Task     | 8.10 | 12 | [`agenticai-aiagent-outbound-connector.json`](./agenticai-aiagent-outbound-connector.json) |
 | AI Agent Task     | 8.9  | 7  | [`versioned/agenticai-aiagent-outbound-connector-7.json`](./versioned/agenticai-aiagent-outbound-connector-7.json) |
 | AI Agent Task     | 8.8  | 5  | [`versioned/agenticai-aiagent-outbound-connector-5.json`](./versioned/agenticai-aiagent-outbound-connector-5.json) |
 
@@ -42,7 +42,7 @@ running on the new chat-model provider SPI; it does not supersede the v1 templat
 | Connector                | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
 | AI Agent Sub-process v2  | 8.10 | 1  | [`agenticai-ai-agent-subprocess.v2.json`](./agenticai-ai-agent-subprocess.v2.json) |
-| AI Agent Sub-process     | 8.10 | 11 | [`agenticai-aiagent-job-worker.json`](./agenticai-aiagent-job-worker.json) |
+| AI Agent Sub-process     | 8.10 | 12 | [`agenticai-aiagent-job-worker.json`](./agenticai-aiagent-job-worker.json) |
 | AI Agent Sub-process     | 8.9  | 7  | [`versioned/agenticai-aiagent-job-worker-7.json`](./versioned/agenticai-aiagent-job-worker-7.json) |
 | AI Agent Sub-process     | 8.8  | 5  | [`versioned/agenticai-aiagent-job-worker-5.json`](./versioned/agenticai-aiagent-job-worker-5.json) |
 

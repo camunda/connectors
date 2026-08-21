@@ -40,6 +40,9 @@ import org.springframework.http.ResponseEntity;
 @ExtendWith(MockitoExtension.class)
 class OutboundConnectorsRestControllerMultiInstancesTest extends BaseOutboundMultiInstancesTest {
 
+  /** Physical tenant a legacy, single-{@code CamundaClient} configuration resolves to. */
+  private static final String DEFAULT_PHYSICAL_TENANT_ID = "default";
+
   @Test
   void shouldReturnConnectorsFromAllNodes() {
     ResponseEntity<List<OutboundConnectorResponse>> response =
@@ -189,5 +192,89 @@ class OutboundConnectorsRestControllerMultiInstancesTest extends BaseOutboundMul
     assertEquals(2, metrics.size());
     assertTrue(metrics.stream().anyMatch(m -> "instance1".equals(m.runtimeId())));
     assertTrue(metrics.stream().anyMatch(m -> "instance2".equals(m.runtimeId())));
+  }
+
+  @Test
+  void shouldReportThePhysicalTenantEachConnectorRunsOn() {
+    ResponseEntity<List<OutboundConnectorResponse>> response =
+        restTemplate.exchange(
+            "http://localhost:" + port1 + "/outbound",
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<>() {});
+
+    // a single client is configured on both pods, so every entry belongs to the same engine
+    response.getBody().forEach(c -> assertEquals(DEFAULT_PHYSICAL_TENANT_ID, c.physicalTenantId()));
+  }
+
+  @Test
+  void shouldFilterByPhysicalTenantId() {
+    ResponseEntity<List<OutboundConnectorResponse>> response =
+        restTemplate.exchange(
+            "http://localhost:"
+                + port1
+                + "/outbound?physicalTenantIds="
+                + DEFAULT_PHYSICAL_TENANT_ID,
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<>() {});
+
+    // same six entries as unfiltered — the pod fan-out is unaffected by the filter
+    assertEquals(6, response.getBody().size());
+  }
+
+  @Test
+  void shouldReturnNoConnectors_whenFilteringByAnUnknownPhysicalTenantId() {
+    ResponseEntity<List<OutboundConnectorResponse>> response =
+        restTemplate.exchange(
+            "http://localhost:" + port1 + "/outbound?physicalTenantIds=nonexistent-tenant",
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<>() {});
+
+    assertTrue(response.getBody().isEmpty());
+  }
+
+  @Test
+  void shouldAcceptPhysicalTenantIdsFilter_onAggregateMetricsEndpoint() throws Exception {
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "http://localhost:"
+                + port1
+                + "/outbound/metrics?physicalTenantIds="
+                + DEFAULT_PHYSICAL_TENANT_ID,
+            HttpMethod.GET,
+            null,
+            String.class);
+
+    assertEquals(200, response.getStatusCode().value());
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response.getBody(), new TypeReference<>() {});
+    // still one entry per pod — the filter narrows each pod's own sums, not the pod fan-out itself
+    assertEquals(2, metrics.size());
+    // the client-owned worker counters carry no physical-tenant tag, so they are left out
+    assertTrue(metrics.stream().allMatch(m -> m.worker() == null));
+  }
+
+  @Test
+  void shouldAcceptPhysicalTenantIdsFilter_onMetricsByTypeEndpoint() throws Exception {
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "http://localhost:"
+                + port1
+                + "/outbound/metrics/"
+                + TYPE_1
+                + "?physicalTenantIds=nonexistent-tenant",
+            HttpMethod.GET,
+            null,
+            String.class);
+
+    assertEquals(200, response.getStatusCode().value());
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response.getBody(), new TypeReference<>() {});
+    assertEquals(2, metrics.size());
+    assertTrue(metrics.stream().allMatch(m -> m.job().completed() == 0));
   }
 }

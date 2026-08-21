@@ -13,6 +13,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assista
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.toolCallResultMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.testutil.MessageAssertions.assertMessagesEqualIgnoringSystemMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -38,8 +39,12 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -234,8 +239,6 @@ class AgentSubProcessRequestHandlerTest {
     final var assistantMessage = assistantMessage(assistantMessageText);
     mockChatModelExecution(assistantMessage);
 
-    final var expectedStoredMessages = List.of(SYSTEM_MESSAGE, USER_MESSAGE, assistantMessage);
-
     mockResponseHandler();
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -253,7 +256,9 @@ class AgentSubProcessRequestHandlerTest {
         .isNotNull()
         .isInstanceOfSatisfying(
             InProcessConversationContext.class,
-            c -> assertThat(c.messages()).containsExactlyElementsOf(expectedStoredMessages));
+            c ->
+                assertMessagesEqualIgnoringSystemMessageId(
+                    c.messages(), SYSTEM_MESSAGE, USER_MESSAGE, assistantMessage));
 
     assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
     assertThat(agentResponse.responseText()).isEqualTo(assistantMessageText);
@@ -261,8 +266,8 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.elementActivations()).isEmpty();
 
     // snapshot is captured before the assistant message is ingested
-    assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
-        .containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
+    assertMessagesEqualIgnoringSystemMessageId(
+        chatModelRequestCaptor.getValue().snapshot().messages(), SYSTEM_MESSAGE, USER_MESSAGE);
   }
 
   @Test
@@ -275,8 +280,6 @@ class AgentSubProcessRequestHandlerTest {
 
     final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
     mockChatModelExecution(assistantMessage);
-
-    final var expectedStoredMessages = List.of(SYSTEM_MESSAGE, USER_MESSAGE, assistantMessage);
 
     mockResponseHandler();
 
@@ -294,7 +297,9 @@ class AgentSubProcessRequestHandlerTest {
         .isNotNull()
         .isInstanceOfSatisfying(
             InProcessConversationContext.class,
-            c -> assertThat(c.messages()).containsExactlyElementsOf(expectedStoredMessages));
+            c ->
+                assertMessagesEqualIgnoringSystemMessageId(
+                    c.messages(), SYSTEM_MESSAGE, USER_MESSAGE, assistantMessage));
 
     assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
     assertThat(agentResponse.responseText()).isNull();
@@ -343,9 +348,6 @@ class AgentSubProcessRequestHandlerTest {
     final var assistantMessage = AssistantMessage.builder().build();
     mockChatModelExecution(assistantMessage);
 
-    final var expectedStoredMessages =
-        List.of(SYSTEM_MESSAGE, interruptedMessage, assistantMessage);
-
     mockResponseHandler();
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -363,7 +365,9 @@ class AgentSubProcessRequestHandlerTest {
         .isNotNull()
         .isInstanceOfSatisfying(
             InProcessConversationContext.class,
-            c -> assertThat(c.messages()).containsExactlyElementsOf(expectedStoredMessages));
+            c ->
+                assertMessagesEqualIgnoringSystemMessageId(
+                    c.messages(), SYSTEM_MESSAGE, interruptedMessage, assistantMessage));
 
     assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
     assertThat(agentResponse.responseText()).isNull();
@@ -376,7 +380,7 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(new CompositionResult.Deferred());
+        .thenReturn(new CompositionResult.Deferred(List.of()));
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
     assertThat(response.variables()).isEmpty();
@@ -385,6 +389,53 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.elementActivations()).isEmpty();
 
     verifyNoInteractions(chatModelRegistry, chatModel);
+    // no tool call results arrived at all — nothing to report
+    verifyNoInteractions(agentInstanceClient);
+  }
+
+  @Test
+  void reportsArrivedToolCallResultsFromComposerOnDeferredNoOp() {
+    reset(conversationStoreRegistry);
+    ConversationStore conversationStore = spy(new InProcessConversationStore());
+    doReturn(conversationStore)
+        .when(conversationStoreRegistry)
+        .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
+
+    // given: previous turn requested TOOL_CALLS ("abcdef", "fedcba"); the composer reports
+    // "abcdef" as already arrived, correlated and gateway-transformed
+    final var priorAssistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
+    final var agentContextWithHistory =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .toolDefinitions(TOOL_DEFINITIONS)
+            .conversation(
+                InProcessConversationContext.builder("conv-1")
+                    .messages(List.of(USER_MESSAGE, priorAssistantMessage))
+                    .build())
+            .build();
+    final var arrivedResult =
+        ToolCallResult.builder().id("abcdef").name("getWeather").content("Sunny").build();
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(agentContextWithHistory, List.of(arrivedResult)));
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.Deferred(List.of(arrivedResult)));
+
+    // when
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // then: still a no-op completion
+    assertThat(response.variables()).isEmpty();
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    verifyNoInteractions(chatModelRegistry, chatModel);
+
+    // and: the arrived result is reported as-is
+    @SuppressWarnings("unchecked")
+    final ArgumentCaptor<List<ToolCallResult>> resultsCaptor = ArgumentCaptor.forClass(List.class);
+    verify(agentInstanceClient)
+        .createHistoryForToolCallResults(
+            eq(agentExecutionContext), any(), resultsCaptor.capture(), any());
+    assertThat(resultsCaptor.getValue()).containsExactly(arrivedResult);
   }
 
   @Test
@@ -642,22 +693,22 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
-    final var filteredAssistantMessage =
-        AssistantMessage.builder().stopReason(StopReason.CONTENT_FILTERED).build();
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(any()))
-        .thenReturn(new ChatResult.Completed(filteredAssistantMessage, AgentMetrics.empty()));
+        .thenThrow(new ContentFilteredException("blocked by content filtering", null));
 
     assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
         .isInstanceOfSatisfying(
             ConnectorException.class,
-            e ->
-                assertThat(e.getErrorCode())
-                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED));
+            e -> {
+              assertThat(e.getErrorCode())
+                  .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED);
+              assertThat(e.getErrorVariables()).isEmpty();
+            });
 
-    // the guard fires before ingest / history write: THINKING status + input-message history are
-    // sent before the model call, but the assistant-message history write and response handling
-    // never happen
+    // the provider throws before ingest / history write: THINKING status + input-message history
+    // are sent before the model call, but the assistant-message history write and response
+    // handling never happen
     verify(agentInstanceClient, never())
         .createHistoryForAssistantMessage(any(), any(), any(), any());
     verifyNoInteractions(responseHandler);
@@ -670,18 +721,101 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
-    final var truncatedAssistantMessage =
-        AssistantMessage.builder().stopReason(StopReason.CONTEXT_WINDOW_EXCEEDED).build();
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(any()))
-        .thenReturn(new ChatResult.Completed(truncatedAssistantMessage, AgentMetrics.empty()));
+        .thenThrow(new ContextWindowExceededException("context window exceeded", null));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode())
+                  .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED);
+              assertThat(e.getErrorVariables()).isEmpty();
+            });
+
+    verify(agentInstanceClient, never())
+        .createHistoryForAssistantMessage(any(), any(), any(), any());
+    verifyNoInteractions(responseHandler);
+  }
+
+  @Test
+  void surfacesPartialResultAsRejectionErrorVariablesWhenPresent() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var partialAssistantMessage =
+        AssistantMessage.builder()
+            .content(List.of(new TextContent("partial answer before the cutoff", null)))
+            .stopReason(StopReason.of("content_filter"))
+            .build();
+    final var partialResult =
+        new ChatModelRejectedException.PartialResult(
+            partialAssistantMessage, new AgentMetrics(1, TokenUsage.empty(), 0));
+
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(any()))
+        .thenThrow(new ContentFilteredException("blocked by content filtering", partialResult));
 
     assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e ->
-                assertThat(e.getErrorCode())
-                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED));
+                assertThat(e.getErrorVariables())
+                    .isEqualTo(
+                        Map.of(
+                            "rejection",
+                            Map.of(
+                                "stopReason", "content_filter",
+                                "text", "partial answer before the cutoff"))));
+  }
+
+  @Test
+  void omitsBlankTextFromRejectionErrorVariables() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var partialAssistantMessage =
+        AssistantMessage.builder().stopReason(StopReason.of("content_filter")).build();
+    final var partialResult =
+        new ChatModelRejectedException.PartialResult(
+            partialAssistantMessage, new AgentMetrics(1, TokenUsage.empty(), 0));
+
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(any()))
+        .thenThrow(new ContentFilteredException("blocked by content filtering", partialResult));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorVariables())
+                    .isEqualTo(Map.of("rejection", Map.of("stopReason", "content_filter"))));
+  }
+
+  @Test
+  void throwsWhenGuardrailIntervenesBeforeIngestOrHistoryWrite() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(any()))
+        .thenThrow(new GuardrailInterventionException("blocked by a guardrail policy", null));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode())
+                  .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED);
+              assertThat(e.getErrorVariables()).isEmpty();
+            });
 
     verify(agentInstanceClient, never())
         .createHistoryForAssistantMessage(any(), any(), any(), any());

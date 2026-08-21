@@ -23,18 +23,20 @@ class AgentConversationTest {
   private static final AgentConfiguration CONFIG =
       new AgentConfiguration(null, null, null, null, null, null, null);
 
+  private static final SystemMessage SYSTEM_MESSAGE = systemMessage("sys");
+
   private static AgentConversation rehydrate(
       List<Message> storedMessages, List<Message> inputMessages) {
     var history = TurnReconstructor.reconstruct(storedMessages);
     return AgentConversation.rehydrate(
-        CONFIG, BASE_CONTEXT, history, systemMessage("sys"), inputMessages);
+        CONFIG, BASE_CONTEXT, history, SYSTEM_MESSAGE, inputMessages);
   }
 
   @Test
   void rehydrate_emptyHistory_producesZeroTurns() {
     var conv = rehydrate(List.of(), List.of(userMessage("hi")));
     assertThat(conv.turns()).isEmpty();
-    assertThat(conv.systemMessage()).isEqualTo(systemMessage("sys"));
+    assertThat(conv.systemMessage()).isEqualTo(SYSTEM_MESSAGE);
   }
 
   @Test
@@ -97,7 +99,7 @@ class AgentConversationTest {
   void rehydrate_createsPendingTurn_withInputMessages() {
     var inputMessages = List.<Message>of(userMessage("hello"));
     var conv = rehydrate(List.of(), inputMessages);
-    assertThat(conv.currentTurn().inputMessages()).containsExactly(userMessage("hello"));
+    assertThat(conv.currentTurn().inputMessages()).containsExactlyElementsOf(inputMessages);
     assertThat(conv.currentTurn().assistantMessage()).isNull();
   }
 
@@ -128,19 +130,18 @@ class AgentConversationTest {
     var a = assistantMessage("hello");
     var storedMessages = List.<Message>of(u, a);
     var conv = rehydrate(storedMessages, List.of(userMessage("next")));
-    // systemMessage("sys") + stored turn messages + pending input
-    assertThat(conv.allMessages()).contains(systemMessage("sys"), u, a);
+    // SYSTEM_MESSAGE + stored turn messages + pending input
+    assertThat(conv.allMessages()).contains(SYSTEM_MESSAGE, u, a);
   }
 
   @Test
   void allMessages_omitsSystemMessage_whenNull() {
     var history = TurnReconstructor.reconstruct(List.of());
-    var conv =
-        AgentConversation.rehydrate(
-            CONFIG, BASE_CONTEXT, history, null, List.of(userMessage("hi")));
+    var input = userMessage("hi");
+    var conv = AgentConversation.rehydrate(CONFIG, BASE_CONTEXT, history, null, List.of(input));
     assertThat(conv.systemMessage()).isNull();
     assertThat(conv.allMessages()).noneMatch(SystemMessage.class::isInstance);
-    assertThat(conv.allMessages()).containsExactly(userMessage("hi"));
+    assertThat(conv.allMessages()).containsExactly(input);
   }
 
   @Test

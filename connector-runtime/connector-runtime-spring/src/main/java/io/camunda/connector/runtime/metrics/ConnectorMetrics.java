@@ -135,24 +135,69 @@ public class ConnectorMetrics {
     public static final String ACTION_CORRELATION_FAILED = "correlation-failed";
   }
 
+  /**
+   * Physical tenant (engine) a meter is attributed to when none could be resolved — a job handled
+   * by legacy single-client wiring that configures no {@code physical-tenant-id}. Mirrors the same
+   * fallback applied to the scalar single-{@code CamundaClient} beans elsewhere in the runtime, so
+   * both sides agree on the tenant a single-engine deployment reports.
+   */
+  public static final String DEFAULT_PHYSICAL_TENANT_ID = "default";
+
+  /**
+   * Attributes the counter to the job's own physical tenant. Callers that know which physical
+   * tenant's job worker received the job should prefer {@link #counter(ActivatedJob, String)}, so
+   * that the meter and the {@code /outbound} entry it belongs to always carry the same value.
+   */
   public static CounterMetricsContext counter(ActivatedJob job) {
+    return counter(job, null);
+  }
+
+  public static CounterMetricsContext counter(ActivatedJob job, String physicalTenantId) {
     Result result = Result.getResult(job);
     return new CounterMetricsContext(
         Outbound.METRIC_NAME_INVOCATIONS,
         Map.ofEntries(
             Map.entry(ConnectorMetrics.Tag.TYPE, result.type()),
             Map.entry(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id()),
-            Map.entry(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())),
+            Map.entry(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version()),
+            Map.entry(
+                ConnectorMetrics.Tag.PHYSICAL_TENANT_ID,
+                resolvePhysicalTenantId(physicalTenantId, result))),
         1);
   }
 
+  /** See {@link #counter(ActivatedJob)}; the equivalent for the execution-time timer. */
   public static TimerMetricsContext timer(ActivatedJob job) {
+    return timer(job, null);
+  }
+
+  public static TimerMetricsContext timer(ActivatedJob job, String physicalTenantId) {
     Result result = Result.getResult(job);
     return new TimerMetricsContext(
         ConnectorMetrics.Outbound.METRIC_NAME_TIME,
         Map.ofEntries(
             Map.entry(ConnectorMetrics.Tag.TYPE, result.type()),
             Map.entry(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id()),
-            Map.entry(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())));
+            Map.entry(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version()),
+            Map.entry(
+                ConnectorMetrics.Tag.PHYSICAL_TENANT_ID,
+                resolvePhysicalTenantId(physicalTenantId, result))));
+  }
+
+  /**
+   * Prefers the physical tenant the job worker was opened for (the same ID the {@code /outbound}
+   * listing and the per-physical-tenant document/secret beans are keyed by) over the one reported
+   * on the job itself, so that a meter and the connector entry it belongs to always carry the same
+   * value. Falls back to the job's own physical tenant, then to {@link
+   * #DEFAULT_PHYSICAL_TENANT_ID}: a tag value is never allowed to be null.
+   */
+  private static String resolvePhysicalTenantId(String physicalTenantId, Result result) {
+    if (physicalTenantId != null && !physicalTenantId.isBlank()) {
+      return physicalTenantId;
+    }
+    if (result.physicalTenantId() != null && !result.physicalTenantId().isBlank()) {
+      return result.physicalTenantId();
+    }
+    return DEFAULT_PHYSICAL_TENANT_ID;
   }
 }

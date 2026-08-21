@@ -135,6 +135,27 @@ class AgentConversationTurnInputComposerImplTest {
     var history = TurnReconstructor.reconstruct(storedMessages);
     var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    // the arrived result is carried on Deferred so the caller can report it early (ADR 011)
+    assertThat(((CompositionResult.Deferred) result).arrivedResults())
+        .containsExactly(TOOL_CALL_RESULTS.getFirst());
+  }
+
+  @Test
+  void toolResultTurn_missingResults_deferredCarriesOnlyCorrelatingResult() {
+    // a stray/redelivered result for an id this turn isn't waiting on must not appear in
+    // Deferred's arrivedResults, and must not cause a failure either
+    var strayResult = ToolCallResult.builder().id("stray-id").name("unrelated").build();
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(TOOL_CALL_RESULTS.getFirst(), strayResult));
+    List<Message> storedMessages =
+        List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
+    var history = TurnReconstructor.reconstruct(storedMessages);
+    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    assertThat(((CompositionResult.Deferred) result).arrivedResults())
+        .containsExactly(TOOL_CALL_RESULTS.getFirst());
   }
 
   @Test
@@ -264,6 +285,8 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
 
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    assertThat(((CompositionResult.Deferred) result).arrivedResults())
+        .containsExactly(TOOL_CALL_RESULTS.getFirst());
   }
 
   @Test
@@ -288,6 +311,8 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
 
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    assertThat(((CompositionResult.Deferred) result).arrivedResults())
+        .containsExactly(TOOL_CALL_RESULTS.getFirst());
   }
 
   @Test
@@ -381,11 +406,12 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void toolResultTurn_bareDocumentResult_deliversDocumentOnlyViaFallbackMessage() {
+  void toolResultTurn_bareDocumentResult_liftsToDocumentContentAndAlsoDeliversFallbackMessage() {
     // a tool call result whose whole content is a Document (not nested in an object): the
-    // ToolCallResultContent lift must not turn this into a first-class DocumentContent, since a
-    // native provider tool-result converter would then embed the same bytes a second time — the
-    // fallback <doc/> message stays the document's only delivery channel
+    // ToolCallResultContent lift turns this into a first-class DocumentContent, same as every
+    // other content-lift path; the fallback <doc/> message is still composed alongside it
+    // regardless — provider tool-result converters are responsible for not embedding the same
+    // bytes a second time, not this provider-agnostic composition step
     var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
     var input =
         AgentInput.from(
@@ -414,7 +440,9 @@ class AgentConversationTurnInputComposerImplTest {
         .filteredOn(r -> "abcdef".equals(r.id()))
         .first()
         .satisfies(
-            r -> assertThat(r.content()).doesNotHaveAnyElementsOfTypes(DocumentContent.class));
+            r ->
+                assertThat(r.content())
+                    .containsExactly(DocumentContent.documentContent(weatherDoc)));
     assertThat(messages.get(1))
         .isInstanceOfSatisfying(
             UserMessage.class,

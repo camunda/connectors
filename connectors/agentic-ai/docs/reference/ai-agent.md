@@ -442,6 +442,21 @@ static window filter:
     `ToolCallResultMessage` entries (some providers error on orphaned tool results)
   - Also evicts follow-up tool-call-document user messages attached to evicted results
 
+### Message Identity
+
+Every `Message` (`SystemMessage`, `UserMessage`, `AssistantMessage`, `ToolCallResultMessage`)
+carries a self-generated `id()` of type `MessageId`, independent of any provider-issued id (see
+[ADR 012](../adr/012-stable-self-generated-message-ids.md)). A UUIDv7 value is generated once, at
+first construction (`@RecordBuilder.Initializer(source = MessageUtil.class, value =
+"generateId")`), and stays stable thereafter because it round-trips through persistence rather
+than being re-derived. `MessageId` serializes as a bare JSON string and accepts any valid UUID on
+parse, not only v7. Messages persisted before this field existed get backfilled with a fresh id
+the first time they're deserialized — the same initializer mechanism, no separate migration step.
+`AwsAgentCoreConversationStore` round-trips it explicitly via a dedicated property
+(`AwsAgentCoreConversationMapper.PROPERTY_ID`), since it doesn't go through Jackson like the other
+two stores. `AssistantMessage.messageId()` (provider-sourced) and `ToolCall.id` (provider- or
+gateway-sourced) are separate, untouched identities — see the ADR for why they don't merge.
+
 ### ConversationStore Implementations
 
 **InProcessConversationStore** (`type = "in-process"`):
@@ -767,23 +782,26 @@ In `AgentConversationTurnInputComposerImpl.compose`, when the last reconstructed
 `AssistantMessage` that has tool calls (`history.turns().getLast().hasToolCalls()`):
 
 ```java
-final var orderedToolCallResults =
+final var resolution =
     resolveOrderedToolCallResults(
         agentContext, toolCalls, agentInput.toolCallResults(), interruptMissingToolCalls);
 
 // either we have all results or we interrupted the missing tool calls
-// if empty, we wait on further tool call results to be added
-if (orderedToolCallResults.isEmpty()) {
-    return new CompositionResult.Deferred();
+// if incomplete, we wait on further tool call results to be added
+if (!resolution.complete()) {
+    return new CompositionResult.Deferred(resolution.results());
 }
 ```
 
-The method checks each tool call from the last assistant message against the available results
-(`Optional<List<ToolCallResult>>`):
-- If all present: returns the results ordered to match the original tool call order; `compose` then
-  builds the `ToolCallResultMessage` from them
-- If missing and NOT interrupting: returns `Optional.empty()` → `compose` returns `CompositionResult.Deferred` → handler completes as a no-op
-- If missing and interrupting (due to event): creates cancelled results for missing tools, returned alongside the present ones
+The method correlates and gateway (MCP/A2A) transforms the available results, then checks each tool
+call from the last assistant message against them (`ToolCallResultsResolution(results, complete)`):
+- If all present: `complete` is `true`; `compose` builds the `ToolCallResultMessage` from `results`,
+  ordered to match the original tool call order
+- If missing and NOT interrupting: `complete` is `false`; `results` holds only the ones that arrived
+  so far → `compose` returns `CompositionResult.Deferred(results)` (ADR 011) → handler reports them
+  to agent instance history and completes as a no-op
+- If missing and interrupting (due to event): `complete` is `true`; cancelled results are added for
+  the missing tool calls, alongside the present ones
 
 ### No-Op Detection in BaseAgentRequestHandler
 
@@ -792,8 +810,10 @@ The method checks each tool call from the last assistant message against the ava
 
 ```java
 return switch (compositionResult) {
-    case CompositionResult.Deferred ignored ->
-        handleNoOp(executionContext);          // wait for more tool results
+    case CompositionResult.Deferred(var arrivedResults) -> {
+        reportArrivedToolCallResults(..., arrivedResults, ...); // ADR 011 — report what's arrived so far
+        yield handleNoOp(executionContext);    // wait for more tool results
+    }
     case CompositionResult.NoInput ignored ->
         handleNoInput(executionContext);       // nothing to add; handler decides
     case CompositionResult.NextTurn(var newMessages) ->
@@ -807,6 +827,31 @@ more results). When no input (user prompt, documents or events) is available at 
 `CompositionResult.NoInput`. This variant carries no error semantics — each handler decides: the job
 worker's `handleNoInput` completes without a response, while the outbound connector's `handleNoInput`
 throws a `ConnectorException` with `ERROR_CODE_NO_USER_MESSAGE_CONTENT`.
+
+### Streaming Arrived Results to Agent Instance History (ADR 011)
+
+`CompositionResult.Deferred` carries `arrivedResults`: the tool call results correlated and
+gateway-transformed by `AgentConversationTurnInputComposerImpl.resolveOrderedToolCallResults`
+before it determined the batch was still incomplete. `BaseAgentRequestHandler.reportArrivedToolCallResults`
+reports these to agent instance history via `AgentInstanceClient.createHistoryForToolCallResults`
+before completing the job, so history shows progress before the slowest tool call in a turn
+finishes — instead of only once the whole batch completes and `proceed()` runs. See
+[ADR 011](../adr/011-stream-tool-call-results-to-agent-instance-history.md) for the full design.
+
+- **Correlation and gateway (MCP/A2A) transformation happen once**, in the composer, for both the
+  `Deferred` and `NextTurn` paths. A stray or redelivered id that doesn't correlate to a tool call
+  the turn is waiting on never makes it into `arrivedResults`.
+- **Written once per job that still observes it.** `arrivedResults` is the full cumulative
+  correlated set on every call, since Zeebe's `toolCallResults` variable is cumulative across jobs
+  (§9) and there is no state to track what an earlier job already reported. A result that arrives
+  while other tool calls in the same turn are still outstanding is reported by every subsequent
+  incomplete job that still observes it, plus once more by `createHistoryForInputMessages` once
+  the batch completes — for a turn with `N` staggered tool calls, up to `N(N+1)/2` writes in total.
+- **No new persisted state.** The `Deferred` path touches neither `AgentContext` nor the
+  `ConversationStore` — reporting to agent instance history is its only side effect.
+- **Strict failure.** Unlike the metrics-update listener (which fires after job completion and
+  swallows failures), this call runs before completion and a failure fails the job, same as the
+  other `AgentInstanceClient` history calls.
 
 ---
 
@@ -822,6 +867,8 @@ throws a `ConnectorException` with `ERROR_CODE_NO_USER_MESSAGE_CONTENT`.
 - The `JobCallbackCommandWrapperFactory` retries up to 3 times with backoff
 - The no-op completion pattern means most superseded jobs were doing nothing anyway
 - Superseded jobs produce a `CommandIgnored` outcome — the conversation store receives `onJobCompletionFailed` with a `CommandIgnored` failure
+
+**Job leasing**: All AI Agent connectors — both flavors, v1 and v2 (`AgentTaskV1Function`, `AgentTaskV2Function`, `AgentSubProcessV1Function`, `AgentSubProcessV2Function`) — opt into job leasing via `@OutboundConnector(withLease = true)`. (v1 is leased too because the agent-instance integration does not differentiate by version: a custom v1 template can still carry an agent definition and emit visibility data, so it needs the same fencing.) Each activation carries a per-activation `leaseToken` (`JobContext#getLeaseToken()`), and the runtime completes/fails jobs through the `ActivatedJob`-based command overloads, so completion is fenced against a superseded activation automatically. The agent-instance conversation-history writes are fenced too — `CamundaAgentInstanceClient` forwards the token via `jobLease(...)` on the create-history command, so a superseded activation's history items are discarded server-side (see [§23](#23-agent-instance-integration)). The status/metrics update goes through a separate command that carries no history batch, and its `jobLease` step only guards a batched history list, so those updates are not lease-fenced (best-effort, as before). Note the version-skew contract on `OutboundConnector#withLease`: over gRPC a pre-leasing gateway drops the field (token is `null`), so the client only forwards a lease when one is present; over REST an older gateway rejects the activation (HTTP 400). The gateway/MCP/A2A tool connectors are not leased. For the underlying job-lease mechanism itself, see the monorepo ADR [0005-810-job-lease](https://github.com/camunda/camunda/blob/main/zeebe/docs/adr/0005-810-job-lease.md).
 
 ### Challenge 2: Conversation Store Ahead of Zeebe
 
@@ -951,7 +998,7 @@ loud rather than resolving implicitly.
 ### Turn-based continuation loop
 
 `BaseAgentRequestHandler.proceed` drives the SPI in a `do { … } while (continued)` loop: each
-iteration calls `chatModel.execute(request)`, enforces the content-filter guard (below), ingests the
+iteration calls `chatModel.execute(request)`, catches `ChatModelRejectedException` (below), ingests the
 assistant message into the turn, and — only if the result was a `Continuation` — checks the
 model-call limit and starts the next continuation round on a fresh turn before looping. A `Completed`
 result ends the loop. LangChain4j always returns `Completed`, so the loop runs exactly once for it —
@@ -964,13 +1011,17 @@ invocation. The engine applies metric updates additively, so collapsing the roun
 keeps the counters correct while minimizing PATCH round-trips (and narrows the retry double-count
 window pending the API-level idempotency fix).
 
-### Normalized stop reasons & the terminal-stop-reason guard
+### Normalized stop reasons & ChatModelRejectedException
 
-`StopReason` is a sealed, provider-neutral finish reason living on `AssistantMessage`, mostly
-diagnostic. One exception: `BaseAgentRequestHandler.throwIfTerminalStopReason` checks it generically,
-before ingesting the response, and throws a dedicated error code for terminal reasons
-(`CONTENT_FILTERED`, `CONTEXT_WINDOW_EXCEEDED`) rather than every provider reimplementing the guard —
-see [Error Codes](#15-error-codes).
+`StopReason` is a sealed, provider-neutral finish reason on `AssistantMessage`. A provider that
+recognizes an unrecoverable rejection condition throws `ChatModelRejectedException` (a sealed type,
+one concrete subtype per condition) directly, at the point of detection, rather than returning data
+for a caller to inspect. Each subtype carries an optional `PartialResult` — the assistant message
+and metrics already built for the turn, when any exist; a provider that rejects the request before
+producing any content has none. `BaseAgentRequestHandler` catches the sealed type around each
+`chatModel.execute(...)` call and maps it to the matching coded `ConnectorException` (see
+[Error Codes](#15-error-codes)) before ingesting anything, so a rejected turn is never persisted to
+conversation memory.
 
 ### LangChain4j Implementation
 
@@ -1114,6 +1165,7 @@ on).
 | `ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION`            | `UNSUPPORTED_MODEL_CONFIGURATION`              | model configuration is invalid for the provider                         |
 | `ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED`            | `MODEL_RESPONSE_CONTENT_FILTERED`              | provider blocked the model response with content filtering              |
 | `ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED`              | `MODEL_CONTEXT_WINDOW_EXCEEDED`                | model's context window was exceeded before it finished responding       |
+| `ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED`        | `MODEL_RESPONSE_GUARDRAIL_INTERVENED`          | provider blocked the model response with a guardrail policy             |
 | `ERROR_CODE_MIGRATION_MISSING_TOOLS`                    | `MIGRATION_MISSING_TOOLS`                      | existing tools were removed after a process migration                   |
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
@@ -1221,7 +1273,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 
 ### Core Agent Logic
 - `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → load + reconstruct → compose → rehydrate → LLM (continuation loop) → ingest → persist → complete
-- `BaseAgentRequestHandler.proceed()` → `do { chatModel.execute() → content-filter guard → ingest → … } while (continued)` — the turn-based continuation loop ([§12](#12-framework-abstraction))
+- `BaseAgentRequestHandler.proceed()` → `do { chatModel.execute() → ChatModelRejectedException handling → ingest → … } while (continued)` — the turn-based continuation loop ([§12](#12-framework-abstraction))
 - `AgentInitializerImpl.initializeAgent()` → State machine / initialization
 - `TurnReconstructor.reconstruct()` → Rebuilds turns + system message from the stored flat message list
 - `AgentConversationTurnInputComposerImpl.compose()` → Turn input assembly (tool results, events, user prompt) → `AgentInput`
@@ -1251,13 +1303,20 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `SystemPromptComposerImpl.compose()` → Aggregates base prompt + contributions
 - `A2aSystemPromptContributor` → A2A protocol instructions (order 100)
 
-### Chat Model SPI & LangChain4j
+### Chat Model SPI
+
 - `ChatModelRegistryImpl.resolve()` → Provider resolution by `ChatModelFactory.supports()`, fail-loud on zero/multiple matches
-- `LangChain4JChatModel.execute()` → Main LLM call path (LangChain4j implementation)
+
+**v1 (LangChain4j-backed)**, all under `aiagent/chatmodel/provider/langchain4j/**`:
+- `LangChain4JChatModel.execute()` → Main LLM call path
 - `ChatMessageConverterImpl` → Message conversion chain
 - `ToolSpecificationConverterImpl` → Tool definition conversion
-- `AnthropicChatModelFactory`, `BedrockChatModelFactory`, `OpenAiChatModelFactory`, `OpenAiCompatibleChatModelFactory`, `AzureOpenAiChatModelFactory`, `GoogleVertexAiChatModelFactory` → Provider-specific `ChatModel` creation (`LangChain4JChatModelFactory` subclasses)
-- `AnthropicChatModelApiFactory` → Native (non-LangChain4J) Anthropic `ChatModel` creation for `AnthropicChatModelConfiguration` (v2, `aiagent/chatmodel/provider/anthropic/**`); `AnthropicChatModelApi.execute()` drives the Anthropic Java SDK's stable Messages client directly
+- `factory.AnthropicChatModelFactory`, `factory.BedrockChatModelFactory`, `factory.OpenAiChatModelFactory`, `factory.OpenAiCompatibleChatModelFactory`, `factory.AzureOpenAiChatModelFactory`, `factory.GoogleVertexAiChatModelFactory` → Provider-specific `ChatModel` creation (`LangChain4JChatModelFactory` subclasses)
+
+**v2 (fully native, no LangChain4j)**, one package per provider under `aiagent/chatmodel/provider/**`:
+- `anthropic.AnthropicChatModelFactory` / `anthropic.AnthropicChatModel.execute()` → Drives the Anthropic Java SDK's stable Messages client directly, for `AnthropicChatModelConfiguration`
+- `bedrock.BedrockConverseChatModelFactory` / `bedrock.BedrockConverseChatModel.execute()` → Drives the AWS SDK's async `converseStream` operation (the synchronous `BedrockRuntimeClient` has no streaming operation), assembling the streamed events into a `ConverseResponse` via `BedrockConverseStreamAssembler`, for `BedrockConverseChatModelConfiguration`
+- `openai.OpenAiChatModelFactory` / `openai.OpenAiChatModel.execute()` → Drives the OpenAI Java SDK directly across both wire formats (Chat Completions, Responses) via the per-family `OpenAiApiFamilyStrategy` seam, for `OpenAiChatModelConfiguration`
 
 ### Configuration
 - `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
@@ -1736,11 +1795,23 @@ currently fall back to an object/text block — see follow-ups), and the additiv
 `ProviderContent` blocks ([§5](#5-data-model)) → an object block wrapping the record / the raw
 provider payload respectively (`AgentInstanceHistoryMapper`; neither is produced by the LangChain4j
 path yet). The item carries the current turn's
-`iterationKey` and the active `jobKey`; the engine discards superseded/non-completed items by
-observing job completion (`jobLease` enforcement is a planned follow-up, camunda/camunda#55033).
+`iterationKey` and the active `jobKey`, and — for a leased activation — the `jobLease` token; the
+engine correlates the item to the active job by `jobKey` and discards it when the supplied lease
+doesn't match a superseded activation (see below).
+
+**Job-lease fencing.** With the AI Agent connectors leased ([§10](#10-concurrency-challenges--race-conditions)), the activation's `leaseToken` reaches `CamundaAgentInstanceClient`, which forwards it via `jobLease(...)` on the create-history command (`newCreateAgentHistoryItemCommand`) whenever a token is present. That command also sends the active `jobKey`; the engine correlates the item to the job by `jobKey` and rejects it (`NOT_FOUND`, "supplied lease does not match") when the lease doesn't match — so a superseded activation's history items are discarded rather than committed. A token is absent (and no lease forwarded) only in the gRPC version-skew case (a pre-leasing gateway drops the field). The status/metrics update (`newUpdateAgentInstanceCommand`) is **not** lease-fenced: on that command `jobLease` only guards a batched `history(...)` list, which this connector never sends via the update (history goes through the dedicated create-history command), so a stale status/metrics update is not rejected. That is a best-effort write, unchanged from before leasing.
 
 Failures to write a history item are **fatal** to the turn (propagated after retries), unlike the
 best-effort metrics updates.
+
+**Streamed early (ADR 011).** A third call, `createHistoryForToolCallResults`, fires from
+`BaseAgentRequestHandler.converse`'s `Deferred` branch — before the turn's tool-call batch is
+complete — reporting whichever results have arrived and correlate to the previous turn's tool
+calls so far, one `TOOL_RESULT` item per result, same mapping as above. Its iteration key
+(`previousTurn.iterationKey() + 1`) is best-effort, not authoritative — the batch-complete write's
+key is. These items duplicate what `createHistoryForInputMessages` writes again once the batch
+completes. See [§9](#9-tool-completion) and
+[ADR 011](../adr/011-stream-tool-call-results-to-agent-instance-history.md).
 
 ---
 
@@ -1820,73 +1891,56 @@ reference implementation and its wiring for the current exact procedure, and res
 
 ### 25.1 Add an LLM provider
 
-Implement `ChatModelFactory` (`supports(ChatModelConfiguration)` / `create(ChatModelConfiguration)`)
-and register it as a Spring bean; `ChatModelRegistryImpl` auto-collects every `ChatModelFactory` bean
-and routes a request to the single one whose `supports` returns true ([§12](#12-framework-abstraction)).
-A provider going through LangChain4j extends the abstract `LangChain4JChatModelFactory<T extends
-ProviderConfiguration>` (the v1 `ProviderConfiguration`) instead — it only needs to supply
-`providerType()` and `createChatModel(T)`, plus the matching `ProviderConfiguration` subtype
-(`supports`/`create` are already implemented by the
-base class). Reference implementation: `AnthropicChatModelFactory` with
-`AnthropicProviderConfiguration`. The LangChain4j provider package
-(`aiagent/chatmodel/provider/langchain4j/**`) is the only place that may touch `dev.langchain4j`
-(invariant I1); a fully native provider implements `ChatModel`/`ChatModelFactory` directly with its own
-`ChatModelConfiguration` and stays out of that package. Reference implementation for a fully native
-provider: `AnthropicChatModelApiFactory` (`aiagent/chatmodel/provider/anthropic/**`) with
-`AnthropicChatModelConfiguration` (`model/request/v2`) — drives the Anthropic Java SDK's stable
-Messages client directly (no LangChain4J), covering the request/response converter chain, transport,
-reasoning/effort/prompt-caching, and Spring registration end to end.
+**The SPI.** Implement `ChatModelFactory` (`supports(ChatModelConfiguration)` /
+`create(ChatModelConfiguration)`) and register it as a Spring bean; `ChatModelRegistryImpl`
+auto-collects every `ChatModelFactory` bean and routes each request to the one whose `supports`
+returns true ([§12](#12-framework-abstraction)).
 
-**Backend-subtype wrapping convention (v2, mandatory for every new backend).** A v2 provider's
-backend is a sealed interface with one `@TemplateSubType` per backend variant, discriminated by a
-`type` property (see `AnthropicChatModelConfiguration.AnthropicBackend`). The element template
-generator flat-validates that every generated property id is globally unique across the whole
-template — it has no awareness that sibling discriminator subtypes are mutually exclusive, so two
-subtypes with a same-named field (e.g. both an `apiKey`, both an `endpoint`) collide even though only
-one is ever active at a time. The fix, applied uniformly to every subtype including the default: each
-subtype wraps **all** of its own fields inside a single container field, uniquely named for that
-subtype (e.g. `anthropic` for `AnthropicApiBackend`, `custom` for `AnthropicCustomBackend`) — since the
-generator derives a container's id-path prefix purely from the Java field name, this makes every
-subtype's whole subtree collision-proof regardless of what its siblings look like, with no per-leaf
-`id=` overrides needed. The wrapper field name does not need to match the subtype's `@TemplateSubType`
-id verbatim (ids may contain characters, such as `-`, invalid in a Java identifier) — it only needs to
-be distinct from every sibling's wrapper field name. Extract each subtype's discriminator string (the
-`@TemplateSubType` id / `@JsonSubTypes.Type` name / `type()` return value — all the same string) into a
-`public static final String` constant on that subtype's own record, and reference the constant from
-all three places plus the discriminator's `defaultValue`, so the string is defined once. Apply this
-convention to every new v2 provider backend (OpenAI, Gemini, Bedrock, etc.), not just Anthropic's.
+**v1: LangChain4j-backed.** Extend the abstract `LangChain4JChatModelFactory<T extends
+ProviderConfiguration>` (v1's `ProviderConfiguration`) — supply `providerType()` and
+`createChatModel(T)` plus a matching `ProviderConfiguration` subtype; `supports`/`create` are already
+implemented by the base class. Reference: `AnthropicChatModelFactory`
+(`aiagent/chatmodel/provider/langchain4j/factory`) with `AnthropicProviderConfiguration`. Only
+`aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*` (invariant I1).
 
-**Provider-namespaced metadata convention.** Any provider-specific data a converter attaches outside
-a domain object's mapped fields — whether on a content block (`TextContent`/`ToolCall`'s `metadata`,
-see [§5](#5-data-model-agent-context)) or on the message itself (`AssistantMessage#metadata()`, e.g.
-the raw vendor stop reason) — must be nested under a single provider-namespaced key (`"anthropic"`
-for the Anthropic converters), never written as top-level metadata entries. This keeps metadata from
-different providers (and future cross-provider fields) from colliding, and keeps the common,
-nothing-extra-to-preserve case metadata-free. Apply this to every new provider's converters.
+**v2: fully native.** Implement `ChatModel`/`ChatModelFactory` directly with your own
+`ChatModelConfiguration`, staying out of the `langchain4j` package. Reference implementation:
+`AnthropicChatModelFactory` (`aiagent/chatmodel/provider/anthropic`) with
+`AnthropicChatModelConfiguration` (`model/request/v2`); the other native providers under
+`aiagent/chatmodel/provider/**` follow the same shape. A v2 provider without a built-in factory falls
+through to `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/Hybrid
+only): it carries a user-chosen `providerType` (dispatch discriminator), a dedicated `model` field (so
+agent-instance reporting works without digging it out of opaque config), and an opaque `parameters` map
+understood only by your factory. `LangChain4JChatModelFactory` cannot be extended for it — it's bound
+to v1's `ProviderConfiguration`, a different sealed hierarchy — but its building block,
+`LangChain4JChatModel`, is a public, framework-agnostic `ChatModel` wrapper: build your own
+`dev.langchain4j.model.chat.ChatModel`, wrap it in a `CloseableChatModel`, and construct a
+`LangChain4JChatModel` directly if you want to reuse LangChain4j from a v2-native factory. No built-in
+factory ever matches `CustomProviderConfiguration`, so the registry fails with the ordinary "no factory
+registered" error until you register one.
 
-**Stamping `AssistantMessage#metadata()`.** Every response converter must build the assistant
-message's `metadata` map through `AssistantMessageMetadata.withDefaults(providerMetadata)`
-(`aiagent/util`), passing only its own provider-namespaced entries (or `Map.of()` if it has none) as
-`providerMetadata`. The util adds the common `timestamp` entry (when the model responded) so it can't
-be forgotten by a new provider and stays identically shaped across all of them; never call
-`AssistantMessage.builder().metadata(...)` with a raw `Map.of(...)` directly. Reference
-implementations: `AnthropicMessageResponseConverter` (native) and `ChatMessageConverterImpl`
-(LangChain4j).
+Every new v2 provider backend must follow three conventions, regardless of provider:
 
-The v2 request's `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/
-Hybrid only) is the connector-facing entry point for this SPI: it carries a user-chosen `providerType`
-(dispatch discriminator), a dedicated `model` field (so agent-instance history/reporting works without
-digging it out of opaque config), and an opaque `parameters` map understood only by the user's factory.
-To use it, implement `ChatModelFactory` directly, matching your chosen discriminator string inside
-`supports(...)`, and register it as a Spring bean. `LangChain4JChatModelFactory` itself is
-bound to `ProviderConfiguration` and cannot be extended for `CustomProviderConfiguration`, but its
-building block, `LangChain4JChatModel`, is a public, framework-agnostic `ChatModel` wrapper: a custom
-factory that wants to reuse LangChain4J can build its own `dev.langchain4j.model.chat.ChatModel`, wrap it
-in a `CloseableChatModel`, and construct a `LangChain4JChatModel` directly. `ChatModelRegistryImpl` then
-dispatches `CustomProviderConfiguration` requests to the registered factory the
-same way it dispatches any other provider. No built-in factory ever matches `CustomProviderConfiguration`
-— it exists purely so the registry fails with the ordinary "no factory registered" error until the user
-registers one.
+- **Backend-subtype wrapping.** A backend is a sealed interface with one `@TemplateSubType` per
+  variant, discriminated by a `type` property (see `AnthropicChatModelConfiguration.AnthropicBackend`).
+  The template generator only validates property-id uniqueness across the whole template, not per
+  discriminator subtype, so two subtypes with a same-named field (e.g. both an `apiKey`) collide even
+  though only one is ever active. Fix: wrap each subtype's fields inside a single container field
+  uniquely named for that subtype (e.g. `anthropic`, `custom`) — the generator derives the id-path
+  prefix from the Java field name, making the subtree collision-proof with no per-leaf `id=` overrides.
+  Extract each subtype's discriminator string into a `public static final String` constant on its own
+  record, and reference it from the `@TemplateSubType` id, `@JsonSubTypes.Type` name, `type()`, and the
+  discriminator's `defaultValue`.
+- **Provider-namespaced metadata.** Provider-specific data a converter attaches outside a domain
+  object's mapped fields — on a content block's `metadata` ([§5](#5-data-model-agent-context)) or on
+  `AssistantMessage#metadata()` — must nest under a single provider key, never as top-level entries.
+- **Stamping `AssistantMessage#metadata()`.** Build it through
+  `AssistantMessageMetadata.withDefaults(providerMetadata)` (`aiagent/util`), passing only your own
+  provider-namespaced entries (or `Map.of()`); it adds the common `timestamp` entry. Never call
+  `AssistantMessage.builder().metadata(...)` with a raw map directly.
+
+Provider-specific converter/configuration decisions live in [`native-providers.md`](native-providers.md),
+one section per provider, rather than here.
 
 <a id="252-add-a-systempromptcontributor"></a>
 

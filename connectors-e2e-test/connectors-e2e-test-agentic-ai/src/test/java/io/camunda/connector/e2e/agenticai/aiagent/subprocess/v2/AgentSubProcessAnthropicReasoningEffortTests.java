@@ -32,16 +32,16 @@ import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Test;
 
 /**
- * Native-Anthropic-only e2e coverage for the Anthropic reasoning ({@code thinking}) and {@code
- * effort} configuration surface: proves that the element-template properties, their request-side
- * mapping, and the response-side round-trip all work end to end through the REAL Anthropic SDK
- * types - the vendor SDK's {@code MessageAccumulator} on the response side, and its {@code
- * MessageCreateParams} builder on the request side - not just at the unit level.
+ * Anthropic-only e2e coverage for the Anthropic reasoning ({@code thinking}) and {@code effort}
+ * configuration surface: proves that the element-template properties, their request-side mapping,
+ * and the response-side round-trip all work end to end through the REAL Anthropic SDK types - the
+ * vendor SDK's {@code MessageAccumulator} on the response side, and its {@code MessageCreateParams}
+ * builder on the request side - not just at the unit level.
  *
  * <p>Uses the v2 element template, {@code provider.anthropic.*} properties, and {@link
  * StreamingAnthropicMessagesSseChatModelStubs} for the streamed SSE response.
  */
-class AgentSubProcessAnthropicReasoningEffortTests extends BaseAnthropicNativeSubProcessTest {
+class AgentSubProcessAnthropicReasoningEffortTests extends BaseAnthropicSubProcessTest {
 
   private static final String REASONING_CAPABLE_MODEL = "claude-sonnet-4-6";
 

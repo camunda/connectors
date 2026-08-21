@@ -18,7 +18,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
@@ -237,77 +236,6 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       }
     }
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes({
-      @JsonSubTypes.Type(
-          value = AwsAuthentication.AwsStaticCredentialsAuthentication.class,
-          name = "credentials"),
-      @JsonSubTypes.Type(
-          value = AwsAuthentication.AwsDefaultCredentialsChainAuthentication.class,
-          name = "defaultCredentialsChain"),
-      @JsonSubTypes.Type(value = AwsAuthentication.AwsApiKeyAuthentication.class, name = "apiKey")
-    })
-    @TemplateDiscriminatorProperty(
-        label = "Authentication",
-        group = "provider",
-        name = "type",
-        defaultValue = "credentials",
-        description = "Specify the AWS authentication strategy.")
-    sealed interface AwsAuthentication {
-
-      @TemplateSubType(id = "credentials", label = "Credentials")
-      record AwsStaticCredentialsAuthentication(
-          @NotBlank
-              @TemplateProperty(
-                  group = "provider",
-                  label = "Access key",
-                  description = "AWS IAM access key.",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String accessKey,
-          @NotBlank
-              @TemplateProperty(
-                  group = "provider",
-                  label = "Secret key",
-                  description = "AWS IAM secret key.",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String secretKey)
-          implements AwsAuthentication {
-
-        @Override
-        public String toString() {
-          return "AwsStaticCredentialsAuthentication{accessKey=[REDACTED], secretKey=[REDACTED]}";
-        }
-      }
-
-      @TemplateSubType(id = "apiKey", label = "API key")
-      record AwsApiKeyAuthentication(
-          @NotBlank
-              @TemplateProperty(
-                  group = "provider",
-                  label = "API key",
-                  description = "Bearer API key for AWS Bedrock Mantle.",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String apiKey)
-          implements AwsAuthentication {
-
-        @Override
-        public String toString() {
-          return "AwsApiKeyAuthentication{apiKey=[REDACTED]}";
-        }
-      }
-
-      @TemplateSubType(
-          id = "defaultCredentialsChain",
-          label = "Default Credentials Chain (Hybrid/Self-Managed only)")
-      record AwsDefaultCredentialsChainAuthentication() implements AwsAuthentication {}
-    }
-
     @TemplateSubType(id = CUSTOM_ID, label = "Custom / compatible endpoint")
     record AnthropicCustomBackend(@Valid @NotNull CustomBackend custom)
         implements AnthropicBackend {
@@ -355,7 +283,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   feel = FeelMode.required,
                   optional = true)
               @Nullable Map<String, Object> bodyProperties,
-          @Valid @NotNull CustomEndpointAuthentication authentication) {
+          @Valid @NotNull AnthropicCustomEndpointAuthentication authentication) {
 
         @Override
         public String toString() {

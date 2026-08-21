@@ -83,11 +83,21 @@ Three concrete deliverables realise these principles:
 
 ### Step 2 — Unified document *source* dropdown (delivered in #7057)
 
-- New `@TemplateDocumentProperty` annotation replaces raw `@TemplateProperty` on `Document` and `List<Document>` fields. It carries the same properties as `@TemplateProperty` plus a `FieldVisibility` enum (`REQUIRED` / `OPTIONAL` / `HIDDEN`) for `fileName` and `contentType`, both defaulting to `OPTIONAL`.
-- The generator emits a dropdown with three options — **Camunda Document** (reference field, existing behavior), **Inline Content** (content + optional filename + optional content-type), **External Document** (URL + optional filename). Each option reveals only the relevant sub-fields.
+- New `@TemplateDocumentProperty` annotation replaces raw `@TemplateProperty` on `Document` and `List<Document>` fields. It carries the same properties as `@TemplateProperty` plus a `FieldVisibility` enum (`REQUIRED` / `OPTIONAL` / `HIDDEN`) for `fileName` and `contentType`, both defaulting to `OPTIONAL`, and a `DocumentSource[] sources()` list (see the amendment below).
+- The generator emits a dropdown with up to three options — **Camunda Document** (reference field, existing behavior), **Inline Content** (content + optional filename + optional content-type), **External Document** (URL + optional filename). Each option reveals only the relevant sub-fields. Which of the three a given connector offers is controlled by `sources()`; before the amendment below, all three were always emitted.
 - `List<Document>` fields get a *Single* / *Multiple* toggle. *Single* uses the same source dropdown; *Multiple* switches to a FEEL expression field for constructing an array.
 - Field-configurable per connector: CSV, AWS Textract, and Embeddings Vector DB set `fileName`/`contentType` visibility to `HIDDEN` because they don't need them; others accept both as `OPTIONAL`. If `fileName` is required but empty, the runtime generates a UUID with no extension and uses `application/octet-stream`.
 - **Consumer scope (Step 2):** S3, GCS, Azure Blob, Google Drive, Box, AWS Textract, Slack (list), Microsoft Teams (list), SendGrid (list), Email (list), AWS Bedrock (list), Embeddings Vector DB (list). CSV migrates `data` from `Object` to `Document`. IDP Extraction stays as-is; Agent AI needs a follow-up with the team.
+
+#### Amendment — per-connector source restriction (PR #8243)
+
+Step 2 as originally recorded assumed every document input can accept all three sources. AWS Textract disproved that: it rejects the UTF-8 text bytes an **Inline Content** document produces, so offering the option only lets users build a model that fails at runtime.
+
+- `@TemplateDocumentProperty` gains `DocumentSource[] sources()`, defaulting to all three (`CAMUNDA`, `INLINE`, `EXTERNAL`). Connectors that impose no restriction are unaffected and their generated templates do not change.
+- The generated dropdown offers exactly the declared sources, and only their sub-fields and composer FEEL branches are emitted. Declaration order is significant — the first entry is the dropdown default and branch evaluation follows the same order. An empty list is a configuration error (`IllegalArgumentException` at generation time).
+- **AWS Textract** declares `{CAMUNDA, EXTERNAL}`, dropping Inline Content. No other connector currently narrows the list.
+
+This is an extension of Step 2's decision, not a reversal: path selection stays declared once in annotations and materialises as UX automatically. What changes is that the *set* of paths is now a per-connector property rather than a global constant, which is the honest model given that some connectors genuinely cannot serve a path.
 
 ### Step 3 — Unified download *return format* (this PR + follow-ups, #7058)
 
@@ -120,6 +130,7 @@ Two ways to hand bytes from connector to runtime were considered:
 - **Path 2 write side becomes a first-class type.** Users compose an inline document from process variables and hand it to any consumer connector uniformly.
 - **All three steps ship as opt-in per template version.** Existing user flows keep working; new templates opt into the new behavior.
 - **Extensibility hooks in place.** `@TemplateDocumentProperty` and `@DocumentReturnFormat` are the annotations any future document-touching connector uses; no per-connector plumbing.
+- **Unsupported sources are not offered.** `sources()` (see the Step 2 amendment) keeps a connector from advertising a document source it cannot actually process, so the failure surfaces at modeling time rather than as a runtime incident.
 
 ### Negative
 
@@ -128,4 +139,5 @@ Two ways to hand bytes from connector to runtime were considered:
 - **Convention-based coupling between the annotation and the SDK contract.** A connector author who returns a `DocumentReturn` without declaring `@DocumentReturnFormat` in the element template will fail at conversion time with a `ConnectorException`. The wiring is discoverable by convention, not by the type system.
 - **Choosing (b) over (a) means eager stream acquisition.** The connector opens the stream before the runtime knows whether it needs it. The safety-net catch is what makes (b) safe in practice; (a) would have avoided that entirely.
 - **Zeebe variable size limit constrains Path 2 write side.** Inline documents above ~4MB cannot round-trip through process variables. Users of large files must use the Document Store path — documented, not enforced structurally.
+- **The source dropdown is no longer uniform across connectors.** With `sources()`, two connectors can present different option sets for what is otherwise the same UI element, so "the document source dropdown" is no longer a single fixed thing users learn once. The alternative — offering options that fail at runtime — was judged worse.
 - **Inbound inline handling is unresolved.** Inbound connectors (Webhook, Email IMAP/POP3, Microsoft Email) currently only produce Document Store references. A follow-up is needed to consider inline production and conversion between inline and store representations; large attachments on inline-only inbounds would today be silently dropped (they can't be surfaced via process incidents pre-instance-creation).

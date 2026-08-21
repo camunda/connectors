@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
+import io.camunda.connector.runtime.outbound.jobstream.BrokerConnectivityState;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -79,5 +80,37 @@ public class OutboundConnectorResponseListReducerTest {
 
     assertEquals(1, result.size());
     assertTrue(result.containsAll(node2));
+  }
+
+  @Test
+  void shouldMergeResponsesBuiltFromTheStreamEnrichedConstructor() {
+    // the pre-physicalTenantId canonical signature, kept for callers compiled against it
+    var node1 =
+        List.of(
+            new OutboundConnectorResponse(
+                "HTTP JSON",
+                "io.camunda:http-json:1",
+                List.of("method", "url"),
+                30000L,
+                true,
+                "node-1",
+                BrokerConnectivityState.ALL_CONNECTED,
+                List.of("stream-1")));
+    var node2 =
+        List.of(
+            new OutboundConnectorResponse(
+                "HTTP JSON",
+                "io.camunda:http-json:1",
+                List.of("method", "url"),
+                30000L,
+                true,
+                "node-2",
+                BrokerConnectivityState.ALL_CONNECTED,
+                List.of("stream-2")));
+
+    List<OutboundConnectorResponse> result = reducer.reduce(node1, node2);
+
+    assertEquals(2, result.size());
+    assertTrue(result.stream().allMatch(r -> r.physicalTenantId() == null));
   }
 }

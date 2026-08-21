@@ -84,4 +84,30 @@ public class BpmnUtil {
               return im;
             });
   }
+
+  /**
+   * TODO(camunda/camunda#59715): temporary workaround, remove once the v2 AI Agent element
+   * templates set {@code zeebe:agentDefinition} themselves. The engine rejects {@code
+   * AgentInstance} creation without that marker, but neither the v2 element templates nor
+   * element-templates-cli's bundled {@code zeebe-bpmn-moddle} support the element yet - the CLI
+   * strips it if added to the source BPMN. Needs element-templates-cli/library updates plus updated
+   * element templates; until then, add it here directly on the already-applied model.
+   */
+  public static BpmnModelInstance withAgentDefinitionMarker(
+      BpmnModelInstance model, String elementId, String agentType) {
+    final var element = model.getModelElementById(elementId);
+    assertThat(element)
+        .describedAs("Element with ID %s is expected to exist", elementId)
+        .isNotNull()
+        .describedAs(
+            "Element with ID %s is expected to be a child instance of BaseElement", elementId)
+        .isInstanceOf(BaseElement.class);
+
+    final var agentDefinition =
+        ((BaseElement) element)
+            .getExtensionElements()
+            .addExtensionElement("http://camunda.org/schema/zeebe/1.0", "agentDefinition");
+    agentDefinition.setAttributeValue("agentType", agentType);
+    return model;
+  }
 }

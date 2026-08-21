@@ -2,8 +2,9 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "App Integrations Connector",
   "id" : "io.camunda.connectors.AppIntegrations.v1",
-  "description" : "Send notifications and manage channels via Microsoft Teams",
-  "keywords" : [ "teams", "microsoft teams", "send message", "notification", "channel", "adaptive card" ],
+  "description" : "Send notifications and manage channels via Microsoft Teams and Slack",
+  "keywords" : [ "teams", "microsoft teams", "slack", "send message", "notification", "channel", "adaptive card", "block kit", "form" ],
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/app-integrations/",
   "version" : 1,
   "category" : {
     "id" : "connectors",
@@ -14,25 +15,17 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "operation",
     "label" : "Operation"
   }, {
-    "id" : "configuration",
-    "label" : "Configuration",
-    "openByDefault" : false
-  }, {
-    "id" : "authentication",
-    "label" : "Authentication",
-    "openByDefault" : false
+    "id" : "recipient",
+    "label" : "Recipient"
   }, {
     "id" : "message",
     "label" : "Message"
-  }, {
-    "id" : "form",
-    "label" : "Form"
   }, {
     "id" : "channel",
     "label" : "Channel"
@@ -75,34 +68,12 @@
       "value" : "sendMessage"
     } ]
   }, {
-    "id" : "createChannel:configuration.baseUrl",
-    "label" : "Base URL",
-    "description" : "App Integrations backend URL.",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "configuration",
+    "id" : "sendMessage:recipient.type",
+    "label" : "Recipient source",
+    "value" : "camunda",
+    "group" : "recipient",
     "binding" : {
-      "name" : "configuration.baseUrl",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "createChannel",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Tip: store the URL as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.",
-    "type" : "String"
-  }, {
-    "id" : "sendMessage:configuration.baseUrl",
-    "label" : "Base URL",
-    "description" : "App Integrations backend URL.",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "configuration",
-    "binding" : {
-      "name" : "configuration.baseUrl",
+      "name" : "recipient.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -112,436 +83,131 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Tip: store the URL as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.",
-    "type" : "String"
-  }, {
-    "id" : "createChannel:configuration.authentication.type",
-    "label" : "Authentication type",
-    "description" : "Choose how the connector authenticates to the App Integrations backend",
-    "value" : "oauth-client-credentials-flow",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.type",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "createChannel",
-        "type" : "simple"
-      } ]
-    },
+    "tooltip" : "Choose whether the recipient comes from Camunda, or is a Microsoft Teams or Slack destination",
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "API key",
-      "value" : "apikey"
+      "name" : "Camunda",
+      "value" : "camunda"
     }, {
-      "name" : "OAuth 2.0 (client credentials)",
-      "value" : "oauth-client-credentials-flow"
+      "name" : "Microsoft Teams",
+      "value" : "teams"
+    }, {
+      "name" : "Slack",
+      "value" : "slack"
     } ]
   }, {
-    "id" : "createChannel:configuration.authentication.apiKey",
-    "label" : "API key",
-    "description" : "Shared API key for authenticating to the App Integrations backend (self-managed).",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.apiKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "createChannel",
-        "type" : "simple"
-      }, {
-        "property" : "createChannel:configuration.authentication.type",
-        "equals" : "apikey",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Tip: store the API key as a secret, e.g. <code>{{secrets.APP_INTEGRATIONS_API_KEY}}</code>.",
-    "type" : "String"
-  }, {
-    "id" : "createChannel:configuration.authentication.oauthTokenEndpoint",
-    "label" : "OAuth 2.0 token endpoint",
-    "description" : "The OAuth token endpoint",
-    "optional" : false,
-    "constraints" : {
-      "pattern" : {
-        "value" : "^($|=|(http://|https://|secrets|\\{\\{).*$)",
-        "message" : "Must be a http(s) URL"
-      }
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.oauthTokenEndpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "createChannel",
-        "type" : "simple"
-      }, {
-        "property" : "createChannel:configuration.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "createChannel:configuration.authentication.clientId",
-    "label" : "Client ID",
-    "description" : "Your application's client ID from the OAuth client",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.clientId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "createChannel",
-        "type" : "simple"
-      }, {
-        "property" : "createChannel:configuration.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "createChannel:configuration.authentication.clientSecret",
-    "label" : "Client secret",
-    "description" : "Your application's client secret from the OAuth client",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.clientSecret",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "createChannel",
-        "type" : "simple"
-      }, {
-        "property" : "createChannel:configuration.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "createChannel:configuration.authentication.audience",
-    "label" : "Audience",
-    "description" : "The unique identifier of the target API you want to access",
+    "id" : "sendMessage:recipient.email",
+    "label" : "Assignee email",
     "optional" : true,
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "recipient",
     "binding" : {
-      "name" : "configuration.authentication.audience",
+      "name" : "recipient.email",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
         "property" : "operation",
-        "equals" : "createChannel",
+        "equals" : "sendMessage",
         "type" : "simple"
       }, {
-        "property" : "createChannel:configuration.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
+        "property" : "sendMessage:recipient.type",
+        "equals" : "camunda",
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Email address of the recipient. Use a FEEL expression to reference a process variable.",
+    "placeholder" : "=assigneeEmail",
     "type" : "String"
   }, {
-    "id" : "createChannel:configuration.authentication.clientAuthentication",
-    "label" : "Client authentication",
-    "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
-    "optional" : false,
-    "value" : "credentialsBody",
-    "group" : "authentication",
+    "id" : "sendMessage:recipient.candidateUsers",
+    "label" : "Candidate users",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "recipient",
     "binding" : {
-      "name" : "configuration.authentication.clientAuthentication",
+      "name" : "recipient.candidateUsers",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
         "property" : "operation",
-        "equals" : "createChannel",
+        "equals" : "sendMessage",
         "type" : "simple"
       }, {
-        "property" : "createChannel:configuration.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
+        "property" : "sendMessage:recipient.type",
+        "equals" : "camunda",
         "type" : "simple"
       } ]
     },
+    "tooltip" : "List of candidate usernames, e.g. <code>= [\"alice\", \"bob\"]</code>.",
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:recipient.candidateGroups",
+    "label" : "Candidate groups",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "recipient",
+    "binding" : {
+      "name" : "recipient.candidateGroups",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "camunda",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "List of candidate group names, e.g. <code>= [\"approvers\"]</code>.",
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:recipient.teamsTarget.type",
+    "label" : "Teams target",
+    "value" : "channel",
+    "group" : "recipient",
+    "binding" : {
+      "name" : "recipient.teamsTarget.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Post into a channel, send directly to a person, or reply in a conversation a previous send returned",
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Send client credentials in body",
-      "value" : "credentialsBody"
+      "name" : "Channel",
+      "value" : "channel"
     }, {
-      "name" : "Send as Basic Auth header",
-      "value" : "basicAuthHeader"
+      "name" : "User",
+      "value" : "user"
+    }, {
+      "name" : "Conversation",
+      "value" : "conversation"
     } ]
   }, {
-    "id" : "createChannel:configuration.authentication.scopes",
-    "label" : "Scopes",
-    "description" : "The scopes which you want to request authorization for (e.g. read:contacts)",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.scopes",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "createChannel",
-        "type" : "simple"
-      }, {
-        "property" : "createChannel:configuration.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "sendMessage:configuration.authentication.type",
-    "label" : "Authentication type",
-    "description" : "Choose how the connector authenticates to the App Integrations backend",
-    "value" : "oauth-client-credentials-flow",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.type",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "API key",
-      "value" : "apikey"
-    }, {
-      "name" : "OAuth 2.0 (client credentials)",
-      "value" : "oauth-client-credentials-flow"
-    } ]
-  }, {
-    "id" : "sendMessage:configuration.authentication.apiKey",
-    "label" : "API key",
-    "description" : "Shared API key for authenticating to the App Integrations backend (self-managed).",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.apiKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      }, {
-        "property" : "sendMessage:configuration.authentication.type",
-        "equals" : "apikey",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Tip: store the API key as a secret, e.g. <code>{{secrets.APP_INTEGRATIONS_API_KEY}}</code>.",
-    "type" : "String"
-  }, {
-    "id" : "sendMessage:configuration.authentication.oauthTokenEndpoint",
-    "label" : "OAuth 2.0 token endpoint",
-    "description" : "The OAuth token endpoint",
-    "optional" : false,
-    "constraints" : {
-      "pattern" : {
-        "value" : "^($|=|(http://|https://|secrets|\\{\\{).*$)",
-        "message" : "Must be a http(s) URL"
-      }
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.oauthTokenEndpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      }, {
-        "property" : "sendMessage:configuration.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "sendMessage:configuration.authentication.clientId",
-    "label" : "Client ID",
-    "description" : "Your application's client ID from the OAuth client",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.clientId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      }, {
-        "property" : "sendMessage:configuration.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "sendMessage:configuration.authentication.clientSecret",
-    "label" : "Client secret",
-    "description" : "Your application's client secret from the OAuth client",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.clientSecret",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      }, {
-        "property" : "sendMessage:configuration.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "sendMessage:configuration.authentication.audience",
-    "label" : "Audience",
-    "description" : "The unique identifier of the target API you want to access",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.audience",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      }, {
-        "property" : "sendMessage:configuration.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "sendMessage:configuration.authentication.clientAuthentication",
-    "label" : "Client authentication",
-    "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
-    "optional" : false,
-    "value" : "credentialsBody",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.clientAuthentication",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      }, {
-        "property" : "sendMessage:configuration.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Send client credentials in body",
-      "value" : "credentialsBody"
-    }, {
-      "name" : "Send as Basic Auth header",
-      "value" : "basicAuthHeader"
-    } ]
-  }, {
-    "id" : "sendMessage:configuration.authentication.scopes",
-    "label" : "Scopes",
-    "description" : "The scopes which you want to request authorization for (e.g. read:contacts)",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "configuration.authentication.scopes",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      }, {
-        "property" : "sendMessage:configuration.authentication.type",
-        "equals" : "oauth-client-credentials-flow",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "sendMessage:email",
-    "label" : "User Email",
-    "description" : "Email address of the recipient. Use a FEEL expression to reference a process variable, e.g. =assigneeEmail.",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "message",
-    "binding" : {
-      "name" : "email",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "sendMessage:channelId",
+    "id" : "sendMessage:recipient.teamsTarget.channelId",
     "label" : "Channel ID",
-    "description" : "Microsoft Teams channel ID to send to directly, e.g. 19:xxx@thread.tacv2. Use when sending to a channel rather than a user.",
-    "optional" : true,
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
-    "group" : "message",
+    "group" : "recipient",
     "binding" : {
-      "name" : "channelId",
+      "name" : "recipient.teamsTarget.channelId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -549,13 +215,346 @@
         "property" : "operation",
         "equals" : "sendMessage",
         "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.teamsTarget.type",
+        "equals" : "channel",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
       } ]
     },
+    "placeholder" : "19:xxx@thread.tacv2",
     "type" : "String"
+  }, {
+    "id" : "sendMessage:recipient.teamsTarget.teamsUser",
+    "label" : "User ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "recipient",
+    "binding" : {
+      "name" : "recipient.teamsTarget.teamsUser",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.teamsTarget.type",
+        "equals" : "user",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Microsoft Entra object ID of the recipient — they must have connected the app.",
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:recipient.teamsTarget.conversationId",
+    "label" : "Conversation",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "recipient",
+    "binding" : {
+      "name" : "recipient.teamsTarget.conversationId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.teamsTarget.type",
+        "equals" : "conversation",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Conversation returned by a previous send; the message is posted as a reply in it.",
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:recipient.slackTarget.type",
+    "label" : "Slack target",
+    "value" : "channel",
+    "group" : "recipient",
+    "binding" : {
+      "name" : "recipient.slackTarget.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Send to a Slack channel or directly to a person",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Channel",
+      "value" : "channel"
+    }, {
+      "name" : "User",
+      "value" : "user"
+    } ]
+  }, {
+    "id" : "sendMessage:recipient.slackTarget.channelId",
+    "label" : "Channel ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "recipient",
+    "binding" : {
+      "name" : "recipient.slackTarget.channelId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.slackTarget.type",
+        "equals" : "channel",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
+        "type" : "simple"
+      } ]
+    },
+    "placeholder" : "C0123456789",
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:recipient.slackTarget.user",
+    "label" : "User ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "recipient",
+    "binding" : {
+      "name" : "recipient.slackTarget.user",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.slackTarget.type",
+        "equals" : "user",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
+        "type" : "simple"
+      } ]
+    },
+    "placeholder" : "U0123456789",
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:recipient.threadTs",
+    "label" : "Thread",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "recipient",
+    "binding" : {
+      "name" : "recipient.threadTs",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Message ID of a previous send, to reply in its thread instead of posting a new message",
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:recipient.camundaExtra.type",
+    "label" : "Additional content",
+    "value" : "none",
+    "group" : "message",
+    "binding" : {
+      "name" : "recipient.camundaExtra.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "camunda",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Content sent alongside the message. A Camunda recipient supports a linked form.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
+      "name" : "Form",
+      "value" : "form"
+    } ]
+  }, {
+    "id" : "sendMessage:recipient.teamsExtra.type",
+    "label" : "Additional content",
+    "value" : "none",
+    "group" : "message",
+    "binding" : {
+      "name" : "recipient.teamsExtra.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Content sent alongside the message. Microsoft Teams supports an Adaptive Card or a linked form.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
+      "name" : "Adaptive card",
+      "value" : "adaptiveCard"
+    }, {
+      "name" : "Form",
+      "value" : "form"
+    } ]
+  }, {
+    "id" : "sendMessage:recipient.teamsExtra.adaptiveCard",
+    "label" : "Adaptive card",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "message",
+    "binding" : {
+      "name" : "recipient.teamsExtra.adaptiveCard",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.teamsExtra.type",
+        "equals" : "adaptiveCard",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Adaptive Card as JSON. Paste a card, or use a FEEL expression to reference one built earlier, e.g. <code>= approvalCard</code>.",
+    "type" : "Text"
+  }, {
+    "id" : "sendMessage:recipient.slackExtra.type",
+    "label" : "Additional content",
+    "value" : "none",
+    "group" : "message",
+    "binding" : {
+      "name" : "recipient.slackExtra.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Content sent alongside the message. Slack supports Block Kit or a linked form.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
+      "name" : "Block Kit",
+      "value" : "blockKit"
+    }, {
+      "name" : "Form",
+      "value" : "form"
+    } ]
+  }, {
+    "id" : "sendMessage:recipient.slackExtra.blocks",
+    "label" : "Block Kit blocks",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "message",
+    "binding" : {
+      "name" : "recipient.slackExtra.blocks",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.slackExtra.type",
+        "equals" : "blockKit",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Slack Block Kit <code>blocks</code> array as JSON. Paste it, or use a FEEL expression to reference one built earlier, e.g. <code>= approvalBlocks</code>.",
+    "type" : "Text"
   }, {
     "id" : "sendMessage:message",
     "label" : "Message",
-    "description" : "Plain text content to send. Provide either this, an adaptive card, or link a form.",
     "optional" : true,
     "feel" : "optional",
     "group" : "message",
@@ -570,55 +569,13 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Plain text to send. Optional — leave it empty to send only the additional content below.",
     "type" : "Text"
-  }, {
-    "id" : "sendMessage:adaptiveCardJson",
-    "label" : "Adaptive card",
-    "description" : "JSON payload for a custom Teams adaptive card. Provide either this, a plain text message, or link a form.",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "message",
-    "binding" : {
-      "name" : "adaptiveCardJson",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Text"
-  }, {
-    "id" : "sendMessage:formDefinition.include",
-    "label" : "Include form?",
-    "value" : "false",
-    "group" : "form",
-    "binding" : {
-      "key" : "sendMessage:formDefinition.include",
-      "type" : "zeebe:taskHeader"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "No",
-      "value" : "false"
-    }, {
-      "name" : "Yes",
-      "value" : "true"
-    } ]
   }, {
     "value" : "form",
-    "group" : "form",
+    "group" : "message",
     "binding" : {
-      "linkName" : "formDefinition",
+      "linkName" : "formCamunda",
       "property" : "resourceType",
       "type" : "zeebe:linkedResource"
     },
@@ -628,19 +585,23 @@
         "equals" : "sendMessage",
         "type" : "simple"
       }, {
-        "property" : "sendMessage:formDefinition.include",
-        "equals" : "true",
+        "property" : "sendMessage:recipient.type",
+        "equals" : "camunda",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.camundaExtra.type",
+        "equals" : "form",
         "type" : "simple"
       } ]
     },
     "type" : "Hidden"
   }, {
-    "id" : "sendMessage:formDefinition.bindingType",
+    "id" : "sendMessage:formCamunda.bindingType",
     "label" : "Form binding",
     "value" : "latest",
-    "group" : "form",
+    "group" : "message",
     "binding" : {
-      "linkName" : "formDefinition",
+      "linkName" : "formCamunda",
       "property" : "bindingType",
       "type" : "zeebe:linkedResource"
     },
@@ -650,8 +611,12 @@
         "equals" : "sendMessage",
         "type" : "simple"
       }, {
-        "property" : "sendMessage:formDefinition.include",
-        "equals" : "true",
+        "property" : "sendMessage:recipient.type",
+        "equals" : "camunda",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.camundaExtra.type",
+        "equals" : "form",
         "type" : "simple"
       } ]
     },
@@ -667,13 +632,13 @@
       "value" : "versionTag"
     } ]
   }, {
-    "id" : "sendMessage:formDefinition.resourceId",
+    "id" : "sendMessage:formCamunda.resourceId",
     "label" : "Form ID",
-    "description" : "Optional. ID of the Camunda form to render as an adaptive card in the Teams message. Leave blank to send a plain text message or adaptive card.",
+    "description" : "ID of the Camunda form to render alongside the message.",
     "feel" : "optional",
-    "group" : "form",
+    "group" : "message",
     "binding" : {
-      "linkName" : "formDefinition",
+      "linkName" : "formCamunda",
       "property" : "resourceId",
       "type" : "zeebe:linkedResource"
     },
@@ -683,18 +648,22 @@
         "equals" : "sendMessage",
         "type" : "simple"
       }, {
-        "property" : "sendMessage:formDefinition.include",
-        "equals" : "true",
+        "property" : "sendMessage:recipient.type",
+        "equals" : "camunda",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.camundaExtra.type",
+        "equals" : "form",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "sendMessage:formDefinition.versionTag",
+    "id" : "sendMessage:formCamunda.versionTag",
     "label" : "Version tag",
-    "group" : "form",
+    "group" : "message",
     "binding" : {
-      "linkName" : "formDefinition",
+      "linkName" : "formCamunda",
       "property" : "versionTag",
       "type" : "zeebe:linkedResource"
     },
@@ -704,28 +673,259 @@
         "equals" : "sendMessage",
         "type" : "simple"
       }, {
-        "property" : "sendMessage:formDefinition.include",
-        "equals" : "true",
+        "property" : "sendMessage:recipient.type",
+        "equals" : "camunda",
         "type" : "simple"
       }, {
-        "property" : "sendMessage:formDefinition.bindingType",
+        "property" : "sendMessage:recipient.camundaExtra.type",
+        "equals" : "form",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formCamunda.bindingType",
         "equals" : "versionTag",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "createChannel:teamId",
-    "label" : "Team ID",
-    "description" : "ID of the Microsoft Teams team, or a full Teams URL (the groupId query parameter will be extracted automatically).",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
+    "value" : "form",
+    "group" : "message",
+    "binding" : {
+      "linkName" : "formTeams",
+      "property" : "resourceType",
+      "type" : "zeebe:linkedResource"
     },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.teamsExtra.type",
+        "equals" : "form",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "sendMessage:formTeams.bindingType",
+    "label" : "Form binding",
+    "value" : "latest",
+    "group" : "message",
+    "binding" : {
+      "linkName" : "formTeams",
+      "property" : "bindingType",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.teamsExtra.type",
+        "equals" : "form",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Latest",
+      "value" : "latest"
+    }, {
+      "name" : "Deployment",
+      "value" : "deployment"
+    }, {
+      "name" : "Version tag",
+      "value" : "versionTag"
+    } ]
+  }, {
+    "id" : "sendMessage:formTeams.resourceId",
+    "label" : "Form ID",
+    "description" : "ID of the Camunda form to render as an Adaptive Card.",
     "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "linkName" : "formTeams",
+      "property" : "resourceId",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.teamsExtra.type",
+        "equals" : "form",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:formTeams.versionTag",
+    "label" : "Version tag",
+    "group" : "message",
+    "binding" : {
+      "linkName" : "formTeams",
+      "property" : "versionTag",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "teams",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.teamsExtra.type",
+        "equals" : "form",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formTeams.bindingType",
+        "equals" : "versionTag",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "value" : "form",
+    "group" : "message",
+    "binding" : {
+      "linkName" : "formSlack",
+      "property" : "resourceType",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.slackExtra.type",
+        "equals" : "form",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "sendMessage:formSlack.bindingType",
+    "label" : "Form binding",
+    "value" : "latest",
+    "group" : "message",
+    "binding" : {
+      "linkName" : "formSlack",
+      "property" : "bindingType",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.slackExtra.type",
+        "equals" : "form",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Latest",
+      "value" : "latest"
+    }, {
+      "name" : "Deployment",
+      "value" : "deployment"
+    }, {
+      "name" : "Version tag",
+      "value" : "versionTag"
+    } ]
+  }, {
+    "id" : "sendMessage:formSlack.resourceId",
+    "label" : "Form ID",
+    "description" : "ID of the Camunda form to render as Block Kit.",
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "linkName" : "formSlack",
+      "property" : "resourceId",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.slackExtra.type",
+        "equals" : "form",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:formSlack.versionTag",
+    "label" : "Version tag",
+    "group" : "message",
+    "binding" : {
+      "linkName" : "formSlack",
+      "property" : "versionTag",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.type",
+        "equals" : "slack",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:recipient.slackExtra.type",
+        "equals" : "form",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formSlack.bindingType",
+        "equals" : "versionTag",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:platform.type",
+    "label" : "Platform",
+    "value" : "teams",
     "group" : "channel",
     "binding" : {
-      "name" : "teamId",
+      "name" : "platform.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -735,11 +935,19 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "tooltip" : "Where to create the channel",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Microsoft Teams",
+      "value" : "teams"
+    }, {
+      "name" : "Slack",
+      "value" : "slack"
+    } ]
   }, {
-    "id" : "createChannel:displayName",
+    "id" : "createChannel:platform.teamsChannelName",
     "label" : "Channel name",
-    "description" : "Display name for the new channel (max 50 characters).",
+    "description" : "Max 50 characters.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true,
@@ -749,7 +957,7 @@
     "feel" : "optional",
     "group" : "channel",
     "binding" : {
-      "name" : "displayName",
+      "name" : "platform.displayName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -757,38 +965,154 @@
         "property" : "operation",
         "equals" : "createChannel",
         "type" : "simple"
+      }, {
+        "property" : "createChannel:platform.type",
+        "equals" : "teams",
+        "type" : "simple"
       } ]
     },
+    "tooltip" : "Display name for the new channel.",
     "type" : "String"
+  }, {
+    "id" : "createChannel:platform.teamId",
+    "label" : "Team ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "platform.teamId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:platform.type",
+        "equals" : "teams",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "ID of the Microsoft Teams team, or a full Teams URL (the groupId query parameter will be extracted automatically).",
+    "type" : "String"
+  }, {
+    "id" : "createChannel:platform.membershipType",
+    "label" : "Channel type",
+    "optional" : false,
+    "value" : "standard",
+    "group" : "channel",
+    "binding" : {
+      "name" : "platform.membershipType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:platform.type",
+        "equals" : "teams",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Membership type. Only standard (visible to all) is supported for now — private and shared channels follow in a later version.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Standard",
+      "value" : "standard"
+    } ]
+  }, {
+    "id" : "createChannel:platform.slackChannelName",
+    "label" : "Channel name",
+    "description" : "Lowercase letters, digits, hyphens and underscores only. Max 80 characters.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "minLength" : 0,
+      "maxLength" : 80,
+      "pattern" : {
+        "value" : "^[a-z0-9-_]+$",
+        "message" : "A Slack channel name may contain only lowercase letters, digits, hyphens and underscores"
+      }
+    },
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "platform.displayName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:platform.type",
+        "equals" : "slack",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Display name for the new channel.",
+    "type" : "String"
+  }, {
+    "id" : "createChannel:platform.workspaceId",
+    "label" : "Workspace ID",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "platform.workspaceId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:platform.type",
+        "equals" : "slack",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Slack workspace (team) ID. Leave empty to use the workspace the backend is configured for.",
+    "type" : "String"
+  }, {
+    "id" : "createChannel:platform.isPrivate",
+    "label" : "Private channel",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "channel",
+    "binding" : {
+      "name" : "platform.isPrivate",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:platform.type",
+        "equals" : "slack",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Create the channel as private rather than public.",
+    "type" : "Boolean"
   }, {
     "id" : "createChannel:description",
     "label" : "Description",
-    "description" : "Optional description for the channel.",
     "optional" : true,
     "feel" : "optional",
     "group" : "channel",
     "binding" : {
       "name" : "description",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "createChannel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "createChannel:membershipType",
-    "label" : "Channel type",
-    "description" : "Membership type: standard (visible to all), private (invite-only), or shared.",
-    "optional" : false,
-    "value" : "standard",
-    "feel" : "optional",
-    "group" : "channel",
-    "binding" : {
-      "name" : "membershipType",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -888,7 +1212,29 @@
     },
     "type" : "String"
   } ],
+  "steps" : [ {
+    "name" : "Create Channel",
+    "description" : "Create an App Integrations channel in Microsoft Teams or Slack",
+    "keywords" : [ "create channel", "new channel", "add channel", "teams channel", "slack channel", "open channel" ],
+    "presetId" : "operation_createChannel"
+  }, {
+    "name" : "Send Message",
+    "description" : "Send an App Integrations message to Microsoft Teams, Slack, or a Camunda recipient — plain text plus an optional adaptive card, Block Kit payload, or form. The result lists every destination reached, so a single conversation is deliveries[1].conversation",
+    "keywords" : [ "send message", "post message", "notify user", "send adaptive card", "send block kit", "send form", "teams notification", "slack notification" ],
+    "presetId" : "operation_sendMessage"
+  } ],
+  "presets" : [ {
+    "id" : "operation_createChannel",
+    "properties" : {
+      "operation" : "createChannel"
+    }
+  }, {
+    "id" : "operation_sendMessage",
+    "properties" : {
+      "operation" : "sendMessage"
+    }
+  } ],
   "icon" : {
-    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cGF0aCBkPSJNMiAxLjVoMTJhMSAxIDAgMCAxIDEgMXY4YTEgMSAwIDAgMS0xIDFINi41TDQuNSAxNC41di0zSDJhMSAxIDAgMCAxLTEtMXYtOGExIDEgMCAwIDEgMS0xeiIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxjaXJjbGUgY3g9IjgiIGN5PSI1LjUiIHI9IjEuNCIgZmlsbD0iIzAwMDAwMCIvPgogIDxwYXRoIGQ9Ik01LjUgOS41YzAtMi4yIDUtMi4yIDUgMHoiIGZpbGw9IiMwMDAwMDAiLz4KPC9zdmc+Cg=="
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIxIDguNUMyMSA3LjEzMzE3IDIxIDUgMjEgNUMyMSA0LjQ2OTU3IDIwLjc4OTMgMy45NjA4NiAyMC40MTQyIDMuNTg1NzlDMjAuMDM5MSAzLjIxMDcxIDE5LjUzMDQgMyAxOSAzSDRDMy40Njk1NyAzIDIuOTYwODYgMy4yMTA3MSAyLjU4NTc5IDMuNTg1NzlDMi4yMTA3MSAzLjk2MDg2IDIgNC40Njk1NyAyIDVWMjEuMjg2QzIuMDAwMDIgMjEuNDI2NCAyLjA0MTY3IDIxLjU2MzcgMi4xMTk2OSAyMS42ODA0QzIuMTk3NyAyMS43OTcxIDIuMzA4NTggMjEuODg4MSAyLjQzODMxIDIxLjk0MTlDMi41NjgwMyAyMS45OTU2IDIuNzEwNzcgMjIuMDA5NyAyLjg0ODQ5IDIxLjk4MjNDMi45ODYyIDIxLjk1NDkgMy4xMTI3IDIxLjg4NzMgMy4yMTIgMjEuNzg4TDUuNDE0IDE5LjU4NkM1Ljc4ODk5IDE5LjIxMDkgNi4yOTc2MSAxOS4wMDAxIDYuODI4IDE5SDEwIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik0yMC45MzU5IDE3LjcxNzFDMjEuMTI2OCAxNy41MjY4IDIxLjI3ODMgMTcuMzAwOCAyMS4zODE3IDE3LjA1MThDMjEuNDg1IDE2LjgwMjkgMjEuNTM4MiAxNi41MzYgMjEuNTM4MiAxNi4yNjY0QzIxLjUzODIgMTUuOTk2OSAyMS40ODUgMTUuNzMgMjEuMzgxNyAxNS40ODExQzIxLjI3ODMgMTUuMjMyMSAyMS4xMjY4IDE1LjAwNjEgMjAuOTM1OSAxNC44MTU4TDE4Ljk3MzIgMTIuODUzMkwxMy44NTMzIDE3Ljk3MzFMMTUuODE1OSAxOS45MzU3QzE2LjAwNjIgMjAuMTI2NyAxNi4yMzIzIDIwLjI3ODEgMTYuNDgxMiAyMC4zODE1QzE2LjczMDIgMjAuNDg0OSAxNi45OTcgMjAuNTM4MSAxNy4yNjY2IDIwLjUzODFDMTcuNTM2MSAyMC41MzgxIDE3LjgwMyAyMC40ODQ5IDE4LjA1MiAyMC4zODE1QzE4LjMwMDkgMjAuMjc4MSAxOC41MjcgMjAuMTI2NyAxOC43MTcyIDE5LjkzNTdMMjAuOTM1OSAxNy43MTcxWiIgc3Ryb2tlPSIjRkY0QzAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik0yMi4zODY1IDIxLjM4NjdMMTkuODI2NiAxOC44MjY4IiBzdHJva2U9IiNGRjRDMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTE1LjEzMzMgMTYuNjkzNEwxMyAxNC41NjAxIiBzdHJva2U9IiNGRjRDMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTE3LjY5MzMgMTQuMTMzM0wxNS41NiAxMiIgc3Ryb2tlPSIjRkY0QzAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik02IDhIMTUiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTYgMTJIMTAiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg=="
   }
 }

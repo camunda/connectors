@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.MessageUtil.s
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -86,6 +87,7 @@ public record AgentResponse(
   public static AgentResponse exampleResultWithAssistantMessageResponse() {
     final var assistantMessage =
         AssistantMessage.builder()
+            .id(MessageId.of("01a00023-829e-723b-8cae-8bd1bb11c25b"))
             .content(singleTextContent("This is a sample response text from the AI agent."))
             .metadata(
                 Map.of(

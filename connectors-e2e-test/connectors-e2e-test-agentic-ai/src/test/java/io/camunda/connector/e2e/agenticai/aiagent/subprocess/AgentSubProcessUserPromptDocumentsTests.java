@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -166,7 +166,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     assertIncident(
         zeebeTest,
         incident -> {
-          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
+          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
           assertThat(incident.getErrorMessage())
               .startsWith("Unsupported content type 'application/zip' for document with reference");
         });

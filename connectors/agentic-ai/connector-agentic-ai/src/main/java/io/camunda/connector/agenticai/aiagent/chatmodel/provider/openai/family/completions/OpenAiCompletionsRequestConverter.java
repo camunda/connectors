@@ -1,0 +1,316 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.core.JsonValue;
+import com.openai.models.FunctionDefinition;
+import com.openai.models.FunctionParameters;
+import com.openai.models.ReasoningEffort;
+import com.openai.models.ResponseFormatJsonSchema;
+import com.openai.models.chat.completions.ChatCompletionAssistantMessageParam;
+import com.openai.models.chat.completions.ChatCompletionCreateParams;
+import com.openai.models.chat.completions.ChatCompletionFunctionTool;
+import com.openai.models.chat.completions.ChatCompletionMessageFunctionToolCall;
+import com.openai.models.chat.completions.ChatCompletionMessageParam;
+import com.openai.models.chat.completions.ChatCompletionMessageToolCall;
+import com.openai.models.chat.completions.ChatCompletionStreamOptions;
+import com.openai.models.chat.completions.ChatCompletionSystemMessageParam;
+import com.openai.models.chat.completions.ChatCompletionTool;
+import com.openai.models.chat.completions.ChatCompletionToolMessageParam;
+import com.openai.models.chat.completions.ChatCompletionUserMessageParam;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiStrictJsonSchemas;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
+import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi.CompletionsParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiRequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * Maps a windowed {@link ConversationSnapshot} plus the resolved OpenAI Chat Completions model
+ * configuration to an OpenAI SDK {@link ChatCompletionCreateParams} request, translating the domain
+ * {@link Message} / {@link ToolCall} / {@link ToolCallResultContent} model into the wire shape via
+ * the {@link OpenAiContentConverter} built for content parts.
+ *
+ * <p>Reasoning is mapped only via the input-only {@code reasoning_effort} dial: this family has no
+ * mechanism to replay reasoning content from a prior turn, so {@link ReasoningContent} and {@link
+ * ProviderContent} are dropped rather than replayed, and tool results are always flattened to plain
+ * text.
+ */
+public class OpenAiCompletionsRequestConverter {
+
+  private final OpenAiContentConverter contentConverter;
+  private final ObjectMapper objectMapper;
+
+  public OpenAiCompletionsRequestConverter(
+      OpenAiContentConverter contentConverter, ObjectMapper objectMapper) {
+    this.contentConverter = contentConverter;
+    this.objectMapper = objectMapper;
+  }
+
+  public ChatCompletionCreateParams toRequest(
+      OpenAiChatModelConfiguration configuration,
+      @Nullable ResponseConfiguration response,
+      ConversationSnapshot snapshot) {
+    final OpenAiConnection connection = configuration.openai();
+    final String modelId = connection.model().model();
+    final CompletionsParameters params = completionsParameters(connection);
+
+    final var builder = ChatCompletionCreateParams.builder().model(modelId);
+
+    // Chat Completions streaming omits `usage` unless `stream_options.include_usage=true`; this
+    // converter's calls are always streamed, so request usage so token metrics
+    // (input/output/cached) are populated. Set unconditionally, on every request.
+    builder.streamOptions(ChatCompletionStreamOptions.builder().includeUsage(true).build());
+
+    // Zero Data Retention-compatible: this connector persists conversation memory itself, so it
+    // never relies on OpenAI-side response storage.
+    builder.store(false);
+
+    applyModelParameters(builder, params);
+    applyReasoning(builder, params);
+    applyMessages(builder, snapshot.messages());
+    applyTools(builder, snapshot.toolDefinitions());
+    applyStructuredOutput(builder, response);
+    applyRequestCustomizations(builder, connection);
+
+    return builder.build();
+  }
+
+  /**
+   * This converter only handles the {@code completions} API family; routing a {@code responses}
+   * family configuration here is a caller/family-dispatch bug, not a user-facing configuration
+   * error, hence the unchecked exception rather than a {@code ConnectorException}. {@code
+   * completions} itself is optional -- every one of its own fields is optional, so a modeler
+   * leaving all of them unset means the object is absent entirely, not present-with-nulls.
+   */
+  private @Nullable CompletionsParameters completionsParameters(OpenAiConnection connection) {
+    return switch (connection.api()) {
+      case OpenAiCompletionsApi completionsApi -> completionsApi.completions();
+      default ->
+          throw new IllegalArgumentException(
+              "OpenAiCompletionsRequestConverter requires the 'completions' API family, but was configured with '%s'"
+                  .formatted(connection.api().type()));
+    };
+  }
+
+  private void applyModelParameters(
+      ChatCompletionCreateParams.Builder builder, @Nullable CompletionsParameters params) {
+    if (params == null) {
+      return;
+    }
+    if (params.maxCompletionTokens() != null) {
+      builder.maxCompletionTokens(params.maxCompletionTokens().longValue());
+    }
+    if (params.temperature() != null) {
+      builder.temperature(params.temperature());
+    }
+    if (params.topP() != null) {
+      builder.topP(params.topP());
+    }
+  }
+
+  /** Maps the {@code effort} dial onto the SDK's {@code reasoning_effort} param. */
+  private void applyReasoning(
+      ChatCompletionCreateParams.Builder builder, @Nullable CompletionsParameters params) {
+    final OpenAiEffort effort = params == null ? null : params.effort();
+    if (effort == null) {
+      return;
+    }
+    builder.reasoningEffort(ReasoningEffort.of(effort.name().toLowerCase(Locale.ROOT)));
+  }
+
+  private void applyMessages(ChatCompletionCreateParams.Builder builder, List<Message> messages) {
+    final List<ChatCompletionMessageParam> items = new ArrayList<>();
+    for (final Message message : messages) {
+      switch (message) {
+        case SystemMessage system ->
+            items.add(ChatCompletionMessageParam.ofSystem(systemMessage(system)));
+        case UserMessage user -> items.add(ChatCompletionMessageParam.ofUser(userMessage(user)));
+        case AssistantMessage assistant -> {
+          final ChatCompletionAssistantMessageParam assistantMessage = assistantMessage(assistant);
+          if (assistantMessage != null) {
+            items.add(ChatCompletionMessageParam.ofAssistant(assistantMessage));
+          }
+        }
+        case ToolCallResultMessage toolResults -> items.addAll(toolResultMessages(toolResults));
+        default ->
+            throw new IllegalArgumentException(
+                "Unsupported message type: " + message.getClass().getSimpleName());
+      }
+    }
+    builder.messages(items);
+  }
+
+  private ChatCompletionSystemMessageParam systemMessage(SystemMessage system) {
+    return ChatCompletionSystemMessageParam.builder()
+        .content(MessageUtil.contentText(system))
+        .build();
+  }
+
+  private ChatCompletionUserMessageParam userMessage(UserMessage user) {
+    return ChatCompletionUserMessageParam.builder()
+        .content(
+            ChatCompletionUserMessageParam.Content.ofArrayOfContentParts(
+                contentConverter.toCompletionsContentParts(user.content())))
+        .build();
+  }
+
+  /**
+   * Flattens plain content (text/document/object) to a single text blob; {@link ReasoningContent}
+   * and {@link ProviderContent} have no wire representation on this family and are dropped.
+   *
+   * <p>Returns {@code null} when nothing representable remains and there are no tool calls either:
+   * the Completions API requires an assistant message to carry {@code content} unless it carries a
+   * tool/function call, so such a message is omitted entirely rather than sent empty.
+   */
+  private @Nullable ChatCompletionAssistantMessageParam assistantMessage(
+      AssistantMessage assistant) {
+    final List<Content> plainContent =
+        assistant.content().stream()
+            .filter(c -> !(c instanceof ReasoningContent) && !(c instanceof ProviderContent))
+            .toList();
+    if (plainContent.isEmpty() && assistant.toolCalls().isEmpty()) {
+      return null;
+    }
+
+    final var builder = ChatCompletionAssistantMessageParam.builder();
+    if (!plainContent.isEmpty()) {
+      builder.content(toTextOutput(plainContent));
+    }
+
+    for (final ToolCall toolCall : assistant.toolCalls()) {
+      builder.addToolCall(
+          ChatCompletionMessageToolCall.ofFunction(
+              ChatCompletionMessageFunctionToolCall.builder()
+                  .id(toolCall.id())
+                  .function(
+                      ChatCompletionMessageFunctionToolCall.Function.builder()
+                          .name(toolCall.name())
+                          .arguments(contentConverter.writeAsJson(toolCall.arguments()))
+                          .build())
+                  .build()));
+    }
+
+    return builder.build();
+  }
+
+  private List<ChatCompletionMessageParam> toolResultMessages(ToolCallResultMessage message) {
+    final List<ChatCompletionMessageParam> items = new ArrayList<>();
+    for (final ToolCallResultContent result : message.results()) {
+      items.add(
+          ChatCompletionMessageParam.ofTool(
+              ChatCompletionToolMessageParam.builder()
+                  .toolCallId(result.id())
+                  .content(toTextOutput(result.content()))
+                  .build()));
+    }
+    return items;
+  }
+
+  /**
+   * Flattens a message's structured content to a single text blob: {@link TextContent} is
+   * concatenated verbatim, {@link ObjectContent} is unwrapped to its raw {@code content()}, and
+   * {@link DocumentContent} is unwrapped to its raw {@code document()} reference -- in both cases
+   * so the polymorphic {@link Content} envelope itself, including its {@code type} discriminator,
+   * never leaks onto the wire. A document's bytes are already delivered to the model elsewhere, so
+   * this reference is never accompanied by a native embed, matching the tool-result document
+   * handling on the Responses and Anthropic siblings. Anything else falls back to serializing the
+   * whole content value. Tool results are always text-only on this family.
+   */
+  private String toTextOutput(List<Content> content) {
+    return content.stream()
+        .map(
+            c -> {
+              if (c instanceof TextContent text) {
+                return text.text();
+              } else if (c instanceof ObjectContent obj) {
+                return contentConverter.writeAsJson(obj.content());
+              } else if (c instanceof DocumentContent doc) {
+                return contentConverter.writeAsJson(doc.document());
+              } else {
+                return contentConverter.writeAsJson(c);
+              }
+            })
+        .collect(Collectors.joining("\n"));
+  }
+
+  private void applyTools(
+      ChatCompletionCreateParams.Builder builder, List<ToolDefinition> toolDefinitions) {
+    for (final ToolDefinition definition : toolDefinitions) {
+      final var functionBuilder =
+          FunctionDefinition.builder()
+              .name(definition.name())
+              .parameters(
+                  objectMapper.convertValue(definition.inputSchema(), FunctionParameters.class));
+      if (definition.description() != null) {
+        functionBuilder.description(definition.description());
+      }
+      builder.addTool(
+          ChatCompletionTool.ofFunction(
+              ChatCompletionFunctionTool.builder().function(functionBuilder.build()).build()));
+    }
+  }
+
+  private void applyStructuredOutput(
+      ChatCompletionCreateParams.Builder builder, @Nullable ResponseConfiguration response) {
+    if (!(response != null && response.format() instanceof JsonResponseFormatConfiguration json)) {
+      return;
+    }
+    builder.responseFormat(
+        ResponseFormatJsonSchema.builder()
+            .jsonSchema(
+                ResponseFormatJsonSchema.JsonSchema.builder()
+                    .name(json.schemaName())
+                    .schema(
+                        objectMapper.convertValue(
+                            OpenAiStrictJsonSchemas.forStrictMode(json.schema(), objectMapper),
+                            ResponseFormatJsonSchema.JsonSchema.Schema.class))
+                    .strict(true)
+                    .build())
+            .build());
+  }
+
+  /**
+   * Merges the backend's headers, query parameters, and body properties onto the request via the
+   * shared {@link OpenAiRequestCustomizations}.
+   */
+  private void applyRequestCustomizations(
+      ChatCompletionCreateParams.Builder builder, OpenAiConnection connection) {
+    final var customizations = connection.backend().requestCustomizations();
+    customizations.headers().forEach(builder::putAdditionalHeader);
+    customizations.queryParameters().forEach(builder::putAdditionalQueryParam);
+    customizations
+        .bodyProperties()
+        .forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));
+  }
+}

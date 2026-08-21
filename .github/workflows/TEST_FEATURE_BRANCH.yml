@@ -370,6 +370,8 @@ jobs:
         shell: bash
 
       - name: Check versioned element templates match main
+        env:
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref || github.ref_name }}
         run: |
           chmod +x ./.github/workflows/scripts/check_versioned_element_templates.sh
           ./.github/workflows/scripts/check_versioned_element_templates.sh

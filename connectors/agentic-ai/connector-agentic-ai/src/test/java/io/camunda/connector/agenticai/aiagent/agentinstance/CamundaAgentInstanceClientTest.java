@@ -27,12 +27,12 @@ import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
 import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
+import io.camunda.client.api.command.AgentTool;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1;
-import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep5;
+import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep2;
 import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1;
-import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.AgentTool;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
@@ -116,7 +116,7 @@ class CamundaAgentInstanceClientTest {
   @Mock(answer = Answers.RETURNS_SELF)
   private CreateAgentHistoryItemCommandImpl historyCommand;
 
-  private CreateAgentInstanceCommandStep5 step5;
+  private CreateAgentInstanceCommandStep2 step5;
 
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
@@ -738,6 +738,100 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
+    void shouldCreateHistoryItemsForArrivedToolCallResults() {
+      givenHistoryCommand();
+
+      // given
+      final var completedAt = OffsetDateTime.parse("2026-07-02T09:59:50Z");
+      final var arrivedResult =
+          ToolCallResult.builder()
+              .id("a")
+              .name("getWeather")
+              .content("sunny")
+              .completedAt(completedAt)
+              .build();
+      final var previousTurn =
+          new AgentConversationTurn(
+              3,
+              List.of(),
+              AssistantMessage.builder()
+                  .toolCalls(
+                      List.of(
+                          ToolCall.builder()
+                              .id("a")
+                              .name("getWeather")
+                              .arguments(Map.of("city", "Berlin"))
+                              .build()))
+                  .build(),
+              AgentMetrics.empty());
+
+      // when
+      client.createHistoryForToolCallResults(
+          TestAgentExecutionContext.withLimits(),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          List.of(arrivedResult),
+          previousTurn);
+
+      // then
+      verify(historyCommand).role(AgentInstanceHistoryRole.TOOL_RESULT);
+      verify(historyCommand).loopIteration(4);
+      verify(historyCommand).producedAt(completedAt);
+      verify(historyCommand).execute();
+
+      final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
+          ArgumentCaptor.forClass(List.class);
+      verify(historyCommand).toolCalls(toolCallsCaptor.capture());
+      assertThat(toolCallsCaptor.getValue())
+          .singleElement()
+          .satisfies(
+              tc -> {
+                assertThat(tc.getToolCallId()).isEqualTo("a");
+                assertThat(tc.getArguments()).containsExactlyEntriesOf(Map.of("city", "Berlin"));
+              });
+    }
+
+    @Test
+    void shouldThrowWhenArrivedToolCallResultHasNoOriginatingToolCall() {
+      // caller MUST pre-filter non-correlating ids; this method must still fail on one
+      final var previousTurn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder().toolCalls(List.of()).build(),
+              AgentMetrics.empty());
+
+      assertThatThrownBy(
+              () ->
+                  client.createHistoryForToolCallResults(
+                      TestAgentExecutionContext.withLimits(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      List.of(ToolCallResult.builder().id("orphan").name("getWeather").build()),
+                      previousTurn))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("No originating tool call found")
+          .hasMessageContaining("orphan");
+    }
+
+    @Test
+    void shouldSkipArrivedToolCallResultsWhenAgentInstanceKeyNull() {
+      final var previousTurn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder().toolCalls(List.of()).build(),
+              AgentMetrics.empty());
+
+      client.createHistoryForToolCallResults(
+          TestAgentExecutionContext.withLimits(),
+          null,
+          List.of(ToolCallResult.builder().id("a").name("getWeather").build()),
+          previousTurn);
+
+      verifyNoInteractions(historyCommand);
+      verify(camundaClient, never()).newCreateAgentHistoryItemCommand(anyLong());
+    }
+
+    @Test
     void shouldThrowWhenToolResultHasNoOriginatingToolCall() {
       // a tool result with a (non-null) id that does not correlate to any tool call in the previous
       // turn is an invariant violation and must fail rather than silently emit empty arguments
@@ -1228,6 +1322,76 @@ class CamundaAgentInstanceClientTest {
     }
   }
 
+  @Nested
+  class JobLeaseFencing {
+
+    private static final String LEASE_TOKEN = "lease-token-abc";
+
+    @Test
+    void shouldNeverForwardLeaseTokenOnUpdate() {
+      givenUpdateCommand();
+
+      // when: an activation carrying a lease token issues an update
+      client.update(
+          TestAgentExecutionContext.withLeaseToken(LEASE_TOKEN),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+
+      // then: the lease is not forwarded on the update command -- on that command it only fences a
+      // batched history() list, which this status/metrics update never sends
+      verify(updateCommandStep2, never()).jobLease(any());
+      verify(updateCommandStep2).execute();
+    }
+
+    @Test
+    void shouldForwardLeaseTokenOnHistoryItemWhenActivationIsLeased() {
+      givenHistoryCommand();
+
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build()),
+              null,
+              AgentMetrics.empty());
+
+      // when
+      client.createHistoryForInputMessages(
+          TestAgentExecutionContext.withLeaseToken(LEASE_TOKEN),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          turn,
+          Optional.empty(),
+          OffsetDateTime.parse("2026-07-02T10:00:00Z"));
+
+      // then
+      verify(historyCommand).jobLease(LEASE_TOKEN);
+      verify(historyCommand).execute();
+    }
+
+    @Test
+    void shouldNotForwardLeaseTokenOnHistoryItemWhenActivationIsNotLeased() {
+      givenHistoryCommand();
+
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build()),
+              null,
+              AgentMetrics.empty());
+
+      // when: an activation without a lease token issues a history item
+      client.createHistoryForInputMessages(
+          TestAgentExecutionContext.withLimits(),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          turn,
+          Optional.empty(),
+          OffsetDateTime.parse("2026-07-02T10:00:00Z"));
+
+      // then: no lease is forwarded
+      verify(historyCommand, never()).jobLease(any());
+      verify(historyCommand).execute();
+    }
+  }
+
   private static class TestAgentExecutionContext implements AgentExecutionContext {
 
     public static TestAgentExecutionContext withoutLimits() {
@@ -1238,14 +1402,26 @@ class CamundaAgentInstanceClientTest {
       return new TestAgentExecutionContext(new LimitsConfiguration(10));
     }
 
+    public static TestAgentExecutionContext withLeaseToken(String leaseToken) {
+      return new TestAgentExecutionContext(new LimitsConfiguration(10), leaseToken);
+    }
+
     private final TestJobContext jobContext;
 
     private final LimitsConfiguration limitsConfiguration;
 
     private TestAgentExecutionContext(LimitsConfiguration limitsConfiguration) {
+      this(limitsConfiguration, null);
+    }
+
+    private TestAgentExecutionContext(
+        LimitsConfiguration limitsConfiguration, @Nullable String leaseToken) {
       this.jobContext = new TestJobContext(Map::of, () -> "");
       jobContext.setElementInstanceKey(ELEMENT_INSTANCE_KEY);
       jobContext.setJobKey(JOB_KEY);
+      if (leaseToken != null) {
+        jobContext.setLeaseToken(leaseToken);
+      }
 
       this.limitsConfiguration = limitsConfiguration;
     }

@@ -29,9 +29,12 @@ import io.camunda.connector.e2e.agenticai.aiagent.BaseAgentTest;
 import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV1WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV2WireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseV1WireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseV2WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.AzureOpenAiCompletionsWireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV1WireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV2WireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiResponsesV2WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
@@ -75,11 +78,14 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
 
   static Stream<ProviderWireFormatFixture> fixtures() {
     return Stream.of(
-        new OpenAiCompletionsWireFormatFixture(),
+        new OpenAiCompletionsV1WireFormatFixture(),
+        new OpenAiCompletionsV2WireFormatFixture(),
         new AnthropicMessagesV1WireFormatFixture(),
         new AnthropicMessagesV2WireFormatFixture(),
-        new BedrockConverseWireFormatFixture(),
-        new AzureOpenAiCompletionsWireFormatFixture());
+        new BedrockConverseV1WireFormatFixture(),
+        new BedrockConverseV2WireFormatFixture(),
+        new AzureOpenAiCompletionsWireFormatFixture(),
+        new OpenAiResponsesV2WireFormatFixture());
   }
 
   /**

@@ -21,7 +21,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -183,7 +183,7 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
       assertIncident(
           zeebeTest,
           incident -> {
-            assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
+            assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
             assertThat(incident.getErrorMessage())
                 .containsPattern(Pattern.compile("timed out|timeout"));
             assertThat(incident.getErrorMessage()).contains("FAILED_MODEL_CALL");

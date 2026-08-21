@@ -23,6 +23,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedContentPa
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedToolCall;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Provider-agnostic counterpart of {@code BaseAgentTest.ExpectedMessage}, asserting against the
@@ -35,6 +36,9 @@ import java.util.List;
  * assertions for multimodal tool-call turns without affecting the other roles.
  */
 sealed interface ProviderWireFormatExpectedMessage {
+
+  /** Content-part kinds valid only on input (user/tool) messages, never on the model's own turn. */
+  Set<String> INPUT_ONLY_CONTENT_KINDS = Set.of("input_text", "input_image", "input_file");
 
   void assertMatches(int index, RecordedMessage message);
 
@@ -124,6 +128,16 @@ sealed interface ProviderWireFormatExpectedMessage {
     @Override
     public void assertMatches(int index, RecordedMessage message) {
       assertRoleAndText(index, message, "assistant", text);
+
+      // No wire format should put an input-only part on the model's own turn.
+      final var inputOnlyParts =
+          message.contentParts().stream()
+              .map(RecordedContentPart::kind)
+              .filter(INPUT_ONLY_CONTENT_KINDS::contains)
+              .toList();
+      assertThat(inputOnlyParts)
+          .as("input-only content part kinds on assistant message %d", index)
+          .isEmpty();
 
       final var actualNames = message.toolCalls().stream().map(RecordedToolCall::name).toList();
       assertThat(actualNames)
