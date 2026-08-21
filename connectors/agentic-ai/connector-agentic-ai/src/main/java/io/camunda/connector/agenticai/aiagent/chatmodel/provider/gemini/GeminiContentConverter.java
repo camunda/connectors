@@ -121,7 +121,7 @@ public class GeminiContentConverter {
     for (final Content c : content) {
       switch (c) {
         case TextContent text -> parts.add(toFunctionResponsePart(text.text()));
-        case ObjectContent obj -> parts.add(toFunctionResponsePart(obj.content()));
+        case ObjectContent obj -> parts.add(toFunctionResponsePart(writeAsJson(obj.content())));
         case DocumentContent doc -> parts.add(toFunctionResponsePart(writeAsJson(doc.document())));
         default -> parts.add(toFunctionResponsePart(writeAsJson(c)));
       }

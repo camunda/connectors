@@ -332,13 +332,17 @@ class GeminiContentConverterTest {
     }
 
     @Test
-    void mapsObjectContentToFunctionResponsePartWrappedUnderOutputKey() {
+    void mapsObjectContentToFunctionResponsePartAsJsonString() {
+      // serialized to a JSON string via the connector's own ObjectMapper rather than handed to
+      // the SDK as a raw object graph - the SDK's own (unconfigured) Jackson mapper has no
+      // serializer for domain types such as Document that may be nested inside tool call output
+      // (e.g. an ad-hoc tool result containing document attachments)
       final var parts =
           converter.toFunctionResponseParts(List.of(new ObjectContent(Map.of("a", 1), null)));
 
       assertThat(parts).hasSize(1);
       final var response = parts.get(0).functionResponse().orElseThrow();
-      assertThat(response.response().orElseThrow()).isEqualTo(Map.of("output", Map.of("a", 1)));
+      assertThat(response.response().orElseThrow()).isEqualTo(Map.of("output", "{\"a\":1}"));
     }
 
     @Test
