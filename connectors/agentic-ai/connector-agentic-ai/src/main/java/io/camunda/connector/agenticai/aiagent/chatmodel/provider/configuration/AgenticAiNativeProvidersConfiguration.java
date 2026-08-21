@@ -11,10 +11,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.Anthr
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseRequestConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
@@ -25,7 +21,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.r
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -44,24 +39,6 @@ public class AgenticAiNativeProvidersConfiguration {
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
     return new AnthropicChatModelFactory(httpProxySupport, requestConverter, responseConverter);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public BedrockConverseChatModelFactory aiAgentBedrockConverseChatModelFactory(
-      AgenticAiConnectorsConfigurationProperties configuration,
-      AgenticAiHttpProxySupport httpProxySupport,
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    final var contentConverter = new BedrockConverseContentConverter(objectMapper);
-    final var requestConverter =
-        new BedrockConverseRequestConverter(contentConverter, objectMapper);
-    final var responseConverter = new BedrockConverseResponseConverter();
-    return new BedrockConverseChatModelFactory(
-        configuration.aiagent().chatModel(),
-        httpProxySupport,
-        requestConverter,
-        responseConverter,
-        objectMapper);
   }
 
   @Bean

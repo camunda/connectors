@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatModelProviderSupport.CONNECT_TIMEOUT;
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatModelProviderSupport.deriveTimeoutSetting;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderSupport.CONNECT_TIMEOUT;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderSupport.deriveTimeoutSetting;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.anthropic.AnthropicTokenUsage;

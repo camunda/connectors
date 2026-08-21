@@ -27,7 +27,6 @@ import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.CamundaClient;
-import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
@@ -39,7 +38,6 @@ import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -118,7 +116,6 @@ class DocumentToolCallResultsIT {
           + "found in the documents. Be concise.";
 
   private static final Duration PROCESS_TIMEOUT = Duration.ofMinutes(3);
-  private static final Duration INCIDENT_POLL_TIMEOUT = Duration.ofSeconds(1);
 
   @Autowired private CamundaClient camundaClient;
   @Autowired private ResourceLoader resourceLoader;
@@ -154,7 +151,6 @@ class DocumentToolCallResultsIT {
                 + "what project it mentions and when it launched.",
             List.of(wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH));
 
-    awaitCompletionOrIncident(processInstance);
     assertThat(processInstance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
@@ -183,7 +179,6 @@ class DocumentToolCallResultsIT {
                 wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH,
                 wireMock.getHttpBaseUrl() + "/" + DOC_HEADCOUNT_REPORT));
 
-    awaitCompletionOrIncident(processInstance);
     assertThat(processInstance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
@@ -215,7 +210,6 @@ class DocumentToolCallResultsIT {
                 wireMock.getHttpBaseUrl() + "/" + DOC_HEADCOUNT_REPORT,
                 wireMock.getHttpBaseUrl() + "/" + DOC_AUTHOR_INFO));
 
-    awaitCompletionOrIncident(processInstance);
     assertThat(processInstance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
         .isCompleted()
@@ -259,14 +253,10 @@ class DocumentToolCallResultsIT {
             // Anthropic (v2), AWS Bedrock Mantle backend
             anthropicBedrockMantleV2("claude-sonnet-5"),
             anthropicBedrockMantleV2("claude-haiku-4-5"),
-            // AWS Bedrock, v1 (Anthropic models via cross-region inference)
-            bedrockV1("global.anthropic.claude-sonnet-5"),
+            // AWS Bedrock (Anthropic models via cross-region inference)
+            bedrockV1("eu.anthropic.claude-sonnet-4-20250514-v1:0"),
+            bedrockV1("global.anthropic.claude-sonnet-4-6"),
             bedrockV1("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
-            // AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference
-            bedrockV2("global.anthropic.claude-sonnet-5"),
-            bedrockV2("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
-            // AWS Bedrock, v2 (native Converse API); Amazon's own multimodal Converse model
-            bedrockV2("eu.amazon.nova-2-lite-v1:0"),
             // Docker Model Runner (OpenAI-compatible)
             dockerModelRunnerV1("ai/gemma4:latest").disabled(),
             dockerModelRunnerV1("ai/qwen3.6:latest").disabled(),
@@ -411,27 +401,6 @@ class DocumentToolCallResultsIT {
             model));
   }
 
-  /** AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference. */
-  static ProviderConfig bedrockV2(String model) {
-    return new ProviderConfig(
-        "bedrock-v2/" + model,
-        List.of("AWS_BEDROCK_ACCESS_KEY", "AWS_BEDROCK_SECRET_KEY"),
-        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
-        Map.of(
-            "provider.type",
-            "bedrock",
-            "provider.bedrock.authentication.type",
-            "credentials",
-            "provider.bedrock.authentication.accessKey",
-            envOrPlaceholder("AWS_BEDROCK_ACCESS_KEY"),
-            "provider.bedrock.authentication.secretKey",
-            envOrPlaceholder("AWS_BEDROCK_SECRET_KEY"),
-            "provider.bedrock.region",
-            "eu-central-1",
-            "provider.bedrock.model.model",
-            model));
-  }
-
   /** Docker Model Runner, v1 (LangChain4j-backed; OpenAI-compatible). */
   static ProviderConfig dockerModelRunnerV1(String model) {
     var url =
@@ -464,53 +433,7 @@ class DocumentToolCallResultsIT {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  /**
-   * Waits for the process instance to complete, but fails fast on an active incident instead of
-   * waiting out the full {@link #PROCESS_TIMEOUT} for a completion that will never come - a job
-   * failure (e.g. the model call itself throwing) surfaces as an incident, not as a completed
-   * instance, and {@code isCompleted()} alone has no way to notice that and stop waiting early.
-   * Polls both conditions on this thread with a short per-check timeout: {@code CamundaAssert}'s
-   * data source is bound to the test thread, so checking off a background thread (e.g. racing two
-   * {@code CompletableFuture}s) fails with "No data source is set".
-   */
-  private void awaitCompletionOrIncident(ProcessInstanceEvent instance) {
-    final Instant deadline = Instant.now().plus(PROCESS_TIMEOUT);
-    while (Instant.now().isBefore(deadline)) {
-      if (hasActiveIncident(instance)) {
-        throw new AssertionError(
-            ("Process instance %d raised an incident instead of completing - failing fast "
-                    + "instead of waiting out the remaining timeout")
-                .formatted(instance.getProcessInstanceKey()));
-      }
-      if (isCompleted(instance)) {
-        return;
-      }
-    }
-
-    throw new AssertionError(
-        "Timed out waiting for process instance %d to complete"
-            .formatted(instance.getProcessInstanceKey()));
-  }
-
-  private static boolean hasActiveIncident(ProcessInstanceEvent instance) {
-    try {
-      assertThat(instance).withAssertionTimeout(INCIDENT_POLL_TIMEOUT).hasActiveIncidents();
-      return true;
-    } catch (AssertionError e) {
-      return false;
-    }
-  }
-
-  private static boolean isCompleted(ProcessInstanceEvent instance) {
-    try {
-      assertThat(instance).withAssertionTimeout(INCIDENT_POLL_TIMEOUT).isCompleted();
-      return true;
-    } catch (AssertionError e) {
-      return false;
-    }
-  }
-
-  private ProcessInstanceEvent startProcess(
+  private io.camunda.client.api.response.ProcessInstanceEvent startProcess(
       ProviderConfig provider, String userPrompt, List<String> downloadUrls) {
     var model = buildModel(provider);
 

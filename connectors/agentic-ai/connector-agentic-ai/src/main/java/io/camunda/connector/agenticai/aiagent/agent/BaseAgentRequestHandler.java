@@ -20,7 +20,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
-import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -296,12 +295,6 @@ public abstract class BaseAgentRequestHandler<
                 cwe.getMessage(),
                 cwe,
                 rejectionErrorVariables(cwe));
-        case GuardrailInterventionException gie ->
-            new ConnectorException(
-                AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED,
-                gie.getMessage(),
-                gie,
-                rejectionErrorVariables(gie));
       };
     }
   }

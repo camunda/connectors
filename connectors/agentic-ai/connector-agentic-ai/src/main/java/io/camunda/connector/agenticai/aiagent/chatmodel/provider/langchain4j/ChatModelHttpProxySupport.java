@@ -28,6 +28,7 @@ import org.jspecify.annotations.NullUnmarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
 
 public class ChatModelHttpProxySupport {
   private static final Logger LOG = LoggerFactory.getLogger(ChatModelHttpProxySupport.class);
@@ -161,6 +162,43 @@ public class ChatModelHttpProxySupport {
         return builtClient = delegate.build();
       }
     }
+  }
+
+  public ApacheHttpClient.Builder createAwsHttpClientBuilder(@Nullable URI endpointOverride) {
+    String schemeName =
+        endpointOverride != null ? endpointOverride.getScheme() : ProxyConfiguration.SCHEME_HTTPS;
+    return ApacheHttpClient.builder().proxyConfiguration(createAwsProxyConfiguration(schemeName));
+  }
+
+  software.amazon.awssdk.http.apache.ProxyConfiguration createAwsProxyConfiguration(
+      String schemeName) {
+    software.amazon.awssdk.http.apache.ProxyConfiguration.Builder awsProxyConfigBuilder =
+        software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
+            .useSystemPropertyValues(true);
+
+    proxyConfiguration
+        .getProxyDetails(schemeName)
+        .ifPresent(
+            proxyDetails -> {
+              LOG.debug(
+                  "Using proxy for target scheme [{}] => [{}://{}:{}]",
+                  schemeName,
+                  proxyDetails.scheme(),
+                  proxyDetails.host(),
+                  proxyDetails.port());
+              awsProxyConfigBuilder
+                  .scheme(proxyDetails.scheme())
+                  .endpoint(toUri(proxyDetails))
+                  .nonProxyHosts(
+                      NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
+
+              if (proxyDetails.hasCredentials()) {
+                awsProxyConfigBuilder.username(proxyDetails.user());
+                awsProxyConfigBuilder.password(proxyDetails.password());
+              }
+            });
+
+    return awsProxyConfigBuilder.build();
   }
 
   public Optional<ProxyOptions> createAzureProxyOptions(String endpoint) {

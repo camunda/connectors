@@ -70,13 +70,13 @@ public class AgenticAiLangChain4JChatModelConfiguration {
   @ConditionalOnMissingBean
   public BedrockChatModelFactory langChain4JBedrockChatModelFactory(
       AgenticAiConnectorsConfigurationProperties config,
-      AgenticAiHttpProxySupport httpProxySupport,
+      ChatModelHttpProxySupport chatModelHttpProxySupport,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
     return new BedrockChatModelFactory(
         config.aiagent().chatModel(),
-        httpProxySupport,
+        chatModelHttpProxySupport,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter);

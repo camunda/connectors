@@ -24,6 +24,7 @@ import dev.langchain4j.model.bedrock.BedrockTokenUsage;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.ResultCaptor;
@@ -36,7 +37,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderCo
 import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration.BedrockModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration.BedrockModel.BedrockModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
@@ -75,8 +76,10 @@ class BedrockChatModelFactoryTest {
       new BedrockModelParameters(10, 1.0, 0.8);
 
   private final ProxyConfiguration proxyConfiguration = ProxyConfiguration.NONE;
-  private final AgenticAiHttpProxySupport proxySupport =
-      spy(new AgenticAiHttpProxySupport(proxyConfiguration));
+  private final ChatModelHttpProxySupport proxySupport =
+      spy(
+          new ChatModelHttpProxySupport(
+              proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
 
   private final BedrockChatModelFactory factory =
       new BedrockChatModelFactory(
