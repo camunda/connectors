@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinking;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinkingLevel;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -482,6 +483,37 @@ class GeminiContentRequestConverterTest {
         .isEqualTo(
             "{\"url\":\"https://example.com/document\",\"name\":\"document\","
                 + "\"camunda.document.type\":\"external\"}");
+  }
+
+  @Test
+  void toolResultWithEmptyContentStillClosesOutTheFunctionCall() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                ToolCallResultMessage.builder()
+                    .results(
+                        List.of(
+                            ToolCallResultContent.builder()
+                                .id("call-1")
+                                .name("noOpTool")
+                                .content(List.of())
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var contents = converter.toContents(snapshot);
+
+    final var parts = contents.get(0).parts().orElseThrow();
+    assertThat(parts).hasSize(1);
+
+    // a null/blank tool result normalizes to an empty content list (ToolCallResultContent
+    // #contentFromObject); without a fallback, that produces no parts at all here, leaving the
+    // preceding functionCall without a correlated response
+    final var functionResponse = parts.get(0).functionResponse().orElseThrow();
+    assertThat(functionResponse.id()).contains("call-1");
+    assertThat(functionResponse.name()).contains("noOpTool");
+    assertThat(functionResponse.response().orElseThrow().get("output"))
+        .isEqualTo(ToolCallResult.CONTENT_NO_RESULT);
   }
 
   @Test

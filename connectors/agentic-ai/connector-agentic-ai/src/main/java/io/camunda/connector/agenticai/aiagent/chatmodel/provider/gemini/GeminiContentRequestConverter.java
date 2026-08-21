@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration;
@@ -32,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinking;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinkingLevel;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
@@ -323,6 +325,12 @@ public class GeminiContentRequestConverter {
    * #mergeFunctionResponseParts(List, String, String)} does that, combining their {@code response}
    * payloads. Non-{@code functionResponse} parts (e.g. a document's {@code inlineData}) pass
    * through unchanged; they carry no name/id to begin with.
+   *
+   * <p>A tool returning null/blank content normalizes to an empty {@code List<Content>} ({@link
+   * ToolCallResultContent#contentFromObject}), which would otherwise produce no parts at all here,
+   * leaving the preceding {@code functionCall} without a correlated response. Fall back to a single
+   * {@link ToolCallResult#CONTENT_NO_RESULT} functionResponse in that case, same convention already
+   * used for a canceled tool call.
    */
   private List<Part> toolResultParts(ToolCallResultContent result) {
     final List<Part> parts = contentConverter.toFunctionResponseParts(result.content());
@@ -335,6 +343,11 @@ public class GeminiContentRequestConverter {
     final List<Part> merged = new ArrayList<>();
     if (!functionResponseParts.isEmpty()) {
       merged.add(mergeFunctionResponseParts(functionResponseParts, result.name(), result.id()));
+    } else if (otherParts.isEmpty()) {
+      final var noResultParts =
+          contentConverter.toFunctionResponseParts(
+              List.of(TextContent.textContent(ToolCallResult.CONTENT_NO_RESULT)));
+      merged.add(mergeFunctionResponseParts(noResultParts, result.name(), result.id()));
     }
     merged.addAll(otherParts);
     return merged;
