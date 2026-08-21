@@ -273,6 +273,17 @@ When a version is bumped, a template moves into `versioned/`, or a connector is 
 
 Do not list `hybrid/` templates in the README. They are intentionally omitted.
 
+### Agent definition marker
+
+All AI Agent Task and Sub-process templates (v1 and v2, all flavors, including hybrid) carry a
+hidden `zeebe:agentDefinition` property so the engine detects a native agent at deploy time
+(camunda/connectors#8176). `transform-ai-agent-task-template.groovy` adds it to each task template
+(`agentType=aiAgentTask`); `transform-ai-agent-sub-process-template.groovy` adds its own
+(`agentType=aiAgentSubProcess`) to the derived sub-process template. Both take `agentType` as a
+Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
+execution order does not matter — the sub-process transformer cannot carry the task marker into the
+derived template regardless of when the task-marker script runs.
+
 ## Key entry points
 
 | File                                        | Purpose                                    |

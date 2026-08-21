@@ -32,7 +32,6 @@ import io.camunda.client.api.search.response.UserTask;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.agenticai.BpmnUtil;
 import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.process.test.api.CamundaProcessTestExtension;
 import io.camunda.process.test.api.CamundaProcessTestRuntimeMode;
@@ -676,9 +675,8 @@ public class AiAgentE2ETestIT {
       var templateFile = template.writeTo(new File(tempDir, "template.json"));
       var bpmnFile =
           new File(AiAgentE2ETestIT.class.getClassLoader().getResource(BPMN_RESOURCE).toURI());
-      var model =
-          new BpmnFile(bpmnFile).apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
-      return BpmnUtil.withAgentDefinitionMarker(model, "AI_Agent", "aiAgentSubProcess");
+      return new BpmnFile(bpmnFile)
+          .apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
     } catch (Exception e) {
       throw new RuntimeException("Failed to build BPMN model for " + provider.label(), e);
     }
