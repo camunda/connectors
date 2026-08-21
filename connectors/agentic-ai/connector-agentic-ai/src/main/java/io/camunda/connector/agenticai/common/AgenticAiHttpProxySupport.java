@@ -188,6 +188,10 @@ public class AgenticAiHttpProxySupport {
                   new ProxyOptions(
                       ProxyOptions.Type.HTTP,
                       new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
+              options.setNonProxyHosts(
+                  NonProxyHosts.getNonProxyHostsPatterns()
+                      .distinct()
+                      .collect(Collectors.joining("|")));
               if (proxyDetails.hasCredentials()) {
                 options.setCredentials(proxyDetails.user(), proxyDetails.password());
               }
