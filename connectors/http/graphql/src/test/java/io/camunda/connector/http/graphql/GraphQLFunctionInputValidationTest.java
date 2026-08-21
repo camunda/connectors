@@ -16,6 +16,7 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -101,7 +102,53 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
         assertThrows(ConnectorInputException.class, () -> functionUnderTest.execute(ctx));
     // Then
     assertThat(exception.getMessage())
-        .contains("Found constraints violated while validating input", "URL is required");
+        .contains(
+            "Found constraints violated while validating input",
+            "No URL provided by the credential or the element template");
+  }
+
+  /**
+   * An OAuth credential legitimately carries no URL (see {@code
+   * RestAuthenticationConfiguration#carriesUrl}), so binding one with neither an inline URL nor an
+   * override must fail with a message pointing at both possible sources, not a bare "URL is
+   * required" that gives no hint where to provide it.
+   */
+  @Test
+  void shouldRaiseException_WhenExecuted_OAuthCredentialCarriesNoUrlAndNoInlineOverride() {
+    // Given
+    String variables =
+        """
+        {
+          "graphql": {
+            "method": "get",
+            "query": "query { field }"
+          },
+          "authenticationConfiguration": {
+            "authentication": {
+              "type": "oauth-client-credentials-flow",
+              "oauthTokenEndpoint": "https://camunda.io/token",
+              "clientId": "id",
+              "clientSecret": "secret",
+              "clientAuthentication": "credentialsBody"
+            }
+          }
+        }
+        """;
+    OutboundConnectorContext ctx =
+        getContextBuilderWithSecrets()
+            .validation(new DefaultValidationProvider())
+            .variables(variables)
+            .build();
+
+    // When
+    Throwable exception =
+        assertThrows(ConnectorInputException.class, () -> functionUnderTest.execute(ctx));
+
+    // Then
+    assertThat(exception.getMessage())
+        .contains(
+            "Found constraints violated while validating input",
+            "No URL provided by the credential or the element template");
   }
 
   @ParameterizedTest(name = "Validate null field # {index}")

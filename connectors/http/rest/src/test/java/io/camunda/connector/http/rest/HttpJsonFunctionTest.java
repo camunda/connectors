@@ -305,7 +305,7 @@ public class HttpJsonFunctionTest extends BaseTest {
 
     assertThatThrownBy(() -> context.bindVariables(HttpJsonRequest.class))
         .isInstanceOf(ConnectorInputException.class)
-        .hasMessageContaining("URL is required");
+        .hasMessageContaining("No URL provided by the credential or the element template");
   }
 
   /**

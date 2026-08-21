@@ -236,7 +236,7 @@ public class PollingRuntimeProperties {
    * as {@code JdbcRequest#isConnectionSourceProvided()}. A field-level {@code @NotBlank} could not
    * do this: the inline field is legitimately blank when the credential supplies the URL.
    */
-  @AssertTrue(message = "URL is required")
+  @AssertTrue(message = "No URL provided by the credential or the element template")
   @JsonIgnore
   public boolean isUrlPresent() {
     String effectiveUrl = getUrl();
@@ -248,7 +248,8 @@ public class PollingRuntimeProperties {
    * null} on the way in is what lets the shape check stay on the field: Modeler may write an empty
    * input when the optional override is cleared, and a bound credential's URL must then take over
    * rather than {@code @Pattern} rejecting {@code ""}. It also turns a blank URL with no credential
-   * into the accurate "URL is required" rather than "Must be a http(s) URL".
+   * into the accurate "No URL provided by the credential or the element template" rather than
+   * "Must be a http(s) URL".
    */
   public void setUrl(String url) {
     this.url = url == null || url.isBlank() ? null : url;

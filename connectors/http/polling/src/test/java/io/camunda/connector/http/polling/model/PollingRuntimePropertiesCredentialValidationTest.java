@@ -167,4 +167,37 @@ class PollingRuntimePropertiesCredentialValidationTest {
     assertThat(context.bindProperties(PollingRuntimeProperties.class).getUrl())
         .isEqualTo("http://localhost:8085/http-endpoint");
   }
+
+  /**
+   * An OAuth credential legitimately carries no URL (see {@code
+   * RestAuthenticationConfiguration#carriesUrl}), so binding one with neither an inline URL nor an
+   * override must fail with a message pointing at both possible sources, not a bare "URL is
+   * required" that gives no hint where to provide it.
+   */
+  @Test
+  void oauthCredentialWithNoUrlAndNoInlineUrlIsRejected() {
+    String properties =
+        """
+        {
+          "method": "GET",
+          "authenticationConfiguration": {
+            "authentication": {
+              "type": "oauth-client-credentials-flow",
+              "oauthTokenEndpoint": "http://localhost:8085/token",
+              "clientId": "id",
+              "clientSecret": "secret",
+              "clientAuthentication": "credentialsBody"
+            }
+          }
+        }
+        """;
+    var context =
+        InboundConnectorContextBuilder.create()
+            .properties(properties)
+            .validation(new TestValidationProvider())
+            .build();
+
+    assertThatThrownBy(() -> context.bindProperties(PollingRuntimeProperties.class))
+        .hasMessageContaining("No URL provided by the credential or the element template");
+  }
 }
