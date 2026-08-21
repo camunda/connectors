@@ -192,8 +192,10 @@ class OpenAiChatModelFactoryClientTest {
                 null)));
 
     // Azure wants the API key on a dedicated `api-key` header, never `Authorization: Bearer`.
+    // The endpoint is normalized onto the unified OpenAI/v1 API surface, so the request lands on
+    // /openai/v1/responses rather than the bare /responses path.
     verify(
-        postRequestedFor(urlPathEqualTo("/responses"))
+        postRequestedFor(urlPathEqualTo("/openai/v1/responses"))
             .withHeader("api-key", equalTo("foundry-secret-key")));
   }
 
@@ -210,7 +212,7 @@ class OpenAiChatModelFactoryClientTest {
                 null)));
 
     verify(
-        postRequestedFor(urlPathEqualTo("/responses"))
+        postRequestedFor(urlPathEqualTo("/openai/v1/responses"))
             .withHeader("X-Custom-Header", equalTo("header-value"))
             .withQueryParam("custom-query-param", equalTo("query-value")));
   }
