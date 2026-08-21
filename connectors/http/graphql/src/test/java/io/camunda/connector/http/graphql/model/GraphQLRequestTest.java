@@ -22,7 +22,7 @@ class GraphQLRequestTest {
   }
 
   private GraphQL graphQL(String url) {
-    return new GraphQL("query { field }", null, HttpMethod.POST, url, null, false, 20, 20);
+    return new GraphQL("query { field }", null, HttpMethod.POST, null, url, false, 20, 20);
   }
 
   @Test

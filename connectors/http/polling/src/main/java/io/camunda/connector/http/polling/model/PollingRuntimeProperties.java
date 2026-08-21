@@ -33,8 +33,8 @@ public class PollingRuntimeProperties {
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "authenticationConfiguration"),
       description =
-          "Choose a reusable REST authentication credential, or configure one-time"
-              + " authentication parameters below.")
+          "Choose a reusable authentication credential, or configure one-time authentication"
+              + " parameters below.")
   @Valid
   private RestAuthenticationConfiguration authenticationConfiguration;
 
@@ -98,8 +98,8 @@ public class PollingRuntimeProperties {
                       value = HttpCommonRequest.URL_PATTERN,
                       message = HttpCommonRequest.URL_PATTERN_MESSAGE)),
       description =
-          "Optional. Overrides the URL of the selected credential; leave empty to use the"
-              + " credential's own URL.")
+          "Optional. Overrides the URL of the selected reusable credential; leave empty to use"
+              + " the credential's own URL.")
   private String urlOverride;
 
   @FEEL

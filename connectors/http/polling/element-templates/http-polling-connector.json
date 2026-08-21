@@ -54,7 +54,7 @@
   }, {
     "id" : "authenticationConfiguration",
     "label" : "Authentication credential",
-    "description" : "Choose a reusable REST authentication credential, or configure one-time authentication parameters below.",
+    "description" : "Choose a reusable authentication credential, or configure one-time authentication parameters below.",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
@@ -571,7 +571,7 @@
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "value" : "^($|=|(http://|https://|secrets|\\{\\{).*$)",
         "message" : "Must be a http(s) URL"
       }
     },
@@ -590,12 +590,12 @@
   }, {
     "id" : "urlOverride",
     "label" : "URL",
-    "description" : "Optional. Overrides the URL of the selected credential; leave empty to use the credential's own URL.",
+    "description" : "Optional. Overrides the URL of the selected reusable credential; leave empty to use the credential's own URL.",
     "optional" : true,
     "constraints" : {
       "notEmpty" : false,
       "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "value" : "^($|=|(http://|https://|secrets|\\{\\{).*$)",
         "message" : "Must be a http(s) URL"
       }
     },

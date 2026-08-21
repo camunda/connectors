@@ -35,9 +35,14 @@ import java.util.Optional;
             + " you can access via dot notation.")
 public class HttpCommonRequest {
 
-  /** Shared by every URL property built on this model, inline or credential-override. */
+  /**
+   * Shared by every URL property built on this model, inline or credential-override. Matches the
+   * empty string too: the override field is optional, and without that alternative Modeler's
+   * client-side pattern check rejects a blank value even though {@code notEmpty} correctly allows
+   * it - requiredness and shape are two different constraints.
+   */
   @TemplateProperty(ignore = true)
-  public static final String URL_PATTERN = "^(=|(http://|https://|secrets|\\{\\{).*$)";
+  public static final String URL_PATTERN = "^($|=|(http://|https://|secrets|\\{\\{).*$)";
 
   @TemplateProperty(ignore = true)
   public static final String URL_PATTERN_MESSAGE = "Must be a http(s) URL";
@@ -97,8 +102,8 @@ public class HttpCommonRequest {
               pattern =
                   @TemplateProperty.Pattern(value = URL_PATTERN, message = URL_PATTERN_MESSAGE)),
       description =
-          "Optional. Overrides the URL of the selected credential; leave empty to use the"
-              + " credential's own URL.")
+          "Optional. Overrides the URL of the selected reusable credential; leave empty to use"
+              + " the credential's own URL.")
   private String urlOverride;
 
   // Hidden and un-required (via the isEmpty condition) once a credential is chosen. The chooser

@@ -52,7 +52,7 @@
   }, {
     "id" : "authenticationConfiguration",
     "label" : "Authentication credential",
-    "description" : "Choose a reusable REST authentication credential, or configure one-time authentication parameters below.",
+    "description" : "Choose a reusable authentication credential, or configure one-time authentication parameters below.",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
@@ -569,13 +569,25 @@
       "value" : "post"
     } ]
   }, {
+    "id" : "graphql.headers",
+    "label" : "Headers",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "graphql.headers",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Map of HTTP headers to add to the request",
+    "type" : "String"
+  }, {
     "id" : "graphql.url",
     "label" : "URL",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "value" : "^($|=|(http://|https://|secrets|\\{\\{).*$)",
         "message" : "Must be a http(s) URL"
       }
     },
@@ -592,16 +604,28 @@
     },
     "type" : "String"
   }, {
-    "id" : "graphql.headers",
-    "label" : "Headers",
+    "id" : "urlOverride",
+    "label" : "URL",
+    "description" : "Optional. Overrides the URL of the selected reusable credential; leave empty to use the credential's own URL.",
     "optional" : true,
-    "feel" : "required",
+    "constraints" : {
+      "notEmpty" : false,
+      "pattern" : {
+        "value" : "^($|=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
+    "feel" : "optional",
     "group" : "endpoint",
     "binding" : {
-      "name" : "graphql.headers",
+      "name" : "graphql.url",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Map of HTTP headers to add to the request",
+    "condition" : {
+      "property" : "authenticationConfiguration",
+      "isEmpty" : false,
+      "type" : "simple"
+    },
     "type" : "String"
   }, {
     "id" : "documentReturnFormat",
@@ -638,30 +662,6 @@
     "condition" : {
       "property" : "documentReturnFormat",
       "equals" : "TEXT",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "urlOverride",
-    "label" : "URL",
-    "description" : "Optional. Overrides the URL of the selected credential; leave empty to use the credential's own URL.",
-    "optional" : true,
-    "constraints" : {
-      "notEmpty" : false,
-      "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
-        "message" : "Must be a http(s) URL"
-      }
-    },
-    "feel" : "optional",
-    "group" : "endpoint",
-    "binding" : {
-      "name" : "graphql.url",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authenticationConfiguration",
-      "isEmpty" : false,
       "type" : "simple"
     },
     "type" : "String"

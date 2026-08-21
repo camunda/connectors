@@ -41,6 +41,13 @@ import java.util.Map;
  *     isEmpty condition below.
  * @param authentication hidden and un-required once a credential is bound above.
  */
+@DocumentReturnFormat(
+    group = "endpoint",
+    defaultFormat = DocumentReturnChoice.JSON,
+    tooltip =
+        "How the response body should be returned. Document reference uploads the body to the"
+            + " document store; as text decodes it as a String; as JSON parses it into a structure"
+            + " you can access via dot notation.")
 public record GraphQLRequest(
     @Valid GraphQL graphql,
     @TemplateProperty(
@@ -51,7 +58,7 @@ public record GraphQLRequest(
             optional = true,
             binding = @TemplateProperty.PropertyBinding(name = "authenticationConfiguration"),
             description =
-                "Choose a reusable REST authentication credential, or configure one-time"
+                "Choose a reusable authentication credential, or configure one-time"
                     + " authentication parameters below.")
         @Valid
         RestAuthenticationConfiguration authenticationConfiguration,
@@ -85,8 +92,8 @@ public record GraphQLRequest(
                             value = HttpCommonRequest.URL_PATTERN,
                             message = HttpCommonRequest.URL_PATTERN_MESSAGE)),
             description =
-                "Optional. Overrides the URL of the selected credential; leave empty to use the"
-                    + " credential's own URL.")
+                "Optional. Overrides the URL of the selected reusable credential; leave empty to"
+                    + " use the credential's own URL.")
         String urlOverride) {
 
   /** Convenience constructor for the shape without the template-only URL-override component. */
@@ -138,13 +145,6 @@ public record GraphQLRequest(
     return authentication;
   }
 
-  @DocumentReturnFormat(
-      group = "endpoint",
-      defaultFormat = DocumentReturnChoice.JSON,
-      tooltip =
-          "How the response body should be returned. Document reference uploads the body to the"
-              + " document store; as text decodes it as a String; as JSON parses it into a"
-              + " structure you can access via dot notation.")
   public record GraphQL(
       @TemplateProperty(
               id = "query",
@@ -175,6 +175,13 @@ public record GraphQLRequest(
                 @TemplateProperty.DropdownPropertyChoice(label = "POST", value = "post")
               })
           HttpMethod method,
+      @FEEL
+          @TemplateProperty(
+              feel = FeelMode.required,
+              group = "endpoint",
+              optional = true,
+              tooltip = "Map of HTTP headers to add to the request")
+          Map<String, String> headers,
       // Only @NotBlank moved off this component: once a credential can supply the URL, the inline
       // value may legitimately be absent, so presence is asserted on the effective value in
       // GraphQLRequest#isUrlPresent(). The shape checks stay here so a malformed inline value is
@@ -183,7 +190,10 @@ public record GraphQLRequest(
       // when the optional override is left empty. A URL coming from the credential is shape-checked
       // by RestAuthenticationConfiguration's own constraints. notEmpty is spelled out in the
       // template constraints because the generator derives it from @NotBlank, which this component
-      // no longer carries.
+      // no longer carries. Declared last (after headers) so it lands immediately before the
+      // top-level `urlOverride` twin once grouped into the "endpoint" tab - the two occupy the same
+      // visual slot and must render adjacent to each other, not split apart by other endpoint
+      // fields.
       @FEEL
           @Pattern(
               regexp = HttpCommonRequest.URL_PATTERN,
@@ -205,13 +215,6 @@ public record GraphQLRequest(
                               value = HttpCommonRequest.URL_PATTERN,
                               message = HttpCommonRequest.URL_PATTERN_MESSAGE)))
           String url,
-      @FEEL
-          @TemplateProperty(
-              feel = FeelMode.required,
-              group = "endpoint",
-              optional = true,
-              tooltip = "Map of HTTP headers to add to the request")
-          Map<String, String> headers,
       @TemplateProperty(ignore = true) @Deprecated boolean storeResponse,
       @TemplateProperty(
               group = "timeout",
