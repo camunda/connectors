@@ -25,8 +25,6 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.openai.OpenAiChatResponseMetadata;
-import dev.langchain4j.model.openai.OpenAiTokenUsage;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
@@ -406,23 +404,77 @@ class ChatMessageConverterTest {
                 Map.of("inputTokenCount", 10, "outputTokenCount", 20, "totalTokenCount", 30)));
   }
 
+  /**
+   * Minimal stand-in for a vendor-specific {@link ChatResponseMetadata} subtype (such as an OpenAI
+   * or Anthropic implementation), carrying extra top-level fields beyond the base contract. Used to
+   * verify that {@link ChatMessageConverterImpl} only captures the base
+   * id/model/finishReason/tokenUsage fields into the generic "framework" metadata map, ignoring
+   * anything vendor-specific.
+   */
+  private static final class VendorChatResponseMetadata extends ChatResponseMetadata {
+
+    private VendorChatResponseMetadata(Builder builder) {
+      super(builder);
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    static final class Builder extends ChatResponseMetadata.Builder<Builder> {
+      private String serviceTier;
+      private SuccessfulHttpResponse rawHttpResponse;
+
+      Builder serviceTier(String serviceTier) {
+        this.serviceTier = serviceTier;
+        return this;
+      }
+
+      Builder rawHttpResponse(SuccessfulHttpResponse rawHttpResponse) {
+        this.rawHttpResponse = rawHttpResponse;
+        return this;
+      }
+
+      @Override
+      public VendorChatResponseMetadata build() {
+        return new VendorChatResponseMetadata(this);
+      }
+    }
+  }
+
+  /**
+   * Minimal stand-in for a vendor-specific {@link TokenUsage} subtype (such as an OpenAI
+   * implementation), carrying extra fields. Used to verify that {@link ChatMessageConverterImpl}
+   * captures the full token usage payload via generic JSON serialization, including
+   * subtype-specific fields.
+   */
+  private static final class VendorTokenUsage extends TokenUsage {
+    private final InputTokensDetails inputTokensDetails;
+    private final Object outputTokensDetails = null;
+
+    VendorTokenUsage(
+        Integer inputTokenCount,
+        InputTokensDetails inputTokensDetails,
+        Integer outputTokenCount,
+        Integer totalTokenCount) {
+      super(inputTokenCount, outputTokenCount, totalTokenCount);
+      this.inputTokensDetails = inputTokensDetails;
+    }
+
+    record InputTokensDetails(Integer cachedTokens) {}
+  }
+
   @Test
   void toAssistantMessage_containsOnlyBasicMetadata() {
     final var aiMessage = AiMessage.builder().text("AI response").build();
 
     final var chatResponseMetadata =
-        OpenAiChatResponseMetadata.builder()
+        VendorChatResponseMetadata.builder()
             .id("chatcmpl-123")
             .modelName("gpt-4o")
             .finishReason(FinishReason.TOOL_EXECUTION)
             .tokenUsage(
-                OpenAiTokenUsage.builder()
-                    .inputTokenCount(10)
-                    .inputTokensDetails(
-                        OpenAiTokenUsage.InputTokensDetails.builder().cachedTokens(1).build())
-                    .outputTokenCount(20)
-                    .totalTokenCount(30)
-                    .build())
+                new VendorTokenUsage(10, new VendorTokenUsage.InputTokensDetails(1), 20, 30))
             .serviceTier("super-premium")
             .rawHttpResponse(
                 SuccessfulHttpResponse.builder()

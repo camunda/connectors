@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.co
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverterImpl;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
@@ -18,15 +19,23 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.too
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverterImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverterImpl;
+import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 
 @Configuration
-@Import(AgenticAiLangChain4JChatModelConfiguration.class)
 public class AgenticAiLangChain4JFrameworkConfiguration {
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ChatModelHttpProxySupport langChain4JChatModelHttpProxySupport(
+      AgenticAiHttpProxySupport httpProxySupport) {
+    return new ChatModelHttpProxySupport(
+        httpProxySupport.getProxyConfiguration(),
+        httpProxySupport.getJdkHttpClientProxyConfigurator());
+  }
 
   @Bean
   @ConditionalOnMissingBean

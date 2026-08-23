@@ -94,17 +94,14 @@ public class AgentTaskV1Function implements AgentConnectorFunction {
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final AgentTaskRequestHandler agentRequestHandler;
   private final V1ToV2ProviderConfigurationMapper providerConfigurationMapper;
-  private final boolean rewriteV1ProviderConfigToV2;
 
   public AgentTaskV1Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
       AgentTaskRequestHandler agentRequestHandler,
-      V1ToV2ProviderConfigurationMapper providerConfigurationMapper,
-      boolean rewriteV1ProviderConfigToV2) {
+      V1ToV2ProviderConfigurationMapper providerConfigurationMapper) {
     this.toolElementsResolver = toolElementsResolver;
     this.agentRequestHandler = agentRequestHandler;
     this.providerConfigurationMapper = providerConfigurationMapper;
-    this.rewriteV1ProviderConfigToV2 = rewriteV1ProviderConfigToV2;
   }
 
   @Override
@@ -116,12 +113,8 @@ public class AgentTaskV1Function implements AgentConnectorFunction {
 
   private AgentTaskExecutionContext buildExecutionContext(
       JobContext jobContext, AgentTaskV1Request request) {
-    if (rewriteV1ProviderConfigToV2) {
-      var nativeConfig = providerConfigurationMapper.map(request.provider());
-      return new AgentTaskExecutionContext(
-          jobContext, request.data(), nativeConfig, toolElementsResolver);
-    }
-
-    return new AgentTaskExecutionContext(jobContext, request, toolElementsResolver);
+    var nativeConfig = providerConfigurationMapper.map(request.provider());
+    return new AgentTaskExecutionContext(
+        jobContext, request.data(), nativeConfig, toolElementsResolver);
   }
 }

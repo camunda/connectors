@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
@@ -81,28 +80,14 @@ class AgentSubProcessV1FunctionTest {
   }
 
   @Test
-  void routesThroughNativeProviderWhenSwitchIsEnabled() throws Exception {
+  void routesThroughNativeProvider() throws Exception {
     when(providerConfigurationMapper.map(V1_PROVIDER)).thenReturn(V2_PROVIDER);
-    var function =
-        new AgentSubProcessV1Function(agentRequestHandler, providerConfigurationMapper, true);
+    var function = new AgentSubProcessV1Function(agentRequestHandler, providerConfigurationMapper);
 
     function.execute(context);
 
     verify(agentRequestHandler).handleRequest(executionContextCaptor.capture());
     var chatModel = executionContextCaptor.getValue().configuration().chatModel();
     assertThat(chatModel).isInstanceOf(AnthropicChatModelConfiguration.class).isSameAs(V2_PROVIDER);
-  }
-
-  @Test
-  void keepsV1ProviderConfigurationWhenSwitchIsDisabled() throws Exception {
-    var function =
-        new AgentSubProcessV1Function(agentRequestHandler, providerConfigurationMapper, false);
-
-    function.execute(context);
-
-    verify(agentRequestHandler).handleRequest(executionContextCaptor.capture());
-    verifyNoInteractions(providerConfigurationMapper);
-    var chatModel = executionContextCaptor.getValue().configuration().chatModel();
-    assertThat(chatModel).isSameAs(V1_PROVIDER);
   }
 }

@@ -342,13 +342,9 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AgentTaskV1Function aiAgentTaskV1Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
       AgentTaskRequestHandler agentRequestHandler,
-      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper,
-      AgenticAiConnectorsConfigurationProperties configuration) {
+      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper) {
     return new AgentTaskV1Function(
-        toolElementsResolver,
-        agentRequestHandler,
-        v1ProviderConfigurationMapper,
-        configuration.aiagent().rewriteV1ProviderConfigToV2());
+        toolElementsResolver, agentRequestHandler, v1ProviderConfigurationMapper);
   }
 
   @Bean
@@ -383,12 +379,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   @SuppressWarnings("deprecation")
   public AgentSubProcessV1Function aiAgentSubProcessV1Function(
       AgentSubProcessRequestHandler agentRequestHandler,
-      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper,
-      AgenticAiConnectorsConfigurationProperties configuration) {
-    return new AgentSubProcessV1Function(
-        agentRequestHandler,
-        v1ProviderConfigurationMapper,
-        configuration.aiagent().rewriteV1ProviderConfigToV2());
+      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper) {
+    return new AgentSubProcessV1Function(agentRequestHandler, v1ProviderConfigurationMapper);
   }
 
   @Bean
