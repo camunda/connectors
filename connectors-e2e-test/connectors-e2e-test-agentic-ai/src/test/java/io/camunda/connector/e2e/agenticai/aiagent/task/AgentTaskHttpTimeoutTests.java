@@ -16,11 +16,6 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -28,8 +23,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.StreamingBedrockConverseEventStreamChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
@@ -55,9 +53,9 @@ import org.junit.jupiter.api.Test;
  * <p>Providers tested:
  *
  * <ul>
- *   <li>Anthropic: exercises the JDK HTTP client path (read timeout).
- *   <li>OpenAI-compatible: same JDK HTTP client path with a different endpoint shape.
- *   <li>Bedrock: exercises the Apache HTTP client path (socket timeout) used by the AWS SDK.
+ *   <li>Anthropic: exercises the native Anthropic SDK's streaming transport read timeout.
+ *   <li>OpenAI: exercises the native OpenAI SDK's streaming transport read timeout.
+ *   <li>Bedrock: exercises the native AWS SDK's streaming transport socket timeout.
  * </ul>
  *
  * <p>Providers that are currently untested:
@@ -117,20 +115,20 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
   }
 
   @Nested
-  class OpenAiCompatibleTests {
+  class OpenAiTests {
 
     @Test
     void processCompletesWhenResponseArrivesWithinSocketTimeout() {
       OpenAiCompletionsChatModelStubs.stubConversation(
           Turn.text(AGENT_RESPONSE_TEXT, 10, 20).withRequestDelay(RESPONSE_DELAY_BELOW_TIMEOUT));
-      runPositiveCase(openAiCompatibleProvider());
+      runPositiveCase(openAiProvider());
     }
 
     @Test
     void raisesIncidentWhenResponseExceedsSocketTimeout() {
       OpenAiCompletionsChatModelStubs.stubConversation(
           Turn.text(AGENT_RESPONSE_TEXT, 10, 20).withRequestDelay(RESPONSE_DELAY_ABOVE_TIMEOUT));
-      runNegativeCase(openAiCompatibleProvider());
+      runNegativeCase(openAiProvider());
     }
   }
 
@@ -184,8 +182,17 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
           zeebeTest,
           incident -> {
             assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
+            // Bedrock's AWS SDK exception message states "timed out" directly. The native
+            // Anthropic/OpenAI vendor SDKs instead wrap the underlying
+            // java.net.SocketTimeoutException: Read timed out in their own IO-exception type
+            // (com.anthropic.errors.AnthropicIoException / com.openai.errors.OpenAIIoException)
+            // whose message is the generic "Request failed", which is what ends up in the
+            // incident's error message - the SocketTimeoutException's own message is not
+            // propagated. "Request failed" only surfaces here because this test's only failure
+            // mode is the induced socket timeout, so matching it still proves a timeout-caused
+            // model-call failure for those two providers.
             assertThat(incident.getErrorMessage())
-                .containsPattern(Pattern.compile("timed out|timeout"));
+                .containsPattern(Pattern.compile("timed out|timeout|Request failed"));
             assertThat(incident.getErrorMessage()).contains("FAILED_MODEL_CALL");
           });
       assertThat(userFeedbackJobWorkerCounter.get())
@@ -211,7 +218,7 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
             .property("provider.anthropic.timeouts.timeout", MODEL_TIMEOUT.toString());
   }
 
-  private Function<ElementTemplate, ElementTemplate> openAiCompatibleProvider() {
+  private Function<ElementTemplate, ElementTemplate> openAiProvider() {
     return template ->
         template
             .property("retryCount", "1")
@@ -232,62 +239,28 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
             .property("provider.bedrock.authentication.type", "credentials")
             .property("provider.bedrock.authentication.accessKey", "dummy")
             .property("provider.bedrock.authentication.secretKey", "dummy")
-            .property("provider.bedrock.model.model", "anthropic.claude-3-haiku-20240307-v1:0")
+            .property("provider.bedrock.model.model", "test-model")
             .property("provider.bedrock.timeouts.timeout", MODEL_TIMEOUT.toString());
   }
 
   // ---------------------------------------------------------------------------
-  // WireMock stubs: return provider-shaped responses with the requested delay
+  // WireMock stubs: return provider-shaped streaming responses with the requested delay.
+  //
+  // Both Anthropic and Bedrock now execute over their native v2 providers (the v1->v2
+  // provider-config rewrite switch is on by default), which always call the vendor SDK's
+  // streaming endpoint - Anthropic's SSE `POST /v1/messages`, Bedrock's AWS EventStream
+  // `POST /model/test-model/converse-stream` - rather than a plain buffered-JSON POST. The
+  // response delay is applied at the WireMock level via `withFixedDelay`, so it still models a
+  // slow/hanging transport regardless of the response framing.
   // ---------------------------------------------------------------------------
 
   private void stubAnthropic(Duration delay) {
-    stubFor(
-        post(urlPathEqualTo("/v1/messages"))
-            .willReturn(
-                aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withFixedDelay((int) delay.toMillis())
-                    .withBody(
-                        """
-                        {
-                          "id": "msg_test",
-                          "type": "message",
-                          "role": "assistant",
-                          "content": [{"type": "text", "text": "%s"}],
-                          "model": "claude-3-5-sonnet",
-                          "stop_reason": "end_turn",
-                          "stop_sequence": null,
-                          "usage": {"input_tokens": 10, "output_tokens": 20}
-                        }
-                        """
-                            .formatted(AGENT_RESPONSE_TEXT))));
+    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(
+        delay, TurnStub.text(AGENT_RESPONSE_TEXT, 10, 20));
   }
 
   private void stubBedrock(Duration delay) {
-    // Bedrock Converse: POST /model/{modelId}/converse - the SDK URL-encodes the model id, so we
-    // match any model path here for simplicity
-    stubFor(
-        post(urlMatching("/model/.+/converse"))
-            .willReturn(
-                aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withFixedDelay((int) delay.toMillis())
-                    .withBody(
-                        """
-                        {
-                          "metrics": {"latencyMs": 100},
-                          "output": {
-                            "message": {
-                              "role": "assistant",
-                              "content": [{"text": "%s"}]
-                            }
-                          },
-                          "stopReason": "end_turn",
-                          "usage": {"inputTokens": 10, "outputTokens": 20, "totalTokens": 30}
-                        }
-                        """
-                            .formatted(AGENT_RESPONSE_TEXT))));
+    StreamingBedrockConverseEventStreamChatModelStubs.stubConversation(
+        delay, TurnStub.text(AGENT_RESPONSE_TEXT, 10, 20));
   }
 }

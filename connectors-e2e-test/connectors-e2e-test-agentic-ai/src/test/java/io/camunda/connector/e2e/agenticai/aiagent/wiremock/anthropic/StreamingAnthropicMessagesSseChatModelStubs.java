@@ -53,6 +53,7 @@ import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -273,6 +274,17 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
     writeEvent(body, "message_stop", RawMessageStopEvent.builder().build());
 
     return body.toString();
+  }
+
+  /**
+   * Wires a single-turn scenario whose response is delayed by {@code delay} via WireMock's {@code
+   * withFixedDelay} - used by HTTP-transport-timeout e2e coverage to simulate a slow/hanging model
+   * response on the native streaming endpoint.
+   */
+  public static void stubConversation(Duration delay, TurnStub turn) {
+    stubFor(
+        post(urlPathEqualTo(MESSAGES_PATH))
+            .willReturn(sseResponse(sseBody(turn)).withFixedDelay((int) delay.toMillis())));
   }
 
   /** Shared scenario-chaining plumbing: returns each pre-rendered SSE body in order. */

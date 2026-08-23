@@ -18,19 +18,18 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
 /**
- * Plugs the OpenAI-compatible chat completions stubs ({@link OpenAiCompletionsChatModelStubs} /
- * {@link OpenAiCompletionsRecordedConversation}, which also back the rest of the agentic-ai e2e
- * suite) into the provider-agnostic {@link ProviderWireFormatFixture} SPI.
+ * Plugs the OpenAI Chat Completions stubs ({@link OpenAiCompletionsChatModelStubs} / {@link
+ * OpenAiCompletionsRecordedConversation}, which also back the rest of the agentic-ai e2e suite)
+ * into the provider-agnostic {@link ProviderWireFormatFixture} SPI. Drives the v1 {@code
+ * openaiCompatible} element template, so with the v1→v2 rewrite switch on (the default) this row
+ * proves a v1 provider config is routed onto the native provider's wire.
  */
 public final class OpenAiCompletionsV1WireFormatFixture implements ProviderWireFormatFixture {
 
@@ -57,24 +56,7 @@ public final class OpenAiCompletionsV1WireFormatFixture implements ProviderWireF
 
   @Override
   public void stubConversation(TurnStub... turns) {
-    OpenAiCompletionsChatModelStubs.stubConversation(
-        Arrays.stream(turns)
-            .map(OpenAiCompletionsV1WireFormatFixture::toStubTurn)
-            .toArray(Turn[]::new));
-  }
-
-  private static Turn toStubTurn(TurnStub turn) {
-    return switch (turn) {
-      case TurnStub.Text text -> Turn.text(text.text(), text.inputTokens(), text.outputTokens());
-      case TurnStub.ToolCalls toolCalls ->
-          Turn.toolCalls(
-              toolCalls.text(),
-              toolCalls.inputTokens(),
-              toolCalls.outputTokens(),
-              toolCalls.toolCalls().stream()
-                  .map(tc -> ToolCall.of(tc.id(), tc.name(), tc.argumentsJson()))
-                  .toArray(ToolCall[]::new));
-    };
+    OpenAiCompletionsChatModelStubs.stubConversation(turns);
   }
 
   @Override

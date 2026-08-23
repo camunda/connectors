@@ -1,8 +1,3 @@
 camunda:
   process-test:
     runtime-mode: shared
-  connector:
-    agenticai:
-      aiagent:
-        # Pinned OFF (product default is ON) until the v1 e2e suites are rewritten against the native providers.
-        rewrite-v1-provider-config-to-v2: false

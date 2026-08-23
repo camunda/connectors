@@ -21,8 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV2SseChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV2SseChatModelStubs.UsageDetailsTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.UsageDetailsTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import java.util.Map;
@@ -50,7 +50,7 @@ class AgentSubProcessOpenAiCompletionsReasoningEffortTests
   void xhighEffortAppearsOnTheWireAsReasoningEffort() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
-    OpenAiCompletionsV2SseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    OpenAiCompletionsChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     awaitProcessCompletion(
@@ -64,7 +64,7 @@ class AgentSubProcessOpenAiCompletionsReasoningEffortTests
   void unsetEffortOmitsReasoningEffortFromTheWire() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
 
-    OpenAiCompletionsV2SseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    OpenAiCompletionsChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
@@ -84,7 +84,7 @@ class AgentSubProcessOpenAiCompletionsReasoningEffortTests
     final var userPrompt = "Write a haiku about the sea";
     final var responseText = "A haiku about the endless sea.";
 
-    OpenAiCompletionsV2SseChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         new UsageDetailsTurnStub(responseText, 10, 20, 0L, 7L));
     enqueueUserFeedback(userSatisfiedFeedback());
 

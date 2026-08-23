@@ -106,9 +106,9 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasStatus(AgentInstanceStatus.COMPLETED)
         .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1))
-        .hasDefinition("test-model", "openaiCompatible")
+        .hasDefinition("test-model", "openai")
         .hasToolsContaining("SuperfluxProduct")
-        .createdWithConfigurationItem("test-model", "openaiCompatible", 10)
+        .createdWithConfigurationItem("test-model", "openai", 10)
         .hasConfigurationItemsAtLeast(2)
         .hasConversationRoles(
             AgentInstanceHistoryRole.USER,
@@ -182,9 +182,9 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasStatus(AgentInstanceStatus.COMPLETED)
         .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2))
-        .hasDefinition("test-model", "openaiCompatible")
+        .hasDefinition("test-model", "openai")
         .hasToolsContaining("SuperfluxProduct")
-        .createdWithConfigurationItem("test-model", "openaiCompatible", 10)
+        .createdWithConfigurationItem("test-model", "openai", 10)
         .hasConfigurationItemsAtLeast(2)
         .hasConversationRoles(
             AgentInstanceHistoryRole.USER,
