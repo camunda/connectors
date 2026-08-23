@@ -11,6 +11,7 @@ import com.openai.core.JsonValue;
 import com.openai.models.FunctionDefinition;
 import com.openai.models.FunctionParameters;
 import com.openai.models.ReasoningEffort;
+import com.openai.models.ResponseFormatJsonObject;
 import com.openai.models.ResponseFormatJsonSchema;
 import com.openai.models.chat.completions.ChatCompletionAssistantMessageParam;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
@@ -284,6 +285,11 @@ public class OpenAiCompletionsRequestConverter {
   private void applyStructuredOutput(
       ChatCompletionCreateParams.Builder builder, @Nullable ResponseConfiguration response) {
     if (!(response != null && response.format() instanceof JsonResponseFormatConfiguration json)) {
+      return;
+    }
+    if (json.schema() == null) {
+      // JSON mode without a schema: constrain the model to valid JSON without a structure.
+      builder.responseFormat(ResponseFormatJsonObject.builder().build());
       return;
     }
     builder.responseFormat(

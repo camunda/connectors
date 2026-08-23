@@ -314,11 +314,18 @@ public class BedrockConverseRequestConverter {
    * Maps a {@link JsonResponseFormatConfiguration} onto Converse's native structured-output
    * mechanism. {@link
    * io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration}
-   * (and a null {@code response}) emits nothing - {@code parseJson} is client-side.
+   * (and a null {@code response}) emits nothing - {@code parseJson} is client-side. A JSON response
+   * format without a schema also emits nothing, as Converse structured output is schema-only.
    */
   private void applyOutputConfig(
       ConverseStreamRequest.Builder builder, @Nullable ResponseConfiguration response) {
     if (!(response != null && response.format() instanceof JsonResponseFormatConfiguration json)) {
+      return;
+    }
+
+    if (json.schema() == null) {
+      // Converse structured output is schema-only: with no schema there is nothing to constrain,
+      // so emit no output config and leave JSON handling to client-side parsing.
       return;
     }
 

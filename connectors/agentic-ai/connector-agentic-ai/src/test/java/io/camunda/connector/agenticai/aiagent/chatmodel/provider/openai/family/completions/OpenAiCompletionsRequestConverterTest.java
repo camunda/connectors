@@ -399,6 +399,20 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
+  void configuresJsonObjectResponseFormatWhenNoSchema() {
+    final ResponseConfiguration response =
+        new AgentTaskResponseConfiguration(new JsonResponseFormatConfiguration(null, null), null);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(model(null), response, snapshot);
+
+    assertThat(params.responseFormat()).isPresent();
+    final var formatNode = requestBodyAsJson(params).path("response_format");
+    assertThat(formatNode.path("type").asText()).isEqualTo("json_object");
+    assertThat(formatNode.has("json_schema")).isFalse();
+  }
+
+  @Test
   void mapsConfiguredEffortToReasoningEffort() {
     final var parameters = new CompletionsParameters(null, OpenAiEffort.HIGH, null, null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
