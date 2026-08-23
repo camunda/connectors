@@ -29,6 +29,7 @@ import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.io.ByteArrayOutputStream;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -171,6 +172,18 @@ public final class StreamingBedrockConverseEventStreamChatModelStubs {
     writeEvent(body, "metadata", metadataPayload(turn.inputTokens(), turn.outputTokens()));
 
     return body.toByteArray();
+  }
+
+  /**
+   * Wires a single-turn scenario whose response is delayed by {@code delay} via WireMock's {@code
+   * withFixedDelay} - used by HTTP-transport-timeout e2e coverage to simulate a slow/hanging model
+   * response on the native EventStream endpoint.
+   */
+  public static void stubConversation(Duration delay, TurnStub turn) {
+    stubFor(
+        post(urlPathEqualTo(CONVERSE_STREAM_PATH))
+            .willReturn(
+                eventStreamResponse(eventStreamBody(turn)).withFixedDelay((int) delay.toMillis())));
   }
 
   /** Shared scenario-chaining plumbing: returns each pre-rendered EventStream body in order. */

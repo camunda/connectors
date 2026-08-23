@@ -18,12 +18,22 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
-import java.util.Arrays;
 import java.util.function.Function;
 
+/**
+ * Plugs AWS Bedrock's Converse API wire format into the provider-agnostic {@code
+ * ProviderWireFormatFixture} SPI, driving the connector through the v1 element template. With the
+ * v1&rarr;v2 provider-config rewrite switch on (the default), the v1 template's {@code
+ * provider.bedrock.*} config is rewritten onto the native v2 Bedrock provider at the connector
+ * boundary, so - just like {@link BedrockConverseV2WireFormatFixture} - the connector always calls
+ * the AWS SDK's async {@code converseStream} operation, which expects a real AWS EventStream binary
+ * body at {@code POST /model/test-model/converse-stream}. {@link #stubConversation(TurnStub...)} is
+ * therefore overridden here to stub that via {@link
+ * StreamingBedrockConverseEventStreamChatModelStubs}, exactly like the v2 fixture, rather than
+ * inheriting {@link AbstractBedrockConverseWireFormatFixture}'s implicit buffered-JSON default
+ * (which matched the pre-rewrite v1 client).
+ */
 public final class BedrockConverseV1WireFormatFixture
     extends AbstractBedrockConverseWireFormatFixture {
 
@@ -34,24 +44,7 @@ public final class BedrockConverseV1WireFormatFixture
 
   @Override
   public void stubConversation(TurnStub... turns) {
-    BedrockConverseChatModelStubs.stubConversation(
-        Arrays.stream(turns)
-            .map(BedrockConverseV1WireFormatFixture::toStubTurn)
-            .toArray(Turn[]::new));
-  }
-
-  private static Turn toStubTurn(TurnStub turn) {
-    return switch (turn) {
-      case TurnStub.Text text -> Turn.text(text.text(), text.inputTokens(), text.outputTokens());
-      case TurnStub.ToolCalls toolCalls ->
-          Turn.toolCalls(
-              toolCalls.text(),
-              toolCalls.inputTokens(),
-              toolCalls.outputTokens(),
-              toolCalls.toolCalls().stream()
-                  .map(tc -> ToolCall.of(tc.id(), tc.name(), tc.argumentsJson()))
-                  .toArray(ToolCall[]::new));
-    };
+    StreamingBedrockConverseEventStreamChatModelStubs.stubConversation(turns);
   }
 
   @Override

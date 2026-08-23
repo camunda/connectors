@@ -19,8 +19,8 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess.v2;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV2SseChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsV2SseChatModelStubs.ContentFilteredTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ContentFilteredTurnStub;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +38,7 @@ class AgentSubProcessOpenAiCompletionsContentFilteredTests
     final var userPrompt = "Write a haiku about the sea";
     final var partialText = "I can help you with a haiku, but";
 
-    OpenAiCompletionsV2SseChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         new ContentFilteredTurnStub(partialText, 10, 20));
 
     final var errorExpression =
