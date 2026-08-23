@@ -130,6 +130,30 @@ class V1ToV2ProviderConfigurationMapperImplTest {
   }
 
   @Test
+  void stripsAnthropicApiVersionSuffixFromEndpoint() {
+    final var source =
+        new AnthropicProviderConfiguration(
+            new AnthropicConnection(
+                "https://proxy.example.com/v1/",
+                new AnthropicAuthentication("anthropic-api-key"),
+                null,
+                new AnthropicModel("claude-3", null)));
+
+    final var result = mapper.map(source);
+
+    final var expected =
+        new AnthropicChatModelConfiguration(
+            new AnthropicChatModelConfiguration.AnthropicConnection(
+                new AnthropicApiBackend(
+                    new AnthropicApi(
+                        "anthropic-api-key", "https://proxy.example.com", null, null, null)),
+                new AnthropicChatModelConfiguration.AnthropicModel("claude-3", null),
+                null));
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
   void mapsOpenAiProviderConfigurationWithParameters() {
     final var source =
         new OpenAiProviderConfiguration(

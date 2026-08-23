@@ -184,9 +184,32 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
         new AnthropicChatModelConfiguration.AnthropicConnection(
             new AnthropicApiBackend(
                 new AnthropicApi(
-                    connection.authentication().apiKey(), connection.endpoint(), null, null, null)),
+                    connection.authentication().apiKey(),
+                    toNativeAnthropicEndpoint(connection.endpoint()),
+                    null,
+                    null,
+                    null)),
             new AnthropicChatModelConfiguration.AnthropicModel(model.model(), v2Parameters),
             connection.timeouts()));
+  }
+
+  /**
+   * Normalizes a v1 Anthropic endpoint to the base URL the native Anthropic SDK expects. The v1
+   * endpoint carries the {@code /v1} API-version segment, whereas the native SDK appends {@code
+   * /v1/messages} to the configured base itself; the segment is stripped here so the two do not
+   * combine into a doubled {@code /v1/v1}.
+   */
+  private static @Nullable String toNativeAnthropicEndpoint(@Nullable String endpoint) {
+    if (endpoint == null) {
+      return null;
+    }
+    var trimmed = endpoint;
+    while (trimmed.endsWith("/")) {
+      trimmed = trimmed.substring(0, trimmed.length() - 1);
+    }
+    return trimmed.endsWith("/v1")
+        ? trimmed.substring(0, trimmed.length() - "/v1".length())
+        : endpoint;
   }
 
   private OpenAiChatModelConfiguration mapOpenAi(OpenAiProviderConfiguration source) {
