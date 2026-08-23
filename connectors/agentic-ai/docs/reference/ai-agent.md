@@ -1023,26 +1023,21 @@ producing any content has none. `BaseAgentRequestHandler` catches the sealed typ
 [Error Codes](#15-error-codes)) before ingesting anything, so a rejected turn is never persisted to
 conversation memory.
 
-### LangChain4j Implementation
+### LangChain4j bridge (reusable, for custom providers)
 
-LangChain4j is the first (and currently only) implementation behind the SPI, reshaped into per-provider
-factories:
-- `AgenticAiLangChain4JFrameworkConfiguration` wires the converter beans;
-  `AgenticAiLangChain4JChatModelConfiguration` wires one `ChatModelFactory` bean per provider. Provider
-  selection is by `ChatModelFactory.supports(...)` via the SPI registry, so the configuration loads
-  unconditionally rather than behind a global framework toggle.
-- `LangChain4JChatModelFactory<T extends ProviderConfiguration>` (the v1 `ProviderConfiguration`) is the
-  abstract base: `supports` matches a `ProviderConfiguration` whose `provider()` equals the factory's
-  `providerType()`, and
-  `create` builds the underlying LangChain4j model once via the abstract `createChatModel` and wraps it
-  in a `LangChain4JChatModel`. Concrete subclasses: `AnthropicChatModelFactory`,
-  `BedrockChatModelFactory`, `OpenAiChatModelFactory`, `OpenAiCompatibleChatModelFactory`,
-  `AzureOpenAiChatModelFactory`, `GoogleVertexAiChatModelFactory` (the OpenAI-family factories share a
-  common `LangChain4JOpenAiBaseChatModelFactory`).
-- `LangChain4JChatModel` is the `ChatModel` implementation: converts the domain conversation and tool
-  definitions to LangChain4j types, drives one `chat()` call while timing it (`System.nanoTime()`, fed
-  into `AgentMetrics.executionTime`), and converts the response back. LangChain4j has no
-  pause/continuation semantics, so it always returns `ChatResult.Completed`.
+The built-in providers (Anthropic, Bedrock, OpenAI, Gemini) are fully native and drive their vendor
+SDKs directly (see [native-providers.md](native-providers.md)). LangChain4j is retained only as a
+reusable bridge for user-supplied custom providers — there are no built-in LangChain4j provider
+factories.
+- `AgenticAiLangChain4JFrameworkConfiguration` wires the reusable bridge as beans: the converter chain
+  (below) and `ChatModelHttpProxySupport`. It loads unconditionally so a custom provider can inject and
+  reuse them.
+- `LangChain4JChatModel` is a public, framework-agnostic `ChatModel` implementation: it converts the
+  domain conversation and tool definitions to LangChain4j types, drives one `chat()` call while timing
+  it (`System.nanoTime()`, fed into `AgentMetrics.executionTime`), and converts the response back. It
+  has no pause/continuation semantics, so it always returns `ChatResult.Completed`. A custom
+  `ChatModelFactory` builds one from a `dev.langchain4j.model.chat.ChatModel` plus the injected
+  converter beans (see [§25.1](#251-add-an-llm-provider)).
 - **Does NOT use LangChain4j's built-in tool execution** — tool calls are returned as data, execution happens via BPMN.
 
 ### Converter Chain Architecture
@@ -1055,10 +1050,9 @@ LangChain4JChatModel
   │     ├── ContentConverter       # Content → LangChain4j Content (for user messages)
   │     │     └── DocumentToContentConverter  # Camunda Document → LangChain4j Content
   │     └── ToolCallConverter      # ToolCall ↔ ToolExecutionRequest, ToolCallResult → ToolExecutionResultMessage
-  ├── ToolSpecificationConverter   # ToolDefinition ↔ LangChain4j ToolSpecification
-  │     └── JsonSchemaConverter    # Map<String,Object> ↔ LangChain4j JsonSchemaElement
-  │           └── JsonSchemaElementModule  # Jackson module for JsonSchemaElement round-trip
-  └── LangChain4j*ChatModelFactory # creates the LangChain4j ChatModel per provider config
+  └── ToolSpecificationConverter   # ToolDefinition ↔ LangChain4j ToolSpecification
+        └── JsonSchemaConverter    # Map<String,Object> ↔ LangChain4j JsonSchemaElement
+              └── JsonSchemaElementModule  # Jackson module for JsonSchemaElement round-trip
 ```
 
 **Key converters:**
@@ -1192,7 +1186,7 @@ For A2A error codes, see [a2a.md §15](a2a.md#15-error-codes).
 Master configuration class. Activated by `@ConditionalOnBooleanProperty("camunda.connector.agenticai.enabled", matchIfMissing=true)` — on by default.
 
 Imports:
-- `AgenticAiLangChain4JFrameworkConfiguration` — LangChain4j converter chain and per-provider `ChatModelFactory` beans
+- `AgenticAiLangChain4JFrameworkConfiguration` — LangChain4j converter chain and reusable bridge beans (for custom LangChain4j-backed providers; no built-in provider factories)
 - `McpDiscoveryConfiguration`, `McpClientConfiguration`, `McpRemoteClientConfiguration` — MCP (see [mcp.md §14](mcp.md#14-spring-configuration))
 - `A2aClientOutboundConnectorConfiguration`, `A2aClientAgenticToolConfiguration`, `A2aClientPollingConfiguration`, `A2aClientWebhookConfiguration` — A2A (see [a2a.md §14](a2a.md#14-spring-configuration))
 
@@ -1201,7 +1195,7 @@ Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatM
 ### Key Differences from Standard Connectors
 
 1. **Dual activation modes**: Both an outbound connector (`AgentTaskV1Function`) and a job worker (`AgentSubProcessV1Function`) are registered. The job worker bypasses the standard connector runtime, handling variable resolution, secret injection, and exception handling directly.
-2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([§12](#12-framework-abstraction)) allows the LangChain4j stack to be replaced or extended per provider. Provider selection is by `ChatModelFactory.supports(...)` via the SPI registry; the LangChain4j configuration loads unconditionally.
+2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([§12](#12-framework-abstraction)) resolves each request to a `ChatModelFactory` by `supports(...)`. The built-in providers are native; the LangChain4j bridge configuration loads unconditionally so custom providers can reuse it.
 3. **Pluggable system prompt contributors**: All `SystemPromptContributor` beans are auto-collected into `SystemPromptComposerImpl`.
 4. **Pluggable gateway tool handlers**: All `GatewayToolHandler` beans are auto-collected into `GatewayToolHandlerRegistryImpl`.
 5. **Caffeine caching of BPMN resolution**: Process definition fetch (API + XML parse + FEEL extraction) is cached with configurable TTL and max size.
@@ -1307,11 +1301,10 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 
 - `ChatModelRegistryImpl.resolve()` → Provider resolution by `ChatModelFactory.supports()`, fail-loud on zero/multiple matches
 
-**v1 (LangChain4j-backed)**, all under `aiagent/chatmodel/provider/langchain4j/**`:
-- `LangChain4JChatModel.execute()` → Main LLM call path
+**LangChain4j bridge (reusable, for custom providers)**, under `aiagent/chatmodel/provider/langchain4j/**`:
+- `LangChain4JChatModel.execute()` → LLM call path for a custom LangChain4j-backed provider
 - `ChatMessageConverterImpl` → Message conversion chain
 - `ToolSpecificationConverterImpl` → Tool definition conversion
-- `factory.AnthropicChatModelFactory`, `factory.BedrockChatModelFactory`, `factory.OpenAiChatModelFactory`, `factory.OpenAiCompatibleChatModelFactory`, `factory.AzureOpenAiChatModelFactory`, `factory.GoogleVertexAiChatModelFactory` → Provider-specific `ChatModel` creation (`LangChain4JChatModelFactory` subclasses)
 
 **v2 (fully native, no LangChain4j)**, one package per provider under `aiagent/chatmodel/provider/**`:
 - `anthropic.AnthropicChatModelFactory` / `anthropic.AnthropicChatModel.execute()` → Drives the Anthropic Java SDK's stable Messages client directly, for `AnthropicChatModelConfiguration`
@@ -1458,17 +1451,12 @@ classDiagram
         +execute(ChatRequest) ChatResult
     }
     class LangChain4JChatModel
-    class LangChain4JChatModelFactory~T~ {
-        <<abstract>>
-    }
     class AnthropicChatModelFactory
 
     ChatModelRegistry o-- ChatModelFactory : routes to *
     ChatModelFactory ..> ChatModel : creates
     LangChain4JChatModel ..|> ChatModel
-    LangChain4JChatModelFactory ..|> ChatModelFactory
-    AnthropicChatModelFactory --|> LangChain4JChatModelFactory
-    LangChain4JChatModelFactory ..> LangChain4JChatModel : creates
+    AnthropicChatModelFactory ..|> ChatModelFactory
 ```
 
 ### E2E Tests
@@ -1919,28 +1907,27 @@ reference implementation and its wiring for the current exact procedure, and res
 auto-collects every `ChatModelFactory` bean and routes each request to the one whose `supports`
 returns true ([§12](#12-framework-abstraction)).
 
-**v1: LangChain4j-backed.** Extend the abstract `LangChain4JChatModelFactory<T extends
-ProviderConfiguration>` (v1's `ProviderConfiguration`) — supply `providerType()` and
-`createChatModel(T)` plus a matching `ProviderConfiguration` subtype; `supports`/`create` are already
-implemented by the base class. Reference: `AnthropicChatModelFactory`
-(`aiagent/chatmodel/provider/langchain4j/factory`) with `AnthropicProviderConfiguration`. Only
-`aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*` (invariant I1).
-
-**v2: fully native.** Implement `ChatModel`/`ChatModelFactory` directly with your own
-`ChatModelConfiguration`, staying out of the `langchain4j` package. Reference implementation:
-`AnthropicChatModelFactory` (`aiagent/chatmodel/provider/anthropic`) with
+**Native (the built-in shape).** Implement `ChatModel`/`ChatModelFactory` directly against the vendor
+SDK with your own `ChatModelConfiguration`, staying out of the `langchain4j` package. Reference
+implementation: `AnthropicChatModelFactory` (`aiagent/chatmodel/provider/anthropic`) with
 `AnthropicChatModelConfiguration` (`model/request/v2`); the other native providers under
-`aiagent/chatmodel/provider/**` follow the same shape. A v2 provider without a built-in factory falls
-through to `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/Hybrid
-only): it carries a user-chosen `providerType` (dispatch discriminator), a dedicated `model` field (so
-agent-instance reporting works without digging it out of opaque config), and an opaque `parameters` map
-understood only by your factory. `LangChain4JChatModelFactory` cannot be extended for it — it's bound
-to v1's `ProviderConfiguration`, a different sealed hierarchy — but its building block,
-`LangChain4JChatModel`, is a public, framework-agnostic `ChatModel` wrapper: build your own
+`aiagent/chatmodel/provider/**` follow the same shape. Only `aiagent/chatmodel/provider/langchain4j/**`
+may import `dev.langchain4j.*` (invariant I1).
+
+**Reusing the LangChain4j bridge.** To back a custom provider with a LangChain4j model instead of a raw
+vendor SDK, still implement `ChatModelFactory` directly, then build your own
 `dev.langchain4j.model.chat.ChatModel`, wrap it in a `CloseableChatModel`, and construct a
-`LangChain4JChatModel` directly if you want to reuse LangChain4j from a v2-native factory. No built-in
-factory ever matches `CustomProviderConfiguration`, so the registry fails with the ordinary "no factory
-registered" error until you register one.
+`LangChain4JChatModel` from it plus the injected converter beans exposed by
+`AgenticAiLangChain4JFrameworkConfiguration`. `LangChain4JChatModel` is a public, framework-agnostic
+`ChatModel` wrapper; this is the only supported way to reuse LangChain4j, as there are no built-in
+LangChain4j provider factories.
+
+**Custom provider configuration.** A provider without a built-in factory falls through to
+`CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/Hybrid only): it
+carries a user-chosen `providerType` (dispatch discriminator), a dedicated `model` field (so
+agent-instance reporting works without digging it out of opaque config), and an opaque `parameters` map
+understood only by your factory. No built-in factory ever matches `CustomProviderConfiguration`, so the
+registry fails with the ordinary "no factory registered" error until you register one.
 
 Every new v2 provider backend must follow three conventions, regardless of provider:
 
