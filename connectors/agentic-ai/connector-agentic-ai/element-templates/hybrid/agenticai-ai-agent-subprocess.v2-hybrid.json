@@ -1931,8 +1931,8 @@
   }, {
     "id" : "provider.anthropic.model.parameters.effort",
     "label" : "Effort",
-    "description" : "Leave unset to use the model default.",
-    "optional" : true,
+    "optional" : false,
+    "value" : "modelDefault",
     "group" : "model",
     "binding" : {
       "name" : "provider.anthropic.model.parameters.effort",
@@ -1946,6 +1946,9 @@
     "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models.<br><br>See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/effort\" target=\"_blank\">effort documentation</a>.",
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "default",
+      "value" : "modelDefault"
+    }, {
       "name" : "low",
       "value" : "low"
     }, {
@@ -1964,7 +1967,8 @@
   }, {
     "id" : "provider.anthropic.model.parameters.thinking.mode",
     "label" : "Thinking mode",
-    "optional" : true,
+    "optional" : false,
+    "value" : "modelDefault",
     "group" : "model",
     "binding" : {
       "name" : "provider.anthropic.model.parameters.thinking.mode",
@@ -1975,9 +1979,12 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
-    "tooltip" : "Extended thinking mechanism. Leave blank to use the model default.<br><br><code>enabled</code> uses a manual token budget (older models). <code>adaptive</code> is managed by the model (newer models). <code>disabled</code> turns it off.<br><br>Support varies by model.",
+    "tooltip" : "Extended thinking mechanism.<br><br><code>enabled</code> uses a manual token budget (older models). <code>adaptive</code> is managed by the model (newer models). <code>disabled</code> turns it off.<br><br>Support varies by model.",
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "default",
+      "value" : "modelDefault"
+    }, {
       "name" : "enabled",
       "value" : "enabled"
     }, {
@@ -2031,7 +2038,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Controls how the model's extended thinking is returned. <code>summarized</code> includes a plain-text summary of the thinking in the response. <code>omitted</code> leaves it out.<br><br>Leave unset to use <code>summarized</code>.",
+    "tooltip" : "Controls how the model's extended thinking is returned. <code>summarized</code> includes a plain-text summary of the thinking in the response. <code>omitted</code> leaves it out.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "summarized",

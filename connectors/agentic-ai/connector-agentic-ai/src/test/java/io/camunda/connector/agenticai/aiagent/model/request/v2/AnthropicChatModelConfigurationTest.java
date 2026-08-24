@@ -93,6 +93,37 @@ class AnthropicChatModelConfigurationTest {
   }
 
   @Test
+  void deserialisesModelDefaultEffortAndThinkingModeAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "anthropic",
+          "anthropic": {
+            "backend": { "type": "anthropic-api", "anthropic": { "apiKey": "sk-ant-123" } },
+            "model": {
+              "model": "claude-sonnet-4-6",
+              "parameters": {
+                "effort": "modelDefault",
+                "thinking": { "mode": "modelDefault" }
+              }
+            }
+          }
+        }
+        """;
+
+    final AnthropicChatModelConfiguration parsed =
+        (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    final AnthropicModelParameters parameters = parsed.anthropic().model().parameters();
+    assertThat(parameters).isNotNull();
+    assertThat(parameters.effort()).isEqualTo(AnthropicEffort.MODEL_DEFAULT);
+    assertThat(parameters.thinking().mode()).isEqualTo(ThinkingMode.MODEL_DEFAULT);
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
   void deserialisesCustomBackendWithApiKeyAuthAndHeadersAndRoundTrips() throws Exception {
     final String json =
         """

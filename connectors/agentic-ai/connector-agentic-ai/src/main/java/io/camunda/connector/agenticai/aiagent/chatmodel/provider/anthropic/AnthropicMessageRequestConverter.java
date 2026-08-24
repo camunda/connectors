@@ -132,7 +132,7 @@ public class AnthropicMessageRequestConverter {
     validateThinking(thinking, modelId);
 
     final ThinkingMode mode = thinking == null ? null : thinking.mode();
-    if (thinking == null || mode == null) {
+    if (thinking == null || mode == null || mode == ThinkingMode.MODEL_DEFAULT) {
       return;
     }
 
@@ -344,7 +344,8 @@ public class AnthropicMessageRequestConverter {
       MessageCreateParams.Builder builder,
       @Nullable AnthropicModelParameters params,
       @Nullable ResponseConfiguration response) {
-    final AnthropicEffort effort = params == null ? null : params.effort();
+    final AnthropicEffort rawEffort = params == null ? null : params.effort();
+    final AnthropicEffort effort = rawEffort == AnthropicEffort.MODEL_DEFAULT ? null : rawEffort;
     final Map<String, Object> jsonSchema =
         response != null && response.format() instanceof JsonResponseFormatConfiguration json
             ? json.schema()
