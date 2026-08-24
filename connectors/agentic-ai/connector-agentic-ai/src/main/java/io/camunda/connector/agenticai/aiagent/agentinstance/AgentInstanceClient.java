@@ -33,16 +33,17 @@ public interface AgentInstanceClient {
   AgentInstanceKey create(AgentExecutionContext agentExecutionContext);
 
   /**
-   * Updates the status and/or metrics of an existing agent instance. Silently skips when {@code
-   * agentInstanceKey} is {@code null} (e.g. agents that pre-date this feature).
+   * Moves the agent instance to {@code TOOL_DISCOVERY} in a batched, lease-fenced update. Silently
+   * skips when {@code agentInstanceKey} is {@code null} (e.g. agents that pre-date the
+   * agent-instance feature).
    *
-   * @throws ConnectorException with code AGENT_INSTANCE_UPDATE_FAILED when retries are exhausted or
-   *     a non-retryable error occurs
+   * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
+   *     exhausted or a non-retryable error occurs
+   * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
+   *     when the job activation has been superseded
    */
-  void update(
-      AgentExecutionContext executionContext,
-      @Nullable AgentInstanceKey agentInstanceKey,
-      AgentInstanceUpdateRequest request);
+  void applyToolDiscoveryStart(
+      AgentExecutionContext executionContext, @Nullable AgentInstanceKey agentInstanceKey);
 
   /**
    * Records the start of a turn: moves the agent instance to {@code THINKING} and appends its input

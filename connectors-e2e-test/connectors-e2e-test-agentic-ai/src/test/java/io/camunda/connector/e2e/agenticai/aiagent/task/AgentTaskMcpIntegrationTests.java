@@ -33,6 +33,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
@@ -68,6 +69,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
 @ExtendWith(MockitoExtension.class)
@@ -84,6 +86,7 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
 
   @MockitoBean private McpClientRegistry mcpClientRegistry;
   @MockitoBean private McpRemoteClientRegistry remoteMcpClientRegistry;
+  @MockitoSpyBean private AgentInstanceClient agentInstanceClient;
 
   @Mock private McpSyncClient aMcpClient;
   @Mock private McpSyncClient aHttpRemoteMcpClient;
@@ -174,6 +177,7 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
     verify(aHttpRemoteMcpClient).listTools();
     verify(aSseRemoteMcpClient).listTools();
     verify(filesystemMcpClient).listTools();
+    verify(agentInstanceClient).applyToolDiscoveryStart(any(), any());
 
     assertThat(OpenAiCompletionsRecordedConversation.recorded().modelCallCount()).isEqualTo(1);
 

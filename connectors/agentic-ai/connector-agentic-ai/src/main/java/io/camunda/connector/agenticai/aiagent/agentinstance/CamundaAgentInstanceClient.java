@@ -184,70 +184,18 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   @Override
-  public void update(
-      AgentExecutionContext executionContext,
-      @Nullable AgentInstanceKey agentInstanceKey,
-      AgentInstanceUpdateRequest request) {
+  public void applyToolDiscoveryStart(
+      AgentExecutionContext executionContext, @Nullable AgentInstanceKey agentInstanceKey) {
     if (agentInstanceKey == null) {
-      LOGGER.debug("Skipping agent instance update: no agent instance key");
+      LOGGER.debug("Skipping agent instance tool discovery start: no agent instance key");
       return;
     }
-    CamundaApiRetry.execute(
-        () -> {
-          executeUpdate(executionContext, agentInstanceKey.value(), request);
-          return null;
-        },
-        AgentInstanceErrorClassifier.INSTANCE,
-        retriesProperties.maxRetries(),
-        retriesProperties.initialRetryDelay(),
-        this::buildUpdateException,
-        sleeper);
-  }
 
-  private void executeUpdate(
-      AgentExecutionContext executionContext,
-      long agentInstanceKey,
-      AgentInstanceUpdateRequest request) {
-    LOGGER.debug(
-        "Updating agent instance {}: status={}, delta={}, tools={}",
-        agentInstanceKey,
-        request.status(),
-        request.delta(),
-        request.tools() != null ? request.tools().size() : "null");
-    UpdateAgentInstanceCommandStep2 cmd =
-        camundaClient
-            .newUpdateAgentInstanceCommand(agentInstanceKey)
-            .elementInstanceKey(executionContext.jobContext().getElementInstanceKey());
-
-    if (request.status() != null) {
-      cmd = cmd.status(request.status());
-    }
-
-    final var delta = request.delta();
-    if (delta != null) {
-      if (delta.modelCalls() != 0) {
-        cmd = cmd.modelCalls(delta.modelCalls());
-      }
-      if (delta.tokenUsage().inputTokenCount() != 0) {
-        cmd = cmd.inputTokens(delta.tokenUsage().inputTokenCount());
-      }
-      if (delta.tokenUsage().outputTokenCount() != 0) {
-        cmd = cmd.outputTokens(delta.tokenUsage().outputTokenCount());
-      }
-      if (delta.toolCalls() != 0) {
-        cmd = cmd.toolCalls(delta.toolCalls());
-      }
-    }
-
-    final var tools = request.tools();
-    if (tools != null && !tools.isEmpty()) {
-      cmd = cmd.tools(toolMapper.mapTools(tools));
-    }
-
-    // No jobLease here: on the update command the lease only fences a batched history() list, which
-    // this status/metrics/tools update never sends (history goes through
-    // newCreateAgentHistoryItem).
-    cmd.execute();
+    applyBatchedUpdate(
+        executionContext,
+        agentInstanceKey.value(),
+        AgentInstanceUpdateStatus.TOOL_DISCOVERY,
+        List.of());
   }
 
   @Override
@@ -467,10 +415,10 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   /**
-   * A batched update (used by {@link #applyTurnStart}, {@link #applyTurnCompletion} and {@link
-   * #applyToolCallResults}) rejected with 404 means the job activation that issued it has been
-   * superseded by a later one, so it must fail without provoking any retry -- unlike a batch-less
-   * {@link #update}, which keeps the plain permanent-failure behavior.
+   * A batched update (used by {@link #applyTurnStart}, {@link #applyTurnCompletion}, {@link
+   * #applyToolCallResults} and {@link #applyToolDiscoveryStart}) rejected with 404 means the job
+   * activation that issued it has been superseded by a later one, so it must fail without provoking
+   * any retry.
    */
   private ConnectorException buildBatchedUpdateException(
       Throwable cause, int attempt, FailureReason reason) {

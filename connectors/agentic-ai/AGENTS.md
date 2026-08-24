@@ -101,7 +101,8 @@ High-frequency traps (detail behind each link):
 - **Job supersession / `NOT_FOUND`**: a completing tool creates a new job; the stale in-flight job may be rejected.
   The AI Agent connectors (v1 and v2, both flavors) opt into job leasing (`@OutboundConnector(withLease = true)`), so
   completion is fenced against a superseded activation; `CamundaAgentInstanceClient` forwards the lease token via
-  `jobLease(...)` on each batched turn update (`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`), so a
+  `jobLease(...)` on each batched turn update
+  (`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart`), so a
   stale activation's writes are rejected (`404`) too — mapped to a non-retryable `AGENT_INSTANCE_SUPERSEDED` failure,
   not the ordinary retry path (ADR 013). Gateway/MCP/A2A connectors are not leased. `ai-agent.md` §10, §23.
 - **Partial tool results → no-op (but not silent)**: incomplete results make the composer return `Deferred` and the
