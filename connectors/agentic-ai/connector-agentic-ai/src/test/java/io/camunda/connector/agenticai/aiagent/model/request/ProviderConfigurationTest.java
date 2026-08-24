@@ -286,7 +286,9 @@ class ProviderConfigurationTest {
       assertThat(validator.validate(connection))
           .hasSize(1)
           .extracting(ConstraintViolation::getMessage)
-          .containsExactly("Enterprise Agent Platform (Vertex AI) is not supported on SaaS");
+          .containsExactly(
+              "Application default credentials for Enterprise Agent Platform (Vertex AI) are not"
+                  + " supported on SaaS");
     }
 
     @Test

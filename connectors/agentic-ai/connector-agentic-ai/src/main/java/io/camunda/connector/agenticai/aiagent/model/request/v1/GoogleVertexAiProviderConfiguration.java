@@ -85,7 +85,9 @@ public record GoogleVertexAiProviderConfiguration(
       this(projectId, region, null, authentication, null, model);
     }
 
-    @AssertFalse(message = "Enterprise Agent Platform (Vertex AI) is not supported on SaaS")
+    @AssertFalse(
+        message =
+            "Application default credentials for Enterprise Agent Platform (Vertex AI) are not supported on SaaS")
     public boolean isUsedInSaaS() {
       return ConnectorUtils.isSaaS()
           && authentication
