@@ -57,6 +57,17 @@ public record JdbcConnectionConfiguration(
     @TemplateProperty(group = "authentication", label = "Password", secret = true)
         String password) {
 
+  /**
+   * Delegates to the canonical constructor for the pre-{@code database}-field shape (this
+   * credential's version 1, before the database engine became part of it). {@code database} is left
+   * {@code null} here, which the {@code @NotNull} constraint above then correctly rejects at
+   * validation time -- see this record's class javadoc on why a v1 instance must not silently pass.
+   */
+  public JdbcConnectionConfiguration(
+      String host, String port, String databaseName, String username, String password) {
+    this(null, host, port, databaseName, username, password);
+  }
+
   /** Adapts this credential to the connector's existing {@link DetailedConnection} shape. */
   public DetailedConnection toDetailedConnection() {
     return new DetailedConnection(host, port, username, password, databaseName, null);
