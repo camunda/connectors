@@ -22,6 +22,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
+import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
@@ -83,6 +84,19 @@ public class AgentSubProcessVariableScopeTests extends BaseAgentSubProcessTest {
 
     assertCustomResultVariable(zeebeTest, FEEDBACK_LOOP_RESPONSE_TEXT);
     assertAgentVariableNotInGlobalScope(zeebeTest);
+  }
+
+  /**
+   * Both fixture element templates ({@code AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH} and the
+   * last 8.8-compatible template) are v1-shaped, so they need the legacy {@code openaiCompatible}
+   * provider config directly rather than the generic base's (now v2) default.
+   */
+  private ElementTemplate withOpenAiCompatibleProvider(ElementTemplate template) {
+    return template
+        .property("provider.type", "openaiCompatible")
+        .property("provider.openaiCompatible.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+        .property("provider.openaiCompatible.authentication.apiKey", "dummy")
+        .property("provider.openaiCompatible.model.model", "test-model");
   }
 
   private ZeebeTest runAgentWithCustomResultVariable(

@@ -14,36 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.subprocess.v2;
+package io.camunda.connector.e2e.agenticai.aiagent.subprocess.provider.openai;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.StreamingBedrockConverseEventStreamChatModelStubs.CONVERSE_STREAM_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.CHAT_COMPLETIONS_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 
 /**
- * Drives the connector through the v2 Bedrock Converse provider (AWS {@code converseStream}),
- * pointed at WireMock, for request-shape assertions that don't need a full stubbed response (the
- * response side is exercised via {@link
- * io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.StreamingBedrockConverseEventStreamChatModelStubs}
- * in the wire-format smoke suite).
+ * Shared foundation for native-OpenAI-only v2 sub-process e2e coverage, scoped to the Chat
+ * Completions API family - the sibling of {@link BaseOpenAiResponsesSubProcessTest} for Responses,
+ * mirroring {@link BaseAnthropicSubProcessTest}.
  */
-abstract class BaseBedrockConverseSubProcessTest extends BaseAgentSubProcessV2Test {
+abstract class BaseOpenAiCompletionsSubProcessTest extends BaseAgentSubProcessTest {
 
   private static final String DEFAULT_MODEL = "test-model";
 
   @Override
   protected Function<ElementTemplate, ElementTemplate> providerConfigurer() {
-    return this::configureBedrockBackend;
+    return this::configureOpenAiCompletionsBackend;
   }
 
   /**
@@ -54,15 +53,14 @@ abstract class BaseBedrockConverseSubProcessTest extends BaseAgentSubProcessV2Te
     return DEFAULT_MODEL;
   }
 
-  private ElementTemplate configureBedrockBackend(ElementTemplate template) {
+  private ElementTemplate configureOpenAiCompletionsBackend(ElementTemplate template) {
     return template
-        .property("provider.type", "bedrock")
-        .property("provider.bedrock.region", "us-east-1")
-        .property("provider.bedrock.endpoint", wireMock.getHttpBaseUrl())
-        .property("provider.bedrock.authentication.type", "credentials")
-        .property("provider.bedrock.authentication.accessKey", "dummy")
-        .property("provider.bedrock.authentication.secretKey", "dummy")
-        .property("provider.bedrock.model.model", defaultModel());
+        .property("provider.type", "openai")
+        .property("provider.openai.api.type", "completions")
+        .property("provider.openai.backend.type", "openai-api")
+        .property("provider.openai.backend.openai.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+        .property("provider.openai.backend.openai.apiKey", "dummy")
+        .property("provider.openai.model.model", defaultModel());
   }
 
   /** Asserts that exactly one model-call request has been recorded and returns its parsed body. */
@@ -74,7 +72,7 @@ abstract class BaseBedrockConverseSubProcessTest extends BaseAgentSubProcessV2Te
 
   static List<LoggedRequest> recordedLoggedRequests() {
     final List<LoggedRequest> requests =
-        new ArrayList<>(findAll(postRequestedFor(urlPathEqualTo(CONVERSE_STREAM_PATH))));
+        new ArrayList<>(findAll(postRequestedFor(urlPathEqualTo(CHAT_COMPLETIONS_PATH))));
     requests.sort(Comparator.comparing(LoggedRequest::getLoggedDate));
     return requests;
   }
@@ -84,7 +82,7 @@ abstract class BaseBedrockConverseSubProcessTest extends BaseAgentSubProcessV2Te
       return objectMapper.readTree(loggedRequest.getBodyAsString());
     } catch (Exception e) {
       throw new IllegalStateException(
-          "Failed to parse recorded Bedrock ConverseStream request body: "
+          "Failed to parse recorded OpenAI Chat Completions request body: "
               + loggedRequest.getBodyAsString(),
           e);
     }

@@ -14,40 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.task.v2;
+package io.camunda.connector.e2e.agenticai.aiagent.subprocess.provider.gemini;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.gemini.GeminiStreamGenerateContentRequests;
 import java.util.List;
 import java.util.function.Function;
 
 /**
- * Base class for native-Gemini e2e tests on the AI Agent <b>Task</b> (v2 element template).
+ * Base class for native-Gemini e2e tests on the AI Agent Sub-process, mirroring the sibling
+ * Anthropic native-provider base class.
  *
- * <p>No native-provider {@code task/v2} precedent existed to copy: Anthropic's native provider only
- * has a {@code subprocess/v2} base class, and the only existing {@code task/v2} test uses the
- * {@code custom} provider backed by an in-process {@code ChatModelFactory} rather than real HTTP
- * traffic. This class therefore combines the two halves that did exist:
- *
- * <ul>
- *   <li>from {@code BaseAgentTaskV2Test}: the Task flavor's element template and property defaults,
- *       plus the {@code providerConfigurer()} composition hook that {@code BaseAgentTaskTest}
- *       applies to every process instance;
- *   <li>from {@code BaseAnthropicNativeSubProcessTest}: the native-provider wiring shape — the
- *       provider properties pointed at WireMock via the hidden {@code endpoint} field, an
- *       overridable {@code defaultModel()}, and the recorded-request helpers.
- * </ul>
- *
- * <p>It mirrors {@code BaseGeminiNativeSubProcessTest} apart from its superclass, carrying only the
- * helpers the Task-flavor tests actually use. Both bases delegate their recorded-request helpers to
- * {@link GeminiStreamGenerateContentRequests} rather than duplicating them, which is why that
- * helper lives in the wiremock package instead of on a base class the way Anthropic's single base
- * class could afford to.
+ * <p>The hidden {@code endpoint} field is what makes this work: {@code GeminiChatModelFactory}
+ * passes it to {@code HttpOptions.baseUrl()}, so the vendor SDK talks to WireMock instead of
+ * Google. That field exists for exactly this reason and is never surfaced in the modeler.
  */
-abstract class BaseGeminiNativeTaskTest extends BaseAgentTaskV2Test {
+abstract class BaseGeminiNativeSubProcessTest extends BaseAgentSubProcessTest {
 
+  /**
+   * A Gemini 3.x model id, i.e. the {@code thinkingLevel} generation. Tests needing 2.5-style
+   * {@code thinkingBudget} semantics override the id per test via {@link #model(String)}; the
+   * WireMock stub matches any model id, so no stub change is needed.
+   */
   private static final String DEFAULT_MODEL = "gemini-3-pro-preview";
 
   @Override
@@ -71,6 +62,18 @@ abstract class BaseGeminiNativeTaskTest extends BaseAgentTaskV2Test {
             "provider.googleGemini.backend.googleGeminiApi.endpoint", wireMock.getHttpBaseUrl())
         .property("provider.googleGemini.backend.googleGeminiApi.apiKey", "dummy")
         .property("provider.googleGemini.model.model", defaultModel());
+  }
+
+  static Function<ElementTemplate, ElementTemplate> model(String modelId) {
+    return template -> template.property("provider.googleGemini.model.model", modelId);
+  }
+
+  static LoggedRequest soleRecordedRequest() {
+    return GeminiStreamGenerateContentRequests.sole();
+  }
+
+  static List<LoggedRequest> recordedLoggedRequests() {
+    return GeminiStreamGenerateContentRequests.recorded();
   }
 
   static List<LoggedRequest> recordedLoggedRequests(int expectedCount) {

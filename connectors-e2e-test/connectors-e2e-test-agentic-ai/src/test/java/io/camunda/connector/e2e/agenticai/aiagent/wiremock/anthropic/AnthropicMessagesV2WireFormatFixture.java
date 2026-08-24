@@ -20,26 +20,17 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.util.Map;
 import java.util.function.Function;
 
 /**
  * Plugs Anthropic's Messages API wire format into the provider-agnostic {@link
  * ProviderWireFormatFixture} SPI, driving the connector through the native v2 Anthropic provider —
- * see {@code AnthropicChatModel}. The *request* wire format is identical to the v1 fixture; see
- * {@link AbstractAnthropicMessagesWireFormatFixture} for the shared plumbing ({@code
- * recordedRequests()}, {@code assertResponseFormatConfigured(...)}).
- *
- * <p>The *response* wire format differs and is therefore NOT shared: the native provider always
- * calls the vendor SDK's streaming endpoint ({@code client.messages().createStreaming(params)}),
- * which expects a real {@code text/event-stream} SSE body, whereas the v1 fixture's client issues a
- * plain non-streaming POST and expects a single buffered JSON body. {@link
- * #stubConversation(TurnStub...)} is overridden here to stub the former via {@link
- * StreamingAnthropicMessagesSseChatModelStubs} instead of inheriting {@link
- * AbstractAnthropicMessagesWireFormatFixture}'s buffered-JSON default. Nothing ties the streaming
- * stub style to the v2 template specifically — a future fixture could drive the v1 template through
- * the same SSE stubs if a streaming client were added for it.
+ * see {@code AnthropicChatModel}. The wire format (both request and the streamed SSE response) is
+ * identical to the v1 fixture, which also always calls the vendor SDK's streaming endpoint ({@code
+ * client.messages().createStreaming(params)}); see {@link
+ * AbstractAnthropicMessagesWireFormatFixture} for the shared plumbing ({@code
+ * stubConversation(...)}, {@code recordedRequests()}, {@code assertResponseFormatConfigured(...)}).
  *
  * <p>Drives the v2 element template ({@link
  * AgentTestFixtures#AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH}), whose provider/backend
@@ -58,11 +49,6 @@ public final class AnthropicMessagesV2WireFormatFixture
   @Override
   public String apiName() {
     return "AnthropicMessagesV2";
-  }
-
-  @Override
-  public void stubConversation(TurnStub... turns) {
-    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(turns);
   }
 
   @Override

@@ -66,11 +66,7 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
     final var zeebeTest =
         awaitProcessCompletion(
             createProcessInstance(
-                e ->
-                    e.property("provider.type", "openaiCompatible")
-                        .property(
-                            "provider.openaiCompatible.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-                        .property("provider.openaiCompatible.model.model", "gpt-4o"),
+                e -> e.property("provider.openai.model.model", "gpt-4o"),
                 Map.of("userPrompt", "Calculate the superflux product of 5 and 3")));
 
     final var agentInstanceKey = new AtomicLong();
@@ -141,11 +137,7 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
     final var zeebeTest =
         awaitProcessCompletion(
             createProcessInstance(
-                e ->
-                    e.property("provider.type", "openaiCompatible")
-                        .property(
-                            "provider.openaiCompatible.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-                        .property("provider.openaiCompatible.model.model", "gpt-4o"),
+                e -> e.property("provider.openai.model.model", "gpt-4o"),
                 Map.of("userPrompt", "Calculate the superflux product of 5 and 3, twice")));
 
     // modelCalls=3, inputTokens=10+10+15=35, outputTokens=20+20+25=65, toolCalls=2
