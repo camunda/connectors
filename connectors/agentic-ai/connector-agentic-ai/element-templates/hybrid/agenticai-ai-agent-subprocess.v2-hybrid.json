@@ -671,11 +671,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Chat Completions",
-      "value" : "completions"
-    }, {
       "name" : "Responses",
       "value" : "responses"
+    }, {
+      "name" : "Chat Completions",
+      "value" : "completions"
     } ]
   }, {
     "id" : "provider.openai.backend.type",
@@ -2105,48 +2105,6 @@
     "tooltip" : "Enables AWS Bedrock automatic prompt caching. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" target=\"_blank\">documentation</a>.",
     "type" : "Boolean"
   }, {
-    "id" : "provider.openai.api.completions.effort",
-    "label" : "Effort",
-    "description" : "Leave unset to use the model default.",
-    "optional" : true,
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.openai.api.completions.effort",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.api.type",
-        "equals" : "completions",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models.<br><br>See the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">Chat Completions API reference</a>.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "minimal",
-      "value" : "minimal"
-    }, {
-      "name" : "low",
-      "value" : "low"
-    }, {
-      "name" : "medium",
-      "value" : "medium"
-    }, {
-      "name" : "high",
-      "value" : "high"
-    }, {
-      "name" : "xhigh",
-      "value" : "xhigh"
-    }, {
-      "name" : "max",
-      "value" : "max"
-    } ]
-  }, {
     "id" : "provider.openai.api.responses.effort",
     "label" : "Effort",
     "description" : "Leave unset to use the model default.",
@@ -2168,6 +2126,48 @@
       } ]
     },
     "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models.<br><br>See the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">Responses API reference</a>.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "minimal",
+      "value" : "minimal"
+    }, {
+      "name" : "low",
+      "value" : "low"
+    }, {
+      "name" : "medium",
+      "value" : "medium"
+    }, {
+      "name" : "high",
+      "value" : "high"
+    }, {
+      "name" : "xhigh",
+      "value" : "xhigh"
+    }, {
+      "name" : "max",
+      "value" : "max"
+    } ]
+  }, {
+    "id" : "provider.openai.api.completions.effort",
+    "label" : "Effort",
+    "description" : "Leave unset to use the model default.",
+    "optional" : true,
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openai.api.completions.effort",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.api.type",
+        "equals" : "completions",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models.<br><br>See the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">Chat Completions API reference</a>.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "minimal",
@@ -2426,75 +2426,6 @@
     "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature).",
     "type" : "Number"
   }, {
-    "id" : "provider.openai.api.completions.maxCompletionTokens",
-    "label" : "Max completion tokens",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model-options",
-    "binding" : {
-      "name" : "provider.openai.api.completions.maxCompletionTokens",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.api.type",
-        "equals" : "completions",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.openai.api.completions.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model-options",
-    "binding" : {
-      "name" : "provider.openai.api.completions.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.api.type",
-        "equals" : "completions",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.openai.api.completions.topP",
-    "label" : "top P",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model-options",
-    "binding" : {
-      "name" : "provider.openai.api.completions.topP",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.openai.api.type",
-        "equals" : "completions",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
     "id" : "provider.openai.api.responses.maxOutputTokens",
     "label" : "Max output tokens",
     "optional" : true,
@@ -2562,6 +2493,75 @@
       } ]
     },
     "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.api.completions.maxCompletionTokens",
+    "label" : "Max completion tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.openai.api.completions.maxCompletionTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.api.type",
+        "equals" : "completions",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.api.completions.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.openai.api.completions.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.api.type",
+        "equals" : "completions",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.api.completions.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.openai.api.completions.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.api.type",
+        "equals" : "completions",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.googleGemini.model.parameters.maxTokens",

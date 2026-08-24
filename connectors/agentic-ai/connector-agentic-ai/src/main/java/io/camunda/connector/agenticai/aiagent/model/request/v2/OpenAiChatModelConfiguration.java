@@ -61,8 +61,8 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
-    @JsonSubTypes.Type(value = OpenAiApi.OpenAiCompletionsApi.class, name = COMPLETIONS_ID),
-    @JsonSubTypes.Type(value = OpenAiApi.OpenAiResponsesApi.class, name = RESPONSES_ID)
+    @JsonSubTypes.Type(value = OpenAiApi.OpenAiResponsesApi.class, name = RESPONSES_ID),
+    @JsonSubTypes.Type(value = OpenAiApi.OpenAiCompletionsApi.class, name = COMPLETIONS_ID)
   })
   @TemplateDiscriminatorProperty(
       label = "API",
@@ -74,6 +74,70 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
 
     /** The API family discriminator string. */
     String type();
+
+    @TemplateSubType(id = RESPONSES_ID, label = "Responses")
+    record OpenAiResponsesApi(@Valid @Nullable ResponsesParameters responses) implements OpenAiApi {
+
+      @TemplateProperty(ignore = true)
+      public static final String RESPONSES_ID = "responses";
+
+      @Override
+      public String type() {
+        return RESPONSES_ID;
+      }
+
+      public record ResponsesParameters(
+          @Min(1)
+              @TemplateProperty(
+                  group = "model-options",
+                  label = "Max output tokens",
+                  tooltip =
+                      "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = FeelMode.required,
+                  optional = true)
+              @Nullable Integer maxOutputTokens,
+          @TemplateProperty(
+                  group = "model",
+                  label = "Effort",
+                  description = "Leave unset to use the model default.",
+                  tooltip =
+                      "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models."
+                          + "<br><br>See the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">Responses API reference</a>.",
+                  type = TemplateProperty.PropertyType.Dropdown,
+                  choices = {
+                    @DropdownPropertyChoice(value = "minimal", label = "minimal"),
+                    @DropdownPropertyChoice(value = "low", label = "low"),
+                    @DropdownPropertyChoice(value = "medium", label = "medium"),
+                    @DropdownPropertyChoice(value = "high", label = "high"),
+                    @DropdownPropertyChoice(value = "xhigh", label = "xhigh"),
+                    @DropdownPropertyChoice(value = "max", label = "max")
+                  },
+                  optional = true)
+              @Nullable OpenAiEffort effort,
+          @DecimalMin("0.0")
+              @DecimalMax("2.0")
+              @TemplateProperty(
+                  group = "model-options",
+                  label = "Temperature",
+                  tooltip =
+                      "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = FeelMode.required,
+                  optional = true)
+              @Nullable Double temperature,
+          @DecimalMin("0.0")
+              @DecimalMax("1.0")
+              @TemplateProperty(
+                  group = "model-options",
+                  label = "top P",
+                  tooltip =
+                      "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = FeelMode.required,
+                  optional = true)
+              @Nullable Double topP) {}
+    }
 
     @TemplateSubType(id = COMPLETIONS_ID, label = "Chat Completions")
     record OpenAiCompletionsApi(@Valid @Nullable CompletionsParameters completions)
@@ -134,70 +198,6 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   label = "top P",
                   tooltip =
                       "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">documentation</a>.",
-                  type = TemplateProperty.PropertyType.Number,
-                  feel = FeelMode.required,
-                  optional = true)
-              @Nullable Double topP) {}
-    }
-
-    @TemplateSubType(id = RESPONSES_ID, label = "Responses")
-    record OpenAiResponsesApi(@Valid @Nullable ResponsesParameters responses) implements OpenAiApi {
-
-      @TemplateProperty(ignore = true)
-      public static final String RESPONSES_ID = "responses";
-
-      @Override
-      public String type() {
-        return RESPONSES_ID;
-      }
-
-      public record ResponsesParameters(
-          @Min(1)
-              @TemplateProperty(
-                  group = "model-options",
-                  label = "Max output tokens",
-                  tooltip =
-                      "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
-                  type = TemplateProperty.PropertyType.Number,
-                  feel = FeelMode.required,
-                  optional = true)
-              @Nullable Integer maxOutputTokens,
-          @TemplateProperty(
-                  group = "model",
-                  label = "Effort",
-                  description = "Leave unset to use the model default.",
-                  tooltip =
-                      "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models."
-                          + "<br><br>See the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">Responses API reference</a>.",
-                  type = TemplateProperty.PropertyType.Dropdown,
-                  choices = {
-                    @DropdownPropertyChoice(value = "minimal", label = "minimal"),
-                    @DropdownPropertyChoice(value = "low", label = "low"),
-                    @DropdownPropertyChoice(value = "medium", label = "medium"),
-                    @DropdownPropertyChoice(value = "high", label = "high"),
-                    @DropdownPropertyChoice(value = "xhigh", label = "xhigh"),
-                    @DropdownPropertyChoice(value = "max", label = "max")
-                  },
-                  optional = true)
-              @Nullable OpenAiEffort effort,
-          @DecimalMin("0.0")
-              @DecimalMax("2.0")
-              @TemplateProperty(
-                  group = "model-options",
-                  label = "Temperature",
-                  tooltip =
-                      "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
-                  type = TemplateProperty.PropertyType.Number,
-                  feel = FeelMode.required,
-                  optional = true)
-              @Nullable Double temperature,
-          @DecimalMin("0.0")
-              @DecimalMax("1.0")
-              @TemplateProperty(
-                  group = "model-options",
-                  label = "top P",
-                  tooltip =
-                      "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = FeelMode.required,
                   optional = true)
