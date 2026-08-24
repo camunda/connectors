@@ -182,15 +182,8 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
           zeebeTest,
           incident -> {
             assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
-            // Bedrock's AWS SDK exception message states "timed out" directly. The native
-            // Anthropic/OpenAI vendor SDKs instead wrap the underlying
-            // java.net.SocketTimeoutException: Read timed out in their own IO-exception type
-            // (com.anthropic.errors.AnthropicIoException / com.openai.errors.OpenAIIoException)
-            // whose message is the generic "Request failed", which is what ends up in the
-            // incident's error message - the SocketTimeoutException's own message is not
-            // propagated. "Request failed" only surfaces here because this test's only failure
-            // mode is the induced socket timeout, so matching it still proves a timeout-caused
-            // model-call failure for those two providers.
+            // Bedrock's SDK reports "timed out" directly; Anthropic/OpenAI wrap the socket timeout
+            // in a generic "Request failed" IO exception - either still proves a timeout failure.
             assertThat(incident.getErrorMessage())
                 .containsPattern(Pattern.compile("timed out|timeout|Request failed"));
             assertThat(incident.getErrorMessage()).contains("FAILED_MODEL_CALL");
@@ -248,13 +241,8 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
   }
 
   // ---------------------------------------------------------------------------
-  // WireMock stubs: return provider-shaped streaming responses with the requested delay.
-  //
-  // Anthropic and Bedrock both execute over their native v2 providers, which always call the
-  // vendor SDK's streaming endpoint - Anthropic's SSE `POST /v1/messages`, Bedrock's AWS
-  // EventStream `POST /model/test-model/converse-stream` - rather than a plain buffered-JSON
-  // POST. The response delay is applied at the WireMock level via `withFixedDelay`, so it still
-  // models a slow/hanging transport regardless of the response framing.
+  // WireMock stubs: return provider-shaped streaming responses with the requested delay, applied
+  // via `withFixedDelay` to model a slow/hanging transport.
   // ---------------------------------------------------------------------------
 
   private void stubAnthropic(Duration delay) {
