@@ -603,13 +603,13 @@ public class GenerateElementTemplate {
                 .label("Request body")
                 .tooltip("Request payload for the Apex REST call, provided as a FEEL context.")
                 .group("operation")
-                .feel(FeelMode.required)
+                .feel(FeelMode.optional)
+                .optional(true)
                 .binding(new ZeebeInput("body"))
                 .condition(
                     new AllMatch(
                         new OneOf("apexRestMethod", List.of("post", "patch", "put")),
                         new Equals("salesforceOperationType", "apexRest")))
-                .constraints(PropertyConstraints.builder().notEmpty(true).build())
                 .build())
         .build();
   }
