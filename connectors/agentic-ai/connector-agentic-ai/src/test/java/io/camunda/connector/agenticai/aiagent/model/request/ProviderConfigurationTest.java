@@ -286,7 +286,7 @@ class ProviderConfigurationTest {
       assertThat(validator.validate(connection))
           .hasSize(1)
           .extracting(ConstraintViolation::getMessage)
-          .containsExactly("Google Vertex AI is not supported on SaaS");
+          .containsExactly("Enterprise Agent Platform (Vertex AI) is not supported on SaaS");
     }
 
     @Test

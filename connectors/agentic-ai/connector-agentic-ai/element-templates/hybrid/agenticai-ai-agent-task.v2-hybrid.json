@@ -1171,7 +1171,7 @@
       "name" : "Google Gemini API",
       "value" : "google-gemini-api"
     }, {
-      "name" : "Google Vertex AI",
+      "name" : "Enterprise Agent Platform (Vertex AI)",
       "value" : "google-vertex-ai"
     } ]
   }, {
@@ -1296,7 +1296,7 @@
   }, {
     "id" : "provider.googleGemini.backend.googleVertexAi.authentication.type",
     "label" : "Authentication",
-    "description" : "Specify the Google Vertex AI authentication strategy.",
+    "description" : "Specify the Enterprise Agent Platform (Vertex AI) authentication strategy.",
     "value" : "serviceAccountCredentials",
     "group" : "provider",
     "binding" : {
