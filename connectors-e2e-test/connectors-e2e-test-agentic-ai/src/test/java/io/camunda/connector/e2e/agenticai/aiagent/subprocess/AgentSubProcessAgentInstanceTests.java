@@ -108,7 +108,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
         .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1))
         .hasDefinition("test-model", "openaiCompatible")
         .hasToolsContaining("SuperfluxProduct")
-        .createdWithConfigurationItem("test-model", "openaiCompatible")
+        .createdWithConfigurationItem("test-model", "openaiCompatible", 10)
         .hasConfigurationItemsAtLeast(2)
         .hasConversationRoles(
             AgentInstanceHistoryRole.USER,
@@ -184,7 +184,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
         .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2))
         .hasDefinition("test-model", "openaiCompatible")
         .hasToolsContaining("SuperfluxProduct")
-        .createdWithConfigurationItem("test-model", "openaiCompatible")
+        .createdWithConfigurationItem("test-model", "openaiCompatible", 10)
         .hasConfigurationItemsAtLeast(2)
         .hasConversationRoles(
             AgentInstanceHistoryRole.USER,

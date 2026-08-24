@@ -103,7 +103,7 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
         .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1))
         .hasDefinition("gpt-4o", "openaiCompatible")
         .hasToolsContaining("SuperfluxProduct")
-        .createdWithConfigurationItem("gpt-4o", "openaiCompatible")
+        .createdWithConfigurationItem("gpt-4o", "openaiCompatible", 10)
         .hasConfigurationItemsAtLeast(2)
         .hasConversationRoles(
             AgentInstanceHistoryRole.USER,
@@ -184,7 +184,7 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
         .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2))
         .hasDefinition("gpt-4o", "openaiCompatible")
         .hasToolsContaining("SuperfluxProduct")
-        .createdWithConfigurationItem("gpt-4o", "openaiCompatible")
+        .createdWithConfigurationItem("gpt-4o", "openaiCompatible", 10)
         .hasConfigurationItemsAtLeast(2)
         .hasConversationRoles(
             AgentInstanceHistoryRole.USER,

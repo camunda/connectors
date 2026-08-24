@@ -93,7 +93,8 @@ public class AgentInstanceEngineVerifier {
   }
 
   /** Asserts the create-time CONFIGURATION item, i.e. the lowest-keyed one. */
-  public AgentInstanceEngineVerifier createdWithConfigurationItem(String model, String provider) {
+  public AgentInstanceEngineVerifier createdWithConfigurationItem(
+      String model, String provider, int maxModelCalls) {
     historyChecks.add(
         history -> {
           final var configItem =
@@ -108,6 +109,15 @@ public class AgentInstanceEngineVerifier {
           assertThat(configItem.getLoopIteration()).as("config item loop iteration").isEqualTo(1);
           assertThat(configItem.getJobKey()).as("config item job key").isPositive();
           assertThat(configItem.getJobLease()).as("config item job lease").isNotBlank();
+          assertThat(configItem.getLimits().getMaxModelCalls())
+              .as("config item max model calls")
+              .isEqualTo(maxModelCalls);
+          assertThat(configItem.getLimits().getMaxTokens())
+              .as("config item max tokens")
+              .isEqualTo(-1);
+          assertThat(configItem.getLimits().getMaxToolCalls())
+              .as("config item max tool calls")
+              .isEqualTo(-1);
         });
     return this;
   }
