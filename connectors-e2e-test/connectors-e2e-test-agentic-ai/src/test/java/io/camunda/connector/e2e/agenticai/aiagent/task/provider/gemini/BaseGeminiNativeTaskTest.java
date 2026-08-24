@@ -14,30 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.subprocess.v2;
+package io.camunda.connector.e2e.agenticai.aiagent.task.provider.gemini;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.aiagent.task.BaseAgentTaskTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.gemini.GeminiStreamGenerateContentRequests;
 import java.util.List;
 import java.util.function.Function;
 
 /**
- * Base class for native-Gemini e2e tests on the AI Agent Sub-process (v2 element template),
- * mirroring {@link BaseAnthropicNativeSubProcessTest}.
+ * Base class for native-Gemini e2e tests on the AI Agent <b>Task</b> flavor: the Task flavor's
+ * element template and property defaults (inherited from {@link BaseAgentTaskTest}) combined with
+ * the native-provider wiring shape — the provider properties pointed at WireMock via the hidden
+ * {@code endpoint} field, an overridable {@code defaultModel()}, and the recorded-request helpers.
  *
- * <p>The hidden {@code endpoint} field is what makes this work: {@code GeminiChatModelFactory}
- * passes it to {@code HttpOptions.baseUrl()}, so the vendor SDK talks to WireMock instead of
- * Google. That field exists for exactly this reason and is never surfaced in the modeler.
+ * <p>Mirrors {@code BaseGeminiNativeSubProcessTest} apart from its superclass, carrying only the
+ * helpers the Task-flavor tests actually use. Both bases delegate their recorded-request helpers to
+ * {@link GeminiStreamGenerateContentRequests} rather than duplicating them, which is why that
+ * helper lives in the wiremock package instead of on a base class the way Anthropic's single base
+ * class could afford to.
  */
-abstract class BaseGeminiNativeSubProcessTest extends BaseAgentSubProcessV2Test {
+abstract class BaseGeminiNativeTaskTest extends BaseAgentTaskTest {
 
-  /**
-   * A Gemini 3.x model id, i.e. the {@code thinkingLevel} generation. Tests needing 2.5-style
-   * {@code thinkingBudget} semantics override the id per test via {@link #model(String)}; the
-   * WireMock stub matches any model id, so no stub change is needed.
-   */
   private static final String DEFAULT_MODEL = "gemini-3-pro-preview";
 
   @Override
@@ -61,18 +61,6 @@ abstract class BaseGeminiNativeSubProcessTest extends BaseAgentSubProcessV2Test 
             "provider.googleGemini.backend.googleGeminiApi.endpoint", wireMock.getHttpBaseUrl())
         .property("provider.googleGemini.backend.googleGeminiApi.apiKey", "dummy")
         .property("provider.googleGemini.model.model", defaultModel());
-  }
-
-  static Function<ElementTemplate, ElementTemplate> model(String modelId) {
-    return template -> template.property("provider.googleGemini.model.model", modelId);
-  }
-
-  static LoggedRequest soleRecordedRequest() {
-    return GeminiStreamGenerateContentRequests.sole();
-  }
-
-  static List<LoggedRequest> recordedLoggedRequests() {
-    return GeminiStreamGenerateContentRequests.recorded();
   }
 
   static List<LoggedRequest> recordedLoggedRequests(int expectedCount) {

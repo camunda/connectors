@@ -14,31 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.subprocess.v2;
+package io.camunda.connector.e2e.agenticai.aiagent.subprocess.provider.bedrock;
 
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs.RefusalTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.StreamingBedrockConverseEventStreamChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.StreamingBedrockConverseEventStreamChatModelStubs.ContentFilteredTurnStub;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * Anthropic-only e2e coverage proving that a {@code refusal} stop reason - Anthropic's content
- * filtering rejection - propagates unswallowed through the real {@code AnthropicChatModel} wrapper
- * and {@code BaseAgentRequestHandler} all the way to a BPMN error carrying the {@code rejection}
- * error variables.
+ * Native-Bedrock-only e2e coverage proving that a {@code content_filtered} stop reason propagates
+ * unswallowed through the real {@code BedrockConverseChatModel} wrapper and {@code
+ * BaseAgentRequestHandler} all the way to a BPMN error carrying the {@code rejection} error
+ * variables.
  */
-class AgentSubProcessAnthropicContentFilteredTests extends BaseAnthropicSubProcessTest {
+class AgentSubProcessBedrockConverseContentFilteredTests extends BaseBedrockConverseSubProcessTest {
 
   @Test
   void contentFilteredRejectionFailsJobAndSurfacesRejectionErrorVariables() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
     final var partialText = "I can help you with a haiku, but";
 
-    StreamingAnthropicMessagesSseChatModelStubs.stubRefusalConversation(
-        new RefusalTurnStub(partialText, 10, 20));
+    StreamingBedrockConverseEventStreamChatModelStubs.stubContentFilteredConversation(
+        new ContentFilteredTurnStub(partialText, 10, 20));
 
     final var errorExpression =
         """
@@ -67,7 +67,7 @@ class AgentSubProcessAnthropicContentFilteredTests extends BaseAnthropicSubProce
         .hasCompletedElementsInOrder("ErrorBoundary_ContentFiltered", "EndEvent_ContentFiltered")
         .hasVariable(
             "rejectionErrorCode", AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED)
-        .hasVariable("rejectionStopReason", "refusal")
+        .hasVariable("rejectionStopReason", "content_filtered")
         .hasVariable("rejectionText", partialText);
   }
 }

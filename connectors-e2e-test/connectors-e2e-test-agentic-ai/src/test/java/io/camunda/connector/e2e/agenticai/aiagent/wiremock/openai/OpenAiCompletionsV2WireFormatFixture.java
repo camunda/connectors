@@ -30,8 +30,8 @@ import java.util.function.Function;
  * Plugs the native (own-LLM-layer) OpenAI Chat Completions wire format into the provider-agnostic
  * {@link ProviderWireFormatFixture} SPI. The request wire is the standard Chat Completions body, so
  * request recording is reused via {@link OpenAiCompletionsRecordedConversation} / {@link
- * OpenAiCompletionsRecordedChatRequestAdapter}; the response wire differs (native streams SSE), so
- * {@link #stubConversation} uses {@link OpenAiCompletionsV2SseChatModelStubs} instead.
+ * OpenAiCompletionsRecordedChatRequestAdapter}; the response is stubbed as SSE via {@link
+ * OpenAiCompletionsChatModelStubs}, the same stub the rest of the suite drives.
  *
  * <p>Drives the v2 element template via the {@code openai-api} backend's hidden {@code endpoint}
  * override, pointed at the WireMock host with a trailing {@code /v1} so the SDK's {@code
@@ -75,7 +75,7 @@ public final class OpenAiCompletionsV2WireFormatFixture implements ProviderWireF
 
   @Override
   public void stubConversation(TurnStub... turns) {
-    OpenAiCompletionsV2SseChatModelStubs.stubConversation(turns);
+    OpenAiCompletionsChatModelStubs.stubConversation(turns);
   }
 
   @Override

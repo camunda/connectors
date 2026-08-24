@@ -66,11 +66,7 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
     final var zeebeTest =
         awaitProcessCompletion(
             createProcessInstance(
-                e ->
-                    e.property("provider.type", "openaiCompatible")
-                        .property(
-                            "provider.openaiCompatible.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-                        .property("provider.openaiCompatible.model.model", "gpt-4o"),
+                e -> e.property("provider.openai.model.model", "gpt-4o"),
                 Map.of("userPrompt", "Calculate the superflux product of 5 and 3")));
 
     final var agentInstanceKey = new AtomicLong();
@@ -101,9 +97,9 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasStatus(AgentInstanceStatus.COMPLETED)
         .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1))
-        .hasDefinition("gpt-4o", "openaiCompatible")
+        .hasDefinition("gpt-4o", "openai")
         .hasToolsContaining("SuperfluxProduct")
-        .createdWithConfigurationItem("gpt-4o", "openaiCompatible", 10)
+        .createdWithConfigurationItem("gpt-4o", "openai", 10)
         .hasConfigurationItemsAtLeast(2)
         .hasConversationRoles(
             AgentInstanceHistoryRole.USER,
@@ -141,11 +137,7 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
     final var zeebeTest =
         awaitProcessCompletion(
             createProcessInstance(
-                e ->
-                    e.property("provider.type", "openaiCompatible")
-                        .property(
-                            "provider.openaiCompatible.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-                        .property("provider.openaiCompatible.model.model", "gpt-4o"),
+                e -> e.property("provider.openai.model.model", "gpt-4o"),
                 Map.of("userPrompt", "Calculate the superflux product of 5 and 3, twice")));
 
     // modelCalls=3, inputTokens=10+10+15=35, outputTokens=20+20+25=65, toolCalls=2
@@ -182,9 +174,9 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasStatus(AgentInstanceStatus.COMPLETED)
         .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2))
-        .hasDefinition("gpt-4o", "openaiCompatible")
+        .hasDefinition("gpt-4o", "openai")
         .hasToolsContaining("SuperfluxProduct")
-        .createdWithConfigurationItem("gpt-4o", "openaiCompatible", 10)
+        .createdWithConfigurationItem("gpt-4o", "openai", 10)
         .hasConfigurationItemsAtLeast(2)
         .hasConversationRoles(
             AgentInstanceHistoryRole.USER,
