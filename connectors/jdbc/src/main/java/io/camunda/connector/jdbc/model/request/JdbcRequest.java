@@ -87,6 +87,20 @@ public record JdbcRequest(
   }
 
   /**
+   * Delegates to the canonical constructor in the pre-{@code configuration}-first component order:
+   * {@code configuration} moved from last to first above so it renders (and appears in {@code
+   * properties[]}) before the fields it gates, per {@code ConditionPropertyOrderRule}. Retained so
+   * existing Java callers built against that order keep compiling.
+   */
+  public JdbcRequest(
+      SupportedDatabase database,
+      JdbcConnection connection,
+      JdbcRequestData data,
+      JdbcConnectionConfiguration configuration) {
+    this(configuration, database, connection, data);
+  }
+
+  /**
    * The database engine is required, but a bound credential now carries its own mandatory selection
    * (see {@link JdbcConnectionConfiguration#database()}) that takes precedence over the inline
    * field - the same shape as {@link #getInlineConnectionWhenNoCredentialBound()}. Named as a
