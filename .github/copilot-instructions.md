@@ -63,7 +63,7 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   `@TemplateDiscriminatorProperty` (see any connector's `Authentication` interface for the shape).
 - **Reusable credentials (`Configuration` chooser)**: adding or changing a credential chooser on a
   connector's element template? Read
-  [docs/credentials-in-element-templates.md](docs/credentials-in-element-templates.md) first — the
+  [docs/credentials-in-element-templates.md](../docs/credentials-in-element-templates.md) first — the
   chooser/fallback/effective-value pattern, field-ordering and validation pitfalls, and versioning
   rules are easy to get subtly wrong without it.
 - **Property validation**: Jakarta Bean Validation (`@NotEmpty`, `@NotBlank`, `@NotNull`, `@Size`,

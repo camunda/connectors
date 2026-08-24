@@ -191,8 +191,11 @@ For every property that can come from a credential or an inline field, cover:
 
 - [ ] Credential bound, no inline value — the credential's value is used.
 - [ ] No credential, inline value present — the inline value is used.
-- [ ] Both present — the credential wins (verify via the actual accessor, not just via
-      `ConnectionHelper`-style resolution helpers if the connector has both).
+- [ ] Both present — the credential wins, *except* for a chooser + inline **override** field (see
+      "Chooser-only field vs. chooser + inline override" above, e.g. REST auth's `urlOverride`),
+      where the inline value intentionally takes precedence once set (verify via the actual
+      accessor, not just via `ConnectionHelper`-style resolution helpers if the connector has
+      both).
 - [ ] Neither present, and the credential doesn't (or can't) supply the value — binding fails
       with a message naming both possible sources.
 - [ ] The full JSON → Jackson-binding path, not just direct object construction — a
@@ -213,6 +216,7 @@ A reusable credential is just a cluster variable with a `metadata` bag, so you c
 against a local running cluster without Hub or a Modeler UI:
 
 ```bash
+# "value" holds the @Configuration class's fields verbatim, e.g. authentication + url.
 curl -X POST http://localhost:8088/v2/cluster-variables/global \
   -H 'Content-Type: application/json' \
   -d '{
@@ -223,7 +227,7 @@ curl -X POST http://localhost:8088/v2/cluster-variables/global \
       "configurationTemplateVersion": 1,
       "displayName": "My Credential (demo)"
     },
-    "value": { /* the @Configuration class's fields, e.g. authentication + url */ }
+    "value": { "authentication": { "type": "bearer", "token": "..." }, "url": "https://example.com" }
   }'
 ```
 
