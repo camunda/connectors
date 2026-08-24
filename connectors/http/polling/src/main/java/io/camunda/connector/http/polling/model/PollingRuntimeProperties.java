@@ -244,6 +244,21 @@ public class PollingRuntimeProperties {
   }
 
   /**
+   * A bound Basic/Bearer/API-key credential's secret must never be sent to an origin other than the
+   * one it was created for - see {@link RestAuthenticationConfiguration#sharesOriginWith}. The
+   * inline override may still change the path/query on that same origin (the intended use: one
+   * credential, several call sites on the same host).
+   */
+  @AssertTrue(message = "Inline URL override must stay on the bound credential's origin")
+  @JsonIgnore
+  public boolean isUrlOverrideSameOriginAsCredential() {
+    if (authenticationConfiguration == null) {
+      return true;
+    }
+    return authenticationConfiguration.sharesOriginWith(url);
+  }
+
+  /**
    * A blank inline URL means "not set", not "set to an invalid value". Normalizing it to {@code
    * null} on the way in is what lets the shape check stay on the field: Modeler may write an empty
    * input when the optional override is cleared, and a bound credential's URL must then take over

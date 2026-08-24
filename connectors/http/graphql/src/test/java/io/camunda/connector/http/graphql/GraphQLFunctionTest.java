@@ -122,7 +122,7 @@ public class GraphQLFunctionTest extends BaseTest {
           "graphql": {
             "query": "query { field }",
             "method": "get",
-            "url": "http://localhost:8085/http-endpoint"
+            "url": "http://localhost:8087/http-endpoint"
           },
           "authenticationConfiguration": {
             "authentication": { "type": "bearer", "token": "valid-token" },
@@ -138,6 +138,66 @@ public class GraphQLFunctionTest extends BaseTest {
 
     var request = context.bindVariables(GraphQLRequest.class);
     assertThat(request.authentication()).isInstanceOf(BearerAuthentication.class);
+  }
+
+  /**
+   * The inline override may change the path/query while staying on the credential's own host - the
+   * documented "one credential, several call sites" use case.
+   */
+  @Test
+  void sameOriginInlineOverrideIsAccepted() {
+    String variables =
+        """
+        {
+          "graphql": {
+            "query": "query { field }",
+            "method": "get",
+            "url": "http://localhost:8087/other-path"
+          },
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8087/graphql"
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(variables)
+            .includeAllValidators()
+            .build();
+
+    assertThat(context.bindVariables(GraphQLRequest.class).getEffectiveUrl())
+        .isEqualTo("http://localhost:8087/other-path");
+  }
+
+  /**
+   * A Basic/Bearer/API-key credential's secret must never be sent to a different origin than the
+   * one it was created for, even via an inline override the task author controls.
+   */
+  @Test
+  void crossOriginInlineOverrideIsRejected() {
+    String variables =
+        """
+        {
+          "graphql": {
+            "query": "query { field }",
+            "method": "get",
+            "url": "http://evil.example.com/steal"
+          },
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8087/graphql"
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(variables)
+            .includeAllValidators()
+            .build();
+
+    assertThatThrownBy(() -> context.bindVariables(GraphQLRequest.class))
+        .hasMessageContaining("must stay on the bound credential's origin");
   }
 
   /**
