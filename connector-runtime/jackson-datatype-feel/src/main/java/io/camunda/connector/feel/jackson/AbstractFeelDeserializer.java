@@ -192,17 +192,21 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
    * tenant cannot resolve one without it. Attributes are therefore carried over rather than
    * enumerated, so that one added later reaches a result conversion without this method changing.
    *
-   * <p>The evaluator and FEEL context are removed. Nothing the result mapper registers reads them
-   * today, but they are what makes evaluation possible, and a model may point a field at {@link
-   * FeelDeserializer} directly with {@code @JsonDeserialize}. Such a field reached while converting
-   * a result would otherwise evaluate its value against the binding's cluster-backed evaluator,
-   * which is exactly what binding results with their own mapper exists to prevent.
+   * <p>The FEEL context is dropped and the evaluator is replaced rather than dropped. A model may
+   * point a field at {@link FeelDeserializer} directly with {@code @JsonDeserialize}, and such a
+   * field is registered on any mapper that binds its type, the result mapper included. Leaving the
+   * binding's cluster-backed evaluator in place would let it resolve a secret from result text;
+   * leaving no evaluator at all would let it fall back to the local engine it was constructed with
+   * and run that text as an expression. {@link NonEvaluatingFeelExpressionEvaluator} answers with
+   * the text instead, which is what a result is.
    */
   protected ObjectReader resultReader(final DeserializationContext ctx, final JavaType targetType) {
     return resultMapper
         .readerFor(targetType)
         .with(ctx.getConfig().getAttributes())
-        .withAttribute(FeelContextAwareObjectReader.FEEL_EVALUATOR_ATTRIBUTE, null)
+        .withAttribute(
+            FeelContextAwareObjectReader.FEEL_EVALUATOR_ATTRIBUTE,
+            NonEvaluatingFeelExpressionEvaluator.INSTANCE)
         .withAttribute(FeelContextAwareObjectReader.FEEL_CONTEXT_ATTRIBUTE, null);
   }
 

@@ -37,6 +37,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -60,9 +62,21 @@ class DeferredFeelCallbackIsolationTest {
   private static final String REAL_SECRET = "the-real-key";
   private static final String REFERENCE = "=camunda.secrets.API_KEY";
 
+  /**
+   * Its own threads, not the common pool: these tests hold a worker at a gate until another
+   * invocation has run to completion, and the common pool has one worker on a two-processor
+   * machine, where that would deadlock rather than test anything.
+   */
+  private final ExecutorService threads = Executors.newCachedThreadPool();
+
   @AfterEach
-  void clearGates() {
+  void clearGatesAndThreads() {
     GatedStringDeserializer.GATES.clear();
+    threads.shutdownNow();
+  }
+
+  private <T> CompletableFuture<T> onItsOwnThread(Supplier<T> work) {
+    return CompletableFuture.supplyAsync(work, threads);
   }
 
   @Test
@@ -77,7 +91,7 @@ class DeferredFeelCallbackIsolationTest {
     var bound =
         read(evaluator, "{\"slow\":\"=slow\",\"token\":\"=token\"}", ConvertingAndSupplying.class);
 
-    var converting = CompletableFuture.supplyAsync(() -> bound.slow().apply(Map.of()));
+    var converting = onItsOwnThread(() -> bound.slow().apply(Map.of()));
     gateA.awaitEntry();
     String token = bound.token().get();
     gateA.release();
@@ -110,9 +124,9 @@ class DeferredFeelCallbackIsolationTest {
 
     // Both invocations evaluate before either converts, which is what the shared mark could not
     // survive: each then converts believing it was the one that set the mark.
-    var second = CompletableFuture.supplyAsync(() -> bound.second().apply(Map.of()));
+    var second = onItsOwnThread(() -> bound.second().apply(Map.of()));
     evaluated.awaitEntry();
-    var first = CompletableFuture.supplyAsync(() -> bound.first().apply(Map.of()));
+    var first = onItsOwnThread(() -> bound.first().apply(Map.of()));
     gateA.awaitEntry();
     evaluated.release();
     gateB.awaitEntry();
@@ -155,18 +169,29 @@ class DeferredFeelCallbackIsolationTest {
   @Test
   void aFieldPointedAtTheFeelDeserializerInsideAResultCannotEvaluate() {
     // A model may name the deserializer directly rather than through @FEEL, and such a field is
-    // registered on any mapper that binds its type. Reached while converting a result it finds no
-    // evaluator on the reader — the result reader carries the binding's attributes but not the two
-    // that confer the ability to evaluate — so it falls back to its own local engine, which
-    // resolves no secret and yields null for the reference. The cluster-backed evaluator that
-    // would have resolved it is never reached.
+    // registered on any mapper that binds its type. The result reader carries an evaluator that
+    // answers with the text, so the field cannot reach the binding's cluster-backed evaluator and
+    // cannot fall back to a local engine either: the text binds as the text.
     var evaluator = new RecordingEvaluator();
     evaluator.answers("=outer", Map.of("candidate", REFERENCE));
     evaluator.answers(REFERENCE, REAL_SECRET);
 
     var bound = read(evaluator, "{\"payload\":\"=outer\"}", ResultWithExplicitFeel.class);
 
-    assertThat(bound.payload().candidate()).isNull();
+    assertThat(bound.payload().candidate()).isEqualTo(REFERENCE);
+    assertThat(evaluator.evaluated).containsExactly("=outer");
+  }
+
+  @Test
+  void expressionShapedResultTextIsNotComputed() {
+    // Not only secret references: any expression in a result is data. A local engine would compute
+    // this one, and would run a FEEL function contributed through the SPI.
+    var evaluator = new RecordingEvaluator();
+    evaluator.answers("=outer", Map.of("candidate", "=1+1"));
+
+    var bound = read(evaluator, "{\"payload\":\"=outer\"}", ResultWithExplicitFeel.class);
+
+    assertThat(bound.payload().candidate()).isEqualTo("=1+1");
     assertThat(evaluator.evaluated).containsExactly("=outer");
   }
 
