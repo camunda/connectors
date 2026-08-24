@@ -451,6 +451,22 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
+  void modelDefaultEffortOmitsReasoningEffort() {
+    // The "default" dropdown choice binds to OpenAiEffort.MODEL_DEFAULT rather than an unset
+    // value; it must still be treated as "don't send reasoning_effort".
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toRequest(
+            model(new CompletionsParameters(null, OpenAiEffort.MODEL_DEFAULT, null, null)),
+            null,
+            snapshot);
+
+    assertThat(params.reasoningEffort()).isEmpty();
+    assertThat(requestBodyAsJson(params).has("reasoning_effort")).isFalse();
+  }
+
+  @Test
   void mapsEachEffortLevelToItsLowercaseWireValue() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 

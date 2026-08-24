@@ -258,6 +258,31 @@ class OpenAiChatModelConfigurationTest {
   }
 
   @Test
+  void deserialisesModelDefaultEffortForBothApiFamiliesAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "openai",
+          "openai": {
+            "api": { "type": "completions", "completions": { "effort": "modelDefault" } },
+            "backend": { "type": "openai-api", "openai": { "apiKey": "sk-test-123" } },
+            "model": { "model": "gpt-5.5" }
+          }
+        }
+        """;
+
+    final OpenAiChatModelConfiguration parsed =
+        (OpenAiChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    final CompletionsParameters parameters =
+        ((OpenAiCompletionsApi) parsed.openai().api()).completions();
+    assertThat(parameters.effort()).isEqualTo(OpenAiEffort.MODEL_DEFAULT);
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
   void deserialisesCustomBackendWithApiKeyAuthAndHeadersAndRoundTrips() throws Exception {
     final String json =
         """
@@ -296,6 +321,7 @@ class OpenAiChatModelConfigurationTest {
   void effortValuesSerializeLowercase() throws Exception {
     for (final var entry :
         Map.of(
+                OpenAiEffort.MODEL_DEFAULT, "modelDefault",
                 OpenAiEffort.MINIMAL, "minimal",
                 OpenAiEffort.LOW, "low",
                 OpenAiEffort.MEDIUM, "medium",

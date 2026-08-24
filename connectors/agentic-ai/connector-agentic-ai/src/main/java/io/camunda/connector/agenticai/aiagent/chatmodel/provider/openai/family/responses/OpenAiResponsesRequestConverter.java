@@ -149,7 +149,7 @@ public class OpenAiResponsesRequestConverter {
     builder.addInclude(ResponseIncludable.REASONING_ENCRYPTED_CONTENT);
 
     final OpenAiEffort effort = params == null ? null : params.effort();
-    if (effort == null) {
+    if (effort == null || effort == OpenAiEffort.MODEL_DEFAULT) {
       return;
     }
     builder.reasoning(Reasoning.builder().effort(mapEffort(effort)).build());

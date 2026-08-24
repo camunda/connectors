@@ -2095,8 +2095,8 @@
   }, {
     "id" : "provider.openai.api.responses.effort",
     "label" : "Effort",
-    "description" : "Leave unset to use the model default.",
-    "optional" : true,
+    "optional" : false,
+    "value" : "modelDefault",
     "group" : "model",
     "binding" : {
       "name" : "provider.openai.api.responses.effort",
@@ -2116,6 +2116,9 @@
     "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models.<br><br>See the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">Responses API reference</a>.",
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "default",
+      "value" : "modelDefault"
+    }, {
       "name" : "minimal",
       "value" : "minimal"
     }, {
@@ -2137,8 +2140,8 @@
   }, {
     "id" : "provider.openai.api.completions.effort",
     "label" : "Effort",
-    "description" : "Leave unset to use the model default.",
-    "optional" : true,
+    "optional" : false,
+    "value" : "modelDefault",
     "group" : "model",
     "binding" : {
       "name" : "provider.openai.api.completions.effort",
@@ -2158,6 +2161,9 @@
     "tooltip" : "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models.<br><br>See the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">Chat Completions API reference</a>.",
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "default",
+      "value" : "modelDefault"
+    }, {
       "name" : "minimal",
       "value" : "minimal"
     }, {

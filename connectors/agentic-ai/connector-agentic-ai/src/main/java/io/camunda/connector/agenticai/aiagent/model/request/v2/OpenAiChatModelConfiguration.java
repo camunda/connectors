@@ -100,12 +100,12 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
           @TemplateProperty(
                   group = "model",
                   label = "Effort",
-                  description = "Leave unset to use the model default.",
                   tooltip =
                       "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models."
                           + "<br><br>See the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">Responses API reference</a>.",
                   type = TemplateProperty.PropertyType.Dropdown,
                   choices = {
+                    @DropdownPropertyChoice(value = "modelDefault", label = "default"),
                     @DropdownPropertyChoice(value = "minimal", label = "minimal"),
                     @DropdownPropertyChoice(value = "low", label = "low"),
                     @DropdownPropertyChoice(value = "medium", label = "medium"),
@@ -113,7 +113,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                     @DropdownPropertyChoice(value = "xhigh", label = "xhigh"),
                     @DropdownPropertyChoice(value = "max", label = "max")
                   },
-                  optional = true)
+                  defaultValue = "modelDefault")
               @Nullable OpenAiEffort effort,
           @DecimalMin("0.0")
               @DecimalMax("2.0")
@@ -165,12 +165,12 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
           @TemplateProperty(
                   group = "model",
                   label = "Effort",
-                  description = "Leave unset to use the model default.",
                   tooltip =
                       "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models."
                           + "<br><br>See the <a href=\"https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create\" target=\"_blank\">Chat Completions API reference</a>.",
                   type = TemplateProperty.PropertyType.Dropdown,
                   choices = {
+                    @DropdownPropertyChoice(value = "modelDefault", label = "default"),
                     @DropdownPropertyChoice(value = "minimal", label = "minimal"),
                     @DropdownPropertyChoice(value = "low", label = "low"),
                     @DropdownPropertyChoice(value = "medium", label = "medium"),
@@ -178,7 +178,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                     @DropdownPropertyChoice(value = "xhigh", label = "xhigh"),
                     @DropdownPropertyChoice(value = "max", label = "max")
                   },
-                  optional = true)
+                  defaultValue = "modelDefault")
               @Nullable OpenAiEffort effort,
           @DecimalMin("0.0")
               @DecimalMax("2.0")
@@ -207,6 +207,8 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
 
   /** OpenAI effort levels, trading thoroughness against speed and cost. */
   public enum OpenAiEffort {
+    @JsonProperty("modelDefault")
+    MODEL_DEFAULT,
     @JsonProperty("minimal")
     MINIMAL,
     @JsonProperty("low")
