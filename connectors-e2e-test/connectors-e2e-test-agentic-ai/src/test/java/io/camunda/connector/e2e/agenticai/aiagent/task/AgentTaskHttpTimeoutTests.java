@@ -182,10 +182,8 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
           zeebeTest,
           incident -> {
             assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
-            // Bedrock's SDK reports "timed out" directly; Anthropic/OpenAI wrap the socket timeout
-            // in a generic "Request failed" IO exception - either still proves a timeout failure.
             assertThat(incident.getErrorMessage())
-                .containsPattern(Pattern.compile("timed out|timeout|Request failed"));
+                .containsPattern(Pattern.compile("timed out|timeout"));
             assertThat(incident.getErrorMessage()).contains("FAILED_MODEL_CALL");
           });
       assertThat(userFeedbackJobWorkerCounter.get())
