@@ -4,7 +4,5 @@ camunda:
   connector:
     agenticai:
       aiagent:
-        # The product default is ON (v1 provider config is rewritten to the native v2 providers).
-        # It is pinned OFF here so the existing v1 e2e suites keep exercising the LangChain4j
-        # implementations they were written against (buffered, non-streaming wire format).
+        # Pinned OFF (product default is ON) until the v1 e2e suites are rewritten against the native providers.
         rewrite-v1-provider-config-to-v2: false

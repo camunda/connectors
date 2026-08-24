@@ -5,9 +5,9 @@
 
 ## Status
 
-**Accepted**. Realized in the PR that introduces the v1-to-native provider configuration mapping,
-gated behind a configuration switch. The LangChain4j integration is retained as the alternate path
-for now; its removal is a deferred follow-on.
+**Accepted**. Delivered across a short PR sequence: the v1-to-native provider configuration mapping,
+followed by removal of the LangChain4j integration. A transitional configuration flag exists only to
+sequence those PRs and is removed together with LangChain4j.
 
 ## Context and Problem Statement
 
@@ -26,39 +26,34 @@ shared and the handler and SPI are version-agnostic.
 
 The LangChain4j path caps provider capabilities at LangChain4j's abstraction, which is the
 constraint ADR 009 set out to escape. We want v1 jobs to run on the native providers without
-changing the v1 wire contract, and without a big-bang removal of the LangChain4j stack while the
-native routing is still proving out. Should we keep both stacks as they are, or route v1 requests
-through the native providers?
+changing the v1 wire contract, and we want to converge on a single provider stack rather than
+maintain two indefinitely. Should we keep both stacks as they are, or route v1 requests through the
+native providers and retire LangChain4j?
 
 ## Decision Drivers
 
-* **Feature ceiling**: native providers surface vendor capabilities (native server-side tools,
-  structured reasoning, prompt caching, effort) that the LangChain4j abstraction cannot express.
+* **Feature ceiling**: native providers surface vendor capabilities (structured reasoning, prompt
+  caching, effort) that the LangChain4j abstraction cannot express.
 * **v1 wire compatibility**: existing v1 element templates, job worker types, and process variables
   must keep working byte-for-byte — the migration must be invisible to deployed processes.
 * **Behavior identity per provider**: a native provider calls the same vendor API the corresponding
   LangChain4j integration wrapped, so per-provider behavior is preserved.
-* **Controlled rollout**: keep a runtime lever to fall back to the LangChain4j path while the native
-  routing proves out, and avoid coupling the routing change to the larger LangChain4j removal.
-* **Pre-GA freedom**: the v2 request types and native providers are not released, so the migration
-  is not constrained by a released dual-path compatibility contract.
+* **Single stack**: two execution stacks behind one handler have no path to convergence and double
+  the long-term maintenance surface; the module should end up on one.
 
 ## Considered Options
 
 1. Keep both stacks unchanged — v1 requests resolve LangChain4j factories, v2 requests resolve
    native factories.
-2. Translate the v1 provider configuration to native at the v1 request boundary, gated behind a
-   configuration switch, retaining LangChain4j as the alternate path; remove LangChain4j in a later
-   change.
-3. Translate at the request boundary and remove LangChain4j in the same change (no switch, no
-   fallback).
+2. Translate the v1 provider configuration to native at the v1 request boundary, then remove
+   LangChain4j.
 
 ## Decision Outcome
 
-Chosen option: **Option 2 — translate v1 provider configuration to native at the request boundary,
-behind a configuration switch, retaining LangChain4j for now**, because it lifts the capability
-ceiling on the native path and preserves the v1 wire contract, while keeping a runtime fallback and
-decoupling the routing change from the LangChain4j removal.
+Chosen option: **Option 2 — translate v1 provider configuration to native at the request boundary and
+remove LangChain4j**, because it lifts the capability ceiling on the native path, preserves the v1
+wire contract through an internal translation layer, and converges the module onto a single provider
+stack.
 
 The decision comprises:
 
@@ -74,12 +69,11 @@ The decision comprises:
   Bedrock jobs. The Anthropic Bedrock Mantle backend remains a v2-only opt-in for callers who want
   Anthropic-native features over Bedrock.
 
-* **D3 — Gate native routing behind a configuration switch; retain LangChain4j for now.** The v1
-  functions route through the native providers, but a configuration switch selects the LangChain4j
-  path, kept as a runtime fallback while the native routing proves out. The LangChain4j framework
-  binding, factories, and `dev.langchain4j` dependencies are not removed in this change; their
-  removal — and with it the switch, which has no meaning once the fallback is gone — is a deferred
-  follow-on.
+* **D3 — LangChain4j is removed, not retained as a fallback.** The v1 functions route through the
+  native providers unconditionally; the LangChain4j framework binding, factories, and
+  `dev.langchain4j` dependencies are removed as part of this decision, once the translation is in
+  place. Delivery is split across a short sequence of PRs for reviewable change size; a transitional
+  configuration flag exists only to sequence those PRs and carries no lasting meaning.
 
 * **D4 — Configurations a native provider cannot represent are mapped faithfully or fail loud, never
   silently downgraded.** The v1 OpenAI-compatible provider allows an optional (blank) API key, with
@@ -92,8 +86,6 @@ The decision comprises:
 ### Non-goals
 
 * A model **capability matrix** — a separate follow-on, as noted in ADR 009.
-* **LangChain4j removal** — deferred to a follow-on once native routing is proven; retained behind
-  the switch here.
 * Any change to the **v1 wire shape** — element templates, job worker types, and process variables
   are unchanged; the translation layer is internal.
 
@@ -101,18 +93,16 @@ The decision comprises:
 
 * v1 jobs run on the native path, carrying provider capabilities beyond the LangChain4j ceiling.
 * The v1 wire contract is preserved by an internal translation layer.
-* The configuration switch provides a runtime fallback during rollout.
 * Per-provider behavior is preserved, since the native provider calls the same vendor API.
+* The module converges onto a single provider stack, dropping the `dev.langchain4j` dependency
+  surface.
 
 ### Negative Consequences
 
-* Two provider stacks and the `dev.langchain4j` dependency surface persist until the deferred
-  removal.
-* The switch is transitional and must be removed together with LangChain4j; left indefinitely it
-  reintroduces dual-path maintenance.
 * A permanent v1-to-native translation shim is retained for as long as the v1 element templates are
-  supported, so the v1 wire shape lives on in code even after its execution engine is eventually
-  removed.
+  supported, so the v1 wire shape lives on in code even after its execution engine is removed.
+* Some v1 configurations require a faithful-but-indirect mapping (e.g. a placeholder credential for
+  header-based auth) to preserve behavior, adding translation-layer edge cases to maintain.
 
 ## Pros and Cons of the Options
 
@@ -122,19 +112,11 @@ The decision comprises:
 * Bad, because v1 jobs stay capped at the LangChain4j capability ceiling.
 * Bad, because two stacks are maintained behind one handler with no path toward convergence.
 
-### Option 2: Translate at the request boundary behind a switch, retain LangChain4j (chosen)
+### Option 2: Translate at the request boundary and remove LangChain4j (chosen)
 
 * Good, because v1 jobs gain the native capability set while the v1 wire contract is preserved by an
   internal translation layer.
-* Good, because the switch gives a runtime rollback lever and decouples routing from the larger
-  removal.
 * Good, because per-provider behavior is identity-preserving (native calls the same vendor API).
-* Bad, because LangChain4j, its dependency surface, and the switch are retained temporarily and must
-  be removed together in a follow-on; left indefinitely they reintroduce dual-path maintenance.
-
-### Option 3: Translate and remove LangChain4j in the same change
-
-* Good, because it converges to a single provider stack immediately and drops the `dev.langchain4j`
-  surface at once.
-* Bad, because it couples the routing change to a large removal with no runtime fallback if the
-  native routing misbehaves, offering no bake period even though one is cheap to keep.
+* Good, because it converges to a single provider stack and drops the `dev.langchain4j` surface.
+* Bad, because there is no runtime fallback to LangChain4j once it is removed if the native routing
+  misbehaves for some v1 configuration.
