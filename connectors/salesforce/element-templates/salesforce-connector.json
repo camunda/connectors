@@ -95,6 +95,14 @@
         "name" : "apiVersion",
         "type" : "zeebe:input"
       },
+      "condition" : {
+        "property" : "salesforceOperationType",
+        "oneOf" : [
+          "sObject",
+          "soqlQuery"
+        ],
+        "type" : "simple"
+      },
       "type" : "String"
     },
     {
