@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
@@ -72,6 +73,35 @@ class OutboundConnectorExceptionHandlerTest {
 
     assertThat(captureSecretContext())
         .isEqualTo(new SecretContext("my-tenant", "my-process", "engine-1"));
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_failsWithoutRetryWhenSecretsCannotBeFetchedAtAll() {
+    // a provider that refuses every lookup (e.g. legacy resolution switched off) throws for the
+    // masking fetch too; retrying will not change that, so this must not be treated as transient
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(new ConnectorInputException("secret 'FOO' was not resolved"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void manageConnectorJobHandlerException_retriesNormallyWhenFetchingSecretsFailsTransiently() {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+
+    assertThat(result.retries()).isEqualTo(2);
   }
 
   @Test

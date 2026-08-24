@@ -153,11 +153,18 @@ public class OutboundConnectorExceptionHandler {
               "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: "
                   + ex.getMessage(),
               ex);
+      // A provider that refuses to resolve at all (e.g. legacy resolution switched off) throws
+      // this for every key, including the ones this fetch only needed for masking — retrying
+      // will not change that, so this must fail the job exactly like the same exception does when
+      // it comes from the connector's own binding step below, instead of silently falling through
+      // to a normal retry decrement.
+      int retries =
+          ex instanceof ConnectorInputException || ex.getCause() instanceof ConnectorInputException
+              ? 0
+              : job.getRetries() - 1;
       return new ConnectorResult.ErrorResult(
           // secrets could not be fetched, so there is nothing to mask with
-          Map.of("error", exceptionToMap(wrappedException, List.of())),
-          wrappedException,
-          job.getRetries() - 1);
+          Map.of("error", exceptionToMap(wrappedException, List.of())), wrappedException, retries);
     }
     return switch (e) {
       case InvalidBackOffDurationException invalidBackOffDurationException ->
