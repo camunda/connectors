@@ -284,6 +284,19 @@ Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before ad
 execution order does not matter — the sub-process transformer cannot carry the task marker into the
 derived template regardless of when the task-marker script runs.
 
+### Deprecation marker (v1 only)
+
+Only the v1 AI Agent Task and Sub-process templates whose minimum Camunda version is 8.10 carry a
+top-level `deprecated` block pointing modelers to the v2 template: the current main/hybrid templates
+(version 13) and their `versioned/` snapshots at versions 10–12. Earlier v1 versions (8.8/8.9-minimum,
+versions 0–7) do not carry it, and neither do v2 templates. For the generated main/hybrid templates,
+both transform scripts accept optional `deprecationMessage` / `deprecationDocumentationRef` Maven
+properties — wired only into the v1 executions in `pom.xml` — and each script strips any inherited
+`deprecated` block before deciding its own, the same pattern used for the agent definition marker
+above. `versioned/` snapshots
+are static and were patched by hand instead (three pre-8.10 snapshots already carried an unrelated
+legacy `"deprecated": true` boolean flag and were left untouched).
+
 ## Key entry points
 
 | File                                        | Purpose                                    |
