@@ -438,6 +438,18 @@ class BedrockConverseRequestConverterTest {
     }
 
     @Test
+    void jsonResponseFormatWithEmptySchemaEmitsNoOutputConfig() {
+      final var response =
+          new AgentTaskResponseConfiguration(
+              new JsonResponseFormatConfiguration(Map.of(), null), null);
+      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+      final var request = converter.toConverseStreamRequest(model(null), response, snapshot);
+
+      assertThat(request.outputConfig()).isNull();
+    }
+
+    @Test
     void textResponseFormatEmitsNoOutputConfig() {
       final var response =
           new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), null);

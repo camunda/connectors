@@ -566,6 +566,21 @@ class OpenAiResponsesRequestConverterTest {
     assertThat(textNode.has("schema")).isFalse();
   }
 
+  @Test
+  void configuresJsonObjectResponseFormatWhenEmptySchema() {
+    final var response =
+        new AgentTaskResponseConfiguration(
+            new JsonResponseFormatConfiguration(Map.of(), null), null);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(model(null), response, snapshot);
+
+    assertThat(params.text()).isPresent();
+    final var textNode = requestBodyAsJson(params).path("text").path("format");
+    assertThat(textNode.path("type").asText()).isEqualTo("json_object");
+    assertThat(textNode.has("schema")).isFalse();
+  }
+
   // --- Reasoning / effort ------------------------------------------------------------------
 
   @Test

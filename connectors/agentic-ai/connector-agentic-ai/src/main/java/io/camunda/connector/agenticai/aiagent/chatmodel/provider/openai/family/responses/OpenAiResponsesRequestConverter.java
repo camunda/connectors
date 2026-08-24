@@ -358,7 +358,7 @@ public class OpenAiResponsesRequestConverter {
     if (!(response != null && response.format() instanceof JsonResponseFormatConfiguration json)) {
       return;
     }
-    if (json.schema() == null) {
+    if (!json.hasSchema()) {
       // JSON mode without a schema: constrain the model to valid JSON without a structure.
       builder.text(
           ResponseTextConfig.builder()

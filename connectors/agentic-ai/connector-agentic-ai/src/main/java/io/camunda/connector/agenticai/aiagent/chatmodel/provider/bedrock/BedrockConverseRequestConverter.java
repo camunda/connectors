@@ -323,9 +323,9 @@ public class BedrockConverseRequestConverter {
       return;
     }
 
-    if (json.schema() == null) {
-      // Converse structured output is schema-only: with no schema there is nothing to constrain,
-      // so emit no output config and leave JSON handling to client-side parsing.
+    if (!json.hasSchema()) {
+      // Converse structured output is schema-only: with no (or an empty) schema there is nothing
+      // to constrain, so emit no output config and leave JSON handling to client-side parsing.
       return;
     }
 
