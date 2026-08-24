@@ -304,8 +304,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public V1ToV2ProviderConfigurationMapper aiAgentV1ToV2ProviderConfigurationMapper() {
-    return new V1ToV2ProviderConfigurationMapperImpl();
+  public V1ToV2ProviderConfigurationMapper aiAgentV1ToV2ProviderConfigurationMapper(
+      AgenticAiConnectorsConfigurationProperties configuration) {
+    return new V1ToV2ProviderConfigurationMapperImpl(configuration.aiagent().chatModel());
   }
 
   @Bean

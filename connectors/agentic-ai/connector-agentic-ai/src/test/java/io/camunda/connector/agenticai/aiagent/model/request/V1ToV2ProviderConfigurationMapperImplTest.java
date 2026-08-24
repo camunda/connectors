@@ -69,14 +69,19 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class V1ToV2ProviderConfigurationMapperImplTest {
 
+  private static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(3);
+
   private final V1ToV2ProviderConfigurationMapper mapper =
-      new V1ToV2ProviderConfigurationMapperImpl();
+      new V1ToV2ProviderConfigurationMapperImpl(
+          new ChatModelProperties(new ApiProperties(DEFAULT_TIMEOUT), null));
 
   @Test
   void mapsAnthropicProviderConfigurationWithParameters() {
@@ -124,7 +129,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                 new AnthropicApiBackend(
                     new AnthropicApi("anthropic-api-key", null, null, null, null)),
                 new AnthropicChatModelConfiguration.AnthropicModel("claude-3", null),
-                null));
+                new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 
     assertThat(result).isEqualTo(expected);
   }
@@ -148,7 +153,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                     new AnthropicApi(
                         "anthropic-api-key", "https://proxy.example.com", null, null, null)),
                 new AnthropicChatModelConfiguration.AnthropicModel("claude-3", null),
-                null));
+                new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 
     assertThat(result).isEqualTo(expected);
   }
@@ -237,7 +242,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                         null,
                         new ApiKeyAuthentication("xyz-token"))),
                 new OpenAiModel("llama-70b"),
-                null));
+                new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 
     assertThat(result).isEqualTo(expected);
   }
@@ -269,7 +274,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                         new ApiKeyAuthentication(
                             V1ToV2ProviderConfigurationMapperImpl.MISSING_API_KEY_PLACEHOLDER))),
                 new OpenAiModel("llama-70b"),
-                null));
+                new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 
     assertThat(result).isEqualTo(expected);
   }
@@ -302,9 +307,88 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                         new ApiKeyAuthentication(
                             V1ToV2ProviderConfigurationMapperImpl.MISSING_API_KEY_PLACEHOLDER))),
                 new OpenAiModel("llama-70b"),
-                null));
+                new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 
     assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void mapsOpenAiCompatibleProviderConfiguration_authorizationHeaderWinsOverApiKey() {
+    final var source =
+        new OpenAiCompatibleProviderConfiguration(
+            new OpenAiCompatibleConnection(
+                "https://compat.example/v1",
+                new OpenAiCompatibleAuthentication("configured-key"),
+                Map.of("Authorization", "Bearer header-token", "X-Other", "keep-me"),
+                null,
+                null,
+                new OpenAiCompatibleModel("llama-70b", null)));
+
+    final var result = mapper.map(source);
+
+    final var expected =
+        new OpenAiChatModelConfiguration(
+            new OpenAiConnection(
+                new OpenAiCompletionsApi(null),
+                new OpenAiCustomBackend(
+                    new CustomBackend(
+                        "https://compat.example/v1",
+                        Map.of("X-Other", "keep-me"),
+                        null,
+                        null,
+                        new ApiKeyAuthentication("header-token"))),
+                new OpenAiModel("llama-70b"),
+                new TimeoutConfiguration(DEFAULT_TIMEOUT)));
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void mapsOpenAiCompatibleProviderConfiguration_nonBearerAuthorizationHeaderWinsOverApiKey() {
+    final var source =
+        new OpenAiCompatibleProviderConfiguration(
+            new OpenAiCompatibleConnection(
+                "https://compat.example/v1",
+                new OpenAiCompatibleAuthentication("configured-key"),
+                Map.of("Authorization", "Basic abc123"),
+                null,
+                null,
+                new OpenAiCompatibleModel("llama-70b", null)));
+
+    final var result = mapper.map(source);
+
+    final var expected =
+        new OpenAiChatModelConfiguration(
+            new OpenAiConnection(
+                new OpenAiCompletionsApi(null),
+                new OpenAiCustomBackend(
+                    new CustomBackend(
+                        "https://compat.example/v1",
+                        Map.of("Authorization", "Basic abc123"),
+                        null,
+                        null,
+                        new ApiKeyAuthentication(
+                            V1ToV2ProviderConfigurationMapperImpl.MISSING_API_KEY_PLACEHOLDER))),
+                new OpenAiModel("llama-70b"),
+                new TimeoutConfiguration(DEFAULT_TIMEOUT)));
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void fallsBackToConfiguredDefaultTimeoutWhenV1TimeoutNonPositive() {
+    final var source =
+        new AnthropicProviderConfiguration(
+            new AnthropicConnection(
+                null,
+                new AnthropicAuthentication("anthropic-api-key"),
+                new TimeoutConfiguration(Duration.ZERO),
+                new AnthropicModel("claude-3", null)));
+
+    final var result = mapper.map(source);
+
+    assertThat(((AnthropicChatModelConfiguration) result).anthropic().timeouts())
+        .isEqualTo(new TimeoutConfiguration(DEFAULT_TIMEOUT));
   }
 
   @Test
@@ -363,7 +447,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                 null,
                 null,
                 null,
-                null,
+                new TimeoutConfiguration(DEFAULT_TIMEOUT),
                 new BedrockConverseModel("nova-lite", null)));
 
     assertThat(result).isEqualTo(expected);
@@ -483,7 +567,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                         null,
                         null)),
                 new OpenAiModel("gpt-4o-deployment"),
-                null));
+                new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 
     assertThat(result).isEqualTo(expected);
   }
@@ -513,7 +597,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                         null,
                         null)),
                 new OpenAiModel("gpt-4o-deployment"),
-                null));
+                new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 
     assertThat(result).isEqualTo(expected);
   }
@@ -553,7 +637,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                     "gemini-3-pro-preview",
                     new GeminiModelParameters(
                         1024, (double) sourceTemperature, (double) sourceTopP, 40, null)),
-                null));
+                new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 
     assertThat(result).isEqualTo(expected);
 
@@ -587,7 +671,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                         new GoogleVertexAiAuthentication
                             .ApplicationDefaultCredentialsAuthentication())),
                 new GeminiModel("gemini-3-pro-preview", null),
-                null));
+                new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 
     assertThat(result).isEqualTo(expected);
   }
@@ -615,7 +699,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                         new GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication(
                             "{\"type\":\"service_account\"}"))),
                 new GeminiModel("gemini-3-pro-preview", null),
-                null));
+                new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 
     assertThat(result).isEqualTo(expected);
   }
