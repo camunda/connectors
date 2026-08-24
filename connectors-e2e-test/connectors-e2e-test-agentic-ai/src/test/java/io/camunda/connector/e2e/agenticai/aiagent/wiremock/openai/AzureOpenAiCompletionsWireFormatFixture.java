@@ -18,6 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
@@ -25,15 +26,16 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatReque
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
  * Plugs Azure OpenAI's Chat Completions wire format into the provider-agnostic {@link
  * ProviderWireFormatFixture} SPI, driving the connector through the v1 {@code azureOpenAi} element
- * template. With the v1&rarr;v2 provider-config rewrite switch on (the default), the v1 template's
- * {@code provider.azureOpenAi.*} config is rewritten onto the native v2 OpenAI provider's {@code
- * foundry} backend ({@code OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend} - see
- * {@code V1ToV2ProviderConfigurationMapperImpl#mapAzureOpenAi}), which:
+ * template: the v1 template's {@code provider.azureOpenAi.*} config is rewritten onto the native v2
+ * OpenAI provider's {@code foundry} backend ({@code
+ * OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend} - see {@code
+ * V1ToV2ProviderConfigurationMapperImpl#mapAzureOpenAi}), which:
  *
  * <ul>
  *   <li>always drives the vendor SDK's streaming endpoint ({@code
@@ -84,6 +86,17 @@ public final class AzureOpenAiCompletionsWireFormatFixture implements ProviderWi
             .property("provider.azureOpenAi.authentication.type", "apiKey")
             .property("provider.azureOpenAi.authentication.apiKey", "dummy")
             .property("provider.azureOpenAi.model.deploymentName", "test-model");
+  }
+
+  @Override
+  public String elementTemplatePath(String defaultElementTemplatePath) {
+    return AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
+  }
+
+  @Override
+  public Map<String, String> elementTemplateBaselineProperties(
+      Map<String, String> defaultProperties) {
+    return AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PROPERTIES;
   }
 
   @Override

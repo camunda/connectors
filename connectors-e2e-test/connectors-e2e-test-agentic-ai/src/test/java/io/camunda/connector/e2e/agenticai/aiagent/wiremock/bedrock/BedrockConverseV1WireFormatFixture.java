@@ -18,21 +18,16 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
  * Plugs AWS Bedrock's Converse API wire format into the provider-agnostic {@code
- * ProviderWireFormatFixture} SPI, driving the connector through the v1 element template. With the
- * v1&rarr;v2 provider-config rewrite switch on (the default), the v1 template's {@code
- * provider.bedrock.*} config is rewritten onto the native v2 Bedrock provider at the connector
- * boundary, so - just like {@link BedrockConverseV2WireFormatFixture} - the connector always calls
- * the AWS SDK's async {@code converseStream} operation, which expects a real AWS EventStream binary
- * body at {@code POST /model/test-model/converse-stream}. {@link #stubConversation(TurnStub...)} is
- * therefore overridden here to stub that via {@link
- * StreamingBedrockConverseEventStreamChatModelStubs}, exactly like the v2 fixture, rather than
- * inheriting {@link AbstractBedrockConverseWireFormatFixture}'s implicit buffered-JSON default
- * (which matched the pre-rewrite v1 client).
+ * ProviderWireFormatFixture} SPI, driving the connector through the v1 element template: the v1
+ * template's {@code provider.bedrock.*} config is rewritten onto the native v2 Bedrock provider at
+ * the connector boundary, proving a v1 provider config is routed onto the native provider's wire.
  */
 public final class BedrockConverseV1WireFormatFixture
     extends AbstractBedrockConverseWireFormatFixture {
@@ -59,5 +54,16 @@ public final class BedrockConverseV1WireFormatFixture
             .property("provider.bedrock.authentication.accessKey", "dummy")
             .property("provider.bedrock.authentication.secretKey", "dummy")
             .property("provider.bedrock.model.model", "test-model");
+  }
+
+  @Override
+  public String elementTemplatePath(String defaultElementTemplatePath) {
+    return AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
+  }
+
+  @Override
+  public Map<String, String> elementTemplateBaselineProperties(
+      Map<String, String> defaultProperties) {
+    return AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PROPERTIES;
   }
 }
