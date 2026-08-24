@@ -18,18 +18,20 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
  * Plugs the OpenAI Chat Completions stubs ({@link OpenAiCompletionsChatModelStubs} / {@link
  * OpenAiCompletionsRecordedConversation}, which also back the rest of the agentic-ai e2e suite)
  * into the provider-agnostic {@link ProviderWireFormatFixture} SPI. Drives the v1 {@code
- * openaiCompatible} element template, so with the v1→v2 rewrite switch on (the default) this row
- * proves a v1 provider config is routed onto the native provider's wire.
+ * openaiCompatible} element template, proving a v1 provider config is routed onto the native
+ * provider's wire.
  */
 public final class OpenAiCompletionsV1WireFormatFixture implements ProviderWireFormatFixture {
 
@@ -52,6 +54,17 @@ public final class OpenAiCompletionsV1WireFormatFixture implements ProviderWireF
             .property("provider.openaiCompatible.endpoint", wireMock.getHttpBaseUrl() + "/v1")
             .property("provider.openaiCompatible.authentication.apiKey", "dummy")
             .property("provider.openaiCompatible.model.model", "test-model");
+  }
+
+  @Override
+  public String elementTemplatePath(String defaultElementTemplatePath) {
+    return AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
+  }
+
+  @Override
+  public Map<String, String> elementTemplateBaselineProperties(
+      Map<String, String> defaultProperties) {
+    return AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PROPERTIES;
   }
 
   @Override

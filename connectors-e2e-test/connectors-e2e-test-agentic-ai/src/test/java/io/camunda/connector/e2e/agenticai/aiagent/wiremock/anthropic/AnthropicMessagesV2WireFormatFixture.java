@@ -25,18 +25,9 @@ import java.util.function.Function;
 
 /**
  * Plugs Anthropic's Messages API wire format into the provider-agnostic {@link
- * ProviderWireFormatFixture} SPI, driving the connector through the native v2 Anthropic provider —
- * see {@code AnthropicChatModel}. The wire format (both request and the streamed SSE response) is
- * identical to the v1 fixture, which also always calls the vendor SDK's streaming endpoint ({@code
- * client.messages().createStreaming(params)}); see {@link
- * AbstractAnthropicMessagesWireFormatFixture} for the shared plumbing ({@code
- * stubConversation(...)}, {@code recordedRequests()}, {@code assertResponseFormatConfigured(...)}).
- *
- * <p>Drives the v2 element template ({@link
- * AgentTestFixtures#AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH}), whose provider/backend
- * property ids share the v1 template's {@code provider.*} prefix but nest a differently-shaped
- * schema underneath it — see {@link #elementTemplatePath(String)} and {@link
- * #elementTemplateBaselineProperties(Map)}.
+ * ProviderWireFormatFixture} SPI, driving the connector through the native v2 Anthropic provider
+ * directly — see {@code AnthropicChatModel}. Drives the v2 element template ({@link
+ * AgentTestFixtures#AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH}).
  *
  * <p>The configured endpoint is the bare WireMock host root (no trailing {@code /v1/}), unlike the
  * v1 fixture: the native Anthropic SDK ({@code com.anthropic:anthropic-java}) always appends both
