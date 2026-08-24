@@ -41,6 +41,10 @@ if (!connectorType) {
 // optional: agentType for the zeebe:agentDefinition marker; unset means no marker is added
 def agentType = binding.hasVariable('agentType') ? agentType : null
 
+// optional: mark the derived template as deprecated; unset means no "deprecated" block is added
+def deprecationMessage = binding.hasVariable('deprecationMessage') ? deprecationMessage : null
+def deprecationDocumentationRef = binding.hasVariable('deprecationDocumentationRef') ? deprecationDocumentationRef : null
+
 def file = new File((String) sourceFile)
 if (!file.exists()) {
     System.err.println("Error: Source file ${sourceFile} not found")
@@ -51,6 +55,24 @@ def mapper = new ObjectMapper()
 mapper.enable(SerializationFeature.INDENT_OUTPUT)
 
 def json = mapper.readValue(file, Map.class)
+
+// never carry over a "deprecated" block from the source template; this script decides
+// deprecation for the derived template on its own, via the properties above
+if (deprecationMessage) {
+    def orderedJson = new LinkedHashMap()
+    json.each { key, value ->
+        orderedJson.put(key, value)
+        if (key == "keywords") {
+            orderedJson.put("deprecated", [
+                message         : (String) deprecationMessage,
+                documentationRef: (String) deprecationDocumentationRef
+            ])
+        }
+    }
+    json = orderedJson
+} else {
+    json.remove("deprecated")
+}
 
 def isHybrid = json.id?.toString()?.contains("-hybrid")
 

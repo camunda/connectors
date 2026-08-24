@@ -664,6 +664,14 @@
                   <name>agentType</name>
                   <value>aiAgentSubProcess</value>
                 </property>
+                <property>
+                  <name>deprecationMessage</name>
+                  <value>For Camunda 8.10+, please replace with the v2 version of the AI Agent element template. See documentation for details.</value>
+                </property>
+                <property>
+                  <name>deprecationDocumentationRef</name>
+                  <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -702,6 +710,14 @@
                   <name>agentType</name>
                   <value>aiAgentSubProcess</value>
                 </property>
+                <property>
+                  <name>deprecationMessage</name>
+                  <value>For Camunda 8.10+, please replace with the v2 version of the AI Agent element template. See documentation for details.</value>
+                </property>
+                <property>
+                  <name>deprecationDocumentationRef</name>
+                  <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -727,6 +743,14 @@
                 <property>
                   <name>agentType</name>
                   <value>aiAgentTask</value>
+                </property>
+                <property>
+                  <name>deprecationMessage</name>
+                  <value>For Camunda 8.10+, please replace with the v2 version of the AI Agent element template. See documentation for details.</value>
+                </property>
+                <property>
+                  <name>deprecationDocumentationRef</name>
+                  <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
                 </property>
               </properties>
             </configuration>
@@ -757,6 +781,14 @@
                 <property>
                   <name>agentType</name>
                   <value>aiAgentTask</value>
+                </property>
+                <property>
+                  <name>deprecationMessage</name>
+                  <value>For Camunda 8.10+, please replace with the v2 version of the AI Agent element template. See documentation for details.</value>
+                </property>
+                <property>
+                  <name>deprecationDocumentationRef</name>
+                  <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
                 </property>
               </properties>
             </configuration>
