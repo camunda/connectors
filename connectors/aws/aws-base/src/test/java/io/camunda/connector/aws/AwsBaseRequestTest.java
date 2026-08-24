@@ -105,7 +105,8 @@ class AwsBaseRequestTest {
             "us-east-1"));
     request.setAuthentication(new AwsAuthentication.AwsStaticCredentialsAuthentication(null, null));
 
-    assertThatCode(() -> new DefaultValidationProvider().validate(request)).doesNotThrowAnyException();
+    assertThatCode(() -> new DefaultValidationProvider().validate(request))
+        .doesNotThrowAnyException();
   }
 
   /** Without a bound credential, the same incomplete inline authentication must still fail. */
@@ -115,7 +116,6 @@ class AwsBaseRequestTest {
     request.setConfiguration(new AwsBaseConfiguration("eu-central-1", null));
     request.setAuthentication(new AwsAuthentication.AwsStaticCredentialsAuthentication(null, null));
 
-    assertThrows(
-        Exception.class, () -> new DefaultValidationProvider().validate(request));
+    assertThrows(Exception.class, () -> new DefaultValidationProvider().validate(request));
   }
 }
