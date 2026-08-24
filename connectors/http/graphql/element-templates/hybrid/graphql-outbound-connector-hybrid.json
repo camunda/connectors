@@ -611,7 +611,7 @@
   }, {
     "id" : "urlOverride",
     "label" : "URL",
-    "description" : "Optional. Overrides the URL of the selected reusable credential; leave empty to use the credential's own URL.",
+    "description" : "Required for an OAuth credential, which carries no URL of its own; not allowed once a Basic/Bearer/API-key credential is bound.",
     "optional" : true,
     "constraints" : {
       "notEmpty" : false,
@@ -1162,7 +1162,7 @@
     }, {
       "id" : "url",
       "label" : "URL",
-      "description" : "The endpoint this credential is bound to. A connector using it may override this URL.",
+      "description" : "The endpoint this credential is bound to.",
       "constraints" : {
         "notEmpty" : true,
         "pattern" : {

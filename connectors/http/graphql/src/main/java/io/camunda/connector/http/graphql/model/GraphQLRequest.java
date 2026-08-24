@@ -92,8 +92,8 @@ public record GraphQLRequest(
                             value = HttpCommonRequest.URL_PATTERN,
                             message = HttpCommonRequest.URL_PATTERN_MESSAGE)),
             description =
-                "Optional. Overrides the URL of the selected reusable credential; leave empty to"
-                    + " use the credential's own URL.")
+                "Required for an OAuth credential, which carries no URL of its own; not allowed"
+                    + " once a Basic/Bearer/API-key credential is bound.")
         String urlOverride) {
 
   /** Convenience constructor for the shape without the template-only URL-override component. */
@@ -106,10 +106,12 @@ public record GraphQLRequest(
 
   /**
    * The URL is the one place where the inline value wins over the credential rather than the other
-   * way round: the credential carries the endpoint it is bound to, and the model may override it
-   * per task (the {@code urlOverride} template property). An OAuth credential carries no URL at
-   * all, so the inline value is the only source there. Named as a getter so bean validation treats
-   * it as a property - a record-style {@code effectiveUrl()} accessor would not be validated.
+   * way round - but only for OAuth credentials, which carry no URL of their own (see {@link
+   * RestAuthenticationConfiguration#carriesUrl}) and so have nothing to conflict with. A
+   * Basic/Bearer/API-key credential rejects any inline URL outright (see {@link
+   * #isUrlOverrideAbsentForHostBoundCredential()}), so if one is bound and reaches this point, the
+   * inline value is necessarily blank. Named as a getter so bean validation treats it as a property
+   * - a record-style {@code effectiveUrl()} accessor would not be validated.
    */
   @JsonIgnore
   public String getEffectiveUrl() {
@@ -134,19 +136,22 @@ public record GraphQLRequest(
   }
 
   /**
-   * A bound Basic/Bearer/API-key credential's secret must never be sent to an origin other than the
-   * one it was created for - see {@link RestAuthenticationConfiguration#sharesOriginWith}. The
-   * inline override may still change the path/query on that same origin (the intended use: one
-   * credential, several call sites on the same host).
+   * A bound Basic/Bearer/API-key credential's secret must never risk being sent to a different host
+   * than the one it was created for, so no inline URL is allowed at all once one is bound - simpler
+   * and safer than comparing origins. OAuth credentials carry no URL (see {@link
+   * RestAuthenticationConfiguration#carriesUrl}), so the inline value is the only source there and
+   * is unaffected by this check.
    */
-  @AssertTrue(message = "Inline URL override must stay on the bound credential's origin")
+  @AssertTrue(message = "Inline URL override is not allowed once a credential provides the URL")
   @JsonIgnore
-  public boolean isUrlOverrideSameOriginAsCredential() {
-    if (authenticationConfiguration == null) {
+  public boolean isUrlOverrideAbsentForHostBoundCredential() {
+    if (authenticationConfiguration == null
+        || !RestAuthenticationConfiguration.carriesUrl(
+            authenticationConfiguration.authentication())) {
       return true;
     }
     String inlineUrl = graphql != null ? graphql.url() : null;
-    return authenticationConfiguration.sharesOriginWith(inlineUrl);
+    return inlineUrl == null || inlineUrl.isBlank();
   }
 
   /**

@@ -207,7 +207,6 @@ public class HttpJsonFunctionTest extends BaseTest {
         """
         {
           "method": "get",
-          "url": "http://localhost:8086/http-endpoint",
           "authenticationConfiguration": {
             "authentication": { "type": "bearer", "token": "valid-token" },
             "url": "http://localhost:8086/http-endpoint"
@@ -225,11 +224,12 @@ public class HttpJsonFunctionTest extends BaseTest {
   }
 
   /**
-   * The inline override may change the path/query while staying on the credential's own host - the
-   * documented "one credential, several call sites" use case.
+   * A Basic/Bearer/API-key credential's secret must never risk being sent to a different host than
+   * the one it was created for, so no inline URL is allowed at all once one is bound - not even one
+   * that happens to match the credential's own host.
    */
   @Test
-  void sameOriginInlineOverrideIsAccepted() {
+  void inlineUrlIsRejectedOnceAHostBoundCredentialIsBound() {
     String variables =
         """
         {
@@ -247,35 +247,8 @@ public class HttpJsonFunctionTest extends BaseTest {
             .variables(variables)
             .build();
 
-    assertThat(context.bindVariables(HttpJsonRequest.class).getUrl())
-        .isEqualTo("http://localhost:8086/other-path");
-  }
-
-  /**
-   * A Basic/Bearer/API-key credential's secret must never be sent to a different origin than the
-   * one it was created for, even via an inline override the task author controls.
-   */
-  @Test
-  void crossOriginInlineOverrideIsRejected() {
-    String variables =
-        """
-        {
-          "method": "get",
-          "url": "http://evil.example.com/steal",
-          "authenticationConfiguration": {
-            "authentication": { "type": "bearer", "token": "valid-token" },
-            "url": "http://localhost:8086/http-endpoint"
-          }
-        }
-        """;
-    var context =
-        OutboundConnectorContextBuilder.create()
-            .includeAllValidators()
-            .variables(variables)
-            .build();
-
     assertThatThrownBy(() -> context.bindVariables(HttpJsonRequest.class))
-        .hasMessageContaining("must stay on the bound credential's origin");
+        .hasMessageContaining("not allowed once a credential provides the URL");
   }
 
   /**

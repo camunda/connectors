@@ -51,7 +51,6 @@ class PollingRuntimePropertiesCredentialValidationTest {
     String properties =
         """
         {
-          "url": "http://localhost:8085/http-endpoint",
           "method": "GET",
           "authenticationConfiguration": {
             "authentication": { "type": "bearer", "token": "valid-token" },
@@ -169,17 +168,12 @@ class PollingRuntimePropertiesCredentialValidationTest {
   }
 
   /**
-   * An OAuth credential legitimately carries no URL (see {@code
-   * RestAuthenticationConfiguration#carriesUrl}), so binding one with neither an inline URL nor an
-   * override must fail with a message pointing at both possible sources, not a bare "URL is
-   * required" that gives no hint where to provide it.
-   */
-  /**
-   * The inline override may change the path/query while staying on the credential's own host - the
-   * documented "one credential, several call sites" use case.
+   * A Basic/Bearer/API-key credential's secret must never risk being sent to a different host than
+   * the one it was created for, so no inline URL is allowed at all once one is bound - not even one
+   * that happens to match the credential's own host.
    */
   @Test
-  void sameOriginInlineOverrideIsAccepted() {
+  void inlineUrlIsRejectedOnceAHostBoundCredentialIsBound() {
     String properties =
         """
         {
@@ -197,37 +191,16 @@ class PollingRuntimePropertiesCredentialValidationTest {
             .validation(new TestValidationProvider())
             .build();
 
-    assertThat(context.bindProperties(PollingRuntimeProperties.class).getUrl())
-        .isEqualTo("http://localhost:8085/other-path");
+    assertThatThrownBy(() -> context.bindProperties(PollingRuntimeProperties.class))
+        .hasMessageContaining("not allowed once a credential provides the URL");
   }
 
   /**
-   * A Basic/Bearer/API-key credential's secret must never be sent to a different origin than the
-   * one it was created for, even via an inline override the task author controls.
+   * An OAuth credential legitimately carries no URL (see {@code
+   * RestAuthenticationConfiguration#carriesUrl}), so binding one with neither an inline URL nor an
+   * override must fail with a message pointing at both possible sources, not a bare "URL is
+   * required" that gives no hint where to provide it.
    */
-  @Test
-  void crossOriginInlineOverrideIsRejected() {
-    String properties =
-        """
-        {
-          "url": "http://evil.example.com/steal",
-          "method": "GET",
-          "authenticationConfiguration": {
-            "authentication": { "type": "bearer", "token": "valid-token" },
-            "url": "http://localhost:8085/http-endpoint"
-          }
-        }
-        """;
-    var context =
-        InboundConnectorContextBuilder.create()
-            .properties(properties)
-            .validation(new TestValidationProvider())
-            .build();
-
-    assertThatThrownBy(() -> context.bindProperties(PollingRuntimeProperties.class))
-        .hasMessageContaining("must stay on the bound credential's origin");
-  }
-
   @Test
   void oauthCredentialWithNoUrlAndNoInlineUrlIsRejected() {
     String properties =
