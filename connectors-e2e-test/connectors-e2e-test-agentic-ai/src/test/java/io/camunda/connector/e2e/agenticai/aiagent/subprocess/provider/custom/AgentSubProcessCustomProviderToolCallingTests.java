@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.task.v2;
+package io.camunda.connector.e2e.agenticai.aiagent.subprocess.provider.custom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,7 +28,8 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.TestChatModelFactoryConfiguration;
 import io.camunda.connector.e2e.agenticai.aiagent.TestChatModelFactoryConfiguration.TestChatModelFactory;
-import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
+import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
+import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.Map;
 import java.util.function.Function;
@@ -37,16 +38,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
-/**
- * Exercises the AI Agent Task against the v2 element template with the {@code custom} provider
- * configuration, backed by {@link TestChatModelFactory} instead of a real (or WireMock-stubbed) LLM
- * endpoint. Proves that a user-supplied {@code ChatModelFactory} is resolved and driven through a
- * full multi-round tool-calling loop, and that {@code CustomProviderConfiguration#parameters()} is
- * threaded through to it unchanged.
- */
 @SlowTest
 @Import(TestChatModelFactoryConfiguration.class)
-class AgentTaskCustomProviderToolCallingTests extends BaseAgentTaskV2Test {
+class AgentSubProcessCustomProviderToolCallingTests extends BaseAgentSubProcessTest {
 
   @Autowired private TestChatModelFactory chatModelFactory;
 
@@ -65,7 +59,7 @@ class AgentTaskCustomProviderToolCallingTests extends BaseAgentTaskV2Test {
         .property("provider.type", "custom")
         .property("provider.providerType", TestChatModelFactory.PROVIDER_TYPE)
         .property("provider.model", TestChatModelFactory.MODEL_ID)
-        .property("provider.parameters", "={\"type\": \"task\"}");
+        .property("provider.parameters", "={\"type\": \"sub-process\"}");
   }
 
   @Test
@@ -94,7 +88,7 @@ class AgentTaskCustomProviderToolCallingTests extends BaseAgentTaskV2Test {
             CustomProviderConfiguration.class,
             customProviderConfiguration ->
                 assertThat(customProviderConfiguration.parameters())
-                    .containsExactly(Map.entry("type", "task")));
+                    .containsExactly(Map.entry("type", "sub-process")));
 
     final var recordedRequests = chatModelFactory.recordedRequests();
     assertThat(recordedRequests).hasSize(2);
@@ -123,9 +117,8 @@ class AgentTaskCustomProviderToolCallingTests extends BaseAgentTaskV2Test {
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasNoToolCalls()
                 .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42), 1))
                 .hasResponseMessageText(finalResponseText)
                 .hasResponseText(finalResponseText));

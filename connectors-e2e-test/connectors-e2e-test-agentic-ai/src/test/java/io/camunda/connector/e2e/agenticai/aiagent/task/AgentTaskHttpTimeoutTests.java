@@ -87,10 +87,10 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
   /** Connector-level model call timeout: short enough to keep negative cases under ~10s. */
   private static final Duration MODEL_TIMEOUT = Duration.ofSeconds(3);
 
-  /** This test configures its own providers — skip the base's openaiCompatible redirect. */
+  /** This test configures its own providers — skip the base's default provider redirect. */
   @Override
-  protected ElementTemplate withOpenAiCompatibleProvider(ElementTemplate template) {
-    return template;
+  protected Function<ElementTemplate, ElementTemplate> providerConfigurer() {
+    return Function.identity();
   }
 
   @BeforeEach
@@ -212,8 +212,10 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
         template
             .property("retryCount", "1")
             .property("provider.type", "anthropic")
-            .property("provider.anthropic.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-            .property("provider.anthropic.authentication.apiKey", "dummy")
+            .property("provider.anthropic.backend.type", "custom")
+            .property("provider.anthropic.backend.custom.endpoint", wireMock.getHttpBaseUrl())
+            .property("provider.anthropic.backend.custom.authentication.type", "apiKey")
+            .property("provider.anthropic.backend.custom.authentication.apiKey", "dummy")
             .property("provider.anthropic.model.model", "claude-3-5-sonnet")
             .property("provider.anthropic.timeouts.timeout", MODEL_TIMEOUT.toString());
   }
@@ -222,11 +224,13 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
     return template ->
         template
             .property("retryCount", "1")
-            .property("provider.type", "openaiCompatible")
-            .property("provider.openaiCompatible.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-            .property("provider.openaiCompatible.authentication.apiKey", "dummy")
-            .property("provider.openaiCompatible.model.model", "test-model")
-            .property("provider.openaiCompatible.timeouts.timeout", MODEL_TIMEOUT.toString());
+            .property("provider.type", "openai")
+            .property("provider.openai.api.type", "completions")
+            .property("provider.openai.backend.type", "openai-api")
+            .property("provider.openai.backend.openai.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+            .property("provider.openai.backend.openai.apiKey", "dummy")
+            .property("provider.openai.model.model", "test-model")
+            .property("provider.openai.timeouts.timeout", MODEL_TIMEOUT.toString());
   }
 
   private Function<ElementTemplate, ElementTemplate> bedrockProvider() {
@@ -246,12 +250,11 @@ public class AgentTaskHttpTimeoutTests extends BaseAgentTaskTest {
   // ---------------------------------------------------------------------------
   // WireMock stubs: return provider-shaped streaming responses with the requested delay.
   //
-  // Both Anthropic and Bedrock now execute over their native v2 providers (the v1->v2
-  // provider-config rewrite switch is on by default), which always call the vendor SDK's
-  // streaming endpoint - Anthropic's SSE `POST /v1/messages`, Bedrock's AWS EventStream
-  // `POST /model/test-model/converse-stream` - rather than a plain buffered-JSON POST. The
-  // response delay is applied at the WireMock level via `withFixedDelay`, so it still models a
-  // slow/hanging transport regardless of the response framing.
+  // Anthropic and Bedrock both execute over their native v2 providers, which always call the
+  // vendor SDK's streaming endpoint - Anthropic's SSE `POST /v1/messages`, Bedrock's AWS
+  // EventStream `POST /model/test-model/converse-stream` - rather than a plain buffered-JSON
+  // POST. The response delay is applied at the WireMock level via `withFixedDelay`, so it still
+  // models a slow/hanging transport regardless of the response framing.
   // ---------------------------------------------------------------------------
 
   private void stubAnthropic(Duration delay) {

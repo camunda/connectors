@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PROPERTIES;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_JSON;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_JSON_ASSERTIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_TEXT;
@@ -109,11 +111,13 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
   /**
    * Delegates to the fixture, so a fixture driving a different template (e.g. the v2 native
    * provider template, which uses different property ids) can redirect the suite without touching
-   * {@link BaseAgentSubProcessTest}. Defaults to the inherited (v1) path for every other fixture.
+   * {@link BaseAgentSubProcessTest}. This suite's baseline is the v1 path (not the generic base's
+   * inherited default, which is v2) for every other fixture — this is the one place the v1→v2
+   * provider-config rewrite is still exercised end to end.
    */
   @Override
   protected String elementTemplatePath() {
-    return fixture.elementTemplatePath(super.elementTemplatePath());
+    return fixture.elementTemplatePath(AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH);
   }
 
   /**
@@ -122,7 +126,8 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
    */
   @Override
   protected Map<String, String> elementTemplateProperties() {
-    return fixture.elementTemplateBaselineProperties(super.elementTemplateProperties());
+    return fixture.elementTemplateBaselineProperties(
+        AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PROPERTIES);
   }
 
   /**

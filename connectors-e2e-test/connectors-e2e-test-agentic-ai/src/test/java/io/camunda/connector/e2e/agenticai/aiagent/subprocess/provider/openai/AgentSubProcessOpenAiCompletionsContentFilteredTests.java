@@ -14,30 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.subprocess.v2;
+package io.camunda.connector.e2e.agenticai.aiagent.subprocess.provider.openai;
 
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.StreamingBedrockConverseEventStreamChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.StreamingBedrockConverseEventStreamChatModelStubs.ContentFilteredTurnStub;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ContentFilteredTurnStub;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * Native-Bedrock-only e2e coverage proving that a {@code content_filtered} stop reason propagates
- * unswallowed through the real {@code BedrockConverseChatModel} wrapper and {@code
- * BaseAgentRequestHandler} all the way to a BPMN error carrying the {@code rejection} error
- * variables.
+ * OpenAI-Chat-Completions-only e2e coverage proving that a {@code content_filter} finish reason -
+ * OpenAI's content filtering rejection - propagates unswallowed through the real {@code
+ * OpenAiChatModel} wrapper and {@code BaseAgentRequestHandler} all the way to a BPMN error carrying
+ * the {@code rejection} error variables.
  */
-class AgentSubProcessBedrockConverseContentFilteredTests extends BaseBedrockConverseSubProcessTest {
+class AgentSubProcessOpenAiCompletionsContentFilteredTests
+    extends BaseOpenAiCompletionsSubProcessTest {
 
   @Test
   void contentFilteredRejectionFailsJobAndSurfacesRejectionErrorVariables() throws Exception {
     final var userPrompt = "Write a haiku about the sea";
     final var partialText = "I can help you with a haiku, but";
 
-    StreamingBedrockConverseEventStreamChatModelStubs.stubContentFilteredConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         new ContentFilteredTurnStub(partialText, 10, 20));
 
     final var errorExpression =
@@ -67,7 +68,7 @@ class AgentSubProcessBedrockConverseContentFilteredTests extends BaseBedrockConv
         .hasCompletedElementsInOrder("ErrorBoundary_ContentFiltered", "EndEvent_ContentFiltered")
         .hasVariable(
             "rejectionErrorCode", AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED)
-        .hasVariable("rejectionStopReason", "content_filtered")
+        .hasVariable("rejectionStopReason", "content_filter")
         .hasVariable("rejectionText", partialText);
   }
 }

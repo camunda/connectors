@@ -16,12 +16,9 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic;
 
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
@@ -57,24 +54,7 @@ abstract class AbstractAnthropicMessagesWireFormatFixture implements ProviderWir
 
   @Override
   public void stubConversation(TurnStub... turns) {
-    AnthropicMessagesChatModelStubs.stubConversation(
-        Arrays.stream(turns)
-            .map(AbstractAnthropicMessagesWireFormatFixture::toStubTurn)
-            .toArray(Turn[]::new));
-  }
-
-  private static Turn toStubTurn(TurnStub turn) {
-    return switch (turn) {
-      case TurnStub.Text text -> Turn.text(text.text(), text.inputTokens(), text.outputTokens());
-      case TurnStub.ToolCalls toolCalls ->
-          Turn.toolCalls(
-              toolCalls.text(),
-              toolCalls.inputTokens(),
-              toolCalls.outputTokens(),
-              toolCalls.toolCalls().stream()
-                  .map(tc -> ToolCall.of(tc.id(), tc.name(), tc.argumentsJson()))
-                  .toArray(ToolCall[]::new));
-    };
+    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(turns);
   }
 
   @Override

@@ -20,7 +20,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesChatModelStubs.MESSAGES_PATH;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
@@ -68,9 +67,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>Each event is built using the vendor SDK's own {@code RawMessageStreamEvent} member types
  * (rather than hand-rolled JSON) and serialized with the SDK's own {@link
  * ObjectMappers#jsonMapper()}, so the bytes are guaranteed to parse exactly as real Anthropic would
- * send them. The per-turn data (assistant text, tool_use calls, input/output token usage, stop
- * reason) mirrors {@link AnthropicMessagesChatModelStubs.Turn} exactly, just framed as SSE instead
- * of one buffered JSON object:
+ * send them. The per-turn data is assistant text, tool_use calls, and input/output token usage,
+ * framed as SSE:
  *
  * <ol>
  *   <li>{@code message_start} - a {@link Message} shell (id/type/role=assistant/model, empty
@@ -87,6 +85,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * </ol>
  */
 public final class StreamingAnthropicMessagesSseChatModelStubs {
+
+  public static final String MESSAGES_PATH = "/v1/messages";
 
   private static final String SCENARIO_NAME = "llm-conversation-sse";
   private static final JsonMapper JSON_MAPPER = ObjectMappers.jsonMapper();

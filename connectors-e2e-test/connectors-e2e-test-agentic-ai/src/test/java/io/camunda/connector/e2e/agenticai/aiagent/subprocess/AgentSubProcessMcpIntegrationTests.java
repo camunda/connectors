@@ -296,7 +296,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
                 toolExecutionRequest -> {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
                   assertThat(toolExecutionRequest.arguments())
-                      .containsExactly(entry("paramA1", "someValue"), entry("paramA2", 3));
+                      .containsOnly(entry("paramA1", "someValue"), entry("paramA2", 3));
                   assertThat(toolExecutionRequest.meta())
                       .containsExactly(entry("exampleMetaKey", "exampleMetaValue"));
                 }));
@@ -317,7 +317,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
                 toolExecutionRequest -> {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
                   assertThat(toolExecutionRequest.arguments())
-                      .containsExactly(entry("paramA1", "someValue2"), entry("paramA2", 6));
+                      .containsOnly(entry("paramA1", "someValue2"), entry("paramA2", 6));
                 }));
   }
 
