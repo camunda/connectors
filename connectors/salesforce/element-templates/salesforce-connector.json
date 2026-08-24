@@ -683,6 +683,22 @@
       "type" : "String"
     },
     {
+      "id" : "resultVariableSoql",
+      "label" : "Result variable",
+      "group" : "output",
+      "binding" : {
+        "key" : "resultVariable",
+        "type" : "zeebe:taskHeader"
+      },
+      "condition" : {
+        "property" : "salesforceOperationType",
+        "equals" : "soqlQuery",
+        "type" : "simple"
+      },
+      "tooltip" : "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
+      "type" : "String"
+    },
+    {
       "id" : "resultExpression",
       "label" : "Result expression",
       "feel" : "required",
@@ -872,29 +888,29 @@
     {
       "id" : "sObject_get",
       "properties" : {
-        "salesforceOperationType" : "sObject",
-        "interactionType" : "get"
+        "interactionType" : "get",
+        "salesforceOperationType" : "sObject"
       }
     },
     {
       "id" : "sObject_post",
       "properties" : {
-        "salesforceOperationType" : "sObject",
-        "interactionType" : "post"
+        "interactionType" : "post",
+        "salesforceOperationType" : "sObject"
       }
     },
     {
       "id" : "sObject_patch",
       "properties" : {
-        "salesforceOperationType" : "sObject",
-        "interactionType" : "patch"
+        "interactionType" : "patch",
+        "salesforceOperationType" : "sObject"
       }
     },
     {
       "id" : "sObject_delete",
       "properties" : {
-        "salesforceOperationType" : "sObject",
-        "interactionType" : "delete"
+        "interactionType" : "delete",
+        "salesforceOperationType" : "sObject"
       }
     },
     {

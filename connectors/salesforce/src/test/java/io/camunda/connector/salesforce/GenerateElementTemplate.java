@@ -673,6 +673,16 @@ public class GenerateElementTemplate {
                         new OneOf("interactionType", List.of("get", "post")),
                         new Equals("salesforceOperationType", "sObject")))
                 .build(),
+            StringProperty.builder()
+                .id("resultVariableSoql")
+                .label("Result variable")
+                .tooltip(
+                    "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>")
+                .group("output")
+                .feel(FeelMode.disabled)
+                .binding(new ZeebeTaskHeader("resultVariable"))
+                .condition(new Equals("salesforceOperationType", "soqlQuery"))
+                .build(),
             TextProperty.builder()
                 .id("resultExpression")
                 .label("Result expression")
