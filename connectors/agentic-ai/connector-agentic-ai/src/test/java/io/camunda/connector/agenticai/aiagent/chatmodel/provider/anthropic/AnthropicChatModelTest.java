@@ -119,6 +119,42 @@ class AnthropicChatModelTest {
   }
 
   @Test
+  void wrapsSdkFailureUsingCauseMessageWhenWrapperMessageIsGeneric() {
+    when(requestConverter.toMessageCreateParams(any(), any(), any()))
+        .thenReturn(mock(MessageCreateParams.class));
+    // mirrors AnthropicIoException("Request failed", cause): the SDK's own IO-wrapper exception
+    // carries a fixed, uninformative message, and the actual failure detail lives on the cause.
+    when(client.messages())
+        .thenThrow(
+            new RuntimeException(
+                "Request failed", new java.net.SocketTimeoutException("Read timed out")));
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Read timed out")
+        .extracting(e -> ((ConnectorException) e).getErrorCode())
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  }
+
+  @Test
+  void retainsOuterMessageWhenItIsNotTheGenericSdkWrapperMessage() {
+    // the cause-first rule is scoped to the SDK's known generic wrapper message only - any other
+    // outer message is useful operation context and must be kept, not replaced by the cause.
+    when(requestConverter.toMessageCreateParams(any(), any(), any()))
+        .thenReturn(mock(MessageCreateParams.class));
+    when(client.messages())
+        .thenThrow(
+            new IllegalStateException(
+                "Failed to build request", new RuntimeException("Unexpected token 'foo'")));
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Failed to build request")
+        .extracting(e -> ((ConnectorException) e).getErrorCode())
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  }
+
+  @Test
   void wrapsAnthropicServiceExceptionWithStatusCodeAndErrorType() {
     when(requestConverter.toMessageCreateParams(any(), any(), any()))
         .thenReturn(mock(MessageCreateParams.class));

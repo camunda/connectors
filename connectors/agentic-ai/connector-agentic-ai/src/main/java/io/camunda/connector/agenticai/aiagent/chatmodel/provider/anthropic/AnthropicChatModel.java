@@ -44,6 +44,9 @@ public class AnthropicChatModel implements ChatModel {
   private static final Logger LOG = LoggerFactory.getLogger(AnthropicChatModel.class);
   private static final ObjectMapper MAPPER = ObjectMappers.jsonMapper();
 
+  // AnthropicIoException's fixed, uninformative message for every wrapped java.io.IOException.
+  private static final String GENERIC_SDK_FAILURE_MESSAGE = "Request failed";
+
   private final AnthropicChatModelConfiguration configuration;
   private final AnthropicClient client;
   private final AnthropicMessageRequestConverter requestConverter;
@@ -113,13 +116,33 @@ public class AnthropicChatModel implements ChatModel {
       // propagate as-is rather than flattening it into a generic FAILED_MODEL_CALL below.
       throw e;
     } catch (Exception e) {
-      final String detail =
-          Optional.ofNullable(e.getMessage())
-              .filter(m -> !m.isBlank())
-              .orElseGet(() -> e.getClass().getSimpleName());
-      throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), e);
+      throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
     }
+  }
+
+  /**
+   * Builds the failure message from the exception's own message, unless that message is blank or
+   * the SDK's known generic wrapper message, in which case the cause's message is preferred; falls
+   * back to the exception's class name if neither is available.
+   */
+  private static String failureMessage(Exception e) {
+    final String outerMessage = e.getMessage();
+    final boolean preferCause =
+        outerMessage == null
+            || outerMessage.isBlank()
+            || GENERIC_SDK_FAILURE_MESSAGE.equals(outerMessage);
+    return "Model call failed: %s"
+        .formatted(
+            preferCause
+                ? Optional.ofNullable(e.getCause())
+                    .map(Throwable::getMessage)
+                    .filter(m -> !m.isBlank())
+                    .orElseGet(
+                        () ->
+                            outerMessage != null && !outerMessage.isBlank()
+                                ? outerMessage
+                                : e.getClass().getSimpleName())
+                : outerMessage);
   }
 
   @Override

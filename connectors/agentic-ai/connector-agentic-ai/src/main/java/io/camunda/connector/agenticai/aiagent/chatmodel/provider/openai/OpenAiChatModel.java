@@ -42,6 +42,9 @@ public class OpenAiChatModel implements ChatModel {
   // instead of the generic failed-model-call error code.
   private static final String OPENAI_ERROR_CODE_CONTEXT_LENGTH_EXCEEDED = "context_length_exceeded";
 
+  // OpenAIIoException's fixed, uninformative message for every wrapped java.io.IOException.
+  private static final String GENERIC_SDK_FAILURE_MESSAGE = "Request failed";
+
   private final OpenAIClient client;
   private final OpenAiChatModelConfiguration configuration;
   private final OpenAiApiFamilyStrategy strategy;
@@ -78,12 +81,29 @@ public class OpenAiChatModel implements ChatModel {
     }
   }
 
+  /**
+   * Builds the failure detail from the exception's own message, unless that message is blank or the
+   * SDK's known generic wrapper message, in which case the cause's message is preferred; falls back
+   * to the exception's class name if neither is available.
+   */
   private static String failureMessage(Exception e) {
+    final String outerMessage = e.getMessage();
+    final boolean preferCause =
+        outerMessage == null
+            || outerMessage.isBlank()
+            || GENERIC_SDK_FAILURE_MESSAGE.equals(outerMessage);
     return "Model call failed: %s"
         .formatted(
-            Optional.ofNullable(e.getMessage())
-                .filter(m -> !m.isBlank())
-                .orElseGet(() -> e.getClass().getSimpleName()));
+            preferCause
+                ? Optional.ofNullable(e.getCause())
+                    .map(Throwable::getMessage)
+                    .filter(m -> !m.isBlank())
+                    .orElseGet(
+                        () ->
+                            outerMessage != null && !outerMessage.isBlank()
+                                ? outerMessage
+                                : e.getClass().getSimpleName())
+                : outerMessage);
   }
 
   @Override

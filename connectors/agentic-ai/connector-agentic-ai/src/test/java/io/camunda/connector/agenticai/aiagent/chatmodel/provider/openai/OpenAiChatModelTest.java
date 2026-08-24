@@ -115,6 +115,40 @@ class OpenAiChatModelTest {
   }
 
   @Test
+  void wrapsSdkFailureUsingCauseMessageWhenWrapperMessageIsGeneric() {
+    // mirrors OpenAIIoException("Request failed", cause): the SDK's own IO-wrapper exception
+    // carries a fixed, uninformative message, and the actual failure detail lives on the cause.
+    when(strategy.call(eq(client), eq(configuration), eq(request)))
+        .thenThrow(
+            new RuntimeException(
+                "Request failed", new java.net.SocketTimeoutException("Read timed out")));
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Read timed out")
+        .extracting(e -> ((ConnectorException) e).getErrorCode())
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  }
+
+  @Test
+  void retainsOuterMessageWhenItIsNotTheGenericSdkWrapperMessage() {
+    // mirrors OpenAiToolCallArguments.parse: IllegalStateException("Failed to parse tool call
+    // arguments", cause) - the outer message is useful operation context, not a generic SDK
+    // wrapper, so it must be kept rather than replaced by the low-level cause message.
+    when(strategy.call(eq(client), eq(configuration), eq(request)))
+        .thenThrow(
+            new IllegalStateException(
+                "Failed to parse tool call arguments",
+                new RuntimeException("Unexpected token 'foo'")));
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Failed to parse tool call arguments")
+        .extracting(e -> ((ConnectorException) e).getErrorCode())
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  }
+
+  @Test
   void mapsContextLengthExceededBadRequestToContextWindowExceeded() {
     final var error =
         ErrorObject.builder()
