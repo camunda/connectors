@@ -203,7 +203,8 @@ class SecretReferenceDeserializerTest {
     // function evaluator for the callback to run against the recording double at all.
     var withCallback =
         new ObjectMapper()
-            .registerModule(new JacksonModuleFeelFunction(true, evaluator, evaluator))
+            .registerModule(
+                new JacksonModuleFeelFunction(true, evaluator, evaluator, new ObjectMapper()))
             .registerModule(new JacksonModuleSecretReference());
 
     WithLocator bound =

@@ -39,6 +39,7 @@ import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTo
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
+import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
@@ -221,7 +222,12 @@ public class ConnectorsAutoConfiguration {
     return new CamundaObjectMapper(
         ConnectorsObjectMapperSupplier.getCopy()
             .registerModules(
-                new JacksonModuleFeelFunction(), new JacksonModuleDocumentSerializer()));
+                new JacksonModuleFeelFunction(
+                    true,
+                    FeelExpressionEvaluatorBuilder.local().build(),
+                    null,
+                    FeelEvaluationResultMapper.create()),
+                new JacksonModuleDocumentSerializer()));
   }
 
   @Bean(defaultCandidate = false)
@@ -249,10 +255,15 @@ public class ConnectorsAutoConfiguration {
 
     // Function/Supplier always use local evaluation to avoid serializing runtime objects
     // (e.g., Documents) to the cluster. The injected evaluator is used for @FEEL-annotated fields.
+    // Values returned by an evaluation are bound by a mapper of their own, which registers neither
+    // of the two modules below, so no string in a result is treated as expression source.
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
         new JacksonModuleFeelFunction(
-            true, feelExpressionEvaluator, FeelExpressionEvaluatorBuilder.local().build()),
+            true,
+            feelExpressionEvaluator,
+            FeelExpressionEvaluatorBuilder.local().build(),
+            FeelEvaluationResultMapper.create(documentFactoriesByPhysicalTenantId)),
         new JacksonModuleSecretReference(),
         new JacksonModuleDocumentSerializer());
   }
@@ -285,7 +296,9 @@ public class ConnectorsAutoConfiguration {
         jacksonModuleDocumentDeserializer,
         new JacksonModuleFeelFunction(
             false,
-            FeelExpressionEvaluatorBuilder.local().build()), // FEEL annotation processing disabled
+            FeelExpressionEvaluatorBuilder.local().build(), // FEEL annotation processing disabled
+            null,
+            FeelEvaluationResultMapper.create(documentFactory)),
         new JacksonModuleDocumentSerializer());
   }
 

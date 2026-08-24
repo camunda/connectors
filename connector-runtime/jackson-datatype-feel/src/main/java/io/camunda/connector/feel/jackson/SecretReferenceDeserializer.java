@@ -48,33 +48,28 @@ import java.util.regex.Pattern;
  * properties into expression fields, so an expression naming process data belongs on a
  * {@code @FEEL} property as before.
  *
- * <p>It never acts on a value that came out of a FEEL evaluation. Converting an evaluation result
- * runs it back through the deserializers, and a result may carry anything the process holds — a
- * webhook payload, a correlated variable. Treating such a string as expression source would send it
- * to the cluster as a new expression, which would then legitimately reference the secret and
- * resolve it, laundering data the cluster reported no reference for into a resolved value.
+ * <p>It never sees a value produced by a FEEL evaluation: results are bound by {@link
+ * AbstractFeelDeserializer#resultMapper}, which does not register this deserializer. A result may
+ * carry any process data, and evaluating such a string would send it to the cluster as a new
+ * expression, which would then legitimately reference the secret and resolve it.
  */
 public class SecretReferenceDeserializer extends StringDeserializer {
 
   private static final String REFERENCE_PREFIX = "camunda.secrets.";
 
   /**
-   * Decides, from the text alone, whether a value is worth sending to the cluster as an expression.
+   * Matches {@code camunda.secrets.<name>} where the prefix starts a path of its own: no character
+   * that could continue an identifier precedes it, and a name follows, bare or backtick-escaped.
    *
-   * <p>A bare {@code contains} is not that decision: {@code =mycamunda.secrets.TOKEN} and {@code
-   * =foo.camunda.secrets.TOKEN} name something else entirely — the cluster reports no secret for
-   * either — yet they carry the prefix as a substring, so a plain string property holding one was
-   * sent for evaluation. That turns plain properties into expression fields, which is exactly what
-   * this deserializer is meant not to do. The prefix has to start a path of its own, so nothing
-   * that could continue an identifier may precede it, and a name has to follow — bare, or
-   * backtick-escaped as a dashed name must be.
+   * <p>A plain substring test would also match {@code =mycamunda.secrets.TOKEN} and {@code
+   * =foo.camunda.secrets.TOKEN}, which reference no secret, and send a plain string property to the
+   * cluster for evaluation.
    *
-   * <p>Strict about what precedes and permissive about what follows, deliberately. This is a
-   * pre-filter, not the decision: the engine detects references on the parsed FEEL AST, so it, not
-   * this pattern, says what a reference is. Filtering out something the engine would have reported
-   * loses a secret silently; letting through something it will not report costs one round trip and
-   * a value that stays literal. Text this pattern cannot see a reference in — a form carrying
-   * whitespace around the dots, say — binds as it stands, which fails closed and visibly.
+   * <p>Strict about what precedes and permissive about what follows: this is a pre-filter, and the
+   * engine, which detects references on the parsed FEEL AST, decides what a reference is. Excluding
+   * something the engine would report loses a secret silently; including something it will not
+   * report costs one round trip and leaves the value literal. Text this pattern does not match — a
+   * form with whitespace around the dots, for instance — binds as it stands.
    */
   private static final Pattern REFERENCE_TOKEN =
       Pattern.compile(
@@ -83,7 +78,7 @@ public class SecretReferenceDeserializer extends StringDeserializer {
   @Override
   public String deserialize(JsonParser parser, DeserializationContext context) throws IOException {
     String value = super.deserialize(parser, context);
-    if (!namesSecretReference(value) || AbstractFeelDeserializer.isEvaluationResult(context)) {
+    if (!namesSecretReference(value)) {
       return value;
     }
     FeelExpressionEvaluator evaluator = AbstractFeelDeserializer.resolveEvaluator(context, null);
