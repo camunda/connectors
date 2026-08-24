@@ -664,7 +664,10 @@ public class GenerateElementTemplate {
                 .group("output")
                 .feel(FeelMode.disabled)
                 .binding(new ZeebeTaskHeader("resultVariable"))
-                .condition(new OneOf("interactionType", List.of("get", "post")))
+                .condition(
+                    new AllMatch(
+                        new OneOf("interactionType", List.of("get", "post")),
+                        new Equals("salesforceOperationType", "sObject")))
                 .build(),
             TextProperty.builder()
                 .id("resultExpression")
@@ -674,7 +677,10 @@ public class GenerateElementTemplate {
                 .group("output")
                 .feel(FeelMode.required)
                 .binding(new ZeebeTaskHeader("resultExpression"))
-                .condition(new OneOf("interactionType", List.of("get", "post")))
+                .condition(
+                    new AllMatch(
+                        new OneOf("interactionType", List.of("get", "post")),
+                        new Equals("salesforceOperationType", "sObject")))
                 .build(),
             StringProperty.builder()
                 .id("resultVariableApexRest")
