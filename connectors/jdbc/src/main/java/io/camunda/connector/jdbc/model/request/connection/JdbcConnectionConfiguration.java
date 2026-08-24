@@ -22,8 +22,9 @@ import jakarta.validation.constraints.NotNull;
  * <p>{@code database} is mandatory here (unlike the connector's own inline field, which is only
  * required when no credential is bound) - the credential is a complete, standalone connection
  * description, and the driver/URL scheme it resolves to differs per database. Version bumped to 2
- * for this new required field (see CONFIGURATION_VERSIONING.md's floor-semantics compatibility): a
- * v1 instance predating this field would otherwise be silently invalid.
+ * for this new required field (see {@code version()}'s floor-semantics in ADR-0004, {@code
+ * docs/adr/ADR-0004-configuration-templates-in-element-templates.md}): a v1 instance predating this
+ * field would otherwise be silently invalid.
  */
 @Configuration(
     id = "io.camunda.connectors:jdbc-connection:1",
