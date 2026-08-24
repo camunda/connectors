@@ -579,7 +579,7 @@ public class GenerateElementTemplate {
                 .constraints(PropertyConstraints.builder().notEmpty(true).build())
                 .build(),
             StringProperty.builder()
-                .id("path")
+                .id("apexRestPath")
                 .label("Path")
                 .placeholder("MyApexClass/action")
                 .tooltip(
