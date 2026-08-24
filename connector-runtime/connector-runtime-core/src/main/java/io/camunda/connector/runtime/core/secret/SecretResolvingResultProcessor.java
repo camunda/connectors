@@ -51,8 +51,18 @@ public class SecretResolvingResultProcessor implements EvaluationResultProcessor
 
   private static final Logger LOG = LoggerFactory.getLogger(SecretResolvingResultProcessor.class);
 
+  /**
+   * Static because a processor is not: one is built per inbound connector context and per process
+   * instance context, so a per-instance latch would warn once per process instance rather than
+   * once, which is the opposite of what warning once is for.
+   *
+   * <p>Being static, it is also consumed once per process, test process included. A test that
+   * asserts the warning has to call {@link #resetUnreportedReferenceWarning()} first, or it passes
+   * alone and fails in a suite where something else reached the branch before it.
+   */
+  private static final AtomicBoolean UNREPORTED_REFERENCE_WARNED = new AtomicBoolean();
+
   private final SecretReferenceResolver resolver;
-  private final AtomicBoolean unreportedReferenceWarned = new AtomicBoolean();
 
   public SecretResolvingResultProcessor(SecretReferenceResolver resolver) {
     this.resolver = resolver;
@@ -130,13 +140,18 @@ public class SecretResolvingResultProcessor implements EvaluationResultProcessor
   }
 
   /**
-   * Warns once, not per occurrence, and without repeating the text. Two very different things reach
-   * here: text that was never a reference, which is the defence working, and a cluster too old to
-   * report referenced secrets, where every reference goes unresolved. Neither is worth a line per
-   * evaluation, and the text can be attacker-supplied.
+   * Warns once for the whole runtime, not per occurrence and not per context, and without repeating
+   * the text. Two very different things reach here: text that was never a reference, which is the
+   * defence working, and a cluster too old to report referenced secrets, where every reference goes
+   * unresolved. Neither is worth a line per evaluation, and the text can be attacker-supplied.
    */
-  private void warnOnceAboutUnreportedReference() {
-    if (unreportedReferenceWarned.compareAndSet(false, true)) {
+  /** Re-arms the process-wide latch. For tests that assert on the warning; see the field. */
+  static void resetUnreportedReferenceWarning() {
+    UNREPORTED_REFERENCE_WARNED.set(false);
+  }
+
+  private static void warnOnceAboutUnreportedReference() {
+    if (UNREPORTED_REFERENCE_WARNED.compareAndSet(false, true)) {
       LOG.warn(
           "An expression result contained camunda.secrets.<name> text that the cluster did not"
               + " report as a referenced secret, so it was left unresolved. That is expected when"

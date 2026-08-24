@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class SecretResolvingResultProcessorTest {
@@ -34,6 +35,13 @@ class SecretResolvingResultProcessorTest {
   private final RecordingResolver resolver = new RecordingResolver();
   private final SecretResolvingResultProcessor processor =
       new SecretResolvingResultProcessor(resolver);
+
+  @BeforeEach
+  void rearmTheWarning() {
+    // The latch is process-wide, so without this a test asserting the warning would pass alone and
+    // fail in a suite where anything else reached the branch first.
+    SecretResolvingResultProcessor.resetUnreportedReferenceWarning();
+  }
 
   @Test
   void substitutesAReportedReferenceInAStringResult() {
