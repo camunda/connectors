@@ -80,23 +80,24 @@ Not every fallback field needs an "override the credential's value" companion fi
 on whether the property is **independent of the rest of the credential's data**, or **structurally
 tied to it**:
 
-- **REST auth's `url`** gets an inline `urlOverride` field, shown once a credential is bound. A
-  Basic/Bearer/API-key credential's stored URL is just "the endpoint it happened to be created
-  against" — the same secret is often valid against other paths on that same host — so letting a
-  task override the URL lets one credential serve many call sites. The override is restricted to
-  the credential's own origin (scheme + host + port), enforced by
-  `RestAuthenticationConfiguration#sharesOriginWith`: only the path/query may differ, never the
-  host — a static secret must never be sent to a different origin than the one it was created for.
-  OAuth credentials skip the URL field entirely for the mirror-image reason: a token endpoint is
-  inherently reused across many resource URLs, so there's nothing to override.
+- **REST auth's `url`** gets an inline `urlOverride` field, shown once a credential is bound — but
+  it's only ever *usable* for an OAuth credential, which carries no URL of its own (a token
+  endpoint is inherently reused across many resource URLs, so the inline value is simply the only
+  source). For a Basic/Bearer/API-key credential, whose URL is a static secret's home, any inline
+  value at all is rejected outright (`RestAuthenticationConfiguration#carriesUrl` gates the
+  `@AssertTrue` in each consuming connector): a static secret must never risk being sent to a
+  different host than the one it was created for, and there's no way to let a task vary the path on
+  the *same* host without also opening the door to a different one, so the simpler and safer rule
+  is no override at all.
 - **JDBC's `database` (engine)** gets *no* override once a credential is bound — it's simply
   hidden. The database engine dictates the JDBC driver and URL scheme paired with that specific
   host/port/credentials; overriding just the engine while keeping the credential's connection
   details would produce a connection string for the wrong driver against the wrong server.
 
-Rule of thumb: if the same credential is plausibly reusable across different values of this field,
-add the override. If varying this field independently of the rest of the credential would produce
-a broken combination, don't.
+Rule of thumb: only add an override for a field the credential doesn't actually constrain — one
+where varying it can't produce a broken or unsafe combination. A field that's part of what makes
+the credential's secret valid (a host-bound URL, a database engine tied to a specific connection)
+should be hidden and immutable once a credential is bound, not offered as an override.
 
 ## Validation pitfalls
 
@@ -194,11 +195,15 @@ For every property that can come from a credential or an inline field, cover:
 
 - [ ] Credential bound, no inline value — the credential's value is used.
 - [ ] No credential, inline value present — the inline value is used.
-- [ ] Both present — the credential wins, *except* for a chooser + inline **override** field (see
-      "Chooser-only field vs. chooser + inline override" above, e.g. REST auth's `urlOverride`),
-      where the inline value intentionally takes precedence once set (verify via the actual
-      accessor, not just via `ConnectionHelper`-style resolution helpers if the connector has
-      both).
+- [ ] Both present — the credential wins (verify via the actual accessor, not just via
+      `ConnectionHelper`-style resolution helpers if the connector has both), *unless* the field is
+      a genuine chooser + inline **override** (see "Chooser-only field vs. chooser + inline
+      override" above) whose credential value can legitimately be `null` (e.g. an OAuth credential
+      has no URL of its own) — there the inline value is the only source and "both present" can't
+      occur.
+- [ ] For a field the credential *does* constrain (a host-bound URL, a database engine), both
+      present must be **rejected**, not silently resolved either way — e.g. REST auth's
+      `urlOverride` against a Basic/Bearer/API-key credential.
 - [ ] Neither present, and the credential doesn't (or can't) supply the value — binding fails
       with a message naming both possible sources.
 - [ ] The full JSON → Jackson-binding path, not just direct object construction — a
