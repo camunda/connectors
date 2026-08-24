@@ -12,7 +12,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Di
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
@@ -370,10 +369,8 @@ public abstract class BaseAgentRequestHandler<
             .context(agentContext)
             .toolCalls(discoveryToolCalls.stream().map(ToolCallProcessVariable::from).toList())
             .build();
-    agentInstanceClient.update(
-        executionContext,
-        AgentInstanceKey.from(agentContext.metadata()),
-        AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY));
+    agentInstanceClient.applyToolDiscoveryStart(
+        executionContext, AgentInstanceKey.from(agentContext.metadata()));
     return buildConnectorResponse(executionContext, null, response, null);
   }
 

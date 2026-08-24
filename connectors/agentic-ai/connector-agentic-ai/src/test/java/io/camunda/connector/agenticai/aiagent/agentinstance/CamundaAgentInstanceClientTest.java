@@ -25,7 +25,6 @@ import io.camunda.client.api.ProblemDetail;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryItem;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
-import io.camunda.client.api.command.AgentTool;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep2;
@@ -346,112 +345,44 @@ class CamundaAgentInstanceClientTest {
   }
 
   @Nested
-  class Update {
+  class ToolDiscoveryStart {
 
     @Test
-    void shouldSilentlySkipWhenAgentInstanceKeyIsNull() {
+    void shouldSkipWhenAgentInstanceKeyIsNull() {
       // when
-      client.update(
-          TestAgentExecutionContext.withLimits(),
-          null,
-          AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+      client.applyToolDiscoveryStart(TestAgentExecutionContext.withLimits(), null);
 
       // then
       verifyNoInteractions(camundaClient);
     }
 
     @Test
-    void shouldBuildCommandWithStatusOnly() {
+    void shouldSendOneBatchedUpdateWithToolDiscoveryStatusAndEmptyHistory() {
       givenUpdateCommand();
 
       // when
-      client.update(
-          TestAgentExecutionContext.withLimits(),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+      client.applyToolDiscoveryStart(
+          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY));
 
       // then
-      verify(updateCommandStep2).status(AgentInstanceUpdateStatus.THINKING);
-      verify(updateCommandStep2, never()).modelCalls(anyInt());
-      verify(updateCommandStep2, never()).inputTokens(anyLong());
-      verify(updateCommandStep2, never()).outputTokens(anyLong());
-      verify(updateCommandStep2, never()).toolCalls(anyInt());
+      verify(updateCommandStep2).status(AgentInstanceUpdateStatus.TOOL_DISCOVERY);
+      verify(updateCommandStep2).jobKey(JOB_KEY);
+      verify(updateCommandStep2, never()).jobLease(any());
+      verify(updateCommandStep2).history(List.of());
       verify(updateCommandStep2).execute();
     }
 
     @Test
-    void shouldBuildCommandWithStatusAndDeltaSkippingZeroFields() {
+    void shouldForwardLeaseTokenWhenActivationIsLeased() {
       givenUpdateCommand();
 
-      // given
-      final var agentInstanceKey = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
-      final var delta = new AgentMetrics(1, new TokenUsage(10, 20), 0);
-      final var request =
-          AgentInstanceUpdateRequest.builder()
-              .status(AgentInstanceUpdateStatus.IDLE)
-              .delta(delta)
-              .build();
-
       // when
-      client.update(TestAgentExecutionContext.withLimits(), agentInstanceKey, request);
-
-      // then: status + non-zero delta fields set; toolCalls skipped (0)
-      verify(updateCommandStep2).status(AgentInstanceUpdateStatus.IDLE);
-      verify(updateCommandStep2).modelCalls(1);
-      verify(updateCommandStep2).inputTokens(10L);
-      verify(updateCommandStep2).outputTokens(20L);
-      verify(updateCommandStep2, never()).toolCalls(0);
-      verify(updateCommandStep2).execute();
-    }
-
-    @Test
-    void shouldBuildCommandWithAllDeltaFields() {
-      givenUpdateCommand();
-
-      // given
-      final var agentInstanceKey = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
-      final var delta = new AgentMetrics(2, new TokenUsage(50, 100), 3);
-      final var request =
-          AgentInstanceUpdateRequest.builder()
-              .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-              .delta(delta)
-              .build();
-
-      // when
-      client.update(TestAgentExecutionContext.withLimits(), agentInstanceKey, request);
+      client.applyToolDiscoveryStart(
+          TestAgentExecutionContext.withLeaseToken("lease-token-abc"),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY));
 
       // then
-      verify(updateCommandStep2).status(AgentInstanceUpdateStatus.TOOL_CALLING);
-      verify(updateCommandStep2).modelCalls(2);
-      verify(updateCommandStep2).inputTokens(50L);
-      verify(updateCommandStep2).outputTokens(100L);
-      verify(updateCommandStep2).toolCalls(3);
-      verify(updateCommandStep2).execute();
-      assertThat(recordedSleeps).isEmpty();
-    }
-
-    @Test
-    void shouldThrowConnectorExceptionImmediatelyForHttp404PermanentError() {
-      // given: the update endpoint is x-eventually-consistent: false and Zeebe key-based
-      // partition routing guarantees the create is visible before the key is returned, so a 404
-      // means the agent instance genuinely doesn't exist rather than being not-yet-visible
-      givenUpdateCommand();
-      final var agentInstanceKey = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
-      when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
-
-      // when / then: 404 is permanent for update → fails immediately, no retries
-      assertThatThrownBy(
-              () ->
-                  client.update(
-                      TestAgentExecutionContext.withLimits(),
-                      agentInstanceKey,
-                      AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)))
-          .isInstanceOfSatisfying(
-              ConnectorException.class,
-              e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED));
-
-      assertThat(recordedSleeps).isEmpty();
-      verify(camundaClient, times(1)).newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY);
+      verify(updateCommandStep2).jobLease("lease-token-abc");
     }
 
     @Test
@@ -466,10 +397,8 @@ class CamundaAgentInstanceClientTest {
       // when / then
       assertThatThrownBy(
               () ->
-                  client.update(
-                      TestAgentExecutionContext.withLimits(),
-                      agentInstanceKey,
-                      AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)))
+                  client.applyToolDiscoveryStart(
+                      TestAgentExecutionContext.withLimits(), agentInstanceKey))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> {
@@ -486,131 +415,14 @@ class CamundaAgentInstanceClientTest {
               Duration.ofSeconds(8));
       verify(camundaClient, times(5)).newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY);
     }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    void shouldBuildCommandWithToolsForAdHocTools() {
-      givenUpdateCommand();
-
-      // given: ad-hoc tools where name == elementId
-      final var tools =
-          List.of(
-              ToolDefinition.builder()
-                  .name("getWeather")
-                  .description("Get the weather forecast")
-                  .inputSchema(Map.of("type", "object"))
-                  .build(),
-              ToolDefinition.builder()
-                  .name("calculateSum")
-                  .description("Calculate a sum")
-                  .inputSchema(Map.of("type", "object"))
-                  .build());
-
-      final var request =
-          AgentInstanceUpdateRequest.builder()
-              .status(AgentInstanceUpdateStatus.THINKING)
-              .tools(tools)
-              .build();
-
-      // when
-      client.update(
-          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
-
-      // then: tools are passed to the command
-      final ArgumentCaptor<List<AgentTool>> toolsCaptor = ArgumentCaptor.forClass(List.class);
-      verify(updateCommandStep2).tools(toolsCaptor.capture());
-      final var capturedTools = toolsCaptor.getValue();
-      assertThat(capturedTools).hasSize(2);
-      assertThat(capturedTools.get(0).getName()).isEqualTo("getWeather");
-      assertThat(capturedTools.get(0).getDescription()).isEqualTo("Get the weather forecast");
-      assertThat(capturedTools.get(0).getElementId()).isEqualTo("getWeather");
-      assertThat(capturedTools.get(1).getName()).isEqualTo("calculateSum");
-      assertThat(capturedTools.get(1).getDescription()).isEqualTo("Calculate a sum");
-      assertThat(capturedTools.get(1).getElementId()).isEqualTo("calculateSum");
-      verify(updateCommandStep2).execute();
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    void shouldResolveElementIdForGatewayToolsInUpdate() {
-      givenUpdateCommand();
-
-      // given: a gateway tool with a resolved elementId
-      when(gatewayToolHandlers.resolveElementId("MCP_McpTest___greet"))
-          .thenReturn(Optional.of("McpTest"));
-
-      final var tools =
-          List.of(
-              ToolDefinition.builder()
-                  .name("MCP_McpTest___greet")
-                  .description("Greet someone")
-                  .inputSchema(Map.of("type", "object"))
-                  .build());
-
-      final var request =
-          AgentInstanceUpdateRequest.builder()
-              .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-              .tools(tools)
-              .build();
-
-      // when
-      client.update(
-          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
-
-      // then: gateway tool elementId is resolved through the registry
-      final ArgumentCaptor<List<AgentTool>> toolsCaptor = ArgumentCaptor.forClass(List.class);
-      verify(updateCommandStep2).tools(toolsCaptor.capture());
-      final var capturedTools = toolsCaptor.getValue();
-      assertThat(capturedTools).hasSize(1);
-      assertThat(capturedTools.get(0).getName()).isEqualTo("MCP_McpTest___greet");
-      assertThat(capturedTools.get(0).getDescription()).isEqualTo("Greet someone");
-      assertThat(capturedTools.get(0).getElementId()).isEqualTo("McpTest");
-      verify(updateCommandStep2).execute();
-    }
-
-    @Test
-    void shouldNotCallToolsWhenToolsFieldIsNull() {
-      givenUpdateCommand();
-
-      // given: no tools in the request
-      final var request = AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING);
-
-      // when
-      client.update(
-          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
-
-      // then: tools() is never called on the command
-      verify(updateCommandStep2, never()).tools(any());
-      verify(updateCommandStep2).execute();
-    }
-
-    @Test
-    void shouldNotCallToolsWhenToolsFieldIsEmpty() {
-      givenUpdateCommand();
-
-      // given: empty tools list in the request
-      final var request =
-          AgentInstanceUpdateRequest.builder()
-              .status(AgentInstanceUpdateStatus.THINKING)
-              .tools(List.of())
-              .build();
-
-      // when
-      client.update(
-          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
-
-      // then: tools() is never called on the command
-      verify(updateCommandStep2, never()).tools(any());
-      verify(updateCommandStep2).execute();
-    }
   }
 
   /**
    * The batched turn methods ({@code applyTurnStart}/{@code applyTurnCompletion}/{@code
    * applyToolCallResults}) replace the request-level status/metrics/tools update plus the
    * single-item history create with one combined {@code update} command carrying a {@code
-   * history()} batch (plan decision 2). {@code jobKey}/{@code jobLease} live on the command, not
-   * per item, unlike the old single-item {@code newCreateAgentHistoryItemCommand}.
+   * history()} batch. {@code jobKey}/{@code jobLease} live on the command, not per item, unlike the
+   * old single-item {@code newCreateAgentHistoryItemCommand}.
    */
   @Nested
   class TurnStart {
@@ -1135,9 +947,9 @@ class CamundaAgentInstanceClientTest {
   }
 
   /**
-   * Plan decision 3: a batched update (any of the three turn methods) that gets rejected with 404
-   * means the job activation was superseded, and must fail without provoking any retry at any level
-   * -- unlike a batch-less {@link AgentInstanceClient#update}, which keeps today's behavior.
+   * A batched update (any of the three turn methods, or {@code applyToolDiscoveryStart}) that gets
+   * rejected with 404 means the job activation was superseded, and must fail without provoking any
+   * retry at any level.
    */
   @Nested
   class Supersession {
@@ -1245,22 +1057,22 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
-    void shouldKeepPlainUpdateFailedForBatchLessUpdateOn404() {
-      // update() never carries a batch, so it is never treated as superseded -- unchanged
+    void shouldThrowNonRetryableConnectorRetryExceptionOn404ForApplyToolDiscoveryStart() {
       givenUpdateCommand();
       when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
 
       assertThatThrownBy(
               () ->
-                  client.update(
+                  client.applyToolDiscoveryStart(
                       TestAgentExecutionContext.withLimits(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      AgentInstanceUpdateRequest.statusOnly(
-                          AgentInstanceUpdateStatus.TOOL_DISCOVERY)))
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY)))
           .isInstanceOfSatisfying(
-              ConnectorException.class,
-              e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED))
-          .isNotInstanceOf(ConnectorRetryException.class);
+              ConnectorRetryException.class,
+              e -> {
+                assertThat(e.getRetries()).isEqualTo(0);
+                assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_SUPERSEDED);
+              });
+      assertThat(recordedSleeps).isEmpty();
     }
 
     @Test
@@ -1304,28 +1116,6 @@ class CamundaAgentInstanceClientTest {
               e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED))
           .isNotInstanceOf(ConnectorRetryException.class);
       assertThat(recordedSleeps).hasSize(4);
-    }
-  }
-
-  @Nested
-  class JobLeaseFencing {
-
-    private static final String LEASE_TOKEN = "lease-token-abc";
-
-    @Test
-    void shouldNeverForwardLeaseTokenOnUpdate() {
-      givenUpdateCommand();
-
-      // when: an activation carrying a lease token issues an update
-      client.update(
-          TestAgentExecutionContext.withLeaseToken(LEASE_TOKEN),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
-
-      // then: the lease is not forwarded on the update command -- on that command it only fences a
-      // batched history() list, which this status/metrics update never sends
-      verify(updateCommandStep2, never()).jobLease(any());
-      verify(updateCommandStep2).execute();
     }
   }
 

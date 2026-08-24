@@ -109,15 +109,9 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         configuration.chatModel().model(),
         configuration.chatModel().provider());
 
-    // Establish the instance definition (model/provider/systemPrompt) and tools as a CONFIGURATION
-    // history item rather than direct command fields. model/provider are fixed at create time and
-    // not re-pushed by later CONFIGURATION items (ai-agent.md §23); systemPrompt/tools are shared
-    // with configurationHistoryItem, which turn updates reuse. The first turn's applyTurnStart
-    // still emits its own CONFIGURATION item once tools are resolved -- that redundancy is
-    // accepted (ADR 013).
-    // The engine rejects top-level limits (maxModelCalls etc.) alongside a history batch; the
-    // model-call limit lives on the connector side and is recorded on the CONFIGURATION item's
-    // fingerprint, consistent with how turn updates carry configuration.
+    // model/provider are set only here, at create time; later CONFIGURATION items omit them.
+    // maxModelCalls isn't set here either: the engine rejects top-level limits alongside a
+    // history batch.
     var command =
         camundaClient
             .newCreateAgentInstanceCommand()
@@ -184,70 +178,18 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   @Override
-  public void update(
-      AgentExecutionContext executionContext,
-      @Nullable AgentInstanceKey agentInstanceKey,
-      AgentInstanceUpdateRequest request) {
+  public void applyToolDiscoveryStart(
+      AgentExecutionContext executionContext, @Nullable AgentInstanceKey agentInstanceKey) {
     if (agentInstanceKey == null) {
-      LOGGER.debug("Skipping agent instance update: no agent instance key");
+      LOGGER.debug("Skipping agent instance tool discovery start: no agent instance key");
       return;
     }
-    CamundaApiRetry.execute(
-        () -> {
-          executeUpdate(executionContext, agentInstanceKey.value(), request);
-          return null;
-        },
-        AgentInstanceErrorClassifier.INSTANCE,
-        retriesProperties.maxRetries(),
-        retriesProperties.initialRetryDelay(),
-        this::buildUpdateException,
-        sleeper);
-  }
 
-  private void executeUpdate(
-      AgentExecutionContext executionContext,
-      long agentInstanceKey,
-      AgentInstanceUpdateRequest request) {
-    LOGGER.debug(
-        "Updating agent instance {}: status={}, delta={}, tools={}",
-        agentInstanceKey,
-        request.status(),
-        request.delta(),
-        request.tools() != null ? request.tools().size() : "null");
-    UpdateAgentInstanceCommandStep2 cmd =
-        camundaClient
-            .newUpdateAgentInstanceCommand(agentInstanceKey)
-            .elementInstanceKey(executionContext.jobContext().getElementInstanceKey());
-
-    if (request.status() != null) {
-      cmd = cmd.status(request.status());
-    }
-
-    final var delta = request.delta();
-    if (delta != null) {
-      if (delta.modelCalls() != 0) {
-        cmd = cmd.modelCalls(delta.modelCalls());
-      }
-      if (delta.tokenUsage().inputTokenCount() != 0) {
-        cmd = cmd.inputTokens(delta.tokenUsage().inputTokenCount());
-      }
-      if (delta.tokenUsage().outputTokenCount() != 0) {
-        cmd = cmd.outputTokens(delta.tokenUsage().outputTokenCount());
-      }
-      if (delta.toolCalls() != 0) {
-        cmd = cmd.toolCalls(delta.toolCalls());
-      }
-    }
-
-    final var tools = request.tools();
-    if (tools != null && !tools.isEmpty()) {
-      cmd = cmd.tools(toolMapper.mapTools(tools));
-    }
-
-    // No jobLease here: on the update command the lease only fences a batched history() list, which
-    // this status/metrics/tools update never sends (history goes through
-    // newCreateAgentHistoryItem).
-    cmd.execute();
+    applyBatchedUpdate(
+        executionContext,
+        agentInstanceKey.value(),
+        AgentInstanceUpdateStatus.TOOL_DISCOVERY,
+        List.of());
   }
 
   @Override
@@ -467,10 +409,10 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   /**
-   * A batched update (used by {@link #applyTurnStart}, {@link #applyTurnCompletion} and {@link
-   * #applyToolCallResults}) rejected with 404 means the job activation that issued it has been
-   * superseded by a later one, so it must fail without provoking any retry -- unlike a batch-less
-   * {@link #update}, which keeps the plain permanent-failure behavior.
+   * An update (used by {@link #applyTurnStart}, {@link #applyTurnCompletion}, {@link
+   * #applyToolCallResults} and {@link #applyToolDiscoveryStart}) rejected with 404 means the job
+   * activation that issued it has been superseded by a later one, so it must fail without provoking
+   * any retry.
    */
   private ConnectorException buildBatchedUpdateException(
       Throwable cause, int attempt, FailureReason reason) {
