@@ -415,7 +415,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   /**
-   * A batched update (used by {@link #applyTurnStart}, {@link #applyTurnCompletion}, {@link
+   * An update (used by {@link #applyTurnStart}, {@link #applyTurnCompletion}, {@link
    * #applyToolCallResults} and {@link #applyToolDiscoveryStart}) rejected with 404 means the job
    * activation that issued it has been superseded by a later one, so it must fail without provoking
    * any retry.

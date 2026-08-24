@@ -33,9 +33,8 @@ public interface AgentInstanceClient {
   AgentInstanceKey create(AgentExecutionContext agentExecutionContext);
 
   /**
-   * Moves the agent instance to {@code TOOL_DISCOVERY} in a batched, lease-fenced update. Silently
-   * skips when {@code agentInstanceKey} is {@code null} (e.g. agents that pre-date the
-   * agent-instance feature).
+   * Moves the agent instance to {@code TOOL_DISCOVERY}, fenced against a superseded job activation.
+   * Silently skips when {@code agentInstanceKey} is {@code null}.
    *
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
