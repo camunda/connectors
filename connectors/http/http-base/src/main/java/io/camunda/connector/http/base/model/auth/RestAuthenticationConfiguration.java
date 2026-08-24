@@ -15,9 +15,6 @@ import io.camunda.connector.hostvalidator.VerifiedHost;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Pattern;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Objects;
 
 /**
  * Configuration (credential) template for reusable REST authentication. Reuses the existing sealed
@@ -37,10 +34,11 @@ import java.util.Objects;
  * @param url the endpoint this credential is bound to, carried only for the authentication types
  *     that are host-bound by nature — a static secret: basic, bearer or API key. The OAuth variants
  *     already carry their own token endpoint and are routinely reused across resource URLs, so they
- *     omit it (see {@link #carriesUrl(Authentication)}). The consuming connector may override the
- *     path/query on the same origin (see {@code HttpJsonRequest#getUrl()}), but not the origin
- *     itself — see {@link #sharesOriginWith(String)}: a static secret must never be sent to a host
- *     other than the one it was created for.
+ *     omit it (see {@link #carriesUrl(Authentication)}) and are the only case where the consuming
+ *     connector's inline URL override is meaningful — see {@code HttpJsonRequest#getUrl()}. A
+ *     host-bound credential rejects any inline override outright (enforced by each consuming
+ *     connector): a static secret must never risk being sent to a different host than the one it
+ *     was created for.
  */
 @Configuration(
     id = "io.camunda.connectors:rest-authentication:1",
@@ -65,9 +63,7 @@ public record RestAuthenticationConfiguration(
                       ApiKeyAuthentication.TYPE
                     }),
             constraints = @PropertyConstraints(notEmpty = true),
-            description =
-                "The endpoint this credential is bound to. A connector using it may override this"
-                    + " URL.")
+            description = "The endpoint this credential is bound to.")
         String url) {
 
   /**
@@ -110,37 +106,5 @@ public record RestAuthenticationConfiguration(
   @JsonIgnore
   public boolean isAuthenticationSupported() {
     return authentication != null && !(authentication instanceof NoAuthentication);
-  }
-
-  /**
-   * True if {@code candidateUrl} shares this credential's origin (scheme + host + port), or if
-   * there's nothing to compare against ({@code candidateUrl} blank, or this credential carries no
-   * URL of its own - an OAuth credential, or one whose {@link #authentication()} doesn't {@link
-   * #carriesUrl(Authentication)}). Every REST/GraphQL/polling connector's {@code getUrl()}-style
-   * override method must call this before letting an inline value win over the credential: a
-   * Basic/Bearer/API-key credential's secret must never be sent to an origin other than the one it
-   * was created for, even though the path/query may legitimately differ per task (see the class
-   * javadoc). Fails closed - a URL either side can't parse counts as a mismatch, not a pass.
-   */
-  public boolean sharesOriginWith(String candidateUrl) {
-    if (url == null || candidateUrl == null || candidateUrl.isBlank()) {
-      return true;
-    }
-    try {
-      URI credentialUri = new URI(url);
-      URI candidateUri = new URI(candidateUrl);
-      return Objects.equals(credentialUri.getScheme(), candidateUri.getScheme())
-          && Objects.equals(credentialUri.getHost(), candidateUri.getHost())
-          && effectivePort(credentialUri) == effectivePort(candidateUri);
-    } catch (URISyntaxException e) {
-      return false;
-    }
-  }
-
-  private static int effectivePort(URI uri) {
-    if (uri.getPort() != -1) {
-      return uri.getPort();
-    }
-    return "https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80;
   }
 }

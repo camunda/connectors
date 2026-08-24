@@ -121,8 +121,7 @@ public class GraphQLFunctionTest extends BaseTest {
         {
           "graphql": {
             "query": "query { field }",
-            "method": "get",
-            "url": "http://localhost:8087/http-endpoint"
+            "method": "get"
           },
           "authenticationConfiguration": {
             "authentication": { "type": "bearer", "token": "valid-token" },
@@ -141,11 +140,12 @@ public class GraphQLFunctionTest extends BaseTest {
   }
 
   /**
-   * The inline override may change the path/query while staying on the credential's own host - the
-   * documented "one credential, several call sites" use case.
+   * A Basic/Bearer/API-key credential's secret must never risk being sent to a different host than
+   * the one it was created for, so no inline URL is allowed at all once one is bound - not even one
+   * that happens to match the credential's own host.
    */
   @Test
-  void sameOriginInlineOverrideIsAccepted() {
+  void inlineUrlIsRejectedOnceAHostBoundCredentialIsBound() {
     String variables =
         """
         {
@@ -166,38 +166,8 @@ public class GraphQLFunctionTest extends BaseTest {
             .includeAllValidators()
             .build();
 
-    assertThat(context.bindVariables(GraphQLRequest.class).getEffectiveUrl())
-        .isEqualTo("http://localhost:8087/other-path");
-  }
-
-  /**
-   * A Basic/Bearer/API-key credential's secret must never be sent to a different origin than the
-   * one it was created for, even via an inline override the task author controls.
-   */
-  @Test
-  void crossOriginInlineOverrideIsRejected() {
-    String variables =
-        """
-        {
-          "graphql": {
-            "query": "query { field }",
-            "method": "get",
-            "url": "http://evil.example.com/steal"
-          },
-          "authenticationConfiguration": {
-            "authentication": { "type": "bearer", "token": "valid-token" },
-            "url": "http://localhost:8087/graphql"
-          }
-        }
-        """;
-    var context =
-        OutboundConnectorContextBuilder.create()
-            .variables(variables)
-            .includeAllValidators()
-            .build();
-
     assertThatThrownBy(() -> context.bindVariables(GraphQLRequest.class))
-        .hasMessageContaining("must stay on the bound credential's origin");
+        .hasMessageContaining("not allowed once a credential provides the URL");
   }
 
   /**
