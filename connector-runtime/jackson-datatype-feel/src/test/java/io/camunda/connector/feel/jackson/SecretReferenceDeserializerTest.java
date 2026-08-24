@@ -129,6 +129,14 @@ class SecretReferenceDeserializerTest {
         "Bearer camunda.secrets.EMBEDDED_WITHOUT_EQUALS",
         "=1 + 1",
         "=camunda.vars.env.setting",
+        // Carry the prefix as a substring without naming the engine's camunda root, so the cluster
+        // reports no secret for any of them. A plain property holding one stays a plain property:
+        // it is not sent for evaluation at all.
+        "=mycamunda.secrets.TOKEN",
+        "=foo.camunda.secrets.TOKEN",
+        "=camunda.secrets2.TOKEN",
+        "=`camunda.secrets.TOKEN`",
+        "=camunda.secrets.",
         "",
         " "
       })
@@ -139,6 +147,26 @@ class SecretReferenceDeserializerTest {
 
     assertThat(bound.hmacSecret()).isEqualTo(value);
     assertThat(evaluator.evaluated).isEmpty();
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "=camunda.secrets.TOKEN",
+        "=\"Bearer \" + camunda.secrets.TOKEN",
+        // A dashed name is only ever authored backtick-escaped: FEEL reads a bare dash as minus.
+        "=camunda.secrets.`db-password`",
+        "=(camunda.secrets.TOKEN)",
+        "={header: camunda.secrets.TOKEN}",
+        "=[camunda.secrets.TOKEN]",
+        "=if flag then camunda.secrets.TOKEN else null"
+      })
+  void evaluatesAReferenceWhateverSurroundsIt(String value) throws Exception {
+    String json = mapper.writeValueAsString(new PlainString(value));
+
+    read(json, PlainString.class);
+
+    assertThat(evaluator.evaluated).containsExactly(value);
   }
 
   @Test

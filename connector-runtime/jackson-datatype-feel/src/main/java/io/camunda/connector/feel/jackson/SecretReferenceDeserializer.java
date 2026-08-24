@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StringDeserializer;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import java.io.IOException;
+import java.util.regex.Pattern;
 
 /**
  * Resolves {@code camunda.secrets.<name>} references in string values that FEEL would otherwise
@@ -57,6 +58,28 @@ public class SecretReferenceDeserializer extends StringDeserializer {
 
   private static final String REFERENCE_PREFIX = "camunda.secrets.";
 
+  /**
+   * Decides, from the text alone, whether a value is worth sending to the cluster as an expression.
+   *
+   * <p>A bare {@code contains} is not that decision: {@code =mycamunda.secrets.TOKEN} and {@code
+   * =foo.camunda.secrets.TOKEN} name something else entirely — the cluster reports no secret for
+   * either — yet they carry the prefix as a substring, so a plain string property holding one was
+   * sent for evaluation. That turns plain properties into expression fields, which is exactly what
+   * this deserializer is meant not to do. The prefix has to start a path of its own, so nothing
+   * that could continue an identifier may precede it, and a name has to follow — bare, or
+   * backtick-escaped as a dashed name must be.
+   *
+   * <p>Strict about what precedes and permissive about what follows, deliberately. This is a
+   * pre-filter, not the decision: the engine detects references on the parsed FEEL AST, so it, not
+   * this pattern, says what a reference is. Filtering out something the engine would have reported
+   * loses a secret silently; letting through something it will not report costs one round trip and
+   * a value that stays literal. Text this pattern cannot see a reference in — a form carrying
+   * whitespace around the dots, say — binds as it stands, which fails closed and visibly.
+   */
+  private static final Pattern REFERENCE_TOKEN =
+      Pattern.compile(
+          "(?<![\\p{L}\\p{N}_$.`])" + Pattern.quote(REFERENCE_PREFIX) + "[\\p{L}\\p{N}_$`-]");
+
   @Override
   public String deserialize(JsonParser parser, DeserializationContext context) throws IOException {
     String value = super.deserialize(parser, context);
@@ -74,6 +97,6 @@ public class SecretReferenceDeserializer extends StringDeserializer {
   }
 
   private static boolean namesSecretReference(String value) {
-    return value != null && value.startsWith("=") && value.contains(REFERENCE_PREFIX);
+    return value != null && value.startsWith("=") && REFERENCE_TOKEN.matcher(value).find();
   }
 }
