@@ -109,15 +109,9 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         configuration.chatModel().model(),
         configuration.chatModel().provider());
 
-    // Establish the instance definition (model/provider/systemPrompt) and tools as a CONFIGURATION
-    // history item rather than direct command fields. model/provider are fixed at create time and
-    // not re-pushed by later CONFIGURATION items (ai-agent.md §23); systemPrompt/tools are shared
-    // with configurationHistoryItem, which turn updates reuse. The first turn's applyTurnStart
-    // still emits its own CONFIGURATION item once tools are resolved -- that redundancy is
-    // accepted (ADR 013).
-    // The engine rejects top-level limits (maxModelCalls etc.) alongside a history batch; the
-    // model-call limit lives on the connector side and is recorded on the CONFIGURATION item's
-    // fingerprint, consistent with how turn updates carry configuration.
+    // model/provider are set only here, at create time; later CONFIGURATION items omit them.
+    // maxModelCalls isn't set here either: the engine rejects top-level limits alongside a
+    // history batch.
     var command =
         camundaClient
             .newCreateAgentInstanceCommand()
