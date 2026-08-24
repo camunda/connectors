@@ -82,8 +82,11 @@ tied to it**:
 
 - **REST auth's `url`** gets an inline `urlOverride` field, shown once a credential is bound. A
   Basic/Bearer/API-key credential's stored URL is just "the endpoint it happened to be created
-  against" — the same secret is often valid against other endpoints (different paths, different
-  environments) — so letting a task override the URL lets one credential serve many call sites.
+  against" — the same secret is often valid against other paths on that same host — so letting a
+  task override the URL lets one credential serve many call sites. The override is restricted to
+  the credential's own origin (scheme + host + port), enforced by
+  `RestAuthenticationConfiguration#sharesOriginWith`: only the path/query may differ, never the
+  host — a static secret must never be sent to a different origin than the one it was created for.
   OAuth credentials skip the URL field entirely for the mirror-image reason: a token endpoint is
   inherently reused across many resource URLs, so there's nothing to override.
 - **JDBC's `database` (engine)** gets *no* override once a credential is bound — it's simply
