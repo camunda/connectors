@@ -7,17 +7,19 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED;
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
-import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
-import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.CreateAgentHistoryItemFinalCommandStep;
+import io.camunda.client.api.command.AgentInstanceHistoryItem;
+import io.camunda.client.api.command.AgentInstanceLimits;
+import io.camunda.client.api.command.AgentInstanceUpdateStatus;
+import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -31,7 +33,9 @@ import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorRetryException;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,6 +49,9 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   private static final Logger LOGGER = LoggerFactory.getLogger(CamundaAgentInstanceClient.class);
 
   private static final int HTTP_STATUS_CONFLICT = 409;
+
+  // Loop iterations are 1-based; the create-time CONFIGURATION item belongs to the first turn.
+  private static final int FIRST_ITERATION = 1;
 
   /**
    * Matches the {@code detail} message of a {@code 409 ALREADY_EXISTS} response from {@code POST
@@ -94,7 +101,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   private AgentInstanceKey executeCreate(AgentExecutionContext agentExecutionContext) {
-    final long elementInstanceKey = agentExecutionContext.jobContext().getElementInstanceKey();
+    final var jobContext = agentExecutionContext.jobContext();
+    final long elementInstanceKey = jobContext.getElementInstanceKey();
     final var configuration = agentExecutionContext.configuration();
     LOGGER.debug(
         "Creating agent instance for element instance {}: model={}, provider={}",
@@ -102,17 +110,23 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         configuration.chatModel().model(),
         configuration.chatModel().provider());
 
+    // model/provider are set only here, at create time; later CONFIGURATION items omit them.
+    // maxModelCalls isn't set here either: the engine rejects top-level limits alongside a
+    // history batch.
     var command =
         camundaClient
             .newCreateAgentInstanceCommand()
             .elementInstanceKey(elementInstanceKey)
-            .model(configuration.chatModel().model())
-            .provider(configuration.chatModel().provider())
-            .systemPrompt(configuration.systemPrompt().prompt());
+            .jobKey(jobContext.getJobKey())
+            .history(
+                List.of(
+                    configurationHistoryItem(configuration, FIRST_ITERATION, OffsetDateTime.now())
+                        .model(configuration.chatModel().model())
+                        .provider(configuration.chatModel().provider())));
 
-    final var limits = configuration.limits();
-    if (limits != null && limits.maxModelCalls() != null) {
-      command = command.maxModelCalls(limits.maxModelCalls());
+    final String leaseToken = jobContext.getLeaseToken();
+    if (leaseToken != null && !leaseToken.isBlank()) {
+      command = command.jobLease(leaseToken);
     }
 
     try {
@@ -165,111 +179,110 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   @Override
-  public void update(
-      AgentExecutionContext executionContext,
-      @Nullable AgentInstanceKey agentInstanceKey,
-      AgentInstanceUpdateRequest request) {
+  public void applyToolDiscoveryStart(
+      AgentExecutionContext executionContext, @Nullable AgentInstanceKey agentInstanceKey) {
     if (agentInstanceKey == null) {
-      LOGGER.debug("Skipping agent instance update: no agent instance key");
+      LOGGER.debug("Skipping agent instance tool discovery start: no agent instance key");
       return;
     }
-    CamundaApiRetry.execute(
-        () -> {
-          executeUpdate(executionContext, agentInstanceKey.value(), request);
-          return null;
-        },
-        AgentInstanceErrorClassifier.INSTANCE,
-        retriesProperties.maxRetries(),
-        retriesProperties.initialRetryDelay(),
-        this::buildUpdateException,
-        sleeper);
-  }
 
-  private void executeUpdate(
-      AgentExecutionContext executionContext,
-      long agentInstanceKey,
-      AgentInstanceUpdateRequest request) {
-    LOGGER.debug(
-        "Updating agent instance {}: status={}, delta={}, tools={}",
-        agentInstanceKey,
-        request.status(),
-        request.delta(),
-        request.tools() != null ? request.tools().size() : "null");
-    UpdateAgentInstanceCommandStep2 cmd =
-        camundaClient
-            .newUpdateAgentInstanceCommand(agentInstanceKey)
-            .elementInstanceKey(executionContext.jobContext().getElementInstanceKey());
-
-    if (request.status() != null) {
-      cmd = cmd.status(request.status());
-    }
-
-    final var delta = request.delta();
-    if (delta != null) {
-      if (delta.modelCalls() != 0) {
-        cmd = cmd.modelCalls(delta.modelCalls());
-      }
-      if (delta.tokenUsage().inputTokenCount() != 0) {
-        cmd = cmd.inputTokens(delta.tokenUsage().inputTokenCount());
-      }
-      if (delta.tokenUsage().outputTokenCount() != 0) {
-        cmd = cmd.outputTokens(delta.tokenUsage().outputTokenCount());
-      }
-      if (delta.toolCalls() != 0) {
-        cmd = cmd.toolCalls(delta.toolCalls());
-      }
-    }
-
-    final var tools = request.tools();
-    if (tools != null && !tools.isEmpty()) {
-      cmd = cmd.tools(toolMapper.mapTools(tools));
-    }
-
-    // No jobLease here: on the update command the lease only fences a batched history() list, which
-    // this status/metrics/tools update never sends (history goes through
-    // newCreateAgentHistoryItem).
-    cmd.execute();
+    applyBatchedUpdate(
+        executionContext,
+        agentInstanceKey.value(),
+        AgentInstanceUpdateStatus.TOOL_DISCOVERY,
+        List.of());
   }
 
   @Override
-  public void createHistoryForInputMessages(
+  public void applyTurnStart(
       AgentExecutionContext executionContext,
+      AgentConfiguration configuration,
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp) {
     if (agentInstanceKey == null) {
-      LOGGER.debug("Skipping agent instance history items (before chat): no agent instance key");
+      LOGGER.debug("Skipping agent instance turn start: no agent instance key");
       return;
     }
+
+    final List<AgentInstanceHistoryItem> historyItems = new ArrayList<>();
+    if (configurationChanged(previousTurn, configuration)) {
+      historyItems.add(
+          configurationHistoryItem(configuration, turn.iterationKey(), turnIngestionTimestamp));
+    }
+    historyItems.addAll(
+        inputHistoryItems(turn, previousTurn, turnIngestionTimestamp, turn.iterationKey()));
+
+    applyBatchedUpdate(
+        executionContext,
+        agentInstanceKey.value(),
+        AgentInstanceUpdateStatus.THINKING,
+        historyItems);
+  }
+
+  private boolean configurationChanged(
+      Optional<AgentConversationTurn> previousTurn, AgentConfiguration configuration) {
+    return previousTurn
+        .map(AgentConversationTurn::configurationFingerprint)
+        .map(fingerprint -> !fingerprint.equals(configuration.fingerprint()))
+        .orElse(true);
+  }
+
+  private AgentInstanceHistoryItem configurationHistoryItem(
+      AgentConfiguration configuration, int iterationKey, OffsetDateTime producedAt) {
+    return new AgentInstanceHistoryItem()
+        .historyItemId(configuration.fingerprint())
+        .role(AgentInstanceHistoryRole.CONFIGURATION)
+        .content(List.of())
+        .loopIteration(iterationKey)
+        .producedAt(producedAt)
+        .systemPrompt(
+            List.of(AgentInstanceHistoryContent.text(configuration.systemPrompt().prompt())))
+        .tools(toolMapper.mapTools(configuration.toolDefinitions()))
+        .limits(AgentInstanceLimits.of(-1, configuration.maxModelCalls(), -1));
+  }
+
+  private List<AgentInstanceHistoryItem> inputHistoryItems(
+      AgentConversationTurn turn,
+      Optional<AgentConversationTurn> previousTurn,
+      OffsetDateTime turnIngestionTimestamp,
+      int iterationKey) {
     final Map<String, ToolCall> toolCallsById =
         previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
+    final List<AgentInstanceHistoryItem> items = new ArrayList<>();
     for (final Message message : turn.inputMessages()) {
       for (final var item :
           historyMapper.inputHistoryItems(message, toolCallsById, turnIngestionTimestamp)) {
-        createHistoryItem(
-            executionContext,
-            agentInstanceKey.value(),
-            item.role(),
-            item.content(),
-            turn.iterationKey(),
-            item.toolCalls(),
-            null,
-            item.producedAt());
+        items.add(toHistoryItem(item, iterationKey));
       }
     }
+    return items;
+  }
+
+  private AgentInstanceHistoryItem toHistoryItem(
+      AgentInstanceHistoryMapper.InputHistoryItem item, int iterationKey) {
+    return new AgentInstanceHistoryItem()
+        .historyItemId(item.historyItemId())
+        .role(item.role())
+        .content(item.content())
+        .toolCalls(item.toolCalls())
+        .producedAt(item.producedAt())
+        .loopIteration(iterationKey);
   }
 
   @Override
-  public void createHistoryForAssistantMessage(
+  public void applyTurnCompletion(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
-      OffsetDateTime producedAt) {
+      OffsetDateTime producedAt,
+      AgentInstanceUpdateStatus status) {
     if (agentInstanceKey == null) {
-      LOGGER.debug("Skipping agent instance history item (after chat): no agent instance key");
+      LOGGER.debug("Skipping agent instance turn completion: no agent instance key");
       return;
     }
+
     final AssistantMessage assistantMessage = turn.assistantMessage();
     if (assistantMessage == null) {
       throw new IllegalArgumentException(
@@ -281,109 +294,85 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       throw new IllegalArgumentException(
           "Cannot create assistant history item with neither content nor tool calls");
     }
-    createHistoryItem(
-        executionContext,
-        agentInstanceKey.value(),
-        AgentInstanceHistoryRole.ASSISTANT,
-        content,
-        turn.iterationKey(),
-        toolCalls,
-        historyMapper.historyMetrics(turn.metrics()),
-        producedAt);
+
+    final AgentInstanceHistoryItem item =
+        new AgentInstanceHistoryItem()
+            .historyItemId(AgentInstanceHistoryItemIds.forMessage(assistantMessage))
+            .role(AgentInstanceHistoryRole.ASSISTANT)
+            .content(content)
+            .toolCalls(toolCalls)
+            .metrics(historyMapper.historyMetrics(turn.metrics()))
+            .producedAt(producedAt)
+            .loopIteration(turn.iterationKey());
+
+    applyBatchedUpdate(executionContext, agentInstanceKey.value(), status, List.of(item));
   }
 
   @Override
-  public void createHistoryForToolCallResults(
+  public void applyToolCallResults(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       List<ToolCallResult> toolCallResults,
       AgentConversationTurn previousTurn) {
     if (agentInstanceKey == null) {
-      LOGGER.debug(
-          "Skipping agent instance history items (arrived tool call results): no agent instance key");
+      LOGGER.debug("Skipping agent instance tool call results: no agent instance key");
       return;
     }
+
     final var syntheticMessage =
         ToolCallResultMessage.builder()
             .results(toolCallResults.stream().map(ToolCallResultContent::from).toList())
             .build();
     final var toolCallsById = previousTurn.toolCallsById();
     final var iteration = previousTurn.iterationKey() + 1;
-    // turnIngestionTimestamp is unused for TOOL_RESULT items — each uses its own resolved
+
+    final List<AgentInstanceHistoryItem> items = new ArrayList<>();
+    // turnIngestionTimestamp is unused for TOOL_RESULT items -- each uses its own resolved
     // completedAt
     for (final var item :
         historyMapper.inputHistoryItems(syntheticMessage, toolCallsById, OffsetDateTime.now())) {
-      createHistoryItem(
-          executionContext,
-          agentInstanceKey.value(),
-          item.role(),
-          item.content(),
-          iteration,
-          item.toolCalls(),
-          null,
-          item.producedAt());
+      items.add(toHistoryItem(item, iteration));
     }
+
+    applyBatchedUpdate(executionContext, agentInstanceKey.value(), null, items);
   }
 
-  private void createHistoryItem(
+  private void applyBatchedUpdate(
       AgentExecutionContext executionContext,
       long agentInstanceKey,
-      AgentInstanceHistoryRole role,
-      List<AgentInstanceHistoryContent> content,
-      int iteration,
-      @Nullable List<AgentInstanceHistoryToolCall> toolCalls,
-      @Nullable AgentInstanceHistoryMetrics metrics,
-      OffsetDateTime producedAt) {
+      @Nullable AgentInstanceUpdateStatus status,
+      List<AgentInstanceHistoryItem> historyItems) {
     CamundaApiRetry.execute(
         () -> {
-          executeCreateHistoryItem(
-              executionContext,
-              agentInstanceKey,
-              role,
-              content,
-              iteration,
-              toolCalls,
-              metrics,
-              producedAt);
+          executeBatchedUpdate(executionContext, agentInstanceKey, status, historyItems);
           return null;
         },
         AgentInstanceErrorClassifier.INSTANCE,
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),
-        this::buildHistoryItemException,
+        this::buildBatchedUpdateException,
         sleeper);
   }
 
-  private void executeCreateHistoryItem(
+  private void executeBatchedUpdate(
       AgentExecutionContext executionContext,
       long agentInstanceKey,
-      AgentInstanceHistoryRole role,
-      List<AgentInstanceHistoryContent> content,
-      int iteration,
-      @Nullable List<AgentInstanceHistoryToolCall> toolCalls,
-      @Nullable AgentInstanceHistoryMetrics metrics,
-      OffsetDateTime producedAt) {
+      @Nullable AgentInstanceUpdateStatus status,
+      List<AgentInstanceHistoryItem> historyItems) {
     LOGGER.debug(
-        "Creating agent instance {} history item: role={}, iteration={}, contentBlocks={}",
+        "Updating agent instance {} with batched history: status={}, items={}",
         agentInstanceKey,
-        role,
-        iteration,
-        content.size());
-    CreateAgentHistoryItemFinalCommandStep cmd =
+        status,
+        historyItems.size());
+    UpdateAgentInstanceCommandStep2 cmd =
         camundaClient
-            .newCreateAgentHistoryItemCommand(agentInstanceKey)
+            .newUpdateAgentInstanceCommand(agentInstanceKey)
             .elementInstanceKey(executionContext.jobContext().getElementInstanceKey())
             .jobKey(executionContext.jobContext().getJobKey())
-            .role(role)
-            .content(content)
-            .producedAt(producedAt)
-            .loopIteration(iteration);
+            .history(historyItems);
 
-    if (toolCalls != null && !toolCalls.isEmpty()) {
-      cmd = cmd.toolCalls(toolCalls);
-    }
-    if (metrics != null) {
-      cmd = cmd.metrics(metrics);
+    if (status != null) {
+      cmd = cmd.status(status);
     }
 
     final String leaseToken = executionContext.jobContext().getLeaseToken();
@@ -421,18 +410,39 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     return new ConnectorException(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED, message, cause);
   }
 
-  private ConnectorException buildHistoryItemException(
+  /**
+   * An update (used by {@link #applyTurnStart}, {@link #applyTurnCompletion}, {@link
+   * #applyToolCallResults} and {@link #applyToolDiscoveryStart}) rejected with 404 means the job
+   * activation that issued it has been superseded by a later one, so it must fail without provoking
+   * any retry.
+   */
+  private ConnectorException buildBatchedUpdateException(
       Throwable cause, int attempt, FailureReason reason) {
-    final String message =
-        switch (reason) {
-          case PERMANENT_ERROR ->
-              "Failed to create agent instance history item: %s".formatted(cause.getMessage());
-          case RETRIES_EXHAUSTED ->
-              "Failed to create agent instance history item after %d attempt(s): %s"
-                  .formatted(attempt, cause.getMessage());
-          case INTERRUPTED ->
-              "Interrupted while waiting to retry agent instance history item creation";
-        };
-    return new ConnectorException(ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED, message, cause);
+    if (reason == FailureReason.PERMANENT_ERROR && isNotFound(cause)) {
+      return ConnectorRetryException.builder()
+          .errorCode(ERROR_CODE_AGENT_INSTANCE_SUPERSEDED)
+          .message(
+              "Agent instance update rejected: the job activation has been superseded: %s"
+                  .formatted(cause.getMessage()))
+          .cause(cause)
+          .retries(0)
+          .build();
+    }
+    return buildUpdateException(cause, attempt, reason);
+  }
+
+  private boolean isNotFound(Throwable t) {
+    Throwable current = t;
+    while (current != null) {
+      if (current instanceof ClientHttpException httpEx && httpEx.code() == 404) {
+        return true;
+      }
+      final Throwable cause = current.getCause();
+      if (cause == current) {
+        break;
+      }
+      current = cause;
+    }
+    return false;
   }
 }

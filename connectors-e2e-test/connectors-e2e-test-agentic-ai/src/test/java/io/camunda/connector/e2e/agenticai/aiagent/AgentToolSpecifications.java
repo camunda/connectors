@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -71,8 +70,7 @@ public interface AgentToolSpecifications {
     return ToolDefinition.builder()
         .name(prefixedName)
         .description(description)
-        .inputSchema(
-            Map.of("type", "object", "properties", properties, "required", Collections.emptyList()))
+        .inputSchema(Map.of("type", "object", "properties", properties))
         .build();
   }
 
@@ -135,9 +133,7 @@ public interface AgentToolSpecifications {
                       "type",
                       "array",
                       "description",
-                      "A list of other task IDs that this message references for additional context.",
-                      "items",
-                      Collections.emptyMap())),
+                      "A list of other task IDs that this message references for additional context.")),
           "required", List.of("text"));
 
   List<ToolDefinition> EXPECTED_A2A_TOOL_SPECIFICATIONS =

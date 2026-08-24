@@ -7,14 +7,13 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED;
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -24,10 +23,8 @@ import static org.mockito.Mockito.when;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.ProblemDetail;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
-import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
-import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
+import io.camunda.client.api.command.AgentInstanceHistoryItem;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
-import io.camunda.client.api.command.AgentTool;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep2;
@@ -36,7 +33,6 @@ import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
-import io.camunda.client.impl.command.CreateAgentHistoryItemCommandImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -48,8 +44,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
@@ -60,11 +54,8 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
-import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.runtime.test.outbound.TestJobContext;
 import java.time.Duration;
@@ -103,8 +94,10 @@ class CamundaAgentInstanceClientTest {
 
   @Mock private CamundaClient camundaClient;
 
-  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-  private CreateAgentInstanceCommandStep1 commandChain;
+  @Mock private CreateAgentInstanceCommandStep1 createCommandStep1;
+
+  @Mock(answer = Answers.RETURNS_SELF)
+  private CreateAgentInstanceCommandStep2 createCommandStep2;
 
   @Mock private CreateAgentInstanceResponse response;
 
@@ -112,11 +105,6 @@ class CamundaAgentInstanceClientTest {
 
   @Mock(answer = Answers.RETURNS_SELF)
   private UpdateAgentInstanceCommandStep2 updateCommandStep2;
-
-  @Mock(answer = Answers.RETURNS_SELF)
-  private CreateAgentHistoryItemCommandImpl historyCommand;
-
-  private CreateAgentInstanceCommandStep2 step5;
 
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
@@ -134,18 +122,9 @@ class CamundaAgentInstanceClientTest {
   }
 
   private void givenCreateCommand() {
-    when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(commandChain);
-    step5 =
-        commandChain
-            .elementInstanceKey(ELEMENT_INSTANCE_KEY)
-            .model("gpt-4o")
-            .provider(OpenAiProviderConfiguration.OPENAI_ID)
-            .systemPrompt("system prompt");
-  }
-
-  private void givenCreateCommandWithMaxModelCalls() {
-    givenCreateCommand();
-    when(step5.maxModelCalls(10)).thenReturn(step5);
+    when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(createCommandStep1);
+    when(createCommandStep1.elementInstanceKey(ELEMENT_INSTANCE_KEY))
+        .thenReturn(createCommandStep2);
   }
 
   private void givenUpdateCommand() {
@@ -155,31 +134,60 @@ class CamundaAgentInstanceClientTest {
         .thenReturn(updateCommandStep2);
   }
 
-  private void givenHistoryCommand() {
-    when(camundaClient.newCreateAgentHistoryItemCommand(AGENT_INSTANCE_KEY))
-        .thenReturn(historyCommand);
-  }
-
   @Nested
   class Create {
 
+    @SuppressWarnings("unchecked")
     @Test
     void shouldReturnAgentInstanceKeyOnFirstSuccessfulAttempt() {
-      givenCreateCommandWithMaxModelCalls();
-      when(step5.execute()).thenReturn(response);
+      givenCreateCommand();
+      when(createCommandStep2.execute()).thenReturn(response);
       when(response.getAgentInstanceKey()).thenReturn(12345L);
 
-      final AgentInstanceKey key = client.create(TestAgentExecutionContext.withLimits());
+      final var executionContext = TestAgentExecutionContext.withLimits();
+      final AgentInstanceKey key = client.create(executionContext);
 
       assertThat(key).isEqualTo(AgentInstanceKey.of(12345L));
       assertThat(recordedSleeps).isEmpty();
       verify(camundaClient, times(1)).newCreateAgentInstanceCommand();
+
+      // definition and tools are established as a CONFIGURATION history item, not direct fields
+      final ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor =
+          ArgumentCaptor.forClass(List.class);
+      verify(createCommandStep1).elementInstanceKey(ELEMENT_INSTANCE_KEY);
+      verify(createCommandStep2).jobKey(JOB_KEY);
+      // top-level limits are forbidden alongside a history batch
+      verify(createCommandStep2, never()).maxModelCalls(anyInt());
+      verify(createCommandStep2, never()).jobLease(any());
+      verify(createCommandStep2).history(historyCaptor.capture());
+
+      assertThat(historyCaptor.getValue())
+          .singleElement()
+          .satisfies(
+              item -> {
+                assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+                assertThat(item.getHistoryItemId())
+                    .isEqualTo(executionContext.configuration().fingerprint());
+                assertThat(item.getLoopIteration()).isEqualTo(1);
+                assertThat(item.getModel()).isEqualTo("gpt-4o");
+                assertThat(item.getProvider()).isEqualTo(OpenAiProviderConfiguration.OPENAI_ID);
+                assertThat(item.getSystemPrompt())
+                    .singleElement()
+                    .isInstanceOfSatisfying(
+                        AgentInstanceHistoryContent.TextContent.class,
+                        text -> assertThat(text.getText()).isEqualTo("system prompt"));
+                assertThat(item.getTools()).isEmpty();
+                assertThat(item.getLimits().getMaxModelCalls()).isEqualTo(10);
+                assertThat(item.getLimits().getMaxTokens()).isEqualTo(-1);
+                assertThat(item.getLimits().getMaxToolCalls()).isEqualTo(-1);
+              });
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     void shouldReturnAgentInstanceKeyOnFirstAttemptWhenMaxModelCallsIsNull() {
       givenCreateCommand();
-      when(step5.execute()).thenReturn(response);
+      when(createCommandStep2.execute()).thenReturn(response);
       when(response.getAgentInstanceKey()).thenReturn(67890L);
 
       final AgentInstanceKey key = client.create(TestAgentExecutionContext.withoutLimits());
@@ -187,12 +195,33 @@ class CamundaAgentInstanceClientTest {
       assertThat(key).isEqualTo(AgentInstanceKey.of(67890L));
       assertThat(recordedSleeps).isEmpty();
       verify(camundaClient, times(1)).newCreateAgentInstanceCommand();
+      verify(createCommandStep2).jobKey(JOB_KEY);
+      verify(createCommandStep2, never()).maxModelCalls(anyInt());
+
+      // absent limits config still yields the enforced default via the CONFIGURATION item
+      final ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor =
+          ArgumentCaptor.forClass(List.class);
+      verify(createCommandStep2).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue())
+          .singleElement()
+          .satisfies(item -> assertThat(item.getLimits().getMaxModelCalls()).isEqualTo(10));
+    }
+
+    @Test
+    void shouldForwardLeaseTokenWhenActivationIsLeased() {
+      givenCreateCommand();
+      when(createCommandStep2.execute()).thenReturn(response);
+      when(response.getAgentInstanceKey()).thenReturn(12345L);
+
+      client.create(TestAgentExecutionContext.withLeaseToken("lease-token-abc"));
+
+      verify(createCommandStep2).jobLease("lease-token-abc");
     }
 
     @Test
     void shouldThrowConnectorExceptionImmediatelyForHttp400PermanentError() {
-      givenCreateCommandWithMaxModelCalls();
-      when(step5.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
+      givenCreateCommand();
+      when(createCommandStep2.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
 
       assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
           .isInstanceOfSatisfying(
@@ -208,8 +237,8 @@ class CamundaAgentInstanceClientTest {
 
     @Test
     void shouldReturnKeyAndRecordOneSleepWhenRetryableErrorPrecedesSuccess() {
-      givenCreateCommandWithMaxModelCalls();
-      when(step5.execute())
+      givenCreateCommand();
+      when(createCommandStep2.execute())
           .thenThrow(new ClientHttpException(503, "Service Unavailable"))
           .thenReturn(response);
       when(response.getAgentInstanceKey()).thenReturn(999L);
@@ -226,8 +255,8 @@ class CamundaAgentInstanceClientTest {
     void shouldThrowConnectorExceptionImmediatelyForHttp404PermanentError() {
       // given: a 404 from the create endpoint (x-eventually-consistent: false) means the
       // referenced element instance genuinely doesn't exist, not a not-yet-visible record
-      givenCreateCommandWithMaxModelCalls();
-      when(step5.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
+      givenCreateCommand();
+      when(createCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
 
       assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
           .isInstanceOfSatisfying(
@@ -243,8 +272,9 @@ class CamundaAgentInstanceClientTest {
 
     @Test
     void shouldThrowConnectorExceptionWithAttemptCountWhenAllRetriesAreExhausted() {
-      givenCreateCommandWithMaxModelCalls();
-      when(step5.execute()).thenThrow(new ClientHttpException(500, "Internal Server Error"));
+      givenCreateCommand();
+      when(createCommandStep2.execute())
+          .thenThrow(new ClientHttpException(500, "Internal Server Error"));
 
       assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
           .isInstanceOfSatisfying(
@@ -268,12 +298,12 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldReturnExistingAgentInstanceKeyOnConflictWithParseableDetail() {
       // given: a 409 ALREADY_EXISTS response whose detail embeds the existing agent instance key
-      givenCreateCommandWithMaxModelCalls();
+      givenCreateCommand();
       final var detail =
           "Command 'CREATE' rejected with code 'ALREADY_EXISTS': Expected to associate element "
               + "instance with key '77' with an agent instance, but it is already associated with "
               + "agent instance with key '999'.";
-      when(step5.execute()).thenThrow(conflictException(detail));
+      when(createCommandStep2.execute()).thenThrow(conflictException(detail));
 
       // when
       final AgentInstanceKey key = client.create(TestAgentExecutionContext.withLimits());
@@ -303,8 +333,8 @@ class CamundaAgentInstanceClientTest {
     void shouldThrowConnectorExceptionImmediatelyOnUnparseableConflictDetail(
         @Nullable String detail) {
       // given: a 409 ALREADY_EXISTS response whose detail doesn't match the expected contract
-      givenCreateCommandWithMaxModelCalls();
-      when(step5.execute()).thenThrow(conflictException(detail));
+      givenCreateCommand();
+      when(createCommandStep2.execute()).thenThrow(conflictException(detail));
 
       // when / then: the conflict cannot be resolved, so it fails permanently, no retry
       assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
@@ -326,112 +356,44 @@ class CamundaAgentInstanceClientTest {
   }
 
   @Nested
-  class Update {
+  class ToolDiscoveryStart {
 
     @Test
-    void shouldSilentlySkipWhenAgentInstanceKeyIsNull() {
+    void shouldSkipWhenAgentInstanceKeyIsNull() {
       // when
-      client.update(
-          TestAgentExecutionContext.withLimits(),
-          null,
-          AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+      client.applyToolDiscoveryStart(TestAgentExecutionContext.withLimits(), null);
 
       // then
       verifyNoInteractions(camundaClient);
     }
 
     @Test
-    void shouldBuildCommandWithStatusOnly() {
+    void shouldSendOneBatchedUpdateWithToolDiscoveryStatusAndEmptyHistory() {
       givenUpdateCommand();
 
       // when
-      client.update(
-          TestAgentExecutionContext.withLimits(),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+      client.applyToolDiscoveryStart(
+          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY));
 
       // then
-      verify(updateCommandStep2).status(AgentInstanceUpdateStatus.THINKING);
-      verify(updateCommandStep2, never()).modelCalls(anyInt());
-      verify(updateCommandStep2, never()).inputTokens(anyLong());
-      verify(updateCommandStep2, never()).outputTokens(anyLong());
-      verify(updateCommandStep2, never()).toolCalls(anyInt());
+      verify(updateCommandStep2).status(AgentInstanceUpdateStatus.TOOL_DISCOVERY);
+      verify(updateCommandStep2).jobKey(JOB_KEY);
+      verify(updateCommandStep2, never()).jobLease(any());
+      verify(updateCommandStep2).history(List.of());
       verify(updateCommandStep2).execute();
     }
 
     @Test
-    void shouldBuildCommandWithStatusAndDeltaSkippingZeroFields() {
+    void shouldForwardLeaseTokenWhenActivationIsLeased() {
       givenUpdateCommand();
 
-      // given
-      final var agentInstanceKey = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
-      final var delta = new AgentMetrics(1, new TokenUsage(10, 20), 0);
-      final var request =
-          AgentInstanceUpdateRequest.builder()
-              .status(AgentInstanceUpdateStatus.IDLE)
-              .delta(delta)
-              .build();
-
       // when
-      client.update(TestAgentExecutionContext.withLimits(), agentInstanceKey, request);
-
-      // then: status + non-zero delta fields set; toolCalls skipped (0)
-      verify(updateCommandStep2).status(AgentInstanceUpdateStatus.IDLE);
-      verify(updateCommandStep2).modelCalls(1);
-      verify(updateCommandStep2).inputTokens(10L);
-      verify(updateCommandStep2).outputTokens(20L);
-      verify(updateCommandStep2, never()).toolCalls(0);
-      verify(updateCommandStep2).execute();
-    }
-
-    @Test
-    void shouldBuildCommandWithAllDeltaFields() {
-      givenUpdateCommand();
-
-      // given
-      final var agentInstanceKey = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
-      final var delta = new AgentMetrics(2, new TokenUsage(50, 100), 3);
-      final var request =
-          AgentInstanceUpdateRequest.builder()
-              .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-              .delta(delta)
-              .build();
-
-      // when
-      client.update(TestAgentExecutionContext.withLimits(), agentInstanceKey, request);
+      client.applyToolDiscoveryStart(
+          TestAgentExecutionContext.withLeaseToken("lease-token-abc"),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY));
 
       // then
-      verify(updateCommandStep2).status(AgentInstanceUpdateStatus.TOOL_CALLING);
-      verify(updateCommandStep2).modelCalls(2);
-      verify(updateCommandStep2).inputTokens(50L);
-      verify(updateCommandStep2).outputTokens(100L);
-      verify(updateCommandStep2).toolCalls(3);
-      verify(updateCommandStep2).execute();
-      assertThat(recordedSleeps).isEmpty();
-    }
-
-    @Test
-    void shouldThrowConnectorExceptionImmediatelyForHttp404PermanentError() {
-      // given: the update endpoint is x-eventually-consistent: false and Zeebe key-based
-      // partition routing guarantees the create is visible before the key is returned, so a 404
-      // means the agent instance genuinely doesn't exist rather than being not-yet-visible
-      givenUpdateCommand();
-      final var agentInstanceKey = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
-      when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
-
-      // when / then: 404 is permanent for update → fails immediately, no retries
-      assertThatThrownBy(
-              () ->
-                  client.update(
-                      TestAgentExecutionContext.withLimits(),
-                      agentInstanceKey,
-                      AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)))
-          .isInstanceOfSatisfying(
-              ConnectorException.class,
-              e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED));
-
-      assertThat(recordedSleeps).isEmpty();
-      verify(camundaClient, times(1)).newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY);
+      verify(updateCommandStep2).jobLease("lease-token-abc");
     }
 
     @Test
@@ -446,10 +408,8 @@ class CamundaAgentInstanceClientTest {
       // when / then
       assertThatThrownBy(
               () ->
-                  client.update(
-                      TestAgentExecutionContext.withLimits(),
-                      agentInstanceKey,
-                      AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)))
+                  client.applyToolDiscoveryStart(
+                      TestAgentExecutionContext.withLimits(), agentInstanceKey))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> {
@@ -466,183 +426,274 @@ class CamundaAgentInstanceClientTest {
               Duration.ofSeconds(8));
       verify(camundaClient, times(5)).newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY);
     }
+  }
 
-    @SuppressWarnings("unchecked")
+  /**
+   * The batched turn methods ({@code applyTurnStart}/{@code applyTurnCompletion}/{@code
+   * applyToolCallResults}) replace the request-level status/metrics/tools update plus the
+   * single-item history create with one combined {@code update} command carrying a {@code
+   * history()} batch. {@code jobKey}/{@code jobLease} live on the command, not per item, unlike the
+   * old single-item {@code newCreateAgentHistoryItemCommand}.
+   */
+  @Nested
+  class TurnStart {
+
+    private static final OffsetDateTime TURN_INGESTION_TIMESTAMP =
+        OffsetDateTime.parse("2026-07-02T10:00:00Z");
+
+    @Captor private ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor;
+
+    private AgentConfiguration configuration(String systemPrompt, List<ToolDefinition> tools) {
+      return configuration(systemPrompt, tools, null);
+    }
+
+    private AgentConfiguration configuration(
+        String systemPrompt, List<ToolDefinition> tools, @Nullable Integer maxModelCalls) {
+      return new AgentConfiguration(
+              new OpenAiProviderConfiguration(
+                  new OpenAiProviderConfiguration.OpenAiConnection(
+                      null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null))),
+              new PromptConfiguration.SystemPromptConfiguration(systemPrompt),
+              null,
+              null,
+              maxModelCalls != null ? new LimitsConfiguration(maxModelCalls) : null,
+              null,
+              null)
+          .withToolDefinitions(tools);
+    }
+
+    private AgentConversationTurn userTurn(String text, String configurationFingerprint) {
+      return new AgentConversationTurn(
+          1,
+          List.of(UserMessage.builder().content(MessageUtil.singleTextContent(text)).build()),
+          null,
+          AgentMetrics.empty(),
+          configurationFingerprint);
+    }
+
+    /** A completed turn carrying the given configuration fingerprint, for use as previousTurn. */
+    private AgentConversationTurn precedingTurn(String configurationFingerprint) {
+      return new AgentConversationTurn(
+          1,
+          List.of(),
+          AssistantMessage.builder().content(MessageUtil.singleTextContent("prior")).build(),
+          AgentMetrics.empty(),
+          configurationFingerprint);
+    }
+
     @Test
-    void shouldBuildCommandWithToolsForAdHocTools() {
-      givenUpdateCommand();
+    void shouldSkipWhenAgentInstanceKeyIsNull() {
+      final var configuration = configuration("Be nice.", List.of());
 
-      // given: ad-hoc tools where name == elementId
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          null,
+          userTurn("hi", configuration.fingerprint()),
+          Optional.empty(),
+          TURN_INGESTION_TIMESTAMP);
+
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
+    void shouldSendOneBatchedUpdateWithThinkingStatusAndInputItem() {
+      givenUpdateCommand();
+      final var message =
+          UserMessage.builder().content(MessageUtil.singleTextContent("Hello there")).build();
+      final var configuration = configuration("Be nice.", List.of());
+      final var turn =
+          new AgentConversationTurn(
+              3, List.of(message), null, AgentMetrics.empty(), configuration.fingerprint());
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          turn,
+          Optional.of(precedingTurn(configuration.fingerprint())),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep2).status(AgentInstanceUpdateStatus.THINKING);
+      verify(updateCommandStep2).jobKey(JOB_KEY);
+      verify(updateCommandStep2, never()).jobLease(any());
+      verify(updateCommandStep2).history(historyCaptor.capture());
+      verify(updateCommandStep2).execute();
+
+      // configuration unchanged from previousTurn's -- only the input item
+      assertThat(historyCaptor.getValue())
+          .singleElement()
+          .satisfies(
+              item -> {
+                assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.USER);
+                assertThat(item.getHistoryItemId()).isEqualTo(message.id().toString());
+                assertThat(item.getLoopIteration()).isEqualTo(3);
+                assertThat(item.getProducedAt()).isEqualTo(TURN_INGESTION_TIMESTAMP);
+              });
+    }
+
+    @Test
+    void shouldForwardLeaseTokenWhenActivationIsLeased() {
+      givenUpdateCommand();
+      final var configuration = configuration("Be nice.", List.of());
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLeaseToken("lease-token-abc"),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          userTurn("hi", configuration.fingerprint()),
+          Optional.of(precedingTurn(configuration.fingerprint())),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep2).jobLease("lease-token-abc");
+    }
+
+    @Test
+    void shouldNotPrependConfigurationItemWhenFingerprintUnchanged() {
+      givenUpdateCommand();
       final var tools =
           List.of(
               ToolDefinition.builder()
                   .name("getWeather")
                   .description("Get the weather forecast")
                   .inputSchema(Map.of("type", "object"))
-                  .build(),
-              ToolDefinition.builder()
-                  .name("calculateSum")
-                  .description("Calculate a sum")
-                  .inputSchema(Map.of("type", "object"))
                   .build());
+      final var configuration = configuration("Be nice.", tools);
 
-      final var request =
-          AgentInstanceUpdateRequest.builder()
-              .status(AgentInstanceUpdateStatus.THINKING)
-              .tools(tools)
-              .build();
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          userTurn("hi", configuration.fingerprint()),
+          Optional.of(precedingTurn(configuration.fingerprint())),
+          TURN_INGESTION_TIMESTAMP);
 
-      // when
-      client.update(
-          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
-
-      // then: tools are passed to the command
-      final ArgumentCaptor<List<AgentTool>> toolsCaptor = ArgumentCaptor.forClass(List.class);
-      verify(updateCommandStep2).tools(toolsCaptor.capture());
-      final var capturedTools = toolsCaptor.getValue();
-      assertThat(capturedTools).hasSize(2);
-      assertThat(capturedTools.get(0).getName()).isEqualTo("getWeather");
-      assertThat(capturedTools.get(0).getDescription()).isEqualTo("Get the weather forecast");
-      assertThat(capturedTools.get(0).getElementId()).isEqualTo("getWeather");
-      assertThat(capturedTools.get(1).getName()).isEqualTo("calculateSum");
-      assertThat(capturedTools.get(1).getDescription()).isEqualTo("Calculate a sum");
-      assertThat(capturedTools.get(1).getElementId()).isEqualTo("calculateSum");
-      verify(updateCommandStep2).execute();
+      verify(updateCommandStep2).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue())
+          .singleElement()
+          .satisfies(item -> assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.USER));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    void shouldResolveElementIdForGatewayToolsInUpdate() {
+    void shouldPrependConfigurationItemWhenNoPreviousTurnExists() {
+      // the very first turn: no completed turn precedes it, so the configuration is always new
       givenUpdateCommand();
-
-      // given: a gateway tool with a resolved elementId
-      when(gatewayToolHandlers.resolveElementId("MCP_McpTest___greet"))
-          .thenReturn(Optional.of("McpTest"));
-
       final var tools =
           List.of(
               ToolDefinition.builder()
-                  .name("MCP_McpTest___greet")
-                  .description("Greet someone")
+                  .name("getWeather")
+                  .description("Get the weather forecast")
                   .inputSchema(Map.of("type", "object"))
                   .build());
+      final var configuration = configuration("Be nice.", tools);
 
-      final var request =
-          AgentInstanceUpdateRequest.builder()
-              .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-              .tools(tools)
-              .build();
-
-      // when
-      client.update(
-          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
-
-      // then: gateway tool elementId is resolved through the registry
-      final ArgumentCaptor<List<AgentTool>> toolsCaptor = ArgumentCaptor.forClass(List.class);
-      verify(updateCommandStep2).tools(toolsCaptor.capture());
-      final var capturedTools = toolsCaptor.getValue();
-      assertThat(capturedTools).hasSize(1);
-      assertThat(capturedTools.get(0).getName()).isEqualTo("MCP_McpTest___greet");
-      assertThat(capturedTools.get(0).getDescription()).isEqualTo("Greet someone");
-      assertThat(capturedTools.get(0).getElementId()).isEqualTo("McpTest");
-      verify(updateCommandStep2).execute();
-    }
-
-    @Test
-    void shouldNotCallToolsWhenToolsFieldIsNull() {
-      givenUpdateCommand();
-
-      // given: no tools in the request
-      final var request = AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING);
-
-      // when
-      client.update(
-          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
-
-      // then: tools() is never called on the command
-      verify(updateCommandStep2, never()).tools(any());
-      verify(updateCommandStep2).execute();
-    }
-
-    @Test
-    void shouldNotCallToolsWhenToolsFieldIsEmpty() {
-      givenUpdateCommand();
-
-      // given: empty tools list in the request
-      final var request =
-          AgentInstanceUpdateRequest.builder()
-              .status(AgentInstanceUpdateStatus.THINKING)
-              .tools(List.of())
-              .build();
-
-      // when
-      client.update(
-          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
-
-      // then: tools() is never called on the command
-      verify(updateCommandStep2, never()).tools(any());
-      verify(updateCommandStep2).execute();
-    }
-  }
-
-  @Nested
-  class HistoryItems {
-
-    private static final OffsetDateTime TURN_INGESTION_TIMESTAMP =
-        OffsetDateTime.parse("2026-07-02T10:00:00Z");
-
-    @Captor private ArgumentCaptor<List<AgentInstanceHistoryContent>> contentCaptor;
-
-    @Test
-    void shouldCreateUserHistoryItemBeforeChat() {
-      givenHistoryCommand();
-
-      // given
-      final var turn =
-          new AgentConversationTurn(
-              3,
-              List.of(
-                  UserMessage.builder()
-                      .content(MessageUtil.singleTextContent("Hello there"))
-                      .build()),
-              null,
-              AgentMetrics.empty());
-
-      // when
-      client.createHistoryForInputMessages(
+      client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
+          configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          turn,
+          userTurn("hi", configuration.fingerprint()),
           Optional.empty(),
           TURN_INGESTION_TIMESTAMP);
 
-      // then: the passed-in turn ingestion timestamp is used verbatim, not now()
-      verify(historyCommand).elementInstanceKey(ELEMENT_INSTANCE_KEY);
-      verify(historyCommand).jobKey(JOB_KEY);
-      verify(historyCommand).role(AgentInstanceHistoryRole.USER);
-      verify(historyCommand).loopIteration(3);
-      verify(historyCommand).producedAt(TURN_INGESTION_TIMESTAMP);
-      verify(historyCommand).content(contentCaptor.capture());
-      verify(historyCommand, never()).toolCalls(any());
-      verify(historyCommand, never()).metrics(any());
-      verify(historyCommand).execute();
+      verify(updateCommandStep2).history(historyCaptor.capture());
+      final var history = historyCaptor.getValue();
+      assertThat(history).hasSize(2);
 
-      assertThat(contentCaptor.getValue())
+      final var configurationItem = history.get(0);
+      assertThat(configurationItem.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+      // the fingerprint doubles as the item's historyItemId, so a repeat send with unchanged
+      // content dedups for free
+      assertThat(configurationItem.getHistoryItemId()).isEqualTo(configuration.fingerprint());
+      assertThat(configurationItem.getLoopIteration()).isEqualTo(1);
+      // a CONFIGURATION item has no natural content of its own
+      assertThat(configurationItem.getContent()).isEmpty();
+      // model/provider are fixed at create time only, not re-pushed by turn-start items
+      assertThat(configurationItem.getModel()).isNull();
+      assertThat(configurationItem.getProvider()).isNull();
+      assertThat(configurationItem.getSystemPrompt())
           .singleElement()
           .isInstanceOfSatisfying(
               AgentInstanceHistoryContent.TextContent.class,
-              text -> assertThat(text.getText()).isEqualTo("Hello there"));
+              text -> assertThat(text.getText()).isEqualTo("Be nice."));
+      assertThat(configurationItem.getTools())
+          .singleElement()
+          .satisfies(tool -> assertThat(tool.getName()).isEqualTo("getWeather"));
+      assertThat(configurationItem.getLimits().getMaxModelCalls()).isEqualTo(10);
+      assertThat(configurationItem.getLimits().getMaxTokens()).isEqualTo(-1);
+      assertThat(configurationItem.getLimits().getMaxToolCalls()).isEqualTo(-1);
+
+      assertThat(history.get(1).getRole()).isEqualTo(AgentInstanceHistoryRole.USER);
     }
 
     @Test
-    void shouldCreateOneToolResultHistoryItemPerResultBeforeChat() {
-      givenHistoryCommand();
+    void shouldPrependConfigurationItemWhenSystemPromptChanged() {
+      givenUpdateCommand();
+      final var previousConfiguration = configuration("Be nice.", List.of());
+      final var configuration = configuration("Be mean.", List.of());
 
-      // given: a single tool-call-result message carrying two results (elementId already resolved
-      // on the model upstream, == tool name for these ad-hoc tools), each with its own distinct
-      // completedAt, neither of which is the turn ingestion timestamp
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          userTurn("hi", configuration.fingerprint()),
+          Optional.of(precedingTurn(previousConfiguration.fingerprint())),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep2).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue()).hasSize(2);
+      assertThat(historyCaptor.getValue().get(0).getRole())
+          .isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+    }
+
+    @Test
+    void shouldPrependConfigurationItemWhenToolsChanged() {
+      givenUpdateCommand();
+      final var previousConfiguration = configuration("Be nice.", List.of());
+      final var configuration =
+          configuration(
+              "Be nice.",
+              List.of(ToolDefinition.builder().name("getWeather").description("d").build()));
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          userTurn("hi", configuration.fingerprint()),
+          Optional.of(precedingTurn(previousConfiguration.fingerprint())),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep2).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue()).hasSize(2);
+      assertThat(historyCaptor.getValue().get(0).getRole())
+          .isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+    }
+
+    @Test
+    void shouldPrependConfigurationItemWhenLimitsChanged() {
+      givenUpdateCommand();
+      final var previousConfiguration = configuration("Be nice.", List.of(), 10);
+      final var configuration = configuration("Be nice.", List.of(), 20);
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          userTurn("hi", configuration.fingerprint()),
+          Optional.of(precedingTurn(previousConfiguration.fingerprint())),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep2).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue()).hasSize(2);
+      final var configurationItem = historyCaptor.getValue().get(0);
+      assertThat(configurationItem.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+      assertThat(configurationItem.getLimits().getMaxModelCalls()).isEqualTo(20);
+    }
+
+    @Test
+    void shouldCreateOneToolResultItemPerResultUsingOwnCompletedAt() {
+      givenUpdateCommand();
+      final var configuration = configuration("Be nice.", List.of());
       final var fastCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:50Z");
-      final var slowCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:58Z");
       final var turn =
           new AgentConversationTurn(
               1,
@@ -656,19 +707,11 @@ class CamundaAgentInstanceClientTest {
                                   .content(List.of(TextContent.textContent("sunny")))
                                   .elementId("getWeather")
                                   .completedAt(fastCompletedAt)
-                                  .build(),
-                              ToolCallResultContent.builder()
-                                  .id("b")
-                                  .name("getTime")
-                                  .elementId("getTime")
-                                  .completedAt(slowCompletedAt)
                                   .build()))
                       .build()),
               null,
-              AgentMetrics.empty());
-
-      // and: the previous turn whose assistant message requested both tools. Call "a" carries
-      // arguments; call "b" has none, so result "b" yields empty arguments.
+              AgentMetrics.empty(),
+              configuration.fingerprint());
       final var previousTurn =
           new AgentConversationTurn(
               1,
@@ -680,68 +723,200 @@ class CamundaAgentInstanceClientTest {
                               .id("a")
                               .name("getWeather")
                               .arguments(Map.of("city", "Berlin"))
-                              .build(),
-                          ToolCall.builder().id("b").name("getTime").build()))
+                              .build()))
                   .build(),
-              AgentMetrics.empty());
+              AgentMetrics.empty(),
+              configuration.fingerprint());
 
-      // when
-      client.createHistoryForInputMessages(
+      client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
+          configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
           Optional.of(previousTurn),
           TURN_INGESTION_TIMESTAMP);
 
-      // then: one TOOL_RESULT item per result, each with a single-entry toolCalls array correlating
-      // it to the originating tool call. The first result carries its content block; the second has
-      // no content, yielding an empty (now valid) content list rather than a placeholder block.
-      verify(historyCommand, times(2)).role(AgentInstanceHistoryRole.TOOL_RESULT);
-      verify(historyCommand, times(2)).loopIteration(1);
-      verify(historyCommand, times(2)).execute();
-
-      // each result's own completedAt is used, not the shared turn ingestion timestamp
-      verify(historyCommand).producedAt(fastCompletedAt);
-      verify(historyCommand).producedAt(slowCompletedAt);
-      verify(historyCommand, never()).producedAt(TURN_INGESTION_TIMESTAMP);
-
-      verify(historyCommand, times(2)).content(contentCaptor.capture());
-      final var contents = contentCaptor.getAllValues();
-      assertThat(contents).hasSize(2);
-      assertThat(contents.get(0)).singleElement();
-      assertThat(((AgentInstanceHistoryContent.TextContent) contents.get(0).get(0)).getText())
-          .isEqualTo("sunny");
-      assertThat(contents.get(1)).isEmpty();
-
-      final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
-          ArgumentCaptor.forClass(List.class);
-      verify(historyCommand, times(2)).toolCalls(toolCallsCaptor.capture());
-      final var toolCalls = toolCallsCaptor.getAllValues();
-      assertThat(toolCalls.get(0))
+      verify(updateCommandStep2).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue())
           .singleElement()
           .satisfies(
-              tc -> {
-                assertThat(tc.getToolCallId()).isEqualTo("a");
-                assertThat(tc.getToolName()).isEqualTo("getWeather");
-                assertThat(tc.getElementId()).isEqualTo("getWeather");
-                assertThat(tc.getArguments()).containsExactlyEntriesOf(Map.of("city", "Berlin"));
-              });
-      assertThat(toolCalls.get(1))
-          .singleElement()
-          .satisfies(
-              tc -> {
-                assertThat(tc.getToolCallId()).isEqualTo("b");
-                assertThat(tc.getToolName()).isEqualTo("getTime");
-                assertThat(tc.getElementId()).isEqualTo("getTime");
-                assertThat(tc.getArguments()).isEmpty();
+              item -> {
+                assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+                assertThat(item.getHistoryItemId()).isEqualTo("a");
+                assertThat(item.getProducedAt()).isEqualTo(fastCompletedAt);
+                assertThat(item.getToolCalls())
+                    .singleElement()
+                    .satisfies(
+                        tc ->
+                            assertThat(tc.getArguments())
+                                .containsExactlyEntriesOf(Map.of("city", "Berlin")));
               });
     }
 
     @Test
-    void shouldCreateHistoryItemsForArrivedToolCallResults() {
-      givenHistoryCommand();
+    void shouldThrowWhenToolResultHasNoOriginatingToolCall() {
+      final var configuration = configuration("Be nice.", List.of());
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(
+                  ToolCallResultMessage.builder()
+                      .results(
+                          List.of(
+                              ToolCallResultContent.builder()
+                                  .id("orphan")
+                                  .name("getWeather")
+                                  .elementId("getWeather")
+                                  .content(List.of(TextContent.textContent("sunny")))
+                                  .build()))
+                      .build()),
+              null,
+              AgentMetrics.empty(),
+              configuration.fingerprint());
 
-      // given
+      assertThatThrownBy(
+              () ->
+                  client.applyTurnStart(
+                      TestAgentExecutionContext.withLimits(),
+                      configuration,
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      turn,
+                      Optional.empty(),
+                      TURN_INGESTION_TIMESTAMP))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("No originating tool call found")
+          .hasMessageContaining("orphan");
+    }
+  }
+
+  @Nested
+  class TurnCompletion {
+
+    private static final OffsetDateTime PRODUCED_AT = OffsetDateTime.parse("2026-07-02T10:05:00Z");
+
+    @Captor private ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor;
+
+    @Test
+    void shouldSkipWhenAgentInstanceKeyIsNull() {
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder().content(MessageUtil.singleTextContent("done")).build(),
+              new AgentMetrics(1, TokenUsage.empty(), 0),
+              null);
+
+      client.applyTurnCompletion(
+          TestAgentExecutionContext.withLimits(),
+          null,
+          turn,
+          PRODUCED_AT,
+          AgentInstanceUpdateStatus.IDLE);
+
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
+    void shouldSendOneBatchedUpdateWithStatusAndAssistantItemCarryingMetrics() {
+      givenUpdateCommand();
+      final var assistantMessage =
+          AssistantMessage.builder()
+              .content(MessageUtil.singleTextContent("Calling tools"))
+              .toolCalls(
+                  List.of(
+                      ToolCall.builder().id("tc-1").name("getWeather").arguments(Map.of()).build()))
+              .build();
+      final var turn =
+          new AgentConversationTurn(
+              2,
+              List.of(),
+              assistantMessage,
+              new AgentMetrics(1, new TokenUsage(11, 22), 1, Duration.ofMillis(345)),
+              null);
+
+      client.applyTurnCompletion(
+          TestAgentExecutionContext.withLimits(),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          turn,
+          PRODUCED_AT,
+          AgentInstanceUpdateStatus.TOOL_CALLING);
+
+      // no request-level metrics/tools anymore -- they ride on the history item instead
+      verify(updateCommandStep2).status(AgentInstanceUpdateStatus.TOOL_CALLING);
+      verify(updateCommandStep2).jobKey(JOB_KEY);
+      verify(updateCommandStep2, never()).jobLease(any());
+      verify(updateCommandStep2, never()).modelCalls(anyInt());
+      verify(updateCommandStep2, never()).inputTokens(anyLong());
+      verify(updateCommandStep2, never()).outputTokens(anyLong());
+      verify(updateCommandStep2, never()).toolCalls(anyInt());
+      verify(updateCommandStep2, never()).tools(any());
+      verify(updateCommandStep2).history(historyCaptor.capture());
+      verify(updateCommandStep2).execute();
+
+      assertThat(historyCaptor.getValue())
+          .singleElement()
+          .satisfies(
+              item -> {
+                assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.ASSISTANT);
+                assertThat(item.getHistoryItemId()).isEqualTo(assistantMessage.id().toString());
+                assertThat(item.getLoopIteration()).isEqualTo(2);
+                assertThat(item.getProducedAt()).isEqualTo(PRODUCED_AT);
+                assertThat(item.getMetrics().getInputTokens()).isEqualTo(11L);
+                assertThat(item.getMetrics().getOutputTokens()).isEqualTo(22L);
+                assertThat(item.getMetrics().getDurationMs()).isEqualTo(345L);
+              });
+    }
+
+    @Test
+    void shouldThrowWhenAssistantMessageHasNeitherContentNorToolCalls() {
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder().build(),
+              new AgentMetrics(1, TokenUsage.empty(), 0),
+              null);
+
+      assertThatThrownBy(
+              () ->
+                  client.applyTurnCompletion(
+                      TestAgentExecutionContext.withLimits(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      turn,
+                      PRODUCED_AT,
+                      AgentInstanceUpdateStatus.IDLE))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("neither content nor tool calls");
+    }
+  }
+
+  @Nested
+  class ToolCallResultsBatch {
+
+    @Captor private ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor;
+
+    @Test
+    void shouldSkipWhenAgentInstanceKeyIsNull() {
+      final var previousTurn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder().toolCalls(List.of()).build(),
+              AgentMetrics.empty(),
+              null);
+
+      client.applyToolCallResults(
+          TestAgentExecutionContext.withLimits(),
+          null,
+          List.of(ToolCallResult.builder().id("a").name("getWeather").build()),
+          previousTurn);
+
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
+    void shouldSendOneBatchedUpdateWithoutChangingStatus() {
+      givenUpdateCommand();
       final var completedAt = OffsetDateTime.parse("2026-07-02T09:59:50Z");
       final var arrivedResult =
           ToolCallResult.builder()
@@ -763,46 +938,44 @@ class CamundaAgentInstanceClientTest {
                               .arguments(Map.of("city", "Berlin"))
                               .build()))
                   .build(),
-              AgentMetrics.empty());
+              AgentMetrics.empty(),
+              null);
 
-      // when
-      client.createHistoryForToolCallResults(
+      client.applyToolCallResults(
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           List.of(arrivedResult),
           previousTurn);
 
-      // then
-      verify(historyCommand).role(AgentInstanceHistoryRole.TOOL_RESULT);
-      verify(historyCommand).loopIteration(4);
-      verify(historyCommand).producedAt(completedAt);
-      verify(historyCommand).execute();
+      verify(updateCommandStep2, never()).status(any());
+      verify(updateCommandStep2).jobKey(JOB_KEY);
+      verify(updateCommandStep2).history(historyCaptor.capture());
+      verify(updateCommandStep2).execute();
 
-      final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
-          ArgumentCaptor.forClass(List.class);
-      verify(historyCommand).toolCalls(toolCallsCaptor.capture());
-      assertThat(toolCallsCaptor.getValue())
+      assertThat(historyCaptor.getValue())
           .singleElement()
           .satisfies(
-              tc -> {
-                assertThat(tc.getToolCallId()).isEqualTo("a");
-                assertThat(tc.getArguments()).containsExactlyEntriesOf(Map.of("city", "Berlin"));
+              item -> {
+                assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+                assertThat(item.getHistoryItemId()).isEqualTo("a");
+                assertThat(item.getLoopIteration()).isEqualTo(4);
+                assertThat(item.getProducedAt()).isEqualTo(completedAt);
               });
     }
 
     @Test
     void shouldThrowWhenArrivedToolCallResultHasNoOriginatingToolCall() {
-      // caller MUST pre-filter non-correlating ids; this method must still fail on one
       final var previousTurn =
           new AgentConversationTurn(
               1,
               List.of(),
               AssistantMessage.builder().toolCalls(List.of()).build(),
-              AgentMetrics.empty());
+              AgentMetrics.empty(),
+              null);
 
       assertThatThrownBy(
               () ->
-                  client.createHistoryForToolCallResults(
+                  client.applyToolCallResults(
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       List.of(ToolCallResult.builder().id("orphan").name("getWeather").build()),
@@ -811,584 +984,178 @@ class CamundaAgentInstanceClientTest {
           .hasMessageContaining("No originating tool call found")
           .hasMessageContaining("orphan");
     }
+  }
 
-    @Test
-    void shouldSkipArrivedToolCallResultsWhenAgentInstanceKeyNull() {
-      final var previousTurn =
-          new AgentConversationTurn(
-              1,
-              List.of(),
-              AssistantMessage.builder().toolCalls(List.of()).build(),
-              AgentMetrics.empty());
+  /**
+   * A batched update (any of the three turn methods, or {@code applyToolDiscoveryStart}) that gets
+   * rejected with 404 means the job activation was superseded, and must fail without provoking any
+   * retry at any level.
+   */
+  @Nested
+  class Supersession {
 
-      client.createHistoryForToolCallResults(
-          TestAgentExecutionContext.withLimits(),
+    private static final OffsetDateTime TURN_INGESTION_TIMESTAMP =
+        OffsetDateTime.parse("2026-07-02T10:00:00Z");
+
+    private AgentConversationTurn userMessageTurn() {
+      return new AgentConversationTurn(
+          1,
+          List.of(UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build()),
           null,
-          List.of(ToolCallResult.builder().id("a").name("getWeather").build()),
-          previousTurn);
-
-      verifyNoInteractions(historyCommand);
-      verify(camundaClient, never()).newCreateAgentHistoryItemCommand(anyLong());
+          AgentMetrics.empty(),
+          null);
     }
 
-    @Test
-    void shouldThrowWhenToolResultHasNoOriginatingToolCall() {
-      // a tool result with a (non-null) id that does not correlate to any tool call in the previous
-      // turn is an invariant violation and must fail rather than silently emit empty arguments
-      final var turn =
-          new AgentConversationTurn(
-              1,
-              List.of(
-                  ToolCallResultMessage.builder()
-                      .results(
-                          List.of(
-                              ToolCallResultContent.builder()
-                                  .id("orphan")
-                                  .name("getWeather")
-                                  .elementId("getWeather")
-                                  .content(List.of(TextContent.textContent("sunny")))
-                                  .build()))
-                      .build()),
-              null,
-              AgentMetrics.empty());
-
-      // when / then: no matching originating tool call in the previous turn
-      assertThatThrownBy(
-              () ->
-                  client.createHistoryForInputMessages(
-                      TestAgentExecutionContext.withLimits(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      turn,
-                      Optional.empty(),
-                      TURN_INGESTION_TIMESTAMP))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("No originating tool call found")
-          .hasMessageContaining("orphan");
-    }
-
-    @Test
-    void shouldDefaultNullToolResultIdAndNameToEmptyStrings() {
-      givenHistoryCommand();
-
-      // a partial tool result missing its id/name must not fail the turn as long as the required
-      // elementId is present
-      final var turn =
-          new AgentConversationTurn(
-              1,
-              List.of(
-                  ToolCallResultMessage.builder()
-                      .results(
-                          List.of(
-                              ToolCallResultContent.builder()
-                                  .elementId("getTime")
-                                  .content(List.of(TextContent.textContent("partial")))
-                                  .completedAt(TURN_INGESTION_TIMESTAMP)
-                                  .build()))
-                      .build()),
-              null,
-              AgentMetrics.empty());
-
-      // when / then: no NPE, empty-string identifiers, elementId preserved
-      client.createHistoryForInputMessages(
-          TestAgentExecutionContext.withLimits(),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          turn,
-          Optional.empty(),
-          TURN_INGESTION_TIMESTAMP);
-
-      final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
-          ArgumentCaptor.forClass(List.class);
-      verify(historyCommand).toolCalls(toolCallsCaptor.capture());
-      assertThat(toolCallsCaptor.getValue())
-          .singleElement()
-          .satisfies(
-              tc -> {
-                assertThat(tc.getToolCallId()).isEmpty();
-                assertThat(tc.getToolName()).isEmpty();
-                assertThat(tc.getElementId()).isEqualTo("getTime");
-                assertThat(tc.getArguments()).isEmpty();
-              });
-    }
-
-    @Test
-    void shouldThrowWhenToolResultElementIdCannotBeResolved() {
-      // a tool result with neither an elementId nor a name leaves the required elementId
-      // unresolvable
-      final var turn =
-          new AgentConversationTurn(
-              1,
-              List.of(
-                  ToolCallResultMessage.builder()
-                      .results(
-                          List.of(
-                              ToolCallResultContent.builder()
-                                  .content(List.of(TextContent.textContent("partial")))
-                                  .build()))
-                      .build()),
-              null,
-              AgentMetrics.empty());
-
-      // when / then
-      assertThatThrownBy(
-              () ->
-                  client.createHistoryForInputMessages(
-                      TestAgentExecutionContext.withLimits(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      turn,
-                      Optional.empty(),
-                      TURN_INGESTION_TIMESTAMP))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("Cannot resolve element id");
-    }
-
-    @Test
-    void shouldMapObjectContentToObjectBlock() {
-      givenHistoryCommand();
-
-      // given
-      final var turn =
-          new AgentConversationTurn(
-              1,
-              List.of(
-                  UserMessage.builder()
-                      .content(List.of(ObjectContent.objectContent(Map.of("key", "value"))))
-                      .build()),
-              null,
-              AgentMetrics.empty());
-
-      // when
-      client.createHistoryForInputMessages(
-          TestAgentExecutionContext.withLimits(),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          turn,
-          Optional.empty(),
-          TURN_INGESTION_TIMESTAMP);
-
-      // then
-      verify(historyCommand).content(contentCaptor.capture());
-      assertThat(contentCaptor.getValue())
-          .singleElement()
-          .isInstanceOfSatisfying(
-              AgentInstanceHistoryContent.ObjectContent.class,
-              object -> assertThat(object.getObject()).isEqualTo(Map.of("key", "value")));
-    }
-
-    @Test
-    void shouldMapNonMapObjectContentToObjectBlock() {
-      givenHistoryCommand();
-
-      // given: a list-shaped object result (e.g. a "list users" tool) mapped to OBJECT content
-      final var users = List.of("alice", "bob");
-      final var turn =
-          new AgentConversationTurn(
-              1,
-              List.of(
-                  UserMessage.builder()
-                      .content(List.of(ObjectContent.objectContent(users)))
-                      .build()),
-              null,
-              AgentMetrics.empty());
-
-      // when
-      client.createHistoryForInputMessages(
-          TestAgentExecutionContext.withLimits(),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          turn,
-          Optional.empty(),
-          TURN_INGESTION_TIMESTAMP);
-
-      // then
-      verify(historyCommand).content(contentCaptor.capture());
-      assertThat(contentCaptor.getValue())
-          .singleElement()
-          .isInstanceOfSatisfying(
-              AgentInstanceHistoryContent.ObjectContent.class,
-              object -> assertThat(object.getObject()).isEqualTo(users));
-    }
-
-    @Test
-    void shouldCreateAssistantHistoryItemWithToolCallsAndMetricsAfterChat() {
-      givenHistoryCommand();
-
-      // given
-      final var assistantMessage =
-          AssistantMessage.builder()
-              .content(MessageUtil.singleTextContent("Calling tools"))
-              .toolCalls(
-                  List.of(
-                      ToolCall.builder().id("tc-1").name("getWeather").arguments(Map.of()).build()))
-              .build();
-      final var turn =
-          new AgentConversationTurn(
-              2,
-              List.of(),
-              assistantMessage,
-              new AgentMetrics(1, new TokenUsage(11, 22), 1, Duration.ofMillis(345)));
-
-      // when
-      client.createHistoryForAssistantMessage(
-          TestAgentExecutionContext.withLimits(),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          turn,
-          TURN_INGESTION_TIMESTAMP);
-
-      // then
-      verify(historyCommand).role(AgentInstanceHistoryRole.ASSISTANT);
-      verify(historyCommand).loopIteration(2);
-      verify(historyCommand).producedAt(TURN_INGESTION_TIMESTAMP);
-
-      final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
-          ArgumentCaptor.forClass(List.class);
-      verify(historyCommand).toolCalls(toolCallsCaptor.capture());
-      assertThat(toolCallsCaptor.getValue())
-          .singleElement()
-          .satisfies(
-              tc -> {
-                assertThat(tc.getToolCallId()).isEqualTo("tc-1");
-                assertThat(tc.getToolName()).isEqualTo("getWeather");
-                // ad-hoc tool: element id == tool name (gateway registry resolves to empty)
-                assertThat(tc.getElementId()).isEqualTo("getWeather");
-              });
-
-      final ArgumentCaptor<AgentInstanceHistoryMetrics> metricsCaptor =
-          ArgumentCaptor.forClass(AgentInstanceHistoryMetrics.class);
-      verify(historyCommand).metrics(metricsCaptor.capture());
-      assertThat(metricsCaptor.getValue().getInputTokens()).isEqualTo(11L);
-      assertThat(metricsCaptor.getValue().getOutputTokens()).isEqualTo(22L);
-      assertThat(metricsCaptor.getValue().getDurationMs()).isEqualTo(345L);
-
-      verify(historyCommand).execute();
-    }
-
-    @Test
-    void shouldResolveElementIdForGatewayAssistantToolCall() {
-      givenHistoryCommand();
-
-      // a gateway tool call keeps its namespaced name as toolName; elementId is the resolved
-      // BPMN element id from the gateway handlers
-      when(gatewayToolHandlers.resolveElementId("MCP_McpTest___greet"))
-          .thenReturn(Optional.of("McpTest"));
-
-      final var assistantMessage =
-          AssistantMessage.builder()
-              .content(MessageUtil.singleTextContent("Calling MCP tool"))
-              .toolCalls(
-                  List.of(
-                      ToolCall.builder()
-                          .id("tc-9")
-                          .name("MCP_McpTest___greet")
-                          .arguments(Map.of("name", "Peter"))
-                          .build()))
-              .build();
-      final var turn =
-          new AgentConversationTurn(
-              1, List.of(), assistantMessage, new AgentMetrics(1, new TokenUsage(1, 1), 1));
-
-      // when
-      client.createHistoryForAssistantMessage(
-          TestAgentExecutionContext.withLimits(),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          turn,
-          TURN_INGESTION_TIMESTAMP);
-
-      // then
-      final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
-          ArgumentCaptor.forClass(List.class);
-      verify(historyCommand).toolCalls(toolCallsCaptor.capture());
-      assertThat(toolCallsCaptor.getValue())
-          .singleElement()
-          .satisfies(
-              tc -> {
-                assertThat(tc.getToolCallId()).isEqualTo("tc-9");
-                assertThat(tc.getToolName()).isEqualTo("MCP_McpTest___greet");
-                assertThat(tc.getElementId()).isEqualTo("McpTest");
-              });
-    }
-
-    @Test
-    void shouldCreateToolOnlyAssistantItemWithEmptyContent() {
-      givenHistoryCommand();
-
-      // given: a tool-only assistant message (no text content)
-      final var assistantMessage =
-          AssistantMessage.builder()
-              .toolCalls(
-                  List.of(
-                      ToolCall.builder().id("tc-1").name("getWeather").arguments(Map.of()).build()))
-              .build();
-      final var turn =
-          new AgentConversationTurn(
-              1, List.of(), assistantMessage, new AgentMetrics(1, TokenUsage.empty(), 1));
-
-      // when
-      client.createHistoryForAssistantMessage(
-          TestAgentExecutionContext.withLimits(),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          turn,
-          TURN_INGESTION_TIMESTAMP);
-
-      // then: empty content is valid since the tool call carries the turn's intent
-      verify(historyCommand).content(contentCaptor.capture());
-      assertThat(contentCaptor.getValue()).isEmpty();
-    }
-
-    @Test
-    void shouldMapCamundaDocumentContentToDocumentBlock() {
-      givenHistoryCommand();
-
-      // given: a user message carrying a Camunda document reference
-      final var ref = mock(CamundaDocumentReference.class);
-      when(ref.getDocumentId()).thenReturn("doc-1");
-      when(ref.getStoreId()).thenReturn("store-1");
-      when(ref.getContentHash()).thenReturn("hash-1");
-      final var document = mock(Document.class);
-      when(document.reference()).thenReturn(ref);
-      when(document.metadata()).thenReturn(null);
-
-      final var turn =
-          new AgentConversationTurn(
-              1,
-              List.of(
-                  UserMessage.builder()
-                      .content(List.of(DocumentContent.documentContent(document)))
-                      .build()),
-              null,
-              AgentMetrics.empty());
-
-      // when
-      client.createHistoryForInputMessages(
-          TestAgentExecutionContext.withLimits(),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          turn,
-          Optional.empty(),
-          TURN_INGESTION_TIMESTAMP);
-
-      // then: document reference is built via the client library without throwing
-      verify(historyCommand).content(contentCaptor.capture());
-      assertThat(contentCaptor.getValue())
-          .singleElement()
-          .isInstanceOfSatisfying(
-              AgentInstanceHistoryContent.DocumentContent.class,
-              doc -> assertThat(doc.getDocumentReference().getDocumentId()).isEqualTo("doc-1"));
-    }
-
-    @Test
-    void shouldThrowWhenDocumentReferenceTypeUnsupported() {
-      // given: a document carrying an unsupported reference type
-      final var document = mock(Document.class);
-      when(document.reference()).thenReturn(mock(InlineDocumentReference.class));
-      final var turn =
-          new AgentConversationTurn(
-              1,
-              List.of(
-                  UserMessage.builder()
-                      .content(List.of(DocumentContent.documentContent(document)))
-                      .build()),
-              null,
-              AgentMetrics.empty());
-
-      // when / then
-      assertThatThrownBy(
-              () ->
-                  client.createHistoryForInputMessages(
-                      TestAgentExecutionContext.withLimits(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      turn,
-                      Optional.empty(),
-                      TURN_INGESTION_TIMESTAMP))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("Unsupported document reference type");
-    }
-
-    @Test
-    void shouldThrowWhenExternalDocumentReferenceMissingName() {
-      // given: an external document reference with a url but no name
-      final var ref = mock(ExternalDocumentReference.class);
-      when(ref.url()).thenReturn("https://example.com/doc");
-      when(ref.name()).thenReturn(null);
-      final var document = mock(Document.class);
-      when(document.reference()).thenReturn(ref);
-      final var turn =
-          new AgentConversationTurn(
-              1,
-              List.of(
-                  UserMessage.builder()
-                      .content(List.of(DocumentContent.documentContent(document)))
-                      .build()),
-              null,
-              AgentMetrics.empty());
-
-      // when / then
-      assertThatThrownBy(
-              () ->
-                  client.createHistoryForInputMessages(
-                      TestAgentExecutionContext.withLimits(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      turn,
-                      Optional.empty(),
-                      TURN_INGESTION_TIMESTAMP))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("External document reference requires both url and name");
-    }
-
-    @Test
-    void shouldThrowWhenAssistantMessageHasNeitherContentNorToolCalls() {
-      // given: an assistant message with no content and no tool calls
-      final var turn =
-          new AgentConversationTurn(
-              1,
-              List.of(),
-              AssistantMessage.builder().build(),
-              new AgentMetrics(1, TokenUsage.empty(), 0));
-
-      // when / then
-      assertThatThrownBy(
-              () ->
-                  client.createHistoryForAssistantMessage(
-                      TestAgentExecutionContext.withLimits(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      turn,
-                      TURN_INGESTION_TIMESTAMP))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("neither content nor tool calls");
-    }
-
-    @Test
-    void shouldThrowHistoryItemFailedWhenRetriesExhausted() {
-      givenHistoryCommand();
-
-      // given
-      when(historyCommand.execute())
-          .thenThrow(new ClientHttpException(500, "Internal Server Error"));
-      final var turn =
-          new AgentConversationTurn(
-              1,
-              List.of(UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build()),
-              null,
-              AgentMetrics.empty());
-
-      // when / then
-      assertThatThrownBy(
-              () ->
-                  client.createHistoryForInputMessages(
-                      TestAgentExecutionContext.withLimits(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      turn,
-                      Optional.empty(),
-                      TURN_INGESTION_TIMESTAMP))
-          .isInstanceOfSatisfying(
-              ConnectorException.class,
-              e ->
-                  assertThat(e.getErrorCode())
-                      .isEqualTo(ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED));
-
-      assertThat(recordedSleeps).hasSize(4);
-    }
-
-    @Test
-    void shouldSkipBeforeChatWhenAgentInstanceKeyNull() {
-      final var turn =
-          new AgentConversationTurn(
-              1,
-              List.of(UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build()),
-              null,
-              AgentMetrics.empty());
-
-      client.createHistoryForInputMessages(
-          TestAgentExecutionContext.withLimits(),
+    private AgentConfiguration configuration() {
+      return new AgentConfiguration(
+          new OpenAiProviderConfiguration(
+              new OpenAiProviderConfiguration.OpenAiConnection(
+                  null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null))),
+          new PromptConfiguration.SystemPromptConfiguration("Be nice."),
           null,
-          turn,
-          Optional.empty(),
-          TURN_INGESTION_TIMESTAMP);
-
-      verifyNoInteractions(historyCommand);
-      verify(camundaClient, never()).newCreateAgentHistoryItemCommand(anyLong());
+          null,
+          null,
+          null,
+          null);
     }
 
     @Test
-    void shouldSkipAfterChatWhenAgentInstanceKeyNull() {
+    void shouldThrowNonRetryableConnectorRetryExceptionOn404ForApplyTurnStart() {
+      givenUpdateCommand();
+      when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
+
+      assertThatThrownBy(
+              () ->
+                  client.applyTurnStart(
+                      TestAgentExecutionContext.withLimits(),
+                      configuration(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      userMessageTurn(),
+                      Optional.empty(),
+                      TURN_INGESTION_TIMESTAMP))
+          .isInstanceOfSatisfying(
+              ConnectorRetryException.class,
+              e -> {
+                assertThat(e.getRetries()).isEqualTo(0);
+                assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_SUPERSEDED);
+              });
+      assertThat(recordedSleeps).isEmpty();
+    }
+
+    @Test
+    void shouldThrowNonRetryableConnectorRetryExceptionOn404ForApplyTurnCompletion() {
+      givenUpdateCommand();
+      when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
       final var turn =
           new AgentConversationTurn(
               1,
               List.of(),
               AssistantMessage.builder().content(MessageUtil.singleTextContent("done")).build(),
-              new AgentMetrics(1, TokenUsage.empty(), 0));
+              new AgentMetrics(1, TokenUsage.empty(), 0),
+              null);
 
-      client.createHistoryForAssistantMessage(
-          TestAgentExecutionContext.withLimits(), null, turn, TURN_INGESTION_TIMESTAMP);
-
-      verifyNoInteractions(historyCommand);
-      verify(camundaClient, never()).newCreateAgentHistoryItemCommand(anyLong());
+      assertThatThrownBy(
+              () ->
+                  client.applyTurnCompletion(
+                      TestAgentExecutionContext.withLimits(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      turn,
+                      TURN_INGESTION_TIMESTAMP,
+                      AgentInstanceUpdateStatus.IDLE))
+          .isInstanceOfSatisfying(
+              ConnectorRetryException.class, e -> assertThat(e.getRetries()).isEqualTo(0));
     }
-  }
-
-  @Nested
-  class JobLeaseFencing {
-
-    private static final String LEASE_TOKEN = "lease-token-abc";
 
     @Test
-    void shouldNeverForwardLeaseTokenOnUpdate() {
+    void shouldThrowNonRetryableConnectorRetryExceptionOn404ForApplyToolCallResults() {
       givenUpdateCommand();
+      when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
+      final var previousTurn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder()
+                  .toolCalls(List.of(ToolCall.builder().id("a").name("getWeather").build()))
+                  .build(),
+              AgentMetrics.empty(),
+              null);
 
-      // when: an activation carrying a lease token issues an update
-      client.update(
-          TestAgentExecutionContext.withLeaseToken(LEASE_TOKEN),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
-
-      // then: the lease is not forwarded on the update command -- on that command it only fences a
-      // batched history() list, which this status/metrics update never sends
-      verify(updateCommandStep2, never()).jobLease(any());
-      verify(updateCommandStep2).execute();
+      assertThatThrownBy(
+              () ->
+                  client.applyToolCallResults(
+                      TestAgentExecutionContext.withLimits(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      List.of(
+                          ToolCallResult.builder()
+                              .id("a")
+                              .name("getWeather")
+                              .completedAt(TURN_INGESTION_TIMESTAMP)
+                              .build()),
+                      previousTurn))
+          .isInstanceOfSatisfying(
+              ConnectorRetryException.class, e -> assertThat(e.getRetries()).isEqualTo(0));
     }
 
     @Test
-    void shouldForwardLeaseTokenOnHistoryItemWhenActivationIsLeased() {
-      givenHistoryCommand();
+    void shouldThrowNonRetryableConnectorRetryExceptionOn404ForApplyToolDiscoveryStart() {
+      givenUpdateCommand();
+      when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
 
-      final var turn =
-          new AgentConversationTurn(
-              1,
-              List.of(UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build()),
-              null,
-              AgentMetrics.empty());
-
-      // when
-      client.createHistoryForInputMessages(
-          TestAgentExecutionContext.withLeaseToken(LEASE_TOKEN),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          turn,
-          Optional.empty(),
-          OffsetDateTime.parse("2026-07-02T10:00:00Z"));
-
-      // then
-      verify(historyCommand).jobLease(LEASE_TOKEN);
-      verify(historyCommand).execute();
+      assertThatThrownBy(
+              () ->
+                  client.applyToolDiscoveryStart(
+                      TestAgentExecutionContext.withLimits(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY)))
+          .isInstanceOfSatisfying(
+              ConnectorRetryException.class,
+              e -> {
+                assertThat(e.getRetries()).isEqualTo(0);
+                assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_SUPERSEDED);
+              });
+      assertThat(recordedSleeps).isEmpty();
     }
 
     @Test
-    void shouldNotForwardLeaseTokenOnHistoryItemWhenActivationIsNotLeased() {
-      givenHistoryCommand();
+    void shouldKeepPermanentUpdateFailedForApplyTurnStartOn400() {
+      givenUpdateCommand();
+      when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
 
-      final var turn =
-          new AgentConversationTurn(
-              1,
-              List.of(UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build()),
-              null,
-              AgentMetrics.empty());
+      assertThatThrownBy(
+              () ->
+                  client.applyTurnStart(
+                      TestAgentExecutionContext.withLimits(),
+                      configuration(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      userMessageTurn(),
+                      Optional.empty(),
+                      TURN_INGESTION_TIMESTAMP))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED))
+          .isNotInstanceOf(ConnectorRetryException.class);
+      assertThat(recordedSleeps).isEmpty();
+    }
 
-      // when: an activation without a lease token issues a history item
-      client.createHistoryForInputMessages(
-          TestAgentExecutionContext.withLimits(),
-          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          turn,
-          Optional.empty(),
-          OffsetDateTime.parse("2026-07-02T10:00:00Z"));
+    @Test
+    void shouldRetryApplyTurnStartOn5xxThenFailAfterExhaustion() {
+      givenUpdateCommand();
+      when(updateCommandStep2.execute())
+          .thenThrow(new ClientHttpException(500, "Internal Server Error"));
 
-      // then: no lease is forwarded
-      verify(historyCommand, never()).jobLease(any());
-      verify(historyCommand).execute();
+      assertThatThrownBy(
+              () ->
+                  client.applyTurnStart(
+                      TestAgentExecutionContext.withLimits(),
+                      configuration(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      userMessageTurn(),
+                      Optional.empty(),
+                      TURN_INGESTION_TIMESTAMP))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED))
+          .isNotInstanceOf(ConnectorRetryException.class);
+      assertThat(recordedSleeps).hasSize(4);
     }
   }
 

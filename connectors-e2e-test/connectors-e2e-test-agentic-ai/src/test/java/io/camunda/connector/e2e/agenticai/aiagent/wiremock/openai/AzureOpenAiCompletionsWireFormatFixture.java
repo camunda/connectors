@@ -18,6 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
@@ -25,32 +26,45 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatReque
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
  * Plugs Azure OpenAI's Chat Completions wire format into the provider-agnostic {@link
- * ProviderWireFormatFixture} SPI.
+ * ProviderWireFormatFixture} SPI, driving the connector through the v1 {@code azureOpenAi} element
+ * template: the v1 template's {@code provider.azureOpenAi.*} config is rewritten onto the native v2
+ * OpenAI provider's {@code foundry} backend ({@code
+ * OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend} - see {@code
+ * V1ToV2ProviderConfigurationMapperImpl#mapAzureOpenAi}), which:
  *
- * <p>The request/response body shape is byte-for-byte identical to OpenAI's, so this fixture reuses
- * {@link OpenAiCompletionsChatModelStubs}, {@link OpenAiCompletionsRecordedConversation} and {@link
- * OpenAiCompletionsRecordedChatRequestAdapter} directly rather than duplicating them — only the URL
- * (deployment-based, {@code {endpoint}/openai/deployments/{deploymentId}/chat/completions}) and
- * authentication differ, which this class configures below.
- *
- * <p>Azure's SDK ({@code azure-core}'s {@code KeyCredentialPolicy}) unconditionally rejects
- * non-HTTPS endpoints when using API-key authentication (hardcoded, no builder-level bypass) — so
- * unlike the other three fixtures, this one points at WireMock's HTTPS port, whose self-signed
- * certificate ({@code BaseAgentTest.httpsKeystoreFile()}) is also configured as the JVM's trust
- * store for this test run (see {@code ProviderWireFormatSmokeTests}).
- *
- * <p>Separately, {@code langchain4j-azure-openai}'s message mapper only handles {@code
- * TextContent}/{@code ImageContent} in user messages, not {@code PdfFileContent}, unlike
- * OpenAI/Anthropic/Bedrock.
+ * <ul>
+ *   <li>always drives the vendor SDK's streaming endpoint ({@code
+ *       client.chat().completions().createStreaming(params)}) - so the response body must be a real
+ *       {@code text/event-stream} SSE stream, exactly like the plain OpenAI/{@code
+ *       openaiCompatible} rows. The request/response chunk shape is otherwise byte-for-byte
+ *       identical to OpenAI's, so this fixture reuses {@link OpenAiCompletionsChatModelStubs}
+ *       (already SSE-based), {@link OpenAiCompletionsRecordedConversation} and {@link
+ *       OpenAiCompletionsRecordedChatRequestAdapter} directly rather than duplicating them.
+ *   <li>normalizes the configured endpoint by appending a unified {@code /openai/v1} path segment
+ *       ({@code AzureUrlPathMode.UNIFIED}) rather than the deployment-based path the old
+ *       LangChain4j/azure-core client used ({@code
+ *       /openai/deployments/{deploymentId}/chat/completions}) - the openai-java SDK then appends
+ *       the family path itself, giving {@code {endpoint}/openai/v1/chat/completions}. There is no
+ *       {@code api-version} query parameter unless one is explicitly configured (the v1&rarr;v2
+ *       mapper never sets one), and the model is addressed via the body's {@code model} field, not
+ *       a deployment-name path segment.
+ *   <li>sends API-key authentication as a dedicated {@code api-key} header via the openai-java
+ *       SDK's own credential type, not {@code Authorization: Bearer} and not {@code azure-core}'s
+ *       {@code KeyCredentialPolicy} - so, unlike the pre-rewrite client, HTTPS is no longer
+ *       enforced at the credential layer. This fixture still points at WireMock's HTTPS port for
+ *       parity with real Azure endpoints; its self-signed certificate ({@code
+ *       BaseAgentTest.httpsKeystoreFile()}) is trusted JVM-wide for this test run (see {@code
+ *       ProviderWireFormatSmokeTests}).
+ * </ul>
  */
 public final class AzureOpenAiCompletionsWireFormatFixture implements ProviderWireFormatFixture {
 
-  private static final String CHAT_COMPLETIONS_PATH =
-      "/openai/deployments/test-model/chat/completions";
+  private static final String CHAT_COMPLETIONS_PATH = "/openai/v1/chat/completions";
 
   @Override
   public String apiName() {
@@ -72,6 +86,17 @@ public final class AzureOpenAiCompletionsWireFormatFixture implements ProviderWi
             .property("provider.azureOpenAi.authentication.type", "apiKey")
             .property("provider.azureOpenAi.authentication.apiKey", "dummy")
             .property("provider.azureOpenAi.model.deploymentName", "test-model");
+  }
+
+  @Override
+  public String elementTemplatePath(String defaultElementTemplatePath) {
+    return AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
+  }
+
+  @Override
+  public Map<String, String> elementTemplateBaselineProperties(
+      Map<String, String> defaultProperties) {
+    return AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PROPERTIES;
   }
 
   @Override

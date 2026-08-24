@@ -67,7 +67,9 @@ public final class BedrockConverseRecordedConversation {
         new ArrayList<>(
             findAll(
                 postRequestedFor(
-                    urlPathMatching(BedrockConverseChatModelStubs.CONVERSE_PATH + "(-stream)?"))));
+                    urlPathMatching(
+                        StreamingBedrockConverseEventStreamChatModelStubs.CONVERSE_PATH
+                            + "(-stream)?"))));
 
     loggedRequests.sort(Comparator.comparing(LoggedRequest::getLoggedDate));
 

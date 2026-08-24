@@ -13,6 +13,7 @@ import com.openai.core.JsonValue;
 import com.openai.core.ObjectMappers;
 import com.openai.models.Reasoning;
 import com.openai.models.ReasoningEffort;
+import com.openai.models.ResponseFormatJsonObject;
 import com.openai.models.responses.EasyInputMessage;
 import com.openai.models.responses.FunctionTool;
 import com.openai.models.responses.ResponseCreateParams;
@@ -355,6 +356,15 @@ public class OpenAiResponsesRequestConverter {
   private void applyStructuredOutput(
       ResponseCreateParams.Builder builder, @Nullable ResponseConfiguration response) {
     if (!(response != null && response.format() instanceof JsonResponseFormatConfiguration json)) {
+      return;
+    }
+    if (!json.hasSchema()) {
+      // JSON mode without a schema: constrain the model to valid JSON without a structure.
+      builder.text(
+          ResponseTextConfig.builder()
+              .format(
+                  ResponseFormatTextConfig.ofJsonObject(ResponseFormatJsonObject.builder().build()))
+              .build());
       return;
     }
     builder.text(

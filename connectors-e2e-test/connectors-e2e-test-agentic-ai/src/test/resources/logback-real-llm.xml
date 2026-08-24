@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logging for the real-LLM E2E suite. Loaded only via `logback.configurationFile` from the
+  `it-real-llm` profile, so the rest of the module keeps its default logging: the file is
+  deliberately not named `logback-test.xml`, which logback would pick up for every test.
+
+  CPT re-emits the connectors container's JSON log on the `tc.connectors` logger at the level the
+  container logged with, so raising the container-side level only has an effect if this logger
+  passes the events on. The container's Stackdriver layout maps TRACE onto DEBUG, so DEBUG here
+  also surfaces trace-level container output.
+-->
+<configuration>
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="tc.connectors" level="DEBUG" />
+  <logger name="io.camunda.process.test" level="INFO" />
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE" />
+  </root>
+</configuration>

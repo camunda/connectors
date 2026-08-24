@@ -24,6 +24,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
@@ -43,12 +44,16 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi.ResponsesParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend.OpenAiApiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend.FoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;
@@ -57,6 +62,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -171,6 +177,65 @@ class OpenAiChatModelFactoryClientTest {
         postRequestedFor(urlPathEqualTo("/responses"))
             .withHeader("X-Custom-Header", equalTo("header-value"))
             .withQueryParam("custom-query-param", equalTo("query-value")));
+  }
+
+  @Test
+  void appliesApiKeyHeaderForFoundryBackend(WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new OpenAiFoundryBackend(
+            new FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                null,
+                null,
+                null)));
+
+    // Azure wants the API key on a dedicated `api-key` header, never `Authorization: Bearer`.
+    // The endpoint is normalized onto the unified OpenAI/v1 API surface, so the request lands on
+    // /openai/v1/responses rather than the bare /responses path.
+    verify(
+        postRequestedFor(urlPathEqualTo("/openai/v1/responses"))
+            .withHeader("api-key", equalTo("foundry-secret-key")));
+  }
+
+  @Test
+  void foundryBackendAppliesHiddenHeadersAndQueryParameters(WireMockRuntimeInfo wireMock) {
+    executeAgainst(
+        new OpenAiFoundryBackend(
+            new FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                null,
+                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                Map.of("X-Custom-Header", "header-value"),
+                Map.of("custom-query-param", "query-value"),
+                null)));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/openai/v1/responses"))
+            .withHeader("X-Custom-Header", equalTo("header-value"))
+            .withQueryParam("custom-query-param", equalTo("query-value")));
+  }
+
+  @Test
+  void appliesApiVersionForFoundryBackendRegardlessOfHost(WireMockRuntimeInfo wireMock) {
+    // WireMock's host (127.0.0.1) is not on the openai-java SDK's AzureUrlPathMode.AUTO host
+    // allowlist -- same as a real Azure Government (*.azure.us) endpoint. Without explicitly
+    // forcing AzureUrlPathMode.UNIFIED, AUTO would classify this as NON_AZURE and silently drop
+    // the apiVersion escape hatch below.
+    executeAgainst(
+        new OpenAiFoundryBackend(
+            new FoundryBackend(
+                wireMock.getHttpBaseUrl(),
+                "2025-03-01-preview",
+                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                null,
+                null,
+                null)));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/openai/v1/responses"))
+            .withQueryParam("api-version", equalTo("2025-03-01-preview")));
   }
 
   @Test
@@ -311,7 +376,11 @@ class OpenAiChatModelFactoryClientTest {
             new OpenAiResponsesStrategy(
                 new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
                 new OpenAiResponsesResponseConverter(objectMapper),
-                OpenAiResponsesStreamAssembler.accumulating()));
+                OpenAiResponsesStreamAssembler.accumulating()),
+            new OpenAiFoundryCredentialResolver(
+                new EntraIdTokenCredentialFactory(
+                    httpProxySupport,
+                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
     final var configuration =
         new OpenAiChatModelConfiguration(
             new OpenAiChatModelConfiguration.OpenAiConnection(

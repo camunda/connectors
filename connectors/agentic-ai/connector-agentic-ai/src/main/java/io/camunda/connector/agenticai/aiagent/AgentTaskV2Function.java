@@ -21,7 +21,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
  */
 @OutboundConnector(
     name = "AI Agent Task",
-    inputVariables = {"provider", "data"},
+    inputVariables = {AgentProcessVariables.PROVIDER, AgentProcessVariables.DATA},
     type = "io.camunda.agenticai:aiagent:task:2",
     withLease = true)
 @ElementTemplate(
@@ -36,7 +36,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = AgentTaskV2Request.class,
     outputDataClass = AgentResponse.class,
-    defaultResultVariable = "agent",
+    defaultResultVariable = AgentProcessVariables.AGENT_RESPONSE,
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),
       @PropertyGroup(

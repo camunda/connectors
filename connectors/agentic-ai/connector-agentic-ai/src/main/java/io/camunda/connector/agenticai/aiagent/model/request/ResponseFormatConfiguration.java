@@ -73,5 +73,15 @@ public sealed interface ResponseFormatConfiguration {
               defaultValue = "Response",
               optional = true)
           String schemaName)
-      implements ResponseFormatConfiguration {}
+      implements ResponseFormatConfiguration {
+
+    /**
+     * {@code false} both when no schema was configured ({@code null}) and when one was configured
+     * as an empty object ({@code ={}} via FEEL) -- an empty schema constrains nothing, so it's
+     * treated the same as no schema at all.
+     */
+    public boolean hasSchema() {
+      return schema != null && !schema.isEmpty();
+    }
+  }
 }

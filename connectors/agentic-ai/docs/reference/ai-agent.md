@@ -403,9 +403,9 @@ invocation and transformed through copy-on-write methods.
   stamping `AgentMetadata.lastIterationKey` with its `iterationKey` (when metadata is present).
 - `jobMetrics()`: the metrics accrued in this invocation — every turn produced by this job (the
   current turn plus any continuation rounds rolled into `previousTurns`), excluding the durable base
-  counter. Reconstructed prior-job turns carry `AgentMetrics.empty()` and contribute zero. This is
-  the single delta pushed to the agent instance per job; on the non-continuation path it equals the
-  current turn's delta.
+  counter. Reconstructed prior-job turns carry `AgentMetrics.empty()` and contribute zero. Used for the
+  cumulative `totalMetrics()` counter below; each turn's own metrics (not this sum) are what gets
+  reported to the agent instance per round (see [§23](#23-agent-instance-integration)).
 - `totalMetrics()`: returns the durable `AgentContext.metrics()` plus `jobMetrics()` — **not** a sum
   over the reconstructed turns, which always carry `AgentMetrics.empty()`. The model-call limit check
   (`BaseAgentRequestHandler.throwIfLimitsReached`) relies on this cumulative counter.
@@ -833,7 +833,7 @@ throws a `ConnectorException` with `ERROR_CODE_NO_USER_MESSAGE_CONTENT`.
 `CompositionResult.Deferred` carries `arrivedResults`: the tool call results correlated and
 gateway-transformed by `AgentConversationTurnInputComposerImpl.resolveOrderedToolCallResults`
 before it determined the batch was still incomplete. `BaseAgentRequestHandler.reportArrivedToolCallResults`
-reports these to agent instance history via `AgentInstanceClient.createHistoryForToolCallResults`
+reports these to agent instance history via `AgentInstanceClient.applyToolCallResults`
 before completing the job, so history shows progress before the slowest tool call in a turn
 finishes — instead of only once the whole batch completes and `proceed()` runs. See
 [ADR 011](../adr/011-stream-tool-call-results-to-agent-instance-history.md) for the full design.
@@ -845,13 +845,13 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
   correlated set on every call, since Zeebe's `toolCallResults` variable is cumulative across jobs
   (§9) and there is no state to track what an earlier job already reported. A result that arrives
   while other tool calls in the same turn are still outstanding is reported by every subsequent
-  incomplete job that still observes it, plus once more by `createHistoryForInputMessages` once
+  incomplete job that still observes it, plus once more by `applyTurnStart` once
   the batch completes — for a turn with `N` staggered tool calls, up to `N(N+1)/2` writes in total.
 - **No new persisted state.** The `Deferred` path touches neither `AgentContext` nor the
   `ConversationStore` — reporting to agent instance history is its only side effect.
-- **Strict failure.** Unlike the metrics-update listener (which fires after job completion and
-  swallows failures), this call runs before completion and a failure fails the job, same as the
-  other `AgentInstanceClient` history calls.
+- **Strict failure.** This call runs before job completion, synchronously, like every other
+  `AgentInstanceClient` write since [ADR 013](../adr/013-unified-agent-instance-turn-updates.md) — a
+  failure fails the job.
 
 ---
 
@@ -868,7 +868,7 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
 - The no-op completion pattern means most superseded jobs were doing nothing anyway
 - Superseded jobs produce a `CommandIgnored` outcome — the conversation store receives `onJobCompletionFailed` with a `CommandIgnored` failure
 
-**Job leasing**: All AI Agent connectors — both flavors, v1 and v2 (`AgentTaskV1Function`, `AgentTaskV2Function`, `AgentSubProcessV1Function`, `AgentSubProcessV2Function`) — opt into job leasing via `@OutboundConnector(withLease = true)`. (v1 is leased too because the agent-instance integration does not differentiate by version: a custom v1 template can still carry an agent definition and emit visibility data, so it needs the same fencing.) Each activation carries a per-activation `leaseToken` (`JobContext#getLeaseToken()`), and the runtime completes/fails jobs through the `ActivatedJob`-based command overloads, so completion is fenced against a superseded activation automatically. The agent-instance conversation-history writes are fenced too — `CamundaAgentInstanceClient` forwards the token via `jobLease(...)` on the create-history command, so a superseded activation's history items are discarded server-side (see [§23](#23-agent-instance-integration)). The status/metrics update goes through a separate command that carries no history batch, and its `jobLease` step only guards a batched history list, so those updates are not lease-fenced (best-effort, as before). Note the version-skew contract on `OutboundConnector#withLease`: over gRPC a pre-leasing gateway drops the field (token is `null`), so the client only forwards a lease when one is present; over REST an older gateway rejects the activation (HTTP 400). The gateway/MCP/A2A tool connectors are not leased. For the underlying job-lease mechanism itself, see the monorepo ADR [0005-810-job-lease](https://github.com/camunda/camunda/blob/main/zeebe/docs/adr/0005-810-job-lease.md).
+**Job leasing**: All AI Agent connectors — both flavors, v1 and v2 (`AgentTaskV1Function`, `AgentTaskV2Function`, `AgentSubProcessV1Function`, `AgentSubProcessV2Function`) — opt into job leasing via `@OutboundConnector(withLease = true)`. (v1 is leased too because the agent-instance integration does not differentiate by version: a custom v1 template can still carry an agent definition and emit visibility data, so it needs the same fencing.) Each activation carries a per-activation `leaseToken` (`JobContext#getLeaseToken()`), and the runtime completes/fails jobs through the `ActivatedJob`-based command overloads, so completion is fenced against a superseded activation automatically. The agent-instance turn writes are fenced too: `applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart` each batch their history items (empty, for `applyToolDiscoveryStart`) onto a single `update()` command carrying `jobKey` and, when present, `jobLease`; the engine rejects a lease mismatch with `404`, which `CamundaAgentInstanceClient` maps to a non-retryable `ConnectorRetryException` (`AGENT_INSTANCE_SUPERSEDED`) instead of retrying (see [§23](#23-agent-instance-integration)). Note the version-skew contract on `OutboundConnector#withLease`: over gRPC a pre-leasing gateway drops the field (token is `null`), so the client only forwards a lease when one is present; over REST an older gateway rejects the activation (HTTP 400). The gateway/MCP/A2A tool connectors are not leased. For the underlying job-lease mechanism itself, see the monorepo ADR [0005-810-job-lease](https://github.com/camunda/camunda/blob/main/zeebe/docs/adr/0005-810-job-lease.md).
 
 ### Challenge 2: Conversation Store Ahead of Zeebe
 
@@ -1004,12 +1004,12 @@ model-call limit and starts the next continuation round on a fresh turn before l
 result ends the loop. LangChain4j always returns `Completed`, so the loop runs exactly once for it —
 behavior-identical to the pre-SPI single call.
 
-Agent-instance metrics are reported **once per job**, not per continuation round: the single
-post-loop push (synchronous or deferred, see [metrics reporting](adr/005-agent-instance-metrics-reporting.md))
-carries `AgentConversation.jobMetrics()` — the summed delta across every round produced this
-invocation. The engine applies metric updates additively, so collapsing the rounds into one push
-keeps the counters correct while minimizing PATCH round-trips (and narrows the retry double-count
-window pending the API-level idempotency fix).
+Agent-instance metrics are reported **once per continuation round**, not once per job: each round's
+`applyTurnCompletion` call carries that round's own `AgentConversationTurn.metrics()` on its
+`ASSISTANT` history item, and the engine derives its cumulative counters from the item itself
+(`modelCalls += 1` per `ASSISTANT` item, `toolCalls` from that item's own tool-call count) rather than
+from a request-level delta. See [§23](#23-agent-instance-integration) and
+[ADR 013](../adr/013-unified-agent-instance-turn-updates.md).
 
 ### Normalized stop reasons & ChatModelRejectedException
 
@@ -1170,7 +1170,7 @@ on).
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
 | `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED`               | `AGENT_INSTANCE_UPDATE_FAILED`                 | agent instance update failed (retries exhausted or non-retryable)       |
-| `ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED`         | `AGENT_INSTANCE_HISTORY_ITEM_FAILED`           | agent instance history item write failed (retries exhausted or non-retryable) |
+| `ERROR_CODE_AGENT_INSTANCE_SUPERSEDED`                  | `AGENT_INSTANCE_SUPERSEDED`                    | a batched agent instance update was rejected because the job activation was superseded (zero retries) |
 
 Additional errors from `CamundaClientProcessDefinitionAdHocToolElementsResolver`:
 - `AD_HOC_SUB_PROCESS_NOT_FOUND` — element ID doesn't resolve to an `AdHocSubProcess` in BPMN
@@ -1317,6 +1317,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `anthropic.AnthropicChatModelFactory` / `anthropic.AnthropicChatModel.execute()` → Drives the Anthropic Java SDK's stable Messages client directly, for `AnthropicChatModelConfiguration`
 - `bedrock.BedrockConverseChatModelFactory` / `bedrock.BedrockConverseChatModel.execute()` → Drives the AWS SDK's async `converseStream` operation (the synchronous `BedrockRuntimeClient` has no streaming operation), assembling the streamed events into a `ConverseResponse` via `BedrockConverseStreamAssembler`, for `BedrockConverseChatModelConfiguration`
 - `openai.OpenAiChatModelFactory` / `openai.OpenAiChatModel.execute()` → Drives the OpenAI Java SDK directly across both wire formats (Chat Completions, Responses) via the per-family `OpenAiApiFamilyStrategy` seam, for `OpenAiChatModelConfiguration`
+- `gemini.GeminiChatModelFactory` / `gemini.GeminiChatModel.execute()` → Drives the Google GenAI Java SDK's streaming `generateContentStream` directly, for `GeminiChatModelConfiguration`
 
 ### Configuration
 - `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
@@ -1725,62 +1726,81 @@ connector behavior, element template properties, or data model shapes, update th
 ## 23. Agent Instance Integration
 
 The agent reports its lifecycle to the engine's **agent instance** API via `AgentInstanceClient`
-(`CamundaAgentInstanceClient`). Update and history calls silently skip when the `agentInstanceKey` is
-`null` (agents that pre-date the feature); create has no such key to check, since it produces one. All
-calls retry transient failures via `CamundaApiRetry`. A `404` is treated as **permanent** (not
-retried) for create, update, and history items: all three write endpoints are
-`x-eventually-consistent: false` and are validated against primary processing state, with Zeebe's
-key-based partition routing guaranteeing the create is visible to the same partition before the key
-is ever returned to the caller. For update/history a `404` means the agent instance genuinely doesn't
-exist, not that it isn't visible yet; for create it means the referenced element instance doesn't
-exist.
+(`CamundaAgentInstanceClient`). Update calls silently skip when the `agentInstanceKey` is `null`
+(agents that pre-date the feature); create has no such key to check, since it produces one. All calls
+retry transient failures via `CamundaApiRetry`. A `404` from `create` is treated as **permanent** (not
+retried): its write endpoint is `x-eventually-consistent: false` and validated against primary
+processing state, with Zeebe's key-based partition routing guaranteeing the create is visible to the
+same partition before the key is ever returned to the caller. A `404` from any `update()` call
+(`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart` — each fenced
+via `jobKey`/`jobLease` on a `history(...)` batch, empty for `applyToolDiscoveryStart`) is instead
+treated as job supersession — see below.
 
-### Status & metrics
+### The two-call-per-turn design (ADR 013)
 
-- **Status** (`AgentInstanceUpdateStatus`): `THINKING` is sent synchronously before the LLM call;
-  `IDLE`/`TOOL_CALLING` after, `TOOL_DISCOVERY` on the discovery path.
-- **Metrics delta**: per-turn `modelCalls`, `inputTokens`, `outputTokens`, `toolCalls` are sent on or
-  after job completion (synchronously on terminal turns, deferred via a completion listener on
-  intermediate tool-call turns). `AgentMetrics.TokenUsage` additionally carries `cacheReadTokenCount`
-  / `cacheCreationTokenCount` (disjoint auxiliary buckets, never double-counted in `inputTokenCount`)
-  and `reasoningTokenCount` (a breakdown *within* `outputTokenCount`, not a disjoint bucket) where the
-  provider reports them; all three are omitted from persisted JSON when zero, and there is
-  intentionally no combined total-token accessor. See the javadoc on
-  [`AgentMetrics.TokenUsage`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentMetrics.java)
-  for the full semantics.
+Per turn, the agent issues exactly two batched `update()` calls, each carrying `jobKey` and (for a
+leased activation) `jobLease` alongside a `history(...)` list — never a separate create-history
+command:
+
+- **`applyTurnStart`** (`BaseAgentRequestHandler.proceed`, before the LLM call): moves the agent
+  instance to `THINKING` and appends the current turn's input-message history items (see below),
+  prepending a `CONFIGURATION` item when the system prompt or tool list changed since the previous
+  turn.
+- **`applyTurnCompletion`** (`BaseAgentRequestHandler.driveContinuationLoop`, once per round including
+  intermediate `ChatResult.Continuation` rounds): appends one `ASSISTANT` item carrying that round's
+  assistant text, `toolCalls`, and metrics (input/output tokens + `durationMs`, measured by the
+  `ChatModel` implementation itself and carried on `AgentConversationTurn.metrics()`), and sets the
+  status — `THINKING` again on a continuation round, the terminal status (`IDLE`/`TOOL_CALLING`,
+  based on that round's own tool-call count) on the final round. Exactly one status per call; metrics
+  are per-round, never summed across rounds at the handler level.
+
+Once a batch is attached to an `update()` command, the engine only allows `status` at the request
+level — `model`/`provider`/`systemPrompt`/`limits`/`tools` can only change through a `CONFIGURATION`
+history item. This connector still narrows that to system prompt and tool list only (`model`/
+`provider`/`limits` are fixed at `create` time and not currently re-pushed via `CONFIGURATION`; see
+the ADR's Deferred section).
+
+There is no more deferred, completion-listener-driven agent instance update: `applyTurnStart` and
+`applyTurnCompletion` both fire synchronously inline, so a job that never completes (crash, timeout)
+simply leaves the agent instance at its last-written status — the next activation overwrites it, the
+engine never rolls it back. The `TOOL_DISCOVERY` status patch (`dispatchToolDiscovery`) is sent the
+same way, synchronously, via `applyToolDiscoveryStart` (an empty-history batch through the same
+lease-fenced `update()` mechanism).
 
 ### Conversation history items
 
-During `BaseAgentRequestHandler.proceed`, the agent appends conversation history items around the LLM
-call (`POST /v2/agent-instances/{key}/history` via `newCreateAgentHistoryItemCommand`):
+- A `UserMessage` → one `USER` item (covers the user prompt, event messages, and virtual
+  document-reference messages).
+- A `ToolCallResultMessage` → **one `TOOL_RESULT` item per result**, each with that result's content
+  block(s) and a single-entry `toolCalls` array `{toolCallId: result.id(), toolName: result.name(),
+  elementId, arguments}` correlating it back to the originating tool call. The `arguments` are the
+  originating request arguments, looked up by tool-call id from the previous turn's assistant tool
+  calls (`AgentConversation.lastTurn()` — the previous turn while the current one is still pending —
+  → `AgentConversationTurn.toolCallsById()`), so each `TOOL_RESULT` item is self-contained for the
+  paginated history API and need not be joined back to the `ASSISTANT` item. Event results
+  (`id == null`) have no originating call and carry `{}`; a result with a non-null id and no matching
+  tool call is an invariant violation and fails the turn.
+- An `ASSISTANT` item's content blocks are ordered `text` → `reasoning` → `object` → `document` →
+  everything else (stable within each group), regardless of the order the model produced them in
+  (`AgentInstanceHistoryMapper.assistantContent`). An assistant message with neither text/object/etc.
+  content nor tool calls fails the turn (`IllegalArgumentException`) rather than falling back to a
+  placeholder block.
 
-- **Before the chat request** — `createHistoryForInputMessages(turn)` emits history items for the
-  current turn's new input messages: a `UserMessage` → one `USER` item (covers the user prompt, event
-  messages, and virtual document-reference messages); a `ToolCallResultMessage` → **one `TOOL_RESULT`
-  item per result**, each with that result's content block(s) and a single-entry `toolCalls` array
-  `{toolCallId: result.id(), toolName: result.name(), elementId, arguments}` correlating it back to
-  the originating tool call. The `arguments` are the originating request arguments, looked up by
-  tool-call id from the previous turn's assistant tool calls
-  (`AgentConversation.lastTurn()` — the previous turn while the current one is still pending —
-  → `AgentConversationTurn.toolCallsById()`), so each
-  `TOOL_RESULT` item is self-contained for the paginated history API and need not be joined back to
-  the `ASSISTANT` item. Event results (`id == null`) have no originating call and carry `{}`; a
-  result with a non-null id and no matching tool call is an invariant violation and fails the turn.
-- **After the chat request** — `createHistoryForAssistantMessage(turn)` emits one `ASSISTANT` item with
-  the assistant text, the assistant's `toolCalls`, and per-call `metrics` (input/output tokens +
-  `durationMs`, measured by the `ChatModel` implementation itself — e.g. `LangChain4JChatModel` times
-  its `chat()` call via `System.nanoTime()` — and carried on the turn's `AgentMetrics.executionTime`).
-  On a `ChatResult.Continuation` round this fires once per round, same as for a final `Completed`
-  round. Empty assistant content (tool-only turns) falls back to a single `"No content"` text block,
-  since the API rejects empty content.
+**`historyItemId` (`AgentInstanceHistoryItemIds`).** Every history item carries a `historyItemId` so a
+retried batch write dedups against the previous attempt: `USER`/`ASSISTANT` items key off the domain
+`Message.id()` (ADR 012); `TOOL_RESULT` items key off the originating tool-call id (so a streamed
+early report and the later batch write for the same result dedup for free), falling back to a
+deterministic hash of `elementId` + `completedAt` for id-less event results; `CONFIGURATION` items key
+off `AgentConfiguration.fingerprint()` itself, so an unchanged configuration resent verbatim dedups
+too.
 
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither
 computes a timestamp itself. A `TOOL_RESULT` item uses `ToolCallResult.completedAt()`: the AHSP
 `outputElement`'s engine timestamp (v11+ templates) if present, else a stateless `now()`
 (`ToolCallResultCompletedAtResolver`, resolved at ingestion in `AgentInitializerImpl`; see ADR 008
-for what the `now()` fallback does and doesn't cover). `USER` and `ASSISTANT` items use a timestamp
-`BaseAgentRequestHandler.proceed` captures and passes down.
+for what the `now()` fallback does and doesn't cover). `USER`, `ASSISTANT`, and `CONFIGURATION` items
+use a timestamp `BaseAgentRequestHandler.proceed` captures and passes down.
 
 Each `toolCalls` entry carries the BPMN **`elementId`** alongside the (LLM-visible, possibly
 namespaced) `toolName`. For tool results it is resolved once on the model in
@@ -1794,23 +1814,26 @@ Content blocks map by type: `TextContent` → text, `ObjectContent` → object (
 currently fall back to an object/text block — see follow-ups), and the additive `ReasoningContent` /
 `ProviderContent` blocks ([§5](#5-data-model)) → an object block wrapping the record / the raw
 provider payload respectively (`AgentInstanceHistoryMapper`; neither is produced by the LangChain4j
-path yet). The item carries the current turn's
-`iterationKey` and the active `jobKey`, and — for a leased activation — the `jobLease` token; the
-engine correlates the item to the active job by `jobKey` and discards it when the supplied lease
-doesn't match a superseded activation (see below).
+path yet).
 
-**Job-lease fencing.** With the AI Agent connectors leased ([§10](#10-concurrency-challenges--race-conditions)), the activation's `leaseToken` reaches `CamundaAgentInstanceClient`, which forwards it via `jobLease(...)` on the create-history command (`newCreateAgentHistoryItemCommand`) whenever a token is present. That command also sends the active `jobKey`; the engine correlates the item to the job by `jobKey` and rejects it (`NOT_FOUND`, "supplied lease does not match") when the lease doesn't match — so a superseded activation's history items are discarded rather than committed. A token is absent (and no lease forwarded) only in the gRPC version-skew case (a pre-leasing gateway drops the field). The status/metrics update (`newUpdateAgentInstanceCommand`) is **not** lease-fenced: on that command `jobLease` only guards a batched `history(...)` list, which this connector never sends via the update (history goes through the dedicated create-history command), so a stale status/metrics update is not rejected. That is a best-effort write, unchanged from before leasing.
+**Supersession as a non-retryable failure (ADR 013).** A `404` from a batched `update()` means the job
+activation that issued it has been superseded by a later one (the engine rejects it because the job
+wasn't active, or its lease didn't match). `CamundaAgentInstanceClient` maps that specifically to a
+`ConnectorRetryException` with `.retries(0)` and error code `AGENT_INSTANCE_SUPERSEDED`, so no retry
+is provoked at any level — this applies uniformly to `applyTurnStart`/`applyTurnCompletion`/
+`applyToolCallResults`/`applyToolDiscoveryStart`, the only writers of a batched `update()`.
+`applyTurnStart`'s batch acts as the fence probe for the whole turn: a superseded activation is
+rejected there, before spending any model tokens.
+See [§10](#10-concurrency-challenges--race-conditions) for the job-lease mechanism that produces the
+mismatch.
 
-Failures to write a history item are **fatal** to the turn (propagated after retries), unlike the
-best-effort metrics updates.
-
-**Streamed early (ADR 011).** A third call, `createHistoryForToolCallResults`, fires from
-`BaseAgentRequestHandler.converse`'s `Deferred` branch — before the turn's tool-call batch is
-complete — reporting whichever results have arrived and correlate to the previous turn's tool
-calls so far, one `TOOL_RESULT` item per result, same mapping as above. Its iteration key
-(`previousTurn.iterationKey() + 1`) is best-effort, not authoritative — the batch-complete write's
-key is. These items duplicate what `createHistoryForInputMessages` writes again once the batch
-completes. See [§9](#9-tool-completion) and
+**Streamed early (ADR 011).** `applyToolCallResults` fires from `BaseAgentRequestHandler.converse`'s
+`Deferred` branch — before the turn's tool-call batch is complete — reporting whichever results have
+arrived so far as a batched, status-less `update()`, one `TOOL_RESULT` item per result, same mapping
+as above. Its iteration key (`previousTurn.iterationKey() + 1`) is best-effort, not authoritative — the
+batch-complete write's key is. These items duplicate what `applyTurnStart` writes again once the batch
+completes; the duplicate row persists until `historyItemId`-based dedup lands (camunda/camunda#58792). See
+[§9](#9-tool-completion) and
 [ADR 011](../adr/011-stream-tool-call-results-to-agent-instance-history.md).
 
 ---

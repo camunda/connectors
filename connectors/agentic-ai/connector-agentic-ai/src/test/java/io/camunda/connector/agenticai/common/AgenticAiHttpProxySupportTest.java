@@ -212,6 +212,62 @@ class AgenticAiHttpProxySupportTest {
     assertThat(httpProxySupport.okHttpProxy(ProxyConfiguration.SCHEME_HTTP)).isPresent();
   }
 
+  @Test
+  void azureProxyOptionsReturnsEmptyWhenNoProxyConfiguredForScheme() {
+    var httpProxySupport = new AgenticAiHttpProxySupport(ProxyConfiguration.NONE);
+
+    assertThat(httpProxySupport.azureProxyOptions(SCHEME_HTTPS)).isEmpty();
+  }
+
+  @Test
+  void azureProxyOptionsAppliesNonProxyHosts() {
+    var proxyConfig = testProxyConfiguration("proxy.example.com", 8080, null, null);
+    var httpProxySupport = new AgenticAiHttpProxySupport(proxyConfig);
+
+    try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
+      nonProxyHostsMock
+          .when(NonProxyHosts::getNonProxyHostsPatterns)
+          .thenReturn(Stream.of(NON_PROXY_HOST_LOCALHOST_REGEX, NON_PROXY_HOST_127));
+
+      var result = httpProxySupport.azureProxyOptions(SCHEME_HTTPS);
+
+      assertThat(result).isPresent();
+      var proxyOptions = result.get();
+      assertThat(proxyOptions.getAddress())
+          .isEqualTo(new InetSocketAddress("proxy.example.com", 8080));
+      assertThat(proxyOptions.getNonProxyHosts()).contains("localhost").contains("127");
+      assertThat(proxyOptions.getUsername()).isNull();
+      assertThat(proxyOptions.getPassword()).isNull();
+    }
+  }
+
+  @Test
+  void azureProxyOptionsAppliesCredentials() {
+    var proxyConfig = testProxyConfiguration("proxy.example.com", 8080, "user", "pass");
+    var httpProxySupport = new AgenticAiHttpProxySupport(proxyConfig);
+
+    try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
+      nonProxyHostsMock.when(NonProxyHosts::getNonProxyHostsPatterns).thenReturn(Stream.empty());
+
+      var result = httpProxySupport.azureProxyOptions(SCHEME_HTTPS);
+
+      assertThat(result).isPresent();
+      var proxyOptions = result.get();
+      assertThat(proxyOptions.getUsername()).isEqualTo("user");
+      assertThat(proxyOptions.getPassword()).isEqualTo("pass");
+    }
+  }
+
+  @Test
+  void shouldResolveMultiRegionalDefaultHost() {
+    assertThat(AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl("us"))
+        .isEqualTo("https://aiplatform.us.rep.googleapis.com");
+    assertThat(AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl("eu"))
+        .isEqualTo("https://aiplatform.eu.rep.googleapis.com");
+    assertThat(AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl("EU"))
+        .isEqualTo("https://aiplatform.eu.rep.googleapis.com");
+  }
+
   private static ProxyConfiguration testProxyConfiguration(
       String host, int port, String user, String password) {
     return protocol -> {
