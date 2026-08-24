@@ -42,7 +42,7 @@ A connector that accepts a reusable credential needs three things, not one:
    ```
 
    ```java
-   // HttpCommonRequest (class) — the getter, not the field, carries the override.
+   // HttpJsonRequest (class) — the getter, not the field, carries the override.
    @Override
    public String getUrl() {
      String inline = super.getUrl();
@@ -217,7 +217,7 @@ against a local running cluster without Hub or a Modeler UI:
 
 ```bash
 # "value" holds the @Configuration class's fields verbatim, e.g. authentication + url.
-curl -X POST http://localhost:8088/v2/cluster-variables/global \
+curl -X POST http://localhost:8080/v2/cluster-variables/global \
   -H 'Content-Type: application/json' \
   -d '{
     "name": "myCredential",
