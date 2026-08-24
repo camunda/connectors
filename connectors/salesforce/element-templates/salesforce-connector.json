@@ -655,124 +655,26 @@
     {
       "id" : "resultVariable",
       "label" : "Result variable",
+      "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
       "group" : "output",
       "binding" : {
         "key" : "resultVariable",
         "type" : "zeebe:taskHeader"
       },
-      "condition" : {
-        "allMatch" : [
-          {
-            "property" : "interactionType",
-            "oneOf" : [
-              "get",
-              "post"
-            ],
-            "type" : "simple"
-          },
-          {
-            "property" : "salesforceOperationType",
-            "equals" : "sObject",
-            "type" : "simple"
-          }
-        ]
-      },
-      "tooltip" : "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
-      "type" : "String"
-    },
-    {
-      "id" : "resultVariableSoql",
-      "label" : "Result variable",
-      "group" : "output",
-      "binding" : {
-        "key" : "resultVariable",
-        "type" : "zeebe:taskHeader"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "soqlQuery",
-        "type" : "simple"
-      },
-      "tooltip" : "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "type" : "String"
     },
     {
       "id" : "resultExpression",
       "label" : "Result expression",
+      "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+      "value" : "{\n  myResponseBody: response.body\n  // Use FEEL to extract values, e.g.,:\n  // myUserId: response.body.post.userId\n}",
       "feel" : "required",
       "group" : "output",
       "binding" : {
         "key" : "resultExpression",
         "type" : "zeebe:taskHeader"
       },
-      "condition" : {
-        "allMatch" : [
-          {
-            "property" : "interactionType",
-            "oneOf" : [
-              "get",
-              "post"
-            ],
-            "type" : "simple"
-          },
-          {
-            "property" : "salesforceOperationType",
-            "equals" : "sObject",
-            "type" : "simple"
-          }
-        ]
-      },
-      "tooltip" : "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
-      "type" : "Text"
-    },
-    {
-      "id" : "resultExpressionSoql",
-      "label" : "Result expression",
-      "feel" : "required",
-      "group" : "output",
-      "binding" : {
-        "key" : "resultExpression",
-        "type" : "zeebe:taskHeader"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "soqlQuery",
-        "type" : "simple"
-      },
-      "tooltip" : "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
-      "type" : "Text"
-    },
-    {
-      "id" : "resultVariableApexRest",
-      "label" : "Result variable",
-      "group" : "output",
-      "binding" : {
-        "key" : "resultVariable",
-        "type" : "zeebe:taskHeader"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "apexRest",
-        "type" : "simple"
-      },
-      "tooltip" : "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
-      "type" : "String"
-    },
-    {
-      "id" : "resultExpressionApexRest",
-      "label" : "Result expression",
-      "feel" : "required",
-      "group" : "output",
-      "binding" : {
-        "key" : "resultExpression",
-        "type" : "zeebe:taskHeader"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "apexRest",
-        "type" : "simple"
-      },
-      "tooltip" : "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
+      "tooltip" : "<div><p>Example response:</p><code>{\"body\":{\"order\":{\"id\":\"123\",\"total\":\"100.00€\"}},\"headers\":{\"Content-Type\":\"application/json\"},\"status\":200}</code><p>Example FEEL expression: <code>= { orderId: body.order.id }</code> -&gt; <code>{\"orderId\":\"123\"}</code></p></div>",
       "type" : "Text"
     },
     {

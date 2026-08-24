@@ -85,6 +85,11 @@ public class GenerateElementTemplate {
   // withoutAuthenticationConfigurationCondition() before the properties are carried over.
   private static final String AUTHENTICATION_CONFIGURATION_PROPERTY_ID =
       "authenticationConfiguration";
+  // resultVariable/resultExpression are inherited from HTTP JSON as-is (unconditional, same as
+  // every other HTTP JSON-backed connector) rather than rebuilt -- Salesforce has no
+  // operation-specific behavior to layer onto response mapping.
+  private static final Set<String> KEPT_OUTPUT_PROPERTY_IDS =
+      Set.of("resultVariable", "resultExpression");
 
   public static void main(String[] args) throws Exception {
     ElementTemplate salesforceTemplate = generate();
@@ -144,11 +149,16 @@ public class GenerateElementTemplate {
 
     ElementTemplateBuilder builder =
         ElementTemplateBuilder.from(httpJsonTemplate)
-            // Keep only the "authentication" properties inherited from HTTP JSON; every other
-            // property (raw url/method/headers/queryParameters) is Salesforce-specific and
-            // rebuilt from scratch below. Groups are dropped entirely and re-declared below.
+            // Keep only the "authentication" and response-mapping properties inherited from HTTP
+            // JSON; every other property (raw url/method/headers/queryParameters) is
+            // Salesforce-specific and rebuilt from scratch below. Groups are dropped entirely and
+            // re-declared below.
             .removePropertyGroups(g -> true)
-            .removeProperties(p -> !(isAuthTypeDropdown(p) || idIn(p, KEPT_AUTH_PROPERTY_IDS)))
+            .removeProperties(
+                p ->
+                    !(isAuthTypeDropdown(p)
+                        || idIn(p, KEPT_AUTH_PROPERTY_IDS)
+                        || idIn(p, KEPT_OUTPUT_PROPERTY_IDS)))
             // HTTP JSON's inherited configuration templates (e.g. its REST Authentication
             // config, covering apiKey/basic/OAuth-refresh-token flows) don't apply here --
             // Salesforce only supports the two auth mechanisms narrowed to below.
@@ -655,78 +665,10 @@ public class GenerateElementTemplate {
         .build();
   }
 
+  // resultVariable/resultExpression are inherited from HTTP JSON as-is (see
+  // KEPT_OUTPUT_PROPERTY_IDS) -- this group only supplies the section label/order for them.
   private static PropertyGroup outputGroup() {
-    return PropertyGroup.builder()
-        .id("output")
-        .label("Response mapping")
-        .properties(
-            StringProperty.builder()
-                .id("resultVariable")
-                .label("Result variable")
-                .tooltip(
-                    "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>")
-                .group("output")
-                .feel(FeelMode.disabled)
-                .binding(new ZeebeTaskHeader("resultVariable"))
-                .condition(
-                    new AllMatch(
-                        new OneOf("interactionType", List.of("get", "post")),
-                        new Equals("salesforceOperationType", "sObject")))
-                .build(),
-            StringProperty.builder()
-                .id("resultVariableSoql")
-                .label("Result variable")
-                .tooltip(
-                    "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>")
-                .group("output")
-                .feel(FeelMode.disabled)
-                .binding(new ZeebeTaskHeader("resultVariable"))
-                .condition(new Equals("salesforceOperationType", "soqlQuery"))
-                .build(),
-            TextProperty.builder()
-                .id("resultExpression")
-                .label("Result expression")
-                .tooltip(
-                    "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>")
-                .group("output")
-                .feel(FeelMode.required)
-                .binding(new ZeebeTaskHeader("resultExpression"))
-                .condition(
-                    new AllMatch(
-                        new OneOf("interactionType", List.of("get", "post")),
-                        new Equals("salesforceOperationType", "sObject")))
-                .build(),
-            TextProperty.builder()
-                .id("resultExpressionSoql")
-                .label("Result expression")
-                .tooltip(
-                    "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>")
-                .group("output")
-                .feel(FeelMode.required)
-                .binding(new ZeebeTaskHeader("resultExpression"))
-                .condition(new Equals("salesforceOperationType", "soqlQuery"))
-                .build(),
-            StringProperty.builder()
-                .id("resultVariableApexRest")
-                .label("Result variable")
-                .tooltip(
-                    "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>")
-                .group("output")
-                .feel(FeelMode.disabled)
-                .binding(new ZeebeTaskHeader("resultVariable"))
-                .condition(new Equals("salesforceOperationType", "apexRest"))
-                .build(),
-            TextProperty.builder()
-                .id("resultExpressionApexRest")
-                .label("Result expression")
-                .tooltip(
-                    "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>")
-                .group("output")
-                .feel(FeelMode.required)
-                .binding(new ZeebeTaskHeader("resultExpression"))
-                .condition(new Equals("salesforceOperationType", "apexRest"))
-                .build())
-        .build();
+    return PropertyGroup.builder().id("output").label("Response mapping").build();
   }
 
   private static PropertyGroup errorsGroup() {
