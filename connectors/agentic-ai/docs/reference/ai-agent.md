@@ -868,7 +868,7 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
 - The no-op completion pattern means most superseded jobs were doing nothing anyway
 - Superseded jobs produce a `CommandIgnored` outcome — the conversation store receives `onJobCompletionFailed` with a `CommandIgnored` failure
 
-**Job leasing**: All AI Agent connectors — both flavors, v1 and v2 (`AgentTaskV1Function`, `AgentTaskV2Function`, `AgentSubProcessV1Function`, `AgentSubProcessV2Function`) — opt into job leasing via `@OutboundConnector(withLease = true)`. (v1 is leased too because the agent-instance integration does not differentiate by version: a custom v1 template can still carry an agent definition and emit visibility data, so it needs the same fencing.) Each activation carries a per-activation `leaseToken` (`JobContext#getLeaseToken()`), and the runtime completes/fails jobs through the `ActivatedJob`-based command overloads, so completion is fenced against a superseded activation automatically. The agent-instance turn writes are fenced too: `applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults` each batch their history items onto a single `update()` command carrying `jobKey` and, when present, `jobLease`; the engine rejects a lease mismatch with `404`, which `CamundaAgentInstanceClient` maps to a non-retryable `ConnectorRetryException` (`AGENT_INSTANCE_SUPERSEDED`) instead of retrying (see [§23](#23-agent-instance-integration)). A batch-less `update()` (e.g. the `TOOL_DISCOVERY` status patch) carries no history and is never lease-fenced — it stays best-effort, as before. Note the version-skew contract on `OutboundConnector#withLease`: over gRPC a pre-leasing gateway drops the field (token is `null`), so the client only forwards a lease when one is present; over REST an older gateway rejects the activation (HTTP 400). The gateway/MCP/A2A tool connectors are not leased. For the underlying job-lease mechanism itself, see the monorepo ADR [0005-810-job-lease](https://github.com/camunda/camunda/blob/main/zeebe/docs/adr/0005-810-job-lease.md).
+**Job leasing**: All AI Agent connectors — both flavors, v1 and v2 (`AgentTaskV1Function`, `AgentTaskV2Function`, `AgentSubProcessV1Function`, `AgentSubProcessV2Function`) — opt into job leasing via `@OutboundConnector(withLease = true)`. (v1 is leased too because the agent-instance integration does not differentiate by version: a custom v1 template can still carry an agent definition and emit visibility data, so it needs the same fencing.) Each activation carries a per-activation `leaseToken` (`JobContext#getLeaseToken()`), and the runtime completes/fails jobs through the `ActivatedJob`-based command overloads, so completion is fenced against a superseded activation automatically. The agent-instance turn writes are fenced too: `applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart` each batch their history items (empty, for `applyToolDiscoveryStart`) onto a single `update()` command carrying `jobKey` and, when present, `jobLease`; the engine rejects a lease mismatch with `404`, which `CamundaAgentInstanceClient` maps to a non-retryable `ConnectorRetryException` (`AGENT_INSTANCE_SUPERSEDED`) instead of retrying (see [§23](#23-agent-instance-integration)). Note the version-skew contract on `OutboundConnector#withLease`: over gRPC a pre-leasing gateway drops the field (token is `null`), so the client only forwards a lease when one is present; over REST an older gateway rejects the activation (HTTP 400). The gateway/MCP/A2A tool connectors are not leased. For the underlying job-lease mechanism itself, see the monorepo ADR [0005-810-job-lease](https://github.com/camunda/camunda/blob/main/zeebe/docs/adr/0005-810-job-lease.md).
 
 ### Challenge 2: Conversation Store Ahead of Zeebe
 
@@ -1728,12 +1728,13 @@ connector behavior, element template properties, or data model shapes, update th
 The agent reports its lifecycle to the engine's **agent instance** API via `AgentInstanceClient`
 (`CamundaAgentInstanceClient`). Update calls silently skip when the `agentInstanceKey` is `null`
 (agents that pre-date the feature); create has no such key to check, since it produces one. All calls
-retry transient failures via `CamundaApiRetry`. A `404` from create or a batch-less `update()` is
-treated as **permanent** (not retried): both write endpoints are `x-eventually-consistent: false` and
-are validated against primary processing state, with Zeebe's key-based partition routing guaranteeing
-the create is visible to the same partition before the key is ever returned to the caller. A `404`
-from a **batched** `update()` (one carrying a `history(...)` list) is instead treated as job
-supersession — see below.
+retry transient failures via `CamundaApiRetry`. A `404` from `create` is treated as **permanent** (not
+retried): its write endpoint is `x-eventually-consistent: false` and validated against primary
+processing state, with Zeebe's key-based partition routing guaranteeing the create is visible to the
+same partition before the key is ever returned to the caller. A `404` from any `update()` call
+(`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart` — each fenced
+via `jobKey`/`jobLease` on a `history(...)` batch, empty for `applyToolDiscoveryStart`) is instead
+treated as job supersession — see below.
 
 ### The two-call-per-turn design (ADR 013)
 
@@ -1763,7 +1764,8 @@ There is no more deferred, completion-listener-driven agent instance update: `ap
 `applyTurnCompletion` both fire synchronously inline, so a job that never completes (crash, timeout)
 simply leaves the agent instance at its last-written status — the next activation overwrites it, the
 engine never rolls it back. The `TOOL_DISCOVERY` status patch (`dispatchToolDiscovery`) is sent the
-same way, synchronously, via a batch-less `update()`.
+same way, synchronously, via `applyToolDiscoveryStart` (an empty-history batch through the same
+lease-fenced `update()` mechanism).
 
 ### Conversation history items
 
@@ -1818,9 +1820,10 @@ path yet).
 activation that issued it has been superseded by a later one (the engine rejects it because the job
 wasn't active, or its lease didn't match). `CamundaAgentInstanceClient` maps that specifically to a
 `ConnectorRetryException` with `.retries(0)` and error code `AGENT_INSTANCE_SUPERSEDED`, so no retry
-is provoked at any level; a batch-less `update()` (e.g. `TOOL_DISCOVERY`) keeps the plain permanent
-`AGENT_INSTANCE_UPDATE_FAILED` behavior on `404`, unchanged. `applyTurnStart`'s batch acts as the fence
-probe for the whole turn: a superseded activation is rejected there, before spending any model tokens.
+is provoked at any level — this applies uniformly to `applyTurnStart`/`applyTurnCompletion`/
+`applyToolCallResults`/`applyToolDiscoveryStart`, the only writers of a batched `update()`.
+`applyTurnStart`'s batch acts as the fence probe for the whole turn: a superseded activation is
+rejected there, before spending any model tokens.
 See [§10](#10-concurrency-challenges--race-conditions) for the job-lease mechanism that produces the
 mismatch.
 

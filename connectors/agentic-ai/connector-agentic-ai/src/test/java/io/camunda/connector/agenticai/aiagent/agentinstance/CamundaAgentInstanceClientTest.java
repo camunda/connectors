@@ -421,8 +421,8 @@ class CamundaAgentInstanceClientTest {
    * The batched turn methods ({@code applyTurnStart}/{@code applyTurnCompletion}/{@code
    * applyToolCallResults}) replace the request-level status/metrics/tools update plus the
    * single-item history create with one combined {@code update} command carrying a {@code
-   * history()} batch (plan decision 2). {@code jobKey}/{@code jobLease} live on the command, not
-   * per item, unlike the old single-item {@code newCreateAgentHistoryItemCommand}.
+   * history()} batch. {@code jobKey}/{@code jobLease} live on the command, not per item, unlike the
+   * old single-item {@code newCreateAgentHistoryItemCommand}.
    */
   @Nested
   class TurnStart {
@@ -947,9 +947,9 @@ class CamundaAgentInstanceClientTest {
   }
 
   /**
-   * Plan decision 3: a batched update (any of the three turn methods, or {@code
-   * applyToolDiscoveryStart}) that gets rejected with 404 means the job activation was superseded,
-   * and must fail without provoking any retry at any level.
+   * A batched update (any of the three turn methods, or {@code applyToolDiscoveryStart}) that gets
+   * rejected with 404 means the job activation was superseded, and must fail without provoking any
+   * retry at any level.
    */
   @Nested
   class Supersession {
