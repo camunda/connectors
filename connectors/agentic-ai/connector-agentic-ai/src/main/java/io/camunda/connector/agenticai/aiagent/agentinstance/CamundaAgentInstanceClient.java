@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.FailureR
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
+import io.camunda.connector.api.outbound.JobContext;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -113,21 +114,17 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     // model/provider are set only here, at create time; later CONFIGURATION items omit them.
     // maxModelCalls isn't set here either: the engine rejects top-level limits alongside a
     // history batch.
-    var command =
+    final var command =
         camundaClient
             .newCreateAgentInstanceCommand()
             .elementInstanceKey(elementInstanceKey)
             .jobKey(jobContext.getJobKey())
+            .jobLease(ensureJobLeaseToken(jobContext))
             .history(
                 List.of(
                     configurationHistoryItem(configuration, FIRST_ITERATION, OffsetDateTime.now())
                         .model(configuration.chatModel().model())
                         .provider(configuration.chatModel().provider())));
-
-    final String leaseToken = jobContext.getLeaseToken();
-    if (leaseToken != null && !leaseToken.isBlank()) {
-      command = command.jobLease(leaseToken);
-    }
 
     try {
       final var key = AgentInstanceKey.of(command.execute().getAgentInstanceKey());
@@ -176,6 +173,22 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     return matcher.matches()
         ? Optional.of(Long.parseLong(matcher.group("existingAgentInstanceKey")))
         : Optional.empty();
+  }
+
+  /**
+   * Returns the job lease token for the active job, failing if it is absent. The batched
+   * create/update agent-instance API requires a lease token to fence writes against a superseded
+   * activation; the AI Agent connectors always activate jobs with leasing enabled, so a missing
+   * token is a misconfiguration rather than a recoverable condition.
+   */
+  private static String ensureJobLeaseToken(JobContext jobContext) {
+    final String leaseToken = jobContext.getLeaseToken();
+    if (leaseToken == null || leaseToken.isBlank()) {
+      throw new IllegalStateException(
+          "A job lease token is required to write agent instance history, but none was available. "
+              + "The AI Agent connectors must be activated with job leasing enabled.");
+    }
+    return leaseToken;
   }
 
   @Override
@@ -364,22 +377,20 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         agentInstanceKey,
         status,
         historyItems.size());
+    final JobContext jobContext = executionContext.jobContext();
     UpdateAgentInstanceCommandStep2 cmd =
         camundaClient
             .newUpdateAgentInstanceCommand(agentInstanceKey)
-            .elementInstanceKey(executionContext.jobContext().getElementInstanceKey())
-            .jobKey(executionContext.jobContext().getJobKey())
-            .history(historyItems);
+            .elementInstanceKey(jobContext.getElementInstanceKey());
 
     if (status != null) {
       cmd = cmd.status(status);
     }
 
-    final String leaseToken = executionContext.jobContext().getLeaseToken();
-    if (leaseToken != null && !leaseToken.isBlank()) {
-      cmd = cmd.jobLease(leaseToken);
-    }
-    cmd.execute();
+    cmd.jobKey(jobContext.getJobKey())
+        .jobLease(ensureJobLeaseToken(jobContext))
+        .history(historyItems)
+        .execute();
   }
 
   private ConnectorException buildCreateException(
