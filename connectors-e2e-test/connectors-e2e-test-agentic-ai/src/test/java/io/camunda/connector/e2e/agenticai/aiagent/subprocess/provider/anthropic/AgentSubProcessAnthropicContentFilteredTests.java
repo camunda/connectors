@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.subprocess.v2;
+package io.camunda.connector.e2e.agenticai.aiagent.subprocess.provider.anthropic;
 
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 

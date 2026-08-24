@@ -19,7 +19,6 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.util.function.Function;
 
 /**
@@ -29,11 +28,9 @@ import java.util.function.Function;
  * provider.anthropic.*} config is rewritten onto the native v2 Anthropic provider at the connector
  * boundary, so - just like {@link AnthropicMessagesV2WireFormatFixture} - the connector always
  * calls the vendor SDK's streaming endpoint ({@code client.messages().createStreaming(params)}),
- * which expects a real {@code text/event-stream} SSE body. {@link #stubConversation(TurnStub...)}
- * is therefore overridden here to stub that via {@link
- * StreamingAnthropicMessagesSseChatModelStubs}, exactly like the v2 fixture, rather than inheriting
- * {@link AbstractAnthropicMessagesWireFormatFixture}'s buffered-JSON default (which matches the
- * pre-rewrite v1 client and remains in use by unit tests that disable the rewrite switch).
+ * which expects a real {@code text/event-stream} SSE body - the same streamed response {@link
+ * AbstractAnthropicMessagesWireFormatFixture} stubs via {@link
+ * StreamingAnthropicMessagesSseChatModelStubs} for every row of this suite.
  *
  * <p>See {@link AbstractAnthropicMessagesWireFormatFixture} for the *request* wire-format plumbing
  * shared with the v2 fixture ({@code recordedRequests()}, {@code
@@ -46,11 +43,6 @@ public final class AnthropicMessagesV1WireFormatFixture
   @Override
   public String apiName() {
     return "AnthropicMessagesV1";
-  }
-
-  @Override
-  public void stubConversation(TurnStub... turns) {
-    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(turns);
   }
 
   @Override

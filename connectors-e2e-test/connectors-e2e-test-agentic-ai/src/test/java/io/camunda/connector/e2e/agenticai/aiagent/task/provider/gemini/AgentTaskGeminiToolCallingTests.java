@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.task.v2;
+package io.camunda.connector.e2e.agenticai.aiagent.task.provider.gemini;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,11 +36,11 @@ import org.junit.jupiter.api.Test;
  * tool-calling loop, whose provider configuration is re-evaluated per iteration rather than frozen
  * at sub-process entry.
  *
- * <p>The point of this class is not to re-verify Gemini's wire format (the {@code subprocess/v2}
- * tests do that in depth) but to prove the native Gemini provider resolves and drives correctly on
- * the Task flavor too — the v2 Task template's {@code provider.googleGemini.*} properties, the same
- * multi-turn {@code functionCall}/{@code functionResponse} exchange, and the Task-flavor agent
- * response.
+ * <p>The point of this class is not to re-verify Gemini's wire format (the sub-process flavor's
+ * Gemini tests do that in depth) but to prove the native Gemini provider resolves and drives
+ * correctly on the Task flavor too — the Task template's {@code provider.googleGemini.*}
+ * properties, the same multi-turn {@code functionCall}/{@code functionResponse} exchange, and the
+ * Task-flavor agent response.
  */
 @SlowTest
 class AgentTaskGeminiToolCallingTests extends BaseGeminiNativeTaskTest {

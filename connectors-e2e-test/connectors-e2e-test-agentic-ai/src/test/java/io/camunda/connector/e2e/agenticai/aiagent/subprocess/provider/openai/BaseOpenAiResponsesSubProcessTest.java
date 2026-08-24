@@ -14,16 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.subprocess.v2;
+package io.camunda.connector.e2e.agenticai.aiagent.subprocess.provider.openai;
 
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
 import java.util.function.Function;
 
 /**
  * Shared foundation for native-OpenAI-only v2 sub-process e2e coverage, scoped to the Responses API
  * family - the sibling of {@link BaseOpenAiCompletionsSubProcessTest} for Chat Completions.
  */
-abstract class BaseOpenAiResponsesSubProcessTest extends BaseAgentSubProcessV2Test {
+abstract class BaseOpenAiResponsesSubProcessTest extends BaseAgentSubProcessTest {
 
   private static final String DEFAULT_MODEL = "test-model";
 
