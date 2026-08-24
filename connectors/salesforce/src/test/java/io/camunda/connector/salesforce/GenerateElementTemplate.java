@@ -294,10 +294,27 @@ public class GenerateElementTemplate {
     }
   }
 
+  /**
+   * HTTP JSON's isEmpty/credential-chooser-ordering feature wraps what used to be a bare {@code
+   * Equals("authentication.type", ...)} condition in an {@link AllMatch} alongside an {@code
+   * authenticationConfiguration} isEmpty clause (see {@link
+   * #withoutAuthenticationConfigurationCondition}). Unwrap it here too, or this safety net stops
+   * recognizing every currently-classified property and never fires again.
+   */
   private static boolean isConditionedOnKeptAuthType(Property p) {
-    return p.getCondition() instanceof Equals equals
-        && "authentication.type".equals(equals.property())
-        && KEPT_AUTH_TYPES.contains(equals.equals());
+    return conditionMatchesKeptAuthType(p.getCondition());
+  }
+
+  private static boolean conditionMatchesKeptAuthType(PropertyCondition condition) {
+    if (condition instanceof Equals equals) {
+      return "authentication.type".equals(equals.property())
+          && KEPT_AUTH_TYPES.contains(equals.equals());
+    }
+    if (condition instanceof AllMatch allMatch) {
+      return allMatch.allMatch().stream()
+          .anyMatch(GenerateElementTemplate::conditionMatchesKeptAuthType);
+    }
+    return false;
   }
 
   private static DropdownProperty prunedAuthTypeDropdown(DropdownProperty original) {
