@@ -174,6 +174,60 @@ class PollingRuntimePropertiesCredentialValidationTest {
    * override must fail with a message pointing at both possible sources, not a bare "URL is
    * required" that gives no hint where to provide it.
    */
+  /**
+   * The inline override may change the path/query while staying on the credential's own host - the
+   * documented "one credential, several call sites" use case.
+   */
+  @Test
+  void sameOriginInlineOverrideIsAccepted() {
+    String properties =
+        """
+        {
+          "url": "http://localhost:8085/other-path",
+          "method": "GET",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8085/http-endpoint"
+          }
+        }
+        """;
+    var context =
+        InboundConnectorContextBuilder.create()
+            .properties(properties)
+            .validation(new TestValidationProvider())
+            .build();
+
+    assertThat(context.bindProperties(PollingRuntimeProperties.class).getUrl())
+        .isEqualTo("http://localhost:8085/other-path");
+  }
+
+  /**
+   * A Basic/Bearer/API-key credential's secret must never be sent to a different origin than the
+   * one it was created for, even via an inline override the task author controls.
+   */
+  @Test
+  void crossOriginInlineOverrideIsRejected() {
+    String properties =
+        """
+        {
+          "url": "http://evil.example.com/steal",
+          "method": "GET",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8085/http-endpoint"
+          }
+        }
+        """;
+    var context =
+        InboundConnectorContextBuilder.create()
+            .properties(properties)
+            .validation(new TestValidationProvider())
+            .build();
+
+    assertThatThrownBy(() -> context.bindProperties(PollingRuntimeProperties.class))
+        .hasMessageContaining("must stay on the bound credential's origin");
+  }
+
   @Test
   void oauthCredentialWithNoUrlAndNoInlineUrlIsRejected() {
     String properties =

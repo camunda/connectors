@@ -134,6 +134,22 @@ public record GraphQLRequest(
   }
 
   /**
+   * A bound Basic/Bearer/API-key credential's secret must never be sent to an origin other than the
+   * one it was created for - see {@link RestAuthenticationConfiguration#sharesOriginWith}. The
+   * inline override may still change the path/query on that same origin (the intended use: one
+   * credential, several call sites on the same host).
+   */
+  @AssertTrue(message = "Inline URL override must stay on the bound credential's origin")
+  @JsonIgnore
+  public boolean isUrlOverrideSameOriginAsCredential() {
+    if (authenticationConfiguration == null) {
+      return true;
+    }
+    String inlineUrl = graphql != null ? graphql.url() : null;
+    return authenticationConfiguration.sharesOriginWith(inlineUrl);
+  }
+
+  /**
    * Per-connector consumption of the bound authentication credential: when a credential
    * (configuration) is bound, its authentication takes precedence; the inline authentication is the
    * fallback. Per-field inline override is not modeled because authentication is a whole object.
