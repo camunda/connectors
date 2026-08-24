@@ -177,9 +177,13 @@ class CamundaAgentInstanceClientTest {
                         AgentInstanceHistoryContent.TextContent.class,
                         text -> assertThat(text.getText()).isEqualTo("system prompt"));
                 assertThat(item.getTools()).isEmpty();
+                assertThat(item.getLimits().getMaxModelCalls()).isEqualTo(10);
+                assertThat(item.getLimits().getMaxTokens()).isEqualTo(-1);
+                assertThat(item.getLimits().getMaxToolCalls()).isEqualTo(-1);
               });
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     void shouldReturnAgentInstanceKeyOnFirstAttemptWhenMaxModelCallsIsNull() {
       givenCreateCommand();
@@ -192,8 +196,15 @@ class CamundaAgentInstanceClientTest {
       assertThat(recordedSleeps).isEmpty();
       verify(camundaClient, times(1)).newCreateAgentInstanceCommand();
       verify(createCommandStep2).jobKey(JOB_KEY);
-      verify(createCommandStep2).history(any());
       verify(createCommandStep2, never()).maxModelCalls(anyInt());
+
+      // absent limits config still yields the enforced default via the CONFIGURATION item
+      final ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor =
+          ArgumentCaptor.forClass(List.class);
+      verify(createCommandStep2).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue())
+          .singleElement()
+          .satisfies(item -> assertThat(item.getLimits().getMaxModelCalls()).isEqualTo(10));
     }
 
     @Test
@@ -433,6 +444,11 @@ class CamundaAgentInstanceClientTest {
     @Captor private ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor;
 
     private AgentConfiguration configuration(String systemPrompt, List<ToolDefinition> tools) {
+      return configuration(systemPrompt, tools, null);
+    }
+
+    private AgentConfiguration configuration(
+        String systemPrompt, List<ToolDefinition> tools, @Nullable Integer maxModelCalls) {
       return new AgentConfiguration(
               new OpenAiProviderConfiguration(
                   new OpenAiProviderConfiguration.OpenAiConnection(
@@ -440,7 +456,7 @@ class CamundaAgentInstanceClientTest {
               new PromptConfiguration.SystemPromptConfiguration(systemPrompt),
               null,
               null,
-              null,
+              maxModelCalls != null ? new LimitsConfiguration(maxModelCalls) : null,
               null,
               null)
           .withToolDefinitions(tools);
@@ -602,6 +618,9 @@ class CamundaAgentInstanceClientTest {
       assertThat(configurationItem.getTools())
           .singleElement()
           .satisfies(tool -> assertThat(tool.getName()).isEqualTo("getWeather"));
+      assertThat(configurationItem.getLimits().getMaxModelCalls()).isEqualTo(10);
+      assertThat(configurationItem.getLimits().getMaxTokens()).isEqualTo(-1);
+      assertThat(configurationItem.getLimits().getMaxToolCalls()).isEqualTo(-1);
 
       assertThat(history.get(1).getRole()).isEqualTo(AgentInstanceHistoryRole.USER);
     }
@@ -647,6 +666,27 @@ class CamundaAgentInstanceClientTest {
       assertThat(historyCaptor.getValue()).hasSize(2);
       assertThat(historyCaptor.getValue().get(0).getRole())
           .isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+    }
+
+    @Test
+    void shouldPrependConfigurationItemWhenLimitsChanged() {
+      givenUpdateCommand();
+      final var previousConfiguration = configuration("Be nice.", List.of(), 10);
+      final var configuration = configuration("Be nice.", List.of(), 20);
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          userTurn("hi", configuration.fingerprint()),
+          Optional.of(precedingTurn(previousConfiguration.fingerprint())),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep2).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue()).hasSize(2);
+      final var configurationItem = historyCaptor.getValue().get(0);
+      assertThat(configurationItem.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+      assertThat(configurationItem.getLimits().getMaxModelCalls()).isEqualTo(20);
     }
 
     @Test

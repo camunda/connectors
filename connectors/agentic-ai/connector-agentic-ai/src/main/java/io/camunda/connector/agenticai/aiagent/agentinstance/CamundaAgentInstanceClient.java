@@ -13,6 +13,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryItem;
+import io.camunda.client.api.command.AgentInstanceLimits;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.ProblemException;
@@ -238,7 +239,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         .producedAt(producedAt)
         .systemPrompt(
             List.of(AgentInstanceHistoryContent.text(configuration.systemPrompt().prompt())))
-        .tools(toolMapper.mapTools(configuration.toolDefinitions()));
+        .tools(toolMapper.mapTools(configuration.toolDefinitions()))
+        .limits(AgentInstanceLimits.of(-1, configuration.maxModelCalls(), -1));
   }
 
   private List<AgentInstanceHistoryItem> inputHistoryItems(
