@@ -87,13 +87,12 @@ public record JdbcRequest(
   }
 
   /**
-   * The database engine is required, but a bound credential now carries its own mandatory
-   * selection (see {@link JdbcConnectionConfiguration#database()}) that takes precedence over the
-   * inline field - the same shape as {@link #getInlineConnectionWhenNoCredentialBound()}. Named as
-   * a method override (not a synthetic {@code effectiveDatabase()}) so every existing caller of
-   * {@code database()} - {@link
-   * io.camunda.connector.jdbc.utils.ConnectionHelper#openConnection} included - automatically gets
-   * the effective value.
+   * The database engine is required, but a bound credential now carries its own mandatory selection
+   * (see {@link JdbcConnectionConfiguration#database()}) that takes precedence over the inline
+   * field - the same shape as {@link #getInlineConnectionWhenNoCredentialBound()}. Named as a
+   * method override (not a synthetic {@code effectiveDatabase()}) so every existing caller of
+   * {@code database()} - {@link io.camunda.connector.jdbc.utils.ConnectionHelper#openConnection}
+   * included - automatically gets the effective value.
    */
   public SupportedDatabase database() {
     return configuration != null ? configuration.database() : database;
