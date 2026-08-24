@@ -696,6 +696,16 @@ public class GenerateElementTemplate {
                         new OneOf("interactionType", List.of("get", "post")),
                         new Equals("salesforceOperationType", "sObject")))
                 .build(),
+            TextProperty.builder()
+                .id("resultExpressionSoql")
+                .label("Result expression")
+                .tooltip(
+                    "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>")
+                .group("output")
+                .feel(FeelMode.required)
+                .binding(new ZeebeTaskHeader("resultExpression"))
+                .condition(new Equals("salesforceOperationType", "soqlQuery"))
+                .build(),
             StringProperty.builder()
                 .id("resultVariableApexRest")
                 .label("Result variable")
