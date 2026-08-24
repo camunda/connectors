@@ -2072,6 +2072,27 @@
     "tooltip" : "Enables AWS Bedrock automatic prompt caching. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" target=\"_blank\">documentation</a>.",
     "type" : "Boolean"
   }, {
+    "id" : "provider.openai.model.model",
+    "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openai.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "placeholder" : "gpt-5.5",
+    "type" : "String"
+  }, {
     "id" : "provider.openai.api.responses.effort",
     "label" : "Effort",
     "description" : "Leave unset to use the model default.",
@@ -2155,27 +2176,6 @@
       "name" : "max",
       "value" : "max"
     } ]
-  }, {
-    "id" : "provider.openai.model.model",
-    "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.openai.model.model",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "placeholder" : "gpt-5.5",
-    "type" : "String"
   }, {
     "id" : "provider.googleGemini.model.model",
     "label" : "Model",

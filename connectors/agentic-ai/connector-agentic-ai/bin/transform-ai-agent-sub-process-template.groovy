@@ -13,6 +13,24 @@ static def replaceDocumentationLinks(String text) {
     )
 }
 
+// Moves the given property ids to sit right after another property id. No-op if either side
+// isn't found. Duplicated in transform-ai-agent-task-template.groovy since this script's
+// execution runs before that one's, per the pom's execution order for the v2 task/sub-process
+// pair.
+static def moveAfter(List properties, List idsToMove, String afterId) {
+    def moving = properties.findAll { it.id in idsToMove }
+    if (moving.isEmpty()) {
+        return properties
+    }
+    def remaining = properties.findAll { !(it.id in idsToMove) }
+    def anchorIndex = remaining.findIndexOf { it.id == afterId }
+    if (anchorIndex < 0) {
+        return properties
+    }
+    remaining.addAll(anchorIndex + 1, moving)
+    return remaining
+}
+
 def sourceFile = sourceFile
 if (!sourceFile) {
     System.err.println("Error: Source file path required as property")
@@ -287,6 +305,14 @@ updatedProperties.add([
     ],
     type: "Hidden"
 ])
+
+// OpenAI's Effort is declared per API family (a sibling of Model, like the other per-family
+// request parameters), so it's emitted before Model. Move it after, matching Anthropic/Bedrock.
+updatedProperties = moveAfter(
+    updatedProperties,
+    ["provider.openai.api.completions.effort", "provider.openai.api.responses.effort"],
+    "provider.openai.model.model"
+)
 
 json.put('properties', updatedProperties)
 mapper.writeValue(outputFilePath, json)
