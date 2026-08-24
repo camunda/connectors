@@ -512,12 +512,21 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "interactionType",
-        "oneOf" : [
-          "patch",
-          "post"
-        ],
-        "type" : "simple"
+        "allMatch" : [
+          {
+            "property" : "interactionType",
+            "oneOf" : [
+              "patch",
+              "post"
+            ],
+            "type" : "simple"
+          },
+          {
+            "property" : "salesforceOperationType",
+            "equals" : "sObject",
+            "type" : "simple"
+          }
+        ]
       },
       "tooltip" : "Field values for the Salesforce object, provided as a FEEL context.",
       "type" : "String"

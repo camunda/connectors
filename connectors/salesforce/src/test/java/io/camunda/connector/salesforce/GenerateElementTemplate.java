@@ -571,7 +571,10 @@ public class GenerateElementTemplate {
                 .group("operation")
                 .feel(FeelMode.required)
                 .binding(new ZeebeInput("body"))
-                .condition(new OneOf("interactionType", List.of("patch", "post")))
+                .condition(
+                    new AllMatch(
+                        new OneOf("interactionType", List.of("patch", "post")),
+                        new Equals("salesforceOperationType", "sObject")))
                 .constraints(PropertyConstraints.builder().notEmpty(true).build())
                 .build(),
             StringProperty.builder()
