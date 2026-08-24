@@ -115,6 +115,22 @@ class OpenAiChatModelTest {
   }
 
   @Test
+  void wrapsSdkFailureUsingCauseMessageWhenWrapperMessageIsGeneric() {
+    // mirrors OpenAIIoException("Request failed", cause): the SDK's own IO-wrapper exception
+    // carries a fixed, uninformative message, and the actual failure detail lives on the cause.
+    when(strategy.call(eq(client), eq(configuration), eq(request)))
+        .thenThrow(
+            new RuntimeException(
+                "Request failed", new java.net.SocketTimeoutException("Read timed out")));
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Read timed out")
+        .extracting(e -> ((ConnectorException) e).getErrorCode())
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  }
+
+  @Test
   void mapsContextLengthExceededBadRequestToContextWindowExceeded() {
     final var error =
         ErrorObject.builder()

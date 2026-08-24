@@ -113,13 +113,25 @@ public class AnthropicChatModel implements ChatModel {
       // propagate as-is rather than flattening it into a generic FAILED_MODEL_CALL below.
       throw e;
     } catch (Exception e) {
-      final String detail =
-          Optional.ofNullable(e.getMessage())
-              .filter(m -> !m.isBlank())
-              .orElseGet(() -> e.getClass().getSimpleName());
-      throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), e);
+      throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
     }
+  }
+
+  /**
+   * Builds the failure message from the cause's message when present and non-blank, falling back to
+   * the exception's own message and finally its class name. The Anthropic SDK's transport layer
+   * wraps every {@link java.io.IOException} (including a timed-out socket) in {@code
+   * AnthropicIoException} with the fixed generic message {@code "Request failed"}; the actual
+   * detail (e.g. {@code "Read timed out"}) only lives on the cause.
+   */
+  private static String failureMessage(Exception e) {
+    return "Model call failed: %s"
+        .formatted(
+            Optional.ofNullable(e.getCause())
+                .map(Throwable::getMessage)
+                .filter(m -> !m.isBlank())
+                .or(() -> Optional.ofNullable(e.getMessage()).filter(m -> !m.isBlank()))
+                .orElseGet(() -> e.getClass().getSimpleName()));
   }
 
   @Override

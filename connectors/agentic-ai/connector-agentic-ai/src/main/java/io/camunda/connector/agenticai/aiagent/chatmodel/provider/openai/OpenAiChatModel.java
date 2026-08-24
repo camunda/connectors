@@ -78,11 +78,20 @@ public class OpenAiChatModel implements ChatModel {
     }
   }
 
+  /**
+   * Builds the failure detail from the cause's message when present and non-blank, falling back to
+   * the exception's own message and finally its class name. The OpenAI SDK's transport layer wraps
+   * every {@link java.io.IOException} (including a timed-out socket) in {@code OpenAIIoException}
+   * with the fixed generic message {@code "Request failed"}; the actual detail (e.g. {@code "Read
+   * timed out"}) only lives on the cause.
+   */
   private static String failureMessage(Exception e) {
     return "Model call failed: %s"
         .formatted(
-            Optional.ofNullable(e.getMessage())
+            Optional.ofNullable(e.getCause())
+                .map(Throwable::getMessage)
                 .filter(m -> !m.isBlank())
+                .or(() -> Optional.ofNullable(e.getMessage()).filter(m -> !m.isBlank()))
                 .orElseGet(() -> e.getClass().getSimpleName()));
   }
 
