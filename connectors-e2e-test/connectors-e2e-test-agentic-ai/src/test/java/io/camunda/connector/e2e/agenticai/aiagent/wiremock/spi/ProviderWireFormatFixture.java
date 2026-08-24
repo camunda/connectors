@@ -46,9 +46,9 @@ public interface ProviderWireFormatFixture {
   Function<ElementTemplate, ElementTemplate> configureProvider(WireMockRuntimeInfo wireMock);
 
   /**
-   * Element template path to drive for this fixture's scenario. Defaults to the suite's baseline
-   * (v1) path; override when this fixture must drive a different template — e.g. the v2 template
-   * exercising a native provider factory, which uses different property ids.
+   * Element template path to drive for this fixture's scenario. Defaults to the suite's own (v2)
+   * template; override to hardcode a different one — e.g. the v1 template, for fixtures proving the
+   * v1→v2 provider-config rewrite.
    */
   default String elementTemplatePath(String defaultElementTemplatePath) {
     return defaultElementTemplatePath;

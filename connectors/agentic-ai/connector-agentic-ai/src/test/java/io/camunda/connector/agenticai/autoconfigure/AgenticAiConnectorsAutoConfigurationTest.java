@@ -37,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.Anthr
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
@@ -50,6 +51,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jso
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiFoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
@@ -81,6 +83,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomAnthropicProviderConfig.CustomAnthropicChatModelFactory;
@@ -134,7 +140,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           ChatModelRegistry.class,
           AnthropicChatModelFactory.class,
           BedrockConverseChatModelFactory.class,
-          OpenAiChatModelFactory.class);
+          OpenAiChatModelFactory.class,
+          GeminiChatModelFactory.class);
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
       List.of(
@@ -365,6 +372,15 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     new AnthropicModel("claude-sonnet-5", null),
                     null)),
             AnthropicChatModelFactory.class),
+        new ChatModelResolutionCase(
+            "google-gemini (native)",
+            new GeminiChatModelConfiguration(
+                new GeminiConnection(
+                    new GeminiApiBackend(
+                        new GeminiApiBackend.GoogleGeminiApi("test-api-key", null)),
+                    new GeminiModel("gemini-3-pro-preview", null),
+                    null)),
+            GeminiChatModelFactory.class),
         new ChatModelResolutionCase(
             "anthropic (langchain4j)",
             new AnthropicProviderConfiguration(
@@ -764,7 +780,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           super(
               mock(AgenticAiHttpProxySupport.class),
               mock(OpenAiApiFamilyStrategy.class),
-              mock(OpenAiApiFamilyStrategy.class));
+              mock(OpenAiApiFamilyStrategy.class),
+              mock(OpenAiFoundryCredentialResolver.class));
         }
 
         @Override

@@ -117,6 +117,13 @@
     },
     "type" : "Hidden"
   }, {
+    "value" : "aiAgentSubProcess",
+    "binding" : {
+      "type" : "zeebe:agentDefinition",
+      "property" : "agentType"
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "provider.type",
     "label" : "Provider",
     "description" : "Specify the LLM provider to use.",
@@ -136,6 +143,9 @@
     }, {
       "name" : "OpenAI",
       "value" : "openai"
+    }, {
+      "name" : "Google Gemini",
+      "value" : "google-gemini"
     }, {
       "name" : "Custom Implementation (Self-Managed/Hybrid only)",
       "value" : "custom"
@@ -687,6 +697,9 @@
       "name" : "OpenAI API",
       "value" : "openai-api"
     }, {
+      "name" : "Microsoft Foundry (Azure)",
+      "value" : "foundry"
+    }, {
       "name" : "Custom / compatible endpoint",
       "value" : "custom"
     } ]
@@ -774,6 +787,291 @@
       "allMatch" : [ {
         "property" : "provider.openai.backend.type",
         "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.foundry.endpoint",
+    "label" : "API endpoint",
+    "description" : "Base URL of the Microsoft Foundry / Azure OpenAI resource.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The full resource endpoint, e.g. <code>https://your-resource.openai.azure.com</code> or a Foundry endpoint such as <code>https://your-resource.services.ai.azure.com</code>.",
+    "placeholder" : "https://your-resource.openai.azure.com",
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the Microsoft Foundry authentication strategy.",
+    "value" : "apiKey",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "API key",
+      "value" : "apiKey"
+    }, {
+      "name" : "Entra ID: Client credentials",
+      "value" : "clientCredentials"
+    }, {
+      "name" : "Entra ID: Managed identity (Hybrid/Self-Managed only)",
+      "value" : "managedIdentity"
+    } ]
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.clientId",
+    "label" : "Client ID",
+    "description" : "Microsoft Entra ID application (client) ID.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Microsoft Entra ID application client secret.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.tenantId",
+    "label" : "Tenant ID",
+    "description" : "Microsoft Entra ID tenant (directory) ID.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.tenantId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.authorityHost",
+    "label" : "Authority host",
+    "description" : "Overrides the Microsoft Entra ID authority host, e.g. for sovereign clouds. Leave unset to use the public cloud authority.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.authorityHost",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.entraIdScope",
+    "label" : "Entra ID scope",
+    "description" : "Overrides the Microsoft Entra ID token scope requested for this authentication flow. Leave unset to let the automatically detected Azure cloud pick its own default.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.entraIdScope",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.managedIdentity.clientId",
+    "label" : "Client ID",
+    "description" : "Client ID of a user-assigned managed identity. Leave unset to use the system-assigned managed identity.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "managedIdentity",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.managedIdentity.entraIdScope",
+    "label" : "Entra ID scope",
+    "description" : "Overrides the Microsoft Entra ID token scope requested for this authentication flow. Leave unset to let the automatically detected Azure cloud pick its own default.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.entraIdScope",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "managedIdentity",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -878,6 +1176,224 @@
     "condition" : {
       "property" : "provider.type",
       "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleGemini.backend.type",
+    "label" : "Backend",
+    "description" : "Specify which Google backend serves the Gemini model.",
+    "value" : "google-gemini-api",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Google Gemini API",
+      "value" : "google-gemini-api"
+    }, {
+      "name" : "Google Vertex AI",
+      "value" : "google-vertex-ai"
+    } ]
+  }, {
+    "id" : "provider.googleGemini.backend.googleGeminiApi.apiKey",
+    "label" : "Gemini API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleGeminiApi.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-gemini-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleGemini.backend.googleGeminiApi.endpoint",
+    "label" : "API endpoint",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleGeminiApi.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-gemini-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.googleGemini.backend.googleVertexAi.projectId",
+    "label" : "Project ID",
+    "description" : "Specify Google Cloud project ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleVertexAi.projectId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleGemini.backend.googleVertexAi.region",
+    "label" : "Region",
+    "description" : "Specify the region where AI inference should take place",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleVertexAi.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleGemini.backend.googleVertexAi.endpoint",
+    "label" : "API endpoint",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleVertexAi.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.googleGemini.backend.googleVertexAi.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the Google Vertex AI authentication strategy.",
+    "value" : "serviceAccountCredentials",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleVertexAi.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Service account credentials",
+      "value" : "serviceAccountCredentials"
+    }, {
+      "name" : "Application default credentials (Hybrid/Self-Managed only)",
+      "value" : "applicationDefaultCredentials"
+    } ]
+  }, {
+    "id" : "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
+    "label" : "JSON key of the service account",
+    "description" : "This is the key of the service account in JSON format.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.googleVertexAi.authentication.type",
+        "equals" : "serviceAccountCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleGemini.timeouts.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.timeouts.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
       "type" : "simple"
     },
     "type" : "String"
@@ -1226,6 +1742,94 @@
       "allMatch" : [ {
         "property" : "provider.openai.backend.type",
         "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.foundry.apiVersion",
+    "label" : "API version",
+    "description" : "Overrides the Azure OpenAI API version. Leave unset to let the automatically detected API surface (unified or legacy) pick its own default.",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.apiVersion",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.foundry.headers",
+    "label" : "HTTP headers",
+    "description" : "Map of HTTP headers to add to the request.",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.foundry.queryParameters",
+    "label" : "Query parameters",
+    "description" : "Map of query parameters to add to the request URL.",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.backend.foundry.bodyProperties",
+    "label" : "Body properties",
+    "description" : "Map of additional properties to include in the request body.",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.bodyProperties",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -1599,6 +2203,83 @@
     "placeholder" : "gpt-5.5",
     "type" : "String"
   }, {
+    "id" : "provider.googleGemini.model.model",
+    "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.googleGemini.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "placeholder" : "gemini-3-pro-preview",
+    "type" : "String"
+  }, {
+    "id" : "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+    "label" : "Thinking budget (tokens)",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.model.parameters.thinking.thinkingLevel",
+        "equals" : "modelDefault",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Gemini 2.5 models: token budget for extended thinking. -1 = dynamic, 0 = disabled. Mutually exclusive with Thinking level (Gemini 3.x). <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleGemini.model.parameters.thinking.thinkingLevel",
+    "label" : "Thinking level",
+    "optional" : false,
+    "value" : "modelDefault",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.googleGemini.model.parameters.thinking.thinkingLevel",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "tooltip" : "Gemini 3.x models: qualitative thinking effort. \"default\" lets the model choose its own reasoning depth. Mutually exclusive with Thinking budget (Gemini 2.5). <br><br>Details in the <a href=\"https://ai.google.dev/gemini-api/docs/thinking\" target=\"_blank\">documentation</a>.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "default",
+      "value" : "modelDefault"
+    }, {
+      "name" : "minimal",
+      "value" : "minimal"
+    }, {
+      "name" : "low",
+      "value" : "low"
+    }, {
+      "name" : "medium",
+      "value" : "medium"
+    }, {
+      "name" : "high",
+      "value" : "high"
+    } ]
+  }, {
     "id" : "provider.model",
     "label" : "Model",
     "description" : "Identifier of the model to use.",
@@ -1874,6 +2555,74 @@
       } ]
     },
     "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://developers.openai.com/api/reference/resources/responses/methods/create\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleGemini.model.parameters.maxTokens",
+    "label" : "Maximum tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.googleGemini.model.parameters.maxTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens to generate before stopping. <br><br>Details in the <a href=\"https://ai.google.dev/api/generate-content#v1beta.GenerationConfig\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleGemini.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.googleGemini.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "tooltip" : "Controls the randomness of the output. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://ai.google.dev/api/generate-content#v1beta.GenerationConfig\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleGemini.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.googleGemini.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://ai.google.dev/api/generate-content#v1beta.GenerationConfig\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleGemini.model.parameters.topK",
+    "label" : "top K",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model-options",
+    "binding" : {
+      "name" : "provider.googleGemini.model.parameters.topK",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-gemini",
+      "type" : "simple"
+    },
+    "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://ai.google.dev/api/generate-content#v1beta.GenerationConfig\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "data.systemPrompt.prompt",

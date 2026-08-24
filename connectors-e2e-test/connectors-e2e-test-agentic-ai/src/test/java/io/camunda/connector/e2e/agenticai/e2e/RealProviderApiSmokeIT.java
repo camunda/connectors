@@ -33,7 +33,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.BpmnUtil;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
@@ -111,8 +110,9 @@ class RealProviderApiSmokeIT {
           + "\"properties\":{\"codeName\":{\"type\":\"string\"},\"clearanceLevel\":{\"type\":\"string\"}},"
           + "\"required\":[\"codeName\",\"clearanceLevel\"]}";
 
-  // Repeated to clear Anthropic's minimum cacheable-prefix size (~1024 tokens for Sonnet-class
-  // models); each repeat is ~65 tokens, so 24 repeats gives comfortable margin.
+  // Repeated to clear the largest minimum cacheable-prefix size among providers under test:
+  // Anthropic needs ~1024 tokens (Sonnet-class models), Gemini needs ~4096. Each repeat is ~65
+  // tokens, so 80 repeats (~5200 tokens) gives comfortable margin over both.
   private static final String LONG_SYSTEM_PROMPT =
       """
       You are an assistant operating under a detailed classified-information handling protocol. \
@@ -121,7 +121,7 @@ class RealProviderApiSmokeIT {
       its result verbatim without paraphrasing. Follow every rule in this protocol \
       carefully and consistently across the whole conversation. \
       """
-          .repeat(24);
+          .repeat(80);
 
   private static final String DOC_DIR = "document-tool-call-results/";
   private static final String DOC_PROJECT_LAUNCH = DOC_DIR + "project-launch.pdf";
@@ -157,7 +157,7 @@ class RealProviderApiSmokeIT {
    * scenario. A capability absent from the map means the row does not support it, so its scenario
    * is skipped for this row.
    */
-  record Provider(
+  record ProviderConfig(
       String label,
       List<String> requiredEnvVars,
       boolean enabled,
@@ -167,7 +167,7 @@ class RealProviderApiSmokeIT {
       // cache-read; gates the cache-creation assertion in the prompt-caching scenario.
       boolean reportsCacheCreationTokens) {
 
-    Provider(
+    ProviderConfig(
         String label,
         List<String> requiredEnvVars,
         Map<String, String> properties,
@@ -182,8 +182,8 @@ class RealProviderApiSmokeIT {
           reportsCacheCreationTokens);
     }
 
-    Provider disabled() {
-      return new Provider(
+    ProviderConfig disabled() {
+      return new ProviderConfig(
           label,
           requiredEnvVars,
           false,
@@ -213,10 +213,10 @@ class RealProviderApiSmokeIT {
     }
   }
 
-  static Provider anthropicApi(
+  static ProviderConfig anthropicV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return new Provider(
-        "anthropic-api/" + model,
+    return new ProviderConfig(
+        "anthropic-v2/" + model,
         List.of("ANTHROPIC_API_KEY"),
         Map.of(
             "provider.type",
@@ -235,10 +235,10 @@ class RealProviderApiSmokeIT {
   // hosted on/by AWS: requests are SigV4-signed and sent to a Bedrock Mantle endpoint instead of
   // api.anthropic.com, but the connector performs no body/path/response translation between the
   // two.
-  static Provider anthropicBedrockMantle(
+  static ProviderConfig anthropicBedrockMantleV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return new Provider(
-        "anthropic-bedrock-mantle/" + model,
+    return new ProviderConfig(
+        "anthropic-bedrock-mantle-v2/" + model,
         List.of("ANTHROPIC_BEDROCK_API_KEY"),
         Map.of(
             "provider.type",
@@ -257,10 +257,10 @@ class RealProviderApiSmokeIT {
         true);
   }
 
-  static Provider bedrockConverse(
+  static ProviderConfig bedrockConverseV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return new Provider(
-        "bedrock-converse/" + model,
+    return new ProviderConfig(
+        "bedrock-converse-v2/" + model,
         List.of("AWS_BEDROCK_API_KEY"),
         Map.of(
             "provider.type",
@@ -277,21 +277,21 @@ class RealProviderApiSmokeIT {
         true);
   }
 
-  // Always targets the openai-api backend, mirroring anthropicApi above.
-  static Provider openAiCompletionsApi(
+  // Always targets the openai-api backend, mirroring anthropicV2 above.
+  static ProviderConfig openAiCompletionsV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return openAiApi("completions", model, capabilityProperties);
+    return openAiV2("completions", model, capabilityProperties);
   }
 
-  static Provider openAiResponsesApi(
+  static ProviderConfig openAiResponsesV2(
       String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return openAiApi("responses", model, capabilityProperties);
+    return openAiV2("responses", model, capabilityProperties);
   }
 
-  private static Provider openAiApi(
+  private static ProviderConfig openAiV2(
       String family, String model, Map<Capability, Map<String, String>> capabilityProperties) {
-    return new Provider(
-        "openai-api/" + family + "/" + model,
+    return new ProviderConfig(
+        "openai-" + family + "-v2/" + model,
         List.of("OPENAI_API_KEY"),
         Map.of(
             "provider.type",
@@ -310,11 +310,97 @@ class RealProviderApiSmokeIT {
         false);
   }
 
-  static Stream<Provider> providers() {
+  // Foundry proxies the exact same OpenAI Responses/Completions wire format behind an Azure
+  // resource, so capabilities and reported usage metrics mirror openai-api -- only auth/endpoint
+  // differ. `model` doubles as the Azure deployment name (see native-providers.md), so this
+  // requires a deployment literally named after each model string below to exist on the
+  // configured resource.
+  static ProviderConfig openAiFoundryCompletionsV2(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return openAiFoundryV2("completions", model, capabilityProperties);
+  }
+
+  static ProviderConfig openAiFoundryResponsesV2(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return openAiFoundryV2("responses", model, capabilityProperties);
+  }
+
+  private static ProviderConfig openAiFoundryV2(
+      String family, String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new ProviderConfig(
+        "openai-foundry-" + family + "-v2/" + model,
+        List.of("OPENAI_FOUNDRY_API_KEY", "OPENAI_FOUNDRY_ENDPOINT"),
+        Map.of(
+            "provider.type",
+            "openai",
+            "provider.openai.backend.type",
+            "foundry",
+            "provider.openai.backend.foundry.endpoint",
+            envOrPlaceholder("OPENAI_FOUNDRY_ENDPOINT"),
+            "provider.openai.backend.foundry.authentication.type",
+            "apiKey",
+            "provider.openai.backend.foundry.authentication.apiKey",
+            envOrPlaceholder("OPENAI_FOUNDRY_API_KEY"),
+            "provider.openai.api.type",
+            family,
+            "provider.openai.model.model",
+            model),
+        capabilityProperties,
+        // Same wire format and usage-reporting shape as openai-api: a cache-read count, no
+        // distinct cache-creation (write) metric.
+        false);
+  }
+
+  static ProviderConfig googleGeminiV2(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new ProviderConfig(
+        "google-gemini-v2/" + model,
+        List.of("GOOGLE_GEMINI_API_KEY"),
+        Map.of(
+            "provider.type",
+            "google-gemini",
+            "provider.googleGemini.backend.type",
+            "google-gemini-api",
+            "provider.googleGemini.backend.googleGeminiApi.apiKey",
+            envOrPlaceholder("GOOGLE_GEMINI_API_KEY"),
+            "provider.googleGemini.model.model",
+            model),
+        capabilityProperties,
+        false);
+  }
+
+  static ProviderConfig googleGeminiVertexAiV2(
+      String model, Map<Capability, Map<String, String>> capabilityProperties) {
+    return new ProviderConfig(
+        "google-gemini-vertex-ai-v2/" + model,
+        List.of(
+            "GOOGLE_VERTEX_AI_PROJECT_ID",
+            "GOOGLE_VERTEX_AI_REGION",
+            "GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON"),
+        Map.of(
+            "provider.type",
+            "google-gemini",
+            "provider.googleGemini.backend.type",
+            "google-vertex-ai",
+            "provider.googleGemini.backend.googleVertexAi.projectId",
+            envOrPlaceholder("GOOGLE_VERTEX_AI_PROJECT_ID"),
+            "provider.googleGemini.backend.googleVertexAi.region",
+            envOrPlaceholder("GOOGLE_VERTEX_AI_REGION"),
+            "provider.googleGemini.backend.googleVertexAi.authentication.type",
+            "serviceAccountCredentials",
+            "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
+            envOrPlaceholder("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON"),
+            "provider.googleGemini.model.model",
+            model),
+        capabilityProperties,
+        false);
+  }
+
+  static Stream<ProviderConfig> providers() {
     return Stream.of(
             // claude-sonnet-4-6 only supports thinking mode "enabled" (explicit budget) — the model
             // always emits a thinking block regardless of prompt difficulty.
-            anthropicApi(
+            anthropicV2(
                 "claude-sonnet-4-6",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
@@ -328,7 +414,7 @@ class RealProviderApiSmokeIT {
             // claude-sonnet-5 does NOT accept "enabled"; it only allows "adaptive" (the model
             // decides whether to think). At effort "high" it reliably thinks on a genuinely
             // multi-step prompt, but this is model choice, not an API-level guarantee.
-            anthropicApi(
+            anthropicV2(
                 "claude-sonnet-5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
@@ -343,7 +429,7 @@ class RealProviderApiSmokeIT {
             // structured output: Bedrock Mantle rejects output_config.format with a 400. AWS docs
             // confirm this endpoint doesn't support it:
             // https://docs.aws.amazon.com/bedrock/latest/userguide/claude-messages-structured-outputs.html
-            anthropicBedrockMantle(
+            anthropicBedrockMantleV2(
                 "claude-sonnet-5",
                 Map.of(
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -358,7 +444,7 @@ class RealProviderApiSmokeIT {
             // for this model ("This model doesn't support the outputConfig field"), matching its
             // model card ("Structured outputs" listed as Not Supported). Disabled for now: prone
             // to misspelling nonce words in its output.
-            bedrockConverse(
+            bedrockConverseV2(
                     "us.amazon.nova-2-lite-v1:0",
                     Map.of(
                         Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -375,7 +461,7 @@ class RealProviderApiSmokeIT {
             // for it, so those capabilities are left undeclared. Its reasoning uses a
             // "reasoning_effort" shape (no "type", no budget), proving a third incompatible
             // reasoning request shape works through the same provider-agnostic scenario.
-            bedrockConverse(
+            bedrockConverseV2(
                 "openai.gpt-oss-120b-1:0",
                 Map.of(
                     Capability.REASONING,
@@ -393,7 +479,7 @@ class RealProviderApiSmokeIT {
             // ("output_config.format: Extra inputs are not permitted"), confirmed against a real
             // API
             // call.
-            bedrockConverse(
+            bedrockConverseV2(
                 "global.anthropic.claude-sonnet-5",
                 Map.of(
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
@@ -405,7 +491,7 @@ class RealProviderApiSmokeIT {
                             "={thinking: {type: \"adaptive\"}}"))),
             // Responses mirrors Anthropic's reasoning pattern: it returns a ReasoningContent
             // domain block in addition to reasoning_tokens, so REASONING is exercisable here.
-            openAiResponsesApi(
+            openAiResponsesV2(
                 "gpt-5.5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
@@ -413,41 +499,109 @@ class RealProviderApiSmokeIT {
                     Capability.PROMPT_CACHING, Map.of(),
                     Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
             // REASONING omitted: Completions never returns a ReasoningContent block to assert on.
-            openAiCompletionsApi(
+            openAiCompletionsV2(
                 "gpt-5.5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
             // An older model, on both API families, for completeness.
-            openAiResponsesApi(
+            openAiResponsesV2(
                 "gpt-4.1",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.PROMPT_CACHING, Map.of())),
-            openAiCompletionsApi(
+            openAiCompletionsV2(
                 "gpt-4.1",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
-                    Capability.PROMPT_CACHING, Map.of())))
-        .filter(Provider::isEnabled);
+                    Capability.PROMPT_CACHING, Map.of())),
+            // Same models/capabilities as the openai-api rows above, via the foundry backend.
+            openAiFoundryResponsesV2(
+                "gpt-5.5",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
+                    Capability.REASONING, Map.of("provider.openai.api.responses.effort", "high"))),
+            openAiFoundryCompletionsV2(
+                "gpt-5.5",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
+            openAiFoundryResponsesV2(
+                "gpt-4.1",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
+            openAiFoundryCompletionsV2(
+                "gpt-4.1",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of())),
+            googleGeminiV2(
+                "gemini-3.7-flash",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT,
+                    Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE,
+                    Map.of(),
+                    Capability.PROMPT_CACHING,
+                    Map.of(),
+                    Capability.REASONING,
+                    Map.of(
+                        "provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"))),
+            googleGeminiVertexAiV2(
+                "gemini-3.7-flash",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
+                    Capability.REASONING,
+                        Map.of(
+                            "provider.googleGemini.model.parameters.thinking.thinkingLevel",
+                            "high"))),
+            // Gemini 2.5 models use a numeric thinkingBudget rather than a qualitative level.
+            // No STRUCTURED_OUTPUT claim: the Gemini API rejects a JSON response mime type
+            googleGeminiV2(
+                "gemini-2.5-pro",
+                Map.of(
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
+                    Capability.REASONING,
+                        Map.of(
+                            "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+                            "24576"))),
+            googleGeminiVertexAiV2(
+                "gemini-2.5-pro",
+                Map.of(
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
+                    Capability.REASONING,
+                        Map.of(
+                            "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+                            "24576"))))
+        .filter(ProviderConfig::isEnabled);
   }
 
-  static Stream<Provider> providersWithStructuredOutput() {
+  static Stream<ProviderConfig> providersWithStructuredOutput() {
     return providers().filter(p -> p.supports(Capability.STRUCTURED_OUTPUT));
   }
 
-  static Stream<Provider> providersWithReasoning() {
+  static Stream<ProviderConfig> providersWithReasoning() {
     return providers().filter(p -> p.supports(Capability.REASONING));
   }
 
-  static Stream<Provider> providersWithPromptCaching() {
+  static Stream<ProviderConfig> providersWithPromptCaching() {
     return providers().filter(p -> p.supports(Capability.PROMPT_CACHING));
   }
 
-  static Stream<Provider> providersWithMultimodalUserMessage() {
+  static Stream<ProviderConfig> providersWithMultimodalUserMessage() {
     return providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE));
   }
 
@@ -474,7 +628,7 @@ class RealProviderApiSmokeIT {
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providers")
-  void toolCallLoopSurfacesPlantedFact(Provider provider) {
+  void toolCallLoopSurfacesPlantedFact(ProviderConfig provider) {
     var model =
         buildModel(
             provider,
@@ -503,7 +657,7 @@ class RealProviderApiSmokeIT {
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithStructuredOutput")
-  void structuredOutputReturnsSchemaConformingJson(Provider provider) {
+  void structuredOutputReturnsSchemaConformingJson(ProviderConfig provider) {
     var model =
         buildModel(
             provider,
@@ -546,20 +700,20 @@ class RealProviderApiSmokeIT {
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithReasoning")
-  void reasoningEnabledProducesReasoningContent(Provider provider) {
+  void reasoningEnabledProducesReasoningContent(ProviderConfig provider) {
     var model =
         buildModel(
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
-            "You are a careful reasoner. Think step by step before answering.",
+            "You are a careful reasoner. Think step by step before answering. Before providing your final answer, break down your reasoning step-by-step.",
             template -> provider.propertiesFor(Capability.REASONING).forEach(template::property));
 
     var instance =
         startAgent(
             model,
             PROCESS_ID,
-            "You are a careful reasoner. Think step by step before answering.",
+            "You are a careful reasoner. Think step by step before answering. Before providing your final answer, break down your reasoning step-by-step.",
             Map.of(
                 "userPrompt",
                 "A farmer has chickens and rabbits. Together they have 35 heads and 94 legs. How "
@@ -577,7 +731,7 @@ class RealProviderApiSmokeIT {
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithPromptCaching")
-  void promptCachingReportsCacheReadAndWriteTokens(Provider provider) {
+  void promptCachingReportsCacheReadAndWriteTokens(ProviderConfig provider) {
     var model =
         buildModel(
             provider,
@@ -627,7 +781,7 @@ class RealProviderApiSmokeIT {
   /** Re-entry test: catches a completed assistant text turn getting replayed incorrectly. */
   @ParameterizedTest(name = "{0}")
   @MethodSource("providers")
-  void userFeedbackLoopReplaysAssistantTextOnFollowUp(Provider provider) {
+  void userFeedbackLoopReplaysAssistantTextOnFollowUp(ProviderConfig provider) {
     var model =
         buildModel(
             provider,
@@ -670,7 +824,7 @@ class RealProviderApiSmokeIT {
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithMultimodalUserMessage")
-  void documentInUserMessageIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
+  void documentInUserMessageIsReadByModel(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
     stubPdfDownloads();
 
     final var systemPrompt =
@@ -706,7 +860,7 @@ class RealProviderApiSmokeIT {
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
   @MethodSource("providersWithMultimodalUserMessage")
-  void documentInToolResultIsReadByModel(Provider provider, WireMockRuntimeInfo wireMock) {
+  void documentInToolResultIsReadByModel(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
     stubPdfDownloads();
 
     var model =
@@ -740,7 +894,7 @@ class RealProviderApiSmokeIT {
   // ---------------------------------------------------------------------------
 
   private BpmnModelInstance buildModel(
-      Provider provider,
+      ProviderConfig provider,
       String templatePath,
       String bpmnResource,
       String systemPrompt,
@@ -762,9 +916,8 @@ class RealProviderApiSmokeIT {
     try {
       var templateFile = template.writeTo(new File(tempDir, "template.json"));
       var bpmnFile = resourceLoader.getResource(bpmnResource).getFile();
-      var modelInstance =
-          new BpmnFile(bpmnFile).apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
-      return BpmnUtil.withAgentDefinitionMarker(modelInstance, "AI_Agent", "aiAgentSubProcess");
+      return new BpmnFile(bpmnFile)
+          .apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
     } catch (Exception e) {
       throw new RuntimeException("Failed to build BPMN model for " + provider.label(), e);
     }

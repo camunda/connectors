@@ -29,6 +29,7 @@ import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.io.ByteArrayOutputStream;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -47,14 +48,12 @@ import software.amazon.eventstream.MessageBuilder;
  * (verified against the {@code bedrockruntime} model classes' {@code SdkField} location names, not
  * guessed), framed via {@link software.amazon.eventstream.MessageBuilder} - the same library class
  * the AWS SDK's own {@code EventStreamAsyncResponseTransformer} decodes frames with - so the bytes
- * parse exactly as real Bedrock would send them. The per-turn data mirrors {@link
- * BedrockConverseChatModelStubs.Turn}, just framed as delta-based events instead of one buffered
- * JSON object.
+ * parse exactly as real Bedrock would send them. The per-turn data is framed as delta-based events.
  */
 public final class StreamingBedrockConverseEventStreamChatModelStubs {
 
-  public static final String CONVERSE_STREAM_PATH =
-      BedrockConverseChatModelStubs.CONVERSE_PATH + "-stream";
+  public static final String CONVERSE_PATH = "/model/test-model/converse";
+  public static final String CONVERSE_STREAM_PATH = CONVERSE_PATH + "-stream";
 
   private static final String SCENARIO_NAME = "llm-conversation-eventstream";
   private static final String CONTENT_TYPE_EVENTSTREAM = "application/vnd.amazon.eventstream";
@@ -171,6 +170,18 @@ public final class StreamingBedrockConverseEventStreamChatModelStubs {
     writeEvent(body, "metadata", metadataPayload(turn.inputTokens(), turn.outputTokens()));
 
     return body.toByteArray();
+  }
+
+  /**
+   * Wires a single-turn scenario whose response is delayed by {@code delay} via WireMock's {@code
+   * withFixedDelay} - used by HTTP-transport-timeout e2e coverage to simulate a slow/hanging model
+   * response on the native EventStream endpoint.
+   */
+  public static void stubConversation(Duration delay, TurnStub turn) {
+    stubFor(
+        post(urlPathEqualTo(CONVERSE_STREAM_PATH))
+            .willReturn(
+                eventStreamResponse(eventStreamBody(turn)).withFixedDelay((int) delay.toMillis())));
   }
 
   /** Shared scenario-chaining plumbing: returns each pre-rendered EventStream body in order. */

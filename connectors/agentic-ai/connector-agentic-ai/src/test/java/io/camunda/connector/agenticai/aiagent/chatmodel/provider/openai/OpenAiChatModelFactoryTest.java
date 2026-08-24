@@ -7,12 +7,14 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
@@ -27,13 +29,19 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi.CompletionsParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi.ResponsesParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend.OpenAiApiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend.FoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.api.error.ConnectorInputException;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -41,7 +49,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -69,7 +79,11 @@ class OpenAiChatModelFactoryTest {
             new OpenAiResponsesStrategy(
                 new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
                 new OpenAiResponsesResponseConverter(objectMapper),
-                OpenAiResponsesStreamAssembler.accumulating()));
+                OpenAiResponsesStreamAssembler.accumulating()),
+            new OpenAiFoundryCredentialResolver(
+                new EntraIdTokenCredentialFactory(
+                    httpProxySupport,
+                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
   }
 
   @Test
@@ -94,7 +108,12 @@ class OpenAiChatModelFactoryTest {
 
   static Stream<OpenAiChatModelConfiguration> configs() {
     return Stream.of(
-        responsesApiConfig(MODEL_ID), customConfig(MODEL_ID), completionsApiConfig(MODEL_ID));
+        responsesApiConfig(MODEL_ID),
+        customConfig(MODEL_ID),
+        completionsApiConfig(MODEL_ID),
+        foundryApiKeyConfig(MODEL_ID),
+        foundryClientCredentialsConfig(MODEL_ID),
+        foundryManagedIdentityConfig(MODEL_ID));
   }
 
   private static OpenAiChatModelConfiguration responsesApiConfig(String modelId) {
@@ -130,5 +149,87 @@ class OpenAiChatModelFactoryTest {
                     new ApiKeyAuthentication("sk-custom-test"))),
             new OpenAiModel(modelId),
             null));
+  }
+
+  private static OpenAiChatModelConfiguration foundryApiKeyConfig(String modelId) {
+    return foundryConfig(
+        modelId, new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-test"));
+  }
+
+  private static OpenAiChatModelConfiguration foundryClientCredentialsConfig(String modelId) {
+    return foundryConfig(
+        modelId,
+        new FoundryAuthentication.ClientCredentialsAuthentication(
+            "client-test", "secret-test", "tenant-test", null, null));
+  }
+
+  private static OpenAiChatModelConfiguration foundryManagedIdentityConfig(String modelId) {
+    return foundryConfig(
+        modelId, new FoundryAuthentication.ManagedIdentityAuthentication(null, null));
+  }
+
+  private static OpenAiChatModelConfiguration foundryConfig(
+      String modelId, FoundryAuthentication authentication) {
+    return new OpenAiChatModelConfiguration(
+        new OpenAiChatModelConfiguration.OpenAiConnection(
+            new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
+            new OpenAiFoundryBackend(
+                new FoundryBackend(
+                    "https://foundry-test.openai.azure.com",
+                    null,
+                    authentication,
+                    null,
+                    null,
+                    null)),
+            new OpenAiModel(modelId),
+            null));
+  }
+
+  @ParameterizedTest
+  @MethodSource("endpointsToNormalize")
+  void unifiedEndpointAppendsOpenaiV1WhenMissing(String endpoint, String expected) {
+    assertThat(OpenAiChatModelFactory.unifiedEndpoint(endpoint)).isEqualTo(expected);
+  }
+
+  static Stream<Arguments> endpointsToNormalize() {
+    return Stream.of(
+        Arguments.of(
+            "https://my-resource.openai.azure.com",
+            "https://my-resource.openai.azure.com/openai/v1"),
+        Arguments.of(
+            "https://my-resource.services.ai.azure.com",
+            "https://my-resource.services.ai.azure.com/openai/v1"),
+        Arguments.of(
+            "https://my-resource.openai.azure.com/",
+            "https://my-resource.openai.azure.com/openai/v1"),
+        Arguments.of(
+            "https://my-resource.openai.azure.com/openai/v1",
+            "https://my-resource.openai.azure.com/openai/v1"),
+        Arguments.of(
+            "https://my-resource.openai.azure.com//",
+            "https://my-resource.openai.azure.com/openai/v1"),
+        Arguments.of(
+            "https://my-resource.openai.azure.com/openai/v1//",
+            "https://my-resource.openai.azure.com/openai/v1"),
+        Arguments.of(
+            "https://my-resource.openai.azure.com/openai/v1/",
+            "https://my-resource.openai.azure.com/openai/v1"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "https://my-resource.openai.azure.com?api-version=2025-03-01-preview",
+        "https://my-resource.openai.azure.com/openai/v1?token=a%26b",
+        "https://my-resource.openai.azure.com#fragment",
+        "https://my-resource.openai.azure.com/openai/v1?foo=bar#frag"
+      })
+  void unifiedEndpointRejectsQueryOrFragment(String endpoint) {
+    // The openai-java SDK appends the service path directly onto the base URL string, so a query or
+    // fragment on the endpoint would strand the path segment inside it -- reject rather than carry
+    // it through. Request query parameters belong on the backend's dedicated queryParameters field.
+    assertThatThrownBy(() -> OpenAiChatModelFactory.unifiedEndpoint(endpoint))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("query string or fragment");
   }
 }

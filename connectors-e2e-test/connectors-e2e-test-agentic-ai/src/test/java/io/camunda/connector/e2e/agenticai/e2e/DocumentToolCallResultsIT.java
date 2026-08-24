@@ -31,7 +31,6 @@ import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.BpmnUtil;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -243,13 +242,13 @@ class DocumentToolCallResultsIT {
 
     return Stream.of(
             // OpenAI (v1)
-            openaiV1("gpt-4.1"),
-            openaiV1("gpt-5.4"),
+            openAiV1("gpt-4.1"),
+            openAiV1("gpt-5.4"),
             // OpenAI (v2)
-            openaiResponsesV2("gpt-4.1"),
-            openaiResponsesV2("gpt-5.4"),
-            openaiCompletionsV2("gpt-4.1"),
-            openaiCompletionsV2("gpt-5.4"),
+            openAiResponsesV2("gpt-4.1"),
+            openAiResponsesV2("gpt-5.4"),
+            openAiCompletionsV2("gpt-4.1"),
+            openAiCompletionsV2("gpt-5.4"),
             // Anthropic (v1)
             anthropicV1("claude-sonnet-4-6"),
             anthropicV1("claude-haiku-4-5-20251001"),
@@ -281,9 +280,9 @@ class DocumentToolCallResultsIT {
   }
 
   /** OpenAI, v1 (LangChain4j-backed). */
-  static ProviderConfig openaiV1(String model) {
+  static ProviderConfig openAiV1(String model) {
     return new ProviderConfig(
-        "openai/" + model,
+        "openai-v1/" + model,
         List.of("OPENAI_API_KEY"),
         AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -296,7 +295,7 @@ class DocumentToolCallResultsIT {
   }
 
   /** OpenAI, v2, Responses family. */
-  static ProviderConfig openaiResponsesV2(String model) {
+  static ProviderConfig openAiResponsesV2(String model) {
     return new ProviderConfig(
         "openai-responses-v2/" + model,
         List.of("OPENAI_API_KEY"),
@@ -315,7 +314,7 @@ class DocumentToolCallResultsIT {
   }
 
   /** OpenAI, v2, Completions family. */
-  static ProviderConfig openaiCompletionsV2(String model) {
+  static ProviderConfig openAiCompletionsV2(String model) {
     return new ProviderConfig(
         "openai-completions-v2/" + model,
         List.of("OPENAI_API_KEY"),
@@ -336,7 +335,7 @@ class DocumentToolCallResultsIT {
   /** Anthropic, v1 (LangChain4j-backed). */
   static ProviderConfig anthropicV1(String model) {
     return new ProviderConfig(
-        "anthropic/" + model,
+        "anthropic-v1/" + model,
         List.of("ANTHROPIC_API_KEY"),
         AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -393,7 +392,7 @@ class DocumentToolCallResultsIT {
   /** AWS Bedrock, v1 (LangChain4j-backed); Anthropic models via cross-region inference. */
   static ProviderConfig bedrockV1(String model) {
     return new ProviderConfig(
-        "bedrock/" + model,
+        "bedrock-v1/" + model,
         List.of("AWS_BEDROCK_ACCESS_KEY", "AWS_BEDROCK_SECRET_KEY"),
         AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -438,7 +437,7 @@ class DocumentToolCallResultsIT {
         System.getenv()
             .getOrDefault("DOCKER_MODEL_RUNNER_URL", "http://localhost:12434/engines/llama.cpp/v1");
     return new ProviderConfig(
-        "docker-model-runner/" + model,
+        "docker-model-runner-v1/" + model,
         List.of(), // local endpoint, no API key env var required
         AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -451,7 +450,7 @@ class DocumentToolCallResultsIT {
   static ProviderConfig ollamaV1(String model) {
     var url = System.getenv().getOrDefault("OLLAMA_URL", "http://localhost:11434/v1");
     return new ProviderConfig(
-        "ollama/" + model,
+        "ollama-v1/" + model,
         List.of(), // local endpoint, no API key env var required
         AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH,
         Map.of(
@@ -551,9 +550,8 @@ class DocumentToolCallResultsIT {
     try {
       var templateFile = template.writeTo(new File(tempDir, "template.json"));
       var bpmnFile = resourceLoader.getResource(BPMN_RESOURCE).getFile();
-      var modelInstance =
-          new BpmnFile(bpmnFile).apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
-      return BpmnUtil.withAgentDefinitionMarker(modelInstance, "AI_Agent", "aiAgentSubProcess");
+      return new BpmnFile(bpmnFile)
+          .apply(templateFile, "AI_Agent", new File(tempDir, "applied.bpmn"));
     } catch (Exception e) {
       throw new RuntimeException("Failed to build BPMN model for " + provider.label(), e);
     }

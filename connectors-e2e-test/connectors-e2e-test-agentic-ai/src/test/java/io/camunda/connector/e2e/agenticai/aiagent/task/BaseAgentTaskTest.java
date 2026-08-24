@@ -16,11 +16,9 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
-import static io.camunda.connector.e2e.agenticai.BpmnUtil.withAgentDefinitionMarker;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AGENT_RESPONSE_VARIABLE;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_V1_ELEMENT_TEMPLATE_PATH;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_V1_ELEMENT_TEMPLATE_PROPERTIES;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PROPERTIES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
@@ -28,7 +26,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.BpmnUtil;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAgentTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
@@ -37,7 +34,6 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
-import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -74,36 +70,31 @@ public abstract class BaseAgentTaskTest extends BaseAgentTest {
 
   @Override
   protected String elementTemplatePath() {
-    return AI_AGENT_TASK_V1_ELEMENT_TEMPLATE_PATH;
+    return AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PATH;
   }
 
   @Override
   protected Map<String, String> elementTemplateProperties() {
-    return AI_AGENT_TASK_V1_ELEMENT_TEMPLATE_PROPERTIES;
+    return AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PROPERTIES;
   }
 
   // ---------------------------------------------------------------------------
   // Provider redirect
   // ---------------------------------------------------------------------------
 
-  /** Redirects the connector to the WireMock OpenAI-compatible endpoint. */
-  protected ElementTemplate withOpenAiCompatibleProvider(ElementTemplate template) {
+  /** Redirects the connector to the WireMock native OpenAI (Chat Completions) endpoint. */
+  protected ElementTemplate configureDefaultOpenAiProvider(ElementTemplate template) {
     return template
-        .property("provider.type", "openaiCompatible")
-        .property("provider.openaiCompatible.endpoint", wireMock.getHttpBaseUrl() + "/v1")
-        .property("provider.openaiCompatible.authentication.apiKey", "dummy")
-        .property("provider.openaiCompatible.model.model", "test-model");
+        .property("provider.type", "openai")
+        .property("provider.openai.api.type", "completions")
+        .property("provider.openai.backend.type", "openai-api")
+        .property("provider.openai.backend.openai.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+        .property("provider.openai.backend.openai.apiKey", "dummy")
+        .property("provider.openai.model.model", "test-model");
   }
 
   protected Function<ElementTemplate, ElementTemplate> providerConfigurer() {
-    return this::withOpenAiCompatibleProvider;
-  }
-
-  /** See {@link BpmnUtil#withAgentDefinitionMarker} for why this is needed. */
-  @Override
-  protected BpmnModelInstance customizeModel(BpmnModelInstance model) {
-    return super.customizeModel(
-        withAgentDefinitionMarker(model, AI_AGENT_ELEMENT_ID, "aiAgentTask"));
+    return this::configureDefaultOpenAiProvider;
   }
 
   @Override

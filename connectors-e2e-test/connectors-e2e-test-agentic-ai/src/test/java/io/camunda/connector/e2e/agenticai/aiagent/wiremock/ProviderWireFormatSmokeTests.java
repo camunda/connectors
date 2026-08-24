@@ -107,9 +107,9 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
           "PKCS12");
 
   /**
-   * Delegates to the fixture, so a fixture driving a different template (e.g. the v2 native
-   * provider template, which uses different property ids) can redirect the suite without touching
-   * {@link BaseAgentSubProcessTest}. Defaults to the inherited (v1) path for every other fixture.
+   * Delegates to the fixture, which decides its own template unconditionally (v1 for the fixtures
+   * proving the v1→v2 provider-config rewrite, v2 for the ones driving a native provider directly)
+   * — see {@code ProviderWireFormatFixture#elementTemplatePath}.
    */
   @Override
   protected String elementTemplatePath() {

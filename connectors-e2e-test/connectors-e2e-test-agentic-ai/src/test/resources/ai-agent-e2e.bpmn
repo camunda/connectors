@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_AiAgentE2E"
+  targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.42.0"
+  modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+  <bpmn:process id="ai-agent-e2e" name="AI Agent E2E" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_0pbzrme</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_0pbzrme" sourceRef="StartEvent_1" targetRef="Gateway_0z6ctwk" />
+    <bpmn:exclusiveGateway id="Gateway_0z6ctwk">
+      <bpmn:incoming>Flow_0pbzrme</bpmn:incoming>
+      <bpmn:incoming>Flow_19gp461</bpmn:incoming>
+      <bpmn:outgoing>Flow_16otfp1</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="User_Feedback" name="User Feedback">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="ai-agent-chat-user-feedback" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=agent.responseText" target="responseText" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0m7etfk</bpmn:incoming>
+      <bpmn:outgoing>Flow_09y08ef</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_1dcg4ha" name="User satisfied?">
+      <bpmn:incoming>Flow_09y08ef</bpmn:incoming>
+      <bpmn:outgoing>Flow_19gp461</bpmn:outgoing>
+      <bpmn:outgoing>Flow_16c9bwj</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_09y08ef" sourceRef="User_Feedback" targetRef="Gateway_1dcg4ha" />
+    <bpmn:sequenceFlow id="Flow_19gp461" name="no - we follow up" sourceRef="Gateway_1dcg4ha"
+      targetRef="Gateway_0z6ctwk">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=userSatisfied = null or
+        userSatisfied = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="Event_0i39jej">
+      <bpmn:incoming>Flow_16c9bwj</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_16c9bwj" name="yes" sourceRef="Gateway_1dcg4ha"
+      targetRef="Event_0i39jej">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=userSatisfied</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:adHocSubProcess id="AI_Agent" name="AI Agent">
+      <bpmn:documentation>Placeholder agent activity. The AI Agent element template and the
+        provider configuration are applied at test time, once per provider row. Only the task type
+        is a placeholder — element-templates-cli keeps the retry count set here rather than taking
+        it from the template, so it carries the value the agent actually runs with.
+
+        Deliberately a single attempt: a retry would absorb an agent job failure and complete the
+        work on the second try, leaving the run green with nothing but a line in the connector log.
+        With no retries left, any failure raises an incident the scenarios assert
+        against.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="dummy" retries="1" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_16otfp1</bpmn:incoming>
+      <bpmn:outgoing>Flow_0m7etfk</bpmn:outgoing>
+      <bpmn:serviceTask id="GetDateAndTime" name="Get date and time">
+        <bpmn:documentation>Returns the current date and time, including the day of the week and
+          the timezone.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda.e2e:date-time:1" retries="3" />
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="ListUsers" name="List users">
+        <bpmn:documentation>Lists all known users, including the ID of the order each of them has
+          placed.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda.e2e:list-users:1" retries="3" />
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="GetJoke" name="Get a joke">
+        <bpmn:documentation>Fetches a random joke.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda.e2e:joke:1" retries="3" />
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="GetOrderStatus" name="Get order status">
+        <bpmn:documentation>Looks up the current status of a customer order by its order ID,
+          including shipment tracking information.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda.e2e:order-status:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input
+              source="=fromAi(toolCall.orderId, &#34;The order ID to look up, e.g. ORD-1001&#34;, &#34;string&#34;)"
+              target="orderId" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:userTask id="AskHuman" name="Ask a human">
+        <bpmn:documentation>Asks a human expert a question the agent cannot answer on its own, and
+          returns their answer.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:userTask />
+          <zeebe:ioMapping>
+            <zeebe:input
+              source="=fromAi(toolCall.question, &#34;The question to ask the human expert.&#34;, &#34;string&#34;)"
+              target="question" />
+            <zeebe:output source="=humanAnswer" target="toolCallResult" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+      </bpmn:userTask>
+    </bpmn:adHocSubProcess>
+    <bpmn:sequenceFlow id="Flow_16otfp1" sourceRef="Gateway_0z6ctwk" targetRef="AI_Agent" />
+    <bpmn:sequenceFlow id="Flow_0m7etfk" sourceRef="AI_Agent" targetRef="User_Feedback" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ai-agent-e2e">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="192" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0z6ctwk_di" bpmnElement="Gateway_0z6ctwk" isMarkerVisible="true">
+        <dc:Bounds x="245" y="185" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1fam9db_di" bpmnElement="User_Feedback">
+        <dc:Bounds x="800" y="170" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1dcg4ha_di" bpmnElement="Gateway_1dcg4ha" isMarkerVisible="true">
+        <dc:Bounds x="945" y="185" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="934" y="242" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0i39jej_di" bpmnElement="Event_0i39jej">
+        <dc:Bounds x="1052" y="192" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_03yngb7_di" bpmnElement="AI_Agent" isExpanded="true">
+        <dc:Bounds x="350" y="170" width="400" height="450" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1sbkoqq_di" bpmnElement="GetDateAndTime">
+        <dc:Bounds x="380" y="210" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0kkpyxf_di" bpmnElement="ListUsers">
+        <dc:Bounds x="380" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1l8tp85_di" bpmnElement="GetJoke">
+        <dc:Bounds x="380" y="410" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0go_ordr_di" bpmnElement="GetOrderStatus">
+        <dc:Bounds x="380" y="510" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0askhmn_di" bpmnElement="AskHuman">
+        <dc:Bounds x="530" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0pbzrme_di" bpmnElement="Flow_0pbzrme">
+        <di:waypoint x="188" y="210" />
+        <di:waypoint x="245" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_09y08ef_di" bpmnElement="Flow_09y08ef">
+        <di:waypoint x="900" y="210" />
+        <di:waypoint x="945" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19gp461_di" bpmnElement="Flow_19gp461">
+        <di:waypoint x="970" y="185" />
+        <di:waypoint x="970" y="100" />
+        <di:waypoint x="270" y="100" />
+        <di:waypoint x="270" y="185" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="878" y="83" width="83" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16c9bwj_di" bpmnElement="Flow_16c9bwj">
+        <di:waypoint x="995" y="210" />
+        <di:waypoint x="1052" y="210" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1015" y="192" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16otfp1_di" bpmnElement="Flow_16otfp1">
+        <di:waypoint x="295" y="210" />
+        <di:waypoint x="350" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0m7etfk_di" bpmnElement="Flow_0m7etfk">
+        <di:waypoint x="750" y="210" />
+        <di:waypoint x="800" y="210" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

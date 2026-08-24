@@ -57,6 +57,8 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.D
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapper;
+import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapperImpl;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerImpl;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptContributor;
@@ -75,6 +77,7 @@ import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -82,6 +85,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Scope;
 
 @Configuration
 @ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.enabled", matchIfMissing = true)
@@ -300,6 +304,13 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public V1ToV2ProviderConfigurationMapper aiAgentV1ToV2ProviderConfigurationMapper(
+      AgenticAiConnectorsConfigurationProperties configuration) {
+    return new V1ToV2ProviderConfigurationMapperImpl(configuration.aiagent().chatModel());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
@@ -322,14 +333,22 @@ public class AgenticAiConnectorsAutoConfiguration {
   }
 
   @Bean
+  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   @ConditionalOnMissingBean
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
+  @SuppressWarnings("deprecation")
   public AgentTaskV1Function aiAgentTaskV1Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      AgentTaskRequestHandler agentRequestHandler) {
-    return new AgentTaskV1Function(toolElementsResolver, agentRequestHandler);
+      AgentTaskRequestHandler agentRequestHandler,
+      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper,
+      AgenticAiConnectorsConfigurationProperties configuration) {
+    return new AgentTaskV1Function(
+        toolElementsResolver,
+        agentRequestHandler,
+        v1ProviderConfigurationMapper,
+        configuration.aiagent().rewriteV1ProviderConfigToV2());
   }
 
   @Bean
@@ -356,16 +375,24 @@ public class AgenticAiConnectorsAutoConfiguration {
   }
 
   @Bean
+  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   @ConditionalOnMissingBean
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
       matchIfMissing = true)
+  @SuppressWarnings("deprecation")
   public AgentSubProcessV1Function aiAgentSubProcessV1Function(
-      AgentSubProcessRequestHandler agentRequestHandler) {
-    return new AgentSubProcessV1Function(agentRequestHandler);
+      AgentSubProcessRequestHandler agentRequestHandler,
+      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper,
+      AgenticAiConnectorsConfigurationProperties configuration) {
+    return new AgentSubProcessV1Function(
+        agentRequestHandler,
+        v1ProviderConfigurationMapper,
+        configuration.aiagent().rewriteV1ProviderConfigToV2());
   }
 
   @Bean
+  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   @ConditionalOnMissingBean
   @ConditionalOnBean(AgentTaskRequestHandler.class)
   @ConditionalOnBooleanProperty(
@@ -378,6 +405,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   }
 
   @Bean
+  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   @ConditionalOnMissingBean
   @ConditionalOnBean(AgentSubProcessRequestHandler.class)
   @ConditionalOnBooleanProperty(

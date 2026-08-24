@@ -101,8 +101,10 @@ High-frequency traps (detail behind each link):
 - **Job supersession / `NOT_FOUND`**: a completing tool creates a new job; the stale in-flight job may be rejected.
   The AI Agent connectors (v1 and v2, both flavors) opt into job leasing (`@OutboundConnector(withLease = true)`), so
   completion is fenced against a superseded activation; `CamundaAgentInstanceClient` forwards the lease token via
-  `jobLease(...)` on the create-history write, so a stale activation's history items are rejected (`NOT_FOUND`) too.
-  Gateway/MCP/A2A connectors are not leased. `ai-agent.md` §10, §23.
+  `jobLease(...)` on each batched turn update
+  (`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart`), so a
+  stale activation's writes are rejected (`404`) too — mapped to a non-retryable `AGENT_INSTANCE_SUPERSEDED` failure,
+  not the ordinary retry path (ADR 013). Gateway/MCP/A2A connectors are not leased. `ai-agent.md` §10, §23.
 - **Partial tool results → no-op (but not silent)**: incomplete results make the composer return `Deferred` and the
   worker completes without an LLM call — expected, not a bug — but it now also reports whichever results have
   arrived so far to agent instance history first (ADR 011). E2e tests asserting `verifyNoMoreInteractions` on
@@ -271,6 +273,17 @@ When a version is bumped, a template moves into `versioned/`, or a connector is 
    Ad-hoc tools schema) with an intro paragraph linking to the `docs.camunda.io` overview page.
 
 Do not list `hybrid/` templates in the README. They are intentionally omitted.
+
+### Agent definition marker
+
+All AI Agent Task and Sub-process templates (v1 and v2, all flavors, including hybrid) carry a
+hidden `zeebe:agentDefinition` property so the engine detects a native agent at deploy time
+(camunda/connectors#8176). `transform-ai-agent-task-template.groovy` adds it to each task template
+(`agentType=aiAgentTask`); `transform-ai-agent-sub-process-template.groovy` adds its own
+(`agentType=aiAgentSubProcess`) to the derived sub-process template. Both take `agentType` as a
+Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
+execution order does not matter — the sub-process transformer cannot carry the task marker into the
+derived template regardless of when the task-marker script runs.
 
 ## Key entry points
 
