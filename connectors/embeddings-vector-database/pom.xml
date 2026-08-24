@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <version.apache-tika>3.3.2</version.apache-tika>
+    <version.apache-tika>4.0.0</version.apache-tika>
   </properties>
 
   <dependencies>
