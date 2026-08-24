@@ -61,7 +61,6 @@ import jakarta.validation.ConstraintValidatorFactory;
 import jakarta.validation.Validation;
 import java.net.URL;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -78,7 +77,6 @@ import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
@@ -99,8 +97,6 @@ public class ConnectorsAutoConfiguration {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectorsAutoConfiguration.class);
 
-  // Shared by the aggregator bean's name and by the guard that detects a replacement for it, so
-  // the two cannot drift apart.
   static final String DEFAULT_AGGREGATOR_BEAN_NAME = "springSecretProviderAggregator";
 
   private final ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider;
@@ -263,38 +259,46 @@ public class ConnectorsAutoConfiguration {
   }
 
   /**
-   * Refuses to start when legacy secret resolution is switched off but the application supplies its
-   * own {@link SecretProviderAggregator}. Such a bean replaces {@link
+   * Refuses to start when legacy secret resolution is switched off but the effective {@link
+   * SecretProviderAggregator} does not apply it. A custom bean replaces {@link
    * #springSecretProviderAggregator} outright, since that one exists only through
    * {@code @ConditionalOnMissingBean}, so the setting would be silently ignored rather than
-   * enforced. This bean carries no conditions of its own, so it runs whichever aggregator won.
+   * enforced. This bean carries no conditions of its own, so it runs against whichever aggregator
+   * won.
+   *
+   * <p>Identifies a replacement by what the winning bean actually does under {@code OFF} — its
+   * provider list must be exactly a single {@link LegacySecretsDisabledProvider} — rather than by
+   * bean name, so a custom bean cannot escape detection by happening to be named {@link
+   * #DEFAULT_AGGREGATOR_BEAN_NAME}.
    */
   @Bean
   public Object secretProviderAggregatorLegacySwitchGuard(
-      ApplicationContext applicationContext,
+      SecretProviderAggregator secretProviderAggregator,
       @Value("${" + LegacySecretMode.PROPERTY + ":ON}") String legacyModeProperty) {
     return checkSecretProviderAggregatorLegacySwitch(
-        applicationContext, LegacySecretMode.parse(legacyModeProperty));
+        secretProviderAggregator, LegacySecretMode.parse(legacyModeProperty));
   }
 
   public Object checkSecretProviderAggregatorLegacySwitch(
-      ApplicationContext applicationContext, LegacySecretMode legacyMode) {
+      SecretProviderAggregator secretProviderAggregator, LegacySecretMode legacyMode) {
     if (legacyMode != LegacySecretMode.OFF) {
       return new Object();
     }
-    List<String> replacements =
-        Arrays.stream(applicationContext.getBeanNamesForType(SecretProviderAggregator.class))
-            .filter(name -> !DEFAULT_AGGREGATOR_BEAN_NAME.equals(name))
-            .toList();
-    if (!replacements.isEmpty()) {
+    List<SecretProvider> providers = secretProviderAggregator.getSecretProviders();
+    boolean appliesTheSwitch =
+        providers.size() == 1 && providers.get(0) instanceof LegacySecretsDisabledProvider;
+    if (!appliesTheSwitch) {
       throw new IllegalStateException(
           LegacySecretMode.PROPERTY
               + "="
               + LegacySecretMode.OFF
-              + " cannot be enforced: the application supplies its own SecretProviderAggregator"
-              + " bean "
-              + replacements
-              + ", which replaces the one that applies the setting. Remove that bean, or set the"
+              + " cannot be enforced: the effective SecretProviderAggregator does not apply it (its"
+              + " provider list is "
+              + providers.stream().map(p -> p.getClass().getName()).toList()
+              + " instead of just "
+              + LegacySecretsDisabledProvider.class.getSimpleName()
+              + "). This means the application supplies its own SecretProviderAggregator bean,"
+              + " which replaces the one that applies the setting. Remove that bean, or set the"
               + " mode back to "
               + LegacySecretMode.ON
               + ".");

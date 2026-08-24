@@ -20,18 +20,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.ConnectorsAutoConfiguration;
 import io.camunda.connector.runtime.core.secret.LegacySecretMode;
+import io.camunda.connector.runtime.core.secret.LegacySecretsDisabledProvider;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.context.ApplicationContext;
 
 /**
  * A custom {@link SecretProviderAggregator} bean replaces the one that applies the legacy mode,
@@ -69,25 +70,24 @@ class LegacySecretModeGuardTest {
   }
 
   @Test
-  void doesNotInspectTheAggregatorBeansWhenLegacyResolutionIsOn() {
-    ApplicationContext applicationContext = mock(ApplicationContext.class);
+  void doesNotInspectTheAggregatorWhenLegacyResolutionIsOn() {
+    SecretProviderAggregator secretProviderAggregator = mock(SecretProviderAggregator.class);
 
     assertThat(
             autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
-                applicationContext, LegacySecretMode.ON))
+                secretProviderAggregator, LegacySecretMode.ON))
         .isNotNull();
-    verifyNoInteractions(applicationContext);
+    verifyNoInteractions(secretProviderAggregator);
   }
 
   @Test
   void acceptsTheRuntimesOwnAggregator() {
-    ApplicationContext applicationContext = mock(ApplicationContext.class);
-    when(applicationContext.getBeanNamesForType(SecretProviderAggregator.class))
-        .thenReturn(new String[] {"springSecretProviderAggregator"});
+    var secretProviderAggregator =
+        new SecretProviderAggregator(List.of(new LegacySecretsDisabledProvider()));
 
     assertThat(
             autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
-                applicationContext, LegacySecretMode.OFF))
+                secretProviderAggregator, LegacySecretMode.OFF))
         .isNotNull();
   }
 
@@ -128,16 +128,14 @@ class LegacySecretModeGuardTest {
 
   @Test
   void refusesToStartWhenACustomAggregatorWouldBypassTheSetting() {
-    ApplicationContext applicationContext = mock(ApplicationContext.class);
-    when(applicationContext.getBeanNamesForType(SecretProviderAggregator.class))
-        .thenReturn(new String[] {"myCustomAggregator"});
+    SecretProviderAggregator customAggregator =
+        new SecretProviderAggregator(List.of(mock(SecretProvider.class)));
 
     assertThatThrownBy(
             () ->
                 autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
-                    applicationContext, LegacySecretMode.OFF))
+                    customAggregator, LegacySecretMode.OFF))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("camunda.connector.secret-resolver.legacy.mode=OFF")
-        .hasMessageContaining("myCustomAggregator");
+        .hasMessageContaining("camunda.connector.secret-resolver.legacy.mode=OFF");
   }
 }

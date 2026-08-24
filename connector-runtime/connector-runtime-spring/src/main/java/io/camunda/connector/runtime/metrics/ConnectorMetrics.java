@@ -143,11 +143,6 @@ public class ConnectorMetrics {
    */
   public static final String DEFAULT_PHYSICAL_TENANT_ID = "default";
 
-  /**
-   * Attributes the counter to the job's own physical tenant. Callers that know which physical
-   * tenant's job worker received the job should prefer {@link #counter(ActivatedJob, String)}, so
-   * that the meter and the {@code /outbound} entry it belongs to always carry the same value.
-   */
   public static class Secrets {
 
     /**
@@ -159,6 +154,11 @@ public class ConnectorMetrics {
         "camunda.connector.secret.legacy.resolutions";
   }
 
+  /**
+   * Attributes the counter to the job's own physical tenant. Callers that know which physical
+   * tenant's job worker received the job should prefer {@link #counter(ActivatedJob, String)}, so
+   * that the meter and the {@code /outbound} entry it belongs to always carry the same value.
+   */
   public static CounterMetricsContext counter(ActivatedJob job) {
     return counter(job, null);
   }
