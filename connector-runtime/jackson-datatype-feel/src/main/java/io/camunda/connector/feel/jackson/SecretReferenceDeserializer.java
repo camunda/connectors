@@ -18,6 +18,9 @@ package io.camunda.connector.feel.jackson;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.deser.ResolvableDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StringDeserializer;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import java.io.IOException;
@@ -53,7 +56,16 @@ import java.util.regex.Pattern;
  * carry any process data, and evaluating such a string would send it to the cluster as a new
  * expression, which would then legitimately reference the secret and resolve it.
  */
-public class SecretReferenceDeserializer extends StringDeserializer {
+public class SecretReferenceDeserializer extends JsonDeserializer<String>
+    implements ResolvableDeserializer {
+
+  /**
+   * Binds the value first. Whatever would otherwise deserialize a {@code String} keeps doing so —
+   * the document module registers its own, which turns a document reference into base64 and runs an
+   * intrinsic function — and only the string it produces is inspected for a reference. Replacing
+   * that deserializer rather than wrapping it would silently drop both.
+   */
+  private final JsonDeserializer<?> delegate;
 
   private static final String REFERENCE_PREFIX = "camunda.secrets.";
 
@@ -65,6 +77,13 @@ public class SecretReferenceDeserializer extends StringDeserializer {
    * =foo.camunda.secrets.TOKEN}, which reference no secret, and send a plain string property to the
    * cluster for evaluation.
    *
+   * <p>A quote is excluded for the same reason: {@code ="camunda.secrets.TOKEN"} is a string
+   * literal, not a reference, and evaluating it would bind the property as the text without its
+   * quotes rather than leaving the value alone. This is textual, so it catches the literal that
+   * starts with the prefix rather than every literal containing one — {@code ="see
+   * camunda.secrets.TOKEN"} is still sent. Seeing that needs the FEEL parse the engine does, and it
+   * resolves no secret either way.
+   *
    * <p>Strict about what precedes and permissive about what follows: this is a pre-filter, and the
    * engine, which detects references on the parsed FEEL AST, decides what a reference is. Excluding
    * something the engine would report loses a secret silently; including something it will not
@@ -73,11 +92,22 @@ public class SecretReferenceDeserializer extends StringDeserializer {
    */
   private static final Pattern REFERENCE_TOKEN =
       Pattern.compile(
-          "(?<![\\p{L}\\p{N}_$.`])" + Pattern.quote(REFERENCE_PREFIX) + "[\\p{L}\\p{N}_$`-]");
+          "(?<![\\p{L}\\p{N}_$.`\"'])" + Pattern.quote(REFERENCE_PREFIX) + "[\\p{L}\\p{N}_$`-]");
+
+  public SecretReferenceDeserializer(JsonDeserializer<?> delegate) {
+    this.delegate = delegate;
+  }
+
+  @Override
+  public void resolve(DeserializationContext context) throws JsonMappingException {
+    if (delegate instanceof ResolvableDeserializer resolvable) {
+      resolvable.resolve(context);
+    }
+  }
 
   @Override
   public String deserialize(JsonParser parser, DeserializationContext context) throws IOException {
-    String value = super.deserialize(parser, context);
+    String value = (String) delegate.deserialize(parser, context);
     if (!namesSecretReference(value)) {
       return value;
     }

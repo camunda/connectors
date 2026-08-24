@@ -135,6 +135,10 @@ class SecretReferenceDeserializerTest {
         "=mycamunda.secrets.TOKEN",
         "=foo.camunda.secrets.TOKEN",
         "=camunda.secrets2.TOKEN",
+        // A string literal, not a reference: the cluster reports no secret for it, and evaluating
+        // it would bind the property as the text without its quotes.
+        "=\"camunda.secrets.TOKEN\"",
+        "='camunda.secrets.TOKEN'",
         "=`camunda.secrets.TOKEN`",
         "=camunda.secrets.",
         "",

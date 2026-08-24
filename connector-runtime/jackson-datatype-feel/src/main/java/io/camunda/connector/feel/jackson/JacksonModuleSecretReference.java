@@ -17,6 +17,10 @@
 package io.camunda.connector.feel.jackson;
 
 import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.databind.BeanDescription;
+import com.fasterxml.jackson.databind.DeserializationConfig;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 /**
@@ -47,7 +51,23 @@ public class JacksonModuleSecretReference extends SimpleModule {
 
   @Override
   public void setupModule(SetupContext context) {
-    addDeserializer(String.class, new SecretReferenceDeserializer());
+    // A modifier rather than a registration, so that whatever else deserializes a String is wrapped
+    // instead of replaced. The document module registers its own String deserializer, which turns a
+    // document reference into base64 and runs an intrinsic function; registering a second one after
+    // it would take precedence and lose both.
+    context.addBeanDeserializerModifier(
+        new BeanDeserializerModifier() {
+          @Override
+          public JsonDeserializer<?> modifyDeserializer(
+              DeserializationConfig config,
+              BeanDescription description,
+              JsonDeserializer<?> deserializer) {
+            if (description.getBeanClass() == String.class) {
+              return new SecretReferenceDeserializer(deserializer);
+            }
+            return deserializer;
+          }
+        });
     super.setupModule(context);
   }
 }
