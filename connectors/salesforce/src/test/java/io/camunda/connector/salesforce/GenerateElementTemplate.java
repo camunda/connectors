@@ -417,16 +417,6 @@ public class GenerateElementTemplate {
                                 "^(=|(https?://|\\{\\{secrets\\..+\\}\\}).*$)",
                                 "Must be a http(s) URL."))
                         .build())
-                .build(),
-            StringProperty.builder()
-                .id("apiVersion")
-                .label("Salesforce API version")
-                .group("endpoint")
-                .feel(FeelMode.optional)
-                .binding(new ZeebeInput("apiVersion"))
-                .value("v58.0")
-                .constraints(PropertyConstraints.builder().notEmpty(true).build())
-                .condition(new OneOf("salesforceOperationType", List.of("sObject", "soqlQuery")))
                 .build())
         .build();
   }
@@ -454,6 +444,16 @@ public class GenerateElementTemplate {
                     "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint.")
                 .group("operation")
                 .binding(new ZeebeInput("salesforceInteractionType"))
+                .build(),
+            StringProperty.builder()
+                .id("apiVersion")
+                .label("Salesforce API version")
+                .group("operation")
+                .feel(FeelMode.optional)
+                .binding(new ZeebeInput("apiVersion"))
+                .value("v58.0")
+                .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                .condition(new OneOf("salesforceOperationType", List.of("sObject", "soqlQuery")))
                 .build(),
             DropdownProperty.builder()
                 .choices(
@@ -741,7 +741,7 @@ public class GenerateElementTemplate {
             "soqlQuery"),
         new LeafStep(
             "Apex REST",
-            "Invoke a custom Apex REST endpoint",
+            "Invoke a custom Salesforce Apex REST endpoint",
             List.of("apex rest", "custom endpoint", "apex class", "invoke apex"),
             "apexRest"));
   }

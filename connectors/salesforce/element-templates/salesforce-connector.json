@@ -83,29 +83,6 @@
       "type" : "String"
     },
     {
-      "id" : "apiVersion",
-      "label" : "Salesforce API version",
-      "value" : "v58.0",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "feel" : "optional",
-      "group" : "endpoint",
-      "binding" : {
-        "name" : "apiVersion",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "oneOf" : [
-          "sObject",
-          "soqlQuery"
-        ],
-        "type" : "simple"
-      },
-      "type" : "String"
-    },
-    {
       "id" : "authentication.type",
       "label" : "Type",
       "group" : "authentication",
@@ -245,6 +222,29 @@
           "value" : "apexRest"
         }
       ]
+    },
+    {
+      "id" : "apiVersion",
+      "label" : "Salesforce API version",
+      "value" : "v58.0",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "operation",
+      "binding" : {
+        "name" : "apiVersion",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "salesforceOperationType",
+        "oneOf" : [
+          "sObject",
+          "soqlQuery"
+        ],
+        "type" : "simple"
+      },
+      "type" : "String"
     },
     {
       "id" : "interactionType",
@@ -767,7 +767,7 @@
     },
     {
       "name" : "Apex REST",
-      "description" : "Invoke a custom Apex REST endpoint",
+      "description" : "Invoke a custom Salesforce Apex REST endpoint",
       "keywords" : [
         "apex rest",
         "custom endpoint",
@@ -781,29 +781,29 @@
     {
       "id" : "sObject_get",
       "properties" : {
-        "salesforceOperationType" : "sObject",
-        "interactionType" : "get"
+        "interactionType" : "get",
+        "salesforceOperationType" : "sObject"
       }
     },
     {
       "id" : "sObject_post",
       "properties" : {
-        "salesforceOperationType" : "sObject",
-        "interactionType" : "post"
+        "interactionType" : "post",
+        "salesforceOperationType" : "sObject"
       }
     },
     {
       "id" : "sObject_patch",
       "properties" : {
-        "salesforceOperationType" : "sObject",
-        "interactionType" : "patch"
+        "interactionType" : "patch",
+        "salesforceOperationType" : "sObject"
       }
     },
     {
       "id" : "sObject_delete",
       "properties" : {
-        "salesforceOperationType" : "sObject",
-        "interactionType" : "delete"
+        "interactionType" : "delete",
+        "salesforceOperationType" : "sObject"
       }
     },
     {
