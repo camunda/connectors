@@ -71,6 +71,7 @@ public final class FeelExpressionEvaluatorBuilder {
     private String tenantId;
     private Long scopeKey;
     private ObjectMapper objectMapper;
+    private EvaluationResultProcessor resultProcessor = EvaluationResultProcessor.NOOP;
 
     private CamundaClientStep(CamundaClient camundaClient) {
       this.camundaClient = camundaClient;
@@ -91,10 +92,20 @@ public final class FeelExpressionEvaluatorBuilder {
       return this;
     }
 
+    /**
+     * Post-processes the raw result of every evaluation, with the secret references the cluster
+     * reports for it. Defaults to {@link EvaluationResultProcessor#NOOP}.
+     */
+    public CamundaClientStep resultProcessor(EvaluationResultProcessor resultProcessor) {
+      this.resultProcessor = resultProcessor;
+      return this;
+    }
+
     public FeelExpressionEvaluator build() {
       ObjectMapper mapper =
           objectMapper != null ? objectMapper : ConnectorsObjectMapperSupplier.getCopy();
-      return new CamundaClientFeelExpressionEvaluator(camundaClient, tenantId, scopeKey, mapper);
+      return new CamundaClientFeelExpressionEvaluator(
+          camundaClient, tenantId, scopeKey, mapper, resultProcessor);
     }
   }
 }

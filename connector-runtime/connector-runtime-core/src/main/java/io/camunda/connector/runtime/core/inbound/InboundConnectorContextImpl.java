@@ -51,6 +51,8 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
+import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -104,6 +106,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
             .tenantId(connectorDetails.tenantId())
             .objectMapper(objectMapper)
+            .resultProcessor(
+                new SecretResolvingResultProcessor(new SecretReferenceResolver(camundaClient)))
             .build();
   }
 

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.feel.jackson;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.Annotated;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import io.camunda.connector.api.annotation.FEEL;
@@ -24,6 +25,7 @@ import io.camunda.connector.feel.FeelExpressionEvaluator;
 public class FeelAnnotationIntrospector extends JacksonAnnotationIntrospector {
 
   private final FeelExpressionEvaluator evaluator;
+  private final ObjectMapper resultMapper;
 
   /**
    * Creates an introspector with the specified FEEL expression evaluator.
@@ -31,14 +33,23 @@ public class FeelAnnotationIntrospector extends JacksonAnnotationIntrospector {
    * @param evaluator the FEEL expression evaluator to use
    */
   public FeelAnnotationIntrospector(FeelExpressionEvaluator evaluator) {
+    this(evaluator, null);
+  }
+
+  /**
+   * @param resultMapper binds what an evaluation returns; see {@link
+   *     AbstractFeelDeserializer#resultMapper}
+   */
+  public FeelAnnotationIntrospector(FeelExpressionEvaluator evaluator, ObjectMapper resultMapper) {
     this.evaluator = evaluator;
+    this.resultMapper = resultMapper;
   }
 
   @Override
   public Object findDeserializer(Annotated a) {
     FEEL ann = _findAnnotation(a, FEEL.class);
     if (ann != null) {
-      return new FeelDeserializer(evaluator);
+      return new FeelDeserializer(evaluator, resultMapper);
     }
     return super.findDeserializer(a);
   }

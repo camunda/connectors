@@ -46,7 +46,7 @@ import java.util.function.Function;
     },
     inputDataClass = S3Request.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 7,
+    version = 8,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Action"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

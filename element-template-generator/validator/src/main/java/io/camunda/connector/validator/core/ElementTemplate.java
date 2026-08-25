@@ -37,6 +37,7 @@ public final class ElementTemplate {
   public static final String EQUALS = "equals";
   public static final String ONE_OF = "oneOf";
   public static final String ALL_MATCH = "allMatch";
+  public static final String IS_EMPTY = "isEmpty";
 
   public static final String PRESETS = "presets";
   public static final String BINDING = "binding";

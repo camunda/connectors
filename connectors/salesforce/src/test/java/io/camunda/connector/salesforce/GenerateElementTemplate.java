@@ -25,8 +25,10 @@ import io.camunda.connector.generator.dsl.Preset;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
+import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.dsl.PropertyCondition.IsEmpty;
 import io.camunda.connector.generator.dsl.PropertyCondition.OneOf;
 import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.dsl.PropertyGroup;
@@ -76,6 +78,13 @@ public class GenerateElementTemplate {
   // intentionally not exposed at all.
   private static final Set<String> UNSUPPORTED_AUTH_PROPERTY_IDS =
       Set.of("authentication.audience", "authentication.scopes");
+  // HTTP JSON conditions the auth-type dropdown and its bearer/OAuth fields on this reusable
+  // credential-chooser property being empty (isEmpty/credential-chooser-ordering feature).
+  // Salesforce drops that property entirely via removeConfigurationTemplates() below, so any
+  // inherited condition referencing it would dangle -- stripped by
+  // withoutAuthenticationConfigurationCondition() before the properties are carried over.
+  private static final String AUTHENTICATION_CONFIGURATION_PROPERTY_ID =
+      "authenticationConfiguration";
 
   public static void main(String[] args) throws Exception {
     ElementTemplate salesforceTemplate = generate();
@@ -133,7 +142,7 @@ public class GenerateElementTemplate {
                                 + "\"authentication.type\" dropdown property -- has it been renamed"
                                 + " or removed?"));
 
-    ElementTemplate salesforceTemplate =
+    ElementTemplateBuilder builder =
         ElementTemplateBuilder.from(httpJsonTemplate)
             // Keep only the "authentication" properties inherited from HTTP JSON; every other
             // property (raw url/method/headers/queryParameters) is Salesforce-specific and
@@ -146,7 +155,18 @@ public class GenerateElementTemplate {
             .removeConfigurationTemplates(ct -> true)
             // Narrow the inherited auth-type dropdown from HTTP JSON's 6 choices down to the 2
             // Salesforce supports.
-            .replaceProperty(prunedAuthTypeDropdown(originalAuthTypeDropdown))
+            .replaceProperty(prunedAuthTypeDropdown(originalAuthTypeDropdown));
+
+    // The 3 kept bearer/OAuth fields carry an inherited condition referencing
+    // authenticationConfiguration (see AUTHENTICATION_CONFIGURATION_PROPERTY_ID) -- strip it now
+    // that the property itself is gone, or the validator flags a dangling condition reference.
+    httpJsonTemplate.properties().stream()
+        .filter(p -> idIn(p, KEPT_AUTH_PROPERTY_IDS))
+        .map(GenerateElementTemplate::withoutAuthenticationConfigurationCondition)
+        .forEach(builder::replaceProperty);
+
+    ElementTemplate salesforceTemplate =
+        builder
             .id("io.camunda.connectors.Salesforce.v1")
             .name("Salesforce Outbound Connector")
             .version(6)
@@ -274,10 +294,27 @@ public class GenerateElementTemplate {
     }
   }
 
+  /**
+   * HTTP JSON's isEmpty/credential-chooser-ordering feature wraps what used to be a bare {@code
+   * Equals("authentication.type", ...)} condition in an {@link AllMatch} alongside an {@code
+   * authenticationConfiguration} isEmpty clause (see {@link
+   * #withoutAuthenticationConfigurationCondition}). Unwrap it here too, or this safety net stops
+   * recognizing every currently-classified property and never fires again.
+   */
   private static boolean isConditionedOnKeptAuthType(Property p) {
-    return p.getCondition() instanceof Equals equals
-        && "authentication.type".equals(equals.property())
-        && KEPT_AUTH_TYPES.contains(equals.equals());
+    return conditionMatchesKeptAuthType(p.getCondition());
+  }
+
+  private static boolean conditionMatchesKeptAuthType(PropertyCondition condition) {
+    if (condition instanceof Equals equals) {
+      return "authentication.type".equals(equals.property())
+          && KEPT_AUTH_TYPES.contains(equals.equals());
+    }
+    if (condition instanceof AllMatch allMatch) {
+      return allMatch.allMatch().stream()
+          .anyMatch(GenerateElementTemplate::conditionMatchesKeptAuthType);
+    }
+    return false;
   }
 
   private static DropdownProperty prunedAuthTypeDropdown(DropdownProperty original) {
@@ -304,7 +341,51 @@ public class GenerateElementTemplate {
     // previous hand-authored template, which had no description or default value here.
     builder.description(null);
     builder.value(null);
+    builder.condition(stripAuthenticationConfigurationCondition(original.getCondition()));
     return builder.build();
+  }
+
+  /**
+   * Drops the {@code authenticationConfiguration isEmpty} clause HTTP JSON attaches to its
+   * auth-type dropdown and bearer/OAuth fields (see {@link
+   * #AUTHENTICATION_CONFIGURATION_PROPERTY_ID}), collapsing an {@link AllMatch} down to its
+   * remaining clause where needed. Without this, the carried-over condition points at a property
+   * Salesforce's generator never carries over, and the element-template validator rejects the
+   * dangling reference.
+   */
+  private static Property withoutAuthenticationConfigurationCondition(Property property) {
+    PropertyCondition stripped = stripAuthenticationConfigurationCondition(property.getCondition());
+    if (stripped == property.getCondition()) {
+      return property;
+    }
+    return property.toBuilder().condition(stripped).build();
+  }
+
+  private static PropertyCondition stripAuthenticationConfigurationCondition(
+      PropertyCondition condition) {
+    if (isAuthenticationConfigurationIsEmpty(condition)) {
+      return null;
+    }
+    if (condition instanceof AllMatch allMatch) {
+      List<PropertyCondition> remaining =
+          allMatch.allMatch().stream()
+              .filter(c -> !isAuthenticationConfigurationIsEmpty(c))
+              .toList();
+      if (remaining.size() == allMatch.allMatch().size()) {
+        return condition;
+      }
+      return switch (remaining.size()) {
+        case 0 -> null;
+        case 1 -> remaining.get(0);
+        default -> new AllMatch(remaining);
+      };
+    }
+    return condition;
+  }
+
+  private static boolean isAuthenticationConfigurationIsEmpty(PropertyCondition condition) {
+    return condition instanceof IsEmpty isEmpty
+        && AUTHENTICATION_CONFIGURATION_PROPERTY_ID.equals(isEmpty.property());
   }
 
   private static PropertyGroup endpointGroup() {

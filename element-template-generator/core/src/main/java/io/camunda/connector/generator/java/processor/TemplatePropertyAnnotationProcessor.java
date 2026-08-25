@@ -24,6 +24,7 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.EqualsBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.InvocationTargetException;
@@ -49,6 +50,9 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
           Arrays.stream(conditionAnnotation.allMatch())
               .map(TemplatePropertyAnnotationProcessor::transformToNestedCondition)
               .toList());
+    } else if (conditionAnnotation.isEmpty() != NullableBoolean.NULL) {
+      return new PropertyCondition.IsEmpty(
+          conditionAnnotation.property(), conditionAnnotation.isEmpty().toBoolean());
     } else {
       // isActive always has a value, so we consider it is selected if nothing else is set
       return new PropertyCondition.IsActive(
@@ -63,7 +67,8 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
         conditionAnnotation.equals(),
         conditionAnnotation.equalsBoolean(),
         conditionAnnotation.oneOf(),
-        new NestedPropertyCondition[] {});
+        new NestedPropertyCondition[] {},
+        conditionAnnotation.isEmpty());
     if (!conditionAnnotation.equals().isBlank()) {
       return new PropertyCondition.Equals(
           conditionAnnotation.property(), conditionAnnotation.equals());
@@ -73,6 +78,9 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
     } else if (conditionAnnotation.oneOf().length > 0) {
       return new PropertyCondition.OneOf(
           conditionAnnotation.property(), Arrays.asList(conditionAnnotation.oneOf()));
+    } else if (conditionAnnotation.isEmpty() != NullableBoolean.NULL) {
+      return new PropertyCondition.IsEmpty(
+          conditionAnnotation.property(), conditionAnnotation.isEmpty().toBoolean());
     } else {
       // isActive always has a value, so we consider it is selected if nothing else is set
       return new PropertyCondition.IsActive(
@@ -85,22 +93,28 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
       String equals,
       EqualsBoolean equalsBoolean,
       String[] oneOf,
-      NestedPropertyCondition[] allMatch) {
+      NestedPropertyCondition[] allMatch,
+      NullableBoolean isEmpty) {
     var equalsSet = !equals.isBlank();
     var equalsBooleanSet = !equalsBoolean.equals(EqualsBoolean.NULL);
     var oneOfSet = oneOf != null && oneOf.length > 0;
     var allMatchSet = allMatch != null && allMatch.length > 0;
+    var isEmptySet = isEmpty != NullableBoolean.NULL;
     // equalsBoolean always has a value, so it's not included in the check
     // if everything else is not set, we consider it an equalsBoolean condition
 
     if (equalsSet && equalsBooleanSet
         || equalsSet && oneOfSet
         || equalsSet && allMatchSet
+        || equalsSet && isEmptySet
         || oneOfSet && allMatchSet
         || oneOfSet && equalsBooleanSet
-        || allMatchSet && equalsBooleanSet) {
+        || oneOfSet && isEmptySet
+        || allMatchSet && equalsBooleanSet
+        || allMatchSet && isEmptySet
+        || equalsBooleanSet && isEmptySet) {
       throw new IllegalStateException(
-          "Condition must have only one of 'equals', 'equalsBoolean', 'oneOf', 'isActive', or 'allMatch' set");
+          "Condition must have only one of 'equals', 'equalsBoolean', 'oneOf', 'isEmpty', 'isActive', or 'allMatch' set");
     }
     if (equalsSet && property.isBlank()) {
       throw new IllegalStateException("Condition 'equals' must have 'property' set");
@@ -110,11 +124,15 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
       throw new IllegalStateException("Condition 'oneOf' must have 'property' set");
     }
 
+    if (isEmptySet && property.isBlank()) {
+      throw new IllegalStateException("Condition 'isEmpty' must have 'property' set");
+    }
+
     if (allMatchSet && !property.isBlank()) {
       throw new IllegalStateException("Condition 'allMatch' must not have 'property' set");
     }
 
-    if (!equalsSet && !oneOfSet && !allMatchSet && property.isBlank()) {
+    if (!equalsSet && !oneOfSet && !allMatchSet && !isEmptySet && property.isBlank()) {
       throw new IllegalStateException("Condition 'isActive' must have 'property' set");
     }
   }
@@ -238,7 +256,8 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
         conditionAnnotation.equals(),
         conditionAnnotation.equalsBoolean(),
         conditionAnnotation.oneOf(),
-        conditionAnnotation.allMatch());
+        conditionAnnotation.allMatch(),
+        conditionAnnotation.isEmpty());
     return transformToCondition(conditionAnnotation);
   }
 

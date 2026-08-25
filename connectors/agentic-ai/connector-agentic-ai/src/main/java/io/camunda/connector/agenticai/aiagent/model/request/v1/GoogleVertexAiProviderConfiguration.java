@@ -24,7 +24,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.jspecify.annotations.Nullable;
 
-@TemplateSubType(id = GOOGLE_VERTEX_AI_ID, label = "Google Vertex AI")
+@TemplateSubType(id = GOOGLE_VERTEX_AI_ID, label = "Enterprise Agent Platform (Vertex AI)")
 public record GoogleVertexAiProviderConfiguration(
     @Valid @NotNull GoogleVertexAiConnection googleVertexAi) implements ProviderConfiguration {
 
@@ -85,7 +85,9 @@ public record GoogleVertexAiProviderConfiguration(
       this(projectId, region, null, authentication, null, model);
     }
 
-    @AssertFalse(message = "Google Vertex AI is not supported on SaaS")
+    @AssertFalse(
+        message =
+            "Application default credentials for Enterprise Agent Platform (Vertex AI) are not supported on SaaS")
     public boolean isUsedInSaaS() {
       return ConnectorUtils.isSaaS()
           && authentication
@@ -107,7 +109,7 @@ public record GoogleVertexAiProviderConfiguration(
       group = "provider",
       name = "type",
       defaultValue = "serviceAccountCredentials",
-      description = "Specify the Google Vertex AI authentication strategy.")
+      description = "Specify the Enterprise Agent Platform (Vertex AI) authentication strategy.")
   public sealed interface GoogleVertexAiAuthentication {
     @TemplateSubType(id = "serviceAccountCredentials", label = "Service account credentials")
     record ServiceAccountCredentialsAuthentication(

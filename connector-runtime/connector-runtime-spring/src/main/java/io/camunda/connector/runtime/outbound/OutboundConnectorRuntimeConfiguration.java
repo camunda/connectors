@@ -40,6 +40,7 @@ import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
+import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
@@ -665,7 +666,9 @@ public class OutboundConnectorRuntimeConfiguration {
         jacksonModuleDocumentDeserializer,
         new JacksonModuleFeelFunction(
             false,
-            FeelExpressionEvaluatorBuilder.local().build()), // FEEL annotation processing disabled
+            FeelExpressionEvaluatorBuilder.local().build(), // FEEL annotation processing disabled
+            null,
+            FeelEvaluationResultMapper.create(documentFactory)),
         new JacksonModuleDocumentSerializer());
   }
 }

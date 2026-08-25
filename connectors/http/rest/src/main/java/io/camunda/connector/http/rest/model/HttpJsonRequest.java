@@ -33,8 +33,8 @@ public class HttpJsonRequest extends HttpCommonRequest {
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "authenticationConfiguration"),
       description =
-          "Choose a reusable REST authentication credential. When set, it is bound as a whole to"
-              + " the connector's 'authenticationConfiguration' input.")
+          "Choose a reusable REST authentication credential, or configure one-time"
+              + " authentication parameters below.")
   @Valid
   private RestAuthenticationConfiguration authenticationConfiguration;
 
@@ -58,5 +58,22 @@ public class HttpJsonRequest extends HttpCommonRequest {
       return authenticationConfiguration.authentication();
     }
     return super.getAuthentication();
+  }
+
+  /**
+   * The URL is the one place where the inline value wins over the credential rather than the other
+   * way round: the credential's URL is the endpoint it is bound to by default, but a process author
+   * who sets an inline URL on the task means it. Binding the credential and pointing the task
+   * elsewhere are both decisions of the same author, so no origin check constrains the override -
+   * for an OAuth credential, which need not carry a URL at all, the inline value is often the only
+   * source.
+   */
+  @Override
+  public String getUrl() {
+    String inlineUrl = super.getUrl();
+    if (inlineUrl != null && !inlineUrl.isBlank()) {
+      return inlineUrl;
+    }
+    return authenticationConfiguration != null ? authenticationConfiguration.url() : null;
   }
 }

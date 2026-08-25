@@ -87,15 +87,18 @@ public class JdbcRequestTest extends BaseTest {
   /**
    * Exercises the full runtime path (JSON -> Jackson binding -> {@code @Valid} cascade), which
    * {@code ConnectionHelperTest} does not cover since it constructs {@code JdbcRequest} directly.
-   * Only the bound connection credential is present; no inline connection fields.
+   * Only the bound connection credential is present; no inline connection fields and no inline
+   * {@code database} either, proving moving {@code @NotNull} off that record component works. The
+   * conflicting-value case (both an inline {@code database} and a credential set) is covered
+   * separately in {@code ConnectionHelperTest}.
    */
   @Test
   void bindVariablesSucceedsWithOnlyConfigurationProvided() {
     String variables =
         """
         {
-          "database": "POSTGRESQL",
           "configuration": {
+            "database": "POSTGRESQL",
             "host": "cred-host",
             "port": "5432",
             "databaseName": "cred-db",
@@ -112,6 +115,8 @@ public class JdbcRequestTest extends BaseTest {
     assertThat(request.connection()).isNull();
     assertThat(request.configuration()).isNotNull();
     assertThat(request.configuration().host()).isEqualTo("cred-host");
+    // The credential's mandatory database selection is the only source, and satisfies validation.
+    assertThat(request.database()).isEqualTo(SupportedDatabase.POSTGRESQL);
   }
 
   /** Only inline connection fields are present; no bound configuration. */
@@ -174,6 +179,7 @@ public class JdbcRequestTest extends BaseTest {
           "database": "POSTGRESQL",
           "connection": { "authType": "uri" },
           "configuration": {
+            "database": "POSTGRESQL",
             "host": "cred-host",
             "port": "5432",
             "databaseName": "cred-db",

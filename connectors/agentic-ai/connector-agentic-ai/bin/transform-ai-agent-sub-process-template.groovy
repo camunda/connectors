@@ -13,6 +13,24 @@ static def replaceDocumentationLinks(String text) {
     )
 }
 
+// Moves the given property ids to sit right after another property id. No-op if either side
+// isn't found. Duplicated in transform-ai-agent-task-template.groovy since this script's
+// execution runs before that one's, per the pom's execution order for the v2 task/sub-process
+// pair.
+static def moveAfter(List properties, List idsToMove, String afterId) {
+    def moving = properties.findAll { it.id in idsToMove }
+    if (moving.isEmpty()) {
+        return properties
+    }
+    def remaining = properties.findAll { !(it.id in idsToMove) }
+    def anchorIndex = remaining.findIndexOf { it.id == afterId }
+    if (anchorIndex < 0) {
+        return properties
+    }
+    remaining.addAll(anchorIndex + 1, moving)
+    return remaining
+}
+
 def sourceFile = sourceFile
 if (!sourceFile) {
     System.err.println("Error: Source file path required as property")
@@ -41,6 +59,10 @@ if (!connectorType) {
 // optional: agentType for the zeebe:agentDefinition marker; unset means no marker is added
 def agentType = binding.hasVariable('agentType') ? agentType : null
 
+// optional: mark the derived template as deprecated; unset means no "deprecated" block is added
+def deprecationMessage = binding.hasVariable('deprecationMessage') ? deprecationMessage : null
+def deprecationDocumentationRef = binding.hasVariable('deprecationDocumentationRef') ? deprecationDocumentationRef : null
+
 def file = new File((String) sourceFile)
 if (!file.exists()) {
     System.err.println("Error: Source file ${sourceFile} not found")
@@ -51,6 +73,24 @@ def mapper = new ObjectMapper()
 mapper.enable(SerializationFeature.INDENT_OUTPUT)
 
 def json = mapper.readValue(file, Map.class)
+
+// never carry over a "deprecated" block from the source template; this script decides
+// deprecation for the derived template on its own, via the properties above
+if (deprecationMessage) {
+    def orderedJson = new LinkedHashMap()
+    json.each { key, value ->
+        orderedJson.put(key, value)
+        if (key == "keywords") {
+            orderedJson.put("deprecated", [
+                message         : (String) deprecationMessage,
+                documentationRef: (String) deprecationDocumentationRef
+            ])
+        }
+    }
+    json = orderedJson
+} else {
+    json.remove("deprecated")
+}
 
 def isHybrid = json.id?.toString()?.contains("-hybrid")
 
@@ -79,6 +119,10 @@ json.documentationRef = replaceDocumentationLinks(json.documentationRef)
 if (isHybrid) {
     json.id += "-hybrid"
     json.name = "Hybrid " + json.name
+}
+
+if (deprecationMessage) {
+    json.name += " (Deprecated)"
 }
 
 // Change BPMN element configuration
@@ -261,6 +305,14 @@ updatedProperties.add([
     ],
     type: "Hidden"
 ])
+
+// OpenAI's Effort is declared per API family (a sibling of Model, like the other per-family
+// request parameters), so it's emitted before Model. Move it after, matching Anthropic/Bedrock.
+updatedProperties = moveAfter(
+    updatedProperties,
+    ["provider.openai.api.completions.effort", "provider.openai.api.responses.effort"],
+    "provider.openai.model.model"
+)
 
 json.put('properties', updatedProperties)
 mapper.writeValue(outputFilePath, json)

@@ -86,3 +86,4 @@ When asked to create an ADR:
 | [ADR-0004](ADR-0004-configuration-templates-in-element-templates.md) | Configuration Templates in Element Templates | Proposed |
 | [ADR-0005](ADR-0005-storage-connector-flexibility.md) | Storage Connector Flexibility — Two Paths for Document Handling | Proposed |
 | [ADR-0006](ADR-0006-createdocument-feel-function.md) | `createDocument` FEEL Function for Result-Expression Document Extraction | Proposed |
+| [ADR-0007](ADR-0007-centralized-secret-resolution-in-the-connector-runtime.md) | Centralized Secret Resolution in the Connector Runtime | Accepted |

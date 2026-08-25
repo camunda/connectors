@@ -12,8 +12,6 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -28,9 +26,14 @@ import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep2;
+import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep3;
+import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep4;
+import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep5;
 import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
+import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep3;
+import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep4;
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
@@ -92,19 +95,29 @@ class CamundaAgentInstanceClientTest {
 
   private static final long AGENT_INSTANCE_KEY = 999L;
 
+  private static final String DEFAULT_LEASE_TOKEN = "lease-token-default";
+
   @Mock private CamundaClient camundaClient;
 
   @Mock private CreateAgentInstanceCommandStep1 createCommandStep1;
-
-  @Mock(answer = Answers.RETURNS_SELF)
-  private CreateAgentInstanceCommandStep2 createCommandStep2;
+  @Mock private CreateAgentInstanceCommandStep2 createCommandStep2;
+  @Mock private CreateAgentInstanceCommandStep3 createCommandStep3;
+  @Mock private CreateAgentInstanceCommandStep4 createCommandStep4;
+  @Mock private CreateAgentInstanceCommandStep5 createCommandStep5;
 
   @Mock private CreateAgentInstanceResponse response;
 
   @Mock private UpdateAgentInstanceCommandStep1 updateCommandStep1;
 
+  // status() self-returns on step 2
   @Mock(answer = Answers.RETURNS_SELF)
   private UpdateAgentInstanceCommandStep2 updateCommandStep2;
+
+  @Mock private UpdateAgentInstanceCommandStep3 updateCommandStep3;
+
+  // history() self-returns on step 4
+  @Mock(answer = Answers.RETURNS_SELF)
+  private UpdateAgentInstanceCommandStep4 updateCommandStep4;
 
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
@@ -125,6 +138,9 @@ class CamundaAgentInstanceClientTest {
     when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(createCommandStep1);
     when(createCommandStep1.elementInstanceKey(ELEMENT_INSTANCE_KEY))
         .thenReturn(createCommandStep2);
+    when(createCommandStep2.jobKey(JOB_KEY)).thenReturn(createCommandStep3);
+    when(createCommandStep3.jobLease(any())).thenReturn(createCommandStep4);
+    when(createCommandStep4.history(any())).thenReturn(createCommandStep5);
   }
 
   private void givenUpdateCommand() {
@@ -132,6 +148,8 @@ class CamundaAgentInstanceClientTest {
         .thenReturn(updateCommandStep1);
     when(updateCommandStep1.elementInstanceKey(ELEMENT_INSTANCE_KEY))
         .thenReturn(updateCommandStep2);
+    when(updateCommandStep2.jobKey(JOB_KEY)).thenReturn(updateCommandStep3);
+    when(updateCommandStep3.jobLease(any())).thenReturn(updateCommandStep4);
   }
 
   @Nested
@@ -141,7 +159,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldReturnAgentInstanceKeyOnFirstSuccessfulAttempt() {
       givenCreateCommand();
-      when(createCommandStep2.execute()).thenReturn(response);
+      when(createCommandStep5.execute()).thenReturn(response);
       when(response.getAgentInstanceKey()).thenReturn(12345L);
 
       final var executionContext = TestAgentExecutionContext.withLimits();
@@ -156,10 +174,8 @@ class CamundaAgentInstanceClientTest {
           ArgumentCaptor.forClass(List.class);
       verify(createCommandStep1).elementInstanceKey(ELEMENT_INSTANCE_KEY);
       verify(createCommandStep2).jobKey(JOB_KEY);
-      // top-level limits are forbidden alongside a history batch
-      verify(createCommandStep2, never()).maxModelCalls(anyInt());
-      verify(createCommandStep2, never()).jobLease(any());
-      verify(createCommandStep2).history(historyCaptor.capture());
+      verify(createCommandStep3).jobLease(DEFAULT_LEASE_TOKEN);
+      verify(createCommandStep4).history(historyCaptor.capture());
 
       assertThat(historyCaptor.getValue())
           .singleElement()
@@ -187,7 +203,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldReturnAgentInstanceKeyOnFirstAttemptWhenMaxModelCallsIsNull() {
       givenCreateCommand();
-      when(createCommandStep2.execute()).thenReturn(response);
+      when(createCommandStep5.execute()).thenReturn(response);
       when(response.getAgentInstanceKey()).thenReturn(67890L);
 
       final AgentInstanceKey key = client.create(TestAgentExecutionContext.withoutLimits());
@@ -196,12 +212,11 @@ class CamundaAgentInstanceClientTest {
       assertThat(recordedSleeps).isEmpty();
       verify(camundaClient, times(1)).newCreateAgentInstanceCommand();
       verify(createCommandStep2).jobKey(JOB_KEY);
-      verify(createCommandStep2, never()).maxModelCalls(anyInt());
 
       // absent limits config still yields the enforced default via the CONFIGURATION item
       final ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor =
           ArgumentCaptor.forClass(List.class);
-      verify(createCommandStep2).history(historyCaptor.capture());
+      verify(createCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue())
           .singleElement()
           .satisfies(item -> assertThat(item.getLimits().getMaxModelCalls()).isEqualTo(10));
@@ -210,18 +225,38 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldForwardLeaseTokenWhenActivationIsLeased() {
       givenCreateCommand();
-      when(createCommandStep2.execute()).thenReturn(response);
+      when(createCommandStep5.execute()).thenReturn(response);
       when(response.getAgentInstanceKey()).thenReturn(12345L);
 
       client.create(TestAgentExecutionContext.withLeaseToken("lease-token-abc"));
 
-      verify(createCommandStep2).jobLease("lease-token-abc");
+      verify(createCommandStep3).jobLease("lease-token-abc");
+    }
+
+    @Test
+    void shouldFailImmediatelyWhenLeaseTokenIsMissing() {
+      when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(createCommandStep1);
+      when(createCommandStep1.elementInstanceKey(ELEMENT_INSTANCE_KEY))
+          .thenReturn(createCommandStep2);
+
+      assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withoutLeaseToken()))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e ->
+                  assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED))
+          .hasMessageContaining("job lease token is required")
+          .rootCause()
+          .isInstanceOf(IllegalStateException.class);
+
+      // no lease means no request is ever executed, and the failure is not retried
+      verify(createCommandStep5, never()).execute();
+      assertThat(recordedSleeps).isEmpty();
     }
 
     @Test
     void shouldThrowConnectorExceptionImmediatelyForHttp400PermanentError() {
       givenCreateCommand();
-      when(createCommandStep2.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
+      when(createCommandStep5.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
 
       assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
           .isInstanceOfSatisfying(
@@ -238,7 +273,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldReturnKeyAndRecordOneSleepWhenRetryableErrorPrecedesSuccess() {
       givenCreateCommand();
-      when(createCommandStep2.execute())
+      when(createCommandStep5.execute())
           .thenThrow(new ClientHttpException(503, "Service Unavailable"))
           .thenReturn(response);
       when(response.getAgentInstanceKey()).thenReturn(999L);
@@ -256,7 +291,7 @@ class CamundaAgentInstanceClientTest {
       // given: a 404 from the create endpoint (x-eventually-consistent: false) means the
       // referenced element instance genuinely doesn't exist, not a not-yet-visible record
       givenCreateCommand();
-      when(createCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
+      when(createCommandStep5.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
 
       assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
           .isInstanceOfSatisfying(
@@ -273,7 +308,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldThrowConnectorExceptionWithAttemptCountWhenAllRetriesAreExhausted() {
       givenCreateCommand();
-      when(createCommandStep2.execute())
+      when(createCommandStep5.execute())
           .thenThrow(new ClientHttpException(500, "Internal Server Error"));
 
       assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
@@ -303,7 +338,7 @@ class CamundaAgentInstanceClientTest {
           "Command 'CREATE' rejected with code 'ALREADY_EXISTS': Expected to associate element "
               + "instance with key '77' with an agent instance, but it is already associated with "
               + "agent instance with key '999'.";
-      when(createCommandStep2.execute()).thenThrow(conflictException(detail));
+      when(createCommandStep5.execute()).thenThrow(conflictException(detail));
 
       // when
       final AgentInstanceKey key = client.create(TestAgentExecutionContext.withLimits());
@@ -334,7 +369,7 @@ class CamundaAgentInstanceClientTest {
         @Nullable String detail) {
       // given: a 409 ALREADY_EXISTS response whose detail doesn't match the expected contract
       givenCreateCommand();
-      when(createCommandStep2.execute()).thenThrow(conflictException(detail));
+      when(createCommandStep5.execute()).thenThrow(conflictException(detail));
 
       // when / then: the conflict cannot be resolved, so it fails permanently, no retry
       assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
@@ -378,9 +413,9 @@ class CamundaAgentInstanceClientTest {
       // then
       verify(updateCommandStep2).status(AgentInstanceUpdateStatus.TOOL_DISCOVERY);
       verify(updateCommandStep2).jobKey(JOB_KEY);
-      verify(updateCommandStep2, never()).jobLease(any());
-      verify(updateCommandStep2).history(List.of());
-      verify(updateCommandStep2).execute();
+      verify(updateCommandStep3).jobLease(DEFAULT_LEASE_TOKEN);
+      verify(updateCommandStep4).history(List.of());
+      verify(updateCommandStep4).execute();
     }
 
     @Test
@@ -393,7 +428,32 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY));
 
       // then
-      verify(updateCommandStep2).jobLease("lease-token-abc");
+      verify(updateCommandStep3).jobLease("lease-token-abc");
+    }
+
+    @Test
+    void shouldFailImmediatelyWhenLeaseTokenIsMissing() {
+      when(camundaClient.newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY))
+          .thenReturn(updateCommandStep1);
+      when(updateCommandStep1.elementInstanceKey(ELEMENT_INSTANCE_KEY))
+          .thenReturn(updateCommandStep2);
+
+      assertThatThrownBy(
+              () ->
+                  client.applyToolDiscoveryStart(
+                      TestAgentExecutionContext.withoutLeaseToken(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY)))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED))
+          .isNotInstanceOf(ConnectorRetryException.class)
+          .hasMessageContaining("job lease token is required")
+          .rootCause()
+          .isInstanceOf(IllegalStateException.class);
+
+      // no lease means no request is ever executed, and the failure is not retried
+      verify(updateCommandStep4, never()).execute();
+      assertThat(recordedSleeps).isEmpty();
     }
 
     @Test
@@ -402,7 +462,7 @@ class CamundaAgentInstanceClientTest {
 
       // given
       final var agentInstanceKey = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
-      when(updateCommandStep2.execute())
+      when(updateCommandStep4.execute())
           .thenThrow(new ClientHttpException(500, "Internal Server Error"));
 
       // when / then
@@ -516,9 +576,9 @@ class CamundaAgentInstanceClientTest {
 
       verify(updateCommandStep2).status(AgentInstanceUpdateStatus.THINKING);
       verify(updateCommandStep2).jobKey(JOB_KEY);
-      verify(updateCommandStep2, never()).jobLease(any());
-      verify(updateCommandStep2).history(historyCaptor.capture());
-      verify(updateCommandStep2).execute();
+      verify(updateCommandStep3).jobLease(DEFAULT_LEASE_TOKEN);
+      verify(updateCommandStep4).history(historyCaptor.capture());
+      verify(updateCommandStep4).execute();
 
       // configuration unchanged from previousTurn's -- only the input item
       assertThat(historyCaptor.getValue())
@@ -545,7 +605,7 @@ class CamundaAgentInstanceClientTest {
           Optional.of(precedingTurn(configuration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
 
-      verify(updateCommandStep2).jobLease("lease-token-abc");
+      verify(updateCommandStep3).jobLease("lease-token-abc");
     }
 
     @Test
@@ -568,7 +628,7 @@ class CamundaAgentInstanceClientTest {
           Optional.of(precedingTurn(configuration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
 
-      verify(updateCommandStep2).history(historyCaptor.capture());
+      verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue())
           .singleElement()
           .satisfies(item -> assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.USER));
@@ -595,7 +655,7 @@ class CamundaAgentInstanceClientTest {
           Optional.empty(),
           TURN_INGESTION_TIMESTAMP);
 
-      verify(updateCommandStep2).history(historyCaptor.capture());
+      verify(updateCommandStep4).history(historyCaptor.capture());
       final var history = historyCaptor.getValue();
       assertThat(history).hasSize(2);
 
@@ -639,7 +699,7 @@ class CamundaAgentInstanceClientTest {
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
 
-      verify(updateCommandStep2).history(historyCaptor.capture());
+      verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue()).hasSize(2);
       assertThat(historyCaptor.getValue().get(0).getRole())
           .isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
@@ -662,7 +722,7 @@ class CamundaAgentInstanceClientTest {
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
 
-      verify(updateCommandStep2).history(historyCaptor.capture());
+      verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue()).hasSize(2);
       assertThat(historyCaptor.getValue().get(0).getRole())
           .isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
@@ -682,7 +742,7 @@ class CamundaAgentInstanceClientTest {
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
 
-      verify(updateCommandStep2).history(historyCaptor.capture());
+      verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue()).hasSize(2);
       final var configurationItem = historyCaptor.getValue().get(0);
       assertThat(configurationItem.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
@@ -736,7 +796,7 @@ class CamundaAgentInstanceClientTest {
           Optional.of(previousTurn),
           TURN_INGESTION_TIMESTAMP);
 
-      verify(updateCommandStep2).history(historyCaptor.capture());
+      verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue())
           .singleElement()
           .satisfies(
@@ -841,17 +901,12 @@ class CamundaAgentInstanceClientTest {
           PRODUCED_AT,
           AgentInstanceUpdateStatus.TOOL_CALLING);
 
-      // no request-level metrics/tools anymore -- they ride on the history item instead
+      // request-level metrics/tools ride on the history item, not the command builder
       verify(updateCommandStep2).status(AgentInstanceUpdateStatus.TOOL_CALLING);
       verify(updateCommandStep2).jobKey(JOB_KEY);
-      verify(updateCommandStep2, never()).jobLease(any());
-      verify(updateCommandStep2, never()).modelCalls(anyInt());
-      verify(updateCommandStep2, never()).inputTokens(anyLong());
-      verify(updateCommandStep2, never()).outputTokens(anyLong());
-      verify(updateCommandStep2, never()).toolCalls(anyInt());
-      verify(updateCommandStep2, never()).tools(any());
-      verify(updateCommandStep2).history(historyCaptor.capture());
-      verify(updateCommandStep2).execute();
+      verify(updateCommandStep3).jobLease(DEFAULT_LEASE_TOKEN);
+      verify(updateCommandStep4).history(historyCaptor.capture());
+      verify(updateCommandStep4).execute();
 
       assertThat(historyCaptor.getValue())
           .singleElement()
@@ -949,8 +1004,8 @@ class CamundaAgentInstanceClientTest {
 
       verify(updateCommandStep2, never()).status(any());
       verify(updateCommandStep2).jobKey(JOB_KEY);
-      verify(updateCommandStep2).history(historyCaptor.capture());
-      verify(updateCommandStep2).execute();
+      verify(updateCommandStep4).history(historyCaptor.capture());
+      verify(updateCommandStep4).execute();
 
       assertThat(historyCaptor.getValue())
           .singleElement()
@@ -1022,7 +1077,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldThrowNonRetryableConnectorRetryExceptionOn404ForApplyTurnStart() {
       givenUpdateCommand();
-      when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
+      when(updateCommandStep4.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
 
       assertThatThrownBy(
               () ->
@@ -1045,7 +1100,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldThrowNonRetryableConnectorRetryExceptionOn404ForApplyTurnCompletion() {
       givenUpdateCommand();
-      when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
+      when(updateCommandStep4.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
       final var turn =
           new AgentConversationTurn(
               1,
@@ -1069,7 +1124,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldThrowNonRetryableConnectorRetryExceptionOn404ForApplyToolCallResults() {
       givenUpdateCommand();
-      when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
+      when(updateCommandStep4.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
       final var previousTurn =
           new AgentConversationTurn(
               1,
@@ -1099,7 +1154,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldThrowNonRetryableConnectorRetryExceptionOn404ForApplyToolDiscoveryStart() {
       givenUpdateCommand();
-      when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
+      when(updateCommandStep4.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
 
       assertThatThrownBy(
               () ->
@@ -1118,7 +1173,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldKeepPermanentUpdateFailedForApplyTurnStartOn400() {
       givenUpdateCommand();
-      when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
+      when(updateCommandStep4.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
 
       assertThatThrownBy(
               () ->
@@ -1139,7 +1194,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldRetryApplyTurnStartOn5xxThenFailAfterExhaustion() {
       givenUpdateCommand();
-      when(updateCommandStep2.execute())
+      when(updateCommandStep4.execute())
           .thenThrow(new ClientHttpException(500, "Internal Server Error"));
 
       assertThatThrownBy(
@@ -1173,12 +1228,16 @@ class CamundaAgentInstanceClientTest {
       return new TestAgentExecutionContext(new LimitsConfiguration(10), leaseToken);
     }
 
+    public static TestAgentExecutionContext withoutLeaseToken() {
+      return new TestAgentExecutionContext(new LimitsConfiguration(10), null);
+    }
+
     private final TestJobContext jobContext;
 
     private final LimitsConfiguration limitsConfiguration;
 
     private TestAgentExecutionContext(LimitsConfiguration limitsConfiguration) {
-      this(limitsConfiguration, null);
+      this(limitsConfiguration, DEFAULT_LEASE_TOKEN);
     }
 
     private TestAgentExecutionContext(

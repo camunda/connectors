@@ -432,7 +432,8 @@ class GeminiChatModelConfigurationTest {
 
     assertThat(validator.validate(config))
         .extracting(ConstraintViolation::getMessage)
-        .contains("Application default credentials for Google Vertex AI are not supported on SaaS");
+        .contains(
+            "Application default credentials for Enterprise Agent Platform (Vertex AI) are not supported on SaaS");
   }
 
   @Test

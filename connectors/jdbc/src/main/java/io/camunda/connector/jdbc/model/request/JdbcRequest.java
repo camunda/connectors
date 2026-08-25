@@ -10,7 +10,10 @@ import static io.camunda.connector.generator.java.annotation.TemplateProperty.Pr
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.jdbc.model.request.connection.JdbcConnection;
 import io.camunda.connector.jdbc.model.request.connection.JdbcConnectionConfiguration;
 import jakarta.validation.Valid;
@@ -18,15 +21,40 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 
 public record JdbcRequest(
-    @NotNull
-        @TemplateProperty(
+    // Declared first so it renders (and is emitted in properties[]) before the fallback fields it
+    // gates below - required both for UX (pick a credential before falling back to inline fields)
+    // and by ConditionPropertyOrderRule (a condition's referenced property must appear earlier).
+    @TemplateProperty(
+            id = "connectionConfiguration",
+            label = "Connection credential",
+            group = "connection",
+            type = Configuration,
+            optional = true,
+            binding = @TemplateProperty.PropertyBinding(name = "configuration"),
+            description =
+                "Choose a reusable JDBC connection credential, or configure one-time connection"
+                    + " parameters below.")
+        @Valid
+        JdbcConnectionConfiguration configuration,
+    // Only @NotNull moved off this field: the credential now carries its own mandatory database
+    // selection (JdbcConnectionConfiguration#database), so once one is bound this inline value is
+    // irrelevant and hidden - requiredness is asserted on the effective value in
+    // isDatabaseSourceProvided() below. defaultValue keeps Modeler writing a valid enum literal
+    // for the hidden input rather than an empty string, avoiding an unrelated deserialization
+    // failure on a value nothing reads once a credential is bound.
+    @TemplateProperty(
             id = "database",
             label = "Select a database",
             tooltip =
                 "If you choose Oracle, make sure the Oracle JDBC driver is included. "
                     + "<a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/sql/#database\">Oracle JDBC driver setup</a>.",
-            group = "database",
+            group = "connection",
             type = Dropdown,
+            defaultValue = "POSTGRESQL",
+            condition =
+                @PropertyCondition(
+                    property = "connectionConfiguration",
+                    isEmpty = NullableBoolean.TRUE),
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             choices = {
               @TemplateProperty.DropdownPropertyChoice(label = "MariaDB", value = "MARIADB"),
@@ -43,25 +71,45 @@ public record JdbcRequest(
     // ConnectionHelper). The raw field is validated conditionally via
     // getInlineConnectionWhenNoCredentialBound() below, so a Modeler-generated diagram that only
     // sets a credential (and carries connection's unconditional default discriminator, e.g.
-    // authType=uri, with no uri set) doesn't fail validation on the losing inline path.
-    JdbcConnection connection,
-    @Valid @NotNull JdbcRequestData data,
-    @TemplateProperty(
-            id = "connectionConfiguration",
-            label = "Connection credential",
-            group = "connection",
-            type = Configuration,
-            optional = true,
-            binding = @TemplateProperty.PropertyBinding(name = "configuration"),
-            description =
-                "Choose a reusable JDBC connection credential. When set, it is bound as a whole to"
-                    + " the connector's 'configuration' input.")
-        @Valid
-        JdbcConnectionConfiguration configuration) {
+    // authType=uri, with no uri set) doesn't fail validation on the losing inline path. Hidden and
+    // un-required (via the isEmpty condition) once a credential is bound above.
+    @NestedProperties(
+            condition =
+                @PropertyCondition(
+                    property = "connectionConfiguration",
+                    isEmpty = NullableBoolean.TRUE))
+        JdbcConnection connection,
+    @Valid @NotNull JdbcRequestData data) {
 
   /** Convenience constructor for the pre-configuration-chooser shape (no bound configuration). */
   public JdbcRequest(SupportedDatabase database, JdbcConnection connection, JdbcRequestData data) {
-    this(database, connection, data, null);
+    this(null, database, connection, data);
+  }
+
+  /**
+   * Delegates to the canonical constructor in the pre-{@code configuration}-first component order:
+   * {@code configuration} moved from last to first above so it renders (and appears in {@code
+   * properties[]}) before the fields it gates, per {@code ConditionPropertyOrderRule}. Retained so
+   * existing Java callers built against that order keep compiling.
+   */
+  public JdbcRequest(
+      SupportedDatabase database,
+      JdbcConnection connection,
+      JdbcRequestData data,
+      JdbcConnectionConfiguration configuration) {
+    this(configuration, database, connection, data);
+  }
+
+  /**
+   * The database engine is required, but a bound credential now carries its own mandatory selection
+   * (see {@link JdbcConnectionConfiguration#database()}) that takes precedence over the inline
+   * field - the same shape as {@link #getInlineConnectionWhenNoCredentialBound()}. Named as a
+   * method override (not a synthetic {@code effectiveDatabase()}) so every existing caller of
+   * {@code database()} - {@link io.camunda.connector.jdbc.utils.ConnectionHelper#openConnection}
+   * included - automatically gets the effective value.
+   */
+  public SupportedDatabase database() {
+    return configuration != null ? configuration.database() : database;
   }
 
   /**
@@ -75,6 +123,19 @@ public record JdbcRequest(
   @JsonIgnore
   public boolean isConnectionSourceProvided() {
     return connection != null || configuration != null;
+  }
+
+  /**
+   * The database engine is required, but it may come from the bound credential instead of the
+   * inline field, so requiredness is asserted on the effective value (see {@link #database()}) -
+   * the same shape as {@link #isConnectionSourceProvided()}. A component-level {@code @NotNull}
+   * could not do this: the inline field is legitimately absent when the credential supplies the
+   * database.
+   */
+  @AssertTrue(message = "No database selected by the credential or the element template")
+  @JsonIgnore
+  public boolean isDatabaseSourceProvided() {
+    return database() != null;
   }
 
   /**

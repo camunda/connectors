@@ -18,15 +18,11 @@ import org.junit.jupiter.api.Test;
 class GraphQLRequestTest {
 
   private GraphQL graphQL() {
-    return new GraphQL(
-        "query { field }",
-        null,
-        HttpMethod.POST,
-        "https://example.com/graphql",
-        null,
-        false,
-        20,
-        20);
+    return graphQL("https://example.com/graphql");
+  }
+
+  private GraphQL graphQL(String url) {
+    return new GraphQL("query { field }", null, HttpMethod.POST, null, url, false, 20, 20);
   }
 
   @Test
@@ -34,8 +30,9 @@ class GraphQLRequestTest {
     var request =
         new GraphQLRequest(
             graphQL(),
-            new BearerAuthentication("inline-token"),
-            new RestAuthenticationConfiguration(new BearerAuthentication("credential-token")));
+            new RestAuthenticationConfiguration(
+                new BearerAuthentication("credential-token"), "https://credential.example.com"),
+            new BearerAuthentication("inline-token"));
 
     assertThat(request.authentication()).isInstanceOf(BearerAuthentication.class);
     assertThat(((BearerAuthentication) request.authentication()).token())
@@ -44,8 +41,32 @@ class GraphQLRequestTest {
 
   @Test
   void fallsBackToInlineAuthenticationWhenNoCredential() {
-    var request = new GraphQLRequest(graphQL(), new BearerAuthentication("inline-token"), null);
+    var request = new GraphQLRequest(graphQL(), null, new BearerAuthentication("inline-token"));
 
     assertThat(((BearerAuthentication) request.authentication()).token()).isEqualTo("inline-token");
+  }
+
+  @Test
+  void usesCredentialUrlWhenInlineUrlIsBlank() {
+    var request =
+        new GraphQLRequest(
+            graphQL(null),
+            new RestAuthenticationConfiguration(
+                new BearerAuthentication("credential-token"), "https://credential.example.com"),
+            null);
+
+    assertThat(request.getEffectiveUrl()).isEqualTo("https://credential.example.com");
+  }
+
+  @Test
+  void inlineUrlOverridesCredentialUrl() {
+    var request =
+        new GraphQLRequest(
+            graphQL("https://override.example.com"),
+            new RestAuthenticationConfiguration(
+                new BearerAuthentication("credential-token"), "https://credential.example.com"),
+            null);
+
+    assertThat(request.getEffectiveUrl()).isEqualTo("https://override.example.com");
   }
 }

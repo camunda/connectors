@@ -608,6 +608,20 @@ class OpenAiResponsesRequestConverterTest {
         .contains(ResponseIncludable.REASONING_ENCRYPTED_CONTENT);
   }
 
+  @Test
+  void requestsEncryptedReasoningButOmitsEffortParamWhenModelDefault() {
+    // The "default" dropdown choice binds to OpenAiEffort.MODEL_DEFAULT rather than an unset
+    // value; it must still be treated as "don't send the effort dial".
+    final var parameters = new ResponsesParameters(null, OpenAiEffort.MODEL_DEFAULT, null, null);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(model(parameters), null, snapshot);
+
+    assertThat(params.reasoning()).isEmpty();
+    assertThat(params.include().orElseThrow())
+        .contains(ResponseIncludable.REASONING_ENCRYPTED_CONTENT);
+  }
+
   /**
    * Regression test: {@code responses} itself (not just its fields) can be {@code null} - every one
    * of its fields is optional, so real job binding produces a {@code null} object, not one with

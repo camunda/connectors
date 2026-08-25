@@ -658,29 +658,29 @@
     {
       "id" : "sObject_get",
       "properties" : {
-        "interactionType" : "get",
-        "salesforceOperationType" : "sObject"
+        "salesforceOperationType" : "sObject",
+        "interactionType" : "get"
       }
     },
     {
       "id" : "sObject_post",
       "properties" : {
-        "interactionType" : "post",
-        "salesforceOperationType" : "sObject"
+        "salesforceOperationType" : "sObject",
+        "interactionType" : "post"
       }
     },
     {
       "id" : "sObject_patch",
       "properties" : {
-        "interactionType" : "patch",
-        "salesforceOperationType" : "sObject"
+        "salesforceOperationType" : "sObject",
+        "interactionType" : "patch"
       }
     },
     {
       "id" : "sObject_delete",
       "properties" : {
-        "interactionType" : "delete",
-        "salesforceOperationType" : "sObject"
+        "salesforceOperationType" : "sObject",
+        "interactionType" : "delete"
       }
     },
     {
