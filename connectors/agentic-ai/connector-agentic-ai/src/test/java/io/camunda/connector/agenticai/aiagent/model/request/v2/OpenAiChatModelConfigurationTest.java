@@ -258,7 +258,7 @@ class OpenAiChatModelConfigurationTest {
   }
 
   @Test
-  void deserialisesModelDefaultEffortForBothApiFamiliesAndRoundTrips() throws Exception {
+  void deserialisesModelDefaultEffortForCompletionsApiAndRoundTrips() throws Exception {
     final String json =
         """
         {
