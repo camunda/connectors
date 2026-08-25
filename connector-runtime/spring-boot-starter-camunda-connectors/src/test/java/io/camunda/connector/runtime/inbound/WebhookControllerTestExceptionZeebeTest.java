@@ -60,6 +60,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
+      // Disable the AOT cache baked into the camunda/camunda:SNAPSHOT image: it has been
+      // causing the container to crash on startup (exit code 139 / SIGSEGV) on amd64 CI
+      // runners. -XX:AOTMode=off forces the JVM to ignore the pre-trained cache and fall
+      // back to the regular startup path.
+      "camunda.process-test.camunda-env-vars.JAVA_TOOL_OPTIONS=-XX:AOTMode=off",
     })
 @CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
