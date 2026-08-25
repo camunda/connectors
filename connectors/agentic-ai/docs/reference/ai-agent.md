@@ -868,7 +868,9 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
 - The no-op completion pattern means most superseded jobs were doing nothing anyway
 - Superseded jobs produce a `CommandIgnored` outcome — the conversation store receives `onJobCompletionFailed` with a `CommandIgnored` failure
 
-**Job leasing**: All AI Agent connectors — both flavors, v1 and v2 (`AgentTaskV1Function`, `AgentTaskV2Function`, `AgentSubProcessV1Function`, `AgentSubProcessV2Function`) — opt into job leasing via `@OutboundConnector(withLease = true)`. (v1 is leased too because the agent-instance integration does not differentiate by version: a custom v1 template can still carry an agent definition and emit visibility data, so it needs the same fencing.) Each activation carries a per-activation `leaseToken` (`JobContext#getLeaseToken()`), and the runtime completes/fails jobs through the `ActivatedJob`-based command overloads, so completion is fenced against a superseded activation automatically. The agent-instance turn writes are fenced too: `applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart` each batch their history items (empty, for `applyToolDiscoveryStart`) onto a single `update()` command carrying `jobKey` and, when present, `jobLease`; the engine rejects a lease mismatch with `404`, which `CamundaAgentInstanceClient` maps to a non-retryable `ConnectorRetryException` (`AGENT_INSTANCE_SUPERSEDED`) instead of retrying (see [§23](#23-agent-instance-integration)). Note the version-skew contract on `OutboundConnector#withLease`: over gRPC a pre-leasing gateway drops the field (token is `null`), so the client only forwards a lease when one is present; over REST an older gateway rejects the activation (HTTP 400). The gateway/MCP/A2A tool connectors are not leased. For the underlying job-lease mechanism itself, see the monorepo ADR [0005-810-job-lease](https://github.com/camunda/camunda/blob/main/zeebe/docs/adr/0005-810-job-lease.md).
+**Job leasing**: All AI Agent connectors (both flavors, v1 and v2) opt into job leasing; the gateway/MCP/A2A tool connectors do not. Each activation carries a per-activation lease token that fences the connector's writes against a superseded activation of the same job — both job completion and the agent-instance turn writes. Writes from a stale activation are rejected and treated as supersession rather than retried (see [§23](#23-agent-instance-integration)). v1 is leased alongside v2 because a custom v1 template can also carry an agent definition and emit visibility data, so it needs the same fencing.
+
+A lease token is required for every agent-instance write, and the connector fails the write when one is absent rather than skipping the fencing. In steady state a token is always present: job leasing and the agent-instance API are introduced together in 8.10, and a settled cluster's broker and gateway are on the same version, so leasing is active wherever the agent-instance endpoints are. The one gap is a transient rolling upgrade (for example on SaaS), where for a brief window a job may be activated without a lease while the already-upgraded agent-instance endpoints are reachable; those writes fail and follow the connector's configured retry handling, so the impact is bounded to the upgrade window. The same check also surfaces a connector misconfigured without leasing. For the underlying job-lease mechanism, see the monorepo ADR [0005-810-job-lease](https://github.com/camunda/camunda/blob/main/zeebe/docs/adr/0005-810-job-lease.md).
 
 ### Challenge 2: Conversation Store Ahead of Zeebe
 
@@ -1738,9 +1740,9 @@ treated as job supersession — see below.
 
 ### The two-call-per-turn design (ADR 013)
 
-Per turn, the agent issues exactly two batched `update()` calls, each carrying `jobKey` and (for a
-leased activation) `jobLease` alongside a `history(...)` list — never a separate create-history
-command:
+Per turn, the agent issues exactly two batched `update()` calls, each carrying `jobKey` and
+`jobLease` (both mandatory steps on the agent-instance command builder) alongside a `history(...)`
+list — never a separate create-history command:
 
 - **`applyTurnStart`** (`BaseAgentRequestHandler.proceed`, before the LLM call): moves the agent
   instance to `THINKING` and appends the current turn's input-message history items (see below),
