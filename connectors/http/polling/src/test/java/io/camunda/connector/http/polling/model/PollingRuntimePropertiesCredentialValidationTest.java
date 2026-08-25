@@ -194,12 +194,12 @@ class PollingRuntimePropertiesCredentialValidationTest {
   }
 
   /**
-   * A Basic/Bearer/API-key credential's secret must never risk being sent to a different host than
-   * the one it was created for, so no inline URL is allowed at all once one is bound - not even one
-   * that happens to match the credential's own host.
+   * The inline URL wins over the credential's own, on any host: binding the credential and pointing
+   * the polling task elsewhere are both the process author's decisions, so the override is
+   * deliberately left unconstrained.
    */
   @Test
-  void inlineUrlIsRejectedOnceAHostBoundCredentialIsBound() {
+  void inlineUrlOverridesTheCredentialUrlEvenOnAnotherHost() {
     String properties =
         """
         {
@@ -207,7 +207,7 @@ class PollingRuntimePropertiesCredentialValidationTest {
           "method": "GET",
           "authenticationConfiguration": {
             "authentication": { "type": "bearer", "token": "valid-token" },
-            "url": "http://localhost:8085/http-endpoint"
+            "url": "http://127.0.0.1:9999/http-endpoint"
           }
         }
         """;
@@ -217,13 +217,13 @@ class PollingRuntimePropertiesCredentialValidationTest {
             .validation(new TestValidationProvider())
             .build();
 
-    assertThatThrownBy(() -> context.bindProperties(PollingRuntimeProperties.class))
-        .hasMessageContaining("not allowed once a credential provides the URL");
+    assertThat(context.bindProperties(PollingRuntimeProperties.class).getUrl())
+        .isEqualTo("http://localhost:8085/other-path");
   }
 
   /**
-   * An OAuth credential legitimately carries no URL (see {@code
-   * RestAuthenticationConfiguration#carriesUrl}), so binding one with neither an inline URL nor an
+   * An OAuth credential need not carry a URL (see {@code
+   * RestAuthenticationConfiguration#requiresUrl}), so binding one with neither an inline URL nor an
    * override must fail with a message pointing at both possible sources, not a bare "URL is
    * required" that gives no hint where to provide it.
    */
@@ -255,13 +255,11 @@ class PollingRuntimePropertiesCredentialValidationTest {
   }
 
   /**
-   * A stale URL left on an OAuth credential (e.g. hand-edited, or retained from switching away from
-   * a host-bound type) is normalized away rather than silently reaching {@code
-   * PollingRuntimeProperties#getUrl()}'s fallback and sending the token to that stale endpoint -
-   * the inline URL is used instead, exactly as if the credential carried none.
+   * An OAuth credential may carry a URL - it is simply not required to. When it does and the model
+   * also sets one, the inline value wins, exactly as for a host-bound credential.
    */
   @Test
-  void oauthCredentialWithAStaleUrlFallsBackToTheInlineUrl() {
+  void inlineUrlOverridesAnOauthCredentialUrl() {
     String properties =
         """
         {
@@ -310,6 +308,38 @@ class PollingRuntimePropertiesCredentialValidationTest {
               "clientAuthentication": "credentialsBody"
             },
             "url": ""
+          }
+        }
+        """;
+    var context =
+        InboundConnectorContextBuilder.create()
+            .properties(properties)
+            .validation(new TestValidationProvider())
+            .build();
+
+    assertThat(context.bindProperties(PollingRuntimeProperties.class).getUrl())
+        .isEqualTo("http://localhost:8085/http-endpoint");
+  }
+
+  /**
+   * The other half of the pair above: an OAuth credential that does carry a URL supplies it to a
+   * model that sets none, so the inline field may stay empty for every authentication type.
+   */
+  @Test
+  void oauthCredentialUrlIsUsedWhenTheModelSetsNoInlineUrl() {
+    String properties =
+        """
+        {
+          "method": "GET",
+          "authenticationConfiguration": {
+            "authentication": {
+              "type": "oauth-client-credentials-flow",
+              "oauthTokenEndpoint": "http://localhost:8085/token",
+              "clientId": "id",
+              "clientSecret": "secret",
+              "clientAuthentication": "credentialsBody"
+            },
+            "url": "http://localhost:8085/http-endpoint"
           }
         }
         """;

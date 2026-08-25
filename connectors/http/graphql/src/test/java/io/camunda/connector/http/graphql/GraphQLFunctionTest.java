@@ -140,12 +140,12 @@ public class GraphQLFunctionTest extends BaseTest {
   }
 
   /**
-   * A Basic/Bearer/API-key credential's secret must never risk being sent to a different host than
-   * the one it was created for, so no inline URL is allowed at all once one is bound - not even one
-   * that happens to match the credential's own host.
+   * The inline URL wins over the credential's own, on any host: binding the credential and pointing
+   * the task elsewhere are both the process author's decisions, so the override is deliberately
+   * left unconstrained.
    */
   @Test
-  void inlineUrlIsRejectedOnceAHostBoundCredentialIsBound() {
+  void inlineUrlOverridesTheCredentialUrlEvenOnAnotherHost() {
     String variables =
         """
         {
@@ -156,7 +156,7 @@ public class GraphQLFunctionTest extends BaseTest {
           },
           "authenticationConfiguration": {
             "authentication": { "type": "bearer", "token": "valid-token" },
-            "url": "http://localhost:8087/graphql"
+            "url": "http://127.0.0.1:9999/graphql"
           }
         }
         """;
@@ -166,8 +166,8 @@ public class GraphQLFunctionTest extends BaseTest {
             .includeAllValidators()
             .build();
 
-    assertThatThrownBy(() -> context.bindVariables(GraphQLRequest.class))
-        .hasMessageContaining("not allowed once a credential provides the URL");
+    assertThat(context.bindVariables(GraphQLRequest.class).getEffectiveUrl())
+        .isEqualTo("http://localhost:8087/other-path");
   }
 
   /**

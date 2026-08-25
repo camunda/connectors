@@ -9,8 +9,6 @@ package io.camunda.connector.http.base.model.auth;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.hostvalidator.VerifiedHost;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
@@ -31,21 +29,27 @@ import jakarta.validation.constraints.Pattern;
  * fields.
  *
  * @param authentication the reusable authentication. Never {@link NoAuthentication}.
- * @param url the endpoint this credential is bound to, carried only for the authentication types
- *     that are host-bound by nature — a static secret: basic, bearer or API key. The OAuth variants
- *     already carry their own token endpoint and are routinely reused across resource URLs, so they
- *     omit it (see {@link #carriesUrl(Authentication)}) and are the only case where the consuming
- *     connector's inline URL override is meaningful — see {@code HttpJsonRequest#getUrl()}. A
- *     host-bound credential rejects any inline override outright (enforced by each consuming
- *     connector): a static secret must never risk being sent to a different host than the one it
- *     was created for.
+ * @param url the endpoint this credential is bound to. Mandatory for the authentication types that
+ *     are meaningless without one — a static secret: basic, bearer or API key (see {@link
+ *     #requiresUrl(Authentication)}). The OAuth variants already carry their own token endpoint and
+ *     are routinely reused across resource URLs, so for them it is optional. Whichever type is
+ *     chosen, the consuming connector's inline URL — when the process author sets one — wins over
+ *     this value: binding a credential and pointing a task at a URL are both decisions of the same
+ *     process author, so an override is a modelling choice rather than an escalation, and there is
+ *     no attempt to constrain it here.
  */
 @Configuration(
     id = "io.camunda.connectors:rest-authentication:1",
     version = 1,
     name = "REST Authentication")
 public record RestAuthenticationConfiguration(
-    @Valid @TemplateProperty(group = "authentication", excludeSubTypes = NoAuthentication.class)
+    @Valid
+        @TemplateProperty(
+            group = "authentication",
+            excludeSubTypes = NoAuthentication.class,
+            // Overrides the type-level description on Authentication, which tells the reader to
+            // select 'None' - a choice this narrowed dropdown does not offer.
+            description = "Choose the authentication mechanism this credential provides.")
         Authentication authentication,
     @Pattern(
             regexp = RestAuthenticationConfiguration.URL_PATTERN,
@@ -54,29 +58,20 @@ public record RestAuthenticationConfiguration(
         @TemplateProperty(
             group = "endpoint",
             label = "URL",
-            condition =
-                @PropertyCondition(
-                    property = "authentication.type",
-                    oneOf = {
-                      BasicAuthentication.TYPE,
-                      BearerAuthentication.TYPE,
-                      ApiKeyAuthentication.TYPE
-                    }),
-            constraints = @PropertyConstraints(notEmpty = true),
-            description = "The endpoint this credential is bound to.")
+            optional = true,
+            description =
+                "The endpoint this credential is bound to. Required for basic, bearer and API key"
+                    + " authentication; optional for OAuth, which carries its own token endpoint.")
         String url) {
 
   /**
-   * Normalizes {@code url} so the runtime invariant matches the template's {@code
-   * authentication.type} condition: a blank value (Modeler clearing the field) and a value left
-   * over on an authentication type that doesn't carry one (e.g. hand-edited, or retained from
-   * switching away from a host-bound type) both collapse to {@code null}. Without this, a blank
-   * string would trip the unconditional {@link Pattern} below, and a stale non-blank value on an
-   * OAuth credential would silently reach a consuming connector's unconditional fallback to {@link
-   * #url()}, sending its token to that stale endpoint instead of the visible inline URL.
+   * A blank URL means "not set", not "set to an invalid value": Modeler writes an empty value when
+   * the field is cleared, and the unconditional {@link Pattern} below would otherwise reject it.
+   * Collapsing it to {@code null} also makes the field absent for {@link
+   * #isUrlPresentWhenRequired()} and for a consuming connector's fallback to {@link #url()}.
    */
   public RestAuthenticationConfiguration {
-    if (url != null && (url.isBlank() || !carriesUrl(authentication))) {
+    if (url != null && url.isBlank()) {
       url = null;
     }
   }
@@ -90,25 +85,27 @@ public record RestAuthenticationConfiguration(
   public static final String URL_PATTERN = "^((http://|https://|secrets|\\{\\{).*$)";
 
   /**
-   * True if {@code authentication} is one of the types for which this credential carries a {@link
-   * #url()} — mirroring the {@code authentication.type} condition on the field, so the editor and
-   * the runtime agree on when the URL is part of the credential.
+   * True if {@code authentication} is one of the types for which a {@link #url()} is mandatory: a
+   * static secret (basic, bearer, API key) is bound to the endpoint it was issued for and is
+   * meaningless without it. This is about requiredness only — every type may carry a URL, and the
+   * OAuth variants simply need not.
    */
-  public static boolean carriesUrl(Authentication authentication) {
+  public static boolean requiresUrl(Authentication authentication) {
     return authentication instanceof BasicAuthentication
         || authentication instanceof BearerAuthentication
         || authentication instanceof ApiKeyAuthentication;
   }
 
   /**
-   * The URL is mandatory exactly when the chosen authentication type carries one. Enforced on the
+   * The URL is mandatory exactly when the chosen authentication type requires one. Enforced on the
    * record (not as a {@code @NotBlank} on the component) because the requirement is conditional —
-   * an OAuth credential legitimately has no URL.
+   * an OAuth credential legitimately has no URL — and the element template cannot express a
+   * per-authentication-type constraint on a single field.
    */
   @AssertTrue(message = "URL is required for this authentication type")
   @JsonIgnore
   public boolean isUrlPresentWhenRequired() {
-    return !carriesUrl(authentication) || (url != null && !url.isBlank());
+    return !requiresUrl(authentication) || (url != null && !url.isBlank());
   }
 
   /**

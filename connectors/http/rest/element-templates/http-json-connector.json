@@ -654,7 +654,7 @@
   }, {
     "id" : "urlOverride",
     "label" : "URL",
-    "description" : "Required for an OAuth credential, which carries no URL of its own; not allowed once a Basic/Bearer/API-key credential is bound.",
+    "description" : "Overrides the URL carried by the selected credential. Required when the credential carries none, as an OAuth credential need not.",
     "optional" : true,
     "constraints" : {
       "notEmpty" : false,
@@ -934,7 +934,7 @@
     "properties" : [ {
       "id" : "authentication.type",
       "label" : "Type",
-      "description" : "Choose the authentication type. Select 'None' if no authentication is necessary",
+      "description" : "Choose the authentication mechanism this credential provides.",
       "group" : "authentication",
       "binding" : {
         "name" : "authentication.type",
@@ -1277,9 +1277,9 @@
     }, {
       "id" : "url",
       "label" : "URL",
-      "description" : "The endpoint this credential is bound to.",
+      "description" : "The endpoint this credential is bound to. Required for basic, bearer and API key authentication; optional for OAuth, which carries its own token endpoint.",
       "constraints" : {
-        "notEmpty" : true,
+        "notEmpty" : false,
         "pattern" : {
           "value" : "^((http://|https://|secrets|\\{\\{).*$)",
           "message" : "Must be a http(s) URL"
@@ -1289,11 +1289,6 @@
       "binding" : {
         "name" : "url",
         "type" : "property"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "oneOf" : [ "basic", "bearer", "apiKey" ],
-        "type" : "simple"
       },
       "type" : "String"
     } ]

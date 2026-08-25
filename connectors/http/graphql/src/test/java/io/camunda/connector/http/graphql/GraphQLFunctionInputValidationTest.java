@@ -108,8 +108,8 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
   }
 
   /**
-   * An OAuth credential legitimately carries no URL (see {@code
-   * RestAuthenticationConfiguration#carriesUrl}), so binding one with neither an inline URL nor an
+   * An OAuth credential need not carry a URL (see {@code
+   * RestAuthenticationConfiguration#requiresUrl}), so binding one with neither an inline URL nor an
    * override must fail with a message pointing at both possible sources, not a bare "URL is
    * required" that gives no hint where to provide it.
    */
