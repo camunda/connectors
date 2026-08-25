@@ -601,6 +601,19 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
+  void modelDefaultThinkingModeEmitsNoThinkingParam() {
+    // The "default" dropdown choice binds to ThinkingMode.MODEL_DEFAULT rather than an unset
+    // value; applyThinking treats it the same as null.
+    final var parameters =
+        thinkingParams(new AnthropicThinking(ThinkingMode.MODEL_DEFAULT, null, null));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toMessageCreateParams(model(parameters), null, snapshot);
+
+    assertThat(params.thinking()).isEmpty();
+  }
+
+  @Test
   void budgetTokensOnlyWithNullModeEmitsNoThinkingParam() {
     // {thinking:{budgetTokens:...}} with a null mode must still emit no thinking param (mode null
     // means unset, regardless of any other field being populated).
@@ -622,6 +635,19 @@ class AnthropicMessageRequestConverterTest {
 
     assertThatThrownBy(() -> converter.toMessageCreateParams(model(parameters), null, snapshot))
         .isInstanceOf(ConnectorException.class);
+  }
+
+  @Test
+  void modelDefaultEffortEmitsNoOutputConfig() {
+    // The "default" dropdown choice binds to AnthropicEffort.MODEL_DEFAULT rather than an unset
+    // value (see AnthropicChatModelConfiguration); it must still be treated as "don't send an
+    // effort" rather than being mapped onto the wire as the literal string "modelDefault".
+    final var parameters = effortParams(AnthropicEffort.MODEL_DEFAULT);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toMessageCreateParams(model(parameters), null, snapshot);
+
+    assertThat(params.outputConfig()).isEmpty();
   }
 
   @Test

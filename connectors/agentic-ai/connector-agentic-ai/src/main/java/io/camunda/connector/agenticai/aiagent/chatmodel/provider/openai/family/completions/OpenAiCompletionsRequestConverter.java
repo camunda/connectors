@@ -144,7 +144,7 @@ public class OpenAiCompletionsRequestConverter {
   private void applyReasoning(
       ChatCompletionCreateParams.Builder builder, @Nullable CompletionsParameters params) {
     final OpenAiEffort effort = params == null ? null : params.effort();
-    if (effort == null) {
+    if (effort == null || effort == OpenAiEffort.MODEL_DEFAULT) {
       return;
     }
     builder.reasoningEffort(ReasoningEffort.of(effort.name().toLowerCase(Locale.ROOT)));

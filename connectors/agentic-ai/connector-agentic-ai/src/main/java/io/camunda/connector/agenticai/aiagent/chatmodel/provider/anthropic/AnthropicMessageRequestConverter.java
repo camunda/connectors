@@ -118,9 +118,10 @@ public class AnthropicMessageRequestConverter {
   }
 
   /**
-   * Maps the {@code thinking} configuration onto the SDK's {@code thinking} union. {@code mode ==
-   * null} (the modeler left the dropdown blank) means unset - no thinking param is emitted and the
-   * model's own default applies. Wire enum values use {@code name().toLowerCase()} ({@link
+   * Maps the {@code thinking} configuration onto the SDK's {@code thinking} union. Both {@code mode
+   * == null} (legacy/omitted input) and {@code mode == MODEL_DEFAULT} (the modeler's "default"
+   * dropdown choice) mean unset - no thinking param is emitted and the model's own default applies.
+   * The remaining concrete modes map onto the wire via {@code name().toLowerCase()} ({@link
    * ThinkingMode}/{@code ThinkingDisplay} already carry matching lowercase {@code JsonProperty}
    * values, see those enums).
    */
@@ -132,7 +133,7 @@ public class AnthropicMessageRequestConverter {
     validateThinking(thinking, modelId);
 
     final ThinkingMode mode = thinking == null ? null : thinking.mode();
-    if (thinking == null || mode == null) {
+    if (thinking == null || mode == null || mode == ThinkingMode.MODEL_DEFAULT) {
       return;
     }
 
@@ -344,7 +345,8 @@ public class AnthropicMessageRequestConverter {
       MessageCreateParams.Builder builder,
       @Nullable AnthropicModelParameters params,
       @Nullable ResponseConfiguration response) {
-    final AnthropicEffort effort = params == null ? null : params.effort();
+    final AnthropicEffort rawEffort = params == null ? null : params.effort();
+    final AnthropicEffort effort = rawEffort == AnthropicEffort.MODEL_DEFAULT ? null : rawEffort;
     final Map<String, Object> jsonSchema =
         response != null && response.format() instanceof JsonResponseFormatConfiguration json
             ? json.schema()
