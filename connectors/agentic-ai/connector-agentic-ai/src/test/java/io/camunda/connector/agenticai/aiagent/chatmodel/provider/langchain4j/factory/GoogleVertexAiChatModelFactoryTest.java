@@ -294,7 +294,7 @@ class GoogleVertexAiChatModelFactoryTest {
 
       assertThatThrownBy(() -> factory.createChatModel(providerConfig))
           .isInstanceOf(ConnectorInputException.class)
-          .hasMessageContaining("Failed to create Google Vertex AI client");
+          .hasMessageContaining("Failed to create Enterprise Agent Platform (Vertex AI) client");
     }
   }
 

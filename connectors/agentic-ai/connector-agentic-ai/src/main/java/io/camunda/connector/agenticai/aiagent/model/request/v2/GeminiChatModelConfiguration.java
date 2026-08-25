@@ -109,7 +109,7 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
       }
     }
 
-    @TemplateSubType(id = GOOGLE_VERTEX_AI_ID, label = "Google Vertex AI")
+    @TemplateSubType(id = GOOGLE_VERTEX_AI_ID, label = "Enterprise Agent Platform (Vertex AI)")
     record GeminiVertexAiBackend(@Valid @NotNull GoogleVertexAi googleVertexAi)
         implements GeminiBackend {
 
@@ -156,7 +156,7 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
         @JsonIgnore
         @AssertFalse(
             message =
-                "Application default credentials for Google Vertex AI are not supported on SaaS")
+                "Application default credentials for Enterprise Agent Platform (Vertex AI) are not supported on SaaS")
         public boolean isApplicationDefaultCredentialsUsedInSaaS() {
           return ConnectorUtils.isSaaS()
               && authentication
@@ -180,7 +180,7 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
         group = "provider",
         name = "type",
         defaultValue = "serviceAccountCredentials",
-        description = "Specify the Google Vertex AI authentication strategy.")
+        description = "Specify the Enterprise Agent Platform (Vertex AI) authentication strategy.")
     sealed interface GoogleVertexAiAuthentication {
       @TemplateSubType(id = "serviceAccountCredentials", label = "Service account credentials")
       record ServiceAccountCredentialsAuthentication(

@@ -95,7 +95,11 @@ public class GoogleVertexAiChatModelFactory
 
   private Client createGoogleGenAiClient(GoogleVertexAiConnection connection) {
     final var apiTimeout =
-        deriveTimeoutSetting("Google Vertex AI model call", config, connection.timeouts(), LOGGER);
+        deriveTimeoutSetting(
+            "Enterprise Agent Platform (Vertex AI) model call",
+            config,
+            connection.timeouts(),
+            LOGGER);
 
     final var httpOptions =
         HttpOptions.builder()
@@ -128,8 +132,9 @@ public class GoogleVertexAiChatModelFactory
       // application default credentials are resolved eagerly here
       return clientBuilder.build();
     } catch (GenAiIOException | IllegalArgumentException e) {
-      LOGGER.error("Failed to create Google Vertex AI client", e);
-      throw new ConnectorInputException("Failed to create Google Vertex AI client", e);
+      LOGGER.error("Failed to create Enterprise Agent Platform (Vertex AI) client", e);
+      throw new ConnectorInputException(
+          "Failed to create Enterprise Agent Platform (Vertex AI) client", e);
     }
   }
 
