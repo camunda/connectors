@@ -2443,6 +2443,86 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
   }
 
+  // A multi-clause @NestedProperties condition: an allMatch override leaves `property` blank (its
+  // clauses carry their own references), which used to read as "no override set" and be dropped
+  // silently. Both clauses must land, merged flat with the sealed type's own discriminator clause
+  // - a nested allMatch has no representation in the element-template schema. ---
+  @Nested
+  class NestedPropertiesAllMatchCondition {
+
+    @TemplateDiscriminatorProperty(name = "type", group = "authentication")
+    sealed interface MultiGatedAuth permits Static, Chain {}
+
+    @TemplateSubType(id = "static", label = "Static")
+    record Static(
+        @TemplateProperty(group = "authentication", label = "Access key") String accessKey)
+        implements MultiGatedAuth {}
+
+    @TemplateSubType(id = "chain", label = "Chain")
+    record Chain() implements MultiGatedAuth {}
+
+    static class MultiGatedRequest {
+      @TemplateProperty(id = "credential", label = "Credential", group = "authentication")
+      private String credential;
+
+      @TemplateProperty(id = "mode", label = "Mode", group = "authentication")
+      private String mode;
+
+      @NestedProperties(
+          condition =
+              @TemplateProperty.PropertyCondition(
+                  // property() has no default and must stay blank for an allMatch condition -
+                  // the very spelling that used to make this override look unset.
+                  property = "",
+                  allMatch = {
+                    @TemplateProperty.NestedPropertyCondition(
+                        property = "credential",
+                        isEmpty = NullableBoolean.TRUE),
+                    @TemplateProperty.NestedPropertyCondition(property = "mode", equals = "inline")
+                  }))
+      private MultiGatedAuth authentication;
+    }
+
+    @OutboundConnector(name = "MultiGated", type = "test:multi-gated")
+    @ElementTemplate(
+        id = "test-multi-gated",
+        name = "MultiGated",
+        version = 1,
+        engineVersion = "^8.10",
+        inputDataClass = MultiGatedRequest.class)
+    static class MultiGatedConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void allMatchOverride_isAppliedRatherThanSilentlyDropped() {
+      var template = generator.generate(MultiGatedConnector.class).getFirst();
+      var discriminator = getPropertyById("authentication.type", template);
+
+      assertThat(discriminator.getCondition()).isInstanceOf(AllMatch.class);
+      assertThat(((AllMatch) discriminator.getCondition()).allMatch())
+          .containsExactlyInAnyOrder(new IsEmpty("credential", true), new Equals("mode", "inline"));
+    }
+
+    @Test
+    void allMatchOverride_mergesFlatWithTheDiscriminatorClause() {
+      var template = generator.generate(MultiGatedConnector.class).getFirst();
+      var accessKey = getPropertyById("authentication.accessKey", template);
+
+      assertThat(accessKey.getCondition()).isInstanceOf(AllMatch.class);
+      var clauses = ((AllMatch) accessKey.getCondition()).allMatch();
+      assertThat(clauses)
+          .noneMatch(AllMatch.class::isInstance)
+          .containsExactlyInAnyOrder(
+              new Equals("authentication.type", "static"),
+              new IsEmpty("credential", true),
+              new Equals("mode", "inline"));
+    }
+  }
+
   // A shared sealed union narrowed for one usage: the credential supports fewer authentication
   // mechanisms than the inline fields it substitutes for, so the excluded subtype must disappear
   // from the credential's dropdown while the inline usage of the same union keeps it. ---
