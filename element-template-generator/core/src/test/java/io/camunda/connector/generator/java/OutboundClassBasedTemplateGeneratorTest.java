@@ -25,9 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.generator.BaseTest;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
@@ -2645,6 +2648,40 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
       assertThat(getPropertyById("authentication.type", template).getDescription())
           .isEqualTo("Choose the authentication type. Select 'None' if none is necessary");
+    }
+
+    // @TemplateProperty also targets method parameters, and an @Operation parameter narrowing a
+    // sealed union must retarget its discriminator description the same way a field does -
+    // otherwise the dropdown drops the choice while the text still names it.
+    @OutboundConnector(name = "NarrowedOp", type = "test:narrowed-op")
+    @ElementTemplate(
+        id = "test-narrowed-op",
+        name = "NarrowedOp",
+        version = 1,
+        engineVersion = "^8.10")
+    static class NarrowedOperationConnector implements OutboundConnectorProvider {
+      @Operation(id = "op", name = "Op")
+      public Object run(
+          @Variable
+              @TemplateProperty(
+                  group = "authentication",
+                  excludeSubTypes = NoAuth.class,
+                  description = "Choose the mechanism this operation provides.")
+              SharedAuth authentication) {
+        return null;
+      }
+    }
+
+    @Test
+    void perUsageDescription_appliesToAnOperationParameterToo() {
+      var template = generator.generate(NarrowedOperationConnector.class).getFirst();
+      var discriminator = getPropertyById("op:type", template);
+
+      assertThat(((DropdownProperty) discriminator).getChoices())
+          .extracting(DropdownChoice::value)
+          .containsExactly("token");
+      assertThat(discriminator.getDescription())
+          .isEqualTo("Choose the mechanism this operation provides.");
     }
   }
 }
