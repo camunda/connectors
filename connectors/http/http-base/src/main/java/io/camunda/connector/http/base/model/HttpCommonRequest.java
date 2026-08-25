@@ -102,8 +102,8 @@ public class HttpCommonRequest {
               pattern =
                   @TemplateProperty.Pattern(value = URL_PATTERN, message = URL_PATTERN_MESSAGE)),
       description =
-          "Required for an OAuth credential, which carries no URL of its own; not allowed once a"
-              + " Basic/Bearer/API-key credential is bound.")
+          "Overrides the URL carried by the selected credential. Required when the credential"
+              + " carries none, as an OAuth credential need not.")
   private String urlOverride;
 
   // Hidden and un-required (via the isEmpty condition) once a credential is chosen. The chooser

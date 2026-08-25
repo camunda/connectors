@@ -98,8 +98,8 @@ public class PollingRuntimeProperties {
                       value = HttpCommonRequest.URL_PATTERN,
                       message = HttpCommonRequest.URL_PATTERN_MESSAGE)),
       description =
-          "Required for an OAuth credential, which carries no URL of its own; not allowed once a"
-              + " Basic/Bearer/API-key credential is bound.")
+          "Overrides the URL carried by the selected credential. Required when the credential"
+              + " carries none, as an OAuth credential need not.")
   private String urlOverride;
 
   @FEEL
@@ -218,11 +218,11 @@ public class PollingRuntimeProperties {
 
   /**
    * The URL is the one place where the inline value wins over the credential rather than the other
-   * way round - but only for OAuth credentials, which carry no URL of their own (see {@link
-   * RestAuthenticationConfiguration#carriesUrl}) and so have nothing to conflict with. A
-   * Basic/Bearer/API-key credential rejects any inline URL outright (see {@link
-   * #isUrlOverrideAbsentForHostBoundCredential()}), so if one is bound and reaches this point, the
-   * inline value is necessarily blank.
+   * way round: the credential's URL is the endpoint it is bound to by default, but a process author
+   * who sets an inline URL on the task means it. Binding the credential and pointing the task
+   * elsewhere are both decisions of the same author, so no origin check constrains the override -
+   * for an OAuth credential, which need not carry a URL at all, the inline value is often the only
+   * source.
    */
   @Pattern(regexp = HttpCommonRequest.URL_PATTERN, message = HttpCommonRequest.URL_PATTERN_MESSAGE)
   public String getUrl() {
@@ -243,24 +243,6 @@ public class PollingRuntimeProperties {
   public boolean isUrlPresent() {
     String effectiveUrl = getUrl();
     return effectiveUrl != null && !effectiveUrl.isBlank();
-  }
-
-  /**
-   * A bound Basic/Bearer/API-key credential's secret must never risk being sent to a different host
-   * than the one it was created for, so no inline URL is allowed at all once one is bound - simpler
-   * and safer than comparing origins. OAuth credentials carry no URL (see {@link
-   * RestAuthenticationConfiguration#carriesUrl}), so the inline value is the only source there and
-   * is unaffected by this check.
-   */
-  @AssertTrue(message = "Inline URL override is not allowed once a credential provides the URL")
-  @JsonIgnore
-  public boolean isUrlOverrideAbsentForHostBoundCredential() {
-    if (authenticationConfiguration == null
-        || !RestAuthenticationConfiguration.carriesUrl(
-            authenticationConfiguration.authentication())) {
-      return true;
-    }
-    return url == null || url.isBlank();
   }
 
   /**

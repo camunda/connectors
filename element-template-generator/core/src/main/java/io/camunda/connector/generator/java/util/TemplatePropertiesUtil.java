@@ -170,6 +170,8 @@ public class TemplatePropertiesUtil {
                   field.getType(),
                   context,
                   excludedSubTypes(field.getAnnotation(TemplateProperty.class)));
+          applyDiscriminatorDescriptionOverride(
+              field.getType(), field.getAnnotation(TemplateProperty.class), nestedBuilders);
           if (hasPathPrefix) {
             // Snapshot before any renaming: a condition on ANY of these builders may reference
             // ANY other one of them by its pre-prefix id (a discriminator self-reference, or a
@@ -610,6 +612,24 @@ public class TemplatePropertiesUtil {
       case TemplateGenerationContext.Inbound unused -> false;
       case Outbound unused -> true;
     };
+  }
+
+  /**
+   * Applies a per-usage description to a sealed hierarchy's generated discriminator, taken from the
+   * {@link TemplateProperty#description()} of the field being analyzed. The type-level {@link
+   * TemplateDiscriminatorProperty} description is written for the hierarchy's full set of subtypes,
+   * so a usage that narrows it with {@link TemplateProperty#excludeSubTypes()} - a credential that
+   * cannot be "None", say - would otherwise point at a choice its dropdown no longer offers. Only
+   * the discriminator is retargeted; the subtypes' own properties keep their descriptions.
+   */
+  private static void applyDiscriminatorDescriptionOverride(
+      Class<?> type, TemplateProperty annotation, List<PropertyBuilder> builders) {
+    if (!type.isSealed() || annotation == null || annotation.description().isBlank()) {
+      return;
+    }
+    builders.stream()
+        .filter(DiscriminatorPropertyBuilder.class::isInstance)
+        .forEach(builder -> builder.description(annotation.description()));
   }
 
   private static List<PropertyBuilder> handleSealedType(

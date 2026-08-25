@@ -2449,7 +2449,11 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
   @Nested
   class ExcludedSubTypes {
 
-    @TemplateDiscriminatorProperty(name = "type", group = "authentication", defaultValue = "noAuth")
+    @TemplateDiscriminatorProperty(
+        name = "type",
+        group = "authentication",
+        defaultValue = "noAuth",
+        description = "Choose the authentication type. Select 'None' if none is necessary")
     sealed interface SharedAuth permits NoAuth, TokenAuth {}
 
     @TemplateSubType(id = "noAuth", label = "None")
@@ -2466,7 +2470,10 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
         version = 1,
         name = "Narrowed Credential")
     record NarrowedCredential(
-        @TemplateProperty(group = "authentication", excludeSubTypes = NoAuth.class)
+        @TemplateProperty(
+                group = "authentication",
+                excludeSubTypes = NoAuth.class,
+                description = "Choose the mechanism this credential provides.")
             SharedAuth authentication) {}
 
     static class NarrowedRequest {
@@ -2540,6 +2547,24 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           .extracting(DropdownChoice::value)
           .containsExactlyInAnyOrder("noAuth", "token");
       assertThat(inlineDiscriminator.getValue()).isEqualTo("noAuth");
+    }
+
+    /**
+     * The type-level description is written for the full set of subtypes, so a usage that narrows
+     * it would otherwise point the reader at a choice its dropdown no longer offers.
+     */
+    @Test
+    void perUsageDescription_replacesTheTypeLevelDiscriminatorDescription() {
+      assertThat(credentialDiscriminator().getDescription())
+          .isEqualTo("Choose the mechanism this credential provides.");
+    }
+
+    @Test
+    void sameUnionWithoutTheOverride_keepsTheTypeLevelDescription() {
+      var template = generator.generate(NarrowedConnector.class).getFirst();
+
+      assertThat(getPropertyById("authentication.type", template).getDescription())
+          .isEqualTo("Choose the authentication type. Select 'None' if none is necessary");
     }
   }
 }
