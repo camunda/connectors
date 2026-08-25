@@ -22,6 +22,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -37,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.LoggerFactory;
 
 /**
  * Secrets are masked out of error output by re-resolving them, so this handler has to resolve
@@ -189,6 +193,62 @@ class OutboundConnectorExceptionHandlerTest {
             SecretFilter.allowAll());
 
     assertThat(result.responseValue().toString()).doesNotContain("super-secret");
+  }
+
+  @Test
+  void handleFinalResultException_logsTheFailureOnlyAfterRedaction() {
+    // The runtime log is a third channel, alongside the payload and the incident message. A
+    // connector was handed resolved secrets, so its error message can carry one back; logging it
+    // on the way in would put in the log exactly what the other two channels redact.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any())).thenReturn(List.of("super-secret"));
+
+    var logged =
+        logsOf(
+            () ->
+                handler.handleFinalResultException(
+                    new RuntimeException("failed talking to https://api?key=super-secret"),
+                    job,
+                    SecretFilter.allowAll()));
+
+    assertThat(logged).noneMatch(message -> message.contains("super-secret"));
+    assertThat(logged).anyMatch(message -> message.contains("***"));
+  }
+
+  @Test
+  void handleFinalResultException_logsOnlyTheTypeWhenTheMessageCannotBeRedacted() {
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
+
+    var logged =
+        logsOf(
+            () ->
+                handler.handleFinalResultException(
+                    new RuntimeException("failed talking to https://api?key=super-secret"),
+                    job,
+                    SecretFilter.allowAll()));
+
+    assertThat(logged).noneMatch(message -> message.contains("super-secret"));
+    assertThat(logged).anyMatch(message -> message.contains("java.lang.RuntimeException"));
+  }
+
+  /**
+   * Every message this handler logs while {@code action} runs, formatted as it would be written.
+   */
+  private static List<String> logsOf(Runnable action) {
+    var logger = (Logger) LoggerFactory.getLogger(OutboundConnectorExceptionHandler.class);
+    var appender = new ListAppender<ILoggingEvent>();
+    appender.start();
+    logger.addAppender(appender);
+    try {
+      action.run();
+    } finally {
+      logger.detachAppender(appender);
+      appender.stop();
+    }
+    return appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
   }
 
   @Test

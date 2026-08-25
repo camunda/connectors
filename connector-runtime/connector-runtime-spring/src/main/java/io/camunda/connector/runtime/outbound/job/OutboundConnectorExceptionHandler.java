@@ -342,22 +342,36 @@ public class OutboundConnectorExceptionHandler {
    * <p>The result is unretryable either way. A result expression that does not evaluate will not
    * evaluate on the next attempt, and reaching here at all means the connector has already run, so
    * a retry would repeat its side effects.
+   *
+   * <p>The failure is logged after redaction, not before. A connector was handed resolved secrets
+   * and its error message can carry one back, so logging it on the way in would put in the runtime
+   * log exactly what the incident and the process variables are redacted to keep out. Where the
+   * values to redact with cannot be read, the type is logged and the message is dropped, on the
+   * same reasoning that drops it from the payload. The failure that prevented redaction is the one
+   * exception, and only in the log: it is the reason an operator has nothing else to go on, and
+   * withholding it there would leave the runtime silent about why.
    */
   public ConnectorResult.ErrorResult handleFinalResultException(
       Exception ex, ActivatedJob job, SecretFilter secretFilter) {
-    LOGGER.error(
-        "Exception while processing job: {} for tenant: {}, message: {}",
-        job.getKey(),
-        job.getTenantId(),
-        ex.getMessage());
     var masking = fetchSecretsForMasking(job, secretFilter);
     if (masking.unavailable()) {
+      LOGGER.error(
+          "Exception while processing job: {} for tenant: {}, type: {}. Its message is withheld:"
+              + " the values to redact it with could not be read.",
+          job.getKey(),
+          job.getTenantId(),
+          ex.getClass().getName());
       var wrappedException = unmaskableError(masking.failure());
       return new ConnectorResult.ErrorResult(
           Map.of("error", exceptionToMap(wrappedException, List.of())), wrappedException, 0);
     }
     List<String> secrets = masking.secrets();
     Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
+    LOGGER.error(
+        "Exception while processing job: {} for tenant: {}, message: {}",
+        job.getKey(),
+        job.getTenantId(),
+        newException.getMessage());
     return new ConnectorResult.ErrorResult(
         Map.of("error", exceptionToMap(newException, secrets)), newException, 0);
   }
