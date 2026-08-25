@@ -168,11 +168,20 @@ public class OutboundConnectorExceptionHandler {
    * has to go and create. Withholding it would replace the answer with a description of the
    * question.
    *
-   * <p>The new {@code camunda.secrets.<name>} form is asked for but not required back. The legacy
-   * providers never resolved it — the cluster did — so under most settings nothing here holds it,
-   * and a reference the cluster reported but could not resolve leaves a placeholder rather than a
-   * value, meaning there is nothing to redact in the first place. Requiring it back would withhold
-   * the error message of nearly every failed job that uses the new syntax.
+   * <p>The new {@code camunda.secrets.<name>} form is asked for, but neither required back nor
+   * allowed to fail the read. The engine substitutes a reference in a job's variables before the
+   * job is activated (ADR-0007, Context 1), so both states this scan can see are ones where nothing
+   * of that secret is in the message: a reference still visible in the variables is one the engine
+   * did not substitute, and the connector was handed the placeholder text rather than a value;
+   * where the engine did substitute, no reference is left for this scan to find. Requiring it back
+   * would withhold the error message of nearly every failed job that uses the new syntax.
+   *
+   * <p>What that leaves is a real gap, not addressed here: a connector that echoes an
+   * engine-substituted value into its error message publishes it, because the name never reached
+   * this runtime and so the value is not in the redaction list. ADR-0007 Decision 1 leaves job-path
+   * secrets to the engine, and an activated job does not carry the references it was resolved from,
+   * so there is nothing here to derive the name from. The only rule that would cover the case is
+   * withholding every outbound error message, substituted or not.
    */
   private MaskingSecrets fetchSecretsForMasking(
       ActivatedJob job, SecretFilter secretFilter, Exception jobFailure) {
@@ -197,7 +206,7 @@ public class OutboundConnectorExceptionHandler {
         return new MaskingSecrets(legacyValues, null);
       }
       var values = new ArrayList<>(legacyValues);
-      values.addAll(this.secretProvider.fetchAll(referenceKeys, context));
+      values.addAll(fetchReferencedSecrets(referenceKeys, context, job));
       return new MaskingSecrets(List.copyOf(values), null);
     } catch (Exception ex) {
       LOGGER.error(
@@ -206,6 +215,35 @@ public class OutboundConnectorExceptionHandler {
           job.getTenantId(),
           ex.getMessage());
       return new MaskingSecrets(List.of(), ex);
+    }
+  }
+
+  /**
+   * Reads the values behind names written in the new form, or nothing if that read fails.
+   *
+   * <p>A failure here is dropped rather than withholding the message, because on this path the read
+   * can hardly ever contribute anything to redact with: a name in the new form is visible to {@link
+   * #fetchSecretsForMasking}'s scan only where the engine left the reference unsubstituted, and the
+   * connector then held the placeholder text. The one exception is a name that appears substituted
+   * in one variable and literally in another — data of {@code JSON} kind spelling out a reference
+   * (ADR-0007, Context 11) — where the value is in the message and this read would have caught it.
+   * That is the same exposure the paragraph above already accepts, and it is not worth withholding
+   * the message of every job whose legacy secrets read back fine and whose reference read timed
+   * out.
+   */
+  private List<String> fetchReferencedSecrets(
+      List<String> referenceKeys, SecretContext context, ActivatedJob job) {
+    try {
+      return this.secretProvider.fetchAll(referenceKeys, context);
+    } catch (Exception ex) {
+      LOGGER.warn(
+          "Reading the centrally stored secrets named by job: {} for tenant: {} failed with {}: {}."
+              + " Its error message is redacted with the legacy secrets alone.",
+          job.getKey(),
+          job.getTenantId(),
+          ex.getClass().getName(),
+          ex.getMessage());
+      return List.of();
     }
   }
 

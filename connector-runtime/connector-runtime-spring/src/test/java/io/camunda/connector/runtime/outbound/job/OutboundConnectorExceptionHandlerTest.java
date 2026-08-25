@@ -346,6 +346,35 @@ class OutboundConnectorExceptionHandlerTest {
   }
 
   @Test
+  void doesNotWithholdTheMessageBecauseTheReadOfTheNewFormFailed() {
+    // Every legacy name read back, and the new-form read could not have held a value the connector
+    // did: the reference is still in the variables, so the engine never substituted it and what the
+    // connector was handed is the placeholder text. Letting that read's failure propagate would
+    // withhold the message over a fetch that had nothing to contribute.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"camunda.secrets.DB\"}");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              List<String> keys = invocation.getArgument(0);
+              if (keys.contains("DB")) {
+                throw new RuntimeException("cluster unreachable");
+              }
+              return List.of("foo-value");
+            });
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected foo-value"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
+    assertThat(result.retries()).isEqualTo(2);
+  }
+
+  @Test
   void masksAReferenceWrittenWithSpaceInsideTheBraces() {
     // The name the store holds is FOO, and that is the name replacement looked up when it
     // substituted the value, so it is the name this re-read has to ask for.
