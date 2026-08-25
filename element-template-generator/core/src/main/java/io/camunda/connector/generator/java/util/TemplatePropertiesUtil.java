@@ -86,7 +86,11 @@ public class TemplatePropertiesUtil {
     }
 
     //
-    return extractTemplatePropertiesFromType(type, context, excludedSubTypes(annotation));
+    var builders = extractTemplatePropertiesFromType(type, context, excludedSubTypes(annotation));
+    // Same per-usage narrowing as the field path: an @Operation parameter can exclude subtypes,
+    // so its discriminator description must be retargetable too.
+    applyDiscriminatorDescriptionOverride(type, annotation, builders);
+    return builders;
   }
 
   public static boolean shouldMapBindingsForParameter(Parameter parameter) {
