@@ -64,7 +64,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       // causing the container to crash on startup (exit code 139 / SIGSEGV) on amd64 CI
       // runners. -XX:AOTMode=off forces the JVM to ignore the pre-trained cache and fall
       // back to the regular startup path.
-      "camunda.process-test.camunda-env-vars.JAVA_TOOL_OPTIONS=-XX:AOTMode=off",
+      //
+      // -XX:+ErrorFileToStdout is a safety net in case a crash still occurs: by default the
+      // JVM writes its hs_err crash report to a file inside the container, which is lost
+      // once Testcontainers tears the crashed container down. Redirecting it to stdout
+      // routes it through the container's log consumer instead, so it shows up in the test
+      // output.
+      "camunda.process-test.camunda-env-vars.JAVA_TOOL_OPTIONS="
+          + "-XX:AOTMode=off -XX:+ErrorFileToStdout",
     })
 @CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
