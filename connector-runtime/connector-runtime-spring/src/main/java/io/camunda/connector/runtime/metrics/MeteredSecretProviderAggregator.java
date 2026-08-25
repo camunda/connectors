@@ -23,6 +23,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -30,7 +31,9 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>Nothing else measures this, and whether the legacy syntax can be retired is a question about
  * how much it is still used. The counter is incremented only when a lookup produces a value, so it
- * counts resolutions rather than attempts.
+ * counts resolutions rather than attempts — and only when the lookup is a connector resolving its
+ * input, not when the runtime re-reads the same values to redact an error message (see {@link
+ * #fetchAll}).
  */
 public class MeteredSecretProviderAggregator extends SecretProviderAggregator {
 
@@ -50,6 +53,30 @@ public class MeteredSecretProviderAggregator extends SecretProviderAggregator {
       counterFor(context).increment();
     }
     return value;
+  }
+
+  /**
+   * Reads values without counting them, because in this runtime {@link SecretProvider#fetchAll} is
+   * not how a connector resolves a secret: its only caller here re-reads the values an error
+   * message has to be redacted with, and those were already counted when the connector resolved
+   * them. (A caller outside this runtime would go uncounted, which is the same trade: the counter
+   * measures what connectors resolve, not what the aggregator is asked for.) Left to the interface
+   * default — which dispatches every key back to {@link #getSecret} — each failed job and each
+   * retry of it would count them again, so the number would grow with connector failures rather
+   * than with legacy usage, and a metric read to decide whether the legacy syntax can be retired
+   * would overstate it.
+   *
+   * <p>Mirrors the default's semantics otherwise, resolving through {@link
+   * SecretProviderAggregator} rather than through this class's counting override. Lazily, so a
+   * provider that refuses a key still throws on the first one it refuses: the caller classifies the
+   * job by that exception.
+   */
+  @Override
+  public List<String> fetchAll(List<String> keys, SecretContext context) {
+    return keys.stream()
+        .map(key -> super.getSecret(key, context))
+        .filter(Objects::nonNull)
+        .toList();
   }
 
   private Counter counterFor(SecretContext context) {

@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -66,6 +67,49 @@ class MeteredSecretProviderAggregatorTest {
     aggregator.getSecret("TOKEN", null);
 
     assertThat(count(ConnectorMetrics.DEFAULT_PHYSICAL_TENANT_ID)).isEqualTo(1);
+  }
+
+  @Test
+  void countsNothingForTheRedactionReRead() {
+    var aggregator = aggregatorHolding(Map.of("TOKEN", "tok-1", "OTHER", "other-1"));
+
+    assertThat(aggregator.fetchAll(List.of("TOKEN", "OTHER"), context("engine-a")))
+        .containsExactly("tok-1", "other-1");
+
+    assertThat(registry.find(ConnectorMetrics.Secrets.METRIC_NAME_LEGACY_RESOLUTIONS).counters())
+        .isEmpty();
+  }
+
+  @Test
+  void keepsTheResolutionCountWhenTheSameSecretIsAlsoReRead() {
+    // What the outbound handler does on a failed job: the connector resolves the secret once, then
+    // the error message is redacted with a re-read of the same key. Only the first is legacy usage.
+    var aggregator = aggregatorHolding(Map.of("TOKEN", "tok-1"));
+
+    aggregator.getSecret("TOKEN", context("engine-a"));
+    aggregator.fetchAll(List.of("TOKEN"), context("engine-a"));
+
+    assertThat(count("engine-a")).isEqualTo(1);
+  }
+
+  @Test
+  void letsTheRedactionReReadReportARefusedKey() {
+    // The masking fetch classifies the job by the exception a refusing provider throws, so skipping
+    // the count must not also swallow it.
+    var aggregator =
+        new MeteredSecretProviderAggregator(
+            List.of(
+                new SecretProvider() {
+                  @Override
+                  public String getSecret(String name, SecretContext context) {
+                    throw new IllegalStateException("refused: " + name);
+                  }
+                }),
+            registry);
+
+    assertThatThrownBy(() -> aggregator.fetchAll(List.of("TOKEN"), context("engine-a")))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("refused: TOKEN");
   }
 
   private double count(String physicalTenantId) {
