@@ -230,6 +230,15 @@ public class OutboundConnectorExceptionHandler {
    * That is the same exposure the paragraph above already accepts, and it is not worth withholding
    * the message of every job whose legacy secrets read back fine and whose reference read timed
    * out.
+   *
+   * <p>A refusal is dropped here too, {@link SecretFailureDiagnostic} and all, and that is the
+   * point rather than an oversight. Both refusals the runtime raises are raised per name, so with
+   * legacy resolution switched off a job naming no legacy secret at all reaches this line and is
+   * refused for a name the legacy providers were never responsible for. Withholding the message
+   * would report a setting that cost this job nothing — it bound without asking a legacy provider
+   * for anything — and, because the refusal is a {@code ConnectorInputException}, would also raise
+   * a permanent incident over a masking read. The diagnostic keeps its audience where it is acted
+   * on, which is a binding that actually needed the value; here it goes to the log.
    */
   private List<String> fetchReferencedSecrets(
       List<String> referenceKeys, SecretContext context, ActivatedJob job) {
@@ -237,8 +246,8 @@ public class OutboundConnectorExceptionHandler {
       return this.secretProvider.fetchAll(referenceKeys, context);
     } catch (Exception ex) {
       LOGGER.warn(
-          "Reading the centrally stored secrets named by job: {} for tenant: {} failed with {}: {}."
-              + " Its error message is redacted with the legacy secrets alone.",
+          "Reading the values behind the camunda.secrets references named by job: {} for tenant: {}"
+              + " failed with {}: {}. Its error message is redacted with the legacy secrets alone.",
           job.getKey(),
           job.getTenantId(),
           ex.getClass().getName(),

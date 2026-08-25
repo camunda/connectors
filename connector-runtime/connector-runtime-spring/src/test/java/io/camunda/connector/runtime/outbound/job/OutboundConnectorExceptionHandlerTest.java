@@ -375,6 +375,37 @@ class OutboundConnectorExceptionHandlerTest {
   }
 
   @Test
+  void publishesTheMessageWhenOnlyTheNewFormNameIsRefused() {
+    // Legacy resolution switched off, and a job that names no legacy secret: it bound without ever
+    // asking a legacy provider for anything, so the refusal is for a name that cost this job
+    // nothing. Withholding the message would report a setting the job never depended on, and the
+    // refusal being a ConnectorInputException would raise a permanent incident over a masking read.
+    var job = jobNaming("{\"b\": \"camunda.secrets.DB\"}");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              List<String> keys = invocation.getArgument(0);
+              if (keys.isEmpty()) {
+                return List.of();
+              }
+              throw new SecretLookupRefusedException(
+                  "Legacy secret resolution is disabled"
+                      + " (camunda.connector.secret-resolver.legacy.mode=OFF)");
+            });
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected the request"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected the request");
+    assertThat(result.retries()).isEqualTo(2);
+  }
+
+  @Test
   void masksAReferenceWrittenWithSpaceInsideTheBraces() {
     // The name the store holds is FOO, and that is the name replacement looked up when it
     // substituted the value, so it is the name this re-read has to ask for.
