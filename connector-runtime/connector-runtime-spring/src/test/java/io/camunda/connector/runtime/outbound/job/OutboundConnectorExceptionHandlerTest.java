@@ -125,6 +125,25 @@ class OutboundConnectorExceptionHandlerTest {
   }
 
   @Test
+  void manageConnectorJobHandlerException_keepsTheOriginalErrorFatalWhenMaskingFailsTransiently() {
+    // The two failures are independent: the job's own can be permanent while reading the values to
+    // redact it merely times out. Classifying from the masking failure alone would hand a job that
+    // can never bind its remaining attempts back.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new ConnectorInputException("secret 'FOO' is not available"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
   void handleFinalResultException_resolvesSecretsAgainstTheJobsPhysicalTenant() {
     var job = jobOnEngine("engine-1");
     when(job.getRetries()).thenReturn(1);

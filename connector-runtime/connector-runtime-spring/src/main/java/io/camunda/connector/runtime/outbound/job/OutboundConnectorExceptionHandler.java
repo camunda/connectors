@@ -232,13 +232,14 @@ public class OutboundConnectorExceptionHandler {
     var masking = fetchSecretsForMasking(job, secretFilter);
     if (masking.unavailable()) {
       var wrappedException = unmaskableError(masking.failure());
-      // A provider that refuses to resolve at all (e.g. legacy resolution switched off) throws
-      // this for every key, including the ones this fetch only needed for masking — retrying
-      // will not change that, so this must fail the job exactly like the same exception does when
-      // it comes from the connector's own binding step below, instead of silently falling through
-      // to a normal retry decrement. A cluster that could not be reached is the other way round:
-      // it says nothing about the input, so the job keeps its remaining attempts.
-      int retries = isFatalInputError(masking.failure()) ? 0 : job.getRetries() - 1;
+      // Either failure can be the permanent one, so both are consulted. A provider that refuses
+      // to resolve at all (e.g. legacy resolution switched off) throws for every key, including
+      // the ones this fetch only needed for masking; and the job's own failure is still whatever
+      // it was, so an input error that will never bind must not become retryable just because
+      // reading the values to redact it happened to time out. Only when neither says the input is
+      // at fault does the job keep its remaining attempts.
+      int retries =
+          isFatalInputError(masking.failure()) || isFatalInputError(e) ? 0 : job.getRetries() - 1;
       return new ConnectorResult.ErrorResult(
           // secrets could not be fetched, so there is nothing to mask with
           Map.of("error", exceptionToMap(wrappedException, List.of())), wrappedException, retries);
