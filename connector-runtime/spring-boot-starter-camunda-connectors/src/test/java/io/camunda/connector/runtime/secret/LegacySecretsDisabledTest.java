@@ -27,9 +27,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /**
- * Switching legacy resolution off applies to outbound, inbound and configuration validation alike,
- * because all three share the one aggregator bean the setting gates. It does not affect {@code
- * camunda.secrets.<name>}, which is a separate mechanism with no off switch.
+ * Switching legacy resolution off applies to the outbound job path and the inbound binding path
+ * alike, because both share the one aggregator bean the setting gates — which is what this test
+ * exercises. Configuration validation is not gated by it and does not need to be: it never resolves
+ * the legacy syntax under any mode, rejecting a configuration that still carries it through its own
+ * {@code LegacySecretSyntaxRejectingProcessor}. The setting does not affect {@code
+ * camunda.secrets.<name>} either, which is a separate mechanism with no off switch.
  */
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class, FooSpringSecretProvider.class},
