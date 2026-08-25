@@ -60,18 +60,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
-      // Disable the AOT cache baked into the camunda/camunda:SNAPSHOT image: it has been
-      // causing the container to crash on startup (exit code 139 / SIGSEGV) on amd64 CI
-      // runners. -XX:AOTMode=off forces the JVM to ignore the pre-trained cache and fall
-      // back to the regular startup path.
-      //
-      // -XX:+ErrorFileToStdout is a safety net in case a crash still occurs: by default the
-      // JVM writes its hs_err crash report to a file inside the container, which is lost
-      // once Testcontainers tears the crashed container down. Redirecting it to stdout
-      // routes it through the container's log consumer instead, so it shows up in the test
-      // output.
-      "camunda.process-test.camunda-env-vars.JAVA_TOOL_OPTIONS="
-          + "-XX:AOTMode=off -XX:+ErrorFileToStdout",
+      // TEMPORARY diagnostic commit: AOTMode=off intentionally left out here so the
+      // container crashes as before, to confirm -XX:+ErrorFileToStdout actually surfaces
+      // the JVM's hs_err crash report through the container's log consumer. Will be
+      // restored before merging.
+      "camunda.process-test.camunda-env-vars.JAVA_TOOL_OPTIONS=-XX:+ErrorFileToStdout",
     })
 @CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
