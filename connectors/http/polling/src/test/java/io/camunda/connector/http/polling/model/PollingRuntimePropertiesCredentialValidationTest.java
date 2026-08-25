@@ -139,6 +139,32 @@ class PollingRuntimePropertiesCredentialValidationTest {
         .hasMessageContaining("URL is required");
   }
 
+  /**
+   * A blank credential URL normalizes to absent (see the record's compact constructor), so a
+   * host-bound type still trips the requiredness check exactly as if the field were never set.
+   */
+  @Test
+  void credentialWithBlankUrlIsRejectedForAHostBoundAuthenticationType() {
+    String properties =
+        """
+        {
+          "method": "GET",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": ""
+          }
+        }
+        """;
+    var context =
+        InboundConnectorContextBuilder.create()
+            .properties(properties)
+            .validation(new TestValidationProvider())
+            .build();
+
+    assertThatThrownBy(() -> context.bindProperties(PollingRuntimeProperties.class))
+        .hasMessageContaining("URL is required");
+  }
+
   @Test
   void oauthCredentialCarriesNoUrlSoTheInlineUrlIsUsed() {
     String properties =
@@ -226,5 +252,74 @@ class PollingRuntimePropertiesCredentialValidationTest {
 
     assertThatThrownBy(() -> context.bindProperties(PollingRuntimeProperties.class))
         .hasMessageContaining("No URL provided by the credential or the element template");
+  }
+
+  /**
+   * A stale URL left on an OAuth credential (e.g. hand-edited, or retained from switching away from
+   * a host-bound type) is normalized away rather than silently reaching {@code
+   * PollingRuntimeProperties#getUrl()}'s fallback and sending the token to that stale endpoint -
+   * the inline URL is used instead, exactly as if the credential carried none.
+   */
+  @Test
+  void oauthCredentialWithAStaleUrlFallsBackToTheInlineUrl() {
+    String properties =
+        """
+        {
+          "method": "GET",
+          "url": "http://localhost:8085/http-endpoint",
+          "authenticationConfiguration": {
+            "authentication": {
+              "type": "oauth-client-credentials-flow",
+              "oauthTokenEndpoint": "http://localhost:8085/token",
+              "clientId": "id",
+              "clientSecret": "secret",
+              "clientAuthentication": "credentialsBody"
+            },
+            "url": "http://localhost:8085/stale-endpoint"
+          }
+        }
+        """;
+    var context =
+        InboundConnectorContextBuilder.create()
+            .properties(properties)
+            .validation(new TestValidationProvider())
+            .build();
+
+    assertThat(context.bindProperties(PollingRuntimeProperties.class).getUrl())
+        .isEqualTo("http://localhost:8085/http-endpoint");
+  }
+
+  /**
+   * A blank credential URL (Modeler clearing an optional/hidden field) must not trip the
+   * unconditional {@code @Pattern} shape check - it normalizes to absent, same as never having been
+   * set.
+   */
+  @Test
+  void blankCredentialUrlOnOauthDoesNotTripThePatternCheck() {
+    String properties =
+        """
+        {
+          "method": "GET",
+          "url": "http://localhost:8085/http-endpoint",
+          "authenticationConfiguration": {
+            "authentication": {
+              "type": "oauth-client-credentials-flow",
+              "oauthTokenEndpoint": "http://localhost:8085/token",
+              "clientId": "id",
+              "clientSecret": "secret",
+              "clientAuthentication": "credentialsBody"
+            },
+            "url": ""
+          }
+        }
+        """;
+    var context =
+        InboundConnectorContextBuilder.create()
+            .properties(properties)
+            .validation(new TestValidationProvider())
+            .build();
+
+    assertThat(context.bindProperties(PollingRuntimeProperties.class).getUrl())
+        .isEqualTo("http://localhost:8085/http-endpoint");
   }
 }

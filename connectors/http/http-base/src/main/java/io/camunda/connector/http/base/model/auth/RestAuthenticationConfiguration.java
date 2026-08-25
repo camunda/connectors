@@ -67,6 +67,21 @@ public record RestAuthenticationConfiguration(
         String url) {
 
   /**
+   * Normalizes {@code url} so the runtime invariant matches the template's {@code
+   * authentication.type} condition: a blank value (Modeler clearing the field) and a value left
+   * over on an authentication type that doesn't carry one (e.g. hand-edited, or retained from
+   * switching away from a host-bound type) both collapse to {@code null}. Without this, a blank
+   * string would trip the unconditional {@link Pattern} below, and a stale non-blank value on an
+   * OAuth credential would silently reach a consuming connector's unconditional fallback to {@link
+   * #url()}, sending its token to that stale endpoint instead of the visible inline URL.
+   */
+  public RestAuthenticationConfiguration {
+    if (url != null && (url.isBlank() || !carriesUrl(authentication))) {
+      url = null;
+    }
+  }
+
+  /**
    * Unlike the inline URL of a connector, this one is never a FEEL expression — configuration
    * values are atomic literals or secret references (ADR-0004) — so a leading {@code =} is not
    * accepted here.
