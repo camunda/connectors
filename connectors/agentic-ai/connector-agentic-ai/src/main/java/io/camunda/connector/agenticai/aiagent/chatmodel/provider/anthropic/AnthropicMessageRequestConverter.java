@@ -118,9 +118,10 @@ public class AnthropicMessageRequestConverter {
   }
 
   /**
-   * Maps the {@code thinking} configuration onto the SDK's {@code thinking} union. {@code mode ==
-   * null} (the modeler left the dropdown blank) means unset - no thinking param is emitted and the
-   * model's own default applies. Wire enum values use {@code name().toLowerCase()} ({@link
+   * Maps the {@code thinking} configuration onto the SDK's {@code thinking} union. Both {@code mode
+   * == null} (legacy/omitted input) and {@code mode == MODEL_DEFAULT} (the modeler's "default"
+   * dropdown choice) mean unset - no thinking param is emitted and the model's own default applies.
+   * The remaining concrete modes map onto the wire via {@code name().toLowerCase()} ({@link
    * ThinkingMode}/{@code ThinkingDisplay} already carry matching lowercase {@code JsonProperty}
    * values, see those enums).
    */
