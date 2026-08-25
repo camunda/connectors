@@ -29,6 +29,7 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -105,6 +106,24 @@ class OutboundConnectorExceptionHandlerTest {
   }
 
   @Test
+  void manageConnectorJobHandlerException_retriesWhenTheClusterCouldNotBeReached() {
+    // The central-store fallback raises this when the resolve command itself failed, as opposed to
+    // the cluster answering that it does not hold the name. Nothing is known about the input, so
+    // the job has to keep its remaining attempts — which is exactly what the type is chosen for.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(
+            new SecretReferenceResolver.SecretResolutionFailedException(1, "TimeoutException"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+
+    assertThat(result.retries()).isEqualTo(2);
+  }
+
+  @Test
   void handleFinalResultException_resolvesSecretsAgainstTheJobsPhysicalTenant() {
     var job = jobOnEngine("engine-1");
     when(job.getRetries()).thenReturn(1);
@@ -114,6 +133,42 @@ class OutboundConnectorExceptionHandlerTest {
 
     assertThat(captureSecretContext())
         .isEqualTo(new SecretContext("my-tenant", "my-process", "engine-1"));
+  }
+
+  @Test
+  void handleFinalResultException_reportsAnErrorWhenTheMaskingFetchFails() {
+    // The only caller is already inside a catch block, and an exception leaving here escapes it:
+    // the job would then be neither completed nor failed, sitting until its activation timeout
+    // hands it to another worker, which re-runs a connector that has already run. So a masking
+    // fetch that fails has to come back as a result, not as a throw.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(new ConnectorInputException("secret 'FOO' was not resolved"));
+
+    var result =
+        handler.handleFinalResultException(
+            new RuntimeException("boom"), job, SecretFilter.allowAll());
+
+    assertThat(result).isNotNull();
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void handleFinalResultException_withholdsTheOriginalMessageWhenItCannotBeMasked() {
+    // Nothing to mask with means the original message cannot be shown: it may hold a resolved
+    // secret, and these variables are visible to anyone who can see the process instance.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
+
+    var result =
+        handler.handleFinalResultException(
+            new RuntimeException("failed talking to https://api?key=super-secret"),
+            job,
+            SecretFilter.allowAll());
+
+    assertThat(result.responseValue().toString()).doesNotContain("super-secret");
   }
 
   @Test

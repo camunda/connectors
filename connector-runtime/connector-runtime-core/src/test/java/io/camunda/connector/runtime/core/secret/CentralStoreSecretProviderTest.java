@@ -115,6 +115,21 @@ class CentralStoreSecretProviderTest {
     assertThat(engineA.requested).containsExactly(List.of("camunda.secrets.db-password"));
   }
 
+  @Test
+  void propagatesAFailureToReachTheClusterRatherThanReportingAMiss() {
+    // Binding turns a name this returns nothing for into a ConnectorInputException, which the
+    // runtime fails without retrying. An unreachable cluster says nothing about whether the store
+    // holds the name, so it must not take that path: it has to stay distinguishable from a miss,
+    // and as something other than a fatal input error, so the job keeps its remaining attempts.
+    engineA.failsWith(
+        new SecretReferenceResolver.SecretResolutionFailedException(1, "TimeoutException"));
+    var provider = new CentralStoreSecretProvider(Map.of("engine-a", engineA));
+
+    assertThatThrownBy(() -> provider.getSecret("TOKEN", context("engine-a")))
+        .isInstanceOf(SecretReferenceResolver.SecretResolutionFailedException.class)
+        .isNotInstanceOf(ConnectorInputException.class);
+  }
+
   private static SecretContext context(String physicalTenantId) {
     return new SecretContext("tenant", "process", physicalTenantId);
   }
@@ -122,6 +137,7 @@ class CentralStoreSecretProviderTest {
   private static final class RecordingResolver extends SecretReferenceResolver {
     private final Map<String, String> values = new LinkedHashMap<>();
     private final List<List<String>> requested = new ArrayList<>();
+    private RuntimeException failure;
 
     private RecordingResolver() {
       super(null);
@@ -131,9 +147,18 @@ class CentralStoreSecretProviderTest {
       values.put(reference, value);
     }
 
+    /** Makes the request itself fail, as an unreachable cluster does. */
+    private void failsWith(RuntimeException failure) {
+      this.failure = failure;
+    }
+
+    /** The provider resolves strictly, so this is the method it calls. */
     @Override
-    public Map<String, String> resolve(Collection<String> references) {
+    public Map<String, String> resolveOrFail(Collection<String> references) {
       requested.add(List.copyOf(references));
+      if (failure != null) {
+        throw failure;
+      }
       Map<String, String> resolved = new LinkedHashMap<>();
       references.stream().filter(values::containsKey).forEach(r -> resolved.put(r, values.get(r)));
       return resolved;

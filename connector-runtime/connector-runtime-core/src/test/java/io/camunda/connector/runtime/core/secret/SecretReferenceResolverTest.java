@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.secret;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -26,6 +27,7 @@ import io.camunda.client.api.CamundaFuture;
 import io.camunda.client.api.command.ResolveSecretsCommandStep1;
 import io.camunda.client.api.response.ResolveSecretsResponse;
 import io.camunda.client.api.search.enums.SecretErrorCode;
+import io.camunda.connector.api.error.ConnectorInputException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -104,6 +106,40 @@ class SecretReferenceResolverTest {
 
     assertThat(new SecretReferenceResolver(camundaClient).resolve(List.of("camunda.secrets.A")))
         .isEmpty();
+  }
+
+  @Test
+  void raisesTheFailedCallWhenResolvingStrictly() {
+    // A caller that turns an unresolved reference into a permanent failure has to tell an
+    // unreachable cluster apart from a name the stores do not hold.
+    var camundaClient = mock(CamundaClient.class);
+    var command = mock(ResolveSecretsCommandStep1.class);
+    var future = mock(CamundaFuture.class);
+    when(camundaClient.newResolveSecretsCommand()).thenReturn(command);
+    when(command.references(anyList())).thenReturn(command);
+    when(command.send()).thenReturn(future);
+    when(future.join()).thenThrow(new IllegalStateException("cluster unreachable"));
+
+    assertThatThrownBy(
+            () ->
+                new SecretReferenceResolver(camundaClient)
+                    .resolveOrFail(List.of("camunda.secrets.A")))
+        .isInstanceOf(SecretReferenceResolver.SecretResolutionFailedException.class)
+        // Neither the message nor a cause may carry the client's own, which can echo the response
+        // body — and the type decides whether the job is retried, so it must not be a fatal one.
+        .hasMessageNotContaining("cluster unreachable")
+        .hasNoCause()
+        .isNotInstanceOf(ConnectorInputException.class);
+  }
+
+  @ParameterizedTest
+  @EnumSource(SecretErrorCode.class)
+  void omitsARejectedReferenceWithoutFailingWhenResolvingStrictly(SecretErrorCode code) {
+    // The cluster answered about this reference, so the answer is definitive: strict resolution
+    // reports it as absent rather than as a failure to reach the stores.
+    var resolver = resolverAnswering(Map.of(), Map.of("camunda.secrets.A", code));
+
+    assertThat(resolver.resolveOrFail(List.of("camunda.secrets.A"))).isEmpty();
   }
 
   @Test

@@ -64,7 +64,10 @@ public class CentralStoreSecretProvider implements SecretProvider {
       return null;
     }
     String reference = SecretReferenceUtil.reference(name);
-    return resolver.resolve(List.of(reference)).get(reference);
+    // Strict: a legacy name this returns nothing for is turned into a permanent failure by the
+    // caller, so a cluster that could not be reached must not look like a name the stores do not
+    // hold. Only an answer about the reference itself decides that it is missing.
+    return resolver.resolveOrFail(List.of(reference)).get(reference);
   }
 
   private SecretReferenceResolver resolverFor(SecretContext context) {

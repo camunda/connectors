@@ -129,43 +129,83 @@ public class OutboundConnectorExceptionHandler {
     };
   }
 
-  public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
-      Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
-    List<String> secrets;
+  /**
+   * The values to redact from an error message, or the failure that prevented reading them.
+   *
+   * <p>Both call sites need the values before they can report anything, and neither may let a
+   * failure to read them escape: one would replace a classified result with an unclassified throw,
+   * and the other is already inside a catch block whose escape route abandons the job.
+   */
+  private record MaskingSecrets(List<String> secrets, Exception failure) {
+
+    boolean unavailable() {
+      return failure != null;
+    }
+  }
+
+  /**
+   * Reads the values to redact. A provider may refuse a key outright — legacy resolution switched
+   * off, a name that cannot be migrated — and it throws here for keys this fetch only ever wanted
+   * for masking, so the failure is returned rather than raised.
+   */
+  private MaskingSecrets fetchSecretsForMasking(ActivatedJob job, SecretFilter secretFilter) {
     try {
       var allowedKeys =
           SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
               .filter(secretFilter::isAllowed)
               .toList();
-      secrets =
+      return new MaskingSecrets(
           this.secretProvider.fetchAll(
               allowedKeys,
               new SecretContext(
-                  job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId()));
+                  job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId())),
+          null);
     } catch (Exception ex) {
       LOGGER.error(
           "Initial error for job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",
           job.getKey(),
           job.getTenantId(),
           ex.getMessage());
-      var wrappedException =
-          new RuntimeException(
-              "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: "
-                  + ex.getMessage(),
-              ex);
+      return new MaskingSecrets(List.of(), ex);
+    }
+  }
+
+  /**
+   * Stands in for an error that cannot be shown. With no values to redact with, the original
+   * message has to be dropped rather than reported unmasked — it may hold a resolved secret.
+   */
+  private static RuntimeException unmaskableError(Exception fetchFailure) {
+    return new RuntimeException(
+        "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: "
+            + fetchFailure.getMessage(),
+        fetchFailure);
+  }
+
+  /**
+   * Whether an exception says the input can never bind, whoever raised it. Such a job is not worth
+   * another attempt; anything else — an unreachable cluster, a timeout — is.
+   */
+  private static boolean isFatalInputError(Throwable e) {
+    return e instanceof ConnectorInputException || e.getCause() instanceof ConnectorInputException;
+  }
+
+  public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
+      Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
+    var masking = fetchSecretsForMasking(job, secretFilter);
+    if (masking.unavailable()) {
+      var wrappedException = unmaskableError(masking.failure());
       // A provider that refuses to resolve at all (e.g. legacy resolution switched off) throws
       // this for every key, including the ones this fetch only needed for masking — retrying
       // will not change that, so this must fail the job exactly like the same exception does when
       // it comes from the connector's own binding step below, instead of silently falling through
-      // to a normal retry decrement.
-      int retries =
-          ex instanceof ConnectorInputException || ex.getCause() instanceof ConnectorInputException
-              ? 0
-              : job.getRetries() - 1;
+      // to a normal retry decrement. A cluster that could not be reached is the other way round:
+      // it says nothing about the input, so the job keeps its remaining attempts.
+      int retries = isFatalInputError(masking.failure()) ? 0 : job.getRetries() - 1;
       return new ConnectorResult.ErrorResult(
           // secrets could not be fetched, so there is nothing to mask with
           Map.of("error", exceptionToMap(wrappedException, List.of())), wrappedException, retries);
     }
+    List<String> secrets = masking.secrets();
     return switch (e) {
       case InvalidBackOffDurationException invalidBackOffDurationException ->
           handleBackOffException(invalidBackOffDurationException, secrets);
@@ -244,29 +284,41 @@ public class OutboundConnectorExceptionHandler {
     if (ex instanceof ConnectorException connectorException) {
       errorCode = connectorException.getErrorCode();
     }
-    if (ex instanceof ConnectorInputException || ex.getCause() instanceof ConnectorInputException) {
+    if (isFatalInputError(ex)) {
       retries = 0;
     }
     return handleSDKException(job, newException, retries, errorCode, retryBackoff, secrets);
   }
 
+  /**
+   * Reports a failure raised while processing a connector's final result — its result or error
+   * expression.
+   *
+   * <p>This must not throw. Its only caller is already handling the failure it is being told about,
+   * and an exception leaving here escapes that handler entirely: the job is then neither completed
+   * nor failed, and stays put until its activation timeout hands it to another worker, which
+   * re-runs the connector. So a masking fetch that fails costs the original message — which cannot
+   * be shown unredacted — and nothing else.
+   *
+   * <p>The result is unretryable either way. A result expression that does not evaluate will not
+   * evaluate on the next attempt, and reaching here at all means the connector has already run, so
+   * a retry would repeat its side effects.
+   */
   public ConnectorResult.ErrorResult handleFinalResultException(
       Exception ex, ActivatedJob job, SecretFilter secretFilter) {
-    var allowedKeys =
-        SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
-            .filter(secretFilter::isAllowed)
-            .toList();
-    List<String> secrets =
-        this.secretProvider.fetchAll(
-            allowedKeys,
-            new SecretContext(
-                job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId()));
-    Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.error(
         "Exception while processing job: {} for tenant: {}, message: {}",
         job.getKey(),
         job.getTenantId(),
         ex.getMessage());
+    var masking = fetchSecretsForMasking(job, secretFilter);
+    if (masking.unavailable()) {
+      var wrappedException = unmaskableError(masking.failure());
+      return new ConnectorResult.ErrorResult(
+          Map.of("error", exceptionToMap(wrappedException, List.of())), wrappedException, 0);
+    }
+    List<String> secrets = masking.secrets();
+    Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     return new ConnectorResult.ErrorResult(
         Map.of("error", exceptionToMap(newException, secrets)), newException, 0);
   }
