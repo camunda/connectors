@@ -60,11 +60,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
-      // TEMPORARY diagnostic commit: AOTMode=off intentionally left out here so the
-      // container crashes as before, to confirm -XX:+ErrorFileToStdout actually surfaces
-      // the JVM's hs_err crash report through the container's log consumer. Will be
-      // restored before merging.
-      "camunda.process-test.camunda-env-vars.JAVA_TOOL_OPTIONS=-XX:+ErrorFileToStdout",
     })
 @CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
