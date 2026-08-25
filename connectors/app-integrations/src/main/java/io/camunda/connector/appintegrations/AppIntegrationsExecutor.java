@@ -64,10 +64,12 @@ class AppIntegrationsExecutor {
 
   private static final String SAAS_ENV_VAR = "CAMUNDA_CONNECTOR_RUNTIME_SAAS";
   private static final String ORG_ID_ENV_VAR = "CAMUNDA_CONNECTOR_CLOUD_ORGANIZATION_ID";
-  private static final String CLUSTER_ID_ENV_VAR = "CAMUNDA_CLIENT_CLOUD_CLUSTERID";
+  private static final String CLUSTER_ID_ENV_VAR = "APP_INTEGRATIONS_CLUSTER_ID";
+  private static final String CLUSTER_ID_CLOUD_ENV_VAR = "CAMUNDA_CLIENT_CLOUD_CLUSTERID";
 
   private static final String ORG_ID_HEADER = "X-Org-Id";
   private static final String CLUSTER_ID_HEADER = "X-Cluster-Id";
+  private static final String PHYSICAL_TENANT_HEADER = "X-Physical-Tenant-Id";
   private static final String API_KEY_HEADER = "X-API-KEY";
 
   private static final String BASE_URL_ENV_VAR = "APP_INTEGRATIONS_BASE_URL";
@@ -95,15 +97,23 @@ class AppIntegrationsExecutor {
   }
 
   SendMessageResult sendMessage(
-      SendMessageRequest request, String formResourceKey, String processDefinitionId) {
+      SendMessageRequest request,
+      String formResourceKey,
+      String processDefinitionId,
+      String physicalTenantId) {
     return post(
         SEND_MESSAGE_PATH,
         messagePayload(request, formResourceKey, processDefinitionId),
-        SendMessageResult.class);
+        SendMessageResult.class,
+        physicalTenantId);
   }
 
-  CreateChannelResult createChannel(CreateChannelRequest request) {
-    return post(CREATE_CHANNEL_PATH, createChannelPayload(request), CreateChannelResult.class);
+  CreateChannelResult createChannel(CreateChannelRequest request, String physicalTenantId) {
+    return post(
+        CREATE_CHANNEL_PATH,
+        createChannelPayload(request),
+        CreateChannelResult.class,
+        physicalTenantId);
   }
 
   /**
@@ -276,18 +286,18 @@ class AppIntegrationsExecutor {
    * stale or revoked: it is invalidated and the call is retried once with a freshly fetched token.
    * Any other failure — or a second {@code 401} on the retry — propagates to the caller.
    */
-  private <T> T post(String path, Object payload, Class<T> resultType) {
+  private <T> T post(String path, Object payload, Class<T> resultType, String physicalTenantId) {
     var config = resolveConfig();
     var body = serialize(payload);
 
     HttpResponse<String> response;
     try {
-      response = send(config, path, body);
+      response = send(config, path, body, physicalTenantId);
     } catch (ConnectorException e) {
       if ("401".equals(e.getErrorCode()) && config.oauth() != null) {
         LOGGER.debug("Received 401 from {}; invalidating OAuth token and retrying", path);
         OAuthTokenCacheHolder.get().invalidate(config.oauth());
-        response = send(config, path, body);
+        response = send(config, path, body, physicalTenantId);
       } else {
         throw e;
       }
@@ -301,6 +311,11 @@ class AppIntegrationsExecutor {
    * Resolves the backend URL and credentials from the environment. OAuth wins when fully configured
    * (this is what SaaS injects); otherwise an API key is used. With neither, the connector is not
    * usable on this runtime and the job fails without retrying — see {@link #notConfigured}.
+   *
+   * <p>OAuth additionally requires a cluster id: the backend resolves the calling cluster from the
+   * {@code X-Cluster-Id} header, and only recovers it from the credential on the API-key path.
+   * Without one, an OAuth-authenticated call is rejected with an opaque {@code 400}, so it is
+   * caught here instead.
    */
   private EffectiveConfig resolveConfig() {
     var baseUrl = env(BASE_URL_ENV_VAR);
@@ -312,6 +327,9 @@ class AppIntegrationsExecutor {
     var clientId = env(OAUTH_CLIENT_ID_ENV_VAR);
     var clientSecret = env(OAUTH_CLIENT_SECRET_ENV_VAR);
     if (tokenEndpoint != null && clientId != null && clientSecret != null) {
+      if (clusterId() == null) {
+        throw notConfigured("set " + CLUSTER_ID_ENV_VAR);
+      }
       var clientAuthentication = env(OAUTH_CLIENT_AUTHENTICATION_ENV_VAR);
       return new EffectiveConfig(
           baseUrl,
@@ -379,6 +397,21 @@ class AppIntegrationsExecutor {
     return value == null || value.isBlank() ? null : value;
   }
 
+  /**
+   * Reads a context-identification variable. Beyond {@link #env}, an unset value can reach the
+   * runtime rendered as the literal string {@code "null"}.
+   */
+  private String contextEnv(String name) {
+    var value = env(name);
+    return "null".equals(value) ? null : value;
+  }
+
+  /** The Self-Managed variable wins over the one SaaS injects. */
+  private String clusterId() {
+    var clusterId = contextEnv(CLUSTER_ID_ENV_VAR);
+    return clusterId != null ? clusterId : contextEnv(CLUSTER_ID_CLOUD_ENV_VAR);
+  }
+
   private boolean isSaaS() {
     return getenv.apply(SAAS_ENV_VAR) != null;
   }
@@ -405,13 +438,14 @@ class AppIntegrationsExecutor {
     }
   }
 
-  private HttpResponse<String> send(EffectiveConfig config, String path, String body) {
+  private HttpResponse<String> send(
+      EffectiveConfig config, String path, String body, String physicalTenantId) {
     var headers = new HashMap<String, String>();
     headers.put("Content-Type", "application/json");
     if (config.apiKey() != null) {
       headers.put(API_KEY_HEADER, config.apiKey());
     }
-    applyContextHeaders(headers);
+    applyContextHeaders(headers, physicalTenantId);
 
     var request = new HttpClientRequest();
     request.setMethod(HttpMethod.POST);
@@ -430,22 +464,28 @@ class AppIntegrationsExecutor {
   }
 
   /**
-   * Attaches the SaaS context-identification headers ({@code X-Org-Id}, {@code X-Cluster-Id}) when
-   * running in SaaS and the corresponding values are available, so the backend can attribute the
-   * call to the originating organization/cluster. A runtime without them is a valid Self-Managed
-   * runtime, so these are not part of the not-configured check.
+   * Attaches the context-identification headers so the backend can attribute the call to the
+   * originating cluster, organization and orchestration cluster (engine).
+   *
+   * <p>{@code X-Cluster-Id} travels on every runtime: the backend resolves the cluster header-first
+   * and only falls back to the API key, so Self-Managed OAuth deployments have to send it too.
+   * {@code X-Org-Id} stays SaaS-only — Self-Managed has no organization to configure and the
+   * backend substitutes its own. {@code X-Physical-Tenant-Id} is omitted when the job carries no
+   * physical tenant, leaving the backend to apply its own default.
    */
-  private void applyContextHeaders(Map<String, String> headers) {
-    if (!isSaaS()) {
-      return;
-    }
-    var orgId = getenv.apply(ORG_ID_ENV_VAR);
-    var clusterId = getenv.apply(CLUSTER_ID_ENV_VAR);
-    if (orgId != null && !orgId.isBlank() && !"null".equals(orgId)) {
-      headers.put(ORG_ID_HEADER, orgId);
-    }
-    if (clusterId != null && !clusterId.isBlank()) {
+  private void applyContextHeaders(Map<String, String> headers, String physicalTenantId) {
+    var clusterId = clusterId();
+    if (clusterId != null) {
       headers.put(CLUSTER_ID_HEADER, clusterId);
+    }
+    if (isSaaS()) {
+      var orgId = contextEnv(ORG_ID_ENV_VAR);
+      if (orgId != null) {
+        headers.put(ORG_ID_HEADER, orgId);
+      }
+    }
+    if (physicalTenantId != null && !physicalTenantId.isBlank()) {
+      headers.put(PHYSICAL_TENANT_HEADER, physicalTenantId);
     }
   }
 

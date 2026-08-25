@@ -64,6 +64,15 @@ public interface JobContext {
   String getTenantId();
 
   /**
+   * The physical tenant — the orchestration cluster (engine) the job was activated from — or {@code
+   * null} when the job carries none. Distinct from {@link #getTenantId()}, which identifies a
+   * logical tenant within a single cluster.
+   */
+  default String getPhysicalTenantId() {
+    return null;
+  }
+
+  /**
    * The lease token identifying this job's activation, or {@code null} if the job was activated
    * without a lease. Pass it along when making requests that should be fenced against a stale,
    * superseded activation of this same job.

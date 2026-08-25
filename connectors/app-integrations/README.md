@@ -32,18 +32,44 @@ template. Nothing about the connection is part of the process model.
 | `APP_INTEGRATIONS_OAUTH_AUDIENCE` | no | Target API identifier. |
 | `APP_INTEGRATIONS_OAUTH_SCOPES` | no | |
 | `APP_INTEGRATIONS_OAUTH_CLIENT_AUTHENTICATION` | no | `credentialsBody` (default) or `basicAuthHeader` — the literals `OAuthService` switches on. |
+| `APP_INTEGRATIONS_CLUSTER_ID` | for OAuth | The orchestration cluster's **UUID**, as configured in the App Integrations backend (`clusters[].uuid`). Not a cluster name. Sent in the `X-Cluster-Id` header. |
 
 The mechanism is selected per runtime, not per element:
 
 1. If the OAuth token endpoint, client ID and client secret are all set → **OAuth 2.0 client
    credentials**. The token is fetched, cached, and attached by the connector SDK's HTTP client; on
    a `401` the cached token is invalidated and the request is retried once with a fresh token.
+   `APP_INTEGRATIONS_CLUSTER_ID` is required too, see below.
 2. Otherwise, if `APP_INTEGRATIONS_API_KEY` is set → **API key**.
 3. Otherwise the connector is not configured — see below.
 
-Blank values count as absent. When running in SaaS, the `X-Org-Id` and `X-Cluster-Id` headers are
-added automatically from the runtime environment so the backend can attribute the call to the
-originating cluster.
+Blank values count as absent.
+
+### Cluster and tenant identification
+
+The backend has to know which cluster a call comes from. It reads the `X-Cluster-Id` header first
+and only falls back to the API key, which is per-cluster or per-tenant. Under OAuth there is no such
+fallback, so a runtime that sends no cluster id is rejected.
+
+The connector therefore sends `X-Cluster-Id` on every runtime, taking it from
+`APP_INTEGRATIONS_CLUSTER_ID` and falling back to `CAMUNDA_CLIENT_CLOUD_CLUSTERID`, which SaaS
+injects on its own. Set `APP_INTEGRATIONS_CLUSTER_ID` in Self-Managed. It is required under OAuth,
+where a missing value raises `APP_INTEGRATIONS_NOT_CONFIGURED` before any HTTP call, and optional
+under API key auth, where the backend recovers the cluster from the key.
+
+`X-Org-Id` is sent only in SaaS, from the runtime environment. Self-Managed has no organization to
+configure and the backend substitutes its own.
+
+`X-Physical-Tenant-Id` carries the job's physical tenant, meaning the orchestration cluster (engine)
+the job was activated from, so a runtime serving several engines routes to the right Teams or Slack
+installation. The connector reads it off the job rather than from the environment, and omits the
+header when the job carries none, leaving the backend to apply its own `default`. The value must
+match a `clusters[].physicalTenants[].id` in the backend configuration, or the literal `default`;
+anything else is rejected. This is the runtime's existing `camunda.clients.<name>.physical-tenant-id`
+configuration and needs nothing App-Integrations-specific.
+
+Do not confuse the physical tenant with the logical (multi-tenancy) tenant. The logical tenant is
+not part of this contract and is never sent.
 
 ### When the connector is not configured
 

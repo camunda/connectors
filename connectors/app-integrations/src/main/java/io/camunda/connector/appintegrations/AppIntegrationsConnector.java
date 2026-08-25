@@ -118,7 +118,10 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
     }
 
     return executor.sendMessage(
-        request, formResourceKey, context.getJobContext().getBpmnProcessId());
+        request,
+        formResourceKey,
+        context.getJobContext().getBpmnProcessId(),
+        context.getJobContext().getPhysicalTenantId());
   }
 
   @Operation(
@@ -133,9 +136,10 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
         "slack channel",
         "open channel"
       })
-  public CreateChannelResult createChannel(@Variable CreateChannelRequest request) {
+  public CreateChannelResult createChannel(
+      @Variable CreateChannelRequest request, OutboundConnectorContext context) {
     LOGGER.debug("Creating {} channel via App Integrations connector", request.platform());
-    return executor.createChannel(request);
+    return executor.createChannel(request, context.getJobContext().getPhysicalTenantId());
   }
 
   /**

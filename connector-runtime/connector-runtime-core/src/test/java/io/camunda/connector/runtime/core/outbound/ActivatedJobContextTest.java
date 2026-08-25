@@ -14,44 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.test.outbound;
+package io.camunda.connector.runtime.core.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
-import java.util.Map;
+import io.camunda.client.api.response.ActivatedJob;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-class TestJobContextTest {
+@ExtendWith(MockitoExtension.class)
+class ActivatedJobContextTest {
 
-  @Test
-  void getLeaseToken_returnsNullByDefault() {
-    var jobContext = new TestJobContext(Map::of, () -> "{}");
+  @Mock private ActivatedJob activatedJob;
 
-    assertThat(jobContext.getLeaseToken()).isNull();
+  private ActivatedJobContext context() {
+    return new ActivatedJobContext(activatedJob, () -> "{}");
   }
 
   @Test
-  void getLeaseToken_returnsValueSetBySetter() {
-    var jobContext = new TestJobContext(Map::of, () -> "{}");
+  void physicalTenantId_isTakenFromTheJob() {
+    when(activatedJob.getPhysicalTenantId()).thenReturn("engine-1");
 
-    jobContext.setLeaseToken("lease-token-1");
-
-    assertThat(jobContext.getLeaseToken()).isEqualTo("lease-token-1");
+    assertThat(context().getPhysicalTenantId()).isEqualTo("engine-1");
   }
 
   @Test
-  void getPhysicalTenantId_returnsNullByDefault() {
-    var jobContext = new TestJobContext(Map::of, () -> "{}");
+  void physicalTenantId_isNullWhenTheJobReportsNone() {
+    // clusters that predate multi-engine support report an empty physical tenant
+    when(activatedJob.getPhysicalTenantId()).thenReturn("");
 
-    assertThat(jobContext.getPhysicalTenantId()).isNull();
-  }
-
-  @Test
-  void getPhysicalTenantId_returnsValueSetBySetter() {
-    var jobContext = new TestJobContext(Map::of, () -> "{}");
-
-    jobContext.setPhysicalTenantId("engine-1");
-
-    assertThat(jobContext.getPhysicalTenantId()).isEqualTo("engine-1");
+    assertThat(context().getPhysicalTenantId()).isNull();
   }
 }
