@@ -5,7 +5,7 @@
   "description" : "Send messages to Amazon SNS.",
   "keywords" : [ "send message", "publish message", "notification", "publish to topic", "FIFO" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=outbound",
-  "version" : 10,
+  "version" : 11,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -47,6 +47,18 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "awsCredential",
+    "label" : "AWS credential",
+    "description" : "Choose a reusable AWS credential, or configure one-time authentication parameters below.",
+    "optional" : true,
+    "group" : "authentication",
+    "binding" : {
+      "name" : "awsCredential",
+      "type" : "zeebe:input"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:aws-credential:1"
+  }, {
     "id" : "authentication.type",
     "label" : "Authentication",
     "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
@@ -55,6 +67,11 @@
     "binding" : {
       "name" : "authentication.type",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "awsCredential",
+      "isEmpty" : true,
+      "type" : "simple"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -78,9 +95,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "credentials",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
     "type" : "String",
@@ -99,25 +122,19 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.type",
-      "equals" : "credentials",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
     "type" : "String",
     "secret" : true
-  }, {
-    "id" : "awsCredential",
-    "label" : "AWS credential",
-    "description" : "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's 'awsCredential' input.",
-    "optional" : true,
-    "group" : "authentication",
-    "binding" : {
-      "name" : "awsCredential",
-      "type" : "zeebe:input"
-    },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda:aws-credential:1"
   }, {
     "id" : "topic.topicArn",
     "label" : "Topic ARN",
@@ -168,6 +185,11 @@
       "name" : "configuration.region",
       "type" : "zeebe:input"
     },
+    "condition" : {
+      "property" : "awsCredential",
+      "isEmpty" : true,
+      "type" : "simple"
+    },
     "type" : "String"
   }, {
     "id" : "configuration.endpoint",
@@ -178,6 +200,11 @@
     "binding" : {
       "name" : "configuration.endpoint",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "awsCredential",
+      "isEmpty" : true,
+      "type" : "simple"
     },
     "type" : "Hidden"
   }, {
@@ -254,7 +281,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "10",
+    "value" : "11",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
