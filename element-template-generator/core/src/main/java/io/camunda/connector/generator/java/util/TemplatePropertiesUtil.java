@@ -156,9 +156,15 @@ public class TemplatePropertiesUtil {
         var nestedPropertiesAnnotation = field.getAnnotation(NestedProperties.class);
         boolean hasPathPrefix =
             nestedPropertiesAnnotation == null || nestedPropertiesAnnotation.addNestedPath();
+        // An unset condition() is spelled as a blank property(), which is also how a valid
+        // allMatch condition is spelled (allMatch carries its property references in its own
+        // clauses and must leave property() blank - see TemplatePropertyAnnotationProcessor's
+        // validateCondition). Testing property() alone therefore silently ignored every allMatch
+        // override, so the allMatch clauses are checked too.
         boolean hasConditionOverride =
             nestedPropertiesAnnotation != null
-                && StringUtils.isNotBlank(nestedPropertiesAnnotation.condition().property());
+                && (StringUtils.isNotBlank(nestedPropertiesAnnotation.condition().property())
+                    || nestedPropertiesAnnotation.condition().allMatch().length > 0);
         boolean hasGroupOverride =
             nestedPropertiesAnnotation != null
                 && StringUtils.isNotBlank(nestedPropertiesAnnotation.group());
@@ -192,21 +198,11 @@ public class TemplatePropertiesUtil {
           nestedBuilders.forEach(
               builder -> {
                 if (hasConditionOverride) {
-                  var override =
-                      TemplatePropertyAnnotationProcessor.transformToCondition(
-                          nestedPropertiesAnnotation.condition());
-                  var existing = builder.getCondition();
-                  if (existing == null || existing.equals(override)) {
-                    builder.condition(override);
-                  } else if (existing instanceof AllMatch allMatch) {
-                    if (!allMatch.allMatch().contains(override)) {
-                      var conditions = new ArrayList<>(allMatch.allMatch());
-                      conditions.add(override);
-                      builder.condition(new AllMatch(conditions));
-                    }
-                  } else {
-                    builder.condition(new AllMatch(List.of(existing, override)));
-                  }
+                  builder.condition(
+                      mergeConditions(
+                          builder.getCondition(),
+                          TemplatePropertyAnnotationProcessor.transformToCondition(
+                              nestedPropertiesAnnotation.condition())));
                 }
                 if (hasGroupOverride) {
                   builder.group(nestedPropertiesAnnotation.group());
@@ -612,6 +608,36 @@ public class TemplatePropertiesUtil {
       case TemplateGenerationContext.Inbound unused -> false;
       case Outbound unused -> true;
     };
+  }
+
+  /**
+   * Merges an {@link NestedProperties#condition()} override into whatever condition a nested
+   * builder already carries - typically its sealed hierarchy's per-subtype discriminator clause.
+   *
+   * <p>The result is always a <em>flat</em> {@code allMatch} of simple conditions: a nested {@code
+   * allMatch} has no representation in the element-template schema ({@link
+   * TemplateProperty.NestedPropertyCondition} has no {@code allMatch} member), so both sides are
+   * flattened before combining. Clauses already present are not repeated, and an override that adds
+   * nothing new leaves the existing condition untouched rather than rebuilding an equal one.
+   */
+  private static PropertyCondition mergeConditions(
+      PropertyCondition existing, PropertyCondition override) {
+    if (existing == null) {
+      return override;
+    }
+    var clauses = new LinkedHashSet<>(flattenCondition(existing));
+    if (!clauses.addAll(flattenCondition(override))) {
+      return existing;
+    }
+    return new AllMatch(List.copyOf(clauses));
+  }
+
+  /** The simple clauses of {@code condition}: itself, unless it is an {@link AllMatch}. */
+  private static List<PropertyCondition> flattenCondition(PropertyCondition condition) {
+    if (condition instanceof AllMatch allMatch) {
+      return allMatch.allMatch().stream().flatMap(c -> flattenCondition(c).stream()).toList();
+    }
+    return List.of(condition);
   }
 
   /**
