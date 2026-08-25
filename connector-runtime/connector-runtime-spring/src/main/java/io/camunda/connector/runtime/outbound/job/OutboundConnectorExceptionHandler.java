@@ -27,6 +27,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.error.InvalidJobTimeoutException;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
+import io.camunda.connector.runtime.core.secret.SecretFailureDiagnostic;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.time.Duration;
@@ -183,12 +184,20 @@ public class OutboundConnectorExceptionHandler {
    * either — the redaction list is empty by definition on this path. It is logged where it happens
    * and goes no further.
    *
-   * <p>What is reported is this exception's own constant message plus the failure's class name.
-   * Everything an operator needs to tell an unreachable cluster from a switched-off mode is in that
-   * name, and a class name carries no request or response data.
+   * <p>The exception's class name is reported, which carries no request or response data. And where
+   * the failure is one the runtime raised itself, so is its {@link
+   * SecretFailureDiagnostic#publishableMessage()}: the two failures this runtime introduces —
+   * legacy resolution switched off, and a name with no reference form — are precisely the ones an
+   * operator has to act on, and a type name alone does not say which setting to change or which
+   * charset a name has to fit. Withholding arbitrary provider text is not a reason to withhold text
+   * written to be read.
    */
   private static RuntimeException unmaskableError(Exception fetchFailure) {
-    return new SecretsUnavailableException(fetchFailure.getClass().getName());
+    return new SecretsUnavailableException(
+        fetchFailure.getClass().getName(),
+        fetchFailure instanceof SecretFailureDiagnostic diagnosable
+            ? diagnosable.publishableMessage()
+            : null);
   }
 
   /**
@@ -201,11 +210,12 @@ public class OutboundConnectorExceptionHandler {
    */
   private static class SecretsUnavailableException extends RuntimeException {
 
-    private SecretsUnavailableException(String failureType) {
+    private SecretsUnavailableException(String failureType, String publishableMessage) {
       super(
           "Fetching secrets failed, so the original error cannot be displayed: with nothing to"
               + " redact with it might reveal a secret. Fetching failed with: "
-              + failureType);
+              + failureType
+              + (publishableMessage == null ? "" : ": " + publishableMessage));
     }
   }
 

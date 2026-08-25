@@ -29,6 +29,7 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretLookupRefusedException;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import java.time.Duration;
 import java.util.HashMap;
@@ -191,6 +192,31 @@ class OutboundConnectorExceptionHandlerTest {
     assertThat(result.exception().getMessage()).doesNotContain("super-secret");
     // The class name is what an operator needs, and carries no request or response data.
     assertThat(result.exception().getMessage()).contains("java.lang.RuntimeException");
+  }
+
+  @Test
+  void aRuntimeAuthoredDiagnosticSurvivesTheMaskingFailure() {
+    // Under OFF the operator's fix is to change the model, and the setting plus the form that
+    // replaced it is the whole diagnostic. It is authored by the runtime, not taken from a
+    // provider, so withholding arbitrary provider text is no reason to withhold this.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(
+            new SecretLookupRefusedException(
+                "Legacy secret resolution is disabled"
+                    + " (camunda.connector.secret-resolver.legacy.mode=OFF); secret 'FOO' was not"
+                    + " resolved. Reference secrets as camunda.secrets.<name> instead."));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage())
+        .contains("camunda.connector.secret-resolver.legacy.mode=OFF")
+        .contains("camunda.secrets.<name>");
+    // Still a permanent input error: the model has to change, so retrying cannot help.
+    assertThat(result.retries()).isZero();
   }
 
   @Test

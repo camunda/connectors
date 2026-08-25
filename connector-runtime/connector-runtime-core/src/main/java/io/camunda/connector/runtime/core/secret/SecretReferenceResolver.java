@@ -119,7 +119,8 @@ public class SecretReferenceResolver {
    * runtime treats that type — directly or as a cause — as a permanent input error and fails the
    * job without retrying, which is the opposite of what an unreachable cluster warrants.
    */
-  public static class SecretResolutionFailedException extends RuntimeException {
+  public static class SecretResolutionFailedException extends RuntimeException
+      implements SecretFailureDiagnostic {
 
     public SecretResolutionFailedException(int referenceCount, String causeType) {
       super(
@@ -128,6 +129,12 @@ public class SecretReferenceResolver {
               + " secret reference(s) from the cluster's secret stores ("
               + causeType
               + "). This may be transient; the values are not known to be missing.");
+    }
+
+    /** Built here from a count and a class name, so it holds nothing the cluster returned. */
+    @Override
+    public String publishableMessage() {
+      return getMessage();
     }
   }
 }

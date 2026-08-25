@@ -16,25 +16,26 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
-import io.camunda.connector.api.secret.SecretContext;
-import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.api.error.ConnectorInputException;
 
 /**
- * Stands in for the configured secret providers when legacy secret resolution is switched off.
- * Every lookup fails, naming the setting that disabled it, so a model still using the legacy syntax
- * says so rather than silently binding an unresolved placeholder as a credential.
+ * A lookup the runtime refused before asking anything: legacy resolution is switched off, or the
+ * name has no reference form. The model has to change either way, which is why this is a {@link
+ * ConnectorInputException} — the runtime fails such a job without retrying it.
+ *
+ * <p>The message says what to change, and is written here rather than taken from a provider, so it
+ * survives being reported where a provider's own message could not be. See {@link
+ * SecretFailureDiagnostic}.
  */
-public class LegacySecretsDisabledProvider implements SecretProvider {
+public class SecretLookupRefusedException extends ConnectorInputException
+    implements SecretFailureDiagnostic {
+
+  public SecretLookupRefusedException(String message) {
+    super(message);
+  }
 
   @Override
-  public String getSecret(String name, SecretContext context) {
-    throw new SecretLookupRefusedException(
-        "Legacy secret resolution is disabled ("
-            + LegacySecretMode.PROPERTY
-            + "="
-            + LegacySecretMode.OFF
-            + "); secret '"
-            + name
-            + "' was not resolved. Reference secrets as camunda.secrets.<name> instead.");
+  public String publishableMessage() {
+    return getMessage();
   }
 }

@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
-import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.List;
@@ -52,7 +51,7 @@ public class CentralStoreSecretProvider implements SecretProvider {
     if (!SecretReferenceUtil.isResolvableName(name)) {
       // Failing here says what is wrong. Returning nothing would report the name as merely
       // unavailable, which is what an ordinary missing secret looks like.
-      throw new ConnectorInputException(
+      throw new SecretLookupRefusedException(
           "Secret '"
               + name
               + "' cannot be read from the cluster's secret stores: a secret reference may only"
