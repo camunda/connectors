@@ -488,6 +488,8 @@ public class GenerateElementTemplate {
                 .label("Method")
                 .group("operation")
                 .binding(new ZeebeInput("method"))
+                .value("get")
+                .constraints(PropertyConstraints.builder().notEmpty(true).build())
                 .condition(new Equals("salesforceOperationType", "apexRest"))
                 .build(),
             StringProperty.builder()
