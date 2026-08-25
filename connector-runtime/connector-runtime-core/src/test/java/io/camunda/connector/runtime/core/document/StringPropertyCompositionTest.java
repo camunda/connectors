@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
@@ -56,6 +57,12 @@ class StringPropertyCompositionTest {
   private final IntrinsicFunctionExecutor functions = mock(IntrinsicFunctionExecutor.class);
 
   record Props(String value) {}
+
+  record UntypedProps(Object value) {}
+
+  record MapProps(Map<String, Object> values) {}
+
+  record UntypedResult(@FEEL Object payload) {}
 
   @Test
   void aDocumentReferenceStillBindsAsBase64() {
@@ -97,6 +104,80 @@ class StringPropertyCompositionTest {
     var bound = inboundMapper().convertValue(Map.of("value", "just text"), Props.class);
 
     assertThat(bound.value()).isEqualTo("just text");
+  }
+
+  @Test
+  void aSecretReferenceResolvesThroughAnUntypedField() throws Exception {
+    // The document module registers its own Object.class deserializer, whose scalar fallback must
+    // not bypass whatever the mapper composes onto String.
+    FeelExpressionEvaluator evaluator = new StubEvaluator("resolved-secret");
+
+    UntypedProps bound =
+        FeelContextAwareObjectReader.of(inboundMapper())
+            .withEvaluator(evaluator)
+            .readValue("{\"value\":\"=camunda.secrets.TOKEN\"}", UntypedProps.class);
+
+    assertThat(bound.value()).isEqualTo("resolved-secret");
+  }
+
+  @Test
+  void aSecretReferenceResolvesThroughAMapOfObjectValues() throws Exception {
+    FeelExpressionEvaluator evaluator = new StubEvaluator("resolved-secret");
+
+    MapProps bound =
+        FeelContextAwareObjectReader.of(inboundMapper())
+            .withEvaluator(evaluator)
+            .readValue("{\"values\":{\"token\":\"=camunda.secrets.TOKEN\"}}", MapProps.class);
+
+    assertThat(bound.values()).containsExactly(Map.entry("token", "resolved-secret"));
+  }
+
+  @Test
+  void aSecretReferenceInsideAnEvaluationResultObjectStaysLiteral() throws Exception {
+    // FeelEvaluationResultMapper registers the document module — so an Object-typed field inside a
+    // FEEL evaluation result still binds through ObjectDeserializer — but not the secret-reference
+    // module. Text that arrived as evaluation-result data must never be sent back for evaluation,
+    // even now that the Object path routes a scalar string through the context.
+    var evaluated = new java.util.ArrayList<String>();
+    FeelExpressionEvaluator evaluator =
+        new FeelExpressionEvaluator() {
+          @SuppressWarnings("unchecked")
+          private <T> T answer(String expression) {
+            evaluated.add(expression);
+            if ("=outer".equals(expression)) {
+              return (T) Map.of("candidate", "=camunda.secrets.TOKEN");
+            }
+            return (T) "the-real-secret";
+          }
+
+          @Override
+          public <T> T evaluate(String expression, Object... variables) {
+            return answer(expression);
+          }
+
+          @Override
+          public <T> T evaluate(String expression, Class<T> targetType, Object... variables) {
+            return answer(expression);
+          }
+
+          @Override
+          public <T> T evaluate(String expression, JavaType targetType, Object... variables) {
+            return answer(expression);
+          }
+
+          @Override
+          public String evaluateToJson(String expression, Object... variables) {
+            throw new UnsupportedOperationException();
+          }
+        };
+
+    UntypedResult bound =
+        FeelContextAwareObjectReader.of(inboundMapper())
+            .withEvaluator(evaluator)
+            .readValue("{\"payload\":\"=outer\"}", UntypedResult.class);
+
+    assertThat(((Map<?, ?>) bound.payload()).get("candidate")).isEqualTo("=camunda.secrets.TOKEN");
+    assertThat(evaluated).containsExactly("=outer");
   }
 
   /** The inbound property mapper, as the runtime wires it. */
