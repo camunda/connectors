@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.outbound.job;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,8 +34,10 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretLookupRefusedException;
+import io.camunda.connector.runtime.core.secret.SecretNotAvailableException;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +54,7 @@ import org.slf4j.LoggerFactory;
 class OutboundConnectorExceptionHandlerTest {
 
   private final SecretProvider secretProvider = mock(SecretProvider.class);
+  private final List<String> requestedKeys = new ArrayList<>();
   private final OutboundConnectorExceptionHandler handler =
       new OutboundConnectorExceptionHandler(secretProvider);
 
@@ -65,7 +69,11 @@ class OutboundConnectorExceptionHandlerTest {
 
   private SecretContext captureSecretContext() {
     var captor = ArgumentCaptor.forClass(SecretContext.class);
-    verify(secretProvider).fetchAll(any(), captor.capture());
+    verify(secretProvider, atLeastOnce()).fetchAll(any(), captor.capture());
+    // Whether it takes one read or two, every one of them has to use the scope the input was
+    // substituted with: a secret resolved for one engine is not recognized when re-read for
+    // another.
+    assertThat(captor.getAllValues()).containsOnly(captor.getValue());
     return captor.getValue();
   }
 
@@ -249,6 +257,133 @@ class OutboundConnectorExceptionHandlerTest {
       appender.stop();
     }
     return appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+  }
+
+  @Test
+  void withholdsTheMessageWhenTheMaskingReReadComesBackShort() {
+    // A legacy name the input declares must have resolved when the input was bound —
+    // SecretHandler's
+    // replacer throws otherwise — so one missing now means the secret was removed, or access
+    // revoked, while the connector ran. Redacting with what did come back would publish the one
+    // that did not in the clear.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"secrets.BAR\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "foo-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected bar-value and foo-value"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.responseValue().toString()).doesNotContain("bar-value");
+    assertThat(result.exception().getMessage()).doesNotContain("bar-value");
+    // Not the input's fault, so the job keeps its remaining attempts.
+    assertThat(result.retries()).isEqualTo(2);
+    // A count is publishable; it is not something a secret store told this runtime.
+    assertThat(result.exception().getMessage()).contains("1 of the 2 legacy secrets");
+  }
+
+  @Test
+  void publishesTheMessageWhenTheJobFailedBecauseThatSecretHasNoValue() {
+    // The one case where a name the input declares is expected back empty: substitution itself
+    // threw, so the input never carried BAR's value and there is nothing of it to redact. The
+    // message is the replacer's own and names the secret an operator has to go and create —
+    // withholding it would replace the answer with a description of the question.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"secrets.BAR\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "foo-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new SecretNotAvailableException("BAR"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage())
+        .isEqualTo("Secret with name 'BAR' is not available");
+    assertThat(result.retries()).isZero();
+  }
+
+  @Test
+  void redactsEveryValueWhenTheMaskingReReadIsComplete() {
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"secrets.BAR\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "foo-value", "BAR", "bar-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected bar-value and foo-value"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected *** and ***");
+  }
+
+  @Test
+  void doesNotWithholdTheMessageBecauseALegacyProviderDoesNotHoldANewFormReference() {
+    // camunda.secrets.DB is resolved by the cluster, never by a legacy provider, so nothing here
+    // holds "DB" and it comes back short by construction. Requiring the new form back would
+    // withhold the error message of nearly every failed job that uses the new syntax. Do not delete
+    // this as redundant with the test above: it is the whole reason completeness is required only
+    // of
+    // the legacy names.
+    var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"camunda.secrets.DB\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "foo-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected foo-value"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
+  }
+
+  @Test
+  void masksAReferenceWrittenWithSpaceInsideTheBraces() {
+    // The name the store holds is FOO, and that is the name replacement looked up when it
+    // substituted the value, so it is the name this re-read has to ask for.
+    var job = jobNaming("{\"a\": \"{{ secrets.FOO }}\"}");
+    when(job.getRetries()).thenReturn(3);
+    holdingOnly(Map.of("FOO", "foo-value"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("api rejected foo-value"),
+            job,
+            Duration.ofSeconds(1),
+            SecretFilter.allowAll());
+
+    assertThat(requestedKeys).containsExactly("FOO");
+    assertThat(result.exception().getMessage()).isEqualTo("api rejected ***");
+  }
+
+  private static ActivatedJob jobNaming(String variables) {
+    var job = mock(ActivatedJob.class);
+    when(job.getVariables()).thenReturn(variables);
+    when(job.getTenantId()).thenReturn("my-tenant");
+    when(job.getBpmnProcessId()).thenReturn("my-process");
+    when(job.getPhysicalTenantId()).thenReturn("engine-1");
+    return job;
+  }
+
+  /**
+   * Answers like the {@link SecretProvider#fetchAll} default over a store holding {@code values}.
+   */
+  private void holdingOnly(Map<String, String> values) {
+    when(secretProvider.fetchAll(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              List<String> keys = invocation.getArgument(0);
+              requestedKeys.addAll(keys);
+              return keys.stream().map(values::get).filter(java.util.Objects::nonNull).toList();
+            });
   }
 
   @Test

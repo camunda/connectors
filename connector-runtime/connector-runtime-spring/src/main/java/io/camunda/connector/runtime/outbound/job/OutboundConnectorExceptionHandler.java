@@ -29,6 +29,7 @@ import io.camunda.connector.runtime.core.error.InvalidJobTimeoutException;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFailureDiagnostic;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretNotAvailableException;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.time.Duration;
 import java.util.*;
@@ -151,19 +152,53 @@ public class OutboundConnectorExceptionHandler {
    * Reads the values to redact. A provider may refuse a key outright — legacy resolution switched
    * off, a name that cannot be migrated — and it throws here for keys this fetch only ever wanted
    * for masking, so the failure is returned rather than raised.
+   *
+   * <p>A re-read that comes back short is treated as a failure too, because redacting with a
+   * partial list is what this whole path exists to prevent: the values that did come back would be
+   * redacted and the one that did not would be published in the clear. Only the legacy names are
+   * required back, and that requirement is exactly as strong as {@code SecretHandler}'s replacer,
+   * which throws when a provider returns null for a name the filter allows — so the input could not
+   * have been bound unless every legacy name it declares resolved. One of them missing now means
+   * the secret was removed, or access to it revoked, since the connector ran.
+   *
+   * <p>Unless the job's own failure is that very thing ({@link SecretNotAvailableException}), which
+   * is the one case where a name the input declares is expected back empty. Substitution is then
+   * what threw, so the input the message describes never carried that secret's value and there is
+   * nothing of it to redact — and the message is the replacer's own, naming the secret an operator
+   * has to go and create. Withholding it would replace the answer with a description of the
+   * question.
+   *
+   * <p>The new {@code camunda.secrets.<name>} form is asked for but not required back. The legacy
+   * providers never resolved it — the cluster did — so under most settings nothing here holds it,
+   * and a reference the cluster reported but could not resolve leaves a placeholder rather than a
+   * value, meaning there is nothing to redact in the first place. Requiring it back would withhold
+   * the error message of nearly every failed job that uses the new syntax.
    */
-  private MaskingSecrets fetchSecretsForMasking(ActivatedJob job, SecretFilter secretFilter) {
+  private MaskingSecrets fetchSecretsForMasking(
+      ActivatedJob job, SecretFilter secretFilter, Exception jobFailure) {
     try {
-      var allowedKeys =
-          SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
-              .filter(secretFilter::isAllowed)
+      var context =
+          new SecretContext(job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId());
+      var legacyKeys =
+          allowedKeys(SecretUtil.retrieveLegacySecretKeysInInput(job.getVariables()), secretFilter);
+      var legacyValues = this.secretProvider.fetchAll(legacyKeys, context);
+      if (legacyValues.size() < legacyKeys.size() && !reportsAnUnavailableSecret(jobFailure)) {
+        return new MaskingSecrets(
+            List.of(),
+            new MaskingSecretsIncompleteException(
+                legacyKeys.size() - legacyValues.size(), legacyKeys.size()));
+      }
+      var referenceKeys =
+          allowedKeys(SecretUtil.retrieveSecretKeysInInput(job.getVariables()), secretFilter)
+              .stream()
+              .filter(key -> !legacyKeys.contains(key))
               .toList();
-      return new MaskingSecrets(
-          this.secretProvider.fetchAll(
-              allowedKeys,
-              new SecretContext(
-                  job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId())),
-          null);
+      if (referenceKeys.isEmpty()) {
+        return new MaskingSecrets(legacyValues, null);
+      }
+      var values = new ArrayList<>(legacyValues);
+      values.addAll(this.secretProvider.fetchAll(referenceKeys, context));
+      return new MaskingSecrets(List.copyOf(values), null);
     } catch (Exception ex) {
       LOGGER.error(
           "Initial error for job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",
@@ -171,6 +206,51 @@ public class OutboundConnectorExceptionHandler {
           job.getTenantId(),
           ex.getMessage());
       return new MaskingSecrets(List.of(), ex);
+    }
+  }
+
+  private static List<String> allowedKeys(List<String> keys, SecretFilter secretFilter) {
+    return keys.stream().filter(secretFilter::isAllowed).toList();
+  }
+
+  /**
+   * Whether the job failed because a legacy secret it names has no value. A re-read that comes back
+   * short then says the same thing the job's own failure already says, rather than reporting a
+   * value that has gone missing since the connector ran.
+   */
+  private static boolean reportsAnUnavailableSecret(Exception jobFailure) {
+    return jobFailure instanceof SecretNotAvailableException
+        || jobFailure.getCause() instanceof SecretNotAvailableException;
+  }
+
+  /**
+   * Reported when the masking re-read comes back short of the legacy names the job's input
+   * declares. Carries a count and nothing else: how many values are missing is enough for an
+   * operator to act on, and is not something a secret store told this runtime.
+   */
+  private static class MaskingSecretsIncompleteException extends RuntimeException
+      implements SecretFailureDiagnostic {
+
+    private final String publishableMessage;
+
+    private MaskingSecretsIncompleteException(int missing, int expected) {
+      super(
+          missing
+              + " of "
+              + expected
+              + " legacy secrets named by this job's input could not be read back");
+      this.publishableMessage =
+          missing
+              + " of the "
+              + expected
+              + " legacy secrets this job's input names could not be read back, so the error"
+              + " message could not be redacted. A secret that resolved when the input was bound"
+              + " has since been removed, or access to it revoked.";
+    }
+
+    @Override
+    public String publishableMessage() {
+      return publishableMessage;
     }
   }
 
@@ -229,7 +309,7 @@ public class OutboundConnectorExceptionHandler {
 
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
-    var masking = fetchSecretsForMasking(job, secretFilter);
+    var masking = fetchSecretsForMasking(job, secretFilter, e);
     if (masking.unavailable()) {
       var wrappedException = unmaskableError(masking.failure());
       // Either failure can be the permanent one, so both are consulted. A provider that refuses
@@ -353,7 +433,7 @@ public class OutboundConnectorExceptionHandler {
    */
   public ConnectorResult.ErrorResult handleFinalResultException(
       Exception ex, ActivatedJob job, SecretFilter secretFilter) {
-    var masking = fetchSecretsForMasking(job, secretFilter);
+    var masking = fetchSecretsForMasking(job, secretFilter, ex);
     if (masking.unavailable()) {
       LOGGER.error(
           "Exception while processing job: {} for tenant: {}, type: {}. Its message is withheld:"
