@@ -46,8 +46,8 @@ class GraphQLFunctionDocumentReturnTest {
             "{ hero { name } }",
             null,
             HttpMethod.POST,
-            wm.getHttpBaseUrl() + "/graphql",
             null,
+            wm.getHttpBaseUrl() + "/graphql",
             false,
             20,
             20);

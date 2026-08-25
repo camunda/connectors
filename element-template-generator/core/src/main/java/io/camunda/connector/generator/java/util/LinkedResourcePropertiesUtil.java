@@ -75,6 +75,8 @@ public class LinkedResourcePropertiesUtil {
           new PropertyCondition.OneOf(idPrefix + c.property(), c.oneOf());
       case PropertyCondition.IsActive c ->
           new PropertyCondition.IsActive(idPrefix + c.property(), c.isActive());
+      case PropertyCondition.IsEmpty c ->
+          new PropertyCondition.IsEmpty(idPrefix + c.property(), c.isEmpty());
       // transformToNestedCondition cannot return AllMatch (nested conditions do not nest further).
       // Passing it through would leave its inner properties unprefixed — wrong output rather than a
       // failure — so fail loudly if that ever changes.

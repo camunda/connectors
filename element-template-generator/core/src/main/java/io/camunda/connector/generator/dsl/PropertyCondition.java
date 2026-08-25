@@ -48,4 +48,11 @@ public sealed interface PropertyCondition {
       return "simple";
     }
   }
+
+  record IsEmpty(String property, boolean isEmpty) implements PropertyCondition {
+
+    public String getType() {
+      return "simple";
+    }
+  }
 }

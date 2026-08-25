@@ -20,7 +20,8 @@ class PollingRuntimePropertiesTest {
     var properties = new PollingRuntimeProperties();
     properties.setAuthentication(new BearerAuthentication("inline-token"));
     properties.setAuthenticationConfiguration(
-        new RestAuthenticationConfiguration(new BearerAuthentication("credential-token")));
+        new RestAuthenticationConfiguration(
+            new BearerAuthentication("credential-token"), "https://credential.example.com"));
 
     assertThat(properties.getAuthentication()).isInstanceOf(BearerAuthentication.class);
     assertThat(((BearerAuthentication) properties.getAuthentication()).token())
@@ -34,5 +35,26 @@ class PollingRuntimePropertiesTest {
 
     assertThat(((BearerAuthentication) properties.getAuthentication()).token())
         .isEqualTo("inline-token");
+  }
+
+  @Test
+  void usesCredentialUrlWhenInlineUrlIsBlank() {
+    var properties = new PollingRuntimeProperties();
+    properties.setAuthenticationConfiguration(
+        new RestAuthenticationConfiguration(
+            new BearerAuthentication("credential-token"), "https://credential.example.com"));
+
+    assertThat(properties.getUrl()).isEqualTo("https://credential.example.com");
+  }
+
+  @Test
+  void inlineUrlOverridesCredentialUrl() {
+    var properties = new PollingRuntimeProperties();
+    properties.setUrl("https://override.example.com");
+    properties.setAuthenticationConfiguration(
+        new RestAuthenticationConfiguration(
+            new BearerAuthentication("credential-token"), "https://credential.example.com"));
+
+    assertThat(properties.getUrl()).isEqualTo("https://override.example.com");
   }
 }
