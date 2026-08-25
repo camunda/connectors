@@ -45,4 +45,20 @@
       <artifactId>connector-test-utils</artifactId>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- The camunda/camunda:SNAPSHOT test image bakes in a JVM AOT cache that has been
+               crashing the container on startup (exit code 139 / SIGSEGV) on amd64 CI runners.
+               AOTMode=off disables it; ErrorFileToStdout is a safety net so a crash report still
+               surfaces through the container's log consumer if the container crashes anyway. -->
+          <argLine>-Duser.language=en -Duser.region=US -Dcamunda.process-test.camunda-env-vars.JAVA_TOOL_OPTIONS="-XX:AOTMode=off -XX:+ErrorFileToStdout"</argLine>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
