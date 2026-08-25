@@ -56,8 +56,8 @@ public class CentralStoreSecretProvider implements SecretProvider {
           "Secret '"
               + name
               + "' cannot be read from the cluster's secret stores: a secret reference may only"
-              + " contain letters, digits and underscores. Rename the secret, or keep it in a"
-              + " locally configured secret provider.");
+              + " contain letters, digits, underscores, and hyphens. Rename the secret, or keep it"
+              + " in a locally configured secret provider.");
     }
     SecretReferenceResolver resolver = resolverFor(context);
     if (resolver == null) {
