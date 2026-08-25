@@ -809,7 +809,7 @@ public class GenerateElementTemplate {
             "apexRest"),
         new LeafStep(
             "Composite request",
-            "Batch multiple sObject sub-requests into a single call",
+            "Batch multiple Salesforce sObject sub-requests into a single call",
             List.of(
                 "composite request", "batch request", "bulk operations", "multiple sub-requests"),
             "composite"));
