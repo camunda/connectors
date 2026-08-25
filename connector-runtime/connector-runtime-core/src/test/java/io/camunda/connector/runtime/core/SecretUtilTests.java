@@ -87,6 +87,42 @@ public class SecretUtilTests {
   }
 
   @Test
+  void shouldNotReplaceInsideACamundaSecretsReference() {
+    var secretReplacer = mock(SecretReplacer.class);
+
+    String result = SecretUtil.replaceSecrets("=camunda.secrets.FOO", null, secretReplacer);
+
+    assertThat(result).isEqualTo("=camunda.secrets.FOO");
+    verifyNoInteractions(secretReplacer);
+  }
+
+  @Test
+  void shouldStillReplaceALegacyReferenceAlongsideACamundaSecretsReference() {
+    SecretReplacer secretReplacer = (name, context) -> "FOO".equals(name) ? "resolved" : null;
+
+    String result =
+        SecretUtil.replaceSecrets("camunda.secrets.FOO and {{secrets.FOO}}", null, secretReplacer);
+
+    assertThat(result).isEqualTo("camunda.secrets.FOO and resolved");
+  }
+
+  @Test
+  void shouldStillReplaceASecretsPrefixedWordThatIsNotTheCamundaPrefix() {
+    SecretReplacer secretReplacer = (name, context) -> "FOO".equals(name) ? "resolved" : null;
+
+    assertThat(SecretUtil.replaceSecrets("other.secrets.FOO", null, secretReplacer))
+        .isEqualTo("other.resolved");
+  }
+
+  @Test
+  void shouldReportSecretKeysDeclaredInEitherForm() {
+    assertThat(
+            SecretUtil.retrieveSecretKeysInInput(
+                "{{secrets.BRACED}} secrets.BARE camunda.secrets.REFERENCE"))
+        .containsExactlyInAnyOrder("BRACED", "BARE", "REFERENCE");
+  }
+
+  @Test
   void shouldOnlyReplaceAllowListedSecrets() {
     List<String> allowList = List.of("KEY1", "KEY2");
     SecretReplacer secretReplacer =
