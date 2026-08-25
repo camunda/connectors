@@ -51,7 +51,10 @@ public class OutboundConnectorExceptionHandler {
   private static Map<String, Object> exceptionToMap(
       Exception wrappedException, List<String> secrets) {
     Map<String, Object> result = new HashMap<>();
-    Throwable originalCause = wrappedException.getCause();
+    // Every wrapper built here carries the failure it reports as its cause, except the one that
+    // deliberately withholds it — that one reports itself, rather than dereferencing a null.
+    Throwable originalCause =
+        wrappedException.getCause() != null ? wrappedException.getCause() : wrappedException;
     result.put("type", originalCause.getClass().getName());
     var message = wrappedException.getMessage();
     if (message != null) {
@@ -173,12 +176,37 @@ public class OutboundConnectorExceptionHandler {
   /**
    * Stands in for an error that cannot be shown. With no values to redact with, the original
    * message has to be dropped rather than reported unmasked — it may hold a resolved secret.
+   *
+   * <p>The failure that prevented masking is dropped with it, and for the same reason: a provider
+   * or client error can echo a response body from the secret store, so its message is no safer to
+   * publish than the message it was supposed to help redact. Nothing built from it can be masked
+   * either — the redaction list is empty by definition on this path. It is logged where it happens
+   * and goes no further.
+   *
+   * <p>What is reported is this exception's own constant message plus the failure's class name.
+   * Everything an operator needs to tell an unreachable cluster from a switched-off mode is in that
+   * name, and a class name carries no request or response data.
    */
   private static RuntimeException unmaskableError(Exception fetchFailure) {
-    return new RuntimeException(
-        "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: "
-            + fetchFailure.getMessage(),
-        fetchFailure);
+    return new SecretsUnavailableException(fetchFailure.getClass().getName());
+  }
+
+  /**
+   * Reported in place of an error whose message could not be redacted.
+   *
+   * <p>Deliberately not a {@link ConnectorException}: {@link #exceptionToMap} copies a {@code
+   * ConnectorException}'s error variables and error code into the payload, and on this path it
+   * would copy them with an empty redaction list — publishing unmasked exactly the data this branch
+   * exists to withhold.
+   */
+  private static class SecretsUnavailableException extends RuntimeException {
+
+    private SecretsUnavailableException(String failureType) {
+      super(
+          "Fetching secrets failed, so the original error cannot be displayed: with nothing to"
+              + " redact with it might reveal a secret. Fetching failed with: "
+              + failureType);
+    }
   }
 
   /**

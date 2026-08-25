@@ -172,6 +172,52 @@ class OutboundConnectorExceptionHandlerTest {
   }
 
   @Test
+  void aFailedMaskingFetchIsNeverItselfPublished() {
+    // The fetch failure is no safer to publish than the message it was meant to help redact: a
+    // provider or client error can echo a response body from the secret store. Nothing built from
+    // it can be masked either, since the redaction list is empty by definition on this path.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(new RuntimeException("store replied: {\"token\":\"super-secret\"}"));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+
+    // Both channels: the payload becomes process variables, and the message becomes the incident
+    // message that prepareFailJobCommand sends to Zeebe.
+    assertThat(result.responseValue().toString()).doesNotContain("super-secret");
+    assertThat(result.exception().getMessage()).doesNotContain("super-secret");
+    // The class name is what an operator needs, and carries no request or response data.
+    assertThat(result.exception().getMessage()).contains("java.lang.RuntimeException");
+  }
+
+  @Test
+  void aFailedMaskingFetchDoesNotPublishItsOwnErrorVariables() {
+    // exceptionToMap copies a ConnectorException's variables and code into the payload. On this
+    // path it would copy them with an empty redaction list, publishing unmasked exactly the data
+    // the branch exists to withhold.
+    var job = jobOnEngine("engine-1");
+    when(job.getRetries()).thenReturn(3);
+    when(secretProvider.fetchAll(any(), any()))
+        .thenThrow(
+            new ConnectorException(
+                "PROVIDER_CODE",
+                "lookup rejected",
+                null,
+                Map.of("response", "credential super-secret was rejected")));
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new RuntimeException("boom"), job, Duration.ofSeconds(1), SecretFilter.allowAll());
+
+    assertThat(result.responseValue().toString())
+        .doesNotContain("super-secret")
+        .doesNotContain("PROVIDER_CODE");
+  }
+
+  @Test
   void handleFinalResultException_masksASecretScopedToTheJobsEngine() {
     // the payoff of scoping correctly: this provider only knows the secret under engine-1, so
     // resolving with the wrong physical tenant leaves the value unmasked in the error payload
