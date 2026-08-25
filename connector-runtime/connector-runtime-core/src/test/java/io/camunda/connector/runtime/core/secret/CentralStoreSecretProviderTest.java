@@ -99,7 +99,7 @@ class CentralStoreSecretProviderTest {
     assertThatThrownBy(() -> provider.getSecret(name, context("engine-a")))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining(name)
-        .hasMessageContaining("letters, digits and underscores");
+        .hasMessageContaining("letters, digits, underscores, and hyphens");
     assertThat(engineA.requested).isEmpty();
   }
 
