@@ -60,12 +60,14 @@ class AppIntegrationsConnectorWireMockTest {
   private static final String CHANNEL_PATH = "/api/connector/channel";
   private static final String MESSAGE_PATH = "/api/connector/message";
   private static final String TOKEN_PATH = "/oauth/token";
+  private static final String CLUSTER_ID = "cluster-789";
+  private static final String CLOUD_CLUSTER_ID = "cluster-456";
 
   private final OutboundConnectorContext context = mock(OutboundConnectorContext.class);
+  private final JobContext jobContext = mock(JobContext.class);
 
   @BeforeEach
   void setUpContext() {
-    var jobContext = mock(JobContext.class);
     when(context.getJobContext()).thenReturn(jobContext);
     when(jobContext.getCustomHeaders()).thenReturn(Map.of());
     when(jobContext.getBpmnProcessId()).thenReturn("order-process");
@@ -95,9 +97,15 @@ class AppIntegrationsConnectorWireMockTest {
   }
 
   private static AppIntegrationsConnector oauthConnector(WireMockRuntimeInfo wm) {
-    return connectorWith(oauthEnv(wm));
+    var env = new HashMap<>(oauthEnv(wm));
+    env.put("APP_INTEGRATIONS_CLUSTER_ID", CLUSTER_ID);
+    return connectorWith(env);
   }
 
+  /**
+   * The OAuth credentials alone. The cluster id is deliberately left out, because SaaS and
+   * Self-Managed supply it through different variables.
+   */
   private static Map<String, String> oauthEnv(WireMockRuntimeInfo wm) {
     return Map.of(
         "APP_INTEGRATIONS_BASE_URL", wm.getHttpBaseUrl(),
@@ -111,7 +119,7 @@ class AppIntegrationsConnectorWireMockTest {
     var env = new HashMap<>(oauthEnv(wm));
     env.put("CAMUNDA_CONNECTOR_RUNTIME_SAAS", "true");
     env.put("CAMUNDA_CONNECTOR_CLOUD_ORGANIZATION_ID", orgId);
-    env.put("CAMUNDA_CLIENT_CLOUD_CLUSTERID", "cluster-456");
+    env.put("CAMUNDA_CLIENT_CLOUD_CLUSTERID", CLOUD_CLUSTER_ID);
     return connectorWith(env);
   }
 
@@ -130,13 +138,33 @@ class AppIntegrationsConnectorWireMockTest {
                     "{\"access_token\":\"tok\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")));
   }
 
-  @Test
-  void createChannel_realClient_success(WireMockRuntimeInfo wm) {
+  private static void stubChannel() {
     stubFor(
         post(urlPathEqualTo(CHANNEL_PATH))
             .willReturn(okJson("{\"channelId\":\"19:new-channel@thread.tacv2\"}").withStatus(201)));
+  }
 
-    var result = apiKeyConnector(wm).createChannel(channelRequest());
+  private static void stubMessage() {
+    stubFor(
+        post(urlPathEqualTo(MESSAGE_PATH))
+            .willReturn(
+                okJson(
+                        "{\"deliveries\":[{\"platform\":\"teams\",\"conversation\":\"conv-1\",\"messageId\":\"m-1\"}],\"failures\":[]}")
+                    .withStatus(201)));
+  }
+
+  private static SendMessageRequest messageRequest() {
+    return new SendMessageRequest(
+        new Recipient.CamundaRecipient(
+            "user@example.com", null, null, new AdditionalContent.None()),
+        "Please approve");
+  }
+
+  @Test
+  void createChannel_realClient_success(WireMockRuntimeInfo wm) {
+    stubChannel();
+
+    var result = apiKeyConnector(wm).createChannel(channelRequest(), context);
 
     assertThat(result.channelId()).isEqualTo("19:new-channel@thread.tacv2");
   }
@@ -151,7 +179,7 @@ class AppIntegrationsConnectorWireMockTest {
 
     var connector = apiKeyConnector(wm);
 
-    assertThatThrownBy(() -> connector.createChannel(channelRequest()))
+    assertThatThrownBy(() -> connector.createChannel(channelRequest(), context))
         .isInstanceOfSatisfying(
             ConnectorException.class, e -> assertThat(e.getErrorCode()).isEqualTo("500"));
   }
@@ -172,7 +200,7 @@ class AppIntegrationsConnectorWireMockTest {
             .whenScenarioStateIs("retried")
             .willReturn(okJson("{\"channelId\":\"19:after-retry@thread.tacv2\"}").withStatus(201)));
 
-    var result = oauthConnector(wm).createChannel(channelRequest());
+    var result = oauthConnector(wm).createChannel(channelRequest(), context);
 
     assertThat(result.channelId()).isEqualTo("19:after-retry@thread.tacv2");
     // The backend was called twice (the 401, then the successful retry) and the token was
@@ -313,14 +341,14 @@ class AppIntegrationsConnectorWireMockTest {
         post(urlPathEqualTo(CHANNEL_PATH))
             .willReturn(okJson("{\"channelId\":\"19:saas@thread.tacv2\"}").withStatus(201)));
 
-    var result = saasConnector(wm, "org-123").createChannel(channelRequest());
+    var result = saasConnector(wm, "org-123").createChannel(channelRequest(), context);
 
     assertThat(result.channelId()).isEqualTo("19:saas@thread.tacv2");
     verify(postRequestedFor(urlPathEqualTo(TOKEN_PATH)));
     verify(
         postRequestedFor(urlPathEqualTo(CHANNEL_PATH))
             .withHeader("X-Org-Id", equalTo("org-123"))
-            .withHeader("X-Cluster-Id", equalTo("cluster-456")));
+            .withHeader("X-Cluster-Id", equalTo(CLOUD_CLUSTER_ID)));
   }
 
   @Test
@@ -330,8 +358,131 @@ class AppIntegrationsConnectorWireMockTest {
         post(urlPathEqualTo(CHANNEL_PATH))
             .willReturn(okJson("{\"channelId\":\"19:saas@thread.tacv2\"}").withStatus(201)));
 
-    saasConnector(wm, "null").createChannel(channelRequest());
+    saasConnector(wm, "null").createChannel(channelRequest(), context);
 
     verify(postRequestedFor(urlPathEqualTo(CHANNEL_PATH)).withHeader("X-Org-Id", absent()));
+  }
+
+  // --- context identification headers ---
+
+  @Test
+  void selfManagedOAuth_sendsClusterIdAndNoOrgId(WireMockRuntimeInfo wm) {
+    stubToken();
+    stubChannel();
+
+    oauthConnector(wm).createChannel(channelRequest(), context);
+
+    verify(
+        postRequestedFor(urlPathEqualTo(CHANNEL_PATH))
+            .withHeader("X-Cluster-Id", equalTo(CLUSTER_ID))
+            .withHeader("X-Org-Id", absent()));
+  }
+
+  @Test
+  void appIntegrationsClusterId_winsOverTheCloudOne(WireMockRuntimeInfo wm) {
+    stubToken();
+    stubChannel();
+
+    var env = new HashMap<>(oauthEnv(wm));
+    env.put("CAMUNDA_CLIENT_CLOUD_CLUSTERID", CLOUD_CLUSTER_ID);
+    env.put("APP_INTEGRATIONS_CLUSTER_ID", CLUSTER_ID);
+
+    connectorWith(env).createChannel(channelRequest(), context);
+
+    verify(
+        postRequestedFor(urlPathEqualTo(CHANNEL_PATH))
+            .withHeader("X-Cluster-Id", equalTo(CLUSTER_ID)));
+  }
+
+  @Test
+  void oauthWithoutAnyClusterId_failsWithoutCallingTheBackend(WireMockRuntimeInfo wm) {
+    stubToken();
+    stubChannel();
+
+    var connector = connectorWith(oauthEnv(wm));
+
+    assertThatThrownBy(() -> connector.createChannel(channelRequest(), context))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode())
+                  .isEqualTo(AppIntegrationsExecutor.NOT_CONFIGURED_ERROR_CODE);
+              assertThat(e.getMessage()).contains("APP_INTEGRATIONS_CLUSTER_ID");
+            });
+    verify(exactly(0), postRequestedFor(urlPathEqualTo(CHANNEL_PATH)));
+  }
+
+  @Test
+  void apiKeyWithoutClusterId_stillCallsTheBackend(WireMockRuntimeInfo wm) {
+    // The backend recovers the cluster from the API key itself, so it stays optional on this path.
+    stubChannel();
+
+    apiKeyConnector(wm).createChannel(channelRequest(), context);
+
+    verify(postRequestedFor(urlPathEqualTo(CHANNEL_PATH)).withHeader("X-Cluster-Id", absent()));
+  }
+
+  @Test
+  void physicalTenantOnTheJob_isSentAsHeader(WireMockRuntimeInfo wm) {
+    when(jobContext.getPhysicalTenantId()).thenReturn("tenanta");
+    stubMessage();
+
+    apiKeyConnector(wm).sendMessage(messageRequest(), context);
+
+    verify(
+        postRequestedFor(urlPathEqualTo(MESSAGE_PATH))
+            .withHeader("X-Physical-Tenant-Id", equalTo("tenanta")));
+  }
+
+  @Test
+  void defaultPhysicalTenant_isSentVerbatim(WireMockRuntimeInfo wm) {
+    // "default" is the broker's canonical physical tenant and the backend accepts it literally, so
+    // there is nothing to strip.
+    when(jobContext.getPhysicalTenantId()).thenReturn("default");
+    stubMessage();
+
+    apiKeyConnector(wm).sendMessage(messageRequest(), context);
+
+    verify(
+        postRequestedFor(urlPathEqualTo(MESSAGE_PATH))
+            .withHeader("X-Physical-Tenant-Id", equalTo("default")));
+  }
+
+  @Test
+  void noPhysicalTenantOnTheJob_omitsTheHeader(WireMockRuntimeInfo wm) {
+    when(jobContext.getPhysicalTenantId()).thenReturn(null);
+    stubMessage();
+
+    apiKeyConnector(wm).sendMessage(messageRequest(), context);
+
+    verify(
+        postRequestedFor(urlPathEqualTo(MESSAGE_PATH))
+            .withHeader("X-Physical-Tenant-Id", absent()));
+  }
+
+  @Test
+  void logicalTenant_isNeverSentAsThePhysicalTenant(WireMockRuntimeInfo wm) {
+    // The two are different concepts, and the backend rejects the logical default "<default>".
+    when(jobContext.getTenantId()).thenReturn("<default>");
+    when(jobContext.getPhysicalTenantId()).thenReturn(null);
+    stubMessage();
+
+    apiKeyConnector(wm).sendMessage(messageRequest(), context);
+
+    verify(
+        postRequestedFor(urlPathEqualTo(MESSAGE_PATH))
+            .withHeader("X-Physical-Tenant-Id", absent()));
+  }
+
+  @Test
+  void createChannel_propagatesThePhysicalTenant(WireMockRuntimeInfo wm) {
+    when(jobContext.getPhysicalTenantId()).thenReturn("tenantb");
+    stubChannel();
+
+    apiKeyConnector(wm).createChannel(channelRequest(), context);
+
+    verify(
+        postRequestedFor(urlPathEqualTo(CHANNEL_PATH))
+            .withHeader("X-Physical-Tenant-Id", equalTo("tenantb")));
   }
 }
