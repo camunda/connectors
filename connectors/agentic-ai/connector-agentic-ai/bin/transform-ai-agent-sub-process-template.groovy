@@ -103,6 +103,10 @@ if (isHybrid) {
     json.name = "Hybrid " + json.name
 }
 
+if (deprecationMessage) {
+    json.name += " (Deprecated)"
+}
+
 // Change BPMN element configuration
 json.appliesTo = ["bpmn:SubProcess"]
 json.elementType.value = "bpmn:AdHocSubProcess"

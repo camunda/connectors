@@ -45,6 +45,9 @@ if (deprecationMessage) {
         }
     }
     json = orderedJson
+    if (!json.name?.toString()?.endsWith(" (Deprecated)")) {
+        json.name += " (Deprecated)"
+    }
 } else {
     // never carry over a marker from the source template if this run doesn't want one
     json.remove("deprecated")
