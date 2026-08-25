@@ -24,7 +24,7 @@ import io.camunda.connector.jdbc.model.response.JdbcResponse;
     engineVersion = "^8.10",
     id = "io.camunda.connectors.Jdbc.v1",
     name = "Execute SQL Statement on Database",
-    version = 5,
+    version = 6,
     description =
         "Read and write data from a Camunda process directly to a SQL database (e.g., Microsoft SQL Server, MySQL, PostgreSQL)",
     keywords = {
@@ -48,7 +48,6 @@ import io.camunda.connector.jdbc.model.response.JdbcResponse;
     documentationRef =
         "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql",
     propertyGroups = {
-      @ElementTemplate.PropertyGroup(id = JdbcFunction.DATABASE_GROUP_ID, label = "Database"),
       @ElementTemplate.PropertyGroup(id = JdbcFunction.CONNECTION_GROUP_ID, label = "Connection"),
       @ElementTemplate.PropertyGroup(id = JdbcFunction.QUERY_GROUP_ID, label = "Query"),
     },
@@ -56,7 +55,6 @@ import io.camunda.connector.jdbc.model.response.JdbcResponse;
     configurations = {JdbcConnectionConfiguration.class},
     outputDataClass = JdbcResponse.class)
 public class JdbcFunction implements OutboundConnectorFunction {
-  static final String DATABASE_GROUP_ID = "database";
   static final String CONNECTION_GROUP_ID = "connection";
   static final String QUERY_GROUP_ID = "query";
 
