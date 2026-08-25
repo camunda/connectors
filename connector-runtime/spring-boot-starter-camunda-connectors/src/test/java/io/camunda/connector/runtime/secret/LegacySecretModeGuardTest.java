@@ -21,12 +21,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.ConnectorsAutoConfiguration;
 import io.camunda.connector.runtime.core.secret.LegacySecretMode;
 import io.camunda.connector.runtime.core.secret.LegacySecretsDisabledProvider;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.metrics.MeteredSecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -123,6 +126,58 @@ class LegacySecretModeGuardTest {
     assertThat(
             autoConfiguration.checkLegacyFallbackSecretFilter(
                 LegacySecretMode.OFF, secretFilterMode))
+        .isNotNull();
+  }
+
+  @Test
+  void refusesToStartWhenAnAggregatorHoldsTheDisabledProviderButResolvesAnyway() {
+    // The provider list alone proves nothing: SecretProviderAggregator is not final and its lookup
+    // methods are overridable — MeteredSecretProviderAggregator is itself an override — so a
+    // subclass can carry exactly the list this guard wants and resolve values regardless.
+    var bypassing =
+        new SecretProviderAggregator(List.of(new LegacySecretsDisabledProvider())) {
+          @Override
+          public String getSecret(String secretName, SecretContext context) {
+            return "resolved-anyway";
+          }
+        };
+
+    assertThatThrownBy(
+            () ->
+                autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
+                    bypassing, LegacySecretMode.OFF))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("camunda.connector.secret-resolver.legacy.mode=OFF");
+  }
+
+  @Test
+  void refusesToStartWhenOnlyTheBatchLookupResolves() {
+    // fetchAll is what the outbound paths call, and a subclass may override only that one.
+    var bypassing =
+        new SecretProviderAggregator(List.of(new LegacySecretsDisabledProvider())) {
+          @Override
+          public List<String> fetchAll(List<String> secretNames, SecretContext context) {
+            return List.of("resolved-anyway");
+          }
+        };
+
+    assertThatThrownBy(
+            () ->
+                autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
+                    bypassing, LegacySecretMode.OFF))
+        .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void acceptsTheMeteredAggregatorThatTheRuntimeItselfInstalls() {
+    // The runtime's own subclass has to keep passing, or metrics and the switch become exclusive.
+    var metered =
+        new MeteredSecretProviderAggregator(
+            List.of(new LegacySecretsDisabledProvider()), new SimpleMeterRegistry());
+
+    assertThat(
+            autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
+                metered, LegacySecretMode.OFF))
         .isNotNull();
   }
 

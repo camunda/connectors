@@ -23,6 +23,7 @@ import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.client.spring.configuration.CamundaAutoConfiguration;
 import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
@@ -44,6 +45,7 @@ import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecu
 import io.camunda.connector.runtime.core.secret.CentralStoreSecretProvider;
 import io.camunda.connector.runtime.core.secret.LegacySecretMode;
 import io.camunda.connector.runtime.core.secret.LegacySecretsDisabledProvider;
+import io.camunda.connector.runtime.core.secret.SecretLookupRefusedException;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
@@ -65,6 +67,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,6 +101,9 @@ public class ConnectorsAutoConfiguration {
   private static final Logger LOG = LoggerFactory.getLogger(ConnectorsAutoConfiguration.class);
 
   static final String DEFAULT_AGGREGATOR_BEAN_NAME = "springSecretProviderAggregator";
+
+  /** The name the legacy switch guard asks for; no store is consulted, so it resolves nothing. */
+  private static final String LEGACY_SWITCH_PROBE = "__legacy_secret_switch_probe__";
 
   private final ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider;
 
@@ -287,10 +293,14 @@ public class ConnectorsAutoConfiguration {
    * enforced. This bean carries no conditions of its own, so it runs against whichever aggregator
    * won.
    *
-   * <p>Identifies a replacement by what the winning bean actually does under {@code OFF} — its
-   * provider list must be exactly a single {@link LegacySecretsDisabledProvider} — rather than by
-   * bean name, so a custom bean cannot escape detection by happening to be named {@link
-   * #DEFAULT_AGGREGATOR_BEAN_NAME}.
+   * <p>Identifies a replacement by what the winning bean actually does under {@code OFF} rather
+   * than by bean name, so a custom bean cannot escape detection by happening to be named {@link
+   * #DEFAULT_AGGREGATOR_BEAN_NAME}. Its provider list must be exactly a single {@link
+   * LegacySecretsDisabledProvider}, and it must then actually refuse a lookup: {@link
+   * SecretProviderAggregator} is neither final nor free of overridable methods — {@link
+   * MeteredSecretProviderAggregator} is itself an override — so a subclass could hold that provider
+   * list and resolve values anyway. Both entry points are asked, because {@code fetchAll} is what
+   * the outbound paths call and a subclass may override it alone.
    */
   @Bean
   public Object secretProviderAggregatorLegacySwitchGuard(
@@ -300,6 +310,33 @@ public class ConnectorsAutoConfiguration {
         secretProviderAggregator, LegacySecretMode.parse(legacyModeProperty));
   }
 
+  /**
+   * Whether the aggregator refuses a lookup the way {@link LegacySecretsDisabledProvider} does,
+   * asked of both entry points a legacy lookup can arrive through.
+   *
+   * <p>The name asked for cannot be a real one — no store is consulted on this path, since a
+   * provider list holding only the disabled provider is a precondition of this call, and that
+   * provider throws for every name it is given without reading anything.
+   */
+  private static boolean refusesEveryLookup(SecretProviderAggregator aggregator) {
+    var context = new SecretContext(null, null, null);
+    return refuses(() -> aggregator.getSecret(LEGACY_SWITCH_PROBE, context))
+        && refuses(() -> aggregator.fetchAll(List.of(LEGACY_SWITCH_PROBE), context));
+  }
+
+  private static boolean refuses(Supplier<Object> lookup) {
+    try {
+      lookup.get();
+      return false;
+    } catch (SecretLookupRefusedException expected) {
+      return true;
+    } catch (Exception other) {
+      // Some other failure says nothing about the setting being applied, so it is not accepted as
+      // proof that it is.
+      return false;
+    }
+  }
+
   public Object checkSecretProviderAggregatorLegacySwitch(
       SecretProviderAggregator secretProviderAggregator, LegacySecretMode legacyMode) {
     if (legacyMode != LegacySecretMode.OFF) {
@@ -307,7 +344,9 @@ public class ConnectorsAutoConfiguration {
     }
     List<SecretProvider> providers = secretProviderAggregator.getSecretProviders();
     boolean appliesTheSwitch =
-        providers.size() == 1 && providers.get(0) instanceof LegacySecretsDisabledProvider;
+        providers.size() == 1
+            && providers.get(0) instanceof LegacySecretsDisabledProvider
+            && refusesEveryLookup(secretProviderAggregator);
     if (!appliesTheSwitch) {
       throw new IllegalStateException(
           LegacySecretMode.PROPERTY
@@ -316,9 +355,11 @@ public class ConnectorsAutoConfiguration {
               + " cannot be enforced: the effective SecretProviderAggregator does not apply it (its"
               + " provider list is "
               + providers.stream().map(p -> p.getClass().getName()).toList()
-              + " instead of just "
+              + ", or it resolves a lookup instead of refusing one; the aggregator itself is "
+              + secretProviderAggregator.getClass().getName()
+              + ", where a list of just "
               + LegacySecretsDisabledProvider.class.getSimpleName()
-              + "). This means the application supplies its own SecretProviderAggregator bean,"
+              + " that refuses every lookup is required). This means the application supplies its own SecretProviderAggregator bean,"
               + " which replaces the one that applies the setting. Remove that bean, or set the"
               + " mode back to "
               + LegacySecretMode.ON
