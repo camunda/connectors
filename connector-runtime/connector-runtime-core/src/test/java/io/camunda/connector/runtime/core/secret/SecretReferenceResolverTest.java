@@ -29,6 +29,7 @@ import io.camunda.client.api.response.ResolveSecretsResponse;
 import io.camunda.client.api.search.enums.SecretErrorCode;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -133,13 +134,66 @@ class SecretReferenceResolverTest {
   }
 
   @ParameterizedTest
-  @EnumSource(SecretErrorCode.class)
-  void omitsARejectedReferenceWithoutFailingWhenResolvingStrictly(SecretErrorCode code) {
-    // The cluster answered about this reference, so the answer is definitive: strict resolution
-    // reports it as absent rather than as a failure to reach the stores.
+  @EnumSource(
+      value = SecretErrorCode.class,
+      names = {"NOT_FOUND", "ACCESS_DENIED", "INVALID_REFERENCE"})
+  void omitsADefinitivelyRejectedReferenceWithoutFailingWhenResolvingStrictly(
+      SecretErrorCode code) {
+    // The cluster read its stores and settled this reference: it will not resolve however often it
+    // is asked for. Strict resolution reports it as absent rather than as a failure.
     var resolver = resolverAnswering(Map.of(), Map.of("camunda.secrets.A", code));
 
     assertThat(resolver.resolveOrFail(List.of("camunda.secrets.A"))).isEmpty();
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = SecretErrorCode.class,
+      names = {"UNREADABLE", "UNKNOWN_ENUM_VALUE"})
+  void raisesAnInconclusiveAnswerWhenResolvingStrictly(SecretErrorCode code) {
+    // UNREADABLE says the stores hold the name and reading its value failed; UNKNOWN_ENUM_VALUE is
+    // a code this client could not map at all. Neither says the secret is missing, and reporting
+    // either as absent turns it into a permanent, unretried job failure.
+    var resolver = resolverAnswering(Map.of(), Map.of("camunda.secrets.A", code));
+
+    assertThatThrownBy(() -> resolver.resolveOrFail(List.of("camunda.secrets.A")))
+        .isInstanceOf(SecretReferenceResolver.SecretResolutionFailedException.class)
+        .hasMessageContaining(code.name())
+        .hasNoCause()
+        .isNotInstanceOf(ConnectorInputException.class);
+  }
+
+  @Test
+  void raisesAnAnswerCarryingNoCodeAtAllWhenResolvingStrictly() {
+    // Absence of a code is not an answer that the reference is absent.
+    var resolver = resolverAnswering(Map.of(), singletonErrorWithoutCode("camunda.secrets.A"));
+
+    assertThatThrownBy(() -> resolver.resolveOrFail(List.of("camunda.secrets.A")))
+        .isInstanceOf(SecretReferenceResolver.SecretResolutionFailedException.class)
+        .hasMessageContaining("no code");
+  }
+
+  @Test
+  void returnsNothingAtAllWhenOnlySomeReferencesAreInconclusive() {
+    // Half a result would be indistinguishable from the other half being missing.
+    var resolver =
+        resolverAnswering(
+            Map.of("camunda.secrets.A", "a"),
+            Map.of("camunda.secrets.B", SecretErrorCode.UNREADABLE));
+
+    assertThatThrownBy(
+            () -> resolver.resolveOrFail(List.of("camunda.secrets.A", "camunda.secrets.B")))
+        .isInstanceOf(SecretReferenceResolver.SecretResolutionFailedException.class);
+  }
+
+  @Test
+  void leavesAnInconclusiveAnswerAbsentWhenResolvingLeniently() {
+    // Decision 7 owns this path: every unresolved reference keeps its placeholder, whatever the
+    // cluster said about it, and no caller here could act on the difference.
+    var resolver =
+        resolverAnswering(Map.of(), Map.of("camunda.secrets.A", SecretErrorCode.UNREADABLE));
+
+    assertThat(resolver.resolve(List.of("camunda.secrets.A"))).isEmpty();
   }
 
   @Test
@@ -148,6 +202,13 @@ class SecretReferenceResolverTest {
 
     assertThat(new SecretReferenceResolver(camundaClient).resolve(List.of())).isEmpty();
     assertThat(sentBatches).isEmpty();
+  }
+
+  /** One error entry the cluster reported without a code, which {@link Map#of} cannot express. */
+  private static Map<String, SecretErrorCode> singletonErrorWithoutCode(String reference) {
+    var errors = new HashMap<String, SecretErrorCode>();
+    errors.put(reference, null);
+    return errors;
   }
 
   private SecretReferenceResolver resolverAnswering(
