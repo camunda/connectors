@@ -112,6 +112,7 @@ a credential can supply the value:
 
   ```java
   @AssertTrue(message = "No URL provided by the credential or the element template")
+  @JsonIgnore
   public boolean isUrlPresent() {
     return getUrl() != null && !getUrl().isBlank();
   }
