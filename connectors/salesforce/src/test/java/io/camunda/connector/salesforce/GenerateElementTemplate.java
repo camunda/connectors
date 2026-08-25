@@ -51,12 +51,14 @@ import java.util.stream.Collectors;
  * Generates the Salesforce element template by extending HTTP JSON's own generated {@link
  * ElementTemplate} object model via {@link ElementTemplateBuilder#from(ElementTemplate)}: the
  * inherited authentication block is pruned down to the two mechanisms Salesforce supports (so it
- * stays in sync with HTTP JSON's auth model as it evolves), every other inherited group/property
- * (raw url/method, headers, tls, timeout, retries, output, errors, ...) is dropped, and every
- * Salesforce-specific property (operation type, sObject/SOQL fields, URL construction) is
- * hand-built on top using the same DSL builders HTTP JSON's own generator uses. Salesforce still
- * executes as {@code io.camunda:http-json:1} at runtime -- there is no Salesforce-specific runtime
- * code, only this generated element template.
+ * stays in sync with HTTP JSON's auth model as it evolves), the inherited response-mapping
+ * properties (resultVariable/resultExpression) are kept as-is since Salesforce has no
+ * operation-specific behavior to layer onto response mapping, every other inherited group/property
+ * (raw url/method, headers, tls, timeout, retries, errors, ...) is dropped, and every
+ * Salesforce-specific property -- operation type (sObject CRUD, SOQL query, or Apex REST),
+ * per-operation fields, URL construction -- is hand-built on top using the same DSL builders HTTP
+ * JSON's own generator uses. Salesforce still executes as {@code io.camunda:http-json:1} at runtime
+ * -- there is no Salesforce-specific runtime code, only this generated element template.
  *
  * <p>Run manually after model changes and commit the regenerated {@code
  * element-templates/salesforce-connector.json}: {@code mvn -pl connectors/salesforce test-compile
