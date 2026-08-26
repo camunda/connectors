@@ -18,7 +18,7 @@ import static org.mockito.Mockito.withSettings;
 
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.transport.McpTransport;
-import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
+import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
 import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
@@ -43,7 +43,7 @@ class Langchain4JMcpClientFactoryTest {
 
   @Mock private DefaultMcpClient mcpClient;
   @Mock private StdioMcpTransport stdioMcpTransport;
-  @Mock private StreamableHttpMcpTransport httpMcpTransport;
+  @Mock private HttpMcpTransport httpMcpTransport;
 
   private final Langchain4JMcpClientFactory factory = new Langchain4JMcpClientFactory();
 
@@ -106,9 +106,9 @@ class Langchain4JMcpClientFactoryTest {
   void createsHttpMcpClient(boolean logRequests, boolean logResponses) {
     withMockedMcpClientBuilder(
         mockedMcpClientConstruction -> {
-          try (MockedConstruction<StreamableHttpMcpTransport.Builder> mockedTransportBuilder =
+          try (MockedConstruction<HttpMcpTransport.Builder> mockedTransportBuilder =
               mockConstruction(
-                  StreamableHttpMcpTransport.Builder.class,
+                  HttpMcpTransport.Builder.class,
                   withSettings().defaultAnswer(CALLS_REAL_METHODS),
                   (mock, context) -> doReturn(httpMcpTransport).when(mock).build())) {
             final var sseConfig =
@@ -119,7 +119,7 @@ class Langchain4JMcpClientFactoryTest {
             assertThat(client).isEqualTo(mcpClient);
 
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
-            verify(transportBuilder).url(sseConfig.url());
+            verify(transportBuilder).sseUrl(sseConfig.url());
             verify(transportBuilder).timeout(sseConfig.timeout());
             verify(transportBuilder).logRequests(sseConfig.logRequests());
             verify(transportBuilder).logResponses(sseConfig.logResponses());
@@ -139,9 +139,9 @@ class Langchain4JMcpClientFactoryTest {
                       StdioMcpTransport.Builder.class,
                       withSettings().defaultAnswer(CALLS_REAL_METHODS),
                       (mock, context) -> doReturn(stdioMcpTransport).when(mock).build());
-              MockedConstruction<StreamableHttpMcpTransport.Builder> mockedHttpTransportBuilder =
+              MockedConstruction<HttpMcpTransport.Builder> mockedHttpTransportBuilder =
                   mockConstruction(
-                      StreamableHttpMcpTransport.Builder.class,
+                      HttpMcpTransport.Builder.class,
                       withSettings().defaultAnswer(CALLS_REAL_METHODS),
                       (mock, context) -> doReturn(httpMcpTransport).when(mock).build())) {
             final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), true);

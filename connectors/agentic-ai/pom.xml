@@ -93,9 +93,14 @@
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j</artifactId>
     </dependency>
+    <!-- Pinned to the last release that ships HttpMcpTransport (legacy HTTP+SSE, MCP 2024-11-05).
+         langchain4j 1.19.0 removed it; StreamableHttpMcpTransport is not wire-compatible with
+         legacy-SSE MCP servers. Temporary until langchain4j-mcp is replaced by the official MCP SDK
+         (see #8456). Do not bump without restoring SSE support. -->
     <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-mcp</artifactId>
+      <version>1.18.1-beta28</version>
     </dependency>
     <dependency>
       <groupId>dev.langchain4j</groupId>
