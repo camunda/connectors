@@ -206,7 +206,7 @@
         "name" : "salesforceInteractionType",
         "type" : "zeebe:input"
       },
-      "tooltip" : "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint; Composite Request to batch multiple sObject sub-requests into a single call.",
+      "tooltip" : "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint; Composite Request to batch multiple Salesforce API sub-requests (sObject, SOQL, or Apex REST) into a single call.",
       "type" : "Dropdown",
       "choices" : [
         {
@@ -890,7 +890,7 @@
     },
     {
       "name" : "Composite request",
-      "description" : "Batch multiple Salesforce sObject sub-requests into a single call",
+      "description" : "Batch multiple Salesforce API sub-requests (sObject, SOQL, or Apex REST) into a single call",
       "keywords" : [
         "composite request",
         "batch request",
@@ -904,29 +904,29 @@
     {
       "id" : "sObject_get",
       "properties" : {
-        "interactionType" : "get",
-        "salesforceOperationType" : "sObject"
+        "salesforceOperationType" : "sObject",
+        "interactionType" : "get"
       }
     },
     {
       "id" : "sObject_post",
       "properties" : {
-        "interactionType" : "post",
-        "salesforceOperationType" : "sObject"
+        "salesforceOperationType" : "sObject",
+        "interactionType" : "post"
       }
     },
     {
       "id" : "sObject_patch",
       "properties" : {
-        "interactionType" : "patch",
-        "salesforceOperationType" : "sObject"
+        "salesforceOperationType" : "sObject",
+        "interactionType" : "patch"
       }
     },
     {
       "id" : "sObject_delete",
       "properties" : {
-        "interactionType" : "delete",
-        "salesforceOperationType" : "sObject"
+        "salesforceOperationType" : "sObject",
+        "interactionType" : "delete"
       }
     },
     {
