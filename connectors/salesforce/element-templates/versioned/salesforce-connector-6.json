@@ -19,7 +19,7 @@
     "account"
   ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/salesforce/",
-  "version" : 7,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -78,6 +78,21 @@
       "group" : "endpoint",
       "binding" : {
         "name" : "baseUrl",
+        "type" : "zeebe:input"
+      },
+      "type" : "String"
+    },
+    {
+      "id" : "apiVersion",
+      "label" : "Salesforce API version",
+      "value" : "v58.0",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "endpoint",
+      "binding" : {
+        "name" : "apiVersion",
         "type" : "zeebe:input"
       },
       "type" : "String"
@@ -206,7 +221,7 @@
         "name" : "salesforceInteractionType",
         "type" : "zeebe:input"
       },
-      "tooltip" : "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint.",
+      "tooltip" : "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query.",
       "type" : "Dropdown",
       "choices" : [
         {
@@ -216,35 +231,8 @@
         {
           "name" : "SOQL Query",
           "value" : "soqlQuery"
-        },
-        {
-          "name" : "Apex REST",
-          "value" : "apexRest"
         }
       ]
-    },
-    {
-      "id" : "apiVersion",
-      "label" : "Salesforce API version",
-      "value" : "v58.0",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "feel" : "optional",
-      "group" : "operation",
-      "binding" : {
-        "name" : "apiVersion",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "oneOf" : [
-          "sObject",
-          "soqlQuery"
-        ],
-        "type" : "simple"
-      },
-      "type" : "String"
     },
     {
       "id" : "interactionType",
@@ -294,47 +282,6 @@
         "type" : "simple"
       },
       "type" : "Hidden"
-    },
-    {
-      "id" : "apexRestMethod",
-      "label" : "Method",
-      "value" : "get",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "group" : "operation",
-      "binding" : {
-        "name" : "method",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "apexRest",
-        "type" : "simple"
-      },
-      "type" : "Dropdown",
-      "choices" : [
-        {
-          "name" : "GET",
-          "value" : "get"
-        },
-        {
-          "name" : "POST",
-          "value" : "post"
-        },
-        {
-          "name" : "PATCH",
-          "value" : "patch"
-        },
-        {
-          "name" : "DELETE",
-          "value" : "delete"
-        },
-        {
-          "name" : "PUT",
-          "value" : "put"
-        }
-      ]
     },
     {
       "id" : "objectType",
@@ -524,91 +471,14 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "allMatch" : [
-          {
-            "property" : "interactionType",
-            "oneOf" : [
-              "patch",
-              "post"
-            ],
-            "type" : "simple"
-          },
-          {
-            "property" : "salesforceOperationType",
-            "equals" : "sObject",
-            "type" : "simple"
-          }
-        ]
+        "property" : "interactionType",
+        "oneOf" : [
+          "patch",
+          "post"
+        ],
+        "type" : "simple"
       },
       "tooltip" : "Field values for the Salesforce object, provided as a FEEL context.",
-      "type" : "String"
-    },
-    {
-      "id" : "apexRestPath",
-      "label" : "Path",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "feel" : "optional",
-      "group" : "operation",
-      "binding" : {
-        "name" : "path",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "apexRest",
-        "type" : "simple"
-      },
-      "tooltip" : "Path appended to /services/apexrest/ to build the request URL, e.g. \"MyApexClass\" or \"MyApexClass/action\".",
-      "placeholder" : "MyApexClass/action",
-      "type" : "String"
-    },
-    {
-      "id" : "urlApexRest",
-      "label" : "URL",
-      "value" : "=baseUrl + \"/services/apexrest/\" + path",
-      "group" : "operation",
-      "binding" : {
-        "name" : "url",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "salesforceOperationType",
-        "equals" : "apexRest",
-        "type" : "simple"
-      },
-      "type" : "Hidden"
-    },
-    {
-      "id" : "bodyApexRest",
-      "label" : "Request body",
-      "optional" : true,
-      "feel" : "optional",
-      "group" : "operation",
-      "binding" : {
-        "name" : "body",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "allMatch" : [
-          {
-            "property" : "apexRestMethod",
-            "oneOf" : [
-              "post",
-              "patch",
-              "put"
-            ],
-            "type" : "simple"
-          },
-          {
-            "property" : "salesforceOperationType",
-            "equals" : "apexRest",
-            "type" : "simple"
-          }
-        ]
-      },
-      "tooltip" : "Request payload for the Apex REST call, provided as a FEEL context.",
       "type" : "String"
     },
     {
@@ -636,7 +506,7 @@
       "id" : "version",
       "label" : "Version",
       "description" : "Version of the element template",
-      "value" : "7",
+      "value" : "6",
       "group" : "connector",
       "binding" : {
         "key" : "elementTemplateVersion",
@@ -659,26 +529,40 @@
     {
       "id" : "resultVariable",
       "label" : "Result variable",
-      "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
       "group" : "output",
       "binding" : {
         "key" : "resultVariable",
         "type" : "zeebe:taskHeader"
       },
+      "condition" : {
+        "property" : "interactionType",
+        "oneOf" : [
+          "get",
+          "post"
+        ],
+        "type" : "simple"
+      },
+      "tooltip" : "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "type" : "String"
     },
     {
       "id" : "resultExpression",
       "label" : "Result expression",
-      "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
-      "value" : "{\n  myResponseBody: response.body\n  // Use FEEL to extract values, e.g.,:\n  // myUserId: response.body.post.userId\n}",
       "feel" : "required",
       "group" : "output",
       "binding" : {
         "key" : "resultExpression",
         "type" : "zeebe:taskHeader"
       },
-      "tooltip" : "<div><p>Example response:</p><code>{\"body\":{\"order\":{\"id\":\"123\",\"total\":\"100.00€\"}},\"headers\":{\"Content-Type\":\"application/json\"},\"status\":200}</code><p>Example FEEL expression: <code>= { orderId: body.order.id }</code> -&gt; <code>{\"orderId\":\"123\"}</code></p></div>",
+      "condition" : {
+        "property" : "interactionType",
+        "oneOf" : [
+          "get",
+          "post"
+        ],
+        "type" : "simple"
+      },
+      "tooltip" : "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "type" : "Text"
     },
     {
@@ -768,17 +652,6 @@
         "select records"
       ],
       "presetId" : "soqlQuery"
-    },
-    {
-      "name" : "Apex REST",
-      "description" : "Invoke a custom Salesforce Apex REST endpoint",
-      "keywords" : [
-        "apex rest",
-        "custom endpoint",
-        "apex class",
-        "invoke apex"
-      ],
-      "presetId" : "apexRest"
     }
   ],
   "presets" : [
@@ -814,12 +687,6 @@
       "id" : "soqlQuery",
       "properties" : {
         "salesforceOperationType" : "soqlQuery"
-      }
-    },
-    {
-      "id" : "apexRest",
-      "properties" : {
-        "salesforceOperationType" : "apexRest"
       }
     }
   ],
