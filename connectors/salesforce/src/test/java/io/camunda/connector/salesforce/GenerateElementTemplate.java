@@ -457,7 +457,9 @@ public class GenerateElementTemplate {
                 .binding(new ZeebeInput("apiVersion"))
                 .value("v58.0")
                 .constraints(PropertyConstraints.builder().notEmpty(true).build())
-                .condition(new OneOf("salesforceOperationType", List.of("sObject", "soqlQuery")))
+                .condition(
+                    new OneOf(
+                        "salesforceOperationType", List.of("sObject", "soqlQuery", "composite")))
                 .build(),
             DropdownProperty.builder()
                 .choices(

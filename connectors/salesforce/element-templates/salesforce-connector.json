@@ -244,7 +244,8 @@
         "property" : "salesforceOperationType",
         "oneOf" : [
           "sObject",
-          "soqlQuery"
+          "soqlQuery",
+          "composite"
         ],
         "type" : "simple"
       },
