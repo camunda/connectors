@@ -445,7 +445,7 @@ public class GenerateElementTemplate {
                 .id("salesforceOperationType")
                 .label("Salesforce operation type")
                 .tooltip(
-                    "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint; Composite Request to batch multiple Salesforce API sub-requests (sObject, SOQL, or Apex REST) into a single call.")
+                    "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint; Composite Request to batch any combination of Salesforce REST API calls into a single request.")
                 .group("operation")
                 .binding(new ZeebeInput("salesforceInteractionType"))
                 .build(),
@@ -809,7 +809,7 @@ public class GenerateElementTemplate {
             "apexRest"),
         new LeafStep(
             "Composite request",
-            "Batch multiple Salesforce API sub-requests (sObject, SOQL, or Apex REST) into a single call",
+            "Batch any combination of Salesforce REST API calls into a single request",
             List.of(
                 "composite request", "batch request", "bulk operations", "multiple sub-requests"),
             "composite"));
