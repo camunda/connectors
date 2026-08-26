@@ -18,32 +18,23 @@ package io.camunda.connector.runtime.core.secret;
 
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
-import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class SecretHandler {
+/**
+ * Stands in for the configured secret providers when legacy secret resolution is switched off.
+ * Every lookup fails, naming the setting that disabled it, so a model still using the legacy syntax
+ * says so rather than silently binding an unresolved placeholder as a credential.
+ */
+public class LegacySecretsDisabledProvider implements SecretProvider {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SecretHandler.class);
-
-  protected final SecretProvider secretProvider;
-
-  protected SecretReplacer secretReplacer;
-
-  public SecretHandler(final SecretProvider secretProvider, SecretFilter secretFilter) {
-    this.secretProvider = secretProvider;
-    secretReplacer =
-        (name, context) -> {
-          if (secretFilter.isAllowed(name)) {
-            return Optional.ofNullable(secretProvider.getSecret(name, context))
-                .orElseThrow(() -> new SecretNotAvailableException(name));
-          }
-          LOG.debug("Secret '{}' not in allow-list — placeholder left unreplaced", name);
-          return null;
-        };
-  }
-
-  public String replaceSecrets(String input, SecretContext context) {
-    return SecretUtil.replaceSecrets(input, context, secretReplacer);
+  @Override
+  public String getSecret(String name, SecretContext context) {
+    throw new SecretLookupRefusedException(
+        "Legacy secret resolution is disabled ("
+            + LegacySecretMode.PROPERTY
+            + "="
+            + LegacySecretMode.OFF
+            + "); secret '"
+            + name
+            + "' was not resolved. Reference secrets as camunda.secrets.<name> instead.");
   }
 }

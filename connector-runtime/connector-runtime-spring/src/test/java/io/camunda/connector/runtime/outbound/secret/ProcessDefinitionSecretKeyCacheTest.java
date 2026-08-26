@@ -100,12 +100,15 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
-  void getSecretKeys_taskWithoutTemplate_excluded_returnsEmptyList() throws IOException {
+  void getSecretKeys_taskWithoutTemplate_returnsItsOwnSecrets() throws IOException {
+    // zeebe:modelerTemplate records how an element was authored, not what it is. A task that
+    // declares a secret in its own input mapping must be allow-listed for it whether or not it was
+    // built by applying an element template in Modeler.
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-no-template.bpmn"));
 
     var keys = secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "plain-task"));
 
-    assertThat(keys).isEmpty();
+    assertThat(keys).containsExactly("SECRET_X");
   }
 
   @Test

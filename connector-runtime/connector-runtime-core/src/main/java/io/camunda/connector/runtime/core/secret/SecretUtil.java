@@ -125,12 +125,34 @@ public class SecretUtil {
    * was before the two patterns were separated.
    */
   public static List<String> retrieveSecretKeysInInput(String input) {
+    return keysIn(
+        input, SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS, SecretReferenceUtil.PATTERN);
+  }
+
+  /**
+   * Every secret name the given text declares in one of the two legacy forms. Excludes the new
+   * {@code camunda.secrets.<name>} form, which the legacy providers never resolve, so that a caller
+   * asking what the legacy providers were responsible for is not handed names they never held.
+   */
+  public static List<String> retrieveLegacySecretKeysInInput(String input) {
+    return keysIn(input, SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS);
+  }
+
+  /**
+   * Names are trimmed, because that is the name {@link #replaceSecrets} looks up: the parentheses
+   * pattern's capture reaches past the name to the closing braces, so {@code <code>{{ secrets.FOO
+   * }}</code>} declares {@code FOO}, not {@code "FOO "}. Returning the untrimmed form left every
+   * caller comparing a name against one nothing ever resolves — the outbound allow-list did its own
+   * trimming, error masking did not, and so masked nothing for a reference written with a space
+   * inside the braces.
+   */
+  private static List<String> keysIn(String input, Pattern... patterns) {
     return Objects.isNull(input)
         ? List.of()
-        : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS, SecretReferenceUtil.PATTERN)
+        : Stream.of(patterns)
             .map(pattern -> pattern.matcher(input))
             .flatMap(Matcher::results)
-            .map(matchResult -> matchResult.group("secret"))
+            .map(matchResult -> matchResult.group("secret").trim())
             .distinct()
             .toList();
   }
