@@ -93,6 +93,10 @@ public class GenerateElementTemplate {
   // operation-specific behavior to layer onto response mapping.
   private static final Set<String> KEPT_OUTPUT_PROPERTY_IDS =
       Set.of("resultVariable", "resultExpression");
+  // Single source of truth for the element template's version -- it must otherwise be set both
+  // on the template itself (ElementTemplateBuilder#version) and on the "connector" group's
+  // read-only version property (CommonProperties#version), which drifted out of sync before.
+  private static final long TEMPLATE_VERSION = 9L;
 
   public static void main(String[] args) throws Exception {
     ElementTemplate salesforceTemplate = generate();
@@ -182,7 +186,7 @@ public class GenerateElementTemplate {
         builder
             .id("io.camunda.connectors.Salesforce.v1")
             .name("Salesforce Outbound Connector")
-            .version(8)
+            .version(TEMPLATE_VERSION)
             .category(ElementTemplateCategory.CONNECTORS)
             .documentationRef(
                 "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/salesforce/")
@@ -455,7 +459,7 @@ public class GenerateElementTemplate {
                 .group("operation")
                 .feel(FeelMode.optional)
                 .binding(new ZeebeInput("apiVersion"))
-                .value("v58.0")
+                .value("v67.0")
                 .constraints(PropertyConstraints.builder().notEmpty(true).build())
                 .condition(
                     new OneOf(
@@ -721,7 +725,7 @@ public class GenerateElementTemplate {
         .id("connector")
         .label("Connector")
         .properties(
-            CommonProperties.version(8L)
+            CommonProperties.version(TEMPLATE_VERSION)
                 .binding(new ZeebeTaskHeader("elementTemplateVersion"))
                 .build(),
             CommonProperties.id("io.camunda.connectors.Salesforce.v1")
