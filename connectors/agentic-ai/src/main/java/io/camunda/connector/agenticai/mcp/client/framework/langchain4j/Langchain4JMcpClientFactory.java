@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.transport.McpTransport;
-import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
+import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
 import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
@@ -21,7 +21,8 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
 
   @Override
   public McpClient createClient(String clientId, McpClientConfiguration config) {
-    final var transport = createTransport(config.stdio() != null ? config.stdio() : config.sse());
+    final var transportConfig = config.stdio() != null ? config.stdio() : config.sse();
+    final var transport = createTransport(transportConfig);
     final var builder = new DefaultMcpClient.Builder().key(clientId).transport(transport);
 
     Optional.ofNullable(config.initializationTimeout()).map(builder::initializationTimeout);
@@ -46,8 +47,8 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
             .build();
       }
       case McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration http ->
-          new StreamableHttpMcpTransport.Builder()
-              .url(http.url())
+          new HttpMcpTransport.Builder()
+              .sseUrl(http.url())
               .timeout(http.timeout())
               .logRequests(http.logRequests())
               .logResponses(http.logResponses())
