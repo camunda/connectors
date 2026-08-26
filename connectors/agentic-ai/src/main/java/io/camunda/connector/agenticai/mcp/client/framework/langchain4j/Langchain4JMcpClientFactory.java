@@ -23,32 +23,13 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
   public McpClient createClient(String clientId, McpClientConfiguration config) {
     final var transportConfig = config.stdio() != null ? config.stdio() : config.sse();
     final var transport = createTransport(transportConfig);
-    final var builder =
-        new DefaultMcpClient.Builder()
-            .key(clientId)
-            .transport(transport)
-            .protocolVersion(protocolVersion(transportConfig));
+    final var builder = new DefaultMcpClient.Builder().key(clientId).transport(transport);
 
     Optional.ofNullable(config.initializationTimeout()).map(builder::initializationTimeout);
     Optional.ofNullable(config.toolExecutionTimeout()).map(builder::toolExecutionTimeout);
     Optional.ofNullable(config.reconnectInterval()).map(builder::reconnectInterval);
 
     return builder.build();
-  }
-
-  /**
-   * HttpMcpTransport implements the legacy HTTP+SSE transport (MCP protocol revision 2024-11-05).
-   * DefaultMcpClient otherwise advertises a much newer default revision, which legacy SSE servers
-   * reject/ignore, stalling initialization. Pin the negotiated revision for the SSE transport;
-   * stdio keeps the client default (null -> builder default).
-   */
-  private String protocolVersion(
-      McpClientConfigurationProperties.McpClientTransportConfiguration transportConfig) {
-    return switch (transportConfig) {
-      case McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration sse ->
-          "2024-11-05";
-      default -> null;
-    };
   }
 
   private McpTransport createTransport(

@@ -125,8 +125,6 @@ class Langchain4JMcpClientFactoryTest {
             verify(transportBuilder).logResponses(sseConfig.logResponses());
 
             final var mcpClientBuilder = mockedMcpClientConstruction.constructed().getFirst();
-            // legacy HTTP+SSE transport must negotiate the matching MCP protocol revision
-            verify(mcpClientBuilder).protocolVersion("2024-11-05");
             verifyMcpClientBuilder(mcpClientBuilder, httpMcpTransport);
           }
         });
@@ -198,7 +196,6 @@ class Langchain4JMcpClientFactoryTest {
             (mock, context) -> {
               when(mock.key(any())).thenReturn(mock);
               when(mock.transport(any())).thenReturn(mock);
-              when(mock.protocolVersion(any())).thenReturn(mock);
               when(mock.build()).thenReturn(mcpClient);
             })) {
       testLogic.accept(mockedBuilder);
