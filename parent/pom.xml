@@ -105,6 +105,10 @@ limitations under the License.</license.inlineheader>
     <version.amqp-client>5.34.0</version.amqp-client>
     <tomcat.version>11.0.24</tomcat.version>
     <version.netty>4.2.17.Final</version.netty>
+    <!-- CVE-2026-59296: micrometer transitive override — remove once spring-boot-dependencies
+         ships io.micrometer:micrometer-bom >= 1.17.1. Guarded by the version.spring-boot
+         enforcer rule below. -->
+    <version.micrometer-bom>1.17.1</version.micrometer-bom>
     <version.spring-cloud-gcp-starter-logging>8.1.0</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.1</version.logback>
 
@@ -248,6 +252,17 @@ limitations under the License.</license.inlineheader>
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
         <version>${version.netty}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+
+      <!-- CVE-2026-59296 (https://nvd.nist.gov/vuln/detail/CVE-2026-59296): micrometer BOM
+           imported before Spring Boot so its version takes precedence. Remove once
+           spring-boot-dependencies ships io.micrometer:micrometer-bom >= 1.17.1. -->
+      <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-bom</artifactId>
+        <version>${version.micrometer-bom}</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -1139,6 +1154,21 @@ If the new spring-boot-dependencies BOM ships com.rabbitmq:amqp-client &gt;= 5.3
 version.amqp-client property, the amqp-client dependencyManagement entry, and this enforcer rule
 from parent/pom.xml.
 See: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx
+                </regexMessage>
+              </requireProperty>
+              <!-- CVE-2026-59296 guard: fails if version.spring-boot is bumped, as a reminder to
+                   check whether the micrometer-bom override can be removed (see
+                   version.micrometer-bom). -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^4\.1\.0$</regex>
+                <regexMessage>
+version.spring-boot was changed! Check if the micrometer-bom CVE-2026-59296 override can be removed.
+If the new spring-boot-dependencies BOM ships io.micrometer:micrometer-bom &gt;= 1.17.1 (confirm with
+`mvn dependency:tree -Dincludes=io.micrometer:micrometer-core`, not just the property), remove the
+version.micrometer-bom property, the micrometer-bom dependencyManagement entry, and this enforcer
+rule from parent/pom.xml.
+See: https://nvd.nist.gov/vuln/detail/CVE-2026-59296
                 </regexMessage>
               </requireProperty>
             </rules>
