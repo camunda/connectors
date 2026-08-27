@@ -16,13 +16,19 @@ know they exist.
 A connector that accepts a reusable credential needs three things, not one:
 
 1. **The chooser** — a `@TemplateProperty(type = Configuration, ...)` field typed as your
-   `@Configuration` class. Modeler renders it as a picker.
+   `@Configuration` class. Modeler renders it as a picker. Registering the field alone only emits
+   the chooser reference — also add the class to `@ElementTemplate(configurations = {
+   YourConfiguration.class })` on the connector class, or the embedded `configurationTemplates`
+   entry (and the generator's 8.10-floor check) won't be generated.
 2. **The inline fallback** — the connector's existing inline fields, still present for a
    Camunda developer who doesn't want to set up a reusable credential for a one-off call. Hidden
    once a credential is chosen, via a `PropertyCondition.IsEmpty` condition on the chooser field.
 3. **An effective-value accessor** — the connector must still read *one* resolved value. Override
    the getter (class-based model) or the record accessor (record-based model) to prefer the bound
-   credential and fall back to the inline field:
+   credential and fall back to the inline field. The one exception is a chooser + inline
+   **override** field (see "Chooser-only field vs. chooser + inline override" below) — there the
+   inline value, when present, is the one meant to take precedence, as `HttpJsonRequest#getUrl()`
+   shows below:
 
    ```java
    // GraphQLRequest (record) — accessor override, not a new synthetic method, so every
@@ -121,6 +127,12 @@ a credential can supply the value:
   A bare `"URL is required"` doesn't tell the reader where to provide one — this bit us in exactly
   that form until it was fixed.
 
+- **Keep `constraints.notEmpty = true` on the field explicitly** even after moving Java-side
+  requiredness onto the `@AssertTrue` above — dropping `@NotBlank`/`@NotNull` also drops the
+  generator-derived `notEmpty` constraint, so add `@PropertyConstraints(notEmpty = true)` back by
+  hand. Otherwise Modeler stops requiring the inline field client-side while it's still visible
+  (no credential bound), even though the server-side check still catches it.
+
 - **A `@Pattern` regex must accept the empty string if the field is genuinely optional.**
   Jakarta's `@Pattern` treats `null` as valid but *does* run the regex against `""`. Modeler's
   client-side `constraints.pattern` has the same problem — if your pattern is
@@ -202,9 +214,14 @@ For every property that can come from a credential or an inline field, cover:
       override" above) whose credential value can legitimately be `null` (e.g. an OAuth credential
       has no URL of its own) — there the inline value is the only source and "both present" can't
       occur.
-- [ ] For a field the credential *does* constrain (a host-bound URL, a database engine), both
-      present must be **rejected**, not silently resolved either way — e.g. REST auth's
-      `urlOverride` against a Basic/Bearer/API-key credential.
+- [ ] For a field with a genuine inline **override** that's distinguishable from "untouched" (a
+      host-bound URL left blank by default), both present must be **rejected**, not silently
+      resolved either way — e.g. REST auth's `urlOverride` against a Basic/Bearer/API-key
+      credential.
+- [ ] For a **chooser-only** field that's simply hidden once a credential is bound (JDBC's
+      `database` engine), a hidden default doesn't count as "both present" and must be ignored,
+      not rejected — `JdbcRequest#database()` intentionally lets the credential win over the
+      always-populated `POSTGRESQL` default rather than treating it as a conflict.
 - [ ] Neither present, and the credential doesn't (or can't) supply the value — binding fails
       with a message naming both possible sources.
 - [ ] The full JSON → Jackson-binding path, not just direct object construction — a
@@ -226,6 +243,8 @@ against a local running cluster without Hub or a Modeler UI:
 
 ```bash
 # "value" holds the @Configuration class's fields verbatim, e.g. authentication + url.
+# configurationTemplateVersion must match that class's own @Configuration.version() — not
+# necessarily 1 — or the instance will be older than the chooser's floor and rejected.
 curl -X POST http://localhost:8080/v2/cluster-variables/global \
   -H 'Content-Type: application/json' \
   -d '{
@@ -233,7 +252,7 @@ curl -X POST http://localhost:8080/v2/cluster-variables/global \
     "metadata": {
       "kind": "CREDENTIAL",
       "configurationTemplate": "<the @Configuration id, e.g. io.camunda.connectors:rest-authentication:1>",
-      "configurationTemplateVersion": 1,
+      "configurationTemplateVersion": "<the @Configuration class's version(), e.g. 1>",
       "displayName": "My Credential (demo)"
     },
     "value": { "authentication": { "type": "bearer", "token": "..." }, "url": "https://example.com" }

@@ -114,7 +114,8 @@ Resulting template fragment (chooser + embedded template):
 
 ### Inline fallback: `PropertyCondition.IsEmpty`
 
-The chooser-only limitation above is resolved. `PropertyCondition.IsEmpty` was added end-to-end
+The chooser-only limitation this ADR originally scoped out — inline fallback deferred pending an
+`isEmpty` condition — is now resolved. `PropertyCondition.IsEmpty` was added end-to-end
 (DSL, annotation, processor) so an element template can gate its inline fallback fields on whether
 the chooser field is empty — `isEmpty: true` shows the inline fields when no credential is chosen,
 `isEmpty: false` shows a credential-only field (e.g. a value override) when one is. Chooser-first
