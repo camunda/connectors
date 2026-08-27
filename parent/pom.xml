@@ -104,7 +104,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.54.3</version.aws-sdk2>
+    <version.aws-sdk2>2.54.4</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -130,7 +130,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260610-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.67.0</version.google-genai>
+    <version.google-genai>1.68.0</version.google-genai>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 
@@ -138,7 +138,7 @@ limitations under the License.</license.inlineheader>
     <version.httpcore5>5.4.3</version.httpcore5>
     <version.httpclient5>5.6.4</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
-    <version.ayza>10.0.6</version.ayza>
+    <version.ayza>10.0.7</version.ayza>
     <version.pdfbox>3.0.8</version.pdfbox>
     <version.collections4>4.6.0</version.collections4>
 
@@ -163,7 +163,7 @@ limitations under the License.</license.inlineheader>
          version the other doesn't have, breaking dependency resolution. -->
     <version.bouncycastle-pkix>1.85</version.bouncycastle-pkix>
     <version.bouncycastle-prov>1.85.2</version.bouncycastle-prov>
-    <version.box-sdk>5.15.0</version.box-sdk>
+    <version.box-sdk>5.15.1</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
@@ -194,7 +194,7 @@ limitations under the License.</license.inlineheader>
     <version.elasticsearch-java>8.19.21</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.20</version.elasticsearch-rest-client>
 
-    <version.scala>3.8.4</version.scala>
+    <version.scala>3.9.0</version.scala>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
