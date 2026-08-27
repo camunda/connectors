@@ -37,12 +37,12 @@
   },
   "groups" : [
     {
-      "id" : "workspace",
-      "label" : "Databricks workspace"
-    },
-    {
       "id" : "operation",
       "label" : "Operation"
+    },
+    {
+      "id" : "workspace",
+      "label" : "Databricks workspace"
     },
     {
       "id" : "authentication",
@@ -1132,5 +1132,144 @@
       "tooltip" : "ID of the element template",
       "type" : "Hidden"
     }
+  ],
+  "steps" : [
+    {
+      "name" : "SQL Statement Execution",
+      "description" : "Execute and manage Databricks SQL statements.",
+      "steps" : [
+        {
+          "name" : "Execute statement",
+          "description" : "Run a SQL statement against a Databricks SQL warehouse (POST /api/2.0/sql/statements).",
+          "keywords" : [ "execute statement", "run sql", "query", "select" ],
+          "presetId" : "sql_execute"
+        },
+        {
+          "name" : "Get statement status and result",
+          "description" : "Poll a Databricks SQL statement's status and inline result (GET /api/2.0/sql/statements/{id}).",
+          "keywords" : [ "get statement", "poll", "status", "result" ],
+          "presetId" : "sql_getStatement"
+        },
+        {
+          "name" : "Get result chunk",
+          "description" : "Page through a Databricks SQL result set larger than one chunk (GET .../result/chunks/{index}).",
+          "keywords" : [ "get chunk", "pagination", "result chunk" ],
+          "presetId" : "sql_getChunk"
+        },
+        {
+          "name" : "Cancel statement",
+          "description" : "Cancel a running Databricks SQL statement (POST .../cancel).",
+          "keywords" : [ "cancel statement", "stop query" ],
+          "presetId" : "sql_cancel"
+        }
+      ]
+    },
+    {
+      "name" : "SQL Warehouses",
+      "description" : "Manage Databricks SQL warehouse state.",
+      "steps" : [
+        {
+          "name" : "Get warehouse",
+          "description" : "Read a Databricks SQL warehouse's current state (GET /api/2.0/sql/warehouses/{id}).",
+          "keywords" : [ "get warehouse", "warehouse status" ],
+          "presetId" : "warehouse_get"
+        },
+        {
+          "name" : "Start warehouse",
+          "description" : "Start a stopped Databricks SQL warehouse (POST .../start).",
+          "keywords" : [ "start warehouse" ],
+          "presetId" : "warehouse_start"
+        },
+        {
+          "name" : "Stop warehouse",
+          "description" : "Stop a running Databricks SQL warehouse (POST .../stop).",
+          "keywords" : [ "stop warehouse" ],
+          "presetId" : "warehouse_stop"
+        }
+      ]
+    },
+    {
+      "name" : "Jobs",
+      "description" : "Trigger and monitor Databricks job runs.",
+      "steps" : [
+        {
+          "name" : "Run job now",
+          "description" : "Trigger a Databricks job run now (POST /api/2.2/jobs/run-now).",
+          "keywords" : [ "run job", "trigger job", "jobs run now" ],
+          "presetId" : "jobs_runNow"
+        },
+        {
+          "name" : "Get run",
+          "description" : "Read a Databricks job run's status (GET /api/2.2/jobs/runs/get).",
+          "keywords" : [ "get run", "job status", "poll run" ],
+          "presetId" : "jobs_getRun"
+        },
+        {
+          "name" : "Get run output",
+          "description" : "Read a completed Databricks job run's task output (GET /api/2.2/jobs/runs/get-output).",
+          "keywords" : [ "get run output", "job output" ],
+          "presetId" : "jobs_getRunOutput"
+        },
+        {
+          "name" : "Cancel run",
+          "description" : "Cancel an in-progress Databricks job run (POST /api/2.2/jobs/runs/cancel).",
+          "keywords" : [ "cancel run", "stop job" ],
+          "presetId" : "jobs_cancelRun"
+        }
+      ]
+    },
+    {
+      "name" : "Model Serving",
+      "description" : "Invoke and inspect Databricks Model Serving endpoints.",
+      "steps" : [
+        {
+          "name" : "Invoke chat / LLM endpoint",
+          "description" : "Send a chat completion request to a Databricks Model Serving endpoint.",
+          "keywords" : [ "chat", "llm", "invoke endpoint", "model serving" ],
+          "presetId" : "modelServing_chat"
+        },
+        {
+          "name" : "Invoke custom model, raw payload",
+          "description" : "Send a raw request body to a custom Databricks Model Serving endpoint.",
+          "keywords" : [ "custom model", "raw payload", "invoke endpoint" ],
+          "presetId" : "modelServing_raw"
+        },
+        {
+          "name" : "Get endpoint",
+          "description" : "Read a Databricks Model Serving endpoint's status (GET /api/2.0/serving-endpoints/{name}).",
+          "keywords" : [ "get endpoint", "serving status" ],
+          "presetId" : "modelServing_getEndpoint"
+        }
+      ]
+    },
+    {
+      "name" : "Vector Search",
+      "description" : "Query a Databricks Vector Search index.",
+      "steps" : [
+        {
+          "name" : "Query index",
+          "description" : "Query a Databricks Vector Search index (POST /api/2.0/vector-search/indexes/{name}/query).",
+          "keywords" : [ "vector search", "query index", "similarity search" ],
+          "presetId" : "vectorSearch_query"
+        }
+      ]
+    }
+  ],
+  "presets" : [
+    { "id" : "sql_execute", "properties" : { "service" : "sql", "sqlOperation" : "sql.execute" } },
+    { "id" : "sql_getStatement", "properties" : { "service" : "sql", "sqlOperation" : "sql.getStatement" } },
+    { "id" : "sql_getChunk", "properties" : { "service" : "sql", "sqlOperation" : "sql.getChunk" } },
+    { "id" : "sql_cancel", "properties" : { "service" : "sql", "sqlOperation" : "sql.cancel" } },
+    { "id" : "warehouse_get", "properties" : { "service" : "warehouse", "warehouseOperation" : "warehouse.get" } },
+    { "id" : "warehouse_start", "properties" : { "service" : "warehouse", "warehouseOperation" : "warehouse.start" } },
+    { "id" : "warehouse_stop", "properties" : { "service" : "warehouse", "warehouseOperation" : "warehouse.stop" } },
+    { "id" : "jobs_runNow", "properties" : { "service" : "jobs", "jobsOperation" : "jobs.runNow" } },
+    { "id" : "jobs_getRun", "properties" : { "service" : "jobs", "jobsOperation" : "jobs.getRun" } },
+    { "id" : "jobs_getRunOutput", "properties" : { "service" : "jobs", "jobsOperation" : "jobs.getRunOutput" } },
+    { "id" : "jobs_cancelRun", "properties" : { "service" : "jobs", "jobsOperation" : "jobs.cancelRun" } },
+    { "id" : "modelServing_chat", "properties" : { "service" : "modelServing", "servingOperation" : "serving.chat" } },
+    { "id" : "modelServing_raw", "properties" : { "service" : "modelServing", "servingOperation" : "serving.raw" } },
+    { "id" : "modelServing_getEndpoint", "properties" : { "service" : "modelServing", "servingOperation" : "serving.getEndpoint" } },
+    { "id" : "vectorSearch_query", "properties" : { "service" : "vectorSearch", "vectorSearchOperation" : "vectorSearch.query" } }
   ]
 }
