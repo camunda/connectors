@@ -19,8 +19,10 @@ package io.camunda.connector.generator.cli.command;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeature;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -74,6 +76,16 @@ public class ConGen {
       defaultValue = "ServiceTask")
   List<String> elementTypes;
 
+  @Option(
+      names = {"-f", "--feature"},
+      description = {
+        "Enable a generation feature. Repeatable, for example:",
+        "-f LEGACY_INLINE_AUTHENTICATION -f SYNCHRONOUS_RESPONSE",
+        "See io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeature for the",
+        "list of known features."
+      })
+  List<String> features;
+
   GeneratorConfiguration generatorConfiguration() {
     var bpmnTypes =
         Optional.ofNullable(elementTypes)
@@ -93,7 +105,26 @@ public class ConGen {
         templateName,
         null,
         bpmnTypes,
-        Map.of()); // todo: do we need to support feature overrides from the CLI?
+        parseFeatures());
+  }
+
+  private Map<GenerationFeature, Boolean> parseFeatures() {
+    var result = new HashMap<GenerationFeature, Boolean>();
+    Optional.ofNullable(features)
+        .ifPresent(names -> names.forEach(name -> result.put(parseFeature(name), Boolean.TRUE)));
+    return result;
+  }
+
+  private GenerationFeature parseFeature(String name) {
+    try {
+      return GenerationFeature.valueOf(name);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          "Unknown feature: "
+              + name
+              + ". Known features are: "
+              + Arrays.toString(GenerationFeature.values()));
+    }
   }
 
   private BpmnType parseBpmnType(String type) {

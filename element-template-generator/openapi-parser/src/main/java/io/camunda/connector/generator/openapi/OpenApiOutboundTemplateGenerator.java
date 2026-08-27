@@ -22,6 +22,7 @@ import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeature;
 import io.camunda.connector.generator.api.RestTemplateGenerator;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
@@ -229,7 +230,10 @@ public class OpenApiOutboundTemplateGenerator
                 .map(HttpOperationBuilder::build)
                 .collect(Collectors.toList()))
         .servers(extractServers(openAPI.getServers()))
-        .authentication(authentication);
+        .authentication(authentication)
+        .legacyInlineAuthentication(
+            configuration.features().get(GenerationFeature.LEGACY_INLINE_AUTHENTICATION)
+                == Boolean.TRUE);
   }
 
   private String getIdFromApiTitle(String title) {

@@ -20,6 +20,7 @@ import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeature;
 import io.camunda.connector.generator.api.RestTemplateGenerator;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
@@ -198,7 +199,10 @@ public class PostmanCollectionOutboundTemplateGenerator
         .authentication(authentication)
         // Context: Postman Collections do not announce base server data; they are also usually
         // variables
-        .servers(List.of(new HttpServerData(EMPTY_FEEL_STRING, "")));
+        .servers(List.of(new HttpServerData(EMPTY_FEEL_STRING, "")))
+        .legacyInlineAuthentication(
+            configuration.features().get(GenerationFeature.LEGACY_INLINE_AUTHENTICATION)
+                == Boolean.TRUE);
   }
 
   private String getIdFromApiTitle(PostmanCollectionV210.Info info) {
