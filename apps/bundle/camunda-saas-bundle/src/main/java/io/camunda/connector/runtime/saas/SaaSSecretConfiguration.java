@@ -23,7 +23,7 @@ import io.camunda.connector.secret.providers.GcpSecretProvider;
 import java.util.Objects;
 import javax.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -52,17 +52,17 @@ public class SaaSSecretConfiguration {
   private AbstractSecretProvider internalSecretProvider;
 
   /**
-   * Disabled via {@code camunda.saas.secrets.enabled=false} once the legacy internal secret
-   * provider (GCP/AWS secret manager) is retired in favor of the central secret store fallback, so
-   * this bean is never constructed and {@code camunda.saas.secrets.projectId} is no longer
-   * required.
+   * Only built when {@code camunda.connector.secret-resolver.legacy.mode=ON} - the same switch used
+   * to control legacy secret resolution elsewhere (see {@code
+   * io.camunda.connector.runtime.core.secret.LegacySecretMode}, not a compile dependency of this
+   * module). Under {@code FALLBACK} the local provider is meant to be dropped in favor of the
+   * central secret store, and under {@code OFF} legacy resolution is disabled entirely - in both
+   * cases this bean must never be constructed, so {@code camunda.saas.secrets.projectId} is no
+   * longer required.
    */
   @Bean
-  @ConditionalOnProperty(
-      prefix = "camunda.saas.secrets",
-      name = "enabled",
-      havingValue = "true",
-      matchIfMissing = true)
+  @ConditionalOnExpression(
+      "'${camunda.connector.secret-resolver.legacy.mode:ON}'.equalsIgnoreCase('ON')")
   public SecretProvider getSecretProvider() {
     if (Objects.equals(clusterProvider, "aws")) {
       secretProvider = new AwsSecretProvider(clusterId, secretsNamePrefix);

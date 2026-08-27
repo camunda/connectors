@@ -28,13 +28,14 @@ class SaaSSecretConfigurationTest {
       new ApplicationContextRunner().withUserConfiguration(SaaSSecretConfiguration.class);
 
   @Test
-  void whenLegacySecretsDisabled_secretProviderBeanIsNotCreated() {
-    // camunda.saas.secrets.projectId is deliberately left unset here: with the central secret
-    // store fallback in place, this is the whole point of the switch - the legacy GCP/AWS
+  void whenLegacySecretModeOff_secretProviderBeanIsNotCreated() {
+    // camunda.saas.secrets.projectId is deliberately left unset here: with legacy secret
+    // resolution switched off, this is the whole point of the switch - the legacy GCP/AWS
     // provider must never be constructed, so a missing projectId must not crash the context.
     contextRunner
         .withPropertyValues(
-            "camunda.saas.secrets.enabled=false", "camunda.client.cloud.clusterId=some-cluster")
+            "camunda.connector.secret-resolver.legacy.mode=OFF",
+            "camunda.client.cloud.clusterId=some-cluster")
         .run(
             context -> {
               assertThat(context).hasNotFailed();
@@ -44,9 +45,27 @@ class SaaSSecretConfigurationTest {
   }
 
   @Test
-  void whenLegacySecretsEnabledButProjectIdMissing_contextFailsToStart() {
-    // Documents the pre-fix crash this switch exists to avoid: with the flag left at its
-    // default (enabled), the legacy provider bean still requires a project id.
+  void whenLegacySecretModeFallback_secretProviderBeanIsNotCreated() {
+    // FALLBACK is the migration path to the central secret store: the local provider is meant to
+    // be dropped, so this bean must not be built and a missing projectId must not crash the
+    // context - this is exactly the crash reported when centralized secrets + fallback were
+    // enabled on dev.
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.secret-resolver.legacy.mode=FALLBACK",
+            "camunda.client.cloud.clusterId=some-cluster")
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              assertThat(context).doesNotHaveBean(SecretProvider.class);
+              assertThat(context.getBeanNamesForType(SecretProvider.class)).isEmpty();
+            });
+  }
+
+  @Test
+  void whenLegacySecretModeOnAndProjectIdMissing_contextFailsToStart() {
+    // Documents the pre-fix crash this switch exists to avoid: with the mode left at its
+    // default (ON), the legacy provider bean still requires a project id.
     contextRunner
         .withPropertyValues("camunda.client.cloud.clusterId=some-cluster")
         .run(context -> assertThat(context).hasFailed());

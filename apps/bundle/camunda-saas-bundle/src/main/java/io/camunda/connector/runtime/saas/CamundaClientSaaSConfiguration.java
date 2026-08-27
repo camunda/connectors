@@ -44,13 +44,15 @@ public class CamundaClientSaaSConfiguration {
   private SecretProvider internalSecretProvider;
 
   /**
-   * Enables falling back to the internal secret manager for M2M client id/secret when a client's
-   * credentials are not explicitly configured. Set to {@code false} once the legacy internal secret
-   * provider (GCP/AWS secret manager) is no longer provisioned, so clients without explicit
-   * credentials don't force it to be constructed.
+   * Same switch used elsewhere to control legacy secret resolution (see {@code
+   * io.camunda.connector.runtime.core.secret.LegacySecretMode}, not a compile dependency of this
+   * module). The internal secret provider (GCP/AWS secret manager) is only built when this is
+   * {@code ON} - under {@code FALLBACK} the local provider is meant to be dropped in favor of the
+   * central secret store, and under {@code OFF} legacy resolution is disabled entirely - so clients
+   * without explicit credentials don't force it to be constructed in either case.
    */
-  @Value("${camunda.saas.secrets.enabled:true}")
-  private boolean internalSecretProviderEnabled = true;
+  @Value("${camunda.connector.secret-resolver.legacy.mode:ON}")
+  private String legacySecretMode = "ON";
 
   @Value("${camunda.client.auth.token-url:#{null}}")
   private String camundaClientTokenUrl;
@@ -81,7 +83,7 @@ public class CamundaClientSaaSConfiguration {
       public CredentialsProvider camundaClientCredentialsProvider(
           final CamundaClientProperties properties) {
         var auth = properties.getAuth();
-        if (internalSecretProviderEnabled
+        if (isLegacySecretsEnabled()
             && auth.getClientId() == null
             && auth.getClientSecret() == null) {
           return super.camundaClientCredentialsProvider(
@@ -135,15 +137,19 @@ public class CamundaClientSaaSConfiguration {
 
   /**
    * Lazily builds the internal secret provider on first use, rather than eagerly at construction
-   * time. Every client falls through {@link #withInternalSecretManagerCredentials} only when {@code
-   * internalSecretProviderEnabled} is {@code true}, so a deployment that has switched off the
-   * legacy internal secret manager (e.g. no {@code camunda.saas.secrets.projectId} configured any
-   * more) never has to construct it at all.
+   * time. Every client falls through {@link #withInternalSecretManagerCredentials} only when {@link
+   * #isLegacySecretsEnabled()}, so a deployment that has switched legacy secret resolution off
+   * (e.g. no {@code camunda.saas.secrets.projectId} configured any more) never has to construct it
+   * at all.
    */
   private SecretProvider getInternalSecretProvider() {
     if (internalSecretProvider == null) {
       internalSecretProvider = saaSConfiguration.getInternalSecretProvider();
     }
     return internalSecretProvider;
+  }
+
+  private boolean isLegacySecretsEnabled() {
+    return "ON".equalsIgnoreCase(legacySecretMode);
   }
 }
