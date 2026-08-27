@@ -922,7 +922,7 @@
           "jobs.cancelRun"
         ]
       },
-      "tooltip" : "The run_id returned by Run job now.",
+      "tooltip" : "The run_id returned by Run job now. Exception: for Get run output on a multi-task job, Databricks only accepts a single task's run_id -- read it from the terminal Get run response's tasks[].run_id, not this top-level run_id.",
       "type" : "Number"
     },
     {

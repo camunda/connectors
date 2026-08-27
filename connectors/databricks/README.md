@@ -54,7 +54,7 @@ Pick a **Databricks API**, then an **Operation**. The form shows only the fields
 
 **Run a SQL statement that takes longer than 50s.** *Execute statement* with `wait_timeout` of `0s` (or `CONTINUE` on timeout) returns a `statement_id` in a non-terminal state. Loop *Get statement status and result* behind a BPMN timer until `status.state` is terminal. If a response carries `result.next_chunk_index`, page the rest with *Get result chunk*.
 
-**Trigger a job and wait for it.** *Run job now* returns a `run_id`. Poll *Get run* until `state.life_cycle_state` is `TERMINATED`, then branch on `state.result_state`, and read task output with *Get run output*. *Cancel run* covers BPMN-side cancellation or a boundary timer.
+**Trigger a job and wait for it.** *Run job now* returns a `run_id`. Poll *Get run* until `state.life_cycle_state` is `TERMINATED`, then branch on `state.result_state`. **For a multi-task job, `Get run output` needs an individual task's `run_id`** — read it from the terminal *Get run* response's `tasks[].run_id`, not the top-level `run_id` *Run job now* returned; Databricks only accepts a single-task run there. *Cancel run* covers BPMN-side cancellation or a boundary timer.
 
 **Avoid duplicate job runs.** The template defaults to 3 retries. A retried *Run job now* would start the job twice, so set **Idempotency token** to something stable per process instance — Databricks then returns the existing run instead of starting a new one.
 
@@ -69,7 +69,7 @@ Pick a **Databricks API**, then an **Operation**. The form shows only the fields
 
 The OAuth token endpoint is derived from the workspace URL, so it does not have to be configured separately.
 
-> **OAuth U2M with PKCE is not supported**, and neither is an OAuth refresh-token option. The interactive authorization-code + PKCE flow requires a browser redirect, and a Connector executes unattended in a job worker. Databricks also has no documented way to obtain a standalone refresh token for third-party use outside its own CLI, so there is no out-of-band variant either — use OAuth M2M for unattended production workloads.
+> **OAuth U2M with PKCE is not supported.** Databricks does document a manual authorization-code + PKCE flow for third-party apps (register a custom OAuth application, request `scope=all-apis offline_access` at `/oidc/v1/authorize`, exchange the code at `/oidc/v1/token` for a refresh token) — the gap isn't a missing token endpoint, it's that the *initial* authorization step needs an interactive browser redirect from a human, which an unattended Connector job worker cannot perform. Once obtained, the refresh token would also need external rotation this Connector does not do. Use OAuth M2M for unattended production workloads instead.
 
 ## Partner telemetry
 
