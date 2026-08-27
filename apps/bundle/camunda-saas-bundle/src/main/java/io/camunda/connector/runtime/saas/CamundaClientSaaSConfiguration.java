@@ -40,7 +40,17 @@ public class CamundaClientSaaSConfiguration {
   public static String SECRET_NAME_CLIENT_ID = "M2MClientId";
   public static String SECRET_NAME_SECRET = "M2MSecret";
 
-  private final SecretProvider internalSecretProvider;
+  private final SaaSSecretConfiguration saaSConfiguration;
+  private SecretProvider internalSecretProvider;
+
+  /**
+   * Enables falling back to the internal secret manager for M2M client id/secret when a client's
+   * credentials are not explicitly configured. Set to {@code false} once the legacy internal secret
+   * provider (GCP/AWS secret manager) is no longer provisioned, so clients without explicit
+   * credentials don't force it to be constructed.
+   */
+  @Value("${camunda.saas.secrets.enabled:true}")
+  private boolean internalSecretProviderEnabled = true;
 
   @Value("${camunda.client.auth.token-url:#{null}}")
   private String camundaClientTokenUrl;
@@ -49,7 +59,7 @@ public class CamundaClientSaaSConfiguration {
   private String camundaClientAudience;
 
   public CamundaClientSaaSConfiguration(@Autowired SaaSSecretConfiguration saaSConfiguration) {
-    this.internalSecretProvider = saaSConfiguration.getInternalSecretProvider();
+    this.saaSConfiguration = saaSConfiguration;
   }
 
   /**
@@ -71,7 +81,9 @@ public class CamundaClientSaaSConfiguration {
       public CredentialsProvider camundaClientCredentialsProvider(
           final CamundaClientProperties properties) {
         var auth = properties.getAuth();
-        if (auth.getClientId() == null && auth.getClientSecret() == null) {
+        if (internalSecretProviderEnabled
+            && auth.getClientId() == null
+            && auth.getClientSecret() == null) {
           return super.camundaClientCredentialsProvider(
               withInternalSecretManagerCredentials(properties));
         }
@@ -108,6 +120,7 @@ public class CamundaClientSaaSConfiguration {
     resolvedProperties.setAuth(auth);
 
     auth.setMethod(AuthMethod.oidc);
+    var internalSecretProvider = getInternalSecretProvider();
     auth.setClientId(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID, null));
     auth.setClientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET, null));
     if (auth.getTokenUrl() == null && camundaClientTokenUrl != null) {
@@ -118,5 +131,19 @@ public class CamundaClientSaaSConfiguration {
     }
     auth.setCredentialsCachePath(null);
     return resolvedProperties;
+  }
+
+  /**
+   * Lazily builds the internal secret provider on first use, rather than eagerly at construction
+   * time. Every client falls through {@link #withInternalSecretManagerCredentials} only when {@code
+   * internalSecretProviderEnabled} is {@code true}, so a deployment that has switched off the
+   * legacy internal secret manager (e.g. no {@code camunda.saas.secrets.projectId} configured any
+   * more) never has to construct it at all.
+   */
+  private SecretProvider getInternalSecretProvider() {
+    if (internalSecretProvider == null) {
+      internalSecretProvider = saaSConfiguration.getInternalSecretProvider();
+    }
+    return internalSecretProvider;
   }
 }

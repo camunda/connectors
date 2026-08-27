@@ -23,6 +23,7 @@ import io.camunda.connector.secret.providers.GcpSecretProvider;
 import java.util.Objects;
 import javax.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -50,7 +51,18 @@ public class SaaSSecretConfiguration {
   private AbstractSecretProvider secretProvider;
   private AbstractSecretProvider internalSecretProvider;
 
+  /**
+   * Disabled via {@code camunda.saas.secrets.enabled=false} once the legacy internal secret
+   * provider (GCP/AWS secret manager) is retired in favor of the central secret store fallback, so
+   * this bean is never constructed and {@code camunda.saas.secrets.projectId} is no longer
+   * required.
+   */
   @Bean
+  @ConditionalOnProperty(
+      prefix = "camunda.saas.secrets",
+      name = "enabled",
+      havingValue = "true",
+      matchIfMissing = true)
   public SecretProvider getSecretProvider() {
     if (Objects.equals(clusterProvider, "aws")) {
       secretProvider = new AwsSecretProvider(clusterId, secretsNamePrefix);
@@ -72,7 +84,11 @@ public class SaaSSecretConfiguration {
 
   @PreDestroy
   public void shutdown() throws Exception {
-    internalSecretProvider.close();
-    secretProvider.close();
+    if (internalSecretProvider != null) {
+      internalSecretProvider.close();
+    }
+    if (secretProvider != null) {
+      secretProvider.close();
+    }
   }
 }

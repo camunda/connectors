@@ -18,10 +18,12 @@ package io.camunda.connector.runtime.saas.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.impl.NoopCredentialsProvider;
 import io.camunda.client.impl.oauth.OAuthCredentialsProvider;
 import io.camunda.client.spring.properties.CamundaClientAuthProperties.AuthMethod;
 import io.camunda.client.spring.properties.CamundaClientProperties;
@@ -45,7 +47,9 @@ class CamundaClientSaaSConfigurationTest {
 
   @BeforeEach
   void setup() {
-    when(mockSaaSConfig.getInternalSecretProvider()).thenReturn(mockSecretProvider);
+    // The internal secret provider is now built lazily, so tests that never fall back to it
+    // (credentials already present, or the fallback disabled) legitimately never touch this stub.
+    lenient().when(mockSaaSConfig.getInternalSecretProvider()).thenReturn(mockSecretProvider);
   }
 
   private CamundaClientSaaSConfiguration createConfig() {
@@ -72,6 +76,22 @@ class CamundaClientSaaSConfigurationTest {
     verify(mockSecretProvider)
         .getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_CLIENT_ID, null);
     verify(mockSecretProvider).getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_SECRET, null);
+  }
+
+  @Test
+  void whenInternalProviderDisabledAndCredentialsMissing_neverCreatesInternalSecretProvider() {
+    var config = createConfig();
+    ReflectionTestUtils.setField(config, "internalSecretProviderEnabled", false);
+    var properties = new CamundaClientProperties();
+    // auth.clientId and auth.clientSecret are null by default, and the fallback is disabled, so
+    // there is no credential source left - the parent implementation falls back to Noop.
+
+    var result =
+        config.credentialsProviderConfiguration().camundaClientCredentialsProvider(properties);
+
+    assertThat(result).isInstanceOf(NoopCredentialsProvider.class);
+    verify(mockSaaSConfig, never()).getInternalSecretProvider();
+    verify(mockSecretProvider, never()).getSecret(any(), any());
   }
 
   @Test
