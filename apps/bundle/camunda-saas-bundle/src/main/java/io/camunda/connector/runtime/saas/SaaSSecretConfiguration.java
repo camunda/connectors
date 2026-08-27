@@ -23,7 +23,7 @@ import io.camunda.connector.secret.providers.GcpSecretProvider;
 import java.util.Objects;
 import javax.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -52,17 +52,21 @@ public class SaaSSecretConfiguration {
   private AbstractSecretProvider internalSecretProvider;
 
   /**
-   * Only built when {@code camunda.connector.secret-resolver.legacy.mode=ON} - the same switch used
-   * to control legacy secret resolution elsewhere (see {@code
-   * io.camunda.connector.runtime.core.secret.LegacySecretMode}, not a compile dependency of this
-   * module). Under {@code FALLBACK} the local provider is meant to be dropped in favor of the
-   * central secret store, and under {@code OFF} legacy resolution is disabled entirely - in both
-   * cases this bean must never be constructed, so {@code camunda.saas.secrets.projectId} is no
-   * longer required.
+   * Disabled via {@code camunda.saas.secrets.enabled=false} - defaulted to {@code false} in this
+   * bundle's {@code application.properties} now that centralized secrets and the central-store
+   * fallback (see {@code camunda.connector.secret-resolver.legacy.mode}) cover connector-secret
+   * resolution. This is unrelated to Camunda client (M2M) authentication, which always keeps using
+   * {@link #getInternalSecretProvider()} regardless of this switch - client authentication must
+   * never be silently skipped. When disabled, this bean is never constructed, so {@code
+   * camunda.saas.secrets.projectId} is not required unless a deployment still needs this legacy
+   * connector-secrets provider (set the property to {@code true}).
    */
   @Bean
-  @ConditionalOnExpression(
-      "'${camunda.connector.secret-resolver.legacy.mode:ON}'.equalsIgnoreCase('ON')")
+  @ConditionalOnProperty(
+      prefix = "camunda.saas.secrets",
+      name = "enabled",
+      havingValue = "true",
+      matchIfMissing = true)
   public SecretProvider getSecretProvider() {
     if (Objects.equals(clusterProvider, "aws")) {
       secretProvider = new AwsSecretProvider(clusterId, secretsNamePrefix);

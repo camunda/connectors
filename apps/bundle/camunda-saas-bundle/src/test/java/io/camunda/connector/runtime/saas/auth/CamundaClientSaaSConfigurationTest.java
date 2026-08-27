@@ -23,7 +23,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.camunda.client.impl.NoopCredentialsProvider;
 import io.camunda.client.impl.oauth.OAuthCredentialsProvider;
 import io.camunda.client.spring.properties.CamundaClientAuthProperties.AuthMethod;
 import io.camunda.client.spring.properties.CamundaClientProperties;
@@ -47,8 +46,8 @@ class CamundaClientSaaSConfigurationTest {
 
   @BeforeEach
   void setup() {
-    // The internal secret provider is now built lazily, so tests that never fall back to it
-    // (credentials already present, or the fallback disabled) legitimately never touch this stub.
+    // The internal secret provider is now built lazily, so tests where credentials are already
+    // present legitimately never touch this stub.
     lenient().when(mockSaaSConfig.getInternalSecretProvider()).thenReturn(mockSecretProvider);
   }
 
@@ -76,38 +75,6 @@ class CamundaClientSaaSConfigurationTest {
     verify(mockSecretProvider)
         .getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_CLIENT_ID, null);
     verify(mockSecretProvider).getSecret(CamundaClientSaaSConfiguration.SECRET_NAME_SECRET, null);
-  }
-
-  @Test
-  void whenLegacySecretModeOffAndCredentialsMissing_neverCreatesInternalSecretProvider() {
-    var config = createConfig();
-    ReflectionTestUtils.setField(config, "legacySecretMode", "OFF");
-    var properties = new CamundaClientProperties();
-    // auth.clientId and auth.clientSecret are null by default, and the fallback is disabled, so
-    // there is no credential source left - the parent implementation falls back to Noop.
-
-    var result =
-        config.credentialsProviderConfiguration().camundaClientCredentialsProvider(properties);
-
-    assertThat(result).isInstanceOf(NoopCredentialsProvider.class);
-    verify(mockSaaSConfig, never()).getInternalSecretProvider();
-    verify(mockSecretProvider, never()).getSecret(any(), any());
-  }
-
-  @Test
-  void whenLegacySecretModeFallbackAndCredentialsMissing_neverCreatesInternalSecretProvider() {
-    // FALLBACK is the migration path to the central secret store, so the local provider is meant
-    // to be dropped - same as OFF, the internal secret provider must never be constructed here.
-    var config = createConfig();
-    ReflectionTestUtils.setField(config, "legacySecretMode", "FALLBACK");
-    var properties = new CamundaClientProperties();
-
-    var result =
-        config.credentialsProviderConfiguration().camundaClientCredentialsProvider(properties);
-
-    assertThat(result).isInstanceOf(NoopCredentialsProvider.class);
-    verify(mockSaaSConfig, never()).getInternalSecretProvider();
-    verify(mockSecretProvider, never()).getSecret(any(), any());
   }
 
   @Test

@@ -43,17 +43,6 @@ public class CamundaClientSaaSConfiguration {
   private final SaaSSecretConfiguration saaSConfiguration;
   private SecretProvider internalSecretProvider;
 
-  /**
-   * Same switch used elsewhere to control legacy secret resolution (see {@code
-   * io.camunda.connector.runtime.core.secret.LegacySecretMode}, not a compile dependency of this
-   * module). The internal secret provider (GCP/AWS secret manager) is only built when this is
-   * {@code ON} - under {@code FALLBACK} the local provider is meant to be dropped in favor of the
-   * central secret store, and under {@code OFF} legacy resolution is disabled entirely - so clients
-   * without explicit credentials don't force it to be constructed in either case.
-   */
-  @Value("${camunda.connector.secret-resolver.legacy.mode:ON}")
-  private String legacySecretMode = "ON";
-
   @Value("${camunda.client.auth.token-url:#{null}}")
   private String camundaClientTokenUrl;
 
@@ -83,9 +72,7 @@ public class CamundaClientSaaSConfiguration {
       public CredentialsProvider camundaClientCredentialsProvider(
           final CamundaClientProperties properties) {
         var auth = properties.getAuth();
-        if (isLegacySecretsEnabled()
-            && auth.getClientId() == null
-            && auth.getClientSecret() == null) {
+        if (auth.getClientId() == null && auth.getClientSecret() == null) {
           return super.camundaClientCredentialsProvider(
               withInternalSecretManagerCredentials(properties));
         }
@@ -137,19 +124,17 @@ public class CamundaClientSaaSConfiguration {
 
   /**
    * Lazily builds the internal secret provider on first use, rather than eagerly at construction
-   * time. Every client falls through {@link #withInternalSecretManagerCredentials} only when {@link
-   * #isLegacySecretsEnabled()}, so a deployment that has switched legacy secret resolution off
-   * (e.g. no {@code camunda.saas.secrets.projectId} configured any more) never has to construct it
-   * at all.
+   * time, so a client with explicit credentials never forces it to be built. A client without
+   * explicit credentials still always needs it - client authentication is unrelated to {@code
+   * {{secrets.X}}} legacy connector-secret resolution, so it must never be silently skipped (that
+   * would leave the client unauthenticated via {@code NoopCredentialsProvider}); the dedicated
+   * {@code camunda.saas.secrets.enabled} switch only gates the separate outbound connector-secrets
+   * provider in {@link SaaSSecretConfiguration#getSecretProvider()}.
    */
   private SecretProvider getInternalSecretProvider() {
     if (internalSecretProvider == null) {
       internalSecretProvider = saaSConfiguration.getInternalSecretProvider();
     }
     return internalSecretProvider;
-  }
-
-  private boolean isLegacySecretsEnabled() {
-    return "ON".equalsIgnoreCase(legacySecretMode);
   }
 }
