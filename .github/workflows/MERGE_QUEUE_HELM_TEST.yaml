@@ -208,7 +208,7 @@ jobs:
       - name: Post AlwaysGreen failure feedback
         id: feedback
         continue-on-error: true
-        uses: ./.github/actions/post-failure-feedback
+        uses: camunda/connectors/.github/actions/post-failure-feedback@main
         with:
           failure_category: unknown
           stage: sm-e2e-helm
@@ -506,7 +506,7 @@ jobs:
       - name: Post AlwaysGreen failure feedback
         id: feedback
         continue-on-error: true
-        uses: ./.github/actions/post-failure-feedback
+        uses: camunda/connectors/.github/actions/post-failure-feedback@main
         with:
           failure_category: unknown
           stage: saas-e2e
@@ -664,7 +664,7 @@ jobs:
       contents: read
       actions: write
       pull-requests: read
-    uses: ./.github/workflows/alwaysgreen-triage.yml
+    uses: camunda/connectors/.github/workflows/alwaysgreen-triage.yml@main
     secrets: inherit
     with:
       base_ref: ${{ github.ref_name }}
