@@ -65,12 +65,11 @@ Pick a **Databricks API**, then an **Operation**. The form shows only the fields
 | Type | Use |
 | --- | --- |
 | OAuth M2M (service principal) | **Recommended for production.** Client credentials are sent as a Basic Auth header to `https://<workspace>/oidc/v1/token` with `scope=all-apis`. Access tokens are valid for one hour. |
-| OAuth refresh token | Approximates OAuth U2M. The refresh token must be obtained out of band. |
 | Personal access token | Testing only. |
 
 The OAuth token endpoint is derived from the workspace URL, so it does not have to be configured separately.
 
-> **OAuth U2M with PKCE is not supported.** The interactive authorization-code + PKCE flow requires a browser redirect, and a Connector executes unattended in a job worker. Only the out-of-band refresh-token variant is available.
+> **OAuth U2M with PKCE is not supported**, and neither is an OAuth refresh-token option. The interactive authorization-code + PKCE flow requires a browser redirect, and a Connector executes unattended in a job worker. Databricks also has no documented way to obtain a standalone refresh token for third-party use outside its own CLI, so there is no out-of-band variant either — use OAuth M2M for unattended production workloads.
 
 ## Partner telemetry
 

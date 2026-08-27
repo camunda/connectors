@@ -1011,8 +1011,8 @@
     },
     {
       "type" : "Hidden",
-      "description" : "User-Agent is merged last so the partner attribution value cannot be overridden by additional headers.",
-      "value" : "=context merge([if additionalHeadersInput = null then {} else additionalHeadersInput, {\"User-Agent\": \"Camunda_DatabricksConnector/1.0\"}])",
+      "description" : "User-Agent is merged last, with any case-insensitive user-agent key stripped first, so the partner attribution value cannot be overridden by additional headers.",
+      "value" : "=context merge(concatenate((for e in get entries(if additionalHeadersInput = null then {} else additionalHeadersInput) return if lower case(e.key) = \"user-agent\" then {} else context put({}, e.key, e.value)), [{\"User-Agent\": \"Camunda_DatabricksConnector/1.0\"}]))",
       "binding" : {
         "name" : "headers",
         "type" : "zeebe:input"
@@ -1109,6 +1109,28 @@
       },
       "tooltip" : "ISO 8601 duration to wait between retries.",
       "type" : "String"
+    },
+    {
+      "id" : "elementTemplateVersion",
+      "label" : "Version",
+      "value" : "1",
+      "binding" : {
+        "key" : "elementTemplateVersion",
+        "type" : "zeebe:taskHeader"
+      },
+      "tooltip" : "Version of the element template",
+      "type" : "Hidden"
+    },
+    {
+      "id" : "elementTemplateId",
+      "label" : "ID",
+      "value" : "io.camunda.connectors.databricks.rest.v1",
+      "binding" : {
+        "key" : "elementTemplateId",
+        "type" : "zeebe:taskHeader"
+      },
+      "tooltip" : "ID of the element template",
+      "type" : "Hidden"
     }
   ]
 }
