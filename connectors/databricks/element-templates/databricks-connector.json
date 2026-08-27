@@ -346,10 +346,6 @@
           "value" : "oauth-client-credentials-flow"
         },
         {
-          "name" : "OAuth refresh token (U2M, obtained out of band)",
-          "value" : "oauth-refresh-token"
-        },
-        {
           "name" : "Personal access token (testing only)",
           "value" : "bearer"
         }
@@ -400,68 +396,6 @@
       "secret" : true
     },
     {
-      "id" : "authentication.oauthRefreshToken.clientId",
-      "label" : "Client ID",
-      "optional" : false,
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "feel" : "optional",
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.clientId",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "type" : "simple",
-        "equals" : "oauth-refresh-token"
-      },
-      "type" : "String"
-    },
-    {
-      "id" : "authentication.oauthRefreshToken.clientSecret",
-      "label" : "Client secret",
-      "optional" : true,
-      "value" : "{{secrets.DATABRICKS_CLIENT_SECRET}}",
-      "feel" : "optional",
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.clientSecret",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "type" : "simple",
-        "equals" : "oauth-refresh-token"
-      },
-      "type" : "String",
-      "secret" : true
-    },
-    {
-      "id" : "authentication.oauthRefreshToken.refreshToken",
-      "label" : "Refresh token",
-      "optional" : false,
-      "value" : "{{secrets.DATABRICKS_REFRESH_TOKEN}}",
-      "constraints" : {
-        "notEmpty" : true
-      },
-      "feel" : "optional",
-      "group" : "authentication",
-      "binding" : {
-        "name" : "authentication.refreshToken",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "property" : "authentication.type",
-        "type" : "simple",
-        "equals" : "oauth-refresh-token"
-      },
-      "tooltip" : "Obtained out of band via the OAuth U2M authorization-code and PKCE flow, which a connector cannot perform itself.",
-      "type" : "String",
-      "secret" : true
-    },
-    {
       "id" : "authentication.token",
       "label" : "Personal access token",
       "description" : "Note: intended for testing only. Use OAuth M2M in production.",
@@ -495,10 +429,7 @@
       "condition" : {
         "property" : "authentication.type",
         "type" : "simple",
-        "oneOf" : [
-          "oauth-client-credentials-flow",
-          "oauth-refresh-token"
-        ]
+        "equals" : "oauth-client-credentials-flow"
       }
     },
     {
@@ -526,10 +457,7 @@
       "condition" : {
         "property" : "authentication.type",
         "type" : "simple",
-        "oneOf" : [
-          "oauth-client-credentials-flow",
-          "oauth-refresh-token"
-        ]
+        "equals" : "oauth-client-credentials-flow"
       }
     },
     {
