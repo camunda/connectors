@@ -174,6 +174,10 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-9563: parsson transitive override — remove once langchain4j-opensearch ships parsson >= 1.1.8
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-9563 -->
     <version.parsson>1.1.9</version.parsson>
+    <!-- GHSA-xjjv-qfjr-95c3: dd-plist transitive override — remove once langchain4j-document-parser-apache-tika
+         ships a Tika version whose tika-parser-apple-module pulls dd-plist >= 1.30.
+         Ref: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3 -->
+    <version.ddplist>1.30</version.ddplist>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
@@ -210,6 +214,15 @@ limitations under the License.</license.inlineheader>
         <groupId>org.eclipse.parsson</groupId>
         <artifactId>parsson</artifactId>
         <version>${version.parsson}</version>
+      </dependency>
+
+      <!-- GHSA-xjjv-qfjr-95c3: override dd-plist transitive version brought in via
+           langchain4j-document-parser-apache-tika -> tika-parser-apple-module. Remove once that
+           chain ships dd-plist >= 1.30. -->
+      <dependency>
+        <groupId>com.googlecode.plist</groupId>
+        <artifactId>dd-plist</artifactId>
+        <version>${version.ddplist}</version>
       </dependency>
 
       <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
@@ -933,8 +946,9 @@ limitations under the License.</license.inlineheader>
               <requirePluginVersions>
                 <banSnapshots>false</banSnapshots>
               </requirePluginVersions>
-              <!-- CVE-2026-9563 guard: fails if langchain4j is bumped, as a reminder to
-                   check whether the parsson override can be removed (see version.parsson). -->
+              <!-- CVE-2026-9563 / GHSA-xjjv-qfjr-95c3 guard: fails if langchain4j is bumped, as a
+                   reminder to check whether the parsson and dd-plist overrides can be removed
+                   (see version.parsson, version.ddplist). -->
               <requireProperty>
                 <property>version.langchain4j</property>
                 <regex>^1\.19\.0$</regex>
@@ -943,6 +957,11 @@ version.langchain4j was changed! Check if the parsson CVE-2026-9563 override can
 If the new langchain4j-opensearch version ships parsson &gt;= 1.1.8, remove the version.parsson property,
 the parsson dependencyManagement entry, and this enforcer rule from parent/pom.xml.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-9563
+
+Also check if the dd-plist GHSA-xjjv-qfjr-95c3 override can be removed.
+If the new langchain4j-document-parser-apache-tika version ships a Tika whose tika-parser-apple-module
+pulls dd-plist &gt;= 1.30, remove the version.ddplist property and the dd-plist dependencyManagement entry.
+See: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3
                 </regexMessage>
               </requireProperty>
               <!-- CVE-2026-59949 guard: fails if kafka-clients is bumped, as a reminder to
