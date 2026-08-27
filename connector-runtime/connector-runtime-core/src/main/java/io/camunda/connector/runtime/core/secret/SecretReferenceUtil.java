@@ -53,6 +53,14 @@ public final class SecretReferenceUtil {
     return REFERENCE_PREFIX + secretName;
   }
 
+  /**
+   * Whether a bare secret name can be written as a reference at all. The reference charset is
+   * narrower than the legacy secret-name charset, so a legacy name may have no reference form.
+   */
+  public static boolean isResolvableName(String secretName) {
+    return secretName != null && PATTERN.matcher(reference(secretName)).matches();
+  }
+
   /** Returns every distinct whole reference appearing in {@code input}. */
   public static List<String> findReferences(String input) {
     return Objects.isNull(input)

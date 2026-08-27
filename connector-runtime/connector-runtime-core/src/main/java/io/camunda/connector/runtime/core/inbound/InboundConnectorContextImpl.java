@@ -90,6 +90,17 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       ObjectMapper objectMapper,
       ActivityLogWriter activityLogWriter,
       CamundaClient camundaClient) {
+    // No name-level restriction, because on this path there is nothing for one to reject. The
+    // outbound filter's allow-list is drawn from the deployed model while replacement runs over the
+    // job's variables, and that asymmetry is what it protects: a legacy name carried by a runtime
+    // value resolves only if the model declares it too. Here the two sides coincide — legacy
+    // replacement only ever runs over this element's own zeebe:property text, read from the
+    // deployed
+    // model (see getPropertiesWithSecrets and bindElementProperties), and never over a runtime
+    // value, since an evaluation result is data and is never fed back through replacement. An
+    // allow-list derived from the model would therefore be the same set as the text it filters.
+    // #7730 would wire a filter in regardless, making that a checked property rather than one that
+    // holds because of where the call sites read from.
     super(secretProvider, SecretFilter.allowAll(), validationProvider);
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;

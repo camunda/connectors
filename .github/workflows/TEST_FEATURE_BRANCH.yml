@@ -62,7 +62,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21.0.9'
@@ -150,10 +150,11 @@ jobs:
           fi
 
       - name: Publish Test Report
-        if: always() && steps.internal.outputs.internal == 'true'
-        uses: scacap/action-surefire-report@v1
+        if: always()
+        uses: ScalableCapital/action-surefire-report@v2
         with:
           check_name: 'Publish Test Report'
+          report_mode: ${{ steps.internal.outputs.internal == 'true' && 'check-run' || 'workflow' }}
 
       - name: Upload detailed surefire reports
         if: always() && steps.internal.outputs.internal == 'true'
@@ -163,17 +164,17 @@ jobs:
           path: '**/target/surefire-reports/*.xml'
 
       - name: Lint Dockerfile - connector-runtime
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: apps/connector-runtime-application/Dockerfile
 
       - name: Lint Dockerfile - SaaS
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: apps/bundle/camunda-saas-bundle/Dockerfile
 
       - name: Lint Dockerfile - default-bundle
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: apps/bundle/default-bundle/Dockerfile
 
@@ -225,7 +226,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21.0.9'
@@ -306,7 +307,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21.0.9'

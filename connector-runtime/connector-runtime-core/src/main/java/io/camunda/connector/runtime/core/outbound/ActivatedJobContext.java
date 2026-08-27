@@ -87,6 +87,14 @@ public class ActivatedJobContext implements JobContext {
   }
 
   @Override
+  public String getPhysicalTenantId() {
+    // clients report an unset physical tenant as an empty string (protobuf/REST default); normalize
+    // it the same way SecretContext does, so callers only have to check for null
+    var physicalTenantId = activatedJob.getPhysicalTenantId();
+    return physicalTenantId == null || physicalTenantId.isBlank() ? null : physicalTenantId;
+  }
+
+  @Override
   public String getLeaseToken() {
     return activatedJob.getLeaseToken();
   }

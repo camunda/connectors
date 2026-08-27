@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
-import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.Optional;
@@ -37,10 +36,7 @@ public class SecretHandler {
         (name, context) -> {
           if (secretFilter.isAllowed(name)) {
             return Optional.ofNullable(secretProvider.getSecret(name, context))
-                .orElseThrow(
-                    () ->
-                        new ConnectorInputException(
-                            String.format("Secret with name '%s' is not available", name)));
+                .orElseThrow(() -> new SecretNotAvailableException(name));
           }
           LOG.debug("Secret '{}' not in allow-list — placeholder left unreplaced", name);
           return null;

@@ -1,0 +1,72 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.runtime.core.secret;
+
+/**
+ * How the runtime resolves the legacy secret forms, {@code {{secrets.X}}} and bare {@code
+ * secrets.X}. Configured with {@code camunda.connector.secret-resolver.legacy.mode}.
+ *
+ * <p>This has no effect on {@code camunda.secrets.<name>}, which is resolved by the orchestration
+ * cluster through a separate mechanism and has no off switch.
+ */
+public enum LegacySecretMode {
+
+  /** Legacy references are not resolved at all; every lookup fails, naming the setting. */
+  OFF,
+
+  /** Legacy references are resolved from the secret providers configured in the runtime. */
+  ON,
+
+  /**
+   * Legacy references are resolved from the configured secret providers, and a name none of them
+   * holds is looked up in the orchestration cluster's secret stores as {@code
+   * camunda.secrets.<name>}.
+   *
+   * <p>This is the migration path: move values to the central store, drop the local provider, and
+   * existing diagrams keep resolving. It has to be chosen explicitly — it is never inferred from
+   * "no provider is configured", because a provider reading the environment is registered by
+   * default and so that is never actually the case.
+   */
+  FALLBACK;
+
+  /** The property that selects the mode. */
+  public static final String PROPERTY = "camunda.connector.secret-resolver.legacy.mode";
+
+  /**
+   * Reads the configured value. Spring's own string-to-enum conversion turns a present-but-empty
+   * property into {@code null} rather than failing, which for a setting that governs whether
+   * secrets resolve at all would mean silently falling back to the most permissive mode. Parsing
+   * here rejects that, and accepts any capitalisation.
+   */
+  public static LegacySecretMode parse(String value) {
+    if (value == null || value.isBlank()) {
+      throw new IllegalArgumentException(
+          PROPERTY + " is set but empty. Use one of " + java.util.Arrays.toString(values()) + ".");
+    }
+    try {
+      return valueOf(value.trim().toUpperCase(java.util.Locale.ROOT));
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          PROPERTY
+              + "='"
+              + value
+              + "' is not a legacy secret mode. Use one of "
+              + java.util.Arrays.toString(values())
+              + ".");
+    }
+  }
+}
