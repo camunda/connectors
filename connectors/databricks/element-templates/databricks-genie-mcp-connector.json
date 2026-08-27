@@ -33,11 +33,10 @@
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTc5IiBoZWlnaHQ9IjMyMyIgdmlld0JveD0iMCAwIDU3OSAzMjMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xOTg0XzczMCkiPgo8cGF0aCBkPSJNMzU5LjQgNzUuM0wyODQgMTE3LjdMMjAzLjMgNzIuM0wxOTkuNSA3NC41VjEwNy41TDI4NCAxNTVMMzU5LjQgMTEyLjVWMTMwLjFMMjg0IDE3Mi41TDIwMy4zIDEyNy4yTDE5OS41IDEyOS4zVjEzNC45TDI4NCAxODIuNEwzNjguNSAxMzQuOVYxMDEuOUwzNjQuNiA5OS44TDI4NCAxNDUuMUwyMDguNSAxMDIuN1Y4NS4yTDI4NCAxMjcuNkwzNjguNSA4MC4xVjQ3LjZMMzY0LjIgNDUuMkwyODQgOTAuM0wyMTIuNSA1MC4xTDI4NCA5LjlMMzQyLjggNDNMMzQ4LjEgNDAuMVYzNi4xTDI4NCAwTDE5OS41IDQ3LjZWNTIuN0wyODQgMTAwLjJMMzU5LjQgNTcuN1Y3NS4zWiIgZmlsbD0iI0ZGMzYyMSIvPgo8cGF0aCBkPSJNNjYuNiAzMjAuN1YyMzAuN0g1Mi43VjI2NC40QzUyLjcgMjY0LjkgNTIuNCAyNjUuMyA1MS45IDI2NS41QzUxLjQgMjY1LjcgNTAuOSAyNjUuNSA1MC42IDI2NS4yQzQ1LjkgMjU5LjcgMzguNiAyNTYuNSAzMC41IDI1Ni41QzEzLjQgMjU2LjUgMCAyNzAuOSAwIDI4OS40QzAgMjk4LjQgMy4xIDMwNi44IDguOCAzMTIuOUMxNC41IDMxOSAyMi4yIDMyMi4zIDMwLjYgMzIyLjNDMzguNSAzMjIuMyA0NS44IDMxOSA1MC43IDMxMy4zQzUxIDMxMi45IDUxLjYgMzEyLjggNTIgMzEyLjlDNTIuNSAzMTMuMSA1Mi44IDMxMy41IDUyLjggMzE0VjMyMC43SDY2LjZaTTMzLjcgMzA5LjdDMjIuNyAzMDkuNyAxNCAzMDAuOCAxNCAyODkuNEMxNCAyNzggMjIuNyAyNjkuMSAzMy43IDI2OS4xQzQ0LjcgMjY5LjEgNTMuNCAyNzggNTMuNCAyODkuNEM1My40IDMwMC44IDQ0LjcgMzA5LjcgMzMuNyAzMDkuN1pNMTQwLjcgMzIwLjZWMjU4SDEyN1YyNjQuM0MxMjcgMjY0LjggMTI2LjcgMjY1LjIgMTI2LjIgMjY1LjRDMTI1LjcgMjY1LjYgMTI1LjIgMjY1LjQgMTI0LjkgMjY1QzEyMC4yIDI1OS40IDExMy4xIDI1Ni40IDEwNC44IDI1Ni40Qzg3LjcgMjU2LjQgNzQuMiAyNzAuOSA3NC4yIDI4OS4zQzc0LjIgMzA3LjcgODcuNiAzMjIuMiAxMDQuOCAzMjIuMkMxMTIuNyAzMjIuMiAxMjAuMSAzMTguOSAxMjQuOSAzMTMuMUMxMjUuMiAzMTIuNyAxMjUuOCAzMTIuNiAxMjYuMiAzMTIuN0MxMjYuNyAzMTIuOSAxMjcgMzEzLjMgMTI3IDMxMy44VjMyMC42SDE0MC43Wk0xMDcuOSAzMDkuN0M5Ni45IDMwOS43IDg4LjIgMzAwLjggODguMiAyODkuNEM4OC4yIDI3OCA5Ni45IDI2OS4xIDEwNy45IDI2OS4xQzExOC45IDI2OS4xIDEyNy42IDI3OCAxMjcuNiAyODkuNEMxMjcuNiAzMDAuOCAxMTguOSAzMDkuNyAxMDcuOSAzMDkuN1pNMjU4LjIgMzIwLjZWMjU4SDI0NC41VjI2NC4zQzI0NC41IDI2NC44IDI0NC4yIDI2NS4yIDI0My43IDI2NS40QzI0My4yIDI2NS42IDI0Mi43IDI2NS40IDI0Mi40IDI2NUMyMzcuNyAyNTkuNCAyMzAuNiAyNTYuNCAyMjIuMyAyNTYuNEMyMDUuMiAyNTYuNCAxOTEuNyAyNzAuOSAxOTEuNyAyODkuM0MxOTEuNyAzMDcuNyAyMDUuMSAzMjIuMiAyMjIuMyAzMjIuMkMyMzAuMiAzMjIuMiAyMzcuNiAzMTguOSAyNDIuNCAzMTMuMUMyNDIuNyAzMTIuNyAyNDMuMyAzMTIuNiAyNDMuNyAzMTIuN0MyNDQuMiAzMTIuOSAyNDQuNSAzMTMuMyAyNDQuNSAzMTMuOFYzMjAuNkgyNTguMlpNMjI1LjQgMzA5LjdDMjE0LjQgMzA5LjcgMjA1LjcgMzAwLjggMjA1LjcgMjg5LjRDMjA1LjcgMjc4IDIxNC40IDI2OS4xIDIyNS40IDI2OS4xQzIzNi40IDI2OS4xIDI0NS4xIDI3OCAyNDUuMSAyODkuNEMyNDUuMSAzMDAuOCAyMzYuNCAzMDkuNyAyMjUuNCAzMDkuN1pNMjgzLjQgMzEzLjNDMjgzLjUgMzEzLjMgMjgzLjcgMzEzLjIgMjgzLjggMzEzLjJDMjg0LjEgMzEzLjIgMjg0LjUgMzEzLjQgMjg0LjcgMzEzLjZDMjg5LjQgMzE5LjEgMjk2LjcgMzIyLjMgMzA0LjggMzIyLjNDMzIxLjkgMzIyLjMgMzM1LjQgMzA3LjggMzM1LjQgMjg5LjRDMzM1LjQgMjgwLjQgMzMyLjMgMjcyIDMyNi42IDI2NS45QzMyMC45IDI1OS44IDMxMy4yIDI1Ni41IDMwNC44IDI1Ni41QzI5Ni45IDI1Ni41IDI4OS42IDI1OS44IDI4NC43IDI2NS41QzI4NC40IDI2NS45IDI4My45IDI2NiAyODMuNCAyNjUuOUMyODIuOSAyNjUuNyAyODIuNiAyNjUuMyAyODIuNiAyNjQuOFYyMzAuOEgyNjguN1YzMjAuOUgyODIuNlYzMTQuNkMyODIuNiAzMTMuOSAyODIuOSAzMTMuNSAyODMuNCAzMTMuM1pNMjgyIDI4OS40QzI4MiAyNzggMjkwLjcgMjY5LjEgMzAxLjcgMjY5LjFDMzEyLjcgMjY5LjEgMzIxLjQgMjc4IDMyMS40IDI4OS40QzMyMS40IDMwMC44IDMxMi43IDMwOS43IDMwMS43IDMwOS43QzI5MC42IDMwOS43IDI4MiAzMDAuOCAyODIgMjg5LjRaTTM1Ni45IDI5My4yVjMyMC44SDM0M1YyNThIMzU2LjdWMjY1LjdDMzU2LjcgMjY2LjIgMzU3LjEgMjY2LjcgMzU3LjYgMjY2LjhDMzU4LjEgMjY2LjkgMzU4LjcgMjY2LjcgMzU4LjkgMjY2LjNDMzYyLjQgMjYwLjQgMzY5LjEgMjU2LjcgMzc2LjIgMjU2LjdDMzc3LjEgMjU2LjcgMzc4LjEgMjU2LjggMzc4LjUgMjU2LjlWMjcxLjFDMzc3LjcgMjcwLjkgMzc2LjQgMjcwLjggMzc1LjEgMjcwLjhDMzYzLjkgMjcwLjkgMzU2LjkgMjc5LjQgMzU2LjkgMjkzLjJaTTQwMS4zIDI1OFYzMjAuN0gzODcuM1YyNThINDAxLjNaTTQwMi42IDIzOS4zQzQwMi42IDI0NCAzOTguOCAyNDcuOCAzOTQuMSAyNDcuOEMzODkuNCAyNDcuOCAzODUuNiAyNDQgMzg1LjYgMjM5LjNDMzg1LjYgMjM0LjYgMzg5LjQgMjMwLjggMzk0LjEgMjMwLjhDMzk4LjggMjMwLjggNDAyLjYgMjM0LjYgNDAyLjYgMjM5LjNaTTQ2OC4yIDI2Ni40TDQ1OS40IDI3NC43QzQ1NC40IDI3MSA0NDkuMiAyNjkuMiA0NDMuNyAyNjkuMkM0MzIuMSAyNjkuMiA0MjMuNCAyNzcuOSA0MjMuNCAyODkuNEM0MjMuNCAzMDAuOSA0MzIuMSAzMDkuNiA0NDMuNyAzMDkuNkM0NDguOCAzMDkuNiA0NTQgMzA3LjggNDU5LjcgMzA0LjFMNDY3LjYgMzEyLjRDNDU2LjIgMzIwLjggNDUwLjEgMzIyLjMgNDQyLjMgMzIyLjNDNDMyLjkgMzIyLjMgNDI0LjQgMzE5IDQxOC41IDMxM0M0MTIuNiAzMDcgNDA5LjMgMjk4LjcgNDA5LjMgMjg5LjRDNDA5LjMgMjcwLjMgNDIzLjMgMjU2LjUgNDQyLjUgMjU2LjVDNDQ4LjYgMjU2LjUgNDU4IDI1Ny41IDQ2OC4yIDI2Ni40Wk00ODkuNCAyOTUuNEM0ODkuMiAyOTUuNiA0ODkgMjk1LjkgNDg5IDI5Ni4zVjMyMC43SDQ3NS4xVjIzMC42SDQ4OVYyNzkuOUM0ODkgMjgwLjQgNDg5LjMgMjgwLjggNDg5LjcgMjgxQzQ5MC4yIDI4MS4yIDQ5MC43IDI4MS4xIDQ5MSAyODAuN0w1MTMuNyAyNTcuOUg1MzAuNkw1MDQuMiAyODQuM0M1MDMuOCAyODQuNyA1MDMuNyAyODUuNCA1MDQuMSAyODUuOUw1MzIuOCAzMjAuNkg1MTUuN0w0OTMuNSAyOTMuMUM0OTMuMyAyOTIuOCA0OTMgMjkyLjcgNDkyLjYgMjkyLjdINDkyLjVDNDkyLjIgMjkyLjcgNDkxLjkgMjkyLjggNDkxLjcgMjkzTDQ4OS40IDI5NS40Wk01MzEuNSAzMDYuOEw1NDIuNyAzMDAuOUM1NDUuMSAzMDYuOCA1NTAuMSAzMTAuNCA1NTUuNyAzMTAuNEM1NTkuOSAzMTAuNCA1NjQuOCAzMDguNSA1NjQuOCAzMDMuMkM1NjQuOCAyOTkuNiA1NjIuNiAyOTcuNSA1NTcuMSAyOTUuOEw1NDkuNCAyOTMuM0M1MzguNyAyODkuOSA1MzMuNSAyODQgNTMzLjUgMjc1LjNDNTMzLjUgMjY0LjMgNTQyLjUgMjU2LjMgNTU1IDI1Ni4zQzU2NC44IDI1Ni4zIDU3My40IDI2MS41IDU3Ny41IDI3MEw1NjYuNCAyNzZDNTYzLjggMjcwLjcgNTU5LjcgMjY3LjcgNTU1LjEgMjY3LjdDNTUwLjMgMjY3LjcgNTQ2LjkgMjcwLjMgNTQ2LjkgMjc0LjFDNTQ2LjkgMjc3LjQgNTQ5LjQgMjc5LjggNTU0LjQgMjgxLjVMNTYyIDI4NEM1NzMgMjg3LjYgNTc4LjQgMjkzLjUgNTc4LjQgMzAyLjFDNTc4LjQgMzE1LjIgNTY2LjkgMzIyLjEgNTU1LjUgMzIyLjFDNTQ0LjQgMzIyLjMgNTM1LjMgMzE2LjQgNTMxLjUgMzA2LjhaTTE1OSAyOTkuN1YyNzAuNUMxNTkgMjY5LjggMTU4LjUgMjY5LjMgMTU3LjggMjY5LjNIMTQ4LjFWMjU4SDE1Ny44QzE1OC41IDI1OCAxNTkgMjU3LjUgMTU5IDI1Ni44VjIzOC42SDE3Mi44VjI1Ni44QzE3Mi44IDI1Ny41IDE3My4zIDI1OCAxNzQgMjU4SDE4Ny41VjI2OS4zSDE3NEMxNzMuMyAyNjkuMyAxNzIuOCAyNjkuOCAxNzIuOCAyNzAuNVYyOTYuM0MxNzIuOCAzMDguNCAxNzcuMSAzMDkuNCAxODIuNyAzMDkuNEMxODQuNyAzMDkuNCAxODcuOCAzMDkuMiAxODkuNyAzMDguOVYzMjAuOUMxODcuNSAzMjEuMiAxODMuNSAzMjEuNiAxNzkuMiAzMjEuNkMxNzMuNiAzMjEuNyAxNTkgMzIxLjcgMTU5IDI5OS43WiIgZmlsbD0iIzBCMjAyNiIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzE5ODRfNzMwIj4KPHJlY3Qgd2lkdGg9IjU3OC41IiBoZWlnaHQ9IjMyMi4zIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
   },
   "groups" : [
+    { "id" : "operation", "label" : "Operation", "tooltip" : "Select how this connector is used and which operation it performs. When the connector is used as an AI agent tool, select the AI Agent tool mode." },
     { "id" : "workspace", "label" : "Databricks workspace" },
     { "id" : "authentication", "label" : "Authentication" },
     { "id" : "options", "label" : "Options" },
-    { "id" : "connectorMode", "label" : "Connector mode", "tooltip" : "Select how this connector is used. When the connector is used as an AI agent tool, select the AI Agent tool mode." },
-    { "id" : "operation", "label" : "Operation" },
     { "id" : "genie", "label" : "Genie question" },
     { "id" : "filters", "label" : "Filters", "openByDefault" : false },
     { "id" : "connector", "label" : "Connector" },
@@ -51,12 +50,6 @@
       "description" : "Binds the element to the MCP Remote Client job worker. This is the connector's job type, not its element template id.",
       "value" : "io.camunda.agenticai:mcpremoteclient:1",
       "binding" : { "property" : "type", "type" : "zeebe:taskDefinition" }
-    },
-    {
-      "type" : "Hidden",
-      "value" : "mcpClient",
-      "binding" : { "name" : "io.camunda.agenticai.gateway.type", "type" : "zeebe:property" },
-      "condition" : { "property" : "data.connectorMode.type", "equals" : "aiAgentTool", "type" : "simple" }
     },
     {
       "type" : "Hidden",
@@ -150,13 +143,19 @@
       "label" : "Connector mode",
       "description" : "Select how this connector is used.",
       "value" : "standalone",
-      "group" : "connectorMode",
+      "group" : "operation",
       "binding" : { "name" : "data.connectorMode.type", "type" : "zeebe:input" },
       "type" : "Dropdown",
       "choices" : [
         { "name" : "Standalone", "value" : "standalone" },
         { "name" : "AI Agent tool", "value" : "aiAgentTool" }
       ]
+    },
+    {
+      "type" : "Hidden",
+      "value" : "mcpClient",
+      "binding" : { "name" : "io.camunda.agenticai.gateway.type", "type" : "zeebe:property" },
+      "condition" : { "property" : "data.connectorMode.type", "equals" : "aiAgentTool", "type" : "simple" }
     },
     {
       "id" : "data.connectorMode.operation.type",
@@ -448,5 +447,63 @@
       "binding" : { "key" : "jobTimeout", "type" : "zeebe:taskHeader" },
       "type" : "String"
     }
+  ],
+  "steps" : [
+    {
+      "name" : "Standalone",
+      "description" : "Use this Databricks Genie MCP connector directly as a service task.",
+      "steps" : [
+        {
+          "name" : "List tools",
+          "description" : "List the MCP tools this Databricks Genie server exposes (tools/list), to verify the live tool schema before relying on it in production.",
+          "keywords" : [ "list tools", "tools/list", "schema", "mcp" ],
+          "presetId" : "standalone_listTools"
+        },
+        {
+          "name" : "Ask a question",
+          "description" : "Start a new Genie question (genie_ask) and receive a conversation_id/response_id to poll.",
+          "keywords" : [ "genie_ask", "ask", "question", "start conversation" ],
+          "presetId" : "genie_ask"
+        },
+        {
+          "name" : "Poll for a response",
+          "description" : "Poll a Genie response (genie_poll_response) until its status is terminal.",
+          "keywords" : [ "genie_poll_response", "poll", "status" ],
+          "presetId" : "genie_poll"
+        },
+        {
+          "name" : "Get full query result",
+          "description" : "Retrieve the full, untruncated Genie query result (genie_get_query_result).",
+          "keywords" : [ "genie_get_query_result", "query result", "sql result" ],
+          "presetId" : "genie_getQueryResult"
+        },
+        {
+          "name" : "Cancel response",
+          "description" : "Cancel an in-flight Genie response (genie_cancel_response).",
+          "keywords" : [ "genie_cancel_response", "cancel" ],
+          "presetId" : "genie_cancel"
+        }
+      ]
+    },
+    {
+      "name" : "AI Agent tool",
+      "description" : "Expose this Databricks Genie MCP connector as a tool inside an AI Agent sub-process.",
+      "steps" : [
+        {
+          "name" : "Use as AI Agent tool",
+          "description" : "Let an AI Agent sub-process call this Databricks Genie MCP connector, with method and parameters supplied by the agent.",
+          "keywords" : [ "ai agent", "agentic ai", "tool", "mcp" ],
+          "presetId" : "aiAgentTool"
+        }
+      ]
+    }
+  ],
+  "presets" : [
+    { "id" : "standalone_listTools", "properties" : { "data.connectorMode.type" : "standalone", "data.connectorMode.operation.type" : "tools/list" } },
+    { "id" : "genie_ask", "properties" : { "data.connectorMode.type" : "standalone", "data.connectorMode.operation.type" : "tools/call", "genieOperation" : "ask" } },
+    { "id" : "genie_poll", "properties" : { "data.connectorMode.type" : "standalone", "data.connectorMode.operation.type" : "tools/call", "genieOperation" : "poll" } },
+    { "id" : "genie_getQueryResult", "properties" : { "data.connectorMode.type" : "standalone", "data.connectorMode.operation.type" : "tools/call", "genieOperation" : "getQueryResult" } },
+    { "id" : "genie_cancel", "properties" : { "data.connectorMode.type" : "standalone", "data.connectorMode.operation.type" : "tools/call", "genieOperation" : "cancel" } },
+    { "id" : "aiAgentTool", "properties" : { "data.connectorMode.type" : "aiAgentTool" } }
   ]
 }
