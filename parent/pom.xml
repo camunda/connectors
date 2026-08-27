@@ -99,12 +99,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.54.4</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.54.5</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.54.4</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.54.5</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.54.4</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.54.5</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -112,7 +112,7 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.2.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20260720-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260823-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.49.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20260427-2.0.0</version.google-api-services-docs>
@@ -139,7 +139,7 @@ limitations under the License.</license.inlineheader>
 
     <version.microsoft-graph>6.67.0</version.microsoft-graph>
     <version.azure-identity>1.18.5</version.azure-identity>
-    <version.azure-cosmos>4.81.0</version.azure-cosmos>
+    <version.azure-cosmos>4.82.0</version.azure-cosmos>
 
     <!-- Independent properties: bcpkix-jdk18on and bcprov-jdk18on don't always ship
          new patch releases in lockstep (e.g. 1.85.2 exists only for bcprov-jdk18on),
@@ -151,7 +151,7 @@ limitations under the License.</license.inlineheader>
 
     <version.sendGrid>4.10.3</version.sendGrid>
 
-    <version.slack>1.50.0</version.slack>
+    <version.slack>1.51.0</version.slack>
 
     <version.testcontainers>2.0.5</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
@@ -188,7 +188,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.2</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>3.10.0</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>3.10.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
   </properties>
 
