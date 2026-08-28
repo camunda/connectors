@@ -91,6 +91,10 @@ class CamundaClientSaaSConfigurationTest {
         config.credentialsProviderConfiguration().camundaClientCredentialsProvider(properties);
 
     assertThat(result).isInstanceOf(OAuthCredentialsProvider.class);
+    // Guards the lazy-construction fix itself: constructing the internal secret provider eagerly
+    // (in the constructor, regardless of whether credentials are present) is exactly what caused
+    // the crash this PR fixes, and getSecret() alone would still pass under that regression.
+    verify(mockSaaSConfig, never()).getInternalSecretProvider();
     verify(mockSecretProvider, never()).getSecret(any(), any());
   }
 
