@@ -53,9 +53,7 @@ class JdbcConnectionValidatorTest {
     assertThat(connected[0]).isFalse();
   }
 
-  /**
-   * SQL state class 28 is "invalid authorization specification"; the subclass varies by product.
-   */
+  /** SQL state class 28 is "invalid authorization specification"; subclass varies. */
   @ParameterizedTest
   @ValueSource(strings = {"28000", "28P01", "28501"})
   void unauthorizedOnAnInvalidAuthorizationSqlState(String sqlState) {
@@ -139,8 +137,7 @@ class JdbcConnectionValidatorTest {
 
   @Test
   void keepsTheLoginOutOfToString() {
-    // The record hand-writes toString for this reason; the database added alongside it is not a
-    // secret and stays visible, so a log line still says which connection it is about.
+    // The database is not a secret and stays visible; the login and password do not.
     assertThat(VALID.toString())
         .contains("POSTGRESQL", "db.example.com", "orders")
         .doesNotContain("the-login", "the-secret");
@@ -149,8 +146,7 @@ class JdbcConnectionValidatorTest {
   @Test
   @SuppressWarnings("rawtypes")
   void isDiscoverableViaTheServiceLoader() {
-    // The runtime finds validators through META-INF/services only. A missing or misspelled entry
-    // leaves the credential silently unvalidatable, and nothing else in the build would catch it.
+    // A missing META-INF/services entry silently leaves the credential unvalidatable.
     assertThat(
             ServiceLoader.load(ConfigurationValidator.class).stream()
                 .map(ServiceLoader.Provider::type))

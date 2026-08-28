@@ -25,12 +25,7 @@ class RestAuthenticationValidatorTest {
 
   private static final String SENSITIVE = "SENSITIVE-DETAIL";
 
-  /**
-   * The credential's URL is mandatory only for the static-secret authentication types (see {@link
-   * RestAuthenticationConfiguration#requiresUrl}), so it is supplied exactly where the record
-   * requires it. The validator itself never reads it: what can be checked out-of-band depends on
-   * the authentication variant, not on the endpoint the credential is bound to.
-   */
+  /** Supplies a URL only where the record requires one; the validator never reads it. */
   private static RestAuthenticationConfiguration configuration(Authentication authentication) {
     String url =
         authentication != null && RestAuthenticationConfiguration.requiresUrl(authentication)
@@ -52,8 +47,7 @@ class RestAuthenticationValidatorTest {
   @Test
   @SuppressWarnings("rawtypes")
   void isDiscoverableViaTheServiceLoader() {
-    // The runtime finds validators through META-INF/services only. A missing or misspelled entry
-    // leaves the credential silently unvalidatable, and nothing else in the build would catch it.
+    // A missing META-INF/services entry silently leaves the credential unvalidatable.
     assertThat(
             ServiceLoader.load(ConfigurationValidator.class).stream()
                 .map(ServiceLoader.Provider::type))
@@ -114,10 +108,7 @@ class RestAuthenticationValidatorTest {
     }
   }
 
-  /**
-   * Covers how a token request outcome becomes a result. Uses the injected seam so every branch is
-   * reachable, including the ones a token endpoint reaches only in the field.
-   */
+  /** Maps token-request outcomes to results, via the seam, so every branch is reachable. */
   @Nested
   class TokenRequestOutcomeMapping {
 
@@ -169,8 +160,7 @@ class RestAuthenticationValidatorTest {
 
     @Test
     void errorOnAnUnrelatedOAuthError() {
-      // A malformed request is the client's fault, not the credential's — reporting it as
-      // unauthorized would send an operator looking for the wrong problem.
+      // A malformed request is the client's fault, not the credential's.
       assertError(httpFailure(400, Map.of(OAuthConstants.ERROR, "invalid_request")));
     }
 
@@ -191,8 +181,7 @@ class RestAuthenticationValidatorTest {
 
     @Test
     void errorWhenTheErrorVariablesDoNotCarryABody() {
-      // Nothing guarantees the shape of a ConnectorException's error variables; an unexpected one
-      // must not make the lookup throw and turn a clean failure into a crash.
+      // An unexpected error-variable shape must not turn a clean failure into a crash.
       assertError(
           new ConnectorExceptionBuilder()
               .errorCode("400")
@@ -244,10 +233,7 @@ class RestAuthenticationValidatorTest {
     }
   }
 
-  /**
-   * Exercises the real token request against a stub endpoint, so the wiring between the validator,
-   * the authentication mapping and the HTTP client is covered rather than stubbed out.
-   */
+  /** Real token request against a stub endpoint, so the mapping and HTTP wiring are covered. */
   @Nested
   @WireMockTest
   class AgainstARealTokenEndpoint {
@@ -326,10 +312,7 @@ class RestAuthenticationValidatorTest {
 
     @Test
     void refreshTokenIsUnsupportedBecauseTheProviderMayRotateIt() {
-      // Under RFC 6749 §6, a refresh token grant may cause the provider to rotate the refresh token
-      // and invalidate the one just presented. This validator cannot persist a rotated token, so
-      // validating a working rotating credential could make its next execution fail. Return
-      // UNSUPPORTED rather than expose that risk.
+      // RFC 6749 §6: the grant may rotate the token, and this validator cannot persist it.
       var result = validator.validate(configuration(refreshToken("http://example.com/token")));
 
       assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);

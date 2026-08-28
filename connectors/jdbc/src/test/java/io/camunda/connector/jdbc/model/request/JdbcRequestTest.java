@@ -195,11 +195,7 @@ public class JdbcRequestTest extends BaseTest {
     assertThat(request.configuration().host()).isEqualTo("cred-host");
   }
 
-  /**
-   * The credential names the database and the connector's own field is left empty — the shape a
-   * modeler produces when they expect the credential to supply everything about the connection. The
-   * inline field is hidden once a credential is bound, so this is the shape Modeler writes.
-   */
+  /** The shape Modeler writes when a credential is bound: no inline database at all. */
   @Test
   void bindVariablesUsesTheCredentialDatabaseWhenTheInlineFieldIsAbsent() {
     String variables =
@@ -223,12 +219,7 @@ public class JdbcRequestTest extends BaseTest {
     assertThat(request.database()).isEqualTo(SupportedDatabase.POSTGRESQL);
   }
 
-  /**
-   * The credential's database is mandatory from version 2 on (see {@link
-   * io.camunda.connector.jdbc.model.request.connection.JdbcConnectionConfiguration}), so a bound
-   * credential that names none is rejected rather than silently falling through to the inline field
-   * — which is hidden, and therefore not something a modeler can see or correct.
-   */
+  /** Mandatory from credential version 2 on: no silent fall-through to the hidden inline field. */
   @Test
   void bindVariablesFailsWhenTheBoundCredentialNamesNoDatabase() {
     String variables =
@@ -251,11 +242,7 @@ public class JdbcRequestTest extends BaseTest {
         .hasMessageContaining("configuration.database");
   }
 
-  /**
-   * No credential is bound and the inline field is absent, so nothing names a database. Reported
-   * against the effective value by {@code isDatabaseSourceProvided()} rather than by a
-   * component-level {@code @NotNull}, which could not hold now that the credential may supply it.
-   */
+  /** Nothing names a database, so {@code isDatabaseSourceProvided()} reports it. */
   @Test
   void bindVariablesFailsWhenNoSourceNamesADatabase() {
     String variables =

@@ -20,27 +20,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Validates a {@link RestAuthenticationConfiguration} out-of-band, and is therefore shared by every
- * connector that binds it — REST, GraphQL, HTTP polling.
+ * Validates a {@link RestAuthenticationConfiguration} out-of-band; shared by REST, GraphQL and HTTP
+ * polling. The OAuth variants carry their own token endpoint, so a token is really requested;
+ * basic, bearer and API key carry a secret with nothing to present it to, so they return {@link
+ * ConfigurationValidationResult#unsupported() unsupported} rather than an unverified success.
  *
- * <p>How much can be checked depends on the authentication variant, because the credential does not
- * name the API it is meant for:
- *
- * <ul>
- *   <li>Both OAuth 2.0 variants carry their own token endpoint, so the check is a real one: request
- *       a token exactly as connector execution would, and require an access token back.
- *   <li>Basic, bearer and API key carry a secret and nothing to present it to, so there is no
- *       out-of-band check to run and the result is {@link
- *       ConfigurationValidationResult#unsupported() unsupported} — reporting success would confirm
- *       a secret nobody verified.
- *   <li>No authentication is usable by definition.
- * </ul>
- *
- * <p>Messages returned to the caller are static and value-free: a token endpoint's error body is
- * echoed into the exception message and can carry the client id, the endpoint, or provider-side
- * detail, so it is never surfaced. The full exception is available at {@code DEBUG} for operators
- * who need to diagnose a failure — enabling that level is an explicit, deployment-level decision to
- * accept those details in the logs.
+ * <p>Returned messages are static and value-free; the full exception is logged at {@code DEBUG}.
  */
 public class RestAuthenticationValidator
     implements ConfigurationValidator<RestAuthenticationConfiguration> {
@@ -53,21 +38,11 @@ public class RestAuthenticationValidator
   static final String GENERIC_MESSAGE =
       "The REST authentication credential could not be validated.";
 
-  /**
-   * Error codes that mean the credential itself was rejected, rather than the token endpoint being
-   * unreachable or broken.
-   *
-   * <p>{@code 401} and {@code 403} are the HTTP statuses; the {@code OAUTH_*} codes are raised by
-   * {@link OAuthService} when a {@code 200} response carries an OAuth error instead of a token.
-   */
+  /** Codes meaning the credential was rejected, not that the endpoint was unreachable. */
   private static final Set<String> UNAUTHORIZED_ERROR_CODES =
       Set.of("401", "403", "OAUTH_REFRESH_TOKEN_EXPIRED", "OAUTH_INTERACTION_REQUIRED");
 
-  /**
-   * OAuth error identifiers (RFC 6749 §5.2) that mean the credential itself was rejected. Needed on
-   * top of the status codes above because a token endpoint is free to report a rejected client
-   * secret or an expired refresh token as {@code 400}, and commonly does.
-   */
+  /** OAuth error identifiers (RFC 6749 §5.2) for a rejected credential, often sent as 400. */
   private static final Set<String> UNAUTHORIZED_OAUTH_ERRORS =
       Set.of("invalid_client", "invalid_grant", "unauthorized_client");
 
@@ -89,9 +64,7 @@ public class RestAuthenticationValidator
 
   @Override
   public ConfigurationValidationResult validate(RestAuthenticationConfiguration configuration) {
-    // The only guard against a missing authentication: the configuration record carries @Valid but
-    // no @NotNull, so nothing upstream rejects it, and an unauthenticated credential is not a
-    // credential.
+    // The only guard: the record carries @Valid but no @NotNull on authentication.
     if (configuration.authentication() == null) {
       return ConfigurationValidationResult.failure(ErrorCode.INVALID_INPUT, MISSING_AUTH_MESSAGE);
     }
@@ -127,16 +100,12 @@ public class RestAuthenticationValidator
         || contains(UNAUTHORIZED_OAUTH_ERRORS, oauthErrorOf(e));
   }
 
-  /** Both lookups are legitimately absent, and {@code Set.of} rejects a null argument. */
+  /** Null-safe: both lookups are legitimately absent and {@code Set.of} rejects null. */
   private static boolean contains(Set<String> values, String candidate) {
     return candidate != null && values.contains(candidate);
   }
 
-  /**
-   * The OAuth {@code error} identifier from the token endpoint's response body, or {@code null} if
-   * the response carried none. The body travels on the exception's error variables under the same
-   * {@code response.body} shape a BPMN error handler sees.
-   */
+  /** The OAuth {@code error} identifier from the token endpoint's response body, or null. */
   private static String oauthErrorOf(ConnectorException e) {
     Map<String, Object> variables = e.getErrorVariables();
     if (variables == null || !(variables.get("response") instanceof Map<?, ?> response)) {
@@ -148,14 +117,7 @@ public class RestAuthenticationValidator
     return body.get(OAuthConstants.ERROR) instanceof String error ? error : null;
   }
 
-  /**
-   * Requests a token the same way connector execution does, so a credential that validates here
-   * cannot fail there for a reason validation never exercised.
-   *
-   * <p>The shared OAuth token cache is deliberately bypassed: a token cached by an earlier
-   * execution would make any credential validate, and a token fetched here would be attributed to a
-   * process that never ran.
-   */
+  /** Requests a token as execution does, bypassing the shared cache so no cached token passes. */
   private static void requestToken(Authentication authentication) {
     OAuthService oAuthService = new OAuthService();
     HttpAuthentication mapped = AuthenticationMapper.map(authentication);

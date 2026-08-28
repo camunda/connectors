@@ -453,12 +453,7 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
     }
   }
 
-  /**
-   * Out-of-band validation of a stored connection credential, against every supported product. The
-   * point of running this for real is the failure classification: telling "the database rejected
-   * this login" from "the database is unreachable" relies on SQL states and vendor error codes that
-   * differ per product, and only a real server reports the ones it actually reports.
-   */
+  /** Only a real server reports the SQL states and vendor codes the classification relies on. */
   private static JdbcConnectionConfiguration credential(
       IntegrationTestConfig config, String password) {
     return new JdbcConnectionConfiguration(
@@ -470,12 +465,7 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
         password);
   }
 
-  /**
-   * A credential carries no connection properties (see {@code
-   * JdbcConnectionConfiguration#toDetailedConnection}), so a product that needs one to be reachable
-   * at all cannot be reached through one. Only SQL Server is affected here: the test server's
-   * certificate is self-signed and its driver requires {@code encrypt=false} to accept it.
-   */
+  /** A credential carries no connection properties, which SQL Server needs to be reachable. */
   private static void assumeReachableWithoutConnectionProperties(IntegrationTestConfig config) {
     assumeTrue(
         config.properties() == null || config.properties().isEmpty(),
@@ -489,11 +479,7 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
         : SupportedDatabase.POSTGRESQL;
   }
 
-  /**
-   * The database a bound credential names must drive execution, not only validation. Otherwise the
-   * credential supplies the host, port and login while the connector's own field still picks the
-   * driver and URL scheme, and the two can disagree with nothing reporting it.
-   */
+  /** A bound credential's database must drive execution, not only validation. */
   @Nested
   class ConnectionCredentialPrecedenceTests {
 
@@ -518,8 +504,7 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
     @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
     public void shouldConnectWhenOnlyTheCredentialNamesADatabase(IntegrationTestConfig config)
         throws Exception {
-      // The shape a modeler produces when they expect the credential to supply the whole
-      // connection.
+      // The shape a modeler produces when the credential supplies the whole connection.
       assumeReachableWithoutConnectionProperties(config);
       var request = new JdbcRequest(credential(config, config.password()), null, null, data);
 
@@ -528,10 +513,7 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
       }
     }
 
-    /**
-     * Negative control: the same mismatched product really does fail when no credential overrides
-     * it, so the two tests above are not passing for some unrelated reason.
-     */
+    /** Negative control: the same mismatch really does fail with no credential to override it. */
     @ParameterizedTest
     @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
     public void shouldFailWhenTheMismatchedDatabaseIsNotOverriddenByACredential(
@@ -575,8 +557,7 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
     @ParameterizedTest
     @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
     public void shouldReportError_whenTheDatabaseIsUnreachable(IntegrationTestConfig config) {
-      // A closed port must not read as a rejected login: an operator told "unauthorized" would go
-      // looking for the wrong problem.
+      // A closed port must not read as a rejected login.
       var unreachable =
           new JdbcConnectionConfiguration(
               config.database(),

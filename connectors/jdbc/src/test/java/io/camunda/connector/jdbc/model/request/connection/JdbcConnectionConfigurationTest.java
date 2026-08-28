@@ -15,10 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-/**
- * A stored credential is deserialized into this record as part of every {@code JdbcRequest} that
- * binds one, so a value this record cannot read fails the whole job — not just validation.
- */
+/** A stored credential binds into every request, so an unreadable value fails the job. */
 class JdbcConnectionConfigurationTest {
 
   private static final String OTHER_FIELDS =
@@ -27,11 +24,7 @@ class JdbcConnectionConfigurationTest {
 
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
-  /**
-   * Every supported product must be selectable. The dropdown choices in the
-   * {@code @TemplateProperty} annotation are hand-written, so a choice value that no enum constant
-   * matches would only fail once a modeler picked it.
-   */
+  /** The dropdown choices are hand-written, so an unmatched one fails only once picked. */
   @ParameterizedTest
   @EnumSource(SupportedDatabase.class)
   void deserializesEverySupportedDatabase(SupportedDatabase database) throws Exception {

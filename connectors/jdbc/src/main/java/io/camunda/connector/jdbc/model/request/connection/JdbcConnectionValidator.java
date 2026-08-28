@@ -18,20 +18,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Validates a {@link JdbcConnectionConfiguration} out-of-band by opening a connection to the
- * database and closing it again. Authentication happens during connect, so a connection that opens
- * is a login that works — there is no query to run and none is run, so validating a credential
- * cannot touch data.
+ * Validates a {@link JdbcConnectionConfiguration} out-of-band by opening a connection and closing
+ * it again: authentication happens during connect, and no query is ever run. Goes through {@link
+ * ConnectionHelper}, the same path execution takes, so a credential that validates here cannot fail
+ * there over a driver or a URL scheme.
  *
- * <p>The connection is opened through {@link ConnectionHelper}, the same path connector execution
- * uses, and against the same database: a bound credential's database takes precedence at execution
- * time too ({@code JdbcRequest#database()}). So a credential that validates here cannot fail there
- * over a driver, a URL scheme or a property the two assembled differently.
- *
- * <p>Messages returned to the caller are static and value-free: a driver's exception text carries
- * the connection URL, the host and the login, so it is never surfaced. The full exception is
- * available at {@code DEBUG} for operators who need to diagnose a failure — enabling that level is
- * an explicit, deployment-level decision to accept those details in the logs.
+ * <p>Returned messages are static and value-free; the full exception is logged at {@code DEBUG}.
  */
 public class JdbcConnectionValidator
     implements ConfigurationValidator<JdbcConnectionConfiguration> {
@@ -48,12 +40,7 @@ public class JdbcConnectionValidator
   /** SQL state class 28, "invalid authorization specification" (SQL:2016). */
   private static final String INVALID_AUTHORIZATION_SQL_STATE_CLASS = "28";
 
-  /**
-   * Vendor error codes for a rejected login that do not reach us as SQL state class 28: Oracle's
-   * ORA-01017 and SQL Server's 18456. Both report a wrong password under a SQL state that says
-   * nothing about authorization, so without these two a wrong password on either product would read
-   * as a generic error.
-   */
+  /** Rejected logins not reported as SQL state 28: Oracle ORA-01017, SQL Server 18456. */
   private static final Set<Integer> UNAUTHORIZED_VENDOR_ERROR_CODES = Set.of(1017, 18456);
 
   /** Seam for testing: opens and closes a connection, throwing on failure. */
@@ -74,11 +61,7 @@ public class JdbcConnectionValidator
 
   @Override
   public ConfigurationValidationResult validate(JdbcConnectionConfiguration configuration) {
-    // The record declares the database @NotNull, but this validator is handed a deserialized
-    // credential directly rather than a bean-validated one — and the record's own v1 convenience
-    // constructor leaves it null — so the guard stays. Without a database there is no driver to
-    // load and no URL scheme to build, and every product spells its connection string differently
-    // — guessing one would validate a database the credential never named.
+    // Guarded here: this validator gets a deserialized credential, not a bean-validated one.
     SupportedDatabase database = configuration.database();
     if (database == null) {
       return ConfigurationValidationResult.failure(
@@ -88,8 +71,7 @@ public class JdbcConnectionValidator
       connectionCheck.run(configuration);
       return ConfigurationValidationResult.success();
     } catch (ClassNotFoundException e) {
-      // Oracle's driver is not redistributable, so an Oracle credential only validates on a runtime
-      // the operator added it to.
+      // Oracle's driver is not redistributable, so it may be absent from a given runtime.
       LOG.debug("JDBC driver for {} is not on the classpath", database, e);
       return ConfigurationValidationResult.failure(ErrorCode.ERROR, DRIVER_MISSING_MESSAGE);
     } catch (SQLException e) {
@@ -115,10 +97,7 @@ public class JdbcConnectionValidator
 
   private static void openAndClose(JdbcConnectionConfiguration configuration)
       throws ClassNotFoundException, SQLException {
-    // TODO: apply a finite login timeout to prevent a black-holed host from blocking the
-    // validation endpoint indefinitely. Use driver-specific connection properties or a bounded
-    // mechanism that guarantees late connections are closed, rather than DriverManager's
-    // process-global setLoginTimeout.
+    // TODO: apply a finite login timeout so a black-holed host cannot block the endpoint.
     try (Connection ignored =
         ConnectionHelper.openConnection(
             configuration.database(), configuration.toDetailedConnection())) {

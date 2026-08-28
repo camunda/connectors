@@ -21,8 +21,7 @@ public class ConnectionHelper {
   private static final Logger LOG = LoggerFactory.getLogger(ConnectionHelper.class);
 
   public static Connection openConnection(JdbcRequest request) {
-    // The effective database, not the raw field: a bound credential's database wins (see
-    // JdbcRequest#database()), so the driver and URL scheme match the host and login.
+    // A bound credential's database wins (see JdbcRequest#database()), matching driver to host.
     SupportedDatabase database = request.database();
     try {
       LOG.debug("Executing JDBC request: {}", request);
@@ -35,12 +34,9 @@ public class ConnectionHelper {
   }
 
   /**
-   * Opens a connection without a surrounding request, for callers that hold a database and a
-   * connection but no job to execute — out-of-band validation of a stored connection credential.
-   *
-   * <p>Driver failures are propagated rather than wrapped, because a caller that has to tell "the
-   * database rejected this login" from "the database is unreachable" needs the {@link
-   * SQLException#getSQLState() SQL state}, which the {@link ConnectorException} above discards.
+   * Opens a connection for a caller with no job to execute — out-of-band credential validation.
+   * Driver failures propagate unwrapped so the caller can read the {@link
+   * SQLException#getSQLState() SQL state} that {@link ConnectorException} would discard.
    */
   public static Connection openConnection(SupportedDatabase database, JdbcConnection connection)
       throws ClassNotFoundException, SQLException {
