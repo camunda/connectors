@@ -40,7 +40,8 @@ public class CamundaClientSaaSConfiguration {
   public static String SECRET_NAME_CLIENT_ID = "M2MClientId";
   public static String SECRET_NAME_SECRET = "M2MSecret";
 
-  private final SecretProvider internalSecretProvider;
+  private final SaaSSecretConfiguration saaSConfiguration;
+  private SecretProvider internalSecretProvider;
 
   @Value("${camunda.client.auth.token-url:#{null}}")
   private String camundaClientTokenUrl;
@@ -49,7 +50,7 @@ public class CamundaClientSaaSConfiguration {
   private String camundaClientAudience;
 
   public CamundaClientSaaSConfiguration(@Autowired SaaSSecretConfiguration saaSConfiguration) {
-    this.internalSecretProvider = saaSConfiguration.getInternalSecretProvider();
+    this.saaSConfiguration = saaSConfiguration;
   }
 
   /**
@@ -108,6 +109,7 @@ public class CamundaClientSaaSConfiguration {
     resolvedProperties.setAuth(auth);
 
     auth.setMethod(AuthMethod.oidc);
+    var internalSecretProvider = getInternalSecretProvider();
     auth.setClientId(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID, null));
     auth.setClientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET, null));
     if (auth.getTokenUrl() == null && camundaClientTokenUrl != null) {
@@ -118,5 +120,21 @@ public class CamundaClientSaaSConfiguration {
     }
     auth.setCredentialsCachePath(null);
     return resolvedProperties;
+  }
+
+  /**
+   * Lazily builds the internal secret provider on first use, rather than eagerly at construction
+   * time, so a client with explicit credentials never forces it to be built. A client without
+   * explicit credentials still always needs it - client authentication is unrelated to {@code
+   * {{secrets.X}}} legacy connector-secret resolution, so it must never be silently skipped (that
+   * would leave the client unauthenticated via {@code NoopCredentialsProvider}); the dedicated
+   * {@code camunda.saas.secrets.enabled} switch only gates the separate outbound connector-secrets
+   * provider in {@link SaaSSecretConfiguration#getSecretProvider()}.
+   */
+  private SecretProvider getInternalSecretProvider() {
+    if (internalSecretProvider == null) {
+      internalSecretProvider = saaSConfiguration.getInternalSecretProvider();
+    }
+    return internalSecretProvider;
   }
 }
