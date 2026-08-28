@@ -53,6 +53,10 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     OUTBOUND_ELIGIBLE_TYPES.add(SendTask.class);
     OUTBOUND_ELIGIBLE_TYPES.add(ScriptTask.class);
     OUTBOUND_ELIGIBLE_TYPES.add(BusinessRuleTask.class);
+    // Covers AdHocSubProcess too (AdHocSubProcess extends SubProcess): a connector's
+    // zeebe:ioMapping can be attached directly to the sub-process boundary element itself
+    // (e.g. the AI Agent Sub-process connector), not just to a child task inside it.
+    OUTBOUND_ELIGIBLE_TYPES.add(SubProcess.class);
   }
 
   private final String physicalTenantId;
@@ -161,9 +165,12 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private Collection<FlowElement> collectFlowElements(
       final Collection<FlowElement> processFlowElements, final Collection<FlowElement> buffer) {
     for (FlowElement element : processFlowElements) {
-      // if we detect a subprocess, we have to expand it
-      // its building blocks to identify where are connectors
+      // if we detect a subprocess, we have to expand it to identify where are connectors in its
+      // building blocks, but the subprocess element itself may also carry a connector directly
+      // (e.g. an ad-hoc sub-process connector's zeebe:ioMapping lives on the boundary element,
+      // not on a child), so it must be added to the buffer too, not skipped via continue.
       if (element instanceof SubProcess subprocess) {
+        buffer.add(element);
         buffer.addAll(retrieveEligibleElementsFromSubprocess(subprocess));
         continue;
       }

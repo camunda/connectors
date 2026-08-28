@@ -112,6 +112,34 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_adHocSubProcessWithSecretsOnBoundaryElement_returnsItsOwnSecrets()
+      throws IOException {
+    // A connector's zeebe:ioMapping can be attached directly to a SubProcess/AdHocSubProcess
+    // element itself (e.g. the AI Agent Sub-process connector), not just to a child task inside
+    // it. The sub-process element must be allow-listed for its own secrets, not only scanned for
+    // eligible children.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-subprocess-with-secrets.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "ad-hoc-subprocess-1"));
+
+    assertThat(keys).containsExactlyInAnyOrder("SUBPROCESS_SECRET", "SUBPROCESS_TOKEN");
+  }
+
+  @Test
+  void getSecretKeys_childOfAdHocSubProcessWithNoSecrets_returnsEmptyList() throws IOException {
+    // The child task inside the sub-process from the fixture above declares no secrets of its
+    // own; it must not inherit or be conflated with its parent sub-process's allow-list.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-subprocess-with-secrets.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(
+            new SecretKeyContext(PROCESS_DEF_KEY, "child-task-no-secrets"));
+
+    assertThat(keys).isEmpty();
+  }
+
+  @Test
   void getSecretKeys_unknownElementId_returnsEmptyList() throws IOException {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-secrets.bpmn"));
 
