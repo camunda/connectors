@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.saas.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,7 +46,9 @@ class CamundaClientSaaSConfigurationTest {
 
   @BeforeEach
   void setup() {
-    when(mockSaaSConfig.getInternalSecretProvider()).thenReturn(mockSecretProvider);
+    // The internal secret provider is now built lazily, so tests where credentials are already
+    // present legitimately never touch this stub.
+    lenient().when(mockSaaSConfig.getInternalSecretProvider()).thenReturn(mockSecretProvider);
   }
 
   private CamundaClientSaaSConfiguration createConfig() {
@@ -88,6 +91,10 @@ class CamundaClientSaaSConfigurationTest {
         config.credentialsProviderConfiguration().camundaClientCredentialsProvider(properties);
 
     assertThat(result).isInstanceOf(OAuthCredentialsProvider.class);
+    // Guards the lazy-construction fix itself: constructing the internal secret provider eagerly
+    // (in the constructor, regardless of whether credentials are present) is exactly what caused
+    // the crash this PR fixes, and getSecret() alone would still pass under that regression.
+    verify(mockSaaSConfig, never()).getInternalSecretProvider();
     verify(mockSecretProvider, never()).getSecret(any(), any());
   }
 
