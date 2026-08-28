@@ -13,7 +13,6 @@ import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.client.model.auth.HttpAuthentication;
 import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -46,22 +45,6 @@ public class RestAuthenticationValidator
   private static final Set<String> UNAUTHORIZED_OAUTH_ERRORS =
       Set.of("invalid_client", "invalid_grant", "unauthorized_client");
 
-  /** Seam for testing: requests a token for the given OAuth variant, throwing on failure. */
-  @FunctionalInterface
-  interface TokenRequest {
-    void run(Authentication authentication);
-  }
-
-  private final TokenRequest tokenRequest;
-
-  public RestAuthenticationValidator() {
-    this(RestAuthenticationValidator::requestToken);
-  }
-
-  RestAuthenticationValidator(TokenRequest tokenRequest) {
-    this.tokenRequest = tokenRequest;
-  }
-
   @Override
   public ConfigurationValidationResult validate(RestAuthenticationConfiguration configuration) {
     // The only guard: the record carries @Valid but no @NotNull on authentication.
@@ -73,68 +56,54 @@ public class RestAuthenticationValidator
       case BasicAuthentication ignored -> ConfigurationValidationResult.unsupported();
       case BearerAuthentication ignored -> ConfigurationValidationResult.unsupported();
       case ApiKeyAuthentication ignored -> ConfigurationValidationResult.unsupported();
-      case OAuthAuthentication oauth -> requestTokenFor(oauth);
+      case OAuthAuthentication oauth -> requestToken(oauth);
       case OAuthRefreshTokenAuthentication ignored ->
           ConfigurationValidationResult
               .unsupported(); // Refresh-token rotation can invalidate the token just used
     };
   }
 
-  private ConfigurationValidationResult requestTokenFor(Authentication authentication) {
+  /** Requests a token as execution does, bypassing the shared cache so no cached token passes. */
+  private static ConfigurationValidationResult requestToken(OAuthAuthentication authentication) {
     try {
-      tokenRequest.run(authentication);
+      var oAuthService = new OAuthService();
+      var mapped =
+          (io.camunda.connector.http.client.model.auth.OAuthAuthentication)
+              AuthenticationMapper.map(authentication);
+      new CustomApacheHttpClient()
+          .execute(
+              oAuthService.createOAuthRequestFrom(mapped), oAuthService::extractTokenFromResponse);
       return ConfigurationValidationResult.success();
-    } catch (ConnectorException e) {
-      LOG.debug("Token request failed for a REST authentication credential", e);
-      return isCredentialRejected(e)
-          ? ConfigurationValidationResult.failure(ErrorCode.UNAUTHORIZED, UNAUTHORIZED_MESSAGE)
-          : ConfigurationValidationResult.failure(ErrorCode.ERROR, GENERIC_MESSAGE);
     } catch (Exception e) {
-      LOG.debug("REST authentication credential validation failed", e);
-      return ConfigurationValidationResult.failure(ErrorCode.ERROR, GENERIC_MESSAGE);
+      LOG.debug("Token request failed for a REST authentication credential", e);
+      return classifyFailure(e);
     }
   }
 
-  private static boolean isCredentialRejected(ConnectorException e) {
-    return contains(UNAUTHORIZED_ERROR_CODES, e.getErrorCode())
-        || contains(UNAUTHORIZED_OAUTH_ERRORS, oauthErrorOf(e));
+  /** Maps a failed token request to a result. Package-private so tests can cover every shape. */
+  static ConfigurationValidationResult classifyFailure(Exception e) {
+    return e instanceof ConnectorException connectorException
+            && isCredentialRejected(connectorException)
+        ? ConfigurationValidationResult.failure(ErrorCode.UNAUTHORIZED, UNAUTHORIZED_MESSAGE)
+        : ConfigurationValidationResult.failure(ErrorCode.ERROR, GENERIC_MESSAGE);
   }
 
-  /** Null-safe: both lookups are legitimately absent and {@code Set.of} rejects null. */
-  private static boolean contains(Set<String> values, String candidate) {
-    return candidate != null && values.contains(candidate);
+  private static boolean isCredentialRejected(ConnectorException e) {
+    String code = e.getErrorCode();
+    String oauthError = oauthErrorOf(e);
+    return (code != null && UNAUTHORIZED_ERROR_CODES.contains(code))
+        || (oauthError != null && UNAUTHORIZED_OAUTH_ERRORS.contains(oauthError));
   }
 
   /** The OAuth {@code error} identifier from the token endpoint's response body, or null. */
   private static String oauthErrorOf(ConnectorException e) {
     Map<String, Object> variables = e.getErrorVariables();
-    if (variables == null || !(variables.get("response") instanceof Map<?, ?> response)) {
-      return null;
+    if (variables != null
+        && variables.get("response") instanceof Map<?, ?> response
+        && response.get("body") instanceof Map<?, ?> body
+        && body.get(OAuthConstants.ERROR) instanceof String error) {
+      return error;
     }
-    if (!(response.get("body") instanceof Map<?, ?> body)) {
-      return null;
-    }
-    return body.get(OAuthConstants.ERROR) instanceof String error ? error : null;
-  }
-
-  /** Requests a token as execution does, bypassing the shared cache so no cached token passes. */
-  private static void requestToken(Authentication authentication) {
-    OAuthService oAuthService = new OAuthService();
-    HttpAuthentication mapped = AuthenticationMapper.map(authentication);
-    switch (mapped) {
-      case io.camunda.connector.http.client.model.auth.OAuthAuthentication oauth ->
-          new CustomApacheHttpClient()
-              .execute(
-                  oAuthService.createOAuthRequestFrom(oauth),
-                  oAuthService::extractTokenFromResponse);
-      case io.camunda.connector.http.client.model.auth.OAuthRefreshTokenAuthentication oauth ->
-          new CustomApacheHttpClient()
-              .execute(
-                  oAuthService.createOAuthRefreshTokenRequestFrom(oauth),
-                  oAuthService::extractTokenFromRefreshTokenResponse);
-      default ->
-          throw new IllegalStateException(
-              "Not an OAuth authentication: " + mapped.getClass().getName());
-    }
+    return null;
   }
 }

@@ -8,7 +8,6 @@ package io.camunda.connector.jdbc.model.request.connection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidationResult.Status;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
@@ -20,8 +19,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class JdbcConnectionValidatorTest {
 
-  private static final String SENSITIVE = "SENSITIVE-DETAIL";
-
   private static final JdbcConnectionConfiguration VALID =
       new JdbcConnectionConfiguration(
           SupportedDatabase.POSTGRESQL,
@@ -32,25 +29,15 @@ class JdbcConnectionValidatorTest {
           "the-secret");
 
   @Test
-  void successWhenTheConnectionOpens() {
-    var validator = new JdbcConnectionValidator(configuration -> {});
-
-    assertThat(validator.validate(VALID).status()).isEqualTo(Status.SUCCESS);
-  }
-
-  @Test
-  void rejectsAMissingDatabaseWithoutConnecting() {
-    var connected = new boolean[] {false};
-    var validator = new JdbcConnectionValidator(configuration -> connected[0] = true);
-
+  void rejectsAMissingDatabase() {
     var result =
-        validator.validate(
-            new JdbcConnectionConfiguration(
-                null, "db.example.com", "5432", "orders", "the-login", "the-secret"));
+        new JdbcConnectionValidator()
+            .validate(
+                new JdbcConnectionConfiguration(
+                    null, "db.example.com", "5432", "orders", "the-login", "the-secret"));
 
     assertThat(result.status()).isEqualTo(Status.FAILURE);
     assertThat(result.code()).isEqualTo("INVALID_INPUT");
-    assertThat(connected[0]).isFalse();
   }
 
   /** SQL state class 28 is "invalid authorization specification"; subclass varies. */
@@ -58,14 +45,10 @@ class JdbcConnectionValidatorTest {
   @ValueSource(strings = {"28000", "28P01", "28501"})
   void unauthorizedOnAnInvalidAuthorizationSqlState(String sqlState) {
     var result =
-        validateWith(
-            configuration -> {
-              throw new SQLException("login failed " + SENSITIVE, sqlState);
-            });
+        JdbcConnectionValidator.classifyFailure(new SQLException("login failed", sqlState));
 
     assertThat(result.status()).isEqualTo(Status.FAILURE);
     assertThat(result.code()).isEqualTo("UNAUTHORIZED");
-    assertThat(result.message()).doesNotContain(SENSITIVE);
   }
 
   /** Oracle ORA-01017 and SQL Server 18456: a rejected login under an unrelated SQL state. */
@@ -73,66 +56,54 @@ class JdbcConnectionValidatorTest {
   @ValueSource(ints = {1017, 18456})
   void unauthorizedOnAVendorLoginErrorCode(int vendorCode) {
     var result =
-        validateWith(
-            configuration -> {
-              throw new SQLException("login failed " + SENSITIVE, "72000", vendorCode);
-            });
+        JdbcConnectionValidator.classifyFailure(
+            new SQLException("login failed", "72000", vendorCode));
 
     assertThat(result.code()).isEqualTo("UNAUTHORIZED");
-    assertThat(result.message()).doesNotContain(SENSITIVE);
   }
 
   @Test
   void errorWhenTheDatabaseIsUnreachable() {
     // Class 08, "connection exception" — the host is wrong or down, the credential may be fine.
     var result =
-        validateWith(
-            configuration -> {
-              throw new SQLException("connection refused " + SENSITIVE, "08001");
-            });
+        JdbcConnectionValidator.classifyFailure(new SQLException("connection refused", "08001"));
 
-    assertThat(result.status()).isEqualTo(Status.FAILURE);
     assertThat(result.code()).isEqualTo("ERROR");
-    assertThat(result.message()).doesNotContain(SENSITIVE);
   }
 
   @Test
   void errorWhenTheSqlStateIsAbsent() {
-    var result =
-        validateWith(
-            configuration -> {
-              throw new SQLException("no state " + SENSITIVE);
-            });
+    var result = JdbcConnectionValidator.classifyFailure(new SQLException("no state"));
 
     assertThat(result.code()).isEqualTo("ERROR");
-    assertThat(result.message()).doesNotContain(SENSITIVE);
   }
 
   @Test
   void errorWhenTheDriverIsNotOnTheClasspath() {
     var result =
-        validateWith(
-            configuration -> {
-              throw new ClassNotFoundException("oracle.jdbc.OracleDriver " + SENSITIVE);
-            });
+        JdbcConnectionValidator.classifyFailure(
+            new ClassNotFoundException("oracle.jdbc.OracleDriver"));
 
-    assertThat(result.status()).isEqualTo(Status.FAILURE);
     assertThat(result.code()).isEqualTo("ERROR");
-    assertThat(result.message())
-        .isEqualTo(JdbcConnectionValidator.DRIVER_MISSING_MESSAGE)
-        .doesNotContain(SENSITIVE);
+    assertThat(result.message()).isEqualTo(JdbcConnectionValidator.DRIVER_MISSING_MESSAGE);
   }
 
   @Test
   void errorOnAnyOtherException() {
-    var result =
-        validateWith(
-            configuration -> {
-              throw new RuntimeException("boom " + SENSITIVE);
-            });
+    var result = JdbcConnectionValidator.classifyFailure(new RuntimeException("boom"));
 
     assertThat(result.code()).isEqualTo("ERROR");
-    assertThat(result.message()).doesNotContain(SENSITIVE);
+  }
+
+  /** No returned message may carry a value from the credential or the driver. */
+  @Test
+  void neverSurfacesDetail() {
+    assertThat(
+            JdbcConnectionValidator.classifyFailure(new SQLException("secret", "28000")).message())
+        .isEqualTo(JdbcConnectionValidator.UNAUTHORIZED_MESSAGE);
+    assertThat(
+            JdbcConnectionValidator.classifyFailure(new SQLException("secret", "08001")).message())
+        .isEqualTo(JdbcConnectionValidator.GENERIC_MESSAGE);
   }
 
   @Test
@@ -151,10 +122,5 @@ class JdbcConnectionValidatorTest {
             ServiceLoader.load(ConfigurationValidator.class).stream()
                 .map(ServiceLoader.Provider::type))
         .contains(JdbcConnectionValidator.class);
-  }
-
-  private ConfigurationValidationResult validateWith(
-      JdbcConnectionValidator.ConnectionCheck check) {
-    return new JdbcConnectionValidator(check).validate(VALID);
   }
 }

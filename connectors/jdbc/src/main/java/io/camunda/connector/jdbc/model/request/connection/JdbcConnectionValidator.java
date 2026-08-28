@@ -43,22 +43,6 @@ public class JdbcConnectionValidator
   /** Rejected logins not reported as SQL state 28: Oracle ORA-01017, SQL Server 18456. */
   private static final Set<Integer> UNAUTHORIZED_VENDOR_ERROR_CODES = Set.of(1017, 18456);
 
-  /** Seam for testing: opens and closes a connection, throwing on failure. */
-  @FunctionalInterface
-  interface ConnectionCheck {
-    void run(JdbcConnectionConfiguration configuration) throws ClassNotFoundException, SQLException;
-  }
-
-  private final ConnectionCheck connectionCheck;
-
-  public JdbcConnectionValidator() {
-    this(JdbcConnectionValidator::openAndClose);
-  }
-
-  JdbcConnectionValidator(ConnectionCheck connectionCheck) {
-    this.connectionCheck = connectionCheck;
-  }
-
   @Override
   public ConfigurationValidationResult validate(JdbcConnectionConfiguration configuration) {
     // Guarded here: this validator gets a deserialized credential, not a bean-validated one.
@@ -67,41 +51,30 @@ public class JdbcConnectionValidator
       return ConfigurationValidationResult.failure(
           ErrorCode.INVALID_INPUT, MISSING_DATABASE_MESSAGE);
     }
-    try {
-      connectionCheck.run(configuration);
-      return ConfigurationValidationResult.success();
-    } catch (ClassNotFoundException e) {
-      // Oracle's driver is not redistributable, so it may be absent from a given runtime.
-      LOG.debug("JDBC driver for {} is not on the classpath", database, e);
-      return ConfigurationValidationResult.failure(ErrorCode.ERROR, DRIVER_MISSING_MESSAGE);
-    } catch (SQLException e) {
-      LOG.debug(
-          "The database refused the connection (SQL state {}, vendor code {})",
-          e.getSQLState(),
-          e.getErrorCode(),
-          e);
-      return isLoginRejected(e)
-          ? ConfigurationValidationResult.failure(ErrorCode.UNAUTHORIZED, UNAUTHORIZED_MESSAGE)
-          : ConfigurationValidationResult.failure(ErrorCode.ERROR, GENERIC_MESSAGE);
+    // TODO: apply a finite login timeout so a black-holed host cannot block the endpoint.
+    try (Connection ignored =
+        ConnectionHelper.openConnection(database, configuration.toDetailedConnection())) {
+      return ConfigurationValidationResult.success(); // Opening it is the whole check.
     } catch (Exception e) {
-      LOG.debug("JDBC connection credential validation failed", e);
-      return ConfigurationValidationResult.failure(ErrorCode.ERROR, GENERIC_MESSAGE);
+      LOG.debug("JDBC connection credential validation failed for {}", database, e);
+      return classifyFailure(e);
     }
+  }
+
+  /** Maps a failed connection attempt to a result. Package-private so tests cover every shape. */
+  static ConfigurationValidationResult classifyFailure(Exception e) {
+    // Oracle's driver is not redistributable, so it may be absent from a given runtime.
+    if (e instanceof ClassNotFoundException) {
+      return ConfigurationValidationResult.failure(ErrorCode.ERROR, DRIVER_MISSING_MESSAGE);
+    }
+    return e instanceof SQLException sqlException && isLoginRejected(sqlException)
+        ? ConfigurationValidationResult.failure(ErrorCode.UNAUTHORIZED, UNAUTHORIZED_MESSAGE)
+        : ConfigurationValidationResult.failure(ErrorCode.ERROR, GENERIC_MESSAGE);
   }
 
   private static boolean isLoginRejected(SQLException e) {
     String sqlState = e.getSQLState();
     return (sqlState != null && sqlState.startsWith(INVALID_AUTHORIZATION_SQL_STATE_CLASS))
         || UNAUTHORIZED_VENDOR_ERROR_CODES.contains(e.getErrorCode());
-  }
-
-  private static void openAndClose(JdbcConnectionConfiguration configuration)
-      throws ClassNotFoundException, SQLException {
-    // TODO: apply a finite login timeout so a black-holed host cannot block the endpoint.
-    try (Connection ignored =
-        ConnectionHelper.openConnection(
-            configuration.database(), configuration.toDetailedConnection())) {
-      // Opening it is the whole check.
-    }
   }
 }

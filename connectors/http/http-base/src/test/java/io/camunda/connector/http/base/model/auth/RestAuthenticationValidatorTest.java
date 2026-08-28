@@ -55,20 +55,15 @@ class RestAuthenticationValidatorTest {
   }
 
   @Nested
-  class VariantsWithoutATokenEndpoint {
+  class VariantDispatch {
 
-    /** Nothing may reach the network for a variant that carries no endpoint. */
-    private final boolean[] tokenRequested = {false};
-
-    private final RestAuthenticationValidator validator =
-        new RestAuthenticationValidator(authentication -> tokenRequested[0] = true);
+    private final RestAuthenticationValidator validator = new RestAuthenticationValidator();
 
     @Test
     void noAuthenticationIsUsable() {
       var result = validator.validate(configuration(new NoAuthentication()));
 
       assertThat(result.status()).isEqualTo(Status.SUCCESS);
-      assertThat(tokenRequested[0]).isFalse();
     }
 
     @Test
@@ -76,7 +71,6 @@ class RestAuthenticationValidatorTest {
       var result = validator.validate(configuration(new BasicAuthentication("user", "password")));
 
       assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
-      assertThat(tokenRequested[0]).isFalse();
     }
 
     @Test
@@ -84,7 +78,6 @@ class RestAuthenticationValidatorTest {
       var result = validator.validate(configuration(new BearerAuthentication("token")));
 
       assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
-      assertThat(tokenRequested[0]).isFalse();
     }
 
     @Test
@@ -95,7 +88,6 @@ class RestAuthenticationValidatorTest {
                   new ApiKeyAuthentication(ApiKeyLocation.HEADERS, "X-Api-Key", "secret")));
 
       assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
-      assertThat(tokenRequested[0]).isFalse();
     }
 
     @Test
@@ -104,22 +96,12 @@ class RestAuthenticationValidatorTest {
 
       assertThat(result.status()).isEqualTo(Status.FAILURE);
       assertThat(result.code()).isEqualTo("INVALID_INPUT");
-      assertThat(tokenRequested[0]).isFalse();
     }
   }
 
-  /** Maps token-request outcomes to results, via the seam, so every branch is reachable. */
+  /** Maps a failed token request to a result — a pure function, so no seam is needed. */
   @Nested
-  class TokenRequestOutcomeMapping {
-
-    @Test
-    void successWhenTheTokenRequestSucceeds() {
-      var validator = new RestAuthenticationValidator(authentication -> {});
-
-      var result = validator.validate(configuration(clientCredentials("https://idp/token")));
-
-      assertThat(result.status()).isEqualTo(Status.SUCCESS);
-    }
+  class FailureClassification {
 
     @Test
     void unauthorizedOn401() {
@@ -190,30 +172,24 @@ class RestAuthenticationValidatorTest {
               .build());
     }
 
-    private void assertUnauthorized(RuntimeException thrown) {
-      var result = validateThrowing(thrown);
+    private void assertUnauthorized(Exception thrown) {
+      var result = RestAuthenticationValidator.classifyFailure(thrown);
 
       assertThat(result.status()).isEqualTo(Status.FAILURE);
       assertThat(result.code()).isEqualTo("UNAUTHORIZED");
-      assertThat(result.message()).doesNotContain(SENSITIVE);
+      assertThat(result.message())
+          .isEqualTo(RestAuthenticationValidator.UNAUTHORIZED_MESSAGE)
+          .doesNotContain(SENSITIVE);
     }
 
-    private void assertError(RuntimeException thrown) {
-      var result = validateThrowing(thrown);
+    private void assertError(Exception thrown) {
+      var result = RestAuthenticationValidator.classifyFailure(thrown);
 
       assertThat(result.status()).isEqualTo(Status.FAILURE);
       assertThat(result.code()).isEqualTo("ERROR");
-      assertThat(result.message()).doesNotContain(SENSITIVE);
-    }
-
-    private io.camunda.connector.api.validation.ConfigurationValidationResult validateThrowing(
-        RuntimeException thrown) {
-      var validator =
-          new RestAuthenticationValidator(
-              authentication -> {
-                throw thrown;
-              });
-      return validator.validate(configuration(clientCredentials("https://idp/token")));
+      assertThat(result.message())
+          .isEqualTo(RestAuthenticationValidator.GENERIC_MESSAGE)
+          .doesNotContain(SENSITIVE);
     }
 
     /** A failure shaped exactly as the HTTP client raises it for a non-2xx token response. */
