@@ -74,6 +74,16 @@ public class CorrelateMessageCommandDummy
   }
 
   @Override
+  public CorrelateMessageCommandStep3 addVariable(String key, Object value) {
+    return this;
+  }
+
+  @Override
+  public CorrelateMessageCommandStep3 addVariables(Map<String, Object> variables) {
+    return this;
+  }
+
+  @Override
   public CorrelateMessageCommandStep3 tenantId(String tenantId) {
     return this;
   }
