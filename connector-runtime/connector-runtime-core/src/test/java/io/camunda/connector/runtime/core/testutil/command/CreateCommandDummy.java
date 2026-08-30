@@ -167,6 +167,11 @@ public class CreateCommandDummy
   }
 
   @Override
+  public CreateProcessInstanceCommandStep3 addVariables(Map<String, Object> variables) {
+    return this;
+  }
+
+  @Override
   public CreateProcessInstanceCommandStep3 tenantId(String tenantId) {
     return this;
   }
