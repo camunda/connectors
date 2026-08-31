@@ -34,7 +34,9 @@ import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import java.net.URI;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,7 @@ import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.MergedAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class OutboundConnectorsAutoConfigurationTest {
 
@@ -87,6 +90,16 @@ class OutboundConnectorsAutoConfigurationTest {
               assertThat(context).doesNotHaveBean(CONNECTOR_EXECUTOR_BEAN_NAME);
               assertThat(context).hasSingleBean(CamundaClientExecutorService.class);
             });
+  }
+
+  @Test
+  void shouldDefaultSecretFilterModeToStrict() {
+    contextRunner.run(
+        context -> {
+          var secretFilterFactory = context.getBean(SecretFilterFactory.class);
+          assertThat(ReflectionTestUtils.getField(secretFilterFactory, "secretFilterMode"))
+              .isEqualTo(SecretFilterMode.STRICT);
+        });
   }
 
   static class RequiredOutboundRuntimeBeans {
