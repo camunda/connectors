@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.outbound.job;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -79,5 +80,21 @@ class LazyLoadingSecretFilterTest {
     filter.isAllowed("ANY");
 
     assertTrue(callCount.get() == 1, "Supplier must be called exactly once even when null");
+  }
+
+  @Test
+  void isAllowed_supplierThrows_failureCachedAndSupplierNotReinvoked() {
+    var callCount = new AtomicInteger(0);
+    var filter =
+        new LazyLoadingSecretFilter(
+            () -> {
+              callCount.incrementAndGet();
+              throw new IllegalArgumentException("lookup failed");
+            });
+
+    assertThrows(IllegalArgumentException.class, () -> filter.isAllowed("ANY"));
+    assertThrows(IllegalArgumentException.class, () -> filter.isAllowed("ANY"));
+
+    assertTrue(callCount.get() == 1, "Supplier must not be re-invoked after a cached failure");
   }
 }

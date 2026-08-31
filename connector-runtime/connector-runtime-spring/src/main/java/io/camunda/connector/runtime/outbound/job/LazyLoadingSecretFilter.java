@@ -37,6 +37,7 @@ public class LazyLoadingSecretFilter implements SecretFilter {
 
   private volatile boolean initialized = false;
   private Set<String> secretNames;
+  private RuntimeException initializationFailure;
 
   public LazyLoadingSecretFilter(Supplier<List<String>> secretNamesSupplier) {
     this.secretNamesSupplier = secretNamesSupplier;
@@ -47,11 +48,19 @@ public class LazyLoadingSecretFilter implements SecretFilter {
     if (!initialized) {
       synchronized (this) {
         if (!initialized) {
-          List<String> names = secretNamesSupplier.get();
-          secretNames = names != null ? Set.copyOf(names) : null;
-          initialized = true;
+          try {
+            List<String> names = secretNamesSupplier.get();
+            secretNames = names != null ? Set.copyOf(names) : null;
+          } catch (RuntimeException e) {
+            initializationFailure = e;
+          } finally {
+            initialized = true;
+          }
         }
       }
+    }
+    if (initializationFailure != null) {
+      throw initializationFailure;
     }
     if (secretNames != null) {
       return secretNames.contains(secretName);

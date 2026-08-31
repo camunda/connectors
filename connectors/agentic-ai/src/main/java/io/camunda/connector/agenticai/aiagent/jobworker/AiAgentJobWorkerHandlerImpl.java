@@ -117,7 +117,8 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
     try {
       retryBackoff = getBackoffDuration(job);
 
-      final var executionContext = executionContextFactory.createExecutionContext(jobClient, job);
+      final var executionContext =
+          executionContextFactory.createExecutionContext(jobClient, job, secretFilter);
       final var completion = agentRequestHandler.handleRequest(executionContext);
 
       return new AgentSuccessResult(completion);

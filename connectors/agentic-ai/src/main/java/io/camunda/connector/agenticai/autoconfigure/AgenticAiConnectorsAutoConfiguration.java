@@ -270,14 +270,13 @@ public class AgenticAiConnectorsAutoConfiguration {
       SecretProviderAggregator secretProvider,
       @Autowired(required = false) ValidationProvider validationProvider,
       DocumentFactory documentFactory,
-      ObjectMapper objectMapper,
-      SecretFilterFactory secretFilterFactory) {
+      ObjectMapper objectMapper) {
     if (validationProvider == null) {
       validationProvider = ValidationUtil.discoverDefaultValidationProviderImplementation();
     }
 
     return new JobWorkerAgentExecutionContextFactoryImpl(
-        secretProvider, validationProvider, documentFactory, objectMapper, secretFilterFactory);
+        secretProvider, validationProvider, documentFactory, objectMapper);
   }
 
   @Bean
