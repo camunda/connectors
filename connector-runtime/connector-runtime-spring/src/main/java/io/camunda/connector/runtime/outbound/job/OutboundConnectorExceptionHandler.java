@@ -48,7 +48,7 @@ public class OutboundConnectorExceptionHandler {
    * caller walking the cause chain never reaches the real exception's message or, if it is a {@link
    * ConnectorException}, its error variables -- either can carry a resolved secret, and neither
    * overload has a filter to redact it with. See {@link #withheldExceptionToMap} for how the
-   * returned map itself stays free of both while still keeping {@code type} and {@code code}.
+   * returned map itself stays free of both, keeping only {@code type}.
    */
   private static final class SecretFilterUnavailableException extends RuntimeException {}
 
