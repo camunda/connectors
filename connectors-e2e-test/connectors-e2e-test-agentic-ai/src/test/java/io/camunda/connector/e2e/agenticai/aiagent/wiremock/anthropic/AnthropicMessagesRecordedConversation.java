@@ -63,7 +63,8 @@ public final class AnthropicMessagesRecordedConversation {
     final List<LoggedRequest> loggedRequests =
         new ArrayList<>(
             findAll(
-                postRequestedFor(urlPathEqualTo(AnthropicMessagesChatModelStubs.MESSAGES_PATH))));
+                postRequestedFor(
+                    urlPathEqualTo(StreamingAnthropicMessagesSseChatModelStubs.MESSAGES_PATH))));
 
     loggedRequests.sort(Comparator.comparing(LoggedRequest::getLoggedDate));
 

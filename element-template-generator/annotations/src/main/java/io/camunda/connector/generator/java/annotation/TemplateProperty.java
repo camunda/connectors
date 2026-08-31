@@ -101,6 +101,21 @@ public @interface TemplateProperty {
   PropertyCondition condition() default @PropertyCondition(property = "");
 
   /**
+   * Sealed-hierarchy subtypes to leave out of this field's discriminator dropdown. Applies only to
+   * the annotated usage, unlike {@link TemplateSubType#ignore()}, which removes a subtype from
+   * every template that maps its hierarchy. Use it when a shared sealed union is narrower in one
+   * place than another - a reusable credential ({@link
+   * io.camunda.connector.api.annotation.Configuration}) that supports fewer authentication
+   * mechanisms than the inline fields it substitutes for, for example.
+   *
+   * <p>The excluded subtypes' properties are not emitted either, and a {@link
+   * TemplateDiscriminatorProperty#defaultValue()} naming an excluded subtype is dropped rather than
+   * emitted as a default that is no longer a valid choice. Exclusion does not recurse into nested
+   * sealed hierarchies; it applies to the annotated field's own type.
+   */
+  Class<?>[] excludeSubTypes() default {};
+
+  /**
    * Can be used to make the class field invisible to the template generator, e.g. exclude fields
    * that contain implementation details or define constants.
    */
@@ -177,6 +192,35 @@ public @interface TemplateProperty {
     }
   }
 
+  /**
+   * A tri-state boolean for annotation attributes that need to distinguish "not set" from an
+   * explicit {@code true}/{@code false} value. Not named after any specific attribute so it can be
+   * reused by future boolean-condition attributes.
+   */
+  enum NullableBoolean {
+    TRUE,
+    FALSE,
+    NULL;
+
+    public static NullableBoolean fromBoolean(Boolean value) {
+      if (value == null) {
+        return NULL;
+      } else if (value) {
+        return TRUE;
+      } else {
+        return FALSE;
+      }
+    }
+
+    public Boolean toBoolean() {
+      if (this == NULL) {
+        return null;
+      } else {
+        return this == TRUE;
+      }
+    }
+  }
+
   @interface PropertyCondition {
     String property();
 
@@ -189,6 +233,9 @@ public @interface TemplateProperty {
     NestedPropertyCondition[] allMatch() default {};
 
     boolean isActive() default false;
+
+    /** Checks if the referenced property's value is empty (true) or not empty (false). */
+    NullableBoolean isEmpty() default NullableBoolean.NULL;
   }
 
   @interface NestedPropertyCondition {
@@ -202,6 +249,9 @@ public @interface TemplateProperty {
     String[] oneOf() default {};
 
     boolean isActive() default false;
+
+    /** Checks if the referenced property's value is empty (true) or not empty (false). */
+    NullableBoolean isEmpty() default NullableBoolean.NULL;
   }
 
   @interface DropdownPropertyChoice {

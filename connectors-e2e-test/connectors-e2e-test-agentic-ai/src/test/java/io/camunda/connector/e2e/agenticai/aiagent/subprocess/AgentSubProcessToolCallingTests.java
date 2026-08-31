@@ -129,7 +129,7 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
 
     assertThat(lastMessages.get(5).role()).isEqualTo("assistant");
     assertThat(lastMessages.get(6).role()).isEqualTo("user");
-    assertThat(lastMessages.get(6).content()).isEqualTo("What is the content type?");
+    assertThat(lastMessages.get(6).textContent()).isEqualTo("What is the content type?");
 
     assertAgentResponse(
         zeebeTest,

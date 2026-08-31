@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
@@ -30,6 +31,8 @@ import com.anthropic.models.messages.ToolUseBlock;
 import com.anthropic.models.messages.Usage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
@@ -453,7 +456,7 @@ class AnthropicMessageResponseConverterTest {
   }
 
   @Test
-  void mapsRefusalToContentFiltered() {
+  void throwsContentFilteredExceptionForRefusal() {
     final var message =
         message(
             """
@@ -468,16 +471,19 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var result = converter.toResult(message, EXECUTION_TIME);
-
-    assertThat(result).isInstanceOf(ChatResult.Completed.class);
-    assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
-    assertThat(result.assistantMessage().metadata())
-        .containsEntry("anthropic", Map.of("stopReason", "refusal"));
+    assertThatThrownBy(() -> converter.toResult(message, EXECUTION_TIME))
+        .isInstanceOfSatisfying(
+            ContentFilteredException.class,
+            e -> {
+              final var partialResult = e.partialResult();
+              assertThat(partialResult).isNotNull();
+              assertThat(partialResult.assistantMessage().metadata())
+                  .containsEntry("anthropic", Map.of("stopReason", "refusal"));
+            });
   }
 
   @Test
-  void mapsModelContextWindowExceededToContextWindowExceeded() {
+  void throwsContextWindowExceededExceptionForModelContextWindowExceeded() {
     final var message =
         message(
             """
@@ -492,13 +498,18 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var result = converter.toResult(message, EXECUTION_TIME);
-
-    assertThat(result).isInstanceOf(ChatResult.Completed.class);
-    assertThat(result.assistantMessage().stopReason())
-        .isEqualTo(StopReason.CONTEXT_WINDOW_EXCEEDED);
-    assertThat(result.assistantMessage().metadata())
-        .containsEntry("anthropic", Map.of("stopReason", "model_context_window_exceeded"));
+    assertThatThrownBy(() -> converter.toResult(message, EXECUTION_TIME))
+        .isInstanceOfSatisfying(
+            ContextWindowExceededException.class,
+            e -> {
+              final var partialResult = e.partialResult();
+              assertThat(partialResult).isNotNull();
+              assertThat(partialResult.assistantMessage().content())
+                  .containsExactly(TextContent.textContent("partial answer"));
+              assertThat(partialResult.assistantMessage().metadata())
+                  .containsEntry(
+                      "anthropic", Map.of("stopReason", "model_context_window_exceeded"));
+            });
   }
 
   @Test

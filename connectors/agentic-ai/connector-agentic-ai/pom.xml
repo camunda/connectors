@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-agentic-ai-parent</artifactId>
-    <version>8.10.0-SNAPSHOT</version>
+    <version>8.11.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -19,12 +19,13 @@
 
   <properties>
     <version.record-builder>53</version.record-builder>
-    <version.groovy>5.0.8</version.groovy>
+    <version.groovy>5.1.0</version.groovy>
     <version.gmavenplus-plugin>5.1.0</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
     <version.errorprone>2.50.0</version.errorprone>
-    <version.nullaway>0.13.8</version.nullaway>
-    <version.anthropic-java>2.54.0</version.anthropic-java>
+    <version.nullaway>0.14.0</version.nullaway>
+    <version.anthropic-java>2.57.0</version.anthropic-java>
+    <version.openai-java>4.52.0</version.openai-java>
     <version.java-uuid-generator>5.2.0</version.java-uuid-generator>
   </properties>
 
@@ -177,12 +178,23 @@
       <version>${version.anthropic-java}</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.openai</groupId>
+      <artifactId>openai-java-core</artifactId>
+      <version>${version.openai-java}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.openai</groupId>
+      <artifactId>openai-java-client-okhttp</artifactId>
+      <version>${version.openai-java}</version>
+    </dependency>
+
     <!--
       OkHttp 5 split into multi-platform modules: the `okhttp` artifact's pom is now an empty
-      shell (classes ship in `okhttp-jvm`), see the comment in parent/pom.xml.
-      anthropic-java-client-okhttp only depends on the empty `okhttp` shell, so
-      AnthropicOkHttpClient.builder().build() throws NoClassDefFoundError at runtime unless we
-      add `okhttp-jvm` explicitly (same pattern as connectors/slack and connectors/microsoft/common).
+      shell (classes ship in `okhttp-jvm`), see the comment in parent/pom.xml. Both anthropic-java
+      and openai-java's okhttp clients (Stainless-generated) only depend on the empty `okhttp`
+      shell, so their builders throw NoClassDefFoundError at runtime unless we add `okhttp-jvm`
+      explicitly (same pattern as connectors/slack and connectors/microsoft/common).
     -->
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
@@ -234,6 +246,11 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>utils</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>auth</artifactId>
     </dependency>
     <dependency>
@@ -244,6 +261,10 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>apache-client</artifactId>
       <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>netty-nio-client</artifactId>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
@@ -348,12 +369,14 @@
       <artifactId>feel-engine</artifactId>
     </dependency>
 
-    <!-- Test dependencies -->
+    <!-- Compile scope: javac (running with -XDaddTypeAnnotationsToSymbol=true) needs Guava's
+         class files to complete the google-genai SDK types it's transitively pulled in from. -->
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <scope>test</scope>
     </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-object-mapper</artifactId>
@@ -470,10 +493,10 @@
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-core</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-json</ignoredDependency>
-                <!-- okhttp-jvm has no direct source import (it's only reflectively required by
-                     anthropic-java-client-okhttp's AnthropicOkHttpClient at runtime, see the
-                     dependency declaration above); the analyzer would otherwise flag it unused. -->
-                <ignoredDependency>com.squareup.okhttp3:okhttp-jvm</ignoredDependency>
+                <!-- guava is compile-scoped for javac's benefit only (see the dependency
+                     declaration above): main code never imports it, so the analyzer would
+                     otherwise flag it as a non-test scoped test-only dependency. -->
+                <ignoredDependency>com.google.guava:guava</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>
@@ -637,6 +660,18 @@
                   <name>connectorType</name>
                   <value>io.camunda.agenticai:aiagent-job-worker:1</value>
                 </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentSubProcess</value>
+                </property>
+                <property>
+                  <name>deprecationMessage</name>
+                  <value>For Camunda 8.10+, please replace with the v2 version of the AI Agent element template. See documentation for details.</value>
+                </property>
+                <property>
+                  <name>deprecationDocumentationRef</name>
+                  <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -671,6 +706,90 @@
                   <name>connectorType</name>
                   <value>io.camunda.agenticai:aiagent-job-worker:1</value>
                 </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentSubProcess</value>
+                </property>
+                <property>
+                  <name>deprecationMessage</name>
+                  <value>For Camunda 8.10+, please replace with the v2 version of the AI Agent element template. See documentation for details.</value>
+                </property>
+                <property>
+                  <name>deprecationDocumentationRef</name>
+                  <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>add-agent-definition-marker-task-v1</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-task-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-aiagent-outbound-connector.json</value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-aiagent-outbound-connector.json</value>
+                </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentTask</value>
+                </property>
+                <property>
+                  <name>deprecationMessage</name>
+                  <value>For Camunda 8.10+, please replace with the v2 version of the AI Agent element template. See documentation for details.</value>
+                </property>
+                <property>
+                  <name>deprecationDocumentationRef</name>
+                  <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>add-agent-definition-marker-task-v1-hybrid</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-task-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>
+                    ${project.basedir}/element-templates/hybrid/agenticai-aiagent-outbound-connector-hybrid.json
+                  </value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>
+                    ${project.basedir}/element-templates/hybrid/agenticai-aiagent-outbound-connector-hybrid.json
+                  </value>
+                </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentTask</value>
+                </property>
+                <property>
+                  <name>deprecationMessage</name>
+                  <value>For Camunda 8.10+, please replace with the v2 version of the AI Agent element template. See documentation for details.</value>
+                </property>
+                <property>
+                  <name>deprecationDocumentationRef</name>
+                  <value>https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -700,6 +819,10 @@
                 <property>
                   <name>connectorType</name>
                   <value>io.camunda.agenticai:aiagent:subprocess:2</value>
+                </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentSubProcess</value>
                 </property>
               </properties>
             </configuration>
@@ -734,6 +857,66 @@
                 <property>
                   <name>connectorType</name>
                   <value>io.camunda.agenticai:aiagent:subprocess:2</value>
+                </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentSubProcess</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>add-agent-definition-marker-task-v2</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-task-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-ai-agent-task.v2.json</value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-ai-agent-task.v2.json</value>
+                </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentTask</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>add-agent-definition-marker-task-v2-hybrid</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-ai-agent-task-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>
+                    ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json
+                  </value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>
+                    ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json
+                  </value>
+                </property>
+                <property>
+                  <name>agentType</name>
+                  <value>aiAgentTask</value>
                 </property>
               </properties>
             </configuration>

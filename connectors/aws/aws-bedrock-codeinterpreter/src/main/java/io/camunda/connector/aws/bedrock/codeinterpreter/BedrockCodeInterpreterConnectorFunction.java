@@ -29,7 +29,7 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
     description = "Execute Python code in a secure AWS Bedrock AgentCore Code Interpreter sandbox",
     inputDataClass = CodeInterpreterRequest.class,
     configurations = {AwsCredentialConfiguration.class},
-    version = 2,
+    version = 3,
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "configuration", label = "Configuration"),

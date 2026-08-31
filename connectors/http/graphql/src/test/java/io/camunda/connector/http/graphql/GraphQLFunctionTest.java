@@ -99,7 +99,8 @@ public class GraphQLFunctionTest extends BaseTest {
             "url": "http://localhost:8085/http-endpoint"
           },
           "authenticationConfiguration": {
-            "authentication": { "type": "bearer", "token": "" }
+            "authentication": { "type": "bearer", "token": "" },
+            "url": "http://localhost:8087/graphql"
           }
         }
         """;
@@ -120,11 +121,11 @@ public class GraphQLFunctionTest extends BaseTest {
         {
           "graphql": {
             "query": "query { field }",
-            "method": "get",
-            "url": "http://localhost:8085/http-endpoint"
+            "method": "get"
           },
           "authenticationConfiguration": {
-            "authentication": { "type": "bearer", "token": "valid-token" }
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8087/graphql"
           }
         }
         """;
@@ -136,6 +137,99 @@ public class GraphQLFunctionTest extends BaseTest {
 
     var request = context.bindVariables(GraphQLRequest.class);
     assertThat(request.authentication()).isInstanceOf(BearerAuthentication.class);
+  }
+
+  /**
+   * The inline URL wins over the credential's own, on any host: binding the credential and pointing
+   * the task elsewhere are both the process author's decisions, so the override is deliberately
+   * left unconstrained.
+   */
+  @Test
+  void inlineUrlOverridesTheCredentialUrlEvenOnAnotherHost() {
+    String variables =
+        """
+        {
+          "graphql": {
+            "query": "query { field }",
+            "method": "get",
+            "url": "http://localhost:8087/other-path"
+          },
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://127.0.0.1:9999/graphql"
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(variables)
+            .includeAllValidators()
+            .build();
+
+    assertThat(context.bindVariables(GraphQLRequest.class).getEffectiveUrl())
+        .isEqualTo("http://localhost:8087/other-path");
+  }
+
+  /**
+   * The URL may come from the credential instead of the model, so it is asserted on the effective
+   * value ({@code isUrlPresent()}) rather than by a {@code @NotBlank} on the component - a model
+   * that binds a credential and omits the URL is exactly what Modeler sends when the required
+   * inline field is hidden by the isEmpty condition.
+   */
+  @Test
+  void credentialUrlSatisfiesTheUrlRequirementWithoutAnInlineUrl() {
+    String variables =
+        """
+        {
+          "graphql": {
+            "query": "query { field }",
+            "method": "get"
+          },
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8087/graphql"
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(variables)
+            .includeAllValidators()
+            .build();
+
+    assertThat(context.bindVariables(GraphQLRequest.class).getEffectiveUrl())
+        .isEqualTo("http://localhost:8087/graphql");
+  }
+
+  /**
+   * The blank case, distinct from the absent one above: Modeler may write an empty input when the
+   * optional override is cleared, so a blank inline URL must fall back to the credential rather
+   * than trip the shape check.
+   */
+  @Test
+  void blankInlineUrlFallsBackToCredentialUrl() {
+    String variables =
+        """
+        {
+          "graphql": {
+            "query": "query { field }",
+            "method": "get",
+            "url": ""
+          },
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "valid-token" },
+            "url": "http://localhost:8087/graphql"
+          }
+        }
+        """;
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(variables)
+            .includeAllValidators()
+            .build();
+
+    assertThat(context.bindVariables(GraphQLRequest.class).getEffectiveUrl())
+        .isEqualTo("http://localhost:8087/graphql");
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")

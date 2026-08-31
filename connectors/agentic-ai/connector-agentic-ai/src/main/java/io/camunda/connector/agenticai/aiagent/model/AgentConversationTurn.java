@@ -30,7 +30,8 @@ public record AgentConversationTurn(
     int iterationKey,
     List<Message> inputMessages,
     @Nullable AssistantMessage assistantMessage,
-    AgentMetrics metrics) {
+    AgentMetrics metrics,
+    @Nullable String configurationFingerprint) {
 
   public AgentConversationTurn {
     if (iterationKey < 1) {
@@ -43,7 +44,8 @@ public record AgentConversationTurn(
 
   public AgentConversationTurn withAssistantMessage(
       AssistantMessage assistantMessage, AgentMetrics metrics) {
-    return new AgentConversationTurn(iterationKey, inputMessages, assistantMessage, metrics);
+    return new AgentConversationTurn(
+        iterationKey, inputMessages, assistantMessage, metrics, configurationFingerprint);
   }
 
   public boolean hasToolCalls() {

@@ -9,7 +9,9 @@ package io.camunda.connector.agenticai.aiagent;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentSubProcessV1Request;
+import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
 /**
@@ -21,42 +23,61 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
  *   <li>CONNECTOR_AI_AGENT_JOB_WORKER_TYPE
  *   <li>CONNECTOR_AI_AGENT_JOB_WORKER_TIMEOUT
  * </ul>
+ *
+ * @deprecated Retained only as a backward-compatibility shim for existing v1 process models; new
+ *     process models should use the v2 AI Agent connector.
  */
+@Deprecated
 @OutboundConnector(
     name = AgentSubProcessV1Function.JOB_WORKER_NAME,
     type = AgentSubProcessV1Function.JOB_WORKER_TYPE,
     inputVariables = {
-      AgentSubProcessV1Function.AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE,
-      AgentSubProcessV1Function.AGENT_CONTEXT_VARIABLE,
-      AgentSubProcessV1Function.TOOL_CALL_RESULTS_VARIABLE,
-      AgentSubProcessV1Function.PROVIDER_VARIABLE,
-      AgentSubProcessV1Function.DATA_VARIABLE
-    })
+      AgentProcessVariables.AD_HOC_SUB_PROCESS_ELEMENTS,
+      AgentProcessVariables.AGENT_CONTEXT,
+      AgentProcessVariables.TOOL_CALL_RESULTS,
+      AgentProcessVariables.PROVIDER,
+      AgentProcessVariables.DATA
+    },
+    withLease = true)
 public class AgentSubProcessV1Function implements AgentConnectorFunction {
 
   public static final String JOB_WORKER_NAME = "AI Agent Job Worker";
   public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent-job-worker:1";
 
-  public static final String AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE = "adHocSubProcessElements";
-  public static final String AGENT_CONTEXT_VARIABLE = "agentContext";
-  public static final String AGENT_RESPONSE_VARIABLE = "agent";
-  public static final String TOOL_CALL_RESULT_VARIABLE = "toolCallResult";
-  public static final String TOOL_CALL_RESULTS_VARIABLE = "toolCallResults";
-  public static final String PROVIDER_VARIABLE = "provider";
-  public static final String DATA_VARIABLE = "data";
-  public static final String TOOL_CALL_VARIABLE = "toolCall";
-
   private final AgentSubProcessRequestHandler agentRequestHandler;
+  private final V1ToV2ProviderConfigurationMapper providerConfigurationMapper;
+  private final boolean rewriteV1ProviderConfigToV2;
 
-  public AgentSubProcessV1Function(AgentSubProcessRequestHandler agentRequestHandler) {
+  public AgentSubProcessV1Function(
+      AgentSubProcessRequestHandler agentRequestHandler,
+      V1ToV2ProviderConfigurationMapper providerConfigurationMapper,
+      boolean rewriteV1ProviderConfigToV2) {
     this.agentRequestHandler = agentRequestHandler;
+    this.providerConfigurationMapper = providerConfigurationMapper;
+    this.rewriteV1ProviderConfigToV2 = rewriteV1ProviderConfigToV2;
   }
 
   @Override
   public AgentSubProcessConnectorResponse execute(OutboundConnectorContext context)
       throws Exception {
     var request = context.bindVariables(AgentSubProcessV1Request.class);
-    var executionContext = new AgentSubProcessExecutionContext(context.getJobContext(), request);
+    var executionContext = buildExecutionContext(context.getJobContext(), request);
     return agentRequestHandler.handleRequest(executionContext);
+  }
+
+  private AgentSubProcessExecutionContext buildExecutionContext(
+      JobContext jobContext, AgentSubProcessV1Request request) {
+    if (rewriteV1ProviderConfigToV2) {
+      var nativeConfig = providerConfigurationMapper.map(request.provider());
+      return new AgentSubProcessExecutionContext(
+          jobContext,
+          request.data(),
+          request.agentContext(),
+          request.toolCallResults(),
+          request.toolElements(),
+          nativeConfig);
+    }
+
+    return new AgentSubProcessExecutionContext(jobContext, request);
   }
 }

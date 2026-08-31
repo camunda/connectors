@@ -145,7 +145,7 @@ public class AgentTaskResponseHandlingTests extends BaseAgentTaskTest {
                     "name",
                     expectedJsonSchemaName,
                     "strict",
-                    false,
+                    true,
                     "schema",
                     Map.of(
                         "type",
@@ -155,7 +155,9 @@ public class AgentTaskResponseHandlingTests extends BaseAgentTaskTest {
                             "text", Map.of("type", "string"),
                             "length", Map.of("type", "number")),
                         "required",
-                        List.of("text", "length"))));
+                        List.of("text", "length"),
+                        "additionalProperties",
+                        false)));
       }
     }
 

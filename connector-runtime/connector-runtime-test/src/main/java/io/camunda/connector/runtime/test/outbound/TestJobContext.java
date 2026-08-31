@@ -37,6 +37,8 @@ public class TestJobContext implements JobContext {
 
   private String tenantId;
 
+  private String physicalTenantId;
+
   private String leaseToken;
 
   public TestJobContext(Supplier<Map<String, String>> headers, Supplier<String> variables) {
@@ -133,6 +135,15 @@ public class TestJobContext implements JobContext {
 
   public void setTenantId(String tenantId) {
     this.tenantId = tenantId;
+  }
+
+  @Override
+  public String getPhysicalTenantId() {
+    return physicalTenantId;
+  }
+
+  public void setPhysicalTenantId(String physicalTenantId) {
+    this.physicalTenantId = physicalTenantId;
   }
 
   @Override

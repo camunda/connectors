@@ -16,23 +16,21 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic;
 
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
 
 /**
- * Shared wire-format plumbing for Anthropic's Messages API, common to both the non-streaming
- * ({@link AnthropicMessagesV1WireFormatFixture}) and streaming ({@link
- * AnthropicMessagesV2WireFormatFixture}) fixtures — they send/receive the exact same wire format
- * and only differ in how the connector is pointed at the WireMock server and how the response is
- * stubbed (see {@code apiName()}/{@code configureProvider(...)}/{@code stubConversation(...)} on
- * each subclass).
+ * Shared wire-format plumbing for Anthropic's Messages API, common to both the v1 ({@link
+ * AnthropicMessagesV1WireFormatFixture}) and v2 ({@link AnthropicMessagesV2WireFormatFixture})
+ * fixtures. The v1 provider config is rewritten onto the native v2 provider at the connector
+ * boundary, so both fixtures drive the exact same native streaming wire format and share this same
+ * streaming stub ({@link #stubConversation}); they only differ in which element template drives the
+ * connector and how it is pointed at the WireMock server (see {@code apiName()}/{@code
+ * configureProvider(...)} on each subclass).
  *
  * <p>Notable wire-level differences from OpenAI's Chat Completions format:
  *
@@ -57,24 +55,7 @@ abstract class AbstractAnthropicMessagesWireFormatFixture implements ProviderWir
 
   @Override
   public void stubConversation(TurnStub... turns) {
-    AnthropicMessagesChatModelStubs.stubConversation(
-        Arrays.stream(turns)
-            .map(AbstractAnthropicMessagesWireFormatFixture::toStubTurn)
-            .toArray(Turn[]::new));
-  }
-
-  private static Turn toStubTurn(TurnStub turn) {
-    return switch (turn) {
-      case TurnStub.Text text -> Turn.text(text.text(), text.inputTokens(), text.outputTokens());
-      case TurnStub.ToolCalls toolCalls ->
-          Turn.toolCalls(
-              toolCalls.text(),
-              toolCalls.inputTokens(),
-              toolCalls.outputTokens(),
-              toolCalls.toolCalls().stream()
-                  .map(tc -> ToolCall.of(tc.id(), tc.name(), tc.argumentsJson()))
-                  .toArray(ToolCall[]::new));
-    };
+    StreamingAnthropicMessagesSseChatModelStubs.stubConversation(turns);
   }
 
   @Override

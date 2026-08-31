@@ -45,6 +45,14 @@ public final class ConditionEvaluator {
       return false;
     }
     String value = assignment.get(propertyRef.asText());
+    // isEmpty is evaluated before the missing-value shortcut below: an unassigned property is
+    // precisely the case `isEmpty: true` is meant to hold for, so it cannot be short-circuited to
+    // false the way a value-comparing operator can.
+    JsonNode isEmpty = condition.path(ElementTemplate.IS_EMPTY);
+    if (isEmpty.isBoolean()) {
+      boolean empty = value == null || value.isBlank();
+      return isEmpty.asBoolean() == empty;
+    }
     if (value == null) {
       return false;
     }

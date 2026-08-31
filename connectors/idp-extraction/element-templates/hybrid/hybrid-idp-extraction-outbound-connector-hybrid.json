@@ -4,7 +4,7 @@
   "id" : "io.camunda.connector.IdpExtractionOutBoundTemplate.v1-hybrid",
   "description" : "Execute IDP extraction requests",
   "documentationRef" : "https://docs.camunda.io/docs/guides/",
-  "version" : 4,
+  "version" : 5,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -166,6 +166,23 @@
       "value" : "openai"
     } ]
   }, {
+    "id" : "baseRequest.awsCredential",
+    "label" : "AWS credential",
+    "description" : "Choose a reusable AWS credential, or configure one-time authentication parameters below.",
+    "optional" : true,
+    "group" : "authentication",
+    "binding" : {
+      "name" : "baseRequest.awsCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "aws",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:aws-credential:1"
+  }, {
     "id" : "baseRequest.authentication.type",
     "label" : "Authentication",
     "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
@@ -176,9 +193,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "baseRequest.type",
-      "equals" : "aws",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "baseRequest.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "aws",
+        "type" : "simple"
+      } ]
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -205,6 +228,10 @@
       "allMatch" : [ {
         "property" : "baseRequest.authentication.type",
         "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.awsCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "baseRequest.type",
@@ -234,6 +261,10 @@
         "equals" : "credentials",
         "type" : "simple"
       }, {
+        "property" : "baseRequest.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "baseRequest.type",
         "equals" : "aws",
         "type" : "simple"
@@ -242,23 +273,6 @@
     "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
     "type" : "String",
     "secret" : true
-  }, {
-    "id" : "baseRequest.awsCredential",
-    "label" : "AWS credential",
-    "description" : "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's 'awsCredential' input.",
-    "optional" : true,
-    "group" : "authentication",
-    "binding" : {
-      "name" : "baseRequest.awsCredential",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "baseRequest.type",
-      "equals" : "aws",
-      "type" : "simple"
-    },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda:aws-credential:1"
   }, {
     "id" : "baseRequest.authentication.authType",
     "label" : "Type",
@@ -474,9 +488,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "baseRequest.type",
-      "equals" : "aws",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "baseRequest.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "aws",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -490,9 +510,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "baseRequest.type",
-      "equals" : "aws",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "baseRequest.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "aws",
+        "type" : "simple"
+      } ]
     },
     "type" : "Hidden"
   }, {
@@ -792,7 +818,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "4",
+    "value" : "5",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

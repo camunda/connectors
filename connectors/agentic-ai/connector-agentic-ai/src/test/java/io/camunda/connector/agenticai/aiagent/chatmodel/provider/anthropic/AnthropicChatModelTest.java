@@ -28,6 +28,7 @@ import com.anthropic.services.blocking.MessageService;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -118,6 +119,59 @@ class AnthropicChatModelTest {
   }
 
   @Test
+  void wrapsSdkFailureUsingCauseMessageWhenWrapperMessageIsGeneric() {
+    when(requestConverter.toMessageCreateParams(any(), any(), any()))
+        .thenReturn(mock(MessageCreateParams.class));
+    // mirrors AnthropicIoException("Request failed", cause): the SDK's own IO-wrapper exception
+    // carries a fixed, uninformative message, and the actual failure detail lives on the cause.
+    when(client.messages())
+        .thenThrow(
+            new RuntimeException(
+                "Request failed", new java.net.SocketTimeoutException("Read timed out")));
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Read timed out")
+        .extracting(e -> ((ConnectorException) e).getErrorCode())
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  }
+
+  @Test
+  void fallsBackToCauseClassNameWhenCauseHasNoMessage() {
+    // if the cause's own message is blank (e.g. a bare EOFException), falling back to the outer
+    // "Request failed" wrapper text would silently reproduce the exact generic message this logic
+    // is meant to replace.
+    when(requestConverter.toMessageCreateParams(any(), any(), any()))
+        .thenReturn(mock(MessageCreateParams.class));
+    when(client.messages())
+        .thenThrow(new RuntimeException("Request failed", new java.io.EOFException()));
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("EOFException")
+        .extracting(e -> ((ConnectorException) e).getErrorCode())
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  }
+
+  @Test
+  void retainsOuterMessageWhenItIsNotTheGenericSdkWrapperMessage() {
+    // the cause-first rule is scoped to the SDK's known generic wrapper message only - any other
+    // outer message is useful operation context and must be kept, not replaced by the cause.
+    when(requestConverter.toMessageCreateParams(any(), any(), any()))
+        .thenReturn(mock(MessageCreateParams.class));
+    when(client.messages())
+        .thenThrow(
+            new IllegalStateException(
+                "Failed to build request", new RuntimeException("Unexpected token 'foo'")));
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Failed to build request")
+        .extracting(e -> ((ConnectorException) e).getErrorCode())
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  }
+
+  @Test
   void wrapsAnthropicServiceExceptionWithStatusCodeAndErrorType() {
     when(requestConverter.toMessageCreateParams(any(), any(), any()))
         .thenReturn(mock(MessageCreateParams.class));
@@ -138,6 +192,23 @@ class AnthropicChatModelTest {
                   .contains("429")
                   .contains("rate_limit_error");
             });
+  }
+
+  @Test
+  void propagatesChatModelRejectedExceptionFromResponseConverterUnwrapped() {
+    final var params = mock(MessageCreateParams.class);
+    final var rejection = new ContentFilteredException("blocked by content filtering", null);
+
+    when(requestConverter.toMessageCreateParams(any(), any(), any())).thenReturn(params);
+    when(client.messages()).thenReturn(messageService);
+    when(messageService.createStreaming(params)).thenReturn(streamResponse);
+    when(streamAssembler.assemble(streamResponse)).thenReturn(assembledMessage);
+    when(responseConverter.toResult(eq(assembledMessage), any())).thenThrow(rejection);
+
+    // must escape execute() as-is - a plain catch (Exception) would flatten it into a generic
+    // FAILED_MODEL_CALL ConnectorException, losing the typed rejection before it ever reaches
+    // BaseAgentRequestHandler
+    assertThatThrownBy(() -> api.execute(request)).isSameAs(rejection);
   }
 
   @Test

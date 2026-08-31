@@ -22,6 +22,8 @@ Deep architecture lives in the reference docs, linked instead of copied:
   `ai-agent.md §N`)
 - [`docs/reference/mcp.md`](docs/reference/mcp.md): MCP integration
 - [`docs/reference/a2a.md`](docs/reference/a2a.md): A2A integration
+- [`docs/reference/native-providers.md`](docs/reference/native-providers.md): per-provider specifics
+  for the native/v2 (non-LangChain4j) chat model providers
 - [`docs/adr/`](docs/adr/): architecture decision records
 - Repo-root [`AGENTS.md`](../../AGENTS.md): repo-wide build, commit, PR, CI, spotless, license, and
   element-template conventions. These are not duplicated here.
@@ -55,6 +57,7 @@ Deep architecture lives in the reference docs, linked instead of copied:
 | Agent instance API (status, metrics, history reporting)                  | [§23](docs/reference/ai-agent.md#23-agent-instance-integration)                         |
 | **Architectural invariants (what you must not break)**                   | [§24](docs/reference/ai-agent.md#24-architectural-invariants)                           |
 | **Extension points** (add provider / contributor / store)                | [§25](docs/reference/ai-agent.md#25-extension-playbooks)                                |
+| Native provider specifics (Anthropic/Bedrock/OpenAI wire-format details) | [`native-providers.md`](docs/reference/native-providers.md)                             |
 
 ## Mental model
 
@@ -96,7 +99,12 @@ conversation and turn types (everything else below).
 High-frequency traps (detail behind each link):
 
 - **Job supersession / `NOT_FOUND`**: a completing tool creates a new job; the stale in-flight job may be rejected.
-  `ai-agent.md` §10.
+  The AI Agent connectors (v1 and v2, both flavors) opt into job leasing (`@OutboundConnector(withLease = true)`), so
+  completion is fenced against a superseded activation; `CamundaAgentInstanceClient` forwards the lease token via
+  `jobLease(...)` on each batched turn update
+  (`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart`), so a
+  stale activation's writes are rejected (`404`) too — mapped to a non-retryable `AGENT_INSTANCE_SUPERSEDED` failure,
+  not the ordinary retry path (ADR 013). Gateway/MCP/A2A connectors are not leased. `ai-agent.md` §10, §23.
 - **Partial tool results → no-op (but not silent)**: incomplete results make the composer return `Deferred` and the
   worker completes without an LLM call — expected, not a bug — but it now also reports whichever results have
   arrived so far to agent instance history first (ADR 011). E2e tests asserting `verifyNoMoreInteractions` on
@@ -266,6 +274,31 @@ When a version is bumped, a template moves into `versioned/`, or a connector is 
 
 Do not list `hybrid/` templates in the README. They are intentionally omitted.
 
+### Agent definition marker
+
+All AI Agent Task and Sub-process templates (v1 and v2, all flavors, including hybrid) carry a
+hidden `zeebe:agentDefinition` property so the engine detects a native agent at deploy time
+(camunda/connectors#8176). `transform-ai-agent-task-template.groovy` adds it to each task template
+(`agentType=aiAgentTask`); `transform-ai-agent-sub-process-template.groovy` adds its own
+(`agentType=aiAgentSubProcess`) to the derived sub-process template. Both take `agentType` as a
+Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
+execution order does not matter — the sub-process transformer cannot carry the task marker into the
+derived template regardless of when the task-marker script runs.
+
+### Deprecation marker (v1 only)
+
+Only the v1 AI Agent Task and Sub-process templates whose minimum Camunda version is 8.10 carry a
+top-level `deprecated` block pointing modelers to the v2 template, and have `(Deprecated)` appended to
+their `name`: the current main/hybrid templates (version 13) and their `versioned/` snapshots at
+versions 10–12. Earlier v1 versions (8.8/8.9-minimum, versions 0–7) carry neither, and neither do v2
+templates. For the generated main/hybrid templates, both transform scripts accept optional
+`deprecationMessage` / `deprecationDocumentationRef` Maven properties — wired only into the v1
+executions in `pom.xml` — and each script strips any inherited `deprecated` block before deciding its
+own and appending `(Deprecated)` to `name` if not already present, the same pattern used for the agent
+definition marker above. `versioned/` snapshots are static and were patched by hand instead (three
+pre-8.10 snapshots already carried an unrelated legacy `"deprecated": true` boolean flag and were left
+untouched).
+
 ## Key entry points
 
 | File                                        | Purpose                                    |
@@ -332,7 +365,8 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 - **`AGENTS.md`** (this file): high-level orientation (mental model, navigation, glossary, gotchas,
   invariants, build/test commands, entry points).
 - **`docs/reference/ai-agent.md`**: core agent framework (orchestration, memory, tools, converters,
-  config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`.
+  config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`, native/v2
+  provider specifics → `native-providers.md`.
 - **`connector-agentic-ai/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new connectors
   (maintenance rules are in the Element templates section above).
 

@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderSupport.deriveTimeoutSetting;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatModelProviderSupport.deriveTimeoutSetting;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
@@ -95,7 +95,11 @@ public class GoogleVertexAiChatModelFactory
 
   private Client createGoogleGenAiClient(GoogleVertexAiConnection connection) {
     final var apiTimeout =
-        deriveTimeoutSetting("Google Vertex AI model call", config, connection.timeouts(), LOGGER);
+        deriveTimeoutSetting(
+            "Enterprise Agent Platform (Vertex AI) model call",
+            config,
+            connection.timeouts(),
+            LOGGER);
 
     final var httpOptions =
         HttpOptions.builder()
@@ -128,8 +132,9 @@ public class GoogleVertexAiChatModelFactory
       // application default credentials are resolved eagerly here
       return clientBuilder.build();
     } catch (GenAiIOException | IllegalArgumentException e) {
-      LOGGER.error("Failed to create Google Vertex AI client", e);
-      throw new ConnectorInputException("Failed to create Google Vertex AI client", e);
+      LOGGER.error("Failed to create Enterprise Agent Platform (Vertex AI) client", e);
+      throw new ConnectorInputException(
+          "Failed to create Enterprise Agent Platform (Vertex AI) client", e);
     }
   }
 

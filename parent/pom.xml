@@ -12,7 +12,7 @@
 
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-parent</artifactId>
-  <version>8.10.0-SNAPSHOT</version>
+  <version>8.11.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Connectors Parent</name>
@@ -70,7 +70,7 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.10.0-SNAPSHOT</version.camunda>
+    <version.camunda>8.11.0-SNAPSHOT</version.camunda>
     <version.feel-engine>1.22.0</version.feel-engine>
     <version.camunda-xml-model>7.24.0</version.camunda-xml-model>
 
@@ -80,48 +80,47 @@ limitations under the License.</license.inlineheader>
     <version.grpc>1.83.1</version.grpc>
 
     <!-- Protobuf version has to be equal or greater than the one from the Camunda client -->
-    <version.protobuf>4.35.1</version.protobuf>
+    <version.protobuf>4.36.0</version.protobuf>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.23.0</version.mockito>
     <version.junit-jupiter>6.1.3</version.junit-jupiter>
     <version.assertj>3.27.7</version.assertj>
-    <version.jackson-bom>2.22.1</version.jackson-bom>
-    <version.jackson-datatype-jsr310>2.22.1</version.jackson-datatype-jsr310>
-    <!-- Jackson 3.x line (tools.jackson:*), separate from the legacy com.fasterxml.jackson:jackson-bom
-         above. Spring Boot 4.x defaults this to its own jackson-bom.version property, which does not
-         track the same fix cadence as the legacy line, so it must be pinned independently. -->
-    <version.jackson3-bom>3.2.1</version.jackson3-bom>
+    <version.jackson-bom>2.22.2</version.jackson-bom>
+    <version.jackson-datatype-jsr310>2.22.2</version.jackson-datatype-jsr310>
     <version.hibernate-validator>9.1.3.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.json>20250517</version.json>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
-    <version.spring-boot>4.1.0</version.spring-boot>
+    <version.spring-boot>4.1.1</version.spring-boot>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
-    <version.amqp-client>5.34.0</version.amqp-client>
-    <tomcat.version>11.0.24</tomcat.version>
+    <version.amqp-client>5.35.0</version.amqp-client>
     <version.netty>4.2.17.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.1.0</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.6.2</version.logback>
+    <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.53.0</version.aws-sdk2>
+    <version.aws-sdk2>2.54.3</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
 
     <version.localstack>2.0.5</version.localstack>
 
-    <version.okhttp>5.4.0</version.okhttp>
+    <version.okhttp>5.5.0</version.okhttp>
     <!-- Langchain4j requires a version >= 2.9.0 < 3.x. Do not bump to 3.x unless Langchain4j supports it! -->
     <version.opensearch-client>2.26.0</version.opensearch-client>
     <!-- CVE-2026-9563: parsson transitive override — remove once opensearch-java ships parsson >= 1.1.8
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-9563 -->
     <version.parsson>1.1.9</version.parsson>
+    <!-- GHSA-xjjv-qfjr-95c3: dd-plist transitive override — remove once langchain4j-document-parser-apache-tika
+         ships a Tika version whose tika-parser-apple-module pulls dd-plist >= 1.30.
+         Ref: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3 -->
+    <version.ddplist>1.30</version.ddplist>
 
     <version.google-api-client>2.9.0</version.google-api-client>
 
@@ -135,7 +134,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260610-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.66.0</version.google-genai>
+    <version.google-genai>1.67.0</version.google-genai>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 
@@ -158,7 +157,7 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-graph>6.67.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.3</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
-    <version.azure-identity>1.18.4</version.azure-identity>
+    <version.azure-identity>1.18.5</version.azure-identity>
     <version.azure-core>1.59.0</version.azure-core>
     <version.azure-cosmos>4.81.0</version.azure-cosmos>
 
@@ -184,7 +183,7 @@ limitations under the License.</license.inlineheader>
 
     <version.snappy-java>1.1.10.8</version.snappy-java>
     <version.commons-codec>1.22.1</version.commons-codec>
-    <version.guava>33.6.0-jre</version.guava>
+    <version.guava>33.7.1-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
     <version.javax.annotation-api>1.3.2</version.javax.annotation-api>
 
@@ -194,9 +193,9 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.6.0</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
-    <version.langchain4j>1.18.1</version.langchain4j>
-    <version.mcp-sdk>2.0.0</version.mcp-sdk>
-    <version.elasticsearch-java>8.19.20</version.elasticsearch-java>
+    <version.langchain4j>1.19.0</version.langchain4j>
+    <version.mcp-sdk>2.0.1</version.mcp-sdk>
+    <version.elasticsearch-java>8.19.21</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.20</version.elasticsearch-rest-client>
 
     <version.scala>3.8.4</version.scala>
@@ -205,12 +204,12 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.6.3</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
-    <plugin.version.license>5.1.1</plugin.version.license>
+    <plugin.version.license>5.1.2</plugin.version.license>
     <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>3.9.0</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>3.10.0</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
     <plugin.version.maven-compiler-plugin>3.15.0</plugin.version.maven-compiler-plugin>
 
@@ -218,7 +217,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Null safety tooling -->
     <version.error-prone>2.50.0</version.error-prone>
-    <version.nullaway>0.13.8</version.nullaway>
+    <version.nullaway>0.14.0</version.nullaway>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
   </properties>
 
@@ -229,14 +228,6 @@ limitations under the License.</license.inlineheader>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
         <version>${version.jackson-bom}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <!-- Jackson 3.x BOM -->
-      <dependency>
-        <groupId>tools.jackson</groupId>
-        <artifactId>jackson-bom</artifactId>
-        <version>${version.jackson3-bom}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -264,6 +255,15 @@ limitations under the License.</license.inlineheader>
         <groupId>org.eclipse.parsson</groupId>
         <artifactId>parsson</artifactId>
         <version>${version.parsson}</version>
+      </dependency>
+
+      <!-- GHSA-xjjv-qfjr-95c3: override dd-plist transitive version brought in via
+           langchain4j-document-parser-apache-tika -> tika-parser-apple-module. Remove once that
+           chain ships dd-plist >= 1.30. -->
+      <dependency>
+        <groupId>com.googlecode.plist</groupId>
+        <artifactId>dd-plist</artifactId>
+        <version>${version.ddplist}</version>
       </dependency>
 
       <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
@@ -652,6 +652,11 @@ limitations under the License.</license.inlineheader>
         <artifactId>sts</artifactId>
         <version>${version.aws-sdk2}</version>
       </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>netty-nio-client</artifactId>
+        <version>${version.aws-sdk2}</version>
+      </dependency>
 
       <dependency>
         <groupId>com.google.code.findbugs</groupId>
@@ -750,34 +755,6 @@ limitations under the License.</license.inlineheader>
         <groupId>org.apache.httpcomponents.core5</groupId>
         <artifactId>httpcore5</artifactId>
         <version>${version.httpcore5}</version>
-      </dependency>
-
-      <!-- CVE-2026-55955: tomcat.version alone does not override Spring Boot's
-           dependency-management import, since spring-boot-dependencies defines its own
-           internal tomcat.version property. These four artifacts ship in lockstep from the
-           same Tomcat release and must be pinned together to avoid a version skew. -->
-      <dependency>
-        <groupId>org.apache.tomcat.embed</groupId>
-        <artifactId>tomcat-embed-core</artifactId>
-        <version>${tomcat.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.tomcat.embed</groupId>
-        <artifactId>tomcat-embed-el</artifactId>
-        <version>${tomcat.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.tomcat.embed</groupId>
-        <artifactId>tomcat-embed-websocket</artifactId>
-        <version>${tomcat.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.tomcat</groupId>
-        <artifactId>tomcat-annotations-api</artifactId>
-        <version>${tomcat.version}</version>
       </dependency>
 
       <dependency>
@@ -1119,6 +1096,18 @@ limitations under the License.</license.inlineheader>
               <requirePluginVersions>
                 <banSnapshots>false</banSnapshots>
               </requirePluginVersions>
+              <!-- GHSA-xjjv-qfjr-95c3 guard: fails if langchain4j is bumped, as a reminder to
+                   check whether the dd-plist override can be removed (see version.ddplist). -->
+              <requireProperty>
+                <property>version.langchain4j</property>
+                <regex>^1\.19\.0$</regex>
+                <regexMessage>
+version.langchain4j was changed! Check if the dd-plist GHSA-xjjv-qfjr-95c3 override can be removed.
+If the new langchain4j-document-parser-apache-tika version ships a Tika whose tika-parser-apple-module
+pulls dd-plist &gt;= 1.30, remove the version.ddplist property and the dd-plist dependencyManagement entry.
+See: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3
+                </regexMessage>
+              </requireProperty>
               <!-- CVE-2026-9563 guard: fails if opensearch-java is bumped, as a reminder to
                    check whether the parsson override can be removed (see version.parsson). -->
               <requireProperty>
@@ -1143,47 +1132,15 @@ the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
                 </regexMessage>
               </requireProperty>
-              <!-- CVE-2026-55955 guard: fails if version.spring-boot is bumped, as a reminder to
-                   check whether the tomcat-embed-* overrides can be removed (see tomcat.version).
-                   A same-named property does not override a dependency-management import, so this
-                   pin must stay explicit until verified otherwise - do not delete it without checking. -->
-              <requireProperty>
-                <property>version.spring-boot</property>
-                <regex>^4\.1\.0$</regex>
-                <regexMessage>
-version.spring-boot was changed! Check if the tomcat-embed-* CVE-2026-55955 overrides can be removed.
-If the new spring-boot-dependencies BOM ships tomcat.version &gt;= 11.0.23 (confirm with
-`mvn dependency:tree -Dincludes=org.apache.tomcat.embed,org.apache.tomcat:tomcat-annotations-api`,
-not just the property), remove the tomcat-embed-core/tomcat-embed-el/tomcat-embed-websocket/
-tomcat-annotations-api dependencyManagement entries, the tomcat.version property, and this
-enforcer rule from parent/pom.xml.
-See: https://nvd.nist.gov/vuln/detail/CVE-2026-55955
-                </regexMessage>
-              </requireProperty>
-              <!-- CVE-2026-59889 guard: fails if version.spring-boot is bumped, as a reminder to
-                   check whether the jackson3-bom override can be removed (see version.jackson3-bom).
-                   spring-boot-dependencies manages tools.jackson:jackson-bom via its own
-                   jackson-bom.version property, separate from the legacy com.fasterxml.jackson:jackson-bom
-                   line already overridden above - it is not covered by that override. -->
-              <requireProperty>
-                <property>version.spring-boot</property>
-                <regex>^4\.1\.0$</regex>
-                <regexMessage>
-version.spring-boot was changed! Check if the jackson3-bom CVE-2026-59889 override can be removed.
-If the new spring-boot-dependencies BOM ships tools.jackson:jackson-bom &gt;= 3.1.5 (confirm with
-`mvn dependency:tree -Dincludes=tools.jackson.core:jackson-databind`, not just the property),
-remove the version.jackson3-bom property, the tools.jackson:jackson-bom dependencyManagement entry,
-and this enforcer rule from parent/pom.xml.
-See: https://nvd.nist.gov/vuln/detail/CVE-2026-59889
-                </regexMessage>
-              </requireProperty>
               <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx guard: fails if version.spring-boot is
                    bumped, as a reminder to check whether the amqp-client override can be removed
                    (see version.amqp-client). spring-boot-dependencies manages
-                   com.rabbitmq:amqp-client via its own rabbit-amqp-client.version property. -->
+                   com.rabbitmq:amqp-client via its own rabbit-amqp-client.version property.
+                   Confirmed still needed as of spring-boot 4.1.1: its BOM ships
+                   rabbit-amqp-client.version 5.30.0, still short of the 5.34.0 fix. -->
               <requireProperty>
                 <property>version.spring-boot</property>
-                <regex>^4\.1\.0$</regex>
+                <regex>^4\.1\.1$</regex>
                 <regexMessage>
 version.spring-boot was changed! Check if the amqp-client CVE-2026-63337 override can be removed.
 If the new spring-boot-dependencies BOM ships com.rabbitmq:amqp-client &gt;= 5.34.0 (confirm with

@@ -14,7 +14,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -39,19 +41,25 @@ public final class AgentConversation {
   private final @Nullable SystemMessage systemMessage;
   private final List<AgentConversationTurn> previousTurns;
   private final AgentConversationTurn currentTurn;
+  private final int invocationStartIterationKey;
+  private final @Nullable String precedingConfigurationFingerprint;
 
   private AgentConversation(
       AgentConfiguration configuration,
       AgentContext currentContext,
       @Nullable SystemMessage systemMessage,
       List<AgentConversationTurn> previousTurns,
-      AgentConversationTurn currentTurn) {
+      AgentConversationTurn currentTurn,
+      int invocationStartIterationKey,
+      @Nullable String precedingConfigurationFingerprint) {
     this.configuration = configuration;
     this.currentContext = currentContext;
     this.systemMessage = systemMessage;
     this.previousTurns = List.copyOf(previousTurns);
     this.currentTurn = currentTurn;
     this.agentInstanceKey = AgentInstanceKey.from(currentContext.metadata());
+    this.invocationStartIterationKey = invocationStartIterationKey;
+    this.precedingConfigurationFingerprint = precedingConfigurationFingerprint;
   }
 
   /**
@@ -73,9 +81,20 @@ public final class AgentConversation {
       @Nullable SystemMessage systemMessage,
       List<Message> inputMessages) {
     int nextKey = nextIterationKey(agentContext, previousConversation);
-    var currentTurn = new AgentConversationTurn(nextKey, inputMessages, null, AgentMetrics.empty());
+    var currentTurn =
+        new AgentConversationTurn(
+            nextKey, inputMessages, null, AgentMetrics.empty(), configuration.fingerprint());
+    var precedingTurns = previousConversation.turns();
+    var precedingFingerprint =
+        precedingTurns.isEmpty() ? null : precedingTurns.getLast().configurationFingerprint();
     return new AgentConversation(
-        configuration, agentContext, systemMessage, previousConversation.turns(), currentTurn);
+        configuration,
+        agentContext,
+        systemMessage,
+        precedingTurns,
+        currentTurn,
+        nextKey,
+        precedingFingerprint);
   }
 
   /**
@@ -114,7 +133,13 @@ public final class AgentConversation {
     }
     var completedTurn = currentTurn.withAssistantMessage(assistantMessage, turnMetrics);
     return new AgentConversation(
-        configuration, currentContext, systemMessage, previousTurns, completedTurn);
+        configuration,
+        currentContext,
+        systemMessage,
+        previousTurns,
+        completedTurn,
+        invocationStartIterationKey,
+        precedingConfigurationFingerprint);
   }
 
   /**
@@ -135,9 +160,19 @@ public final class AgentConversation {
     updatedPreviousTurns.add(currentTurn);
     var nextTurn =
         new AgentConversationTurn(
-            currentTurn.iterationKey() + 1, List.of(), null, AgentMetrics.empty());
+            currentTurn.iterationKey() + 1,
+            List.of(),
+            null,
+            AgentMetrics.empty(),
+            currentTurn.configurationFingerprint());
     return new AgentConversation(
-        configuration, currentContext, systemMessage, updatedPreviousTurns, nextTurn);
+        configuration,
+        currentContext,
+        systemMessage,
+        updatedPreviousTurns,
+        nextTurn,
+        invocationStartIterationKey,
+        precedingConfigurationFingerprint);
   }
 
   /**
@@ -147,7 +182,13 @@ public final class AgentConversation {
   public AgentConversation withStoredConversation(ConversationContext ref) {
     var updatedCtx = currentContext.withConversation(ref);
     return new AgentConversation(
-        configuration, updatedCtx, systemMessage, previousTurns, currentTurn);
+        configuration,
+        updatedCtx,
+        systemMessage,
+        previousTurns,
+        currentTurn,
+        invocationStartIterationKey,
+        precedingConfigurationFingerprint);
   }
 
   /** Returns the composed system message for this invocation, or {@code null} when it was blank. */
@@ -205,17 +246,22 @@ public final class AgentConversation {
 
   /**
    * Applies the context window filter and returns a {@link ConversationSnapshot} ready to send to
-   * the LLM.
+   * the LLM. Tool definitions come from {@link #configuration}, not the durable {@link
+   * AgentContext} — {@link AgentConfiguration#toolDefinitions()} is the authoritative current tool
+   * list for this invocation once the handler has populated it via {@link
+   * AgentConfiguration#withToolDefinitions}.
    */
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
-    return new ConversationSnapshot(windowed, currentContext.toolDefinitions());
+    return new ConversationSnapshot(windowed, configuration.toolDefinitions());
   }
 
   /**
    * Produces an updated {@link AgentContext} with cumulative metrics from all turns ingested in
-   * this invocation applied on top of the base context metrics, and {@code lastIterationKey}
-   * stamped to the current turn's key once it has been ingested.
+   * this invocation applied on top of the base context metrics, {@code lastIterationKey} stamped to
+   * the current turn's key, and a new {@code configurationFingerprintHistory} entry recorded when
+   * the current turn's {@link AgentConversationTurn#configurationFingerprint()} differs from the
+   * turn preceding it — once the current turn has been ingested.
    */
   public AgentContext toAgentContext() {
     var withMetrics = currentContext.withMetrics(totalMetrics());
@@ -223,7 +269,14 @@ public final class AgentConversation {
     if (metadata == null || currentTurn.assistantMessage() == null) {
       return withMetrics;
     }
-    return withMetrics.withMetadata(metadata.withLastIterationKey(currentTurn.iterationKey()));
+    var updatedMetadata = metadata.withLastIterationKey(currentTurn.iterationKey());
+    if (!Objects.equals(
+        currentTurn.configurationFingerprint(), precedingConfigurationFingerprint)) {
+      var history = new LinkedHashMap<>(updatedMetadata.configurationFingerprintHistory());
+      history.put(invocationStartIterationKey, currentTurn.configurationFingerprint());
+      updatedMetadata = updatedMetadata.withConfigurationFingerprintHistory(history);
+    }
+    return withMetrics.withMetadata(updatedMetadata);
   }
 
   /** Returns the last completed turn, or empty if no turns have been completed yet. */

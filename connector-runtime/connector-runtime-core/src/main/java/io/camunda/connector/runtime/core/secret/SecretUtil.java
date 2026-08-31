@@ -31,8 +31,13 @@ public class SecretUtil {
 
   private static final JsonStringEncoder encoder = JsonStringEncoder.getInstance();
 
+  // The negative lookbehind keeps this legacy pattern out of a new-form camunda.secrets.<name>
+  // reference, which ends in the same three characters. Without it the legacy pass, which runs
+  // first and over raw model text, would replace secrets.TOKEN inside camunda.secrets.TOKEN from a
+  // local provider — reading the wrong store, and destroying the reference before the cluster ever
+  // sees it.
   private static final Pattern SECRET_PATTERN_SECRETS =
-      Pattern.compile("secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
+      Pattern.compile("(?<!camunda\\.)secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
 
   private static final Pattern SECRET_PATTERN_PARENTHESES =
       Pattern.compile("\\{\\{\\s*secrets\\.(?<secret>\\S+?\\s*)}}");
@@ -103,13 +108,51 @@ public class SecretUtil {
     return output.toString();
   }
 
+  /**
+   * Whether the text contains a legacy secret reference, in either of its two spellings. Used where
+   * the legacy form is not supported and has to be reported rather than silently left in place.
+   */
+  public static boolean containsLegacySecretReference(String input) {
+    return input != null
+        && (SECRET_PATTERN_PARENTHESES.matcher(input).find()
+            || SECRET_PATTERN_SECRETS.matcher(input).find());
+  }
+
+  /**
+   * Every secret name the given text declares, in either form. The new form is included so that
+   * excluding it from {@link #SECRET_PATTERN_SECRETS} does not shrink the outbound allow-list this
+   * feeds: a name a model declares as {@code camunda.secrets.NAME} stays permitted, exactly as it
+   * was before the two patterns were separated.
+   */
   public static List<String> retrieveSecretKeysInInput(String input) {
+    return keysIn(
+        input, SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS, SecretReferenceUtil.PATTERN);
+  }
+
+  /**
+   * Every secret name the given text declares in one of the two legacy forms. Excludes the new
+   * {@code camunda.secrets.<name>} form, which the legacy providers never resolve, so that a caller
+   * asking what the legacy providers were responsible for is not handed names they never held.
+   */
+  public static List<String> retrieveLegacySecretKeysInInput(String input) {
+    return keysIn(input, SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS);
+  }
+
+  /**
+   * Names are trimmed, because that is the name {@link #replaceSecrets} looks up: the parentheses
+   * pattern's capture reaches past the name to the closing braces, so {@code <code>{{ secrets.FOO
+   * }}</code>} declares {@code FOO}, not {@code "FOO "}. Returning the untrimmed form left every
+   * caller comparing a name against one nothing ever resolves — the outbound allow-list did its own
+   * trimming, error masking did not, and so masked nothing for a reference written with a space
+   * inside the braces.
+   */
+  private static List<String> keysIn(String input, Pattern... patterns) {
     return Objects.isNull(input)
         ? List.of()
-        : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
+        : Stream.of(patterns)
             .map(pattern -> pattern.matcher(input))
             .flatMap(Matcher::results)
-            .map(matchResult -> matchResult.group("secret"))
+            .map(matchResult -> matchResult.group("secret").trim())
             .distinct()
             .toList();
   }

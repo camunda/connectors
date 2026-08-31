@@ -19,6 +19,7 @@ package io.camunda.connector.http.rest.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
+import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +31,8 @@ class HttpJsonRequestTest {
     var request = new HttpJsonRequest();
     request.setAuthentication(new BearerAuthentication("inline-token"));
     request.setAuthenticationConfiguration(
-        new RestAuthenticationConfiguration(new BearerAuthentication("credential-token")));
+        new RestAuthenticationConfiguration(
+            new BearerAuthentication("credential-token"), "https://credential.example.com"));
 
     assertThat(request.getAuthentication()).isInstanceOf(BearerAuthentication.class);
     assertThat(((BearerAuthentication) request.getAuthentication()).token())
@@ -44,5 +46,39 @@ class HttpJsonRequestTest {
 
     assertThat(((BearerAuthentication) request.getAuthentication()).token())
         .isEqualTo("inline-token");
+  }
+
+  @Test
+  void usesCredentialUrlWhenInlineUrlIsBlank() {
+    var request = new HttpJsonRequest();
+    request.setAuthenticationConfiguration(
+        new RestAuthenticationConfiguration(
+            new BearerAuthentication("credential-token"), "https://credential.example.com"));
+
+    assertThat(request.getUrl()).isEqualTo("https://credential.example.com");
+  }
+
+  @Test
+  void inlineUrlOverridesCredentialUrl() {
+    var request = new HttpJsonRequest();
+    request.setUrl("https://override.example.com");
+    request.setAuthenticationConfiguration(
+        new RestAuthenticationConfiguration(
+            new BearerAuthentication("credential-token"), "https://credential.example.com"));
+
+    assertThat(request.getUrl()).isEqualTo("https://override.example.com");
+  }
+
+  @Test
+  void usesInlineUrlWhenCredentialCarriesNone() {
+    var request = new HttpJsonRequest();
+    request.setUrl("https://inline.example.com");
+    request.setAuthenticationConfiguration(
+        new RestAuthenticationConfiguration(
+            new OAuthAuthentication(
+                "https://token.example.com", "id", "secret", null, "body", null),
+            null));
+
+    assertThat(request.getUrl()).isEqualTo("https://inline.example.com");
   }
 }

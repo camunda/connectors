@@ -23,6 +23,7 @@ import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.client.spring.configuration.CamundaAutoConfiguration;
 import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
@@ -30,6 +31,7 @@ import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.feel.jackson.JacksonModuleSecretReference;
 import io.camunda.connector.hostvalidator.CidrRange;
 import io.camunda.connector.hostvalidator.VerifiedHostValidator;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
@@ -38,22 +40,34 @@ import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTo
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
+import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.secret.CentralStoreSecretProvider;
+import io.camunda.connector.runtime.core.secret.LegacySecretMode;
+import io.camunda.connector.runtime.core.secret.LegacySecretsDisabledProvider;
+import io.camunda.connector.runtime.core.secret.SecretLookupRefusedException;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
+import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
+import io.camunda.connector.runtime.metrics.MeteredSecretProviderAggregator;
+import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import io.camunda.connector.runtime.secret.console.JwtCredential;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.ConstraintValidatorFactory;
 import jakarta.validation.Validation;
 import java.net.URL;
 import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,6 +99,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class ConnectorsAutoConfiguration {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectorsAutoConfiguration.class);
+
+  static final String DEFAULT_AGGREGATOR_BEAN_NAME = "springSecretProviderAggregator";
+
+  /** The name the legacy switch guard asks for; no store is consulted, so it resolves nothing. */
+  private static final String LEGACY_SWITCH_PROBE = "__legacy_secret_switch_probe__";
 
   private final ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider;
 
@@ -147,10 +166,39 @@ public class ConnectorsAutoConfiguration {
     return cache;
   }
 
-  @Bean
+  /**
+   * Builds the aggregator every legacy ({@code {{secrets.X}}} and bare {@code secrets.X}) lookup
+   * goes through; the outbound job path and the inbound binding path share this one bean. Under
+   * {@link LegacySecretMode#OFF} none of the configured providers is consulted and every lookup
+   * fails instead.
+   *
+   * <p>Configuration validation is not one of those paths and this setting does not reach it: it
+   * never resolves the legacy syntax under any mode, and rejects a configuration still carrying it
+   * ({@code LegacySecretSyntaxRejectingProcessor}, installed on its own evaluator). See {@code
+   * ConfigurationValidationService} for why — replacement there would have to run over an
+   * evaluation result, where a name a configuration declared is indistinguishable from one that
+   * arrived as data.
+   *
+   * <p>This has no effect on {@code camunda.secrets.<name>} resolution, which reads the
+   * orchestration cluster's secret stores through a separate mechanism.
+   */
+  @Bean(DEFAULT_AGGREGATOR_BEAN_NAME)
   @ConditionalOnMissingBean
   public SecretProviderAggregator springSecretProviderAggregator(
-      Optional<List<SecretProvider>> secretProviderBeans) {
+      Optional<List<SecretProvider>> secretProviderBeans,
+      @Value("${" + LegacySecretMode.PROPERTY + ":ON}") String legacyModeProperty,
+      @Autowired(required = false) CamundaClientRegistry registry,
+      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      @Autowired(required = false) MeterRegistry meterRegistry) {
+    LegacySecretMode legacyMode = LegacySecretMode.parse(legacyModeProperty);
+    if (legacyMode == LegacySecretMode.OFF) {
+      LOG.info(
+          "Legacy secret resolution is disabled ({}={}); {{secrets.X}} and secrets.X will not"
+              + " resolve.",
+          LegacySecretMode.PROPERTY,
+          LegacySecretMode.OFF);
+      return new SecretProviderAggregator(List.of(new LegacySecretsDisabledProvider()));
+    }
     var secretProviders = secretProviderBeans.orElseGet(LinkedList::new);
     LOG.debug("Using secret providers discovered as Spring beans: {}", secretProviderBeans);
     if (secretProviderLookupEnabled != Boolean.FALSE) {
@@ -158,7 +206,166 @@ public class ConnectorsAutoConfiguration {
       LOG.debug("Using secret providers discovered by lookup: {}", discoveredSecretProviders);
       secretProviders.addAll(discoveredSecretProviders);
     }
-    return new SecretProviderAggregator(secretProviders);
+    if (legacyMode == LegacySecretMode.FALLBACK) {
+      // Last in the chain: a name a configured provider holds still comes from there, so moving
+      // values into the central store one at a time works without touching any diagram.
+      LOG.info(
+          "Legacy secret names not held by any configured provider will be read from the cluster's"
+              + " secret stores ({}={})",
+          LegacySecretMode.PROPERTY,
+          LegacySecretMode.FALLBACK);
+      secretProviders.add(
+          new CentralStoreSecretProvider(
+              secretReferenceResolversByPhysicalTenantId(registry, legacyCamundaClient)));
+    }
+    return meterRegistry == null
+        ? new SecretProviderAggregator(secretProviders)
+        : new MeteredSecretProviderAggregator(secretProviders, meterRegistry);
+  }
+
+  private static Map<String, SecretReferenceResolver> secretReferenceResolversByPhysicalTenantId(
+      CamundaClientRegistry registry, CamundaClient legacyCamundaClient) {
+    return PhysicalTenantClients.clientNames(registry, legacyCamundaClient).stream()
+        .collect(
+            PhysicalTenantClients.toMapByPhysicalTenantId(
+                registry,
+                legacyCamundaClient,
+                name ->
+                    new SecretReferenceResolver(
+                        PhysicalTenantClients.resolveClient(registry, name, legacyCamundaClient))));
+  }
+
+  /**
+   * Refuses to start under {@link LegacySecretMode#FALLBACK} unless the outbound secret filter is
+   * strict.
+   *
+   * <p>The fallback lets the legacy syntax reach the cluster's secret stores, and on the outbound
+   * job path the only thing keeping a legacy reference that arrived in a <em>runtime value</em>
+   * from being resolved is that filter. Its allow-list comes from the element's input mappings in
+   * the deployed model, while replacement runs over the job's variables, and that asymmetry is the
+   * whole protection: a name a variable carries resolves only if the model declares it too. The
+   * filter ships disabled, and its lax setting resolves everything whenever the process-definition
+   * lookup fails. Pairing the two is a deployment invariant either way; refusing to start makes it
+   * one the runtime enforces rather than one a runbook describes.
+   *
+   * <p>Note what the filter does not do: it does not restrict which secrets a <em>model</em> may
+   * name. An input mapping that spells out {@code secrets.ANY_NAME} puts that name on the
+   * allow-list, so a deployed model reads it under {@code STRICT} exactly as it would without the
+   * filter. This is why the inbound path is not covered by this guard and needs nothing equivalent:
+   * legacy replacement there runs over the element's own {@code zeebe:property} text, read from the
+   * deployed model, and never over a runtime value (see {@code InboundConnectorContextImpl}), so
+   * there is no injected name for a filter to reject. Wiring a filter into the inbound path (#7730)
+   * would make that structural guarantee an enforced one; it would not narrow what a deployed model
+   * can reach.
+   */
+  @Bean
+  public Object legacyFallbackSecretFilterGuard(
+      @Value("${" + LegacySecretMode.PROPERTY + ":ON}") String legacyModeProperty,
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
+          SecretFilterMode secretFilterMode) {
+    return checkLegacyFallbackSecretFilter(
+        LegacySecretMode.parse(legacyModeProperty), secretFilterMode);
+  }
+
+  public Object checkLegacyFallbackSecretFilter(
+      LegacySecretMode legacyMode, SecretFilterMode secretFilterMode) {
+    if (legacyMode == LegacySecretMode.FALLBACK && secretFilterMode != SecretFilterMode.STRICT) {
+      throw new IllegalStateException(
+          LegacySecretMode.PROPERTY
+              + "="
+              + LegacySecretMode.FALLBACK
+              + " requires camunda.connector.secret-resolver.secret-filter.mode="
+              + SecretFilterMode.STRICT
+              + ", but it is "
+              + secretFilterMode
+              + ". The fallback lets a legacy secret reference read the cluster's secret stores,"
+              + " and the secret filter is what keeps a reference that arrived in a runtime value"
+              + " from being resolved.");
+    }
+    return new Object();
+  }
+
+  /**
+   * Refuses to start when legacy secret resolution is switched off but the effective {@link
+   * SecretProviderAggregator} does not apply it. A custom bean replaces {@link
+   * #springSecretProviderAggregator} outright, since that one exists only through
+   * {@code @ConditionalOnMissingBean}, so the setting would be silently ignored rather than
+   * enforced. This bean carries no conditions of its own, so it runs against whichever aggregator
+   * won.
+   *
+   * <p>Identifies a replacement by what the winning bean actually does under {@code OFF} rather
+   * than by bean name, so a custom bean cannot escape detection by happening to be named {@link
+   * #DEFAULT_AGGREGATOR_BEAN_NAME}. Its provider list must be exactly a single {@link
+   * LegacySecretsDisabledProvider}, and it must then actually refuse a lookup: {@link
+   * SecretProviderAggregator} is neither final nor free of overridable methods — {@link
+   * MeteredSecretProviderAggregator} is itself an override — so a subclass could hold that provider
+   * list and resolve values anyway. Both entry points are asked, because {@code fetchAll} is what
+   * the outbound paths call and a subclass may override it alone.
+   */
+  @Bean
+  public Object secretProviderAggregatorLegacySwitchGuard(
+      SecretProviderAggregator secretProviderAggregator,
+      @Value("${" + LegacySecretMode.PROPERTY + ":ON}") String legacyModeProperty) {
+    return checkSecretProviderAggregatorLegacySwitch(
+        secretProviderAggregator, LegacySecretMode.parse(legacyModeProperty));
+  }
+
+  /**
+   * Whether the aggregator refuses a lookup the way {@link LegacySecretsDisabledProvider} does,
+   * asked of both entry points a legacy lookup can arrive through.
+   *
+   * <p>The name asked for cannot be a real one — no store is consulted on this path, since a
+   * provider list holding only the disabled provider is a precondition of this call, and that
+   * provider throws for every name it is given without reading anything.
+   */
+  private static boolean refusesEveryLookup(SecretProviderAggregator aggregator) {
+    var context = new SecretContext(null, null, null);
+    return refuses(() -> aggregator.getSecret(LEGACY_SWITCH_PROBE, context))
+        && refuses(() -> aggregator.fetchAll(List.of(LEGACY_SWITCH_PROBE), context));
+  }
+
+  private static boolean refuses(Supplier<Object> lookup) {
+    try {
+      lookup.get();
+      return false;
+    } catch (SecretLookupRefusedException expected) {
+      return true;
+    } catch (Exception other) {
+      // Some other failure says nothing about the setting being applied, so it is not accepted as
+      // proof that it is.
+      return false;
+    }
+  }
+
+  public Object checkSecretProviderAggregatorLegacySwitch(
+      SecretProviderAggregator secretProviderAggregator, LegacySecretMode legacyMode) {
+    if (legacyMode != LegacySecretMode.OFF) {
+      return new Object();
+    }
+    List<SecretProvider> providers = secretProviderAggregator.getSecretProviders();
+    boolean appliesTheSwitch =
+        providers.size() == 1
+            && providers.get(0) instanceof LegacySecretsDisabledProvider
+            && refusesEveryLookup(secretProviderAggregator);
+    if (!appliesTheSwitch) {
+      throw new IllegalStateException(
+          LegacySecretMode.PROPERTY
+              + "="
+              + LegacySecretMode.OFF
+              + " cannot be enforced: the effective SecretProviderAggregator does not apply it (its"
+              + " provider list is "
+              + providers.stream().map(p -> p.getClass().getName()).toList()
+              + ", or it resolves a lookup instead of refusing one; the aggregator itself is "
+              + secretProviderAggregator.getClass().getName()
+              + ", where a list of just "
+              + LegacySecretsDisabledProvider.class.getSimpleName()
+              + " that refuses every lookup is required). This means the application supplies its own SecretProviderAggregator bean,"
+              + " which replaces the one that applies the setting. Remove that bean, or set the"
+              + " mode back to "
+              + LegacySecretMode.ON
+              + ".");
+    }
+    return new Object();
   }
 
   @Bean
@@ -220,7 +427,12 @@ public class ConnectorsAutoConfiguration {
     return new CamundaObjectMapper(
         ConnectorsObjectMapperSupplier.getCopy()
             .registerModules(
-                new JacksonModuleFeelFunction(), new JacksonModuleDocumentSerializer()));
+                new JacksonModuleFeelFunction(
+                    true,
+                    FeelExpressionEvaluatorBuilder.local().build(),
+                    null,
+                    FeelEvaluationResultMapper.create()),
+                new JacksonModuleDocumentSerializer()));
   }
 
   @Bean(defaultCandidate = false)
@@ -248,10 +460,16 @@ public class ConnectorsAutoConfiguration {
 
     // Function/Supplier always use local evaluation to avoid serializing runtime objects
     // (e.g., Documents) to the cluster. The injected evaluator is used for @FEEL-annotated fields.
+    // Values returned by an evaluation are bound by a mapper of their own, which registers neither
+    // of the two modules below, so no string in a result is treated as expression source.
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
         new JacksonModuleFeelFunction(
-            true, feelExpressionEvaluator, FeelExpressionEvaluatorBuilder.local().build()),
+            true,
+            feelExpressionEvaluator,
+            FeelExpressionEvaluatorBuilder.local().build(),
+            FeelEvaluationResultMapper.create(documentFactoriesByPhysicalTenantId)),
+        new JacksonModuleSecretReference(),
         new JacksonModuleDocumentSerializer());
   }
 
@@ -283,7 +501,9 @@ public class ConnectorsAutoConfiguration {
         jacksonModuleDocumentDeserializer,
         new JacksonModuleFeelFunction(
             false,
-            FeelExpressionEvaluatorBuilder.local().build()), // FEEL annotation processing disabled
+            FeelExpressionEvaluatorBuilder.local().build(), // FEEL annotation processing disabled
+            null,
+            FeelEvaluationResultMapper.create(documentFactory)),
         new JacksonModuleDocumentSerializer());
   }
 

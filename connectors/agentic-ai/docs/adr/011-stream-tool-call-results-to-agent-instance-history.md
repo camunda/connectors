@@ -5,7 +5,10 @@
 
 ## Status
 
-**Implemented**
+**Superseded** by [ADR 013](013-unified-agent-instance-turn-updates.md) — the streamed-early write
+itself is unchanged (still fires from the same `Deferred` composition branch, still one `TOOL_RESULT`
+item per arrived result), but it now goes through a batched, lease-fenced `update()` call
+(`applyToolCallResults`) instead of the single-item history-create command this ADR describes.
 
 ## Context and Problem Statement
 
