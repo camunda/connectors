@@ -122,22 +122,26 @@ public class InboundCorrelationHandler {
       InboundConnectorElement activatedElement, Object variables, String messageId) {
     var correlationPoint = activatedElement.correlationPoint();
 
-    return switch (correlationPoint) {
-      case StartEventCorrelationPoint corPoint ->
-          triggerStartEvent(activatedElement, corPoint, variables);
-      case MessageCorrelationPoint corPoint ->
-          triggerMessage(
-              activatedElement,
-              corPoint,
-              variables,
-              resolveMessageId(corPoint.messageIdExpression(), messageId, variables));
-      case MessageStartEventCorrelationPoint corPoint ->
-          triggerMessageStartEvent(
-              activatedElement,
-              corPoint,
-              variables,
-              resolveMessageId(corPoint.messageIdExpression(), messageId, variables));
-    };
+    try {
+      return switch (correlationPoint) {
+        case StartEventCorrelationPoint corPoint ->
+            triggerStartEvent(activatedElement, corPoint, variables);
+        case MessageCorrelationPoint corPoint ->
+            triggerMessage(
+                activatedElement,
+                corPoint,
+                variables,
+                resolveMessageId(corPoint.messageIdExpression(), messageId, variables));
+        case MessageStartEventCorrelationPoint corPoint ->
+            triggerMessageStartEvent(
+                activatedElement,
+                corPoint,
+                variables,
+                resolveMessageId(corPoint.messageIdExpression(), messageId, variables));
+      };
+    } catch (ConnectorInputException e) {
+      return new Failure.InvalidInput(e.getMessage(), e);
+    }
   }
 
   protected CorrelationResult triggerStartEvent(

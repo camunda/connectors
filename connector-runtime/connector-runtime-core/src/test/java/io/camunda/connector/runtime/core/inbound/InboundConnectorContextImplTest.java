@@ -201,6 +201,46 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
+  void correlate_invalidInputFailure_logsActivity() {
+    // given a correlation handler reporting an invalid-input failure (e.g. a messageIdExpression
+    // resolving to null, issue #8388) as a returned value, not a thrown exception, matching
+    // InboundCorrelationHandler#correlateInternal's contract
+    var definition = getInboundConnectorDefinition(Map.of("stringMap", "={}"));
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    when(correlationHandler.correlate(any(), any()))
+        .thenReturn(
+            new CorrelationResult.Failure.InvalidInput(
+                "messageIdExpression '=request.headers[\"x-github-delivery\"]' resolved to null,"
+                    + " expected a non-null String value",
+                null));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            definition,
+            correlationHandler,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when
+    var result = context.correlate(CorrelationRequest.builder().variables(Map.of()).build());
+
+    // then
+    assertThat(result).isInstanceOf(CorrelationResult.Failure.InvalidInput.class);
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .anySatisfy(
+            log -> {
+              assertThat(log.tag()).isEqualTo(ActivityLogTag.CORRELATION);
+              assertThat(log.severity()).isEqualTo(Severity.ERROR);
+              assertThat(log.message()).contains("resolved to null");
+            });
+  }
+
+  @Test
   void create_stampsTheElementsPhysicalTenantIdWhenRequestHasNone() {
     var element =
         new InboundConnectorElement(

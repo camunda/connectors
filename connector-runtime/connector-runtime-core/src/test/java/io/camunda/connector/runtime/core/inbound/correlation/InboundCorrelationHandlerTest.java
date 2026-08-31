@@ -17,14 +17,12 @@
 package io.camunda.connector.runtime.core.inbound.correlation;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.*;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
@@ -815,7 +813,7 @@ public class InboundCorrelationHandlerTest {
     }
 
     @Test
-    void messageIdExpressionResolvesToNull_throwsConnectorInputException() {
+    void messageIdExpressionResolvesToNull_returnsInvalidInputFailure() {
       // given
       var point =
           new StandaloneMessageCorrelationPoint("msg1", "=correlationKey", "=missingKey", null);
@@ -824,14 +822,16 @@ public class InboundCorrelationHandlerTest {
       when(element.element())
           .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
-      // when / then
-      assertThatThrownBy(
-              () ->
-                  handler.correlate(
-                      List.of(element), Collections.singletonMap("correlationKey", "testkey")))
-          .isInstanceOf(ConnectorInputException.class)
-          .hasMessageContaining("=missingKey")
-          .hasMessageContaining("resolved to null");
+      // when
+      var result =
+          handler.correlate(
+              List.of(element), Collections.singletonMap("correlationKey", "testkey"));
+
+      // then the failure is returned as a value (not thrown), so the caller's normal result
+      // path logs it instead of silently dropping it via an exception handler
+      assertThat(result).isInstanceOf(Failure.InvalidInput.class);
+      var message = ((Failure.InvalidInput) result).message();
+      assertThat(message).contains("=missingKey").contains("resolved to null");
     }
   }
 
