@@ -82,7 +82,8 @@ public class CustomApacheHttpClient implements HttpClient {
     } catch (IOException e) {
       throw new ConnectorException(
           String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT),
-          "An error occurred while executing the request, or the connection was aborted",
+          "An error occurred while executing the request, or the connection was aborted: "
+              + rootMessage(e),
           e);
     }
   }
@@ -135,7 +136,8 @@ public class CustomApacheHttpClient implements HttpClient {
       closeQuietly(client);
       throw new ConnectorException(
           String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT),
-          "An error occurred while executing the request, or the connection was aborted",
+          "An error occurred while executing the request, or the connection was aborted: "
+              + rootMessage(e),
           e);
     } catch (RuntimeException e) {
       closeQuietly(client);
