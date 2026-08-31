@@ -56,7 +56,7 @@ class ConfigurableSecretFilterFactoryTest {
   }
 
   @Test
-  void create_lax_withSecretKeys_restrictesFilterToList() {
+  void create_lax_withSecretKeys_restrictsFilterToList() {
     when(secretKeyCache.getSecretKeys(SECRET_KEY_CONTEXT)).thenReturn(List.of("API_KEY", "TOKEN"));
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.LAX, secretKeyCache);
 
@@ -78,7 +78,7 @@ class ConfigurableSecretFilterFactoryTest {
   }
 
   @Test
-  void create_strict_withSecretKeys_restrictesFilterToList() {
+  void create_strict_withSecretKeys_restrictsFilterToList() {
     when(secretKeyCache.getSecretKeys(SECRET_KEY_CONTEXT)).thenReturn(List.of("API_KEY"));
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
 
