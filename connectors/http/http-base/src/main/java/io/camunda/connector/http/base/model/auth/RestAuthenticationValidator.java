@@ -20,9 +20,12 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Validates a {@link RestAuthenticationConfiguration} out-of-band; shared by REST, GraphQL and HTTP
- * polling. The OAuth variants carry their own token endpoint, so a token is really requested;
- * basic, bearer and API key carry a secret with nothing to present it to, so they return {@link
- * ConfigurationValidationResult#unsupported() unsupported} rather than an unverified success.
+ * polling. Only the OAuth client-credentials variant is really checked: it carries its own token
+ * endpoint, so a token is actually requested. Everything else returns {@link
+ * ConfigurationValidationResult#unsupported() unsupported} rather than an unverified success —
+ * basic, bearer and API key carry a secret with nothing to present it to, and the refresh-token
+ * grant is not read-only, since a provider that rotates refresh tokens would invalidate the very
+ * token being checked.
  *
  * <p>Returned messages are static and value-free; the full exception is logged at {@code DEBUG}.
  */
