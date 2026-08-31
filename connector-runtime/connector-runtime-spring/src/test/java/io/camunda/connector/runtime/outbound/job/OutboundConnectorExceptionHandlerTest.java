@@ -126,7 +126,7 @@ class OutboundConnectorExceptionHandlerTest {
     var job = jobWithSecretReference();
     var connectorException =
         new ConnectorExceptionBuilder()
-            .errorCode("SOME_CODE")
+            .errorCode(FooBarSecretProvider.SECRET_VALUE)
             .message("original response body: " + FooBarSecretProvider.SECRET_VALUE)
             .errorVariables(Map.of("responseBody", FooBarSecretProvider.SECRET_VALUE))
             .build();
@@ -137,11 +137,11 @@ class OutboundConnectorExceptionHandlerTest {
     var errorPayload =
         (Map<String, Object>) ((Map<String, Object>) result.responseValue()).get("error");
     assertThat(errorPayload).doesNotContainKey("variables");
+    assertThat(errorPayload).doesNotContainKey("code");
     assertThat(errorPayload.get("message").toString())
         .doesNotContain(FooBarSecretProvider.SECRET_VALUE);
     assertThat(result.exception().getMessage()).doesNotContain(FooBarSecretProvider.SECRET_VALUE);
     assertThat(errorPayload.get("type")).isEqualTo(connectorException.getClass().getName());
-    assertThat(errorPayload.get("code")).isEqualTo("SOME_CODE");
   }
 
   @Test
