@@ -38,4 +38,20 @@ class TestJobContextTest {
 
     assertThat(jobContext.getLeaseToken()).isEqualTo("lease-token-1");
   }
+
+  @Test
+  void getPhysicalTenantId_returnsNullByDefault() {
+    var jobContext = new TestJobContext(Map::of, () -> "{}");
+
+    assertThat(jobContext.getPhysicalTenantId()).isNull();
+  }
+
+  @Test
+  void getPhysicalTenantId_returnsValueSetBySetter() {
+    var jobContext = new TestJobContext(Map::of, () -> "{}");
+
+    jobContext.setPhysicalTenantId("engine-1");
+
+    assertThat(jobContext.getPhysicalTenantId()).isEqualTo("engine-1");
+  }
 }

@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime.outbound.secret;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.api.inbound.ElementTemplateDetails;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -150,7 +149,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     for (FlowElement element : allElements) {
       OUTBOUND_ELIGIBLE_TYPES.forEach(
           iet -> {
-            if (iet.isInstance(element) && isElementTemplate(element)) {
+            if (iet.isInstance(element)) {
               outboundEligibleElements.add(element);
             }
           });
@@ -180,24 +179,5 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     Collection<FlowElement> buffer = new HashSet<>();
     Collection<FlowElement> processFlowElements = subprocess.getFlowElements();
     return collectFlowElements(processFlowElements, buffer);
-  }
-
-  private boolean isElementTemplate(FlowElement element) {
-    ElementTemplateDetails elementTemplateDetails = getElementTemplateDetails(element);
-    return elementTemplateDetails.id() != null;
-  }
-
-  // pre-existing, move to util from ProcessDefinitionInspector
-  private static ElementTemplateDetails getElementTemplateDetails(BaseElement element) {
-    final String NAMESPACE = "http://camunda.org/schema/zeebe/1.0";
-
-    final String TEMPLATE_ID = "modelerTemplate";
-    final String TEMPLATE_VERSION = "modelerTemplateVersion";
-    final String TEMPLATE_ICON = "modelerTemplateIcon";
-
-    return new ElementTemplateDetails(
-        element.getAttributeValueNs(NAMESPACE, TEMPLATE_ID),
-        element.getAttributeValueNs(NAMESPACE, TEMPLATE_VERSION),
-        element.getAttributeValueNs(NAMESPACE, TEMPLATE_ICON));
   }
 }

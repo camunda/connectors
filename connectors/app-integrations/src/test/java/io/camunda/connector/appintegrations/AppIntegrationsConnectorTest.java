@@ -76,7 +76,8 @@ class AppIntegrationsConnectorTest {
           "APP_INTEGRATIONS_OAUTH_TOKEN_ENDPOINT", TOKEN_ENDPOINT,
           "APP_INTEGRATIONS_OAUTH_CLIENT_ID", "client-id",
           "APP_INTEGRATIONS_OAUTH_CLIENT_SECRET", "client-secret",
-          "APP_INTEGRATIONS_OAUTH_AUDIENCE", "app-integrations");
+          "APP_INTEGRATIONS_OAUTH_AUDIENCE", "app-integrations",
+          "APP_INTEGRATIONS_CLUSTER_ID", "cluster-789");
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -795,7 +796,8 @@ class AppIntegrationsConnectorTest {
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
 
-    var result = connector.createChannel(teamsChannel("b7779302-e8cb-4b34-901b-5b150a19fd47"));
+    var result =
+        connector.createChannel(teamsChannel("b7779302-e8cb-4b34-901b-5b150a19fd47"), context);
 
     assertThat(result).isInstanceOf(CreateChannelResult.class);
     assertThat(result.channelId()).isEqualTo("19:new-channel@thread.tacv2");
@@ -818,7 +820,8 @@ class AppIntegrationsConnectorTest {
 
     connector.createChannel(
         teamsChannel(
-            "https://teams.cloud.microsoft/l/team/19%3Axxx?groupId=b7779302-e8cb-4b34-901b-5b150a19fd47&tenantId=abc"));
+            "https://teams.cloud.microsoft/l/team/19%3Axxx?groupId=b7779302-e8cb-4b34-901b-5b150a19fd47&tenantId=abc"),
+        context);
 
     assertThat(captureBody()).contains("\"teamId\":\"b7779302-e8cb-4b34-901b-5b150a19fd47\"");
   }
@@ -831,7 +834,8 @@ class AppIntegrationsConnectorTest {
 
     connector.createChannel(
         new CreateChannelRequest(
-            new ChannelPlatform.TeamsChannelPlatform("My Channel", "group-1", null), null));
+            new ChannelPlatform.TeamsChannelPlatform("My Channel", "group-1", null), null),
+        context);
 
     assertThat(captureBody()).contains("\"membershipType\":\"standard\"");
   }
@@ -846,7 +850,8 @@ class AppIntegrationsConnectorTest {
         connector.createChannel(
             new CreateChannelRequest(
                 new ChannelPlatform.SlackChannelPlatform("releases", "T0123", true),
-                "Automated releases"));
+                "Automated releases"),
+            context);
 
     assertThat(result.channelId()).isEqualTo("C0999");
     var body = captureBody();
@@ -903,7 +908,7 @@ class AppIntegrationsConnectorTest {
         .execute(any(HttpClientRequest.class), any());
 
     var request = teamsChannel("group-1");
-    assertThatThrownBy(() -> connector.createChannel(request))
+    assertThatThrownBy(() -> connector.createChannel(request, context))
         .isInstanceOfSatisfying(
             ConnectorException.class, e -> assertThat(e.getErrorCode()).isEqualTo("500"));
   }
@@ -985,7 +990,7 @@ class AppIntegrationsConnectorTest {
     void createChannel_isGatedTheSameWay() {
       var noEnv = connectorWith(Map.of());
       assertNotConfigured(
-          () -> noEnv.createChannel(teamsChannel("group-1")), "APP_INTEGRATIONS_BASE_URL");
+          () -> noEnv.createChannel(teamsChannel("group-1"), context), "APP_INTEGRATIONS_BASE_URL");
     }
   }
 }

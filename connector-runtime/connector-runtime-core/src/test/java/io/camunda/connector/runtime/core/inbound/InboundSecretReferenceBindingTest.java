@@ -168,6 +168,43 @@ class InboundSecretReferenceBindingTest {
   }
 
   @Test
+  void resolvesALegacyReferenceTheModelItselfDeclares() {
+    // The positive half of the pair below: legacy replacement is on, the provider holds the name,
+    // and a reference in the element's own property text resolves. Without this, the two tests that
+    // follow would pass just as well if legacy replacement had stopped working altogether.
+    var bound = bind(Map.of("hmacSecret", "secrets.TOKEN"), Map.of("TOKEN", "local-value"));
+
+    assertThat(bound.hmacSecret()).isEqualTo("local-value");
+  }
+
+  @Test
+  void leavesLegacyReferenceTextThatArrivedAsData() {
+    // Same provider, same fixture, name reaching this context as data instead — a correlated
+    // payload, a plain JSON cluster variable. Legacy replacement runs over raw model text before
+    // evaluation, so this name is never one replacement gets to see. That is what makes the inbound
+    // path's allow-all filter safe: there is no injected name for a filter to reject, whereas
+    // outbound, where model text and runtime values do meet, the filter is what establishes it.
+    evaluationOf("=camunda.vars.cluster.plainNote").returns("secrets.TOKEN").referencingNothing();
+
+    var bound =
+        bind(Map.of("token", "=camunda.vars.cluster.plainNote"), Map.of("TOKEN", "local-value"));
+
+    assertThat(bound.token()).isEqualTo("secrets.TOKEN");
+  }
+
+  @Test
+  void leavesLegacyReferenceTextThatArrivedAsDataAndIsWrittenAsAnExpression() {
+    // The same text in the shape that would be laundered onto the model side if a result were ever
+    // treated as expression source again.
+    evaluationOf("=camunda.vars.cluster.plainNote").returns("=secrets.TOKEN").referencingNothing();
+
+    var bound =
+        bind(Map.of("token", "=camunda.vars.cluster.plainNote"), Map.of("TOKEN", "local-value"));
+
+    assertThat(bound.token()).isEqualTo("=secrets.TOKEN");
+  }
+
+  @Test
   void resolvesAReferenceInAMapProperty() {
     secretStore.put("camunda.secrets.TOKEN", "tok-1");
     evaluationOf("=camunda.secrets.TOKEN").returns("camunda.secrets.TOKEN").referencing("TOKEN");
