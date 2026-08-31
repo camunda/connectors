@@ -82,6 +82,16 @@ public class PublishMessageCommandDummy
   }
 
   @Override
+  public PublishMessageCommandStep3 addVariable(String key, Object value) {
+    return this;
+  }
+
+  @Override
+  public PublishMessageCommandStep3 addVariables(Map<String, Object> variables) {
+    return this;
+  }
+
+  @Override
   public PublishMessageCommandStep3 tenantId(String tenantId) {
     return this;
   }
