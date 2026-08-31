@@ -53,7 +53,7 @@ class OutboundConnectorExceptionHandlerTest {
     var result =
         handler.handleFinalResultException(new RuntimeException("boom"), job, throwingFilter);
 
-    assertThat(result.retries()).isEqualTo(0);
+    assertThat(result.retries()).isEqualTo(2);
     assertThat(result.exception().getMessage()).contains("Fetching secrets failed");
   }
 
@@ -73,7 +73,7 @@ class OutboundConnectorExceptionHandlerTest {
         handlerWithThrowingProvider.handleFinalResultException(
             new RuntimeException("boom"), job, SecretFilter.allowAll());
 
-    assertThat(result.retries()).isEqualTo(0);
+    assertThat(result.retries()).isEqualTo(2);
     assertThat(result.exception().getMessage()).contains("Fetching secrets failed");
   }
 
