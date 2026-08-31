@@ -12,7 +12,7 @@
 
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-parent</artifactId>
-  <version>8.10.0-SNAPSHOT</version>
+  <version>8.11.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Connectors Parent</name>
@@ -70,7 +70,7 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.10.0-SNAPSHOT</version.camunda>
+    <version.camunda>8.11.0-SNAPSHOT</version.camunda>
     <version.feel-engine>1.22.0</version.feel-engine>
     <version.camunda-xml-model>7.24.0</version.camunda-xml-model>
 
@@ -100,11 +100,11 @@ limitations under the License.</license.inlineheader>
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.35.0</version.amqp-client>
     <version.netty>4.2.17.Final</version.netty>
-    <version.spring-cloud-gcp-starter-logging>8.1.0</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>8.1.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.54.3</version.aws-sdk2>
+    <version.aws-sdk2>2.54.7</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -117,12 +117,16 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-9563: parsson transitive override — remove once opensearch-java ships parsson >= 1.1.8
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-9563 -->
     <version.parsson>1.1.9</version.parsson>
+    <!-- GHSA-xjjv-qfjr-95c3: dd-plist transitive override — remove once langchain4j-document-parser-apache-tika
+         ships a Tika version whose tika-parser-apple-module pulls dd-plist >= 1.30.
+         Ref: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3 -->
+    <version.ddplist>1.30</version.ddplist>
 
     <version.google-api-client>2.9.0</version.google-api-client>
 
     <version.google-http-client>2.2.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20260720-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260823-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.49.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20260427-2.0.0</version.google-api-services-docs>
@@ -130,7 +134,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260610-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.67.0</version.google-genai>
+    <version.google-genai>1.68.0</version.google-genai>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 
@@ -138,7 +142,7 @@ limitations under the License.</license.inlineheader>
     <version.httpcore5>5.4.3</version.httpcore5>
     <version.httpclient5>5.6.4</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
-    <version.ayza>10.0.6</version.ayza>
+    <version.ayza>10.0.7</version.ayza>
     <version.pdfbox>3.0.8</version.pdfbox>
     <version.collections4>4.6.0</version.collections4>
 
@@ -154,8 +158,8 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-kiota-abstraction>1.9.3</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.5</version.azure-identity>
-    <version.azure-core>1.59.0</version.azure-core>
-    <version.azure-cosmos>4.81.0</version.azure-cosmos>
+    <version.azure-core>1.59.1</version.azure-core>
+    <version.azure-cosmos>4.82.0</version.azure-cosmos>
 
     <!-- Independent properties: bcpkix-jdk18on and bcprov-jdk18on don't always ship
          new patch releases in lockstep (e.g. 1.85.2 exists only for bcprov-jdk18on),
@@ -163,7 +167,7 @@ limitations under the License.</license.inlineheader>
          version the other doesn't have, breaking dependency resolution. -->
     <version.bouncycastle-pkix>1.85</version.bouncycastle-pkix>
     <version.bouncycastle-prov>1.85.2</version.bouncycastle-prov>
-    <version.box-sdk>5.15.0</version.box-sdk>
+    <version.box-sdk>5.15.1</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
@@ -171,7 +175,7 @@ limitations under the License.</license.inlineheader>
     <version.wss4j>4.0.1</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
 
-    <version.slack>1.50.0</version.slack>
+    <version.slack>1.51.0</version.slack>
 
     <version.testcontainers>2.0.5</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
@@ -194,7 +198,7 @@ limitations under the License.</license.inlineheader>
     <version.elasticsearch-java>8.19.21</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.20</version.elasticsearch-rest-client>
 
-    <version.scala>3.8.4</version.scala>
+    <version.scala>3.9.0</version.scala>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
@@ -205,7 +209,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>3.10.0</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>3.10.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
     <plugin.version.maven-compiler-plugin>3.15.0</plugin.version.maven-compiler-plugin>
 
@@ -213,7 +217,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Null safety tooling -->
     <version.error-prone>2.50.0</version.error-prone>
-    <version.nullaway>0.14.0</version.nullaway>
+    <version.nullaway>0.14.1</version.nullaway>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
   </properties>
 
@@ -251,6 +255,15 @@ limitations under the License.</license.inlineheader>
         <groupId>org.eclipse.parsson</groupId>
         <artifactId>parsson</artifactId>
         <version>${version.parsson}</version>
+      </dependency>
+
+      <!-- GHSA-xjjv-qfjr-95c3: override dd-plist transitive version brought in via
+           langchain4j-document-parser-apache-tika -> tika-parser-apple-module. Remove once that
+           chain ships dd-plist >= 1.30. -->
+      <dependency>
+        <groupId>com.googlecode.plist</groupId>
+        <artifactId>dd-plist</artifactId>
+        <version>${version.ddplist}</version>
       </dependency>
 
       <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
@@ -1083,6 +1096,18 @@ limitations under the License.</license.inlineheader>
               <requirePluginVersions>
                 <banSnapshots>false</banSnapshots>
               </requirePluginVersions>
+              <!-- GHSA-xjjv-qfjr-95c3 guard: fails if langchain4j is bumped, as a reminder to
+                   check whether the dd-plist override can be removed (see version.ddplist). -->
+              <requireProperty>
+                <property>version.langchain4j</property>
+                <regex>^1\.19\.0$</regex>
+                <regexMessage>
+version.langchain4j was changed! Check if the dd-plist GHSA-xjjv-qfjr-95c3 override can be removed.
+If the new langchain4j-document-parser-apache-tika version ships a Tika whose tika-parser-apple-module
+pulls dd-plist &gt;= 1.30, remove the version.ddplist property and the dd-plist dependencyManagement entry.
+See: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3
+                </regexMessage>
+              </requireProperty>
               <!-- CVE-2026-9563 guard: fails if opensearch-java is bumped, as a reminder to
                    check whether the parsson override can be removed (see version.parsson). -->
               <requireProperty>
