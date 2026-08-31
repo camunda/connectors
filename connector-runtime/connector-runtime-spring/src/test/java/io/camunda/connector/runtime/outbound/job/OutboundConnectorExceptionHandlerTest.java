@@ -21,10 +21,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.response.ActivatedJob;
+import io.camunda.connector.api.error.ConnectorExceptionBuilder;
+import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import java.time.Duration;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class OutboundConnectorExceptionHandlerTest {
@@ -113,5 +117,59 @@ class OutboundConnectorExceptionHandlerTest {
 
     assertThat(result.retries()).isEqualTo(2);
     assertThat(result.exception().getMessage()).doesNotContain("boom");
+  }
+
+  @Test
+  void
+      manageConnectorJobHandlerException_threeArgOverload_neverExposesTheOriginalExceptionsVariables() {
+    var job = jobWithSecretReference();
+    var connectorException =
+        new ConnectorExceptionBuilder()
+            .message("original response body: " + FooBarSecretProvider.SECRET_VALUE)
+            .errorVariables(Map.of("responseBody", FooBarSecretProvider.SECRET_VALUE))
+            .build();
+
+    var result = handler.manageConnectorJobHandlerException(connectorException, job, null);
+
+    @SuppressWarnings("unchecked")
+    var errorPayload =
+        (Map<String, Object>) ((Map<String, Object>) result.responseValue()).get("error");
+    assertThat(errorPayload).doesNotContainKey("variables");
+    assertThat(errorPayload.get("message").toString())
+        .doesNotContain(FooBarSecretProvider.SECRET_VALUE);
+    assertThat(result.exception().getMessage()).doesNotContain(FooBarSecretProvider.SECRET_VALUE);
+  }
+
+  @Test
+  void
+      manageConnectorJobHandlerException_threeArgOverload_honorsConnectorRetryExceptionConfiguration()
+          throws Exception {
+    var job = jobWithSecretReference();
+    var retryException =
+        new ConnectorRetryExceptionBuilder()
+            .message("boom")
+            .retries(7)
+            .backoffDuration(Duration.ofMinutes(5))
+            .build();
+
+    var result =
+        handler.manageConnectorJobHandlerException(retryException, job, Duration.ofSeconds(1));
+
+    assertThat(result.retries()).isEqualTo(7);
+    assertThat(result.retryBackoff()).isEqualTo(Duration.ofMinutes(5));
+  }
+
+  @Test
+  void
+      manageConnectorJobHandlerException_threeArgOverload_zeroesRetriesForConnectorInputException() {
+    var job = jobWithSecretReference();
+
+    var result =
+        handler.manageConnectorJobHandlerException(
+            new ConnectorInputException("bad input", new RuntimeException()),
+            job,
+            Duration.ofSeconds(1));
+
+    assertThat(result.retries()).isEqualTo(0);
   }
 }

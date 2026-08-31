@@ -43,6 +43,14 @@ public class OutboundConnectorExceptionHandler {
     this.secretProvider = secretProvider;
   }
 
+  /**
+   * Stands in for the real exception in the legacy no-filter overloads below, so that {@link
+   * #exceptionToMap} never reaches into the real exception's message or, if it is a {@link
+   * ConnectorException}, its error variables -- either can carry a resolved secret, and neither
+   * overload has a filter to redact it with.
+   */
+  private static final class SecretFilterUnavailableException extends RuntimeException {}
+
   private static Map<String, Object> exceptionToMap(Exception wrappedException) {
     Map<String, Object> result = new HashMap<>();
     Throwable originalCause = wrappedException.getCause();
@@ -72,7 +80,9 @@ public class OutboundConnectorExceptionHandler {
    * overload has no filter to redact secrets with, so it withholds the original message outright
    * rather than falling back to an unfiltered {@link SecretFilter#allowAll()} — the whole point of
    * the secret filter is to restrict what gets resolved, and defaulting to allow-all here would let
-   * a legacy caller bypass that restriction.
+   * a legacy caller bypass that restriction. It still classifies {@code e} by type to preserve the
+   * pre-existing retry/backoff semantics per exception type, but never attaches {@code e} itself
+   * (or its message) to the returned result.
    */
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e, ActivatedJob job, Duration retryBackoffDuration) {
@@ -85,9 +95,28 @@ public class OutboundConnectorExceptionHandler {
         new RuntimeException(
             "Original error can't be displayed: this legacy entry point has no secret filter to"
                 + " redact it with, and its message might contain secrets.",
-            e);
-    return new ConnectorResult.ErrorResult(
-        Map.of("error", exceptionToMap(wrappedException)), wrappedException, job.getRetries() - 1);
+            new SecretFilterUnavailableException());
+    var errorPayload = Map.of("error", exceptionToMap(wrappedException));
+    return switch (e) {
+      case InvalidBackOffDurationException ignored ->
+          new ConnectorResult.ErrorResult(errorPayload, wrappedException, 0);
+      case ConnectorRetryException connectorRetryException ->
+          new ConnectorResult.ErrorResult(
+              errorPayload,
+              wrappedException,
+              Optional.ofNullable(connectorRetryException.getRetries())
+                  .orElse(job.getRetries() - 1),
+              Optional.ofNullable(connectorRetryException.getBackoffDuration())
+                  .orElse(retryBackoffDuration));
+      case Exception exception -> {
+        int retries = job.getRetries() - 1;
+        if (exception instanceof ConnectorInputException
+            || exception.getCause() instanceof ConnectorInputException) {
+          retries = 0;
+        }
+        yield new ConnectorResult.ErrorResult(errorPayload, wrappedException, retries);
+      }
+    };
   }
 
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
@@ -209,7 +238,7 @@ public class OutboundConnectorExceptionHandler {
         new RuntimeException(
             "Original error can't be displayed: this legacy entry point has no secret filter to"
                 + " redact it with, and its message might contain secrets.",
-            ex);
+            new SecretFilterUnavailableException());
     return new ConnectorResult.ErrorResult(
         Map.of("error", exceptionToMap(wrappedException)), wrappedException, 0);
   }
