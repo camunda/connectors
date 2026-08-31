@@ -144,7 +144,7 @@
       "enabled": false
     },
     {
-      "description": "Disable major version updates for Apache Tika — 4.0.0 has no GA release yet (only 4.0.0-alpha-1 is published on Maven Central for tika-core/tika-parsers-standard-package as of 2026-08), so the build can't resolve it. Re-enable once a real 4.x GA ships.",
+      "description": "Disable major version updates for Apache Tika — 4.0.0 (GA, released 2026-08-21) restructured tika-parsers-standard-package from a shaded jar into a POM-only aggregator, so a plain jar dependency on it no longer resolves. connector-aws-bedrock and connector-embeddings-vector-database need to switch to depending on tika-core plus the specific tika-parser-*-module artifacts they need (or otherwise adapt to the new packaging) before this can be bumped — a real migration, not a drop-in version bump. Re-enable once that migration lands.",
       "matchUpdateTypes": ["major"],
       "matchPackageNames": ["org.apache.tika:tika-core", "org.apache.tika:tika-parsers-standard-package"],
       "enabled": false
