@@ -144,7 +144,7 @@
       "enabled": false
     },
     {
-      "description": "Disable major version updates for Apache Tika — 4.0.0 (GA, released 2026-08-21) restructured tika-parsers-standard-package from a shaded jar into a POM-only aggregator, so a plain jar dependency on it no longer resolves. connector-aws-bedrock and connector-embeddings-vector-database need to switch to depending on tika-core plus the specific tika-parser-*-module artifacts they need (or otherwise adapt to the new packaging) before this can be bumped — a real migration, not a drop-in version bump. Re-enable once that migration lands.",
+      "description": "Disable major version updates for Apache Tika — 4.0.0 (GA, released 2026-08-21) is a hard blocker for both connectors right now, not a mirror/staleness issue. (1) tika-parsers-standard-package was restructured from a shaded jar into a POM-only aggregator, so a plain jar dependency on it no longer resolves. (2) Tika 4's Parser interface dropped parse(InputStream,...) in favor of parse(TikaInputStream,...); langchain4j-document-parser-apache-tika 1.19.0 (used by connector-embeddings-vector-database) still calls the old signature and would fail with NoSuchMethodError at runtime even if (1) were fixed — confirmed via bytecode inspection of both jars. Needs LangChain4j to ship Tika 4 support, plus a dependency-shape migration on our side. Tracked in camunda/connectors#8502. Re-enable once that lands.",
       "matchUpdateTypes": ["major"],
       "matchPackageNames": ["org.apache.tika:tika-core", "org.apache.tika:tika-parsers-standard-package"],
       "enabled": false
