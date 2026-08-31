@@ -125,6 +125,20 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_messageIntermediateThrowEventAndEndEvent_returnsEachElementsOwnSecrets()
+      throws IOException {
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-message-events.bpmn"));
+
+    var throwEventKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "send-message-throw"));
+    var endEventKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "send-message-end"));
+
+    assertThat(throwEventKeys).containsExactly("THROW_EVENT_SECRET");
+    assertThat(endEventKeys).containsExactly("END_EVENT_SECRET");
+  }
+
+  @Test
   void getSecretKeys_unknownElementId_returnsEmptyList() throws IOException {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-secrets.bpmn"));
 
