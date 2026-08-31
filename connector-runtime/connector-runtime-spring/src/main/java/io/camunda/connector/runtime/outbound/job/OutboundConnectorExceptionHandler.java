@@ -67,6 +67,16 @@ public class OutboundConnectorExceptionHandler {
     return Map.copyOf(result);
   }
 
+  /**
+   * Preserves the pre-existing three-argument overload for callers compiled against it, defaulting
+   * to an unfiltered {@link SecretFilter#allowAll()}.
+   */
+  public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
+      Exception e, ActivatedJob job, Duration retryBackoffDuration) {
+    return manageConnectorJobHandlerException(
+        e, job, retryBackoffDuration, SecretFilter.allowAll());
+  }
+
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
     List<String> secrets;
@@ -170,15 +180,50 @@ public class OutboundConnectorExceptionHandler {
     return handleSDKException(job, newException, retries, errorCode, retryBackoff);
   }
 
+  /**
+   * Preserves the pre-existing two-argument overload for callers compiled against it, defaulting to
+   * an unfiltered {@link SecretFilter#allowAll()}.
+   */
+  public ConnectorResult.ErrorResult handleFinalResultException(Exception ex, ActivatedJob job) {
+    return handleFinalResultException(ex, job, SecretFilter.allowAll());
+  }
+
+  /**
+   * Reports a failure raised while processing a connector's final result (its result or error
+   * expression).
+   *
+   * <p>This must not throw: its only caller is already inside a catch block handling the failure it
+   * is being told about, and an exception escaping here would leave the job neither completed nor
+   * failed until its activation times out. So a secret lookup failure here (e.g. a STRICT filter
+   * whose process-definition lookup fails) is caught and reported the same way an initial
+   * secret-fetch failure already is in {@link #manageConnectorJobHandlerException}, rather than
+   * being allowed to propagate.
+   */
   public ConnectorResult.ErrorResult handleFinalResultException(
       Exception ex, ActivatedJob job, SecretFilter secretFilter) {
-    var allowedKeys =
-        SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
-            .filter(secretFilter::isAllowed)
-            .toList();
-    List<String> secrets =
-        this.secretProvider.fetchAll(
-            allowedKeys, new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
+    List<String> secrets;
+    try {
+      var allowedKeys =
+          SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
+              .filter(secretFilter::isAllowed)
+              .toList();
+      secrets =
+          this.secretProvider.fetchAll(
+              allowedKeys, new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
+    } catch (Exception fetchException) {
+      LOGGER.error(
+          "Exception while processing job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",
+          job.getKey(),
+          job.getTenantId(),
+          fetchException.getMessage());
+      var wrappedException =
+          new RuntimeException(
+              "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: "
+                  + fetchException.getMessage(),
+              fetchException);
+      return new ConnectorResult.ErrorResult(
+          Map.of("error", exceptionToMap(wrappedException)), wrappedException, 0);
+    }
     Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.error(
         "Exception while processing job: {} for tenant: {}, message: {}",
