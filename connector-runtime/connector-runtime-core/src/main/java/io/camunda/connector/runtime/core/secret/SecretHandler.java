@@ -31,6 +31,14 @@ public class SecretHandler {
 
   protected Function<String, String> secretReplacer;
 
+  /**
+   * Preserves the pre-existing one-argument constructor for external callers compiled against it,
+   * defaulting to an unfiltered {@link SecretFilter#allowAll()}.
+   */
+  public SecretHandler(final SecretProvider secretProvider) {
+    this(secretProvider, SecretFilter.allowAll());
+  }
+
   public SecretHandler(final SecretProvider secretProvider, SecretFilter secretFilter) {
     this.secretProvider = secretProvider;
     secretReplacer =
