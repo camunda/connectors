@@ -137,6 +137,26 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_nestedEmbeddedSubProcessesAndGrandchild_returnsEachElementsOwnSecrets()
+      throws Exception {
+    // A subprocess (embedded, event, multi-instance, or nested) can itself be a connector host,
+    // at any nesting depth -- not just its children.
+    when(camundaOperateClient.getProcessDefinitionModel(PROCESS_DEF_KEY))
+        .thenReturn(loadBpmn("outbound-nested-embedded-subprocess.bpmn"));
+
+    var outerKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "outer-subprocess"));
+    var innerKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "inner-subprocess"));
+    var grandchildKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "grandchild-task"));
+
+    assertThat(outerKeys).containsExactly("OUTER_SECRET");
+    assertThat(innerKeys).containsExactly("INNER_SECRET");
+    assertThat(grandchildKeys).containsExactly("GRANDCHILD_SECRET");
+  }
+
+  @Test
   void getSecretKeys_noCamundaOperateClient_throwsIllegalStateException() {
     var cacheWithoutClient = new ProcessDefinitionSecretKeyCache(null, cache);
 
