@@ -55,6 +55,7 @@ import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocu
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
@@ -176,7 +177,7 @@ class OpenAiResponsesRequestConverterTest {
     assertThat(functionCall.arguments(Map.class)).containsEntry("city", "Berlin");
 
     final var functionCallOutput = items.get(1).functionCallOutput().orElseThrow();
-    assertThat(functionCallOutput.callId()).isEqualTo("call_1");
+    assertThat(functionCallOutput.callId()).isEqualTo(Optional.of("call_1"));
     // Always the item-list shape, never a flattened string - see
     // OpenAiResponsesRequestConverter#toolResultInputItems.
     final var outputItems = functionCallOutput.output().asResponseFunctionCallOutputItemList();
