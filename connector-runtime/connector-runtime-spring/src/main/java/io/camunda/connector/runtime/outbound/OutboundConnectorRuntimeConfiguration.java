@@ -85,7 +85,7 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public SecretKeyCache secretKeyCache(
-      CamundaOperateClient camundaOperateClient,
+      @Autowired(required = false) CamundaOperateClient camundaOperateClient,
       @Qualifier("secretKeyCacheManager") CacheManager cacheManager) {
     return new ProcessDefinitionSecretKeyCache(
         camundaOperateClient, cacheManager.getCache(SecretKeyCache.SECRET_KEY_CACHE_NAME));
