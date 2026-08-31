@@ -113,6 +113,25 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_nestedEmbeddedSubProcessesAndGrandchild_returnsEachElementsOwnSecrets()
+      throws IOException {
+    // Verifies the fix generalizes beyond AdHocSubProcess: a plain (embedded) SubProcess can
+    // itself be a connector host, at any nesting depth, same as the ad-hoc flavor.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-nested-embedded-subprocess.bpmn"));
+
+    var outerKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "outer-subprocess"));
+    var innerKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "inner-subprocess"));
+    var grandchildKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "grandchild-task"));
+
+    assertThat(outerKeys).containsExactly("OUTER_SECRET");
+    assertThat(innerKeys).containsExactly("INNER_SECRET");
+    assertThat(grandchildKeys).containsExactly("GRANDCHILD_SECRET");
+  }
+
+  @Test
   void getSecretKeys_messageIntermediateThrowEventAndEndEvent_returnsEachElementsOwnSecrets()
       throws IOException {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-message-events.bpmn"));
