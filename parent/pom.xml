@@ -100,11 +100,11 @@ limitations under the License.</license.inlineheader>
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.35.0</version.amqp-client>
     <version.netty>4.2.17.Final</version.netty>
-    <version.spring-cloud-gcp-starter-logging>8.1.0</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>8.1.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.54.5</version.aws-sdk2>
+    <version.aws-sdk2>2.54.7</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -154,7 +154,7 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-kiota-abstraction>1.9.3</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.5</version.azure-identity>
-    <version.azure-core>1.59.0</version.azure-core>
+    <version.azure-core>1.59.1</version.azure-core>
     <version.azure-cosmos>4.82.0</version.azure-cosmos>
 
     <!-- Independent properties: bcpkix-jdk18on and bcprov-jdk18on don't always ship
@@ -213,7 +213,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Null safety tooling -->
     <version.error-prone>2.50.0</version.error-prone>
-    <version.nullaway>0.14.0</version.nullaway>
+    <version.nullaway>0.14.1</version.nullaway>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
   </properties>
 
