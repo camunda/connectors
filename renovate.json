@@ -144,6 +144,12 @@
       "enabled": false
     },
     {
+      "description": "Disable major version updates for Apache Tika — 4.0.0 has no GA release yet (only 4.0.0-alpha-1 is published on Maven Central for tika-core/tika-parsers-standard-package as of 2026-08), so the build can't resolve it. Re-enable once a real 4.x GA ships.",
+      "matchUpdateTypes": ["major"],
+      "matchPackageNames": ["org.apache.tika:tika-core", "org.apache.tika:tika-parsers-standard-package"],
+      "enabled": false
+    },
+    {
       "description": "Disable major version updates for json-schema-validator — v3 is a complete API rewrite requiring a dedicated migration.",
       "matchUpdateTypes": [
         "major"
