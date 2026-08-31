@@ -50,6 +50,32 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
   private final MetricsRecorder metricsRecorder;
   private final OutboundConnectorConfiguration connectorConfiguration;
 
+  /**
+   * Preserves the pre-existing eight-argument constructor for programmatic callers compiled against
+   * it, defaulting to {@link SecretFilterFactory#disabled()}. Spring wiring uses the nine-argument
+   * constructor below with the configured factory.
+   */
+  public SpringConnectorJobHandler(
+      MetricsRecorder metricsRecorder,
+      CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
+      SecretProviderAggregator secretProviderAggregator,
+      ValidationProvider validationProvider,
+      DocumentFactory documentFactory,
+      ObjectMapper objectMapper,
+      OutboundConnectorFunction connectorFunction,
+      OutboundConnectorConfiguration connectorConfiguration) {
+    this(
+        metricsRecorder,
+        commandExceptionHandlingStrategy,
+        secretProviderAggregator,
+        validationProvider,
+        documentFactory,
+        objectMapper,
+        connectorFunction,
+        connectorConfiguration,
+        SecretFilterFactory.disabled());
+  }
+
   public SpringConnectorJobHandler(
       MetricsRecorder metricsRecorder,
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
