@@ -56,7 +56,10 @@ public class JdbcConnectionValidator
         ConnectionHelper.openConnection(database, configuration.toDetailedConnection())) {
       return ConfigurationValidationResult.success(); // Opening it is the whole check.
     } catch (Exception e) {
-      LOG.debug("JDBC connection credential validation failed for {}", database, e);
+      LOG.debug(
+          "JDBC connection credential validation failed for {} ({})",
+          database,
+          e.getClass().getName());
       return classifyFailure(e);
     }
   }
