@@ -222,7 +222,9 @@ public class OutboundConnectorExceptionHandler {
                   + fetchException.getMessage(),
               fetchException);
       return new ConnectorResult.ErrorResult(
-          Map.of("error", exceptionToMap(wrappedException)), wrappedException, 0);
+          Map.of("error", exceptionToMap(wrappedException)),
+          wrappedException,
+          job.getRetries() - 1);
     }
     Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.error(
