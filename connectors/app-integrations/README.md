@@ -142,6 +142,26 @@ plus a character restriction for Slack — and an element template cannot expres
 `maxLength`. Both bind to the same `platform.displayName` variable, so only the template property IDs
 differ.
 
+### Chat message templates
+
+Four further templates let a process take part in a Teams or Slack conversation. They are not
+connectors: the backend publishes the messages itself, so these are plain BPMN message events with
+nothing to configure on the runtime.
+
+| Template | Element | What it does |
+| --- | --- | --- |
+| App Integrations Chat Conversation Start Event | Message start event | Starts a process when someone writes to the Camunda app in Teams or Slack. |
+| App Integrations Chat Message Intermediate Event | Intermediate catch event | Waits for the next message in the conversation. |
+| App Integrations Chat Message Receive Task | Receive task | The same wait, as a task. |
+| App Integrations Chat Message Boundary Event | Boundary event | The same wait, attached to an activity. |
+
+The three waiting templates listen on the conversation named by their **Conversation** field, which
+defaults to the conversation the process is already holding. A process started from the chat start
+event therefore loops through a conversation with no configuration at all; to reply into a
+conversation a *Send Message* opened instead, point the field at that delivery's `conversationKey`.
+
+The incoming message lands in the `chatMessage` variable.
+
 ## API
 
 The connector flattens the switchable input onto the backend's flat wire contract and sends an explicit
@@ -198,7 +218,8 @@ Both operations return the backend's JSON response (e.g. the created channel for
 
 ```json
 { "deliveries": [ { "platform": "teams", "conversation": "19:abc@thread.tacv2;messageid=17123456789",
-                    "messageId": "17123456789" } ],
+                    "messageId": "17123456789",
+                    "conversationKey": "teams:19:abc@thread.tacv2;messageid=17123456789" } ],
   "failures": [ { "platform": "slack", "conversation": "C0123", "reason": "not_in_channel" } ] }
 ```
 
@@ -207,9 +228,16 @@ A single delivery is a one-element list, read as `deliveries[1].conversation` (F
 fan-out can check it. To reply to a delivery, pass `conversation` back as the Slack channel target
 with `messageId` as **Thread**, or as the Teams conversation target.
 
+`conversationKey` identifies the chat conversation the message landed in. It is an opaque value to be
+compared, never taken apart, and it is what the chat message templates below correlate on. A backend
+that predates it sends no such field.
+
 ## Regenerating the element template
 
 The element template is generated from the connector annotations by the
 `element-template-generator-maven-plugin` and committed to
 [element-templates/app-integrations-connector.json](element-templates/app-integrations-connector.json).
 The hybrid (Self-Managed) variant is in [element-templates/hybrid](element-templates/hybrid).
+
+The four chat message templates are hand-written and have no generator and no hybrid variant — they
+configure BPMN message events, not a connector runtime.
