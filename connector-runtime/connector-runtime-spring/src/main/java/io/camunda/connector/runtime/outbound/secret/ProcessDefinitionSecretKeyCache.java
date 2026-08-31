@@ -20,7 +20,6 @@ import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.BusinessRuleTask;
 import io.camunda.zeebe.model.bpmn.instance.EndEvent;
@@ -56,7 +55,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     OUTBOUND_ELIGIBLE_TYPES.add(SendTask.class);
     OUTBOUND_ELIGIBLE_TYPES.add(ScriptTask.class);
     OUTBOUND_ELIGIBLE_TYPES.add(BusinessRuleTask.class);
-    OUTBOUND_ELIGIBLE_TYPES.add(AdHocSubProcess.class);
+    OUTBOUND_ELIGIBLE_TYPES.add(SubProcess.class);
     OUTBOUND_ELIGIBLE_TYPES.add(IntermediateThrowEvent.class);
     OUTBOUND_ELIGIBLE_TYPES.add(EndEvent.class);
   }
@@ -167,17 +166,12 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private Collection<FlowElement> collectFlowElements(
       final Collection<FlowElement> processFlowElements, final Collection<FlowElement> buffer) {
     for (FlowElement element : processFlowElements) {
-      // an ad-hoc subprocess can itself be a connector element (its own zeebe:ioMapping declares
-      // secrets, e.g. the AI Agent Sub-process template), so it must be considered directly, in
-      // addition to expanding its children below
-      if (element instanceof AdHocSubProcess adHocSubProcess) {
-        buffer.add(adHocSubProcess);
-        buffer.addAll(retrieveEligibleElementsFromSubprocess(adHocSubProcess));
-        continue;
-      }
-      // if we detect a subprocess, we have to expand it
-      // its building blocks to identify where are connectors
+      // a subprocess (embedded, event, multi-instance, ad-hoc, or nested) can itself be a
+      // connector element (its own zeebe:ioMapping declares secrets, e.g. the AI Agent Sub-process
+      // template on an ad-hoc subprocess), so it must be considered directly, in addition to
+      // expanding its children below
       if (element instanceof SubProcess subprocess) {
+        buffer.add(subprocess);
         buffer.addAll(retrieveEligibleElementsFromSubprocess(subprocess));
         continue;
       }
