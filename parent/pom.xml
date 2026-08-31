@@ -88,22 +88,17 @@ limitations under the License.</license.inlineheader>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.22.1</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.22.1</version.jackson-datatype-jsr310>
-    <!-- Jackson 3.x line (tools.jackson:*), separate from the legacy com.fasterxml.jackson:jackson-bom
-         above. Spring Boot 4.x defaults this to its own jackson-bom.version property, which does not
-         track the same fix cadence as the legacy line, so it must be pinned independently. -->
-    <version.jackson3-bom>3.1.5</version.jackson3-bom>
     <version.hibernate-validator>9.1.3.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.json>20250517</version.json>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
-    <version.spring-boot>4.1.0</version.spring-boot>
+    <version.spring-boot>4.1.1</version.spring-boot>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.34.0</version.amqp-client>
-    <tomcat.version>11.0.24</tomcat.version>
     <version.netty>4.2.17.Final</version.netty>
     <!-- CVE-2026-59296: micrometer transitive override — remove once spring-boot-dependencies
          ships io.micrometer:micrometer-bom >= 1.17.1. Guarded by the version.spring-boot
@@ -126,6 +121,10 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-9563: parsson transitive override — remove once opensearch-java ships parsson >= 1.1.8
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-9563 -->
     <version.parsson>1.1.9</version.parsson>
+    <!-- GHSA-xjjv-qfjr-95c3: dd-plist transitive override — remove once langchain4j-document-parser-apache-tika
+         ships a Tika version whose tika-parser-apple-module pulls dd-plist >= 1.30.
+         Ref: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3 -->
+    <version.ddplist>1.30</version.ddplist>
 
     <version.google-api-client>2.9.0</version.google-api-client>
 
@@ -225,14 +224,6 @@ limitations under the License.</license.inlineheader>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      <!-- Jackson 3.x BOM -->
-      <dependency>
-        <groupId>tools.jackson</groupId>
-        <artifactId>jackson-bom</artifactId>
-        <version>${version.jackson3-bom}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.datatype</groupId>
         <artifactId>jackson-datatype-jsr310</artifactId>
@@ -245,6 +236,15 @@ limitations under the License.</license.inlineheader>
         <groupId>org.eclipse.parsson</groupId>
         <artifactId>parsson</artifactId>
         <version>${version.parsson}</version>
+      </dependency>
+
+      <!-- GHSA-xjjv-qfjr-95c3: override dd-plist transitive version brought in via
+           langchain4j-document-parser-apache-tika -> tika-parser-apple-module. Remove once that
+           chain ships dd-plist >= 1.30. -->
+      <dependency>
+        <groupId>com.googlecode.plist</groupId>
+        <artifactId>dd-plist</artifactId>
+        <version>${version.ddplist}</version>
       </dependency>
 
       <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
@@ -715,34 +715,6 @@ limitations under the License.</license.inlineheader>
         <version>${version.httpcore5}</version>
       </dependency>
 
-      <!-- CVE-2026-55955: tomcat.version alone does not override Spring Boot's
-           dependency-management import, since spring-boot-dependencies defines its own
-           internal tomcat.version property. These four artifacts ship in lockstep from the
-           same Tomcat release and must be pinned together to avoid a version skew. -->
-      <dependency>
-        <groupId>org.apache.tomcat.embed</groupId>
-        <artifactId>tomcat-embed-core</artifactId>
-        <version>${tomcat.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.tomcat.embed</groupId>
-        <artifactId>tomcat-embed-el</artifactId>
-        <version>${tomcat.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.tomcat.embed</groupId>
-        <artifactId>tomcat-embed-websocket</artifactId>
-        <version>${tomcat.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.tomcat</groupId>
-        <artifactId>tomcat-annotations-api</artifactId>
-        <version>${tomcat.version}</version>
-      </dependency>
-
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
@@ -1082,6 +1054,18 @@ limitations under the License.</license.inlineheader>
               <requirePluginVersions>
                 <banSnapshots>false</banSnapshots>
               </requirePluginVersions>
+              <!-- GHSA-xjjv-qfjr-95c3 guard: fails if langchain4j is bumped, as a reminder to
+                   check whether the dd-plist override can be removed (see version.ddplist). -->
+              <requireProperty>
+                <property>version.langchain4j</property>
+                <regex>^1\.18\.1$</regex>
+                <regexMessage>
+version.langchain4j was changed! Check if the dd-plist GHSA-xjjv-qfjr-95c3 override can be removed.
+If the new langchain4j-document-parser-apache-tika version ships a Tika whose tika-parser-apple-module
+pulls dd-plist &gt;= 1.30, remove the version.ddplist property and the dd-plist dependencyManagement entry.
+See: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3
+                </regexMessage>
+              </requireProperty>
               <!-- CVE-2026-9563 guard: fails if opensearch-java is bumped, as a reminder to
                    check whether the parsson override can be removed (see version.parsson). -->
               <requireProperty>
@@ -1106,47 +1090,13 @@ the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
                 </regexMessage>
               </requireProperty>
-              <!-- CVE-2026-55955 guard: fails if version.spring-boot is bumped, as a reminder to
-                   check whether the tomcat-embed-* overrides can be removed (see tomcat.version).
-                   A same-named property does not override a dependency-management import, so this
-                   pin must stay explicit until verified otherwise - do not delete it without checking. -->
-              <requireProperty>
-                <property>version.spring-boot</property>
-                <regex>^4\.1\.0$</regex>
-                <regexMessage>
-version.spring-boot was changed! Check if the tomcat-embed-* CVE-2026-55955 overrides can be removed.
-If the new spring-boot-dependencies BOM ships tomcat.version &gt;= 11.0.23 (confirm with
-`mvn dependency:tree -Dincludes=org.apache.tomcat.embed,org.apache.tomcat:tomcat-annotations-api`,
-not just the property), remove the tomcat-embed-core/tomcat-embed-el/tomcat-embed-websocket/
-tomcat-annotations-api dependencyManagement entries, the tomcat.version property, and this
-enforcer rule from parent/pom.xml.
-See: https://nvd.nist.gov/vuln/detail/CVE-2026-55955
-                </regexMessage>
-              </requireProperty>
-              <!-- CVE-2026-59889 guard: fails if version.spring-boot is bumped, as a reminder to
-                   check whether the jackson3-bom override can be removed (see version.jackson3-bom).
-                   spring-boot-dependencies manages tools.jackson:jackson-bom via its own
-                   jackson-bom.version property, separate from the legacy com.fasterxml.jackson:jackson-bom
-                   line already overridden above - it is not covered by that override. -->
-              <requireProperty>
-                <property>version.spring-boot</property>
-                <regex>^4\.1\.0$</regex>
-                <regexMessage>
-version.spring-boot was changed! Check if the jackson3-bom CVE-2026-59889 override can be removed.
-If the new spring-boot-dependencies BOM ships tools.jackson:jackson-bom &gt;= 3.1.5 (confirm with
-`mvn dependency:tree -Dincludes=tools.jackson.core:jackson-databind`, not just the property),
-remove the version.jackson3-bom property, the tools.jackson:jackson-bom dependencyManagement entry,
-and this enforcer rule from parent/pom.xml.
-See: https://nvd.nist.gov/vuln/detail/CVE-2026-59889
-                </regexMessage>
-              </requireProperty>
               <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx guard: fails if version.spring-boot is
                    bumped, as a reminder to check whether the amqp-client override can be removed
                    (see version.amqp-client). spring-boot-dependencies manages
                    com.rabbitmq:amqp-client via its own rabbit-amqp-client.version property. -->
               <requireProperty>
                 <property>version.spring-boot</property>
-                <regex>^4\.1\.0$</regex>
+                <regex>^4\.1\.1$</regex>
                 <regexMessage>
 version.spring-boot was changed! Check if the amqp-client CVE-2026-63337 override can be removed.
 If the new spring-boot-dependencies BOM ships com.rabbitmq:amqp-client &gt;= 5.34.0 (confirm with
