@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.outbound.secret;
 
-import io.camunda.connector.api.inbound.ElementTemplateDetails;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.exception.OperateException;
@@ -160,21 +159,8 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   }
 
   private boolean isElementTemplate(FlowElement element) {
-    ElementTemplateDetails elementTemplateDetails = getElementTemplateDetails(element);
-    return elementTemplateDetails.id() != null;
-  }
-
-  // pre-existing, move to util from ProcessDefinitionInspector
-  private static ElementTemplateDetails getElementTemplateDetails(BaseElement element) {
     final String NAMESPACE = "http://camunda.org/schema/zeebe/1.0";
-
     final String TEMPLATE_ID = "modelerTemplate";
-    final String TEMPLATE_VERSION = "modelerTemplateVersion";
-    final String TEMPLATE_ICON = "modelerTemplateIcon";
-
-    return new ElementTemplateDetails(
-        element.getAttributeValueNs(NAMESPACE, TEMPLATE_ID),
-        element.getAttributeValueNs(NAMESPACE, TEMPLATE_VERSION),
-        element.getAttributeValueNs(NAMESPACE, TEMPLATE_ICON));
+    return element.getAttributeValueNs(NAMESPACE, TEMPLATE_ID) != null;
   }
 }

@@ -51,7 +51,6 @@ class JobHandlerContextTest {
             activatedJob,
             secretProvider,
             validationProvider,
-            null,
             objectMapper,
             SecretFilter.allowAll());
   }

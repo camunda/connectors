@@ -112,8 +112,7 @@ public class SecretUtilTests {
   @Test
   void shouldRetrieveMultipleDistinctSecretKeysInInput() {
     var keys =
-        SecretUtil.retrieveSecretKeysInInput(
-            "{{secrets.FOO}} and secrets.BAR and {{secrets.FOO}}");
+        SecretUtil.retrieveSecretKeysInInput("{{secrets.FOO}} and secrets.BAR and {{secrets.FOO}}");
     assertThat(keys).containsExactlyInAnyOrder("FOO", "BAR");
   }
 }
