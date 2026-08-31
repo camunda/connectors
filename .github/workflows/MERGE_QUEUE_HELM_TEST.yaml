@@ -189,15 +189,18 @@ jobs:
   # `.github/scripts/alwaysgreen/discover.py` reads, so gating on it puts the gate and
   # the classifier on the same evidence.
   #
-  # run-ai-agent-cpt is absent from `needs` for the same reason as in alwaysgreen-triage:
-  # it exists only on main, and naming it would make this file invalid on the stable
-  # branches. The scan reads the whole run rather than this job's dependencies, so a
-  # failure there is still counted — that job finishes well before the e2e stages this
-  # one waits on. Its surface is classified and reported but never dispatched, so the
-  # only effect is that triage reports it instead of ignoring it.
+  # run-ai-agent-cpt IS in `needs` here, unlike in alwaysgreen-triage. The scan reads
+  # whatever has concluded at the moment it runs, so a job with no ordering edge to it
+  # contributes only if it happens to have finished first — and "it usually finishes
+  # early" is not a scheduling guarantee. The edge is what makes the answer
+  # deterministic.
+  #
+  # Backport note: that job exists on main and stable/8.10 only. Drop it from this list
+  # when carrying this change to stable/8.7-8.9, where naming it would make the whole
+  # workflow invalid. It is the one entry here that is not backport-safe.
   detect-failures:
     name: AlwaysGreen failure detection
-    needs: [ build-image, trigger-sm-e2e, trigger-saas-e2e ]
+    needs: [ build-image, trigger-sm-e2e, trigger-saas-e2e, run-ai-agent-cpt ]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -207,6 +210,7 @@ jobs:
       any_failed: ${{ steps.scan.outputs.any_failed }}
       sm_failed: ${{ steps.scan.outputs.sm_failed }}
       base_ref: ${{ steps.scan.outputs.base_ref }}
+      base_ref_supported: ${{ steps.scan.outputs.base_ref_supported }}
     steps:
       - name: Scan this run's job conclusions
         id: scan
@@ -252,10 +256,34 @@ jobs:
               ;;
           esac
 
+          # Mirrors the list alwaysgreen-triage.yml's "Resolve target run" step accepts,
+          # and alwaysgreen-fix.yml's. workflow_dispatch can be started from ANY ref, so
+          # without this a failing manual run from a feature branch would hand triage a
+          # base_ref it rejects — turning every such run into a guaranteed triage
+          # failure that fixes nothing. Reported loudly rather than swallowed: the
+          # failure is still in the log, the annotation and the summary.
+          base_ref_supported=true
+          case "$base_ref" in
+            main|stable/8.7|stable/8.8|stable/8.9) ;;
+            *) base_ref_supported=false ;;
+          esac
+          if [ "$base_ref_supported" != "true" ] && [ "$any_failed" = "true" ]; then
+            echo "::warning::AlwaysGreen triage does not accept base_ref '${base_ref}', so this run's failures are reported here only. Add the ref to alwaysgreen-triage.yml and alwaysgreen-fix.yml to enable it."
+            {
+              echo "## AlwaysGreen failure detection"
+              echo ""
+              echo "Failing jobs on ${base_ref}, a ref AlwaysGreen triage does not"
+              echo "accept — no classification or fix dispatch ran:"
+              echo ""
+              printf '%s\n' "$failed" | sed 's/^/- /'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
           {
             echo "any_failed=${any_failed}"
             echo "sm_failed=${sm_failed}"
             echo "base_ref=${base_ref}"
+            echo "base_ref_supported=${base_ref_supported}"
           } | tee -a "$GITHUB_OUTPUT"
 
   sm-e2e-debug-summary:
@@ -758,7 +786,13 @@ jobs:
     # detect-failures, not contains(needs.*.result, 'failure'): continue-on-error —
     # here and on the non-blocking SM Playwright leg — keeps a real failure out of
     # every `result` this job can see. See the comment on that job.
-    if: always() && needs.detect-failures.outputs.any_failed == 'true'
+    #
+    # base_ref_supported keeps a manual dispatch from an arbitrary ref out: triage
+    # hard-errors on a base_ref outside main|stable/8.7-8.9, so calling it for one
+    # would only add a red job. detect-failures annotates and summarises that case.
+    if: >-
+      always() && needs.detect-failures.outputs.any_failed == 'true' &&
+      needs.detect-failures.outputs.base_ref_supported == 'true'
     permissions:
       contents: read
       actions: write
