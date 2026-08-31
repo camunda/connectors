@@ -77,21 +77,18 @@ public class OutboundConnectorExceptionHandler {
   }
 
   /**
-   * Builds the error map for the legacy no-filter overloads: {@code type} and, for a {@link
-   * ConnectorException}, {@code code} are read straight off {@code e} because neither can carry a
-   * secret and error expressions match on {@code code}, but {@code message} always comes from
-   * {@code wrappedException}'s fixed, filter-free text, and {@code variables} is never included.
+   * Builds the error map for the legacy no-filter overloads: {@code type} is read straight off
+   * {@code e}'s class, which can never carry a secret. {@code code} is deliberately omitted even
+   * for a {@link ConnectorException} -- unlike {@code type}, it's an arbitrary caller-supplied
+   * string ({@link io.camunda.connector.api.error.ConnectorExceptionBuilder#errorCode}), so nothing
+   * rules out a connector constructing one from a resolved secret. {@code message} always comes
+   * from {@code wrappedException}'s fixed, filter-free text, and {@code variables} is never
+   * included.
    */
   private static Map<String, Object> withheldExceptionToMap(
       Exception e, Exception wrappedException) {
     Map<String, Object> result = new HashMap<>();
     result.put("type", e.getClass().getName());
-    if (e instanceof ConnectorException connectorException) {
-      var code = connectorException.getErrorCode();
-      if (code != null) {
-        result.put("code", code);
-      }
-    }
     var message = wrappedException.getMessage();
     if (message != null) {
       result.put(
