@@ -55,7 +55,7 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
               throw new IllegalArgumentException("Error retrieving secret keys", e);
             } else {
               LOG.warn(
-                  "Error filtering secrets for element '{}' in process definition key {}), will allow all as secret-filter-mode is LAX",
+                  "Error filtering secrets for element '{}' in process definition key {}, will allow all as secret-filter-mode is LAX",
                   context.elementId(),
                   context.processDefinitionKey(),
                   e);
