@@ -44,10 +44,11 @@ public class OutboundConnectorExceptionHandler {
   }
 
   /**
-   * Stands in for the real exception in the legacy no-filter overloads below, so that {@link
-   * #exceptionToMap} never reaches into the real exception's message or, if it is a {@link
+   * Stands in as the returned exception's cause in the legacy no-filter overloads below, so that a
+   * caller walking the cause chain never reaches the real exception's message or, if it is a {@link
    * ConnectorException}, its error variables -- either can carry a resolved secret, and neither
-   * overload has a filter to redact it with.
+   * overload has a filter to redact it with. See {@link #withheldExceptionToMap} for how the
+   * returned map itself stays free of both while still keeping {@code type} and {@code code}.
    */
   private static final class SecretFilterUnavailableException extends RuntimeException {}
 
@@ -76,6 +77,30 @@ public class OutboundConnectorExceptionHandler {
   }
 
   /**
+   * Builds the error map for the legacy no-filter overloads: {@code type} and, for a {@link
+   * ConnectorException}, {@code code} are read straight off {@code e} because neither can carry a
+   * secret and error expressions match on {@code code}, but {@code message} always comes from
+   * {@code wrappedException}'s fixed, filter-free text, and {@code variables} is never included.
+   */
+  private static Map<String, Object> withheldExceptionToMap(
+      Exception e, Exception wrappedException) {
+    Map<String, Object> result = new HashMap<>();
+    result.put("type", e.getClass().getName());
+    if (e instanceof ConnectorException connectorException) {
+      var code = connectorException.getErrorCode();
+      if (code != null) {
+        result.put("code", code);
+      }
+    }
+    var message = wrappedException.getMessage();
+    if (message != null) {
+      result.put(
+          "message", message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH)));
+    }
+    return Map.copyOf(result);
+  }
+
+  /**
    * Preserves the pre-existing three-argument overload for callers compiled against it. This
    * overload has no filter to redact secrets with, so it withholds the original message outright
    * rather than falling back to an unfiltered {@link SecretFilter#allowAll()} — the whole point of
@@ -96,7 +121,7 @@ public class OutboundConnectorExceptionHandler {
             "Original error can't be displayed: this legacy entry point has no secret filter to"
                 + " redact it with, and its message might contain secrets.",
             new SecretFilterUnavailableException());
-    var errorPayload = Map.of("error", exceptionToMap(wrappedException));
+    var errorPayload = Map.of("error", withheldExceptionToMap(e, wrappedException));
     return switch (e) {
       case InvalidBackOffDurationException ignored ->
           new ConnectorResult.ErrorResult(errorPayload, wrappedException, 0);
@@ -242,7 +267,7 @@ public class OutboundConnectorExceptionHandler {
                 + " redact it with, and its message might contain secrets.",
             new SecretFilterUnavailableException());
     return new ConnectorResult.ErrorResult(
-        Map.of("error", exceptionToMap(wrappedException)), wrappedException, 0);
+        Map.of("error", withheldExceptionToMap(ex, wrappedException)), wrappedException, 0);
   }
 
   /**
