@@ -170,7 +170,7 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public SecretFilterFactory secretFilterFactory(
-      @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode,
       SecretKeyCache secretKeyCache) {
     return new ConfigurableSecretFilterFactory(secretFilterMode, secretKeyCache);
