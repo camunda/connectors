@@ -92,7 +92,7 @@ public class SecretUtilTests {
     SecretReplacer secretReplacer =
         (name, context) -> allowList.contains(name) ? secrets.get(name) : null;
     String content = "Hello {{secrets.KEY1}} and {{secrets.KEY2}} and {{secrets.KEY3}}";
-    SecretContext secretContext = new SecretContext("tenantId", "processId");
+    SecretContext secretContext = new SecretContext("tenantId");
     String replacedContent = SecretUtil.replaceSecrets(content, secretContext, secretReplacer);
     assertThat(replacedContent).isEqualTo("Hello VALUE1 and VALUE2 and {{secrets.KEY3}}");
   }
