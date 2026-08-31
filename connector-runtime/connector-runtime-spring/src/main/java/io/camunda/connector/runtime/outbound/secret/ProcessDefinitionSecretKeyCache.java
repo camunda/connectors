@@ -137,7 +137,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     for (FlowElement element : allElements) {
       OUTBOUND_ELIGIBLE_TYPES.forEach(
           iet -> {
-            if (iet.isInstance(element) && isElementTemplate(element)) {
+            if (iet.isInstance(element)) {
               outboundEligibleElements.add(element);
             }
           });
@@ -169,11 +169,5 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     Collection<FlowElement> buffer = new HashSet<>();
     Collection<FlowElement> processFlowElements = subprocess.getFlowElements();
     return collectFlowElements(processFlowElements, buffer);
-  }
-
-  private boolean isElementTemplate(FlowElement element) {
-    final String NAMESPACE = "http://camunda.org/schema/zeebe/1.0";
-    final String TEMPLATE_ID = "modelerTemplate";
-    return element.getAttributeValueNs(NAMESPACE, TEMPLATE_ID) != null;
   }
 }
