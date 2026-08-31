@@ -8,8 +8,7 @@
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
     <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="agent-subprocess"/>
-    <bpmn:adHocSubProcess id="agent-subprocess" name="Agent Sub-process"
-                          zeebe:modelerTemplate="io.camunda.connectors.agenticai.aiagent.v2">
+    <bpmn:adHocSubProcess id="agent-subprocess" name="Agent Sub-process">
       <bpmn:extensionElements>
         <zeebe:adHoc/>
         <zeebe:ioMapping>
@@ -18,8 +17,7 @@
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
-      <bpmn:serviceTask id="child-task" name="Tool"
-                        zeebe:modelerTemplate="io.camunda.connectors.SomeTool">
+      <bpmn:serviceTask id="child-task" name="Tool">
         <bpmn:extensionElements>
           <zeebe:ioMapping>
             <zeebe:input source="{{secrets.CHILD_SECRET}}" target="token"/>
