@@ -74,9 +74,7 @@ public class OutboundConnectorExceptionHandler {
           SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
               .filter(secretFilter::isAllowed)
               .toList();
-      secrets =
-          this.secretProvider.fetchAll(
-              allowedKeys, new SecretContext(job.getTenantId()));
+      secrets = this.secretProvider.fetchAll(allowedKeys, new SecretContext(job.getTenantId()));
     } catch (Exception ex) {
       LOGGER.error(
           "Initial error for job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",

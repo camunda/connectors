@@ -207,8 +207,7 @@ public class ConnectorJobHandler implements JobHandler {
       failJob(
           client,
           job,
-          this.outboundConnectorExceptionHandler.handleFinalResultException(
-              ex, job, secretFilter));
+          this.outboundConnectorExceptionHandler.handleFinalResultException(ex, job, secretFilter));
     }
   }
 
