@@ -244,9 +244,10 @@ public class ConnectorsAutoConfiguration {
    * from being resolved is that filter. Its allow-list comes from the element's input mappings in
    * the deployed model, while replacement runs over the job's variables, and that asymmetry is the
    * whole protection: a name a variable carries resolves only if the model declares it too. The
-   * filter ships disabled, and its lax setting resolves everything whenever the process-definition
-   * lookup fails. Pairing the two is a deployment invariant either way; refusing to start makes it
-   * one the runtime enforces rather than one a runbook describes.
+   * filter ships strict by default, but its lax setting resolves everything whenever the
+   * process-definition lookup fails, and it can be disabled outright. Pairing the fallback with
+   * anything less than strict is a deployment invariant either way; refusing to start makes it one
+   * the runtime enforces rather than one a runbook describes.
    *
    * <p>Note what the filter does not do: it does not restrict which secrets a <em>model</em> may
    * name. An input mapping that spells out {@code secrets.ANY_NAME} puts that name on the
@@ -261,7 +262,7 @@ public class ConnectorsAutoConfiguration {
   @Bean
   public Object legacyFallbackSecretFilterGuard(
       @Value("${" + LegacySecretMode.PROPERTY + ":ON}") String legacyModeProperty,
-      @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode) {
     return checkLegacyFallbackSecretFilter(
         LegacySecretMode.parse(legacyModeProperty), secretFilterMode);
