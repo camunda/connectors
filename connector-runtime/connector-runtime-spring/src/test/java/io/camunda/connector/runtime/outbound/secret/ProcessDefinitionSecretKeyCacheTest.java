@@ -28,9 +28,13 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
 import java.util.concurrent.Callable;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cache.Cache;
@@ -111,6 +115,25 @@ class ProcessDefinitionSecretKeyCacheTest {
         secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "nonexistent-task"));
 
     assertThat(keys).isEmpty();
+  }
+
+  @ParameterizedTest
+  @MethodSource("otherEligibleTaskTypes")
+  void getSecretKeys_otherEligibleTaskTypes_returnsExtractedKeys(String elementId, String secretKey)
+      throws Exception {
+    when(camundaOperateClient.getProcessDefinitionModel(PROCESS_DEF_KEY))
+        .thenReturn(loadBpmn("outbound-task-types.bpmn"));
+
+    var keys = secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, elementId));
+
+    assertThat(keys).containsExactly(secretKey);
+  }
+
+  private static Stream<Arguments> otherEligibleTaskTypes() {
+    return Stream.of(
+        Arguments.of("send-task", "SEND_SECRET"),
+        Arguments.of("script-task", "SCRIPT_SECRET"),
+        Arguments.of("business-rule-task", "BRT_SECRET"));
   }
 
   @Test
