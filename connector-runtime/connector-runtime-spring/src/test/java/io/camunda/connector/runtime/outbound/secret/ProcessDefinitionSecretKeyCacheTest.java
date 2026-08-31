@@ -112,6 +112,19 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_adHocSubProcessAndChild_returnsEachElementsOwnSecrets() throws IOException {
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-adhoc-subprocess.bpmn"));
+
+    var subProcessKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "agent-subprocess"));
+    var childKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "child-task"));
+
+    assertThat(subProcessKeys).containsExactly("ADHOC_SECRET");
+    assertThat(childKeys).containsExactly("CHILD_SECRET");
+  }
+
+  @Test
   void getSecretKeys_unknownElementId_returnsEmptyList() throws IOException {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-secrets.bpmn"));
 
