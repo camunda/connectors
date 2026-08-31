@@ -67,13 +67,26 @@ public class OutboundConnectorExceptionHandler {
   }
 
   /**
-   * Preserves the pre-existing three-argument overload for callers compiled against it, defaulting
-   * to an unfiltered {@link SecretFilter#allowAll()}.
+   * Preserves the pre-existing three-argument overload for callers compiled against it. This
+   * overload has no filter to redact secrets with, so it withholds the original message outright
+   * rather than falling back to an unfiltered {@link SecretFilter#allowAll()} — the whole point of
+   * the secret filter is to restrict what gets resolved, and defaulting to allow-all here would let
+   * a legacy caller bypass that restriction.
    */
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e, ActivatedJob job, Duration retryBackoffDuration) {
-    return manageConnectorJobHandlerException(
-        e, job, retryBackoffDuration, SecretFilter.allowAll());
+    LOGGER.error(
+        "Error for job: {} for tenant: {} can't be displayed: this legacy entry point has no"
+            + " secret filter to redact it with.",
+        job.getKey(),
+        job.getTenantId());
+    var wrappedException =
+        new RuntimeException(
+            "Original error can't be displayed: this legacy entry point has no secret filter to"
+                + " redact it with, and its message might contain secrets.",
+            e);
+    return new ConnectorResult.ErrorResult(
+        Map.of("error", exceptionToMap(wrappedException)), wrappedException, job.getRetries() - 1);
   }
 
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
@@ -178,11 +191,26 @@ public class OutboundConnectorExceptionHandler {
   }
 
   /**
-   * Preserves the pre-existing two-argument overload for callers compiled against it, defaulting to
-   * an unfiltered {@link SecretFilter#allowAll()}.
+   * Preserves the pre-existing two-argument overload for callers compiled against it. This overload
+   * has no filter to redact secrets with, so it withholds the original message outright rather than
+   * falling back to an unfiltered {@link SecretFilter#allowAll()} — the whole point of the secret
+   * filter is to restrict what gets resolved, and defaulting to allow-all here would let a legacy
+   * caller bypass that restriction.
    */
   public ConnectorResult.ErrorResult handleFinalResultException(Exception ex, ActivatedJob job) {
-    return handleFinalResultException(ex, job, SecretFilter.allowAll());
+    LOGGER.error(
+        "Exception while processing job: {} for tenant: {}, type: {}. Its message is withheld:"
+            + " this legacy entry point has no secret filter to redact it with.",
+        job.getKey(),
+        job.getTenantId(),
+        ex.getClass().getName());
+    var wrappedException =
+        new RuntimeException(
+            "Original error can't be displayed: this legacy entry point has no secret filter to"
+                + " redact it with, and its message might contain secrets.",
+            ex);
+    return new ConnectorResult.ErrorResult(
+        Map.of("error", exceptionToMap(wrappedException)), wrappedException, 0);
   }
 
   /**

@@ -77,23 +77,41 @@ class OutboundConnectorExceptionHandlerTest {
   }
 
   @Test
-  void handleFinalResultException_twoArgOverload_stillAvailableForExternalCallers() {
+  void handleFinalResultException_twoArgOverload_withholdsMessageWithoutTouchingTheProvider() {
     var job = jobWithSecretReference();
+    SecretProvider providerThatMustNotBeCalled =
+        mock(
+            SecretProvider.class,
+            invocation -> {
+              throw new AssertionError(
+                  "this legacy overload has no filter and must not resolve any secret");
+            });
+    var handlerWithGuard = new OutboundConnectorExceptionHandler(providerThatMustNotBeCalled);
 
-    var result = handler.handleFinalResultException(new RuntimeException("boom"), job);
+    var result = handlerWithGuard.handleFinalResultException(new RuntimeException("boom"), job);
 
     assertThat(result.retries()).isEqualTo(0);
-    assertThat(result.exception().getMessage()).isEqualTo("boom");
+    assertThat(result.exception().getMessage()).doesNotContain("boom");
   }
 
   @Test
-  void manageConnectorJobHandlerException_threeArgOverload_stillAvailableForExternalCallers() {
+  void
+      manageConnectorJobHandlerException_threeArgOverload_withholdsMessageWithoutTouchingTheProvider() {
     var job = jobWithSecretReference();
+    SecretProvider providerThatMustNotBeCalled =
+        mock(
+            SecretProvider.class,
+            invocation -> {
+              throw new AssertionError(
+                  "this legacy overload has no filter and must not resolve any secret");
+            });
+    var handlerWithGuard = new OutboundConnectorExceptionHandler(providerThatMustNotBeCalled);
 
     var result =
-        handler.manageConnectorJobHandlerException(
+        handlerWithGuard.manageConnectorJobHandlerException(
             new RuntimeException("boom"), job, Duration.ofSeconds(1));
 
     assertThat(result.retries()).isEqualTo(2);
+    assertThat(result.exception().getMessage()).doesNotContain("boom");
   }
 }
