@@ -23,7 +23,9 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.BusinessRuleTask;
+import io.camunda.zeebe.model.bpmn.instance.EndEvent;
 import io.camunda.zeebe.model.bpmn.instance.FlowElement;
+import io.camunda.zeebe.model.bpmn.instance.IntermediateThrowEvent;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.model.bpmn.instance.ScriptTask;
 import io.camunda.zeebe.model.bpmn.instance.SendTask;
@@ -54,6 +56,9 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     OUTBOUND_ELIGIBLE_TYPES.add(SendTask.class);
     OUTBOUND_ELIGIBLE_TYPES.add(ScriptTask.class);
     OUTBOUND_ELIGIBLE_TYPES.add(BusinessRuleTask.class);
+    OUTBOUND_ELIGIBLE_TYPES.add(SubProcess.class);
+    OUTBOUND_ELIGIBLE_TYPES.add(IntermediateThrowEvent.class);
+    OUTBOUND_ELIGIBLE_TYPES.add(EndEvent.class);
   }
 
   private final CamundaClient camundaClient;
@@ -142,9 +147,12 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private Collection<FlowElement> collectFlowElements(
       final Collection<FlowElement> processFlowElements, final Collection<FlowElement> buffer) {
     for (FlowElement element : processFlowElements) {
-      // if we detect a subprocess, we have to expand it
-      // its building blocks to identify where are connectors
+      // a subprocess (embedded, event, multi-instance, ad-hoc, or nested) can itself be a
+      // connector element (its own zeebe:ioMapping declares secrets, e.g. the AI Agent Sub-process
+      // template on an ad-hoc subprocess), so it must be considered directly, in addition to
+      // expanding its children below
       if (element instanceof SubProcess subprocess) {
+        buffer.add(subprocess);
         buffer.addAll(retrieveEligibleElementsFromSubprocess(subprocess));
         continue;
       }
