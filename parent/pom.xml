@@ -87,22 +87,21 @@ limitations under the License.</license.inlineheader>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
-    <version.spring-boot>3.5.16-spring-boot-3.5.18</version.spring-boot>
+    <version.spring-boot>3.5.16-spring-boot-3.5.19</version.spring-boot>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.35.0</version.amqp-client>
-    <tomcat.version>10.1.59</tomcat.version>
     <version.spring-cloud-gcp-starter-logging>5.13.11</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.3</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.54.6</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.54.7</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.54.6</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.54.7</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.54.6</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.54.7</version.aws-sdk-secretsmanager>
 
     <version.google-api-client>2.9.0</version.google-api-client>
 
@@ -501,34 +500,6 @@ limitations under the License.</license.inlineheader>
         <version>${version.httpcore5}</version>
       </dependency>
 
-      <!-- CVE-2026-55955: tomcat.version alone does not override Spring Boot's
-           dependency-management import, since spring-boot-dependencies defines its own
-           internal tomcat.version property. These four artifacts ship in lockstep from the
-           same Tomcat release and must be pinned together to avoid a version skew. -->
-      <dependency>
-        <groupId>org.apache.tomcat.embed</groupId>
-        <artifactId>tomcat-embed-core</artifactId>
-        <version>${tomcat.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.tomcat.embed</groupId>
-        <artifactId>tomcat-embed-el</artifactId>
-        <version>${tomcat.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.tomcat.embed</groupId>
-        <artifactId>tomcat-embed-websocket</artifactId>
-        <version>${tomcat.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.tomcat</groupId>
-        <artifactId>tomcat-annotations-api</artifactId>
-        <version>${tomcat.version}</version>
-      </dependency>
-
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
@@ -909,30 +880,15 @@ the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-59949
                 </regexMessage>
               </requireProperty>
-              <!-- CVE-2026-55955 guard: fails if version.spring-boot is bumped, as a reminder to
-                   check whether the tomcat-embed-* overrides can be removed (see tomcat.version).
-                   A same-named property does not override a dependency-management import, so this
-                   pin must stay explicit until verified otherwise - do not delete it without checking. -->
-              <requireProperty>
-                <property>version.spring-boot</property>
-                <regex>^3\.5\.16-spring-boot-3\.5\.18$</regex>
-                <regexMessage>
-version.spring-boot was changed! Check if the tomcat-embed-* CVE-2026-55955 overrides can be removed.
-If the new spring-boot-dependencies BOM ships tomcat.version &gt;= 10.1.57 (confirm with
-`mvn dependency:tree -Dincludes=org.apache.tomcat.embed,org.apache.tomcat:tomcat-annotations-api`,
-not just the property), remove the tomcat-embed-core/tomcat-embed-el/tomcat-embed-websocket/
-tomcat-annotations-api dependencyManagement entries, the tomcat.version property, and this
-enforcer rule from parent/pom.xml.
-See: https://nvd.nist.gov/vuln/detail/CVE-2026-55955
-                </regexMessage>
-              </requireProperty>
               <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx guard: fails if version.spring-boot is
                    bumped, as a reminder to check whether the amqp-client override can be removed
                    (see version.amqp-client). spring-boot-dependencies manages
-                   com.rabbitmq:amqp-client via its own rabbit-amqp-client.version property. -->
+                   com.rabbitmq:amqp-client via its own rabbit-amqp-client.version property.
+                   Confirmed still needed as of spring-boot 3.5.16-spring-boot-3.5.19: its BOM
+                   ships rabbit-amqp-client.version 5.25.0, still short of the 5.34.0 fix. -->
               <requireProperty>
                 <property>version.spring-boot</property>
-                <regex>^3\.5\.16-spring-boot-3\.5\.18$</regex>
+                <regex>^3\.5\.16-spring-boot-3\.5\.19$</regex>
                 <regexMessage>
 version.spring-boot was changed! Check if the amqp-client CVE-2026-63337 override can be removed.
 If the new spring-boot-dependencies BOM ships com.rabbitmq:amqp-client &gt;= 5.34.0 (confirm with
