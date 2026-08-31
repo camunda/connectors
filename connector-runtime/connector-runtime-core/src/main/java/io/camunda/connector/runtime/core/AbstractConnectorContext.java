@@ -30,6 +30,16 @@ public abstract class AbstractConnectorContext {
 
   protected final ValidationProvider validationProvider;
 
+  /**
+   * Preserves the pre-existing two-argument constructor for external subclasses compiled against
+   * it, defaulting to an unfiltered {@link SecretFilter#allowAll()}. Production outbound contexts
+   * use the three-argument constructor below.
+   */
+  protected AbstractConnectorContext(
+      final SecretProvider secretProvider, final ValidationProvider validationProvider) {
+    this(secretProvider, SecretFilter.allowAll(), validationProvider);
+  }
+
   protected AbstractConnectorContext(
       final SecretProvider secretProvider,
       SecretFilter secretFilter,
