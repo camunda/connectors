@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.outbound.secret;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
@@ -110,6 +111,16 @@ class ProcessDefinitionSecretKeyCacheTest {
         secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "nonexistent-task"));
 
     assertThat(keys).isEmpty();
+  }
+
+  @Test
+  void getSecretKeys_noCamundaOperateClient_throwsIllegalStateException() {
+    var cacheWithoutClient = new ProcessDefinitionSecretKeyCache(null, cache);
+
+    assertThatThrownBy(
+            () -> cacheWithoutClient.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "task")))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("No CamundaOperateClient available");
   }
 
   private BpmnModelInstance loadBpmn(String fileName) throws IOException {

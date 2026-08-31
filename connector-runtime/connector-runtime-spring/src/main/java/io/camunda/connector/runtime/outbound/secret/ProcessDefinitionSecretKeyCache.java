@@ -73,6 +73,16 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
 
   private Map<String, List<String>> fetchSecretKeysByElementIds(long processDefinitionKey)
       throws OperateException {
+    if (camundaOperateClient == null) {
+      throw new IllegalStateException(
+          "No CamundaOperateClient available to look up declared secret keys for process"
+              + " definition key "
+              + processDefinitionKey
+              + ". This happens when camunda.connector.polling.enabled=false, which skips the"
+              + " bean that provides it. Set camunda.connector.secret-resolver.secret-filter.mode"
+              + "=DISABLED, or provide a CamundaOperateClient bean, to use the outbound secret"
+              + " filter in an outbound-only deployment.");
+    }
     BpmnModelInstance modelInstance =
         camundaOperateClient.getProcessDefinitionModel(processDefinitionKey);
     var processes =
