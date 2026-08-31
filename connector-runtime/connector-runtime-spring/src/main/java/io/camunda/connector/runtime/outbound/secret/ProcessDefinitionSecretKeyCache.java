@@ -24,7 +24,9 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.BusinessRuleTask;
+import io.camunda.zeebe.model.bpmn.instance.EndEvent;
 import io.camunda.zeebe.model.bpmn.instance.FlowElement;
+import io.camunda.zeebe.model.bpmn.instance.IntermediateThrowEvent;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.model.bpmn.instance.ScriptTask;
 import io.camunda.zeebe.model.bpmn.instance.SendTask;
@@ -56,6 +58,8 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     OUTBOUND_ELIGIBLE_TYPES.add(ScriptTask.class);
     OUTBOUND_ELIGIBLE_TYPES.add(BusinessRuleTask.class);
     OUTBOUND_ELIGIBLE_TYPES.add(AdHocSubProcess.class);
+    OUTBOUND_ELIGIBLE_TYPES.add(IntermediateThrowEvent.class);
+    OUTBOUND_ELIGIBLE_TYPES.add(EndEvent.class);
   }
 
   private final CamundaClient camundaClient;
