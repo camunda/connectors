@@ -27,7 +27,9 @@ import org.slf4j.LoggerFactory;
  * grant is not read-only, since a provider that rotates refresh tokens would invalidate the very
  * token being checked.
  *
- * <p>Returned messages are static and value-free; the full exception is logged at {@code DEBUG}.
+ * <p>Returned messages are static and value-free, and so is the {@code DEBUG} log: only the
+ * exception type and error code are recorded, never the throwable, whose message or cause chain can
+ * echo provider detail or credential material.
  */
 public class RestAuthenticationValidator
     implements ConfigurationValidator<RestAuthenticationConfiguration> {
@@ -78,7 +80,12 @@ public class RestAuthenticationValidator
               oAuthService.createOAuthRequestFrom(mapped), oAuthService::extractTokenFromResponse);
       return ConfigurationValidationResult.success();
     } catch (Exception e) {
-      LOG.debug("Token request failed for a REST authentication credential", e);
+      LOG.debug(
+          "Token request failed for a REST authentication credential (type {}, code {})",
+          e.getClass().getName(),
+          e instanceof ConnectorException connectorException
+              ? connectorException.getErrorCode()
+              : "n/a");
       return classifyFailure(e);
     }
   }

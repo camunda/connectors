@@ -23,7 +23,9 @@ import org.slf4j.LoggerFactory;
  * ConnectionHelper}, the same path execution takes, so a credential that validates here cannot fail
  * there over a driver or a URL scheme.
  *
- * <p>Returned messages are static and value-free; the full exception is logged at {@code DEBUG}.
+ * <p>Returned messages are static and value-free, and so is the {@code DEBUG} log: only the
+ * database and the exception type are recorded, never the throwable, whose message can echo the
+ * login (PostgreSQL names the user in its authentication failures).
  */
 public class JdbcConnectionValidator
     implements ConfigurationValidator<JdbcConnectionConfiguration> {
