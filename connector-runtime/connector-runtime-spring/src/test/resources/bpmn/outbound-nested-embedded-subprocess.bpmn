@@ -8,8 +8,7 @@
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
     <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="outer-subprocess"/>
-    <bpmn:subProcess id="outer-subprocess" name="Outer Sub-process"
-                     zeebe:modelerTemplate="io.camunda.connectors.OuterSubProcess">
+    <bpmn:subProcess id="outer-subprocess" name="Outer Sub-process">
       <bpmn:extensionElements>
         <zeebe:ioMapping>
           <zeebe:input source="{{secrets.OUTER_SECRET}}" target="apiKey"/>
@@ -21,8 +20,7 @@
         <bpmn:outgoing>InnerFlow_1</bpmn:outgoing>
       </bpmn:startEvent>
       <bpmn:sequenceFlow id="InnerFlow_1" sourceRef="InnerStart_1" targetRef="inner-subprocess"/>
-      <bpmn:subProcess id="inner-subprocess" name="Inner Sub-process"
-                       zeebe:modelerTemplate="io.camunda.connectors.InnerSubProcess">
+      <bpmn:subProcess id="inner-subprocess" name="Inner Sub-process">
         <bpmn:extensionElements>
           <zeebe:ioMapping>
             <zeebe:input source="{{secrets.INNER_SECRET}}" target="apiKey"/>
@@ -30,8 +28,7 @@
         </bpmn:extensionElements>
         <bpmn:incoming>InnerFlow_1</bpmn:incoming>
         <bpmn:outgoing>InnerFlow_2</bpmn:outgoing>
-        <bpmn:serviceTask id="grandchild-task" name="Tool"
-                          zeebe:modelerTemplate="io.camunda.connectors.SomeTool">
+        <bpmn:serviceTask id="grandchild-task" name="Tool">
           <bpmn:extensionElements>
             <zeebe:ioMapping>
               <zeebe:input source="{{secrets.GRANDCHILD_SECRET}}" target="token"/>

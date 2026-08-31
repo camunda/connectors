@@ -8,8 +8,7 @@
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
     <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="send-message-throw"/>
-    <bpmn:intermediateThrowEvent id="send-message-throw" name="Send Message"
-                                  zeebe:modelerTemplate="io.camunda.connectors.message.intermediate.v1">
+    <bpmn:intermediateThrowEvent id="send-message-throw" name="Send Message">
       <bpmn:extensionElements>
         <zeebe:ioMapping>
           <zeebe:input source="{{secrets.THROW_EVENT_SECRET}}" target="apiKey"/>
@@ -20,8 +19,7 @@
       <bpmn:messageEventDefinition/>
     </bpmn:intermediateThrowEvent>
     <bpmn:sequenceFlow id="Flow_2" sourceRef="send-message-throw" targetRef="send-message-end"/>
-    <bpmn:endEvent id="send-message-end" name="Send Message"
-                   zeebe:modelerTemplate="io.camunda.connectors.message.end.v1">
+    <bpmn:endEvent id="send-message-end" name="Send Message">
       <bpmn:extensionElements>
         <zeebe:ioMapping>
           <zeebe:input source="{{secrets.END_EVENT_SECRET}}" target="apiKey"/>
