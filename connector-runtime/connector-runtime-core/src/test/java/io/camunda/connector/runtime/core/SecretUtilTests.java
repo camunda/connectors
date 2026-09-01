@@ -115,6 +115,28 @@ public class SecretUtilTests {
   }
 
   @Test
+  void shouldResolveAChainedBracketedReferenceIntroducedByAnEarlierResolution() {
+    // A's own resolved value happens to spell "{{secrets.B}}" -- the parentheses pass never saw
+    // this occurrence, since it didn't exist in the original text, so it was never "denied" by
+    // anything. The bare pass's per-iteration recompute of denied brackets must not treat every
+    // bracketed occurrence visible in the current text as denied just because it's still there;
+    // only a bracket the parentheses pass actually attempted (present in the *original* input) is
+    // denied. "secrets.PADDING" exists purely to give the bounded rescan a second iteration to
+    // run in -- it's bounded by the original match count, not by whether more work remains.
+    Function<String, String> secretReplacer =
+        name -> {
+          if ("A".equals(name)) return "{{secrets.B}}";
+          if ("B".equals(name)) return "FINAL";
+          if ("PADDING".equals(name)) return "PADDING";
+          return null;
+        };
+
+    String result = SecretUtil.replaceSecrets("secrets.A secrets.PADDING", secretReplacer);
+
+    assertThat(result).isEqualTo("{{FINAL}} PADDING");
+  }
+
+  @Test
   void shouldTrimTheExtractedNameSoItMatchesWhatReplacementLooksUp() {
     // The parentheses pattern's capture reaches past the name to the closing braces, so
     // "{{ secrets.FOO }}" declares FOO, not "FOO ". Returning the untrimmed form left the
