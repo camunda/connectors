@@ -42,7 +42,10 @@ public class SecretHandler {
                         new ConnectorInputException(
                             String.format("Secret with name '%s' is not available", name), null));
           }
-          LOG.debug("Secret '{}' not in allow-list — placeholder left unreplaced", name);
+          // WARN, not DEBUG: a denied secret leaves its placeholder literal, which then reaches
+          // whatever the connector sends it to (e.g. a remote HTTP endpoint) with no incident and
+          // no other signal. DEBUG is invisible at the shipped Helm chart's logging default.
+          LOG.warn("Secret '{}' not in allow-list — placeholder left unreplaced", name);
           return null;
         };
   }
