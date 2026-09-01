@@ -108,9 +108,10 @@ class ConfigurableSecretFilterFactoryTest {
   }
 
   @Test
-  void create_strict_whenCacheThrows_messageIncludesTheRealCause() {
-    // Only getMessage() reaches the Zeebe incident; the real cause must be folded into it, not
-    // left visible only in the pod log, or an operator sees nothing actionable.
+  void create_strict_whenCacheThrows_messageIdentifiesTheFailureWithoutLeakingTheCauseText() {
+    // The incident must be actionable (element ID, process-definition key, exception class) but
+    // must never carry the cause's own message: a client/parser exception message can echo
+    // response-body content (see SecretReferenceResolver's identical convention).
     when(secretKeyCache.getSecretKeys(any()))
         .thenThrow(new RuntimeException("Operate returned 404 for process definition 42"));
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
@@ -118,27 +119,32 @@ class ConfigurableSecretFilterFactoryTest {
     var filter = factory.create(CONTEXT);
 
     assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
-        .hasMessageContaining("Operate returned 404 for process definition 42");
+        .hasMessageContaining(ELEMENT_ID)
+        .hasMessageContaining(String.valueOf(PROCESS_DEF_KEY))
+        .hasMessageContaining(RuntimeException.class.getName())
+        .hasMessageNotContaining("Operate returned 404 for process definition 42");
   }
 
   @Test
   void
-      create_strict_whenProcessDefinitionLookupFailsThroughACaffeineCache_messageSurfacesTheRealCause()
+      create_strict_whenProcessDefinitionLookupFailsThroughACaffeineCache_messageIdentifiesTheFailureWithoutLeakingTheCauseText()
           throws Exception {
     // Goes through a real Cache#get(key, loader), which wraps the loader's exception in
     // Cache.ValueRetrievalException -- unlike the mock above, this reproduces the wrapping that
-    // hid the real cause in production.
-    assertMessageSurfacesRealCauseNotTheCacheWrapper(
+    // hid the exception type in production.
+    assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(
         new CaffeineCache("test", Caffeine.newBuilder().build()));
   }
 
   @Test
-  void create_strict_whenProcessDefinitionLookupFailsThroughANoOpCache_messageSurfacesTheRealCause()
-      throws Exception {
-    assertMessageSurfacesRealCauseNotTheCacheWrapper(new NoOpCache("test"));
+  void
+      create_strict_whenProcessDefinitionLookupFailsThroughANoOpCache_messageIdentifiesTheFailureWithoutLeakingTheCauseText()
+          throws Exception {
+    assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(new NoOpCache("test"));
   }
 
-  private void assertMessageSurfacesRealCauseNotTheCacheWrapper(Cache cache) throws Exception {
+  private void assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(Cache cache)
+      throws Exception {
     var camundaClient = mock(CamundaClient.class);
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEF_KEY))
         .thenThrow(new RuntimeException("Operate returned 404 for process definition 42"));
@@ -148,7 +154,10 @@ class ConfigurableSecretFilterFactoryTest {
     var filter = factory.create(CONTEXT);
 
     assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
-        .hasMessageContaining("Operate returned 404 for process definition 42")
-        .hasMessageNotContaining("could not be loaded using");
+        .hasMessageContaining(ELEMENT_ID)
+        .hasMessageContaining(String.valueOf(PROCESS_DEF_KEY))
+        .hasMessageContaining(RuntimeException.class.getName())
+        .hasMessageNotContaining("could not be loaded using")
+        .hasMessageNotContaining("Operate returned 404 for process definition 42");
   }
 }
