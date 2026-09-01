@@ -58,8 +58,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +83,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private ValidInboundConnectorDetails connectorDetails;
   private Health health = Health.unknown();
   private @Nullable Map<String, Object> propertiesWithSecrets;
+
+  /** Secret names this context may resolve, or {@code null} when secret filtering is off. */
+  private final @Nullable AtomicReference<Set<String>> allowedSecretNames;
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -106,10 +112,10 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   /**
    * @param secretFilterEnabled when {@code true}, restricts secret resolution to the names declared
-   *     in this element's own deployed {@code zeebe:property} text (#7730), mirroring the outbound
-   *     job path's model-derived allow-list. Legacy replacement here only ever runs over that same
-   *     text, never over a runtime value, so the allow-list this builds is always exactly the set
-   *     of names the text it filters already declares.
+   *     in this executable's own deployed {@code zeebe:property} text (#7730), mirroring the
+   *     outbound job path's model-derived allow-list. Legacy replacement here only ever runs over
+   *     that same text, never over a runtime value, so the allow-list this builds is always exactly
+   *     the set of names the text it filters already declares.
    */
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -122,12 +128,45 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       ActivityLogWriter activityLogWriter,
       CamundaClient camundaClient,
       boolean secretFilterEnabled) {
+    this(
+        secretProvider,
+        validationProvider,
+        documentFactory,
+        connectorDetails,
+        correlationHandler,
+        cancellationCallback,
+        objectMapper,
+        activityLogWriter,
+        camundaClient,
+        secretFilterEnabled ? new AtomicReference<Set<String>>(Set.of()) : null);
+  }
+
+  /**
+   * Takes the allow-list as a holder rather than a ready-made {@link SecretFilter} so the filter
+   * handed to {@code super} reads it on each call: {@link #connectorDetails} is swapped in place by
+   * {@link #updateConnectorDetails} when a new process version is hot-swapped onto a live
+   * executable, and a set snapshotted here would then silently deny a secret an added element
+   * declares. Passing the holder (a parameter, not {@code this}) is what keeps the lambda legal in
+   * an explicit constructor invocation.
+   */
+  private InboundConnectorContextImpl(
+      SecretProvider secretProvider,
+      ValidationProvider validationProvider,
+      DocumentFactory documentFactory,
+      ValidInboundConnectorDetails connectorDetails,
+      InboundCorrelationHandler correlationHandler,
+      Consumer<Throwable> cancellationCallback,
+      ObjectMapper objectMapper,
+      ActivityLogWriter activityLogWriter,
+      CamundaClient camundaClient,
+      @Nullable AtomicReference<Set<String>> allowedSecretNames) {
     super(
         secretProvider,
-        secretFilterEnabled
-            ? buildSecretFilter(connectorDetails.connectorElements())
-            : SecretFilter.allowAll(),
+        allowedSecretNames == null
+            ? SecretFilter.allowAll()
+            : name -> allowedSecretNames.get().contains(name),
         validationProvider);
+    this.allowedSecretNames = allowedSecretNames;
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;
@@ -146,6 +185,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
             .resultProcessor(
                 new SecretResolvingResultProcessor(new SecretReferenceResolver(camundaClient)))
             .build();
+    refreshAllowedSecretNames();
   }
 
   public InboundConnectorContextImpl(
@@ -170,19 +210,25 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   /**
-   * The union, across every element this context represents, of secret names declared in that
-   * element's own raw {@code zeebe:property} text — the same text {@link SecretUtil} is asked to
-   * replace secrets within, so this can never exclude a name legacy replacement would otherwise
-   * resolve.
+   * Recomputes the allow-list from the property texts secret replacement actually runs over: the
+   * connector-level map behind {@link #getPropertiesWithSecrets}, plus each element's own map,
+   * which is what {@link #bindElementProperties} filters for whichever element a correlation
+   * activates. Taking the union over every element (rather than the connector-level map alone)
+   * matters because a declared deduplication scope lets grouped elements differ on out-of-scope
+   * properties, so an element can declare a secret the connector-level map does not.
    */
-  private static SecretFilter buildSecretFilter(List<InboundConnectorElement> elements) {
-    var allowedSecretNames =
-        elements.stream()
-            .flatMap(element -> element.rawProperties().values().stream())
+  private void refreshAllowedSecretNames() {
+    if (allowedSecretNames == null) {
+      return;
+    }
+    allowedSecretNames.set(
+        Stream.concat(
+                Stream.of(connectorDetails.rawPropertiesWithoutKeywords()),
+                connectorDetails.connectorElements().stream()
+                    .map(element -> element.element().properties()))
+            .flatMap(properties -> properties.values().stream())
             .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
-            .distinct()
-            .toList();
-    return SecretFilter.allowOnly(allowedSecretNames);
+            .collect(Collectors.toUnmodifiableSet()));
   }
 
   @Override
@@ -580,6 +626,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
               + message);
     }
     connectorDetails = newDetails;
+    refreshAllowedSecretNames();
     logRuntime(
         builder ->
             builder
