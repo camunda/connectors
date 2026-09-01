@@ -127,6 +127,27 @@ class ConfigurableSecretFilterFactoryTest {
   }
 
   @Test
+  void create_strict_whenCauseIsWrappedSeveralLayersDeep_messageIdentifiesTheRootCause() {
+    // Spring's Cache#get(key, Callable) wraps the loader's exception in
+    // Cache.ValueRetrievalException, and a client can wrap the real failure in its own generic
+    // exception type on top of that -- a single getCause() would still return a non-discriminating
+    // wrapper type; the message must walk to the actual root.
+    var rootCause = new java.net.ConnectException("Connection refused");
+    when(secretKeyCache.getSecretKeys(any()))
+        .thenThrow(
+            new RuntimeException(
+                "outer",
+                new RuntimeException("sdk wrapper", new RuntimeException("mid", rootCause))));
+    var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
+
+    var filter = factory.create(CONTEXT);
+
+    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+        .hasMessageContaining(java.net.ConnectException.class.getName())
+        .hasMessageNotContaining("Connection refused");
+  }
+
+  @Test
   void
       create_strict_whenProcessDefinitionFetchFailsThroughACaffeineCache_messageIdentifiesTheFailureWithoutLeakingTheCauseText() {
     // Goes through a real Cache#get(key, loader), which wraps the loader's exception in
