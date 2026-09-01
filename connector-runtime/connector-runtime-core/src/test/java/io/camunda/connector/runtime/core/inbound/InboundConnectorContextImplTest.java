@@ -300,6 +300,55 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
+  void secretFilterEnabled_allowsASecretDeclaredInTheElementsOwnPropertyText() {
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.ALLOWED"));
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("ALLOWED"), any())).thenReturn("bar");
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            mock(DocumentFactory.class),
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient,
+            true);
+
+    var result =
+        context.getSecretHandler().replaceSecrets("secrets.ALLOWED", new SecretContext("t", "p"));
+
+    assertThat(result).isEqualTo("bar");
+  }
+
+  @Test
+  void secretFilterEnabled_blocksASecretNotDeclaredInAnyElementsPropertyText() {
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.ALLOWED"));
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("OTHER"), any())).thenReturn("bar");
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            mock(DocumentFactory.class),
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient,
+            true);
+
+    var result =
+        context.getSecretHandler().replaceSecrets("secrets.OTHER", new SecretContext("t", "p"));
+
+    assertThat(result).isEqualTo("secrets.OTHER");
+    verify(secretProvider, never()).getSecret(eq("OTHER"), any());
+  }
+
+  @Test
   void getDefinition_reportsTheElementsPhysicalTenantId() {
     var definition =
         getInboundConnectorDefinitionWithPhysicalTenant(Map.of("stringMap", "={}"), "engine-1");

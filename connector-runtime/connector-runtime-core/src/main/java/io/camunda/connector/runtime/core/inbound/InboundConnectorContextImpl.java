@@ -53,6 +53,7 @@ import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
+import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -90,18 +91,43 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       ObjectMapper objectMapper,
       ActivityLogWriter activityLogWriter,
       CamundaClient camundaClient) {
-    // No name-level restriction, because on this path there is nothing for one to reject. The
-    // outbound filter's allow-list is drawn from the deployed model while replacement runs over the
-    // job's variables, and that asymmetry is what it protects: a legacy name carried by a runtime
-    // value resolves only if the model declares it too. Here the two sides coincide — legacy
-    // replacement only ever runs over this element's own zeebe:property text, read from the
-    // deployed
-    // model (see getPropertiesWithSecrets and bindElementProperties), and never over a runtime
-    // value, since an evaluation result is data and is never fed back through replacement. An
-    // allow-list derived from the model would therefore be the same set as the text it filters.
-    // #7730 would wire a filter in regardless, making that a checked property rather than one that
-    // holds because of where the call sites read from.
-    super(secretProvider, SecretFilter.allowAll(), validationProvider);
+    this(
+        secretProvider,
+        validationProvider,
+        documentFactory,
+        connectorDetails,
+        correlationHandler,
+        cancellationCallback,
+        objectMapper,
+        activityLogWriter,
+        camundaClient,
+        false);
+  }
+
+  /**
+   * @param secretFilterEnabled when {@code true}, restricts secret resolution to the names declared
+   *     in this element's own deployed {@code zeebe:property} text (#7730), mirroring the outbound
+   *     job path's model-derived allow-list. Legacy replacement here only ever runs over that same
+   *     text, never over a runtime value, so the allow-list this builds is always exactly the set
+   *     of names the text it filters already declares.
+   */
+  public InboundConnectorContextImpl(
+      SecretProvider secretProvider,
+      ValidationProvider validationProvider,
+      DocumentFactory documentFactory,
+      ValidInboundConnectorDetails connectorDetails,
+      InboundCorrelationHandler correlationHandler,
+      Consumer<Throwable> cancellationCallback,
+      ObjectMapper objectMapper,
+      ActivityLogWriter activityLogWriter,
+      CamundaClient camundaClient,
+      boolean secretFilterEnabled) {
+    super(
+        secretProvider,
+        secretFilterEnabled
+            ? buildSecretFilter(connectorDetails.connectorElements())
+            : SecretFilter.allowAll(),
+        validationProvider);
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;
@@ -141,6 +167,22 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         objectMapper,
         logs,
         camundaClient);
+  }
+
+  /**
+   * The union, across every element this context represents, of secret names declared in that
+   * element's own raw {@code zeebe:property} text — the same text {@link SecretUtil} is asked to
+   * replace secrets within, so this can never exclude a name legacy replacement would otherwise
+   * resolve.
+   */
+  private static SecretFilter buildSecretFilter(List<InboundConnectorElement> elements) {
+    var allowedSecretNames =
+        elements.stream()
+            .flatMap(element -> element.rawProperties().values().stream())
+            .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
+            .distinct()
+            .toList();
+    return SecretFilter.allowOnly(allowedSecretNames);
   }
 
   @Override

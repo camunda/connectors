@@ -255,9 +255,10 @@ public class ConnectorsAutoConfiguration {
    * filter. This is why the inbound path is not covered by this guard and needs nothing equivalent:
    * legacy replacement there runs over the element's own {@code zeebe:property} text, read from the
    * deployed model, and never over a runtime value (see {@code InboundConnectorContextImpl}), so
-   * there is no injected name for a filter to reject. Wiring a filter into the inbound path (#7730)
-   * would make that structural guarantee an enforced one; it would not narrow what a deployed model
-   * can reach.
+   * there is no injected name for a filter to reject. Inbound wires this same {@code
+   * secret-filter.mode} property into its own allow-list (#7730), making that structural guarantee
+   * an enforced one; it does not narrow what a deployed model can reach, which is why this guard's
+   * scope stays outbound-only.
    */
   @Bean
   public Object legacyFallbackSecretFilterGuard(
