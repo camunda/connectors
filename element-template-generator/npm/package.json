@@ -1,6 +1,6 @@
 {
   "name": "@camunda/connectors-element-templates",
-  "version": "1.0.23",
+  "version": "1.0.25",
   "description": "Camunda Connectors Store with all out of the box connectors",
   "main": "src/index.js",
   "scripts": {
@@ -10,7 +10,7 @@
   "author": "",
   "license": "Camunda License 1.0",
   "devDependencies": {
-    "mocha": "^11.7.1",
+    "mocha": "^12.0.0",
     "prettier": "3.9.6"
   },
   "repository": {

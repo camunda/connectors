@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -62,6 +63,7 @@ public class AwsAgentCoreConversationMapper {
   private static final TypeReference<List<ToolCall>> TOOL_CALLS_TYPE = new TypeReference<>() {};
   private static final TypeReference<Map<String, Object>> METADATA_TYPE = new TypeReference<>() {};
 
+  static final String PROPERTY_ID = "camunda.id";
   static final String PROPERTY_ROLE = "role";
   static final String PROPERTY_USER_NAME = "userName";
   static final String PROPERTY_MODEL_ID = "camunda.modelId";
@@ -255,8 +257,13 @@ public class AwsAgentCoreConversationMapper {
     return switch (messageRole) {
       case USER -> {
         var builder = UserMessage.builder().content(content).metadata(metadata);
-        if (properties != null && properties.get(PROPERTY_USER_NAME) instanceof String name) {
-          builder.name(name);
+        if (properties != null) {
+          if (properties.get(PROPERTY_ID) instanceof String id) {
+            builder.id(MessageId.of(id));
+          }
+          if (properties.get(PROPERTY_USER_NAME) instanceof String name) {
+            builder.name(name);
+          }
         }
         yield Optional.of(builder.build());
       }
@@ -264,6 +271,9 @@ public class AwsAgentCoreConversationMapper {
         var assistantBuilder =
             AssistantMessage.builder().content(content).toolCalls(toolCalls).metadata(metadata);
         if (properties != null) {
+          if (properties.get(PROPERTY_ID) instanceof String id) {
+            assistantBuilder.id(MessageId.of(id));
+          }
           if (properties.get(PROPERTY_MODEL_ID) instanceof String modelId) {
             assistantBuilder.modelId(modelId);
           }
@@ -281,8 +291,12 @@ public class AwsAgentCoreConversationMapper {
           throw new AgentCoreMapperException(
               "TOOL event is missing required 'camunda.toolCallResults' blob envelope", null);
         }
-        yield Optional.of(
-            ToolCallResultMessage.builder().results(toolCallResults).metadata(metadata).build());
+        var toolBuilder =
+            ToolCallResultMessage.builder().results(toolCallResults).metadata(metadata);
+        if (properties != null && properties.get(PROPERTY_ID) instanceof String id) {
+          toolBuilder.id(MessageId.of(id));
+        }
+        yield Optional.of(toolBuilder.build());
       }
       case OTHER, UNKNOWN_TO_SDK_VERSION ->
           throw new IllegalStateException(
@@ -422,6 +436,7 @@ public class AwsAgentCoreConversationMapper {
         };
 
     Map<String, Object> props = new HashMap<>();
+    props.put(PROPERTY_ID, message.id());
     if (role != null) {
       props.put(PROPERTY_ROLE, role);
     }

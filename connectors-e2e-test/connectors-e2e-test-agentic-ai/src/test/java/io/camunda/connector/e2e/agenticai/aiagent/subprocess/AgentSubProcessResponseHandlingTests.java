@@ -148,7 +148,7 @@ public class AgentSubProcessResponseHandlingTests extends BaseAgentSubProcessTes
                     "name",
                     expectedJsonSchemaName,
                     "strict",
-                    false,
+                    true,
                     "schema",
                     Map.of(
                         "type",
@@ -158,7 +158,9 @@ public class AgentSubProcessResponseHandlingTests extends BaseAgentSubProcessTes
                             "text", Map.of("type", "string"),
                             "length", Map.of("type", "number")),
                         "required",
-                        List.of("text", "length"))));
+                        List.of("text", "length"),
+                        "additionalProperties",
+                        false)));
       }
     }
 

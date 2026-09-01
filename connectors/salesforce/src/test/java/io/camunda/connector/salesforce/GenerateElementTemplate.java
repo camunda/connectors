@@ -25,8 +25,10 @@ import io.camunda.connector.generator.dsl.Preset;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
+import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.dsl.PropertyCondition.IsEmpty;
 import io.camunda.connector.generator.dsl.PropertyCondition.OneOf;
 import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.dsl.PropertyGroup;
@@ -49,12 +51,14 @@ import java.util.stream.Collectors;
  * Generates the Salesforce element template by extending HTTP JSON's own generated {@link
  * ElementTemplate} object model via {@link ElementTemplateBuilder#from(ElementTemplate)}: the
  * inherited authentication block is pruned down to the two mechanisms Salesforce supports (so it
- * stays in sync with HTTP JSON's auth model as it evolves), every other inherited group/property
- * (raw url/method, headers, tls, timeout, retries, output, errors, ...) is dropped, and every
- * Salesforce-specific property (operation type, sObject/SOQL fields, URL construction) is
- * hand-built on top using the same DSL builders HTTP JSON's own generator uses. Salesforce still
- * executes as {@code io.camunda:http-json:1} at runtime -- there is no Salesforce-specific runtime
- * code, only this generated element template.
+ * stays in sync with HTTP JSON's auth model as it evolves), the inherited response-mapping
+ * properties (resultVariable/resultExpression) are kept as-is since Salesforce has no
+ * operation-specific behavior to layer onto response mapping, every other inherited group/property
+ * (raw url/method, headers, tls, timeout, retries, errors, ...) is dropped, and every
+ * Salesforce-specific property -- operation type (sObject CRUD, SOQL query, or Apex REST),
+ * per-operation fields, URL construction -- is hand-built on top using the same DSL builders HTTP
+ * JSON's own generator uses. Salesforce still executes as {@code io.camunda:http-json:1} at runtime
+ * -- there is no Salesforce-specific runtime code, only this generated element template.
  *
  * <p>Run manually after model changes and commit the regenerated {@code
  * element-templates/salesforce-connector.json}: {@code mvn -pl connectors/salesforce test-compile
@@ -76,6 +80,18 @@ public class GenerateElementTemplate {
   // intentionally not exposed at all.
   private static final Set<String> UNSUPPORTED_AUTH_PROPERTY_IDS =
       Set.of("authentication.audience", "authentication.scopes");
+  // HTTP JSON conditions the auth-type dropdown and its bearer/OAuth fields on this reusable
+  // credential-chooser property being empty (isEmpty/credential-chooser-ordering feature).
+  // Salesforce drops that property entirely via removeConfigurationTemplates() below, so any
+  // inherited condition referencing it would dangle -- stripped by
+  // withoutAuthenticationConfigurationCondition() before the properties are carried over.
+  private static final String AUTHENTICATION_CONFIGURATION_PROPERTY_ID =
+      "authenticationConfiguration";
+  // resultVariable/resultExpression are inherited from HTTP JSON as-is (unconditional, same as
+  // every other HTTP JSON-backed connector) rather than rebuilt -- Salesforce has no
+  // operation-specific behavior to layer onto response mapping.
+  private static final Set<String> KEPT_OUTPUT_PROPERTY_IDS =
+      Set.of("resultVariable", "resultExpression");
 
   public static void main(String[] args) throws Exception {
     ElementTemplate salesforceTemplate = generate();
@@ -133,23 +149,39 @@ public class GenerateElementTemplate {
                                 + "\"authentication.type\" dropdown property -- has it been renamed"
                                 + " or removed?"));
 
-    ElementTemplate salesforceTemplate =
+    ElementTemplateBuilder builder =
         ElementTemplateBuilder.from(httpJsonTemplate)
-            // Keep only the "authentication" properties inherited from HTTP JSON; every other
-            // property (raw url/method/headers/queryParameters) is Salesforce-specific and
-            // rebuilt from scratch below. Groups are dropped entirely and re-declared below.
+            // Keep only the "authentication" and response-mapping properties inherited from HTTP
+            // JSON; every other property (raw url/method/headers/queryParameters) is
+            // Salesforce-specific and rebuilt from scratch below. Groups are dropped entirely and
+            // re-declared below.
             .removePropertyGroups(g -> true)
-            .removeProperties(p -> !(isAuthTypeDropdown(p) || idIn(p, KEPT_AUTH_PROPERTY_IDS)))
+            .removeProperties(
+                p ->
+                    !(isAuthTypeDropdown(p)
+                        || idIn(p, KEPT_AUTH_PROPERTY_IDS)
+                        || idIn(p, KEPT_OUTPUT_PROPERTY_IDS)))
             // HTTP JSON's inherited configuration templates (e.g. its REST Authentication
             // config, covering apiKey/basic/OAuth-refresh-token flows) don't apply here --
             // Salesforce only supports the two auth mechanisms narrowed to below.
             .removeConfigurationTemplates(ct -> true)
             // Narrow the inherited auth-type dropdown from HTTP JSON's 6 choices down to the 2
             // Salesforce supports.
-            .replaceProperty(prunedAuthTypeDropdown(originalAuthTypeDropdown))
+            .replaceProperty(prunedAuthTypeDropdown(originalAuthTypeDropdown));
+
+    // The 3 kept bearer/OAuth fields carry an inherited condition referencing
+    // authenticationConfiguration (see AUTHENTICATION_CONFIGURATION_PROPERTY_ID) -- strip it now
+    // that the property itself is gone, or the validator flags a dangling condition reference.
+    httpJsonTemplate.properties().stream()
+        .filter(p -> idIn(p, KEPT_AUTH_PROPERTY_IDS))
+        .map(GenerateElementTemplate::withoutAuthenticationConfigurationCondition)
+        .forEach(builder::replaceProperty);
+
+    ElementTemplate salesforceTemplate =
+        builder
             .id("io.camunda.connectors.Salesforce.v1")
             .name("Salesforce Outbound Connector")
-            .version(6)
+            .version(7)
             .category(ElementTemplateCategory.CONNECTORS)
             .documentationRef(
                 "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/salesforce/")
@@ -274,10 +306,27 @@ public class GenerateElementTemplate {
     }
   }
 
+  /**
+   * HTTP JSON's isEmpty/credential-chooser-ordering feature wraps what used to be a bare {@code
+   * Equals("authentication.type", ...)} condition in an {@link AllMatch} alongside an {@code
+   * authenticationConfiguration} isEmpty clause (see {@link
+   * #withoutAuthenticationConfigurationCondition}). Unwrap it here too, or this safety net stops
+   * recognizing every currently-classified property and never fires again.
+   */
   private static boolean isConditionedOnKeptAuthType(Property p) {
-    return p.getCondition() instanceof Equals equals
-        && "authentication.type".equals(equals.property())
-        && KEPT_AUTH_TYPES.contains(equals.equals());
+    return conditionMatchesKeptAuthType(p.getCondition());
+  }
+
+  private static boolean conditionMatchesKeptAuthType(PropertyCondition condition) {
+    if (condition instanceof Equals equals) {
+      return "authentication.type".equals(equals.property())
+          && KEPT_AUTH_TYPES.contains(equals.equals());
+    }
+    if (condition instanceof AllMatch allMatch) {
+      return allMatch.allMatch().stream()
+          .anyMatch(GenerateElementTemplate::conditionMatchesKeptAuthType);
+    }
+    return false;
   }
 
   private static DropdownProperty prunedAuthTypeDropdown(DropdownProperty original) {
@@ -304,7 +353,51 @@ public class GenerateElementTemplate {
     // previous hand-authored template, which had no description or default value here.
     builder.description(null);
     builder.value(null);
+    builder.condition(stripAuthenticationConfigurationCondition(original.getCondition()));
     return builder.build();
+  }
+
+  /**
+   * Drops the {@code authenticationConfiguration isEmpty} clause HTTP JSON attaches to its
+   * auth-type dropdown and bearer/OAuth fields (see {@link
+   * #AUTHENTICATION_CONFIGURATION_PROPERTY_ID}), collapsing an {@link AllMatch} down to its
+   * remaining clause where needed. Without this, the carried-over condition points at a property
+   * Salesforce's generator never carries over, and the element-template validator rejects the
+   * dangling reference.
+   */
+  private static Property withoutAuthenticationConfigurationCondition(Property property) {
+    PropertyCondition stripped = stripAuthenticationConfigurationCondition(property.getCondition());
+    if (stripped == property.getCondition()) {
+      return property;
+    }
+    return property.toBuilder().condition(stripped).build();
+  }
+
+  private static PropertyCondition stripAuthenticationConfigurationCondition(
+      PropertyCondition condition) {
+    if (isAuthenticationConfigurationIsEmpty(condition)) {
+      return null;
+    }
+    if (condition instanceof AllMatch allMatch) {
+      List<PropertyCondition> remaining =
+          allMatch.allMatch().stream()
+              .filter(c -> !isAuthenticationConfigurationIsEmpty(c))
+              .toList();
+      if (remaining.size() == allMatch.allMatch().size()) {
+        return condition;
+      }
+      return switch (remaining.size()) {
+        case 0 -> null;
+        case 1 -> remaining.get(0);
+        default -> new AllMatch(remaining);
+      };
+    }
+    return condition;
+  }
+
+  private static boolean isAuthenticationConfigurationIsEmpty(PropertyCondition condition) {
+    return condition instanceof IsEmpty isEmpty
+        && AUTHENTICATION_CONFIGURATION_PROPERTY_ID.equals(isEmpty.property());
   }
 
   private static PropertyGroup endpointGroup() {
@@ -326,15 +419,6 @@ public class GenerateElementTemplate {
                                 "^(=|(https?://|\\{\\{secrets\\..+\\}\\}).*$)",
                                 "Must be a http(s) URL."))
                         .build())
-                .build(),
-            StringProperty.builder()
-                .id("apiVersion")
-                .label("Salesforce API version")
-                .group("endpoint")
-                .feel(FeelMode.optional)
-                .binding(new ZeebeInput("apiVersion"))
-                .value("v58.0")
-                .constraints(PropertyConstraints.builder().notEmpty(true).build())
                 .build())
         .build();
   }
@@ -354,13 +438,24 @@ public class GenerateElementTemplate {
                 .choices(
                     List.of(
                         new DropdownChoice("sObject records", "sObject"),
-                        new DropdownChoice("SOQL Query", "soqlQuery")))
+                        new DropdownChoice("SOQL Query", "soqlQuery"),
+                        new DropdownChoice("Apex REST", "apexRest")))
                 .id("salesforceOperationType")
                 .label("Salesforce operation type")
                 .tooltip(
-                    "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query.")
+                    "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint.")
                 .group("operation")
                 .binding(new ZeebeInput("salesforceInteractionType"))
+                .build(),
+            StringProperty.builder()
+                .id("apiVersion")
+                .label("Salesforce API version")
+                .group("operation")
+                .feel(FeelMode.optional)
+                .binding(new ZeebeInput("apiVersion"))
+                .value("v58.0")
+                .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                .condition(new OneOf("salesforceOperationType", List.of("sObject", "soqlQuery")))
                 .build(),
             DropdownProperty.builder()
                 .choices(
@@ -382,6 +477,22 @@ public class GenerateElementTemplate {
                 .value("get")
                 .binding(new ZeebeInput("method"))
                 .condition(new Equals("salesforceOperationType", "soqlQuery"))
+                .build(),
+            DropdownProperty.builder()
+                .choices(
+                    List.of(
+                        new DropdownChoice("GET", "get"),
+                        new DropdownChoice("POST", "post"),
+                        new DropdownChoice("PATCH", "patch"),
+                        new DropdownChoice("DELETE", "delete"),
+                        new DropdownChoice("PUT", "put")))
+                .id("apexRestMethod")
+                .label("Method")
+                .group("operation")
+                .binding(new ZeebeInput("method"))
+                .value("get")
+                .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                .condition(new Equals("salesforceOperationType", "apexRest"))
                 .build(),
             StringProperty.builder()
                 .id("objectType")
@@ -475,8 +586,44 @@ public class GenerateElementTemplate {
                 .group("operation")
                 .feel(FeelMode.required)
                 .binding(new ZeebeInput("body"))
-                .condition(new OneOf("interactionType", List.of("patch", "post")))
+                .condition(
+                    new AllMatch(
+                        new OneOf("interactionType", List.of("patch", "post")),
+                        new Equals("salesforceOperationType", "sObject")))
                 .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                .build(),
+            StringProperty.builder()
+                .id("apexRestPath")
+                .label("Path")
+                .placeholder("MyApexClass/action")
+                .tooltip(
+                    "Path appended to /services/apexrest/ to build the request URL, e.g. \"MyApexClass\" or \"MyApexClass/action\".")
+                .group("operation")
+                .feel(FeelMode.optional)
+                .binding(new ZeebeInput("path"))
+                .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                .condition(new Equals("salesforceOperationType", "apexRest"))
+                .build(),
+            HiddenProperty.builder()
+                .id("urlApexRest")
+                .label("URL")
+                .group("operation")
+                .binding(new ZeebeInput("url"))
+                .value("=baseUrl + \"/services/apexrest/\" + path")
+                .condition(new Equals("salesforceOperationType", "apexRest"))
+                .build(),
+            StringProperty.builder()
+                .id("bodyApexRest")
+                .label("Request body")
+                .tooltip("Request payload for the Apex REST call, provided as a FEEL context.")
+                .group("operation")
+                .feel(FeelMode.optional)
+                .optional(true)
+                .binding(new ZeebeInput("body"))
+                .condition(
+                    new AllMatch(
+                        new OneOf("apexRestMethod", List.of("post", "patch", "put")),
+                        new Equals("salesforceOperationType", "apexRest")))
                 .build())
         .build();
   }
@@ -513,7 +660,7 @@ public class GenerateElementTemplate {
         .id("connector")
         .label("Connector")
         .properties(
-            CommonProperties.version(6L)
+            CommonProperties.version(7L)
                 .binding(new ZeebeTaskHeader("elementTemplateVersion"))
                 .build(),
             CommonProperties.id("io.camunda.connectors.Salesforce.v1")
@@ -522,32 +669,10 @@ public class GenerateElementTemplate {
         .build();
   }
 
+  // resultVariable/resultExpression are inherited from HTTP JSON as-is (see
+  // KEPT_OUTPUT_PROPERTY_IDS) -- this group only supplies the section label/order for them.
   private static PropertyGroup outputGroup() {
-    return PropertyGroup.builder()
-        .id("output")
-        .label("Response mapping")
-        .properties(
-            StringProperty.builder()
-                .id("resultVariable")
-                .label("Result variable")
-                .tooltip(
-                    "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>")
-                .group("output")
-                .feel(FeelMode.disabled)
-                .binding(new ZeebeTaskHeader("resultVariable"))
-                .condition(new OneOf("interactionType", List.of("get", "post")))
-                .build(),
-            TextProperty.builder()
-                .id("resultExpression")
-                .label("Result expression")
-                .tooltip(
-                    "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>")
-                .group("output")
-                .feel(FeelMode.required)
-                .binding(new ZeebeTaskHeader("resultExpression"))
-                .condition(new OneOf("interactionType", List.of("get", "post")))
-                .build())
-        .build();
+    return PropertyGroup.builder().id("output").label("Response mapping").build();
   }
 
   private static PropertyGroup errorsGroup() {
@@ -617,7 +742,12 @@ public class GenerateElementTemplate {
             "SOQL query",
             "Run a Salesforce Object Query Language (SOQL) query to fetch records",
             List.of("SOQL query", "query records", "search records", "run query", "select records"),
-            "soqlQuery"));
+            "soqlQuery"),
+        new LeafStep(
+            "Apex REST",
+            "Invoke a custom Salesforce Apex REST endpoint",
+            List.of("apex rest", "custom endpoint", "apex class", "invoke apex"),
+            "apexRest"));
   }
 
   private static List<Preset> buildPresets() {
@@ -634,7 +764,8 @@ public class GenerateElementTemplate {
         new Preset(
             "sObject_delete",
             java.util.Map.of("salesforceOperationType", "sObject", "interactionType", "delete")),
-        new Preset("soqlQuery", java.util.Map.of("salesforceOperationType", "soqlQuery")));
+        new Preset("soqlQuery", java.util.Map.of("salesforceOperationType", "soqlQuery")),
+        new Preset("apexRest", java.util.Map.of("salesforceOperationType", "apexRest")));
   }
 
   private static final String SALESFORCE_ICON =

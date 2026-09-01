@@ -40,6 +40,7 @@ import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
+import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
@@ -505,7 +506,7 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public SecretFilterFactory secretFilterFactory(
-      @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode,
       SecretKeyCache secretKeyCache) {
     return new ConfigurableSecretFilterFactory(secretFilterMode, secretKeyCache);
@@ -563,7 +564,7 @@ public class OutboundConnectorRuntimeConfiguration {
       @Autowired(required = false) CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
       @Qualifier("secretKeyCacheManager") CacheManager cacheManager,
-      @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode) {
     return buildSecretFilterFactoriesByPhysicalTenantId(
         registry, legacyCamundaClient, cacheManager, secretFilterMode);
@@ -592,7 +593,7 @@ public class OutboundConnectorRuntimeConfiguration {
       @Autowired(required = false) CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
       @Autowired(required = false) DocumentFactory documentFactory,
-      @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode,
       @Qualifier("secretKeyCacheManager") CacheManager secretKeyCacheManager,
       @OutboundConnectorObjectMapper ObjectMapper outboundConnectorObjectMapper,
@@ -665,7 +666,9 @@ public class OutboundConnectorRuntimeConfiguration {
         jacksonModuleDocumentDeserializer,
         new JacksonModuleFeelFunction(
             false,
-            FeelExpressionEvaluatorBuilder.local().build()), // FEEL annotation processing disabled
+            FeelExpressionEvaluatorBuilder.local().build(), // FEEL annotation processing disabled
+            null,
+            FeelEvaluationResultMapper.create(documentFactory)),
         new JacksonModuleDocumentSerializer());
   }
 }

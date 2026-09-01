@@ -17,6 +17,7 @@
 package io.camunda.connector.feel.jackson;
 
 import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
@@ -48,9 +49,29 @@ public class JacksonModuleFeelFunction extends SimpleModule {
    */
   private final boolean processFEELAnnotation;
 
+  /**
+   * Binds the values evaluations return. Supply the runtime's result mapper: the same base and
+   * document modules as the property mapper, without the FEEL and secret-reference modules, so that
+   * no string in a result is treated as expression source.
+   *
+   * <p>When null, a blank mapper is used. It binds plain data but registers no document module, so
+   * a document reference inside an evaluation result does not materialise.
+   */
+  private final ObjectMapper resultMapper;
+
   /** Creates a module using local FEEL engine for all evaluations. */
   public JacksonModuleFeelFunction() {
-    this(true, new LocalFeelExpressionEvaluator(), null);
+    this(true, new LocalFeelExpressionEvaluator(), null, null);
+  }
+
+  /**
+   * Creates a module using the local FEEL engine for all evaluations, binding what they return with
+   * the given mapper.
+   *
+   * @param resultMapper see {@link #resultMapper}
+   */
+  public JacksonModuleFeelFunction(ObjectMapper resultMapper) {
+    this(true, new LocalFeelExpressionEvaluator(), null, resultMapper);
   }
 
   /**
@@ -61,7 +82,19 @@ public class JacksonModuleFeelFunction extends SimpleModule {
    */
   public JacksonModuleFeelFunction(
       boolean processFEELAnnotation, FeelExpressionEvaluator evaluator) {
-    this(processFEELAnnotation, evaluator, null);
+    this(processFEELAnnotation, evaluator, null, null);
+  }
+
+  /**
+   * Creates a module with separate evaluators for annotation-driven and type-driven
+   * deserialization, and a blank mapper for evaluation results. Suitable where no document can
+   * appear in an evaluation result; a runtime wiring should supply its own result mapper.
+   */
+  public JacksonModuleFeelFunction(
+      boolean processFEELAnnotation,
+      FeelExpressionEvaluator annotationEvaluator,
+      FeelExpressionEvaluator functionEvaluator) {
+    this(processFEELAnnotation, annotationEvaluator, functionEvaluator, null);
   }
 
   /**
@@ -78,8 +111,10 @@ public class JacksonModuleFeelFunction extends SimpleModule {
   public JacksonModuleFeelFunction(
       boolean processFEELAnnotation,
       FeelExpressionEvaluator annotationEvaluator,
-      FeelExpressionEvaluator functionEvaluator) {
+      FeelExpressionEvaluator functionEvaluator,
+      ObjectMapper resultMapper) {
     this.processFEELAnnotation = processFEELAnnotation;
+    this.resultMapper = resultMapper;
     this.annotationEvaluator =
         annotationEvaluator != null ? annotationEvaluator : new LocalFeelExpressionEvaluator();
     this.functionEvaluator =
@@ -101,12 +136,13 @@ public class JacksonModuleFeelFunction extends SimpleModule {
   public void setupModule(SetupContext context) {
     addDeserializer(
         Function.class,
-        new FeelFunctionDeserializer<>(TypeFactory.unknownType(), functionEvaluator));
+        new FeelFunctionDeserializer<>(TypeFactory.unknownType(), functionEvaluator, resultMapper));
     addDeserializer(
         Supplier.class,
-        new FeelSupplierDeserializer<>(TypeFactory.unknownType(), functionEvaluator));
+        new FeelSupplierDeserializer<>(TypeFactory.unknownType(), functionEvaluator, resultMapper));
     if (processFEELAnnotation) {
-      context.insertAnnotationIntrospector(new FeelAnnotationIntrospector(annotationEvaluator));
+      context.insertAnnotationIntrospector(
+          new FeelAnnotationIntrospector(annotationEvaluator, resultMapper));
     }
     super.setupModule(context);
   }

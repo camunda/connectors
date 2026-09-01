@@ -143,6 +143,17 @@ public class ConnectorMetrics {
    */
   public static final String DEFAULT_PHYSICAL_TENANT_ID = "default";
 
+  public static class Secrets {
+
+    /**
+     * Legacy secret references ({@code {{secrets.X}}} and bare {@code secrets.X}) successfully
+     * resolved, tagged by the orchestration cluster the lookup was made for. Measures how much the
+     * legacy syntax is still in use, so that retiring it can be decided on evidence.
+     */
+    public static final String METRIC_NAME_LEGACY_RESOLUTIONS =
+        "camunda.connector.secret.legacy.resolutions";
+  }
+
   /**
    * Attributes the counter to the job's own physical tenant. Callers that know which physical
    * tenant's job worker received the job should prefer {@link #counter(ActivatedJob, String)}, so

@@ -122,7 +122,7 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
 
     assertRole(lastMessages.get(5), "assistant"); // response after tool
     assertRole(lastMessages.get(6), "user"); // follow-up prompt
-    assertThat(lastMessages.get(6).content()).isEqualTo("What is the content type?");
+    assertThat(lastMessages.get(6).textContent()).isEqualTo("What is the content type?");
 
     assertAgentResponse(
         zeebeTest,

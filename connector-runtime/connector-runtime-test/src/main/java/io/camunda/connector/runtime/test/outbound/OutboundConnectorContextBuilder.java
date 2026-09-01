@@ -37,6 +37,7 @@ import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
@@ -69,7 +70,7 @@ public class OutboundConnectorContextBuilder {
             documentFactory, functionExecutor, DocumentModuleSettings.create());
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(),
+        new JacksonModuleFeelFunction(FeelEvaluationResultMapper.create(documentFactory)),
         new JacksonModuleDocumentSerializer());
   }
 
@@ -81,7 +82,7 @@ public class OutboundConnectorContextBuilder {
             documentFactory, functionExecutor, DocumentModuleSettings.create());
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(),
+        new JacksonModuleFeelFunction(FeelEvaluationResultMapper.create(documentFactory)),
         new JacksonModuleDocumentSerializer());
   }
 

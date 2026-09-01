@@ -29,24 +29,30 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandle
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.AzureOpenAiChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.BedrockChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.GoogleVertexAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.LangChain4JChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.OpenAiCompatibleChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiFoundryCredentialResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
@@ -77,13 +83,18 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelFactoryOverrides.CustomAnthropicProviderConfig.CustomAnthropicChatModelFactory;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelFactoryOverrides.CustomAzureOpenAiProviderConfig.CustomAzureOpenAiChatModelFactory;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelFactoryOverrides.CustomBedrockProviderConfig.CustomBedrockChatModelFactory;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelFactoryOverrides.CustomGoogleVertexAiProviderConfig.CustomGoogleVertexAiChatModelFactory;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelFactoryOverrides.CustomOpenAiCompatibleProviderConfig.CustomOpenAiCompatibleChatModelFactory;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelFactoryOverrides.CustomOpenAiProviderConfig.CustomOpenAiChatModelFactory;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomAnthropicProviderConfig.CustomAnthropicChatModelFactory;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomAzureOpenAiProviderConfig.CustomAzureOpenAiChatModelFactory;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomBedrockProviderConfig.CustomBedrockChatModelFactory;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomGoogleVertexAiProviderConfig.CustomGoogleVertexAiChatModelFactory;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiCompatibleProviderConfig.CustomOpenAiCompatibleChatModelFactory;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiProviderConfig.CustomOpenAiChatModelFactory;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
@@ -127,7 +138,10 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentSubProcessV2Function.class,
           AgentInstanceClient.class,
           ChatModelRegistry.class,
-          AnthropicChatModelFactory.class);
+          AnthropicChatModelFactory.class,
+          BedrockConverseChatModelFactory.class,
+          OpenAiChatModelFactory.class,
+          GeminiChatModelFactory.class);
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
       List.of(
@@ -141,9 +155,11 @@ class AgenticAiConnectorsAutoConfigurationTest {
           io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
               .AnthropicChatModelFactory.class,
           AzureOpenAiChatModelFactory.class,
-          BedrockChatModelFactory.class,
+          io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .BedrockChatModelFactory.class,
           GoogleVertexAiChatModelFactory.class,
-          OpenAiChatModelFactory.class,
+          io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .OpenAiChatModelFactory.class,
           OpenAiCompatibleChatModelFactory.class);
 
   // this will need to be updated in case we support different frameworks
@@ -357,6 +373,15 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     null)),
             AnthropicChatModelFactory.class),
         new ChatModelResolutionCase(
+            "google-gemini (native)",
+            new GeminiChatModelConfiguration(
+                new GeminiConnection(
+                    new GeminiApiBackend(
+                        new GeminiApiBackend.GoogleGeminiApi("test-api-key", null)),
+                    new GeminiModel("gemini-3-pro-preview", null),
+                    null)),
+            GeminiChatModelFactory.class),
+        new ChatModelResolutionCase(
             "anthropic (langchain4j)",
             new AnthropicProviderConfiguration(
                 new AnthropicProviderConfiguration.AnthropicConnection(
@@ -384,7 +409,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     new AwsDefaultCredentialsChainAuthentication(),
                     null,
                     new BedrockModel("anthropic.claude-3-sonnet", null))),
-            BedrockChatModelFactory.class),
+            io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+                .BedrockChatModelFactory.class),
         new ChatModelResolutionCase(
             // Google's genai SDK resolves application default credentials eagerly when the
             // client is built, which would require real GCP credentials in this environment.
@@ -398,13 +424,28 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     new GoogleVertexAiModel("gemini-2.5-pro", null))),
             GoogleVertexAiChatModelFactory.class),
         new ChatModelResolutionCase(
-            "openai",
+            "openai (native)",
+            new OpenAiChatModelConfiguration(
+                new OpenAiChatModelConfiguration.OpenAiConnection(
+                    new OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi(
+                        new OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi
+                            .ResponsesParameters(null, null, null, null)),
+                    new OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend(
+                        new OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend
+                            .OpenAiApiConnection(
+                            "sk-openai-test", null, null, null, null, null, null)),
+                    new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
+                    null)),
+            OpenAiChatModelFactory.class),
+        new ChatModelResolutionCase(
+            "openai (langchain4j)",
             new OpenAiProviderConfiguration(
                 new OpenAiConnection(
                     new OpenAiAuthentication("sk-openai-test", null, null),
                     null,
                     new OpenAiModel("gpt-4o", null))),
-            OpenAiChatModelFactory.class),
+            io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+                .OpenAiChatModelFactory.class),
         new ChatModelResolutionCase(
             "openai-compatible",
             new OpenAiCompatibleProviderConfiguration(
@@ -430,7 +471,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
   }
 
   @Nested
-  class CustomChatModelFactoryOverrides {
+  class CustomLangChain4JChatModelFactoryOverrides {
 
     @ParameterizedTest
     @MethodSource("factoryOverrideCases")
@@ -464,7 +505,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           new FactoryOverrideCase(
               CustomBedrockProviderConfig.class,
               "customBedrockChatModelFactory",
-              BedrockChatModelFactory.class,
+              io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+                  .BedrockChatModelFactory.class,
               CustomBedrockChatModelFactory.class),
           new FactoryOverrideCase(
               CustomGoogleVertexAiProviderConfig.class,
@@ -474,7 +516,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           new FactoryOverrideCase(
               CustomOpenAiProviderConfig.class,
               "customOpenAiChatModelFactory",
-              OpenAiChatModelFactory.class,
+              io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+                  .OpenAiChatModelFactory.class,
               CustomOpenAiChatModelFactory.class),
           new FactoryOverrideCase(
               CustomOpenAiCompatibleProviderConfig.class,
@@ -551,16 +594,20 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
     static class CustomBedrockProviderConfig {
       @Bean
-      BedrockChatModelFactory customBedrockChatModelFactory() {
+      io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .BedrockChatModelFactory
+          customBedrockChatModelFactory() {
         return new CustomBedrockChatModelFactory();
       }
 
-      static class CustomBedrockChatModelFactory extends BedrockChatModelFactory {
+      static class CustomBedrockChatModelFactory
+          extends io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .BedrockChatModelFactory {
 
         CustomBedrockChatModelFactory() {
           super(
               mock(AgenticAiConnectorsConfigurationProperties.ChatModelProperties.class),
-              mock(ChatModelHttpProxySupport.class),
+              mock(AgenticAiHttpProxySupport.class),
               mock(ChatMessageConverter.class),
               mock(ToolSpecificationConverter.class),
               mock(JsonSchemaConverter.class));
@@ -601,11 +648,15 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
     static class CustomOpenAiProviderConfig {
       @Bean
-      OpenAiChatModelFactory customOpenAiChatModelFactory() {
+      io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .OpenAiChatModelFactory
+          customOpenAiChatModelFactory() {
         return new CustomOpenAiChatModelFactory();
       }
 
-      static class CustomOpenAiChatModelFactory extends OpenAiChatModelFactory {
+      static class CustomOpenAiChatModelFactory
+          extends io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory
+              .OpenAiChatModelFactory {
 
         CustomOpenAiChatModelFactory() {
           super(
@@ -645,6 +696,97 @@ class AgenticAiConnectorsAutoConfigurationTest {
         public CloseableChatModel createChatModel(
             OpenAiCompatibleProviderConfiguration providerConfiguration) {
           return mock(CloseableChatModel.class);
+        }
+      }
+    }
+  }
+
+  @Nested
+  class CustomNativeChatModelFactoryOverrides {
+
+    @ParameterizedTest
+    @MethodSource("nativeFactoryOverrideCases")
+    void userProvidedFactoryBeanOverridesDefault(NativeFactoryOverrideCase override) {
+      new ApplicationContextRunner()
+          .withUserConfiguration(TestConfig.class, override.configurationClass())
+          .withUserConfiguration(AgenticAiConnectorsAutoConfiguration.class)
+          .run(
+              context -> {
+                final var beanNamesForType = context.getBeanNamesForType(override.factoryClass());
+                assertThat(beanNamesForType).hasSize(1).containsExactly(override.beanName());
+
+                assertThat(context.getBean(beanNamesForType[0]))
+                    .isInstanceOf(override.customFactoryClass());
+              });
+    }
+
+    static Stream<NativeFactoryOverrideCase> nativeFactoryOverrideCases() {
+      return Stream.of(
+          new NativeFactoryOverrideCase(
+              CustomAnthropicProviderConfig.class,
+              "customNativeAnthropicChatModelFactory",
+              AnthropicChatModelFactory.class,
+              CustomAnthropicProviderConfig.CustomAnthropicChatModelFactory.class),
+          new NativeFactoryOverrideCase(
+              CustomOpenAiProviderConfig.class,
+              "customNativeOpenAiChatModelFactory",
+              OpenAiChatModelFactory.class,
+              CustomOpenAiProviderConfig.CustomOpenAiChatModelFactory.class));
+    }
+
+    record NativeFactoryOverrideCase(
+        Class<?> configurationClass,
+        String beanName,
+        Class<? extends ChatModelFactory> factoryClass,
+        Class<? extends ChatModelFactory> customFactoryClass) {
+
+      @Override
+      public String toString() {
+        return factoryClass.getSimpleName();
+      }
+    }
+
+    static class CustomAnthropicProviderConfig {
+      @Bean
+      AnthropicChatModelFactory customNativeAnthropicChatModelFactory() {
+        return new CustomAnthropicChatModelFactory();
+      }
+
+      static class CustomAnthropicChatModelFactory extends AnthropicChatModelFactory {
+
+        CustomAnthropicChatModelFactory() {
+          super(
+              mock(AgenticAiHttpProxySupport.class),
+              mock(AnthropicMessageRequestConverter.class),
+              mock(AnthropicMessageResponseConverter.class));
+        }
+
+        @Override
+        public ChatModel create(ChatModelConfiguration configuration) {
+          return mock(ChatModel.class);
+        }
+      }
+    }
+
+    static class CustomOpenAiProviderConfig {
+      @Bean
+      OpenAiChatModelFactory customNativeOpenAiChatModelFactory() {
+        return new CustomOpenAiChatModelFactory();
+      }
+
+      static class CustomOpenAiChatModelFactory extends OpenAiChatModelFactory {
+
+        CustomOpenAiChatModelFactory() {
+          super(
+              mock(AgenticAiHttpProxySupport.class),
+              mock(OpenAiApiFamilyStrategy.class),
+              mock(OpenAiApiFamilyStrategy.class),
+              mock(OpenAiFoundryCredentialResolver.class));
+        }
+
+        @Override
+        public ChatModel create(ChatModelConfiguration configuration) {
+          return mock(ChatModel.class);
         }
       }
     }

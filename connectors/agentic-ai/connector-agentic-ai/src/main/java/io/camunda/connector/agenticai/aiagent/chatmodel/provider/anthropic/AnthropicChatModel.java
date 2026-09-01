@@ -18,6 +18,7 @@ import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.RawMessageStreamEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
@@ -42,6 +43,9 @@ public class AnthropicChatModel implements ChatModel {
 
   private static final Logger LOG = LoggerFactory.getLogger(AnthropicChatModel.class);
   private static final ObjectMapper MAPPER = ObjectMappers.jsonMapper();
+
+  // AnthropicIoException's fixed, uninformative message for every wrapped java.io.IOException.
+  private static final String GENERIC_SDK_FAILURE_MESSAGE = "Request failed";
 
   private final AnthropicChatModelConfiguration configuration;
   private final AnthropicClient client;
@@ -107,14 +111,40 @@ public class AnthropicChatModel implements ChatModel {
           "Model call failed with HTTP %d (%s): %s"
               .formatted(e.statusCode(), errorType, e.getMessage()),
           e);
+    } catch (ChatModelRejectedException e) {
+      // thrown directly by the response converter when it recognizes a known rejection - let it
+      // propagate as-is rather than flattening it into a generic FAILED_MODEL_CALL below.
+      throw e;
     } catch (Exception e) {
-      final String detail =
-          Optional.ofNullable(e.getMessage())
-              .filter(m -> !m.isBlank())
-              .orElseGet(() -> e.getClass().getSimpleName());
-      throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), e);
+      throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
     }
+  }
+
+  /**
+   * Builds the failure message from the exception's own message, unless that message is blank or
+   * the SDK's known generic wrapper message, in which case the cause's message is preferred (or, if
+   * the cause has no message either, the cause's class name); falls back to the exception's own
+   * class name if there is no cause at all.
+   */
+  private static String failureMessage(Exception e) {
+    final String outerMessage = e.getMessage();
+    final boolean preferCause =
+        outerMessage == null
+            || outerMessage.isBlank()
+            || GENERIC_SDK_FAILURE_MESSAGE.equals(outerMessage);
+    if (!preferCause) {
+      return "Model call failed: %s".formatted(outerMessage);
+    }
+    final Throwable cause = e.getCause();
+    final String detail =
+        cause != null
+            ? Optional.ofNullable(cause.getMessage())
+                .filter(m -> !m.isBlank())
+                .orElseGet(() -> cause.getClass().getSimpleName())
+            : outerMessage != null && !outerMessage.isBlank()
+                ? outerMessage
+                : e.getClass().getSimpleName();
+    return "Model call failed: %s".formatted(detail);
   }
 
   @Override

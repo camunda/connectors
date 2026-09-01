@@ -18,7 +18,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.shared.CustomEndpointAuthentication;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
@@ -237,77 +236,6 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       }
     }
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes({
-      @JsonSubTypes.Type(
-          value = AwsAuthentication.AwsStaticCredentialsAuthentication.class,
-          name = "credentials"),
-      @JsonSubTypes.Type(
-          value = AwsAuthentication.AwsDefaultCredentialsChainAuthentication.class,
-          name = "defaultCredentialsChain"),
-      @JsonSubTypes.Type(value = AwsAuthentication.AwsApiKeyAuthentication.class, name = "apiKey")
-    })
-    @TemplateDiscriminatorProperty(
-        label = "Authentication",
-        group = "provider",
-        name = "type",
-        defaultValue = "credentials",
-        description = "Specify the AWS authentication strategy.")
-    sealed interface AwsAuthentication {
-
-      @TemplateSubType(id = "credentials", label = "Credentials")
-      record AwsStaticCredentialsAuthentication(
-          @NotBlank
-              @TemplateProperty(
-                  group = "provider",
-                  label = "Access key",
-                  description = "AWS IAM access key.",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String accessKey,
-          @NotBlank
-              @TemplateProperty(
-                  group = "provider",
-                  label = "Secret key",
-                  description = "AWS IAM secret key.",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String secretKey)
-          implements AwsAuthentication {
-
-        @Override
-        public String toString() {
-          return "AwsStaticCredentialsAuthentication{accessKey=[REDACTED], secretKey=[REDACTED]}";
-        }
-      }
-
-      @TemplateSubType(id = "apiKey", label = "API key")
-      record AwsApiKeyAuthentication(
-          @NotBlank
-              @TemplateProperty(
-                  group = "provider",
-                  label = "API key",
-                  description = "Bearer API key for AWS Bedrock Mantle.",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String apiKey)
-          implements AwsAuthentication {
-
-        @Override
-        public String toString() {
-          return "AwsApiKeyAuthentication{apiKey=[REDACTED]}";
-        }
-      }
-
-      @TemplateSubType(
-          id = "defaultCredentialsChain",
-          label = "Default Credentials Chain (Hybrid/Self-Managed only)")
-      record AwsDefaultCredentialsChainAuthentication() implements AwsAuthentication {}
-    }
-
     @TemplateSubType(id = CUSTOM_ID, label = "Custom / compatible endpoint")
     record AnthropicCustomBackend(@Valid @NotNull CustomBackend custom)
         implements AnthropicBackend {
@@ -355,7 +283,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   feel = FeelMode.required,
                   optional = true)
               @Nullable Map<String, Object> bodyProperties,
-          @Valid @NotNull CustomEndpointAuthentication authentication) {
+          @Valid @NotNull AnthropicCustomEndpointAuthentication authentication) {
 
         @Override
         public String toString() {
@@ -395,19 +323,19 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
         @TemplateProperty(
                 group = "model",
                 label = "Effort",
-                description = "Leave unset to use the model default.",
                 tooltip =
                     "Controls how many tokens the model spends when responding, trading thoroughness against speed and cost. Not supported on all models."
                         + "<br><br>See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/effort\" target=\"_blank\">effort documentation</a>.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
+                  @DropdownPropertyChoice(value = "modelDefault", label = "default"),
                   @DropdownPropertyChoice(value = "low", label = "low"),
                   @DropdownPropertyChoice(value = "medium", label = "medium"),
                   @DropdownPropertyChoice(value = "high", label = "high"),
                   @DropdownPropertyChoice(value = "xhigh", label = "xhigh"),
                   @DropdownPropertyChoice(value = "max", label = "max")
                 },
-                optional = true)
+                defaultValue = "modelDefault")
             @Nullable AnthropicEffort effort,
         @Valid @Nullable AnthropicThinking thinking,
         @Valid @Nullable AnthropicPromptCaching promptCaching,
@@ -476,6 +404,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
 
     /** Anthropic effort levels, trading thoroughness against speed and cost. */
     public enum AnthropicEffort {
+      @JsonProperty("modelDefault")
+      MODEL_DEFAULT,
       @JsonProperty("low")
       LOW,
       @JsonProperty("medium")
@@ -511,18 +441,19 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 group = "model",
                 label = "Thinking mode",
                 tooltip =
-                    "Extended thinking mechanism. Leave blank to use the model default."
+                    "Extended thinking mechanism."
                         + "<br><br><code>enabled</code> uses a manual token budget (older models). "
                         + "<code>adaptive</code> is managed by the model (newer models). "
                         + "<code>disabled</code> turns it off."
                         + "<br><br>Support varies by model.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
+                  @DropdownPropertyChoice(value = "modelDefault", label = "default"),
                   @DropdownPropertyChoice(value = "enabled", label = "enabled"),
                   @DropdownPropertyChoice(value = "adaptive", label = "adaptive"),
                   @DropdownPropertyChoice(value = "disabled", label = "disabled")
                 },
-                optional = true)
+                defaultValue = "modelDefault")
             @Nullable ThinkingMode mode,
         @Min(1024)
             @TemplateProperty(
@@ -542,8 +473,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 label = "Thinking display",
                 tooltip =
                     "Controls how the model's extended thinking is returned. <code>summarized</code> includes a "
-                        + "plain-text summary of the thinking in the response. <code>omitted</code> leaves it out."
-                        + "<br><br>Leave unset to use <code>summarized</code>.",
+                        + "plain-text summary of the thinking in the response. <code>omitted</code> leaves it out.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
                   @DropdownPropertyChoice(value = "summarized", label = "summarized"),
@@ -563,6 +493,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
      * budget, older models), {@code adaptive} (model-managed, newer models) or {@code disabled}.
      */
     public enum ThinkingMode {
+      @JsonProperty("modelDefault")
+      MODEL_DEFAULT,
       @JsonProperty("enabled")
       ENABLED,
       @JsonProperty("adaptive")

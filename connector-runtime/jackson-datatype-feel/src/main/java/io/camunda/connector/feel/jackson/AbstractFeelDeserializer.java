@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import io.camunda.connector.feel.FeelEngineWrapperException;
@@ -46,11 +47,24 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
    * <p>NOTE: This object mapper does not preserve the original deserialization context nor is it
    * aware of any registered modules beyond what's present in the default ObjectMapper. For example,
    * jackson-datatype-document will not be registered. It should not be used to deserialize the
-   * final result. For final results, use the {@link DeserializationContext} object passed to {@link
-   * #doDeserialize(JsonNode, JsonNode, DeserializationContext)} instead.
+   * final result — {@link #resultMapper} is what binds that, and it does carry those modules.
    */
   protected static final ObjectMapper BLANK_OBJECT_MAPPER =
       ConnectorsObjectMapperSupplier.getCopy();
+
+  /**
+   * Binds the value a FEEL evaluation returned.
+   *
+   * <p>Registers neither the FEEL nor the secret-reference module, so no string in an evaluation
+   * result is treated as expression source. It does register the document modules, so a document
+   * reference in a result still materialises.
+   *
+   * <p>Using a mapper rather than the caller's {@link DeserializationContext} also gives every
+   * conversion a context of its own. Deferred {@link java.util.function.Function} and {@link
+   * Supplier} properties are bound once and invoked once per request, so the context captured at
+   * bind time is shared across concurrent invocations, which Jackson's context does not support.
+   */
+  protected final ObjectMapper resultMapper;
 
   /** Evaluator configured for this deserializer instance. */
   protected final FeelExpressionEvaluator evaluator;
@@ -78,11 +92,15 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
    * @param relaxed if true, the deserializer will be triggered for any string value, even if not a
    *     FEEL expression. if false, the deserializer will only be triggered for string values that
    *     start with '=' (indicating a FEEL expression).
+   * @param resultMapper binds what an evaluation returns; see {@link #resultMapper}. When null, a
+   *     blank mapper stands in, which binds plain data but materialises no documents.
    */
-  protected AbstractFeelDeserializer(FeelExpressionEvaluator evaluator, boolean relaxed) {
+  protected AbstractFeelDeserializer(
+      FeelExpressionEvaluator evaluator, boolean relaxed, ObjectMapper resultMapper) {
     super(String.class);
     this.evaluator = evaluator;
     this.relaxed = relaxed;
+    this.resultMapper = resultMapper == null ? BLANK_OBJECT_MAPPER : resultMapper;
   }
 
   @Override
@@ -147,7 +165,6 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     FeelExpressionEvaluator effectiveEvaluator = resolveEvaluator(ctx);
     Object result = effectiveEvaluator.evaluate(expression, variables);
 
-    // Convert result using the deserialization context to preserve registered modules
     try {
       if (result == null) {
         return null;
@@ -156,11 +173,41 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
       if (targetType.getRawClass() == String.class && jsonNode.isObject()) {
         return (R) BLANK_OBJECT_MAPPER.writeValueAsString(jsonNode);
       }
-      return ctx.readTreeAsValue(jsonNode, targetType);
+      // The result mapper, not the caller's context: conversion runs the result back through the
+      // deserializers, and the property mapper's would treat a string in it as expression source.
+      return resultReader(ctx, targetType).readValue(jsonNode);
     } catch (IOException e) {
       throw new FeelEngineWrapperException(
           "Failed to convert FEEL evaluation result to the target type", expression, variables, e);
     }
+  }
+
+  /**
+   * A reader on the result mapper carrying the attributes of the binding that produced the value,
+   * minus the two that confer the ability to evaluate.
+   *
+   * <p>A fresh reader carries no attributes, and a result cannot always be bound without them: the
+   * document module resolves the document factory to use per call from the physical-tenant
+   * attribute the runtime sets on the property reader, and a runtime serving more than one physical
+   * tenant cannot resolve one without it. Attributes are therefore carried over rather than
+   * enumerated, so that one added later reaches a result conversion without this method changing.
+   *
+   * <p>The FEEL context is dropped and the evaluator is replaced rather than dropped. A model may
+   * point a field at {@link FeelDeserializer} directly with {@code @JsonDeserialize}, and such a
+   * field is registered on any mapper that binds its type, the result mapper included. Leaving the
+   * binding's cluster-backed evaluator in place would let it resolve a secret from result text;
+   * leaving no evaluator at all would let it fall back to the local engine it was constructed with
+   * and run that text as an expression. {@link NonEvaluatingFeelExpressionEvaluator} answers with
+   * the text instead, which is what a result is.
+   */
+  protected ObjectReader resultReader(final DeserializationContext ctx, final JavaType targetType) {
+    return resultMapper
+        .readerFor(targetType)
+        .with(ctx.getConfig().getAttributes())
+        .withAttribute(
+            FeelContextAwareObjectReader.FEEL_EVALUATOR_ATTRIBUTE,
+            NonEvaluatingFeelExpressionEvaluator.INSTANCE)
+        .withAttribute(FeelContextAwareObjectReader.FEEL_CONTEXT_ATTRIBUTE, null);
   }
 
   /**
@@ -184,9 +231,20 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     if (!relaxed) {
       return evaluator;
     }
+    return resolveEvaluator(ctx, evaluator);
+  }
+
+  /**
+   * Returns the evaluator carried by the current {@link
+   * com.fasterxml.jackson.databind.ObjectReader} as the {@link
+   * FeelContextAwareObjectReader#FEEL_EVALUATOR_ATTRIBUTE} attribute, or {@code fallback} when the
+   * reader carries none.
+   */
+  static FeelExpressionEvaluator resolveEvaluator(
+      DeserializationContext ctx, FeelExpressionEvaluator fallback) {
     var override = ctx.getAttribute(FeelContextAwareObjectReader.FEEL_EVALUATOR_ATTRIBUTE);
     if (override == null) {
-      return evaluator;
+      return fallback;
     }
     if (override instanceof FeelExpressionEvaluator feelEvaluator) {
       return feelEvaluator;

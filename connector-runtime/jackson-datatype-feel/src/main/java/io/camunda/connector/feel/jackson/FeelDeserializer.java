@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
@@ -44,7 +45,7 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
   /** Default constructor for use with @JsonDeserialize annotations. Uses local FEEL engine. */
   public FeelDeserializer() {
-    this(FALLBACK_EVALUATOR, TypeFactory.unknownType());
+    this(FALLBACK_EVALUATOR, TypeFactory.unknownType(), null);
   }
 
   /**
@@ -53,11 +54,20 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
    * @param evaluator the FEEL expression evaluator to use
    */
   public FeelDeserializer(FeelExpressionEvaluator evaluator) {
-    this(evaluator, TypeFactory.unknownType());
+    this(evaluator, TypeFactory.unknownType(), null);
   }
 
-  protected FeelDeserializer(FeelExpressionEvaluator evaluator, JavaType outputType) {
-    super(evaluator, true);
+  /**
+   * @param resultMapper binds what an evaluation returns; see {@link
+   *     AbstractFeelDeserializer#resultMapper}
+   */
+  public FeelDeserializer(FeelExpressionEvaluator evaluator, ObjectMapper resultMapper) {
+    this(evaluator, TypeFactory.unknownType(), resultMapper);
+  }
+
+  protected FeelDeserializer(
+      FeelExpressionEvaluator evaluator, JavaType outputType, ObjectMapper resultMapper) {
+    super(evaluator, true, resultMapper);
     this.outputType = outputType;
   }
 
@@ -106,6 +116,8 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
     if (outputType.getRawClass() == String.class && node.isObject()) {
       return BLANK_OBJECT_MAPPER.writeValueAsString(node);
     }
+    // The caller's context, not the result mapper: this branch binds the model's own text, which
+    // is exactly the case that may hold expressions and secret references.
     return context.readTreeAsValue(node, outputType);
   }
 
@@ -151,6 +163,6 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
   @Override
   public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
-    return new FeelDeserializer(evaluator, property.getType());
+    return new FeelDeserializer(evaluator, property.getType(), resultMapper);
   }
 }

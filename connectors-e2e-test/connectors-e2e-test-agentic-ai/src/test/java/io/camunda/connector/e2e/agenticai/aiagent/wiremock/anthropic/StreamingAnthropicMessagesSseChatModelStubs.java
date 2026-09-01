@@ -20,7 +20,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesChatModelStubs.MESSAGES_PATH;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
@@ -53,6 +52,7 @@ import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -67,9 +67,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>Each event is built using the vendor SDK's own {@code RawMessageStreamEvent} member types
  * (rather than hand-rolled JSON) and serialized with the SDK's own {@link
  * ObjectMappers#jsonMapper()}, so the bytes are guaranteed to parse exactly as real Anthropic would
- * send them. The per-turn data (assistant text, tool_use calls, input/output token usage, stop
- * reason) mirrors {@link AnthropicMessagesChatModelStubs.Turn} exactly, just framed as SSE instead
- * of one buffered JSON object:
+ * send them. The per-turn data is assistant text, tool_use calls, and input/output token usage,
+ * framed as SSE:
  *
  * <ol>
  *   <li>{@code message_start} - a {@link Message} shell (id/type/role=assistant/model, empty
@@ -86,6 +85,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * </ol>
  */
 public final class StreamingAnthropicMessagesSseChatModelStubs {
+
+  public static final String MESSAGES_PATH = "/v1/messages";
 
   private static final String SCENARIO_NAME = "llm-conversation-sse";
   private static final JsonMapper JSON_MAPPER = ObjectMappers.jsonMapper();
@@ -247,6 +248,45 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
     writeEvent(body, "content_block_stop", RawContentBlockStopEvent.builder().index(index).build());
   }
 
+  /**
+   * A turn whose response leads with assistant text but ends with a {@code refusal} stop reason -
+   * the shape Anthropic returns when its content filtering blocks the response after some text was
+   * already generated. Always ends the turn with {@code stop_reason: refusal}, unlike {@link
+   * #sseBody(TurnStub)} which derives the stop reason from whether tool calls are present.
+   */
+  public record RefusalTurnStub(String text, int inputTokens, int outputTokens) {}
+
+  /** Wires a single-turn scenario whose response ends with a {@code refusal} stop reason. */
+  public static void stubRefusalConversation(RefusalTurnStub refusalTurn) {
+    stubScenario(List.of(refusalSseBody(refusalTurn)));
+  }
+
+  private static String refusalSseBody(RefusalTurnStub turn) {
+    final int id = TURN_COUNTER.getAndIncrement();
+    final StringBuilder body = new StringBuilder();
+
+    writeEvent(body, "message_start", messageStartEvent(id, turn.inputTokens()));
+    writeTextBlock(body, 0, turn.text());
+    writeEvent(
+        body,
+        "message_delta",
+        messageDeltaEvent(StopReason.REFUSAL, turn.inputTokens(), turn.outputTokens()));
+    writeEvent(body, "message_stop", RawMessageStopEvent.builder().build());
+
+    return body.toString();
+  }
+
+  /**
+   * Wires a single-turn scenario whose response is delayed by {@code delay} via WireMock's {@code
+   * withFixedDelay} - used by HTTP-transport-timeout e2e coverage to simulate a slow/hanging model
+   * response on the native streaming endpoint.
+   */
+  public static void stubConversation(Duration delay, TurnStub turn) {
+    stubFor(
+        post(urlPathEqualTo(MESSAGES_PATH))
+            .willReturn(sseResponse(sseBody(turn)).withFixedDelay((int) delay.toMillis())));
+  }
+
   /** Shared scenario-chaining plumbing: returns each pre-rendered SSE body in order. */
   private static void stubScenario(List<String> bodies) {
     for (int i = 0; i < bodies.size(); i++) {
@@ -372,11 +412,17 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
 
   private static RawMessageDeltaEvent messageDeltaEvent(
       boolean hasToolCalls, int inputTokens, int outputTokens) {
+    return messageDeltaEvent(
+        hasToolCalls ? StopReason.TOOL_USE : StopReason.END_TURN, inputTokens, outputTokens);
+  }
+
+  private static RawMessageDeltaEvent messageDeltaEvent(
+      StopReason stopReason, int inputTokens, int outputTokens) {
     return RawMessageDeltaEvent.builder()
         .delta(
             RawMessageDeltaEvent.Delta.builder()
                 .container((Container) null)
-                .stopReason(hasToolCalls ? StopReason.TOOL_USE : StopReason.END_TURN)
+                .stopReason(stopReason)
                 .stopDetails((RefusalStopDetails) null)
                 .stopSequence((String) null)
                 .build())

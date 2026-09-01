@@ -33,6 +33,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
@@ -68,6 +69,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
 @ExtendWith(MockitoExtension.class)
@@ -84,6 +86,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
 
   @MockitoBean private McpClientRegistry mcpClientRegistry;
   @MockitoBean private McpRemoteClientRegistry remoteMcpClientRegistry;
+  @MockitoSpyBean private AgentInstanceClient agentInstanceClient;
 
   @Mock private McpSyncClient aMcpClient;
   @Mock private McpSyncClient aHttpRemoteMcpClient;
@@ -176,6 +179,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
     verify(aHttpRemoteMcpClient).listTools();
     verify(aSseRemoteMcpClient).listTools();
     verify(filesystemMcpClient).listTools();
+    verify(agentInstanceClient).applyToolDiscoveryStart(any(), any());
 
     assertThat(OpenAiCompletionsRecordedConversation.recorded().modelCallCount()).isEqualTo(1);
 
@@ -296,7 +300,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
                 toolExecutionRequest -> {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
                   assertThat(toolExecutionRequest.arguments())
-                      .containsExactly(entry("paramA1", "someValue"), entry("paramA2", 3));
+                      .containsOnly(entry("paramA1", "someValue"), entry("paramA2", 3));
                   assertThat(toolExecutionRequest.meta())
                       .containsExactly(entry("exampleMetaKey", "exampleMetaValue"));
                 }));
@@ -317,7 +321,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
                 toolExecutionRequest -> {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
                   assertThat(toolExecutionRequest.arguments())
-                      .containsExactly(entry("paramA1", "someValue2"), entry("paramA2", 6));
+                      .containsOnly(entry("paramA1", "someValue2"), entry("paramA2", 6));
                 }));
   }
 

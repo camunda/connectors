@@ -18,7 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 /**
- * Inspects the {@code POST /model/test-model/converse} requests the connector actually sent to
- * WireMock.
+ * Inspects the {@code POST /model/test-model/converse[-stream]} requests the connector actually
+ * sent to WireMock.
  *
  * <p>Bedrock's wire format is normalized the same way as Anthropic's so the shared {@code
  * ProviderWireFormatExpectedMessage} DSL can be reused unchanged: the system prompt is a top-level
@@ -55,12 +55,21 @@ public final class BedrockConverseRecordedConversation {
   }
 
   /**
-   * Reads and parses all recorded {@code POST /model/test-model/converse} requests, oldest first.
+   * Reads and parses all recorded {@code POST /model/test-model/converse} (v1, non-streaming) or
+   * {@code POST /model/test-model/converse-stream} (v2, streaming) requests, oldest first. Both
+   * operations share the identical request wire format - only the response framing differs (see
+   * {@link StreamingBedrockConverseEventStreamChatModelStubs}) - so one matcher covering either
+   * suffix serves both {@link BedrockConverseV1WireFormatFixture} and {@link
+   * BedrockConverseV2WireFormatFixture}.
    */
   public static BedrockConverseRecordedConversation recorded() {
     final List<LoggedRequest> loggedRequests =
         new ArrayList<>(
-            findAll(postRequestedFor(urlPathEqualTo(BedrockConverseChatModelStubs.CONVERSE_PATH))));
+            findAll(
+                postRequestedFor(
+                    urlPathMatching(
+                        StreamingBedrockConverseEventStreamChatModelStubs.CONVERSE_PATH
+                            + "(-stream)?"))));
 
     loggedRequests.sort(Comparator.comparing(LoggedRequest::getLoggedDate));
 
@@ -196,11 +205,31 @@ public final class BedrockConverseRecordedConversation {
       return fieldNames.hasNext() ? fieldNames.next() : "unknown";
     }
 
+    /**
+     * Renders a tool-result content block list to plain text for the shared {@code
+     * ProviderWireFormatExpectedMessage} DSL. Unlike the v1 (LangChain4j) provider, which always
+     * stringifies tool results into {@code text} blocks, the native v2 provider preserves a
+     * non-string tool result's actual type ({@code
+     * BedrockConverseContentConverter#toToolResultBlocks(List)} emits {@code
+     * ToolResultContentBlock.fromJson(...)} for non-text {@code Content}, e.g. the bare number
+     * {@code 24} a script task returns) - so a {@code json} block's value ({@code asText()} renders
+     * a number/boolean/string node the same way {@code toString()} would print it) is rendered the
+     * same way a {@code text} block's value is.
+     */
     private static String toolResultText(JsonNode content) {
       return StreamSupport.stream(content.spliterator(), false)
-          .filter(block -> !block.path("text").isMissingNode())
-          .map(block -> block.path("text").asText())
+          .map(BedrockConverseRecordedConversation.RecordedChatRequest::toolResultBlockText)
           .collect(Collectors.joining());
+    }
+
+    private static String toolResultBlockText(JsonNode block) {
+      if (!block.path("text").isMissingNode()) {
+        return block.path("text").asText();
+      }
+      if (!block.path("json").isMissingNode()) {
+        return block.path("json").asText();
+      }
+      return "";
     }
 
     private static ToolDefinition toToolDefinition(JsonNode toolSpec) {

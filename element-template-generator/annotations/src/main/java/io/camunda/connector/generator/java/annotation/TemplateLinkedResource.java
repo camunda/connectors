@@ -35,6 +35,12 @@ import java.lang.annotation.Target;
  * being {@code "true"}, so when the user leaves it at the default {@code "false"} no {@code
  * zeebe:linkedResource} block is written to the BPMN and Zeebe accepts the process without a form.
  *
+ * <p>When {@link #conditions} are declared, all linked-resource properties (including the optional
+ * toggle, if any) are additionally gated on them. Since a property whose condition does not hold is
+ * not written to the BPMN either, this is an alternative to {@link #optional} for resources already
+ * gated by a discriminator: pointing a condition at the discriminator makes the linked resource one
+ * of its mutually exclusive options, with no separate Yes/No toggle.
+ *
  * <p>Supported on both operation-based connectors ({@code OutboundConnectorProvider} with
  * {@code @Operation}-annotated methods) and class-based connectors ({@code
  * OutboundConnectorFunction} implementations). Not supported on inbound connectors — {@code
@@ -79,4 +85,20 @@ public @interface TemplateLinkedResource {
    * {@code "Include <linkName>?"} if blank.
    */
   String toggleLabel() default "";
+
+  /**
+   * Extra conditions, all of which must hold for this linked resource to be rendered and written to
+   * the BPMN. They are ANDed with the operation scope and, when {@link #optional} is set, with the
+   * toggle.
+   *
+   * <p>Specify each {@code property} as declared on the request model, without the operation prefix
+   * — e.g. {@code "content.type"} for a discriminator on a {@code content} field; the operation
+   * prefix is added by the generator.
+   *
+   * <p>When the gating discriminator is itself nested inside another discriminator, list
+   * <em>both</em> — the generator does exactly this for ordinary nested properties, and a linked
+   * resource gated only on the inner one can still match on a stale value after the outer
+   * discriminator changes branch.
+   */
+  TemplateProperty.NestedPropertyCondition[] conditions() default {};
 }

@@ -11,6 +11,27 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.Anthr
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseRequestConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentRequestConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiFoundryCredentialResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesRequestConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -29,5 +50,71 @@ public class AgenticAiNativeProvidersConfiguration {
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
     return new AnthropicChatModelFactory(httpProxySupport, requestConverter, responseConverter);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public BedrockConverseChatModelFactory aiAgentBedrockConverseChatModelFactory(
+      AgenticAiConnectorsConfigurationProperties configuration,
+      AgenticAiHttpProxySupport httpProxySupport,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    final var contentConverter = new BedrockConverseContentConverter(objectMapper);
+    final var requestConverter =
+        new BedrockConverseRequestConverter(contentConverter, objectMapper);
+    final var responseConverter = new BedrockConverseResponseConverter();
+    return new BedrockConverseChatModelFactory(
+        configuration.aiagent().chatModel(),
+        httpProxySupport,
+        requestConverter,
+        responseConverter,
+        objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public EntraIdTokenCredentialFactory aiAgentEntraIdTokenCredentialFactory(
+      AgenticAiConnectorsConfigurationProperties configuration,
+      AgenticAiHttpProxySupport httpProxySupport) {
+    return new EntraIdTokenCredentialFactory(
+        httpProxySupport, configuration.aiagent().chatModel().azure().credentialCache());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public OpenAiFoundryCredentialResolver aiAgentOpenAiFoundryCredentialResolver(
+      EntraIdTokenCredentialFactory entraIdTokenCredentialFactory) {
+    return new OpenAiFoundryCredentialResolver(entraIdTokenCredentialFactory);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public OpenAiChatModelFactory aiAgentOpenAiChatModelFactory(
+      AgenticAiHttpProxySupport httpProxySupport,
+      OpenAiFoundryCredentialResolver openAiFoundryCredentialResolver,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    final var contentConverter = new OpenAiContentConverter(objectMapper);
+    final var completionsStrategy =
+        new OpenAiCompletionsStrategy(
+            new OpenAiCompletionsRequestConverter(contentConverter, objectMapper),
+            new OpenAiCompletionsResponseConverter(objectMapper),
+            OpenAiCompletionsStreamAssembler.accumulating());
+    final var responsesStrategy =
+        new OpenAiResponsesStrategy(
+            new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
+            new OpenAiResponsesResponseConverter(objectMapper),
+            OpenAiResponsesStreamAssembler.accumulating());
+    return new OpenAiChatModelFactory(
+        httpProxySupport, completionsStrategy, responsesStrategy, openAiFoundryCredentialResolver);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public GeminiChatModelFactory aiAgentGeminiChatModelFactory(
+      AgenticAiHttpProxySupport httpProxySupport,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    final var contentConverter = new GeminiContentConverter(objectMapper);
+    final var requestConverter = new GeminiContentRequestConverter(contentConverter);
+    final var responseConverter = new GeminiContentResponseConverter();
+    return new GeminiChatModelFactory(httpProxySupport, requestConverter, responseConverter);
   }
 }

@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import java.io.IOException;
@@ -35,8 +36,9 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
 
   private static final TypeReference<Map<String, Object>> MAP_TYPE_REF = new TypeReference<>() {};
 
-  public FeelFunctionDeserializer(JavaType outputType, FeelExpressionEvaluator evaluator) {
-    super(evaluator, false);
+  public FeelFunctionDeserializer(
+      JavaType outputType, FeelExpressionEvaluator evaluator, ObjectMapper resultMapper) {
+    super(evaluator, false, resultMapper);
     this.outputType = outputType;
   }
 
@@ -45,23 +47,25 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
   protected Function<IN, OUT> doDeserialize(
       JsonNode node, JsonNode feelContext, DeserializationContext deserializationContext) {
     return (input) -> {
-      JsonNode jsonNode =
-          BLANK_OBJECT_MAPPER.valueToTree(
-              evaluateFeelExpression(
-                  deserializationContext,
-                  node.textValue(),
-                  deserializationContext.getTypeFactory().constructType(JsonNode.class),
-                  input,
-                  feelContext));
       try {
+        JsonNode jsonNode =
+            BLANK_OBJECT_MAPPER.valueToTree(
+                evaluateFeelExpression(
+                    deserializationContext,
+                    node.textValue(),
+                    deserializationContext.getTypeFactory().constructType(JsonNode.class),
+                    input,
+                    feelContext));
         if (jsonNode == null || jsonNode.isNull()) {
           return null;
         }
         if (outputType.getRawClass() == String.class && jsonNode.isObject()) {
           return (OUT) BLANK_OBJECT_MAPPER.writeValueAsString(jsonNode);
-        } else {
-          return deserializationContext.readTreeAsValue(jsonNode, outputType);
         }
+        // The callback's result is runtime data: a webhook request, an HTTP response. The result
+        // mapper registers no FEEL or secret-reference deserializer, so a caller-supplied string
+        // such as "=camunda.secrets.TOKEN" is bound as a string.
+        return resultReader(deserializationContext, outputType).readValue(jsonNode);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -73,11 +77,11 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
     if (property != null) {
       if (property.getType().containedTypeCount() == 2) {
         var outputType = property.getType().containedType(1);
-        return new FeelFunctionDeserializer<>(outputType, evaluator);
+        return new FeelFunctionDeserializer<>(outputType, evaluator, resultMapper);
       }
     }
 
-    return new FeelFunctionDeserializer<>(TypeFactory.unknownType(), evaluator);
+    return new FeelFunctionDeserializer<>(TypeFactory.unknownType(), evaluator, resultMapper);
   }
 
   private static class MergedContext {

@@ -41,6 +41,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +51,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -137,6 +139,8 @@ class AgentInitializerTest {
     void shouldHandleNullInitialAgentContext() {
       // When initialAgentContext is null, creates new context with INITIALIZING state
       // which triggers agent instance creation then initiateToolDiscovery flow
+      when(jobContext.getCustomHeaders())
+          .thenReturn(Map.of("io.camunda.zeebe:agentDefinitionKey", "6755399441055744"));
       when(agentInstanceClient.create(any())).thenReturn(AgentInstanceKey.of(12345L));
 
       when(toolsResolver.loadAdHocToolsSchema(
@@ -568,12 +572,16 @@ class AgentInitializerTest {
 
     private static final long PROCESS_DEFINITION_KEY = 100L;
     private static final long PROCESS_INSTANCE_KEY = 200L;
+    private static final String AGENT_DEFINITION_KEY_HEADER = "io.camunda.zeebe:agentDefinitionKey";
 
     @BeforeEach
     void setUp() {
       lenient().when(executionContext.jobContext()).thenReturn(jobContext);
       lenient().when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
       lenient().when(jobContext.getProcessInstanceKey()).thenReturn(PROCESS_INSTANCE_KEY);
+      lenient()
+          .when(jobContext.getCustomHeaders())
+          .thenReturn(Map.of(AGENT_DEFINITION_KEY_HEADER, "6755399441055744"));
     }
 
     @Test
@@ -589,6 +597,49 @@ class AgentInitializerTest {
 
       verify(agentInstanceClient, times(1)).create(any(AgentExecutionContext.class));
       assertThat(result.agentContext().metadata().agentInstanceKey()).isEqualTo(12345L);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" ", "\t"})
+    void shouldSkipAgentInstanceCreationWhenAgentDefinitionKeyHeaderIsBlank(String headerValue) {
+      final var headers = new HashMap<String, String>();
+      headers.put(AGENT_DEFINITION_KEY_HEADER, headerValue);
+      when(jobContext.getCustomHeaders()).thenReturn(headers);
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
+
+      final var result = (ReadyToConverse) agentInitializer.initializeAgent(executionContext);
+
+      verify(agentInstanceClient, never()).create(any());
+      assertThat(result.agentContext().metadata().agentInstanceKey()).isNull();
+    }
+
+    @Test
+    void shouldSkipAgentInstanceCreationWhenAgentDefinitionKeyHeaderMissing() {
+      when(jobContext.getCustomHeaders()).thenReturn(Map.of("some-other-header", "value"));
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
+
+      final var result = (ReadyToConverse) agentInitializer.initializeAgent(executionContext);
+
+      verify(agentInstanceClient, never()).create(any());
+      assertThat(result.agentContext().metadata().agentInstanceKey()).isNull();
+    }
+
+    @Test
+    void shouldSkipAgentInstanceCreationWhenCustomHeadersIsNull() {
+      when(jobContext.getCustomHeaders()).thenReturn(null);
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
+
+      final var result = (ReadyToConverse) agentInitializer.initializeAgent(executionContext);
+
+      verify(agentInstanceClient, never()).create(any());
+      assertThat(result.agentContext().metadata().agentInstanceKey()).isNull();
     }
 
     @Test

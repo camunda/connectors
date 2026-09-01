@@ -6,13 +6,25 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.message;
 
+import com.fasterxml.uuid.Generators;
+import com.fasterxml.uuid.NoArgGenerator;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class MessageUtil {
   private MessageUtil() {}
+
+  private static final NoArgGenerator ID_GENERATOR = Generators.timeBasedEpochGenerator();
+
+  /**
+   * Builder default for {@link Message#id()}; also backfills ids on pre-existing persisted data.
+   */
+  public static MessageId generateId() {
+    return MessageId.of(ID_GENERATOR.generate());
+  }
 
   public static List<Content> singleTextContent(String text) {
     return List.of(TextContent.textContent(text));
@@ -26,5 +38,16 @@ public class MessageUtil {
     return !messages.isEmpty() && messages.getFirst() instanceof SystemMessage systemMessage
         ? Optional.of(systemMessage)
         : Optional.empty();
+  }
+
+  /**
+   * Flattens a {@link ContentMessage}'s {@link TextContent} blocks to a single string, joined with
+   * {@code \n}; non-text content blocks are ignored.
+   */
+  public static String contentText(ContentMessage message) {
+    return message.content().stream()
+        .filter(TextContent.class::isInstance)
+        .map(c -> ((TextContent) c).text())
+        .collect(Collectors.joining("\n"));
   }
 }

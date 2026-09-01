@@ -104,6 +104,13 @@ public class ObjectDeserializer extends AbstractDeserializer<Object> {
     var parser = node.traverse(ctx.getParser().getCodec());
     parser.nextToken();
 
+    if (node.isTextual()) {
+      // Routed through the context rather than a bare UntypedObjectDeserializer, so whatever the
+      // mapper composes onto String — the secret-reference resolver, in particular — still applies
+      // to a scalar value reached through an Object-typed field or a Map/List<Object> element.
+      return ctx.readValue(parser, String.class);
+    }
+
     final var fallbackDeserializer = new UntypedObjectDeserializer(null, null);
     return fallbackDeserializer.deserialize(parser, ctx);
   }
