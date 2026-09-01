@@ -80,7 +80,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final Long activationTimestamp;
   private final CamundaClient camundaClient;
   private final boolean secretFilterEnabled;
-  private ValidInboundConnectorDetails connectorDetails;
+  private volatile ValidInboundConnectorDetails connectorDetails;
   private Health health = Health.unknown();
   private @Nullable Map<String, Object> propertiesWithSecrets;
 
