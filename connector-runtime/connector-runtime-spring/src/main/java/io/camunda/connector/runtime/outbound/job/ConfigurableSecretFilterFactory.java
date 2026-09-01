@@ -52,7 +52,12 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
                 new SecretKeyContext(context.processDefinitionKey(), context.elementId()));
           } catch (RuntimeException e) {
             if (strict) {
-              throw new IllegalArgumentException("Error retrieving secret keys", e);
+              // Only getMessage() reaches the Zeebe incident (see the exception-handling layer
+              // that turns this into a failJob command) -- the real cause, e, is otherwise
+              // visible only in this pod's log. Folding it into the message here is what actually
+              // gets it in front of an operator.
+              throw new IllegalArgumentException(
+                  "Error retrieving secret keys: " + e.getMessage(), e);
             } else {
               LOG.warn(
                   "Error filtering secrets for element '{}' in process definition key {}, will allow all as secret-filter-mode is LAX",

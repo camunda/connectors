@@ -99,4 +99,18 @@ class ConfigurableSecretFilterFactoryTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Error retrieving secret keys");
   }
+
+  @Test
+  void create_strict_whenCacheThrows_messageIncludesTheRealCause() {
+    // Only getMessage() reaches the Zeebe incident; the real cause must be folded into it, not
+    // left visible only in the pod log, or an operator sees nothing actionable.
+    when(secretKeyCache.getSecretKeys(any()))
+        .thenThrow(new RuntimeException("Operate returned 404 for process definition 42"));
+    var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
+
+    var filter = factory.create(CONTEXT);
+
+    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+        .hasMessageContaining("Operate returned 404 for process definition 42");
+  }
 }
