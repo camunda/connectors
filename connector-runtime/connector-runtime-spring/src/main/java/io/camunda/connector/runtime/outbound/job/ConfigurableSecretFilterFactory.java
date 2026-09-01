@@ -55,9 +55,8 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
               // e is usually a Cache.ValueRetrievalException (Spring's Cache#get(key, loader)
               // wraps whatever the loader throws); unwrap to name the real failure type. Never
               // log the cause's message, or the cause itself, anywhere -- not the incident, not
-              // the pod log -- a client/parser exception message can echo response-body content
-              // (see SecretReferenceResolver's identical convention: it never passes the caught
-              // exception to its logger either, only the class name). The element ID,
+              // the pod log -- a client/parser exception message can echo response-body content,
+              // so neither sink gets more than the exception's class name. The element ID,
               // process-definition key, and exception class are enough for an operator to
               // distinguish failure modes.
               Throwable realCause = e.getCause() != null ? e.getCause() : e;

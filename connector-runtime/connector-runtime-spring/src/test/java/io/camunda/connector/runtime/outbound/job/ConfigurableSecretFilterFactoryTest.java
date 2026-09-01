@@ -111,7 +111,7 @@ class ConfigurableSecretFilterFactoryTest {
   void create_strict_whenCacheThrows_messageIdentifiesTheFailureWithoutLeakingTheCauseText() {
     // The incident must be actionable (element ID, process-definition key, exception class) but
     // must never carry the cause's own message: a client/parser exception message can echo
-    // response-body content (see SecretReferenceResolver's identical convention).
+    // response-body content.
     when(secretKeyCache.getSecretKeys(any()))
         .thenThrow(new RuntimeException("Operate returned 404 for process definition 42"));
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
