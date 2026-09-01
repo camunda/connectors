@@ -19,12 +19,11 @@ package io.camunda.connector.runtime.outbound;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
-import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.Cache;
-import org.springframework.cache.caffeine.CaffeineCacheManager;
-import org.springframework.cache.support.NoOpCacheManager;
+import org.springframework.cache.caffeine.CaffeineCache;
+import org.springframework.cache.support.NoOpCache;
 
 class OutboundConnectorRuntimeConfigurationTest {
 
@@ -32,23 +31,22 @@ class OutboundConnectorRuntimeConfigurationTest {
       new OutboundConnectorRuntimeConfiguration();
 
   @Test
-  void secretKeyCacheManager_whenEnabled_returnsCaffeineCacheManager() {
-    var cacheManager = configuration.secretKeyCacheManager(true, 1000);
+  void secretKeyCacheStore_whenEnabled_returnsCaffeineCache() {
+    var cache = configuration.secretKeyCacheStore(true, 1000);
 
-    assertInstanceOf(CaffeineCacheManager.class, cacheManager);
+    assertInstanceOf(CaffeineCache.class, cache);
   }
 
   @Test
-  void secretKeyCacheManager_whenDisabled_returnsNoOpCacheManager() {
-    var cacheManager = configuration.secretKeyCacheManager(false, 1000);
+  void secretKeyCacheStore_whenDisabled_returnsNoOpCache() {
+    var cache = configuration.secretKeyCacheStore(false, 1000);
 
-    assertInstanceOf(NoOpCacheManager.class, cacheManager);
+    assertInstanceOf(NoOpCache.class, cache);
   }
 
   @Test
-  void secretKeyCacheManager_whenDisabled_cacheNeverStoresValues() throws Exception {
-    var cacheManager = configuration.secretKeyCacheManager(false, 1000);
-    Cache cache = cacheManager.getCache(SecretKeyCache.SECRET_KEY_CACHE_NAME);
+  void secretKeyCacheStore_whenDisabled_cacheNeverStoresValues() {
+    Cache cache = configuration.secretKeyCacheStore(false, 1000);
 
     var callCount = new AtomicInteger(0);
     cache.get("key", callCount::incrementAndGet);
@@ -58,16 +56,16 @@ class OutboundConnectorRuntimeConfigurationTest {
   }
 
   @Test
-  void secretKeyCacheManager_whenMaxSizeIsZero_clampedToDefault() {
-    var cacheManager = configuration.secretKeyCacheManager(true, 0);
+  void secretKeyCacheStore_whenMaxSizeIsZero_clampedToDefault() {
+    var cache = configuration.secretKeyCacheStore(true, 0);
 
-    assertInstanceOf(CaffeineCacheManager.class, cacheManager);
+    assertInstanceOf(CaffeineCache.class, cache);
   }
 
   @Test
-  void secretKeyCacheManager_whenMaxSizeIsNegative_clampedToDefault() {
-    var cacheManager = configuration.secretKeyCacheManager(true, -1);
+  void secretKeyCacheStore_whenMaxSizeIsNegative_clampedToDefault() {
+    var cache = configuration.secretKeyCacheStore(true, -1);
 
-    assertInstanceOf(CaffeineCacheManager.class, cacheManager);
+    assertInstanceOf(CaffeineCache.class, cache);
   }
 }
