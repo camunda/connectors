@@ -1089,7 +1089,8 @@
     {
       "id" : "retryCount",
       "label" : "Retries",
-      "value" : "3",
+      "description" : "Several operations here are non-idempotent writes (Execute statement, Run job now). A retry resends the identical request, which can duplicate a SQL INSERT/UPDATE or launch a duplicate job run. The SQL Statement Execution API has no idempotency key at all; Run job now accepts one (see Idempotency token below), but only if it is set. Defaults to 0 for that reason -- raise it only for read-only operations or once you have confirmed the mitigation covers your case.",
+      "value" : "0",
       "feel" : "optional",
       "group" : "retries",
       "binding" : {
