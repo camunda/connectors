@@ -445,6 +445,19 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
+  void secretFilterEnabled_leavesASecretDeclaredOnlyInTheNewForm() {
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("API_KEY"), any())).thenReturn("leaked-via-legacy-path");
+    var context =
+        filteringContext(
+            getInboundConnectorDefinition(Map.of("newForm", "=camunda.secrets.API_KEY")),
+            secretProvider);
+
+    assertThat(replace(context, "secrets.API_KEY")).isEqualTo("secrets.API_KEY");
+    verify(secretProvider, never()).getSecret(eq("API_KEY"), any());
+  }
+
+  @Test
   void getDefinition_reportsTheElementsPhysicalTenantId() {
     var definition =
         getInboundConnectorDefinitionWithPhysicalTenant(Map.of("stringMap", "={}"), "engine-1");
