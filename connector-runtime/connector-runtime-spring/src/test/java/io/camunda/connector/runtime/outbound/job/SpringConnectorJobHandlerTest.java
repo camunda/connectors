@@ -49,6 +49,7 @@ import io.camunda.connector.runtime.JobBuilder;
 import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
@@ -95,7 +96,8 @@ class SpringConnectorJobHandlerTest {
             mock(DocumentFactory.class),
             TestObjectMapperSupplier.INSTANCE,
             call,
-            new DefaultNoopMetricsRecorder());
+            new DefaultNoopMetricsRecorder(),
+            SecretFilterFactory.disabled());
       }
 
       protected static SpringConnectorJobHandler newConnectorJobHandler(

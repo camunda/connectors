@@ -29,6 +29,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler;
@@ -50,6 +51,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
   private final ObjectMapper objectMapper;
   private final DocumentFactory documentFactory;
   private final ConnectorsOutboundMetrics outboundMetrics;
+  private final SecretFilterFactory secretFilterFactory;
 
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
@@ -59,7 +61,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      ConnectorsOutboundMetrics outboundMetrics) {
+      ConnectorsOutboundMetrics outboundMetrics,
+      SecretFilterFactory secretFilterFactory) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
@@ -68,6 +71,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
     this.outboundMetrics = outboundMetrics;
+    this.secretFilterFactory = secretFilterFactory;
   }
 
   @Override
@@ -112,7 +116,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
             documentFactory,
             objectMapper,
             connectorFunction,
-            new DefaultNoopMetricsRecorder());
+            new DefaultNoopMetricsRecorder(),
+            secretFilterFactory);
 
     jobWorkerManager.openWorker(client, zeebeWorkerValue, connectorJobHandler);
   }

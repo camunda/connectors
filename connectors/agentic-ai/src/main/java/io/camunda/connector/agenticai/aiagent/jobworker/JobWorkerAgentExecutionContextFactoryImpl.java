@@ -16,6 +16,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 
 public class JobWorkerAgentExecutionContextFactoryImpl
     implements JobWorkerAgentExecutionContextFactory {
@@ -37,10 +38,10 @@ public class JobWorkerAgentExecutionContextFactoryImpl
 
   @Override
   public JobWorkerAgentExecutionContext createExecutionContext(
-      final JobClient jobClient, final ActivatedJob job) {
+      final JobClient jobClient, final ActivatedJob job, final SecretFilter secretFilter) {
     final OutboundConnectorContext context =
         new JobHandlerContext(
-            job, secretProvider, validationProvider, documentFactory, objectMapper);
+            job, secretProvider, validationProvider, documentFactory, objectMapper, secretFilter);
     final var request = context.bindVariables(JobWorkerAgentRequest.class);
     return new JobWorkerAgentExecutionContext(jobClient, job, request);
   }

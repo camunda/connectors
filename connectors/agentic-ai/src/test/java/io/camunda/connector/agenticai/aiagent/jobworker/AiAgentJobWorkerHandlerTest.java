@@ -20,6 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -45,6 +47,8 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -118,7 +122,8 @@ class AiAgentJobWorkerHandlerTest {
     when(job.getType()).thenReturn(AiAgentJobWorker.JOB_WORKER_TYPE);
     when(job.getCustomHeaders()).thenReturn(jobHeaders);
 
-    when(executionContextFactory.createExecutionContext(camundaClient, job))
+    when(executionContextFactory.createExecutionContext(
+            eq(camundaClient), eq(job), any(SecretFilter.class)))
         .thenReturn(executionContext);
 
     final var outboundConnectorExceptionHandler =
@@ -134,7 +139,8 @@ class AiAgentJobWorkerHandlerTest {
             exceptionHandlingStrategy,
             outboundConnectorExceptionHandler,
             connectorResultHandler,
-            connectorsOutboundMetrics);
+            connectorsOutboundMetrics,
+            SecretFilterFactory.disabled());
 
     stubFor(post(urlPathEqualTo("/v2/jobs/123456/completion")).willReturn(jsonResponse("{}", 200)));
     stubFor(

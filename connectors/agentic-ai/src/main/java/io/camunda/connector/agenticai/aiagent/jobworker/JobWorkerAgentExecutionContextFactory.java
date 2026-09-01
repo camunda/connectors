@@ -9,8 +9,9 @@ package io.camunda.connector.agenticai.aiagent.jobworker;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 
 public interface JobWorkerAgentExecutionContextFactory {
   JobWorkerAgentExecutionContext createExecutionContext(
-      final JobClient jobClient, final ActivatedJob job);
+      final JobClient jobClient, final ActivatedJob job, final SecretFilter secretFilter);
 }
