@@ -57,17 +57,25 @@ public class SecretUtil {
     return input;
   }
 
+  /**
+   * A denied bracketed reference — e.g. {@code {{secrets.FOO:BAR}}} when only {@code FOO} is
+   * allowed — is left untouched by the parentheses pass, but its own text still contains {@code
+   * secrets.FOO}, which the bare pattern would happily match and resolve on its own since {@code
+   * FOO} genuinely is allowed. Excluding bare matches nested in a still-literal bracketed reference
+   * closes that: the bracket pass already ruled on that name, and the bare pass must not
+   * re-litigate a truncated prefix of it.
+   */
   private static String replaceSecretsWithoutParentheses(
       String input, SecretContext context, SecretReplacer secretReplacer) {
-    var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_SECRETS.matcher(input);
-    while (secretVariableNameWithParenthesesMatcher.find()) {
-      input =
-          replaceTokens(
-              input,
-              SECRET_PATTERN_SECRETS,
-              matcher -> resolveSecretValue(context, secretReplacer, matcher));
-    }
-    return input;
+    List<MatchResult> deniedBracketedReferences =
+        SECRET_PATTERN_PARENTHESES.matcher(input).results().toList();
+    return replaceTokens(
+        input,
+        SECRET_PATTERN_SECRETS,
+        matcher ->
+            isNotNestedInAny(matcher, deniedBracketedReferences)
+                ? resolveSecretValue(context, secretReplacer, matcher)
+                : matcher.group());
   }
 
   private static String resolveSecretValue(
