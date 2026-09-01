@@ -477,12 +477,21 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "servingOperation",
-        "type" : "simple",
-        "oneOf" : [
-          "serving.chat",
-          "serving.raw",
-          "serving.getEndpoint"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "modelServing"
+          },
+          {
+            "property" : "servingOperation",
+            "type" : "simple",
+            "oneOf" : [
+              "serving.chat",
+              "serving.raw",
+              "serving.getEndpoint"
+            ]
+          }
         ]
       },
       "placeholder" : "databricks-meta-llama-3-3-70b-instruct",
@@ -503,9 +512,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "servingOperation",
-        "type" : "simple",
-        "equals" : "serving.chat"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "modelServing"
+          },
+          {
+            "property" : "servingOperation",
+            "type" : "simple",
+            "equals" : "serving.chat"
+          }
+        ]
       },
       "tooltip" : "List of chat messages. Each entry needs a role of system, user, or assistant, and a content string.",
       "type" : "Text"
@@ -521,9 +539,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "servingOperation",
-        "type" : "simple",
-        "equals" : "serving.chat"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "modelServing"
+          },
+          {
+            "property" : "servingOperation",
+            "type" : "simple",
+            "equals" : "serving.chat"
+          }
+        ]
       },
       "tooltip" : "Leave blank to use the endpoint default. Databricks reserves tokens up front, so an oversized value can be rejected with HTTP 429 before the request is processed.",
       "type" : "Number"
@@ -540,9 +567,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "servingOperation",
-        "type" : "simple",
-        "equals" : "serving.chat"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "modelServing"
+          },
+          {
+            "property" : "servingOperation",
+            "type" : "simple",
+            "equals" : "serving.chat"
+          }
+        ]
       },
       "tooltip" : "Leave blank to use the endpoint default of 1.0.",
       "type" : "Number"
@@ -558,9 +594,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "servingOperation",
-        "type" : "simple",
-        "equals" : "serving.chat"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "modelServing"
+          },
+          {
+            "property" : "servingOperation",
+            "type" : "simple",
+            "equals" : "serving.chat"
+          }
+        ]
       },
       "tooltip" : "Extra parameters merged into the request body, for anything not exposed as its own field: top_p, top_k, tools, tool_choice, response_format, logprobs, reasoning_effort. Streaming stays disabled and cannot be re-enabled here.",
       "type" : "Text"
@@ -580,9 +625,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "servingOperation",
-        "type" : "simple",
-        "equals" : "serving.raw"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "modelServing"
+          },
+          {
+            "property" : "servingOperation",
+            "type" : "simple",
+            "equals" : "serving.raw"
+          }
+        ]
       },
       "tooltip" : "Full request body for a custom model endpoint, using exactly one of dataframe_split, dataframe_records, inputs, or instances. Prefer dataframe_split, because dataframe_records does not guarantee column ordering. See <a href=\"https://docs.databricks.com/api/workspace/servingendpoints/query\">Model Serving query API</a>.",
       "type" : "Text"
@@ -601,9 +655,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "sqlOperation",
-        "type" : "simple",
-        "equals" : "sql.execute"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "sql"
+          },
+          {
+            "property" : "sqlOperation",
+            "type" : "simple",
+            "equals" : "sql.execute"
+          }
+        ]
       },
       "placeholder" : "1234567890abcdef",
       "type" : "String"
@@ -624,9 +687,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "sqlOperation",
-        "type" : "simple",
-        "equals" : "sql.execute"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "sql"
+          },
+          {
+            "property" : "sqlOperation",
+            "type" : "simple",
+            "equals" : "sql.execute"
+          }
+        ]
       },
       "tooltip" : "Named markers such as :min_fare are supported. Positional question-mark markers are not supported by the Databricks SQL Statement Execution API.",
       "type" : "Text"
@@ -643,9 +715,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "sqlOperation",
-        "type" : "simple",
-        "equals" : "sql.execute"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "sql"
+          },
+          {
+            "property" : "sqlOperation",
+            "type" : "simple",
+            "equals" : "sql.execute"
+          }
+        ]
       },
       "tooltip" : "List of name, value, and type entries, and the only injection-safe way to pass values into the statement. The name omits the leading colon, type defaults to STRING, and omitting value binds NULL. Complex types such as ARRAY, MAP, and STRUCT are not supported.",
       "type" : "Text"
@@ -661,9 +742,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "sqlOperation",
-        "type" : "simple",
-        "equals" : "sql.execute"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "sql"
+          },
+          {
+            "property" : "sqlOperation",
+            "type" : "simple",
+            "equals" : "sql.execute"
+          }
+        ]
       },
       "placeholder" : "main",
       "type" : "String"
@@ -679,9 +769,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "sqlOperation",
-        "type" : "simple",
-        "equals" : "sql.execute"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "sql"
+          },
+          {
+            "property" : "sqlOperation",
+            "type" : "simple",
+            "equals" : "sql.execute"
+          }
+        ]
       },
       "placeholder" : "default",
       "type" : "String"
@@ -706,9 +805,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "sqlOperation",
-        "type" : "simple",
-        "equals" : "sql.execute"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "sql"
+          },
+          {
+            "property" : "sqlOperation",
+            "type" : "simple",
+            "equals" : "sql.execute"
+          }
+        ]
       },
       "tooltip" : "How long to wait inline for the statement to finish. 0s returns immediately. If the statement does not finish within the window, the response carries a non-terminal state and the result must be polled with the Get statement operation.",
       "type" : "String"
@@ -727,9 +835,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "sqlOperation",
-        "type" : "simple",
-        "equals" : "sql.execute"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "sql"
+          },
+          {
+            "property" : "sqlOperation",
+            "type" : "simple",
+            "equals" : "sql.execute"
+          }
+        ]
       },
       "type" : "Dropdown",
       "choices" : [
@@ -757,9 +874,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "sqlOperation",
-        "type" : "simple",
-        "equals" : "sql.execute"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "sql"
+          },
+          {
+            "property" : "sqlOperation",
+            "type" : "simple",
+            "equals" : "sql.execute"
+          }
+        ]
       },
       "tooltip" : "How results are returned. INLINE embeds rows in the response and is capped at 25 MiB, and exceeding the cap aborts the statement without a result set. EXTERNAL_LINKS returns presigned URLs that expire after 15 minutes and must be fetched without an Authorization header.",
       "type" : "Dropdown",
@@ -788,12 +914,21 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "sqlOperation",
-        "type" : "simple",
-        "oneOf" : [
-          "sql.getStatement",
-          "sql.getChunk",
-          "sql.cancel"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "sql"
+          },
+          {
+            "property" : "sqlOperation",
+            "type" : "simple",
+            "oneOf" : [
+              "sql.getStatement",
+              "sql.getChunk",
+              "sql.cancel"
+            ]
+          }
         ]
       },
       "tooltip" : "The statement_id returned by the Execute statement operation. Statements are removed roughly 12 hours after reaching a terminal state, after which these calls return HTTP 404.",
@@ -813,9 +948,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "sqlOperation",
-        "type" : "simple",
-        "equals" : "sql.getChunk"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "sql"
+          },
+          {
+            "property" : "sqlOperation",
+            "type" : "simple",
+            "equals" : "sql.getChunk"
+          }
+        ]
       },
       "tooltip" : "Zero-based chunk index, taken from next_chunk_index in a previous response. Use this to page through a result set larger than one chunk.",
       "type" : "Number"
@@ -856,9 +1000,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "jobsOperation",
-        "type" : "simple",
-        "equals" : "jobs.runNow"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "jobs"
+          },
+          {
+            "property" : "jobsOperation",
+            "type" : "simple",
+            "equals" : "jobs.runNow"
+          }
+        ]
       },
       "tooltip" : "Numeric ID of the Databricks job to trigger.",
       "type" : "Number"
@@ -874,9 +1027,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "jobsOperation",
-        "type" : "simple",
-        "equals" : "jobs.runNow"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "jobs"
+          },
+          {
+            "property" : "jobsOperation",
+            "type" : "simple",
+            "equals" : "jobs.runNow"
+          }
+        ]
       },
       "tooltip" : "Key-value parameters passed to the run, for example {environment: \"prod\"}. Keys must match parameters declared on the job.",
       "type" : "Text"
@@ -893,9 +1055,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "jobsOperation",
-        "type" : "simple",
-        "equals" : "jobs.runNow"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "jobs"
+          },
+          {
+            "property" : "jobsOperation",
+            "type" : "simple",
+            "equals" : "jobs.runNow"
+          }
+        ]
       },
       "tooltip" : "Databricks returns the existing run instead of starting a new one when a token is reused. Deriving it from a process variable makes the trigger safe to retry.",
       "type" : "String"
@@ -914,12 +1085,21 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "jobsOperation",
-        "type" : "simple",
-        "oneOf" : [
-          "jobs.getRun",
-          "jobs.getRunOutput",
-          "jobs.cancelRun"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "jobs"
+          },
+          {
+            "property" : "jobsOperation",
+            "type" : "simple",
+            "oneOf" : [
+              "jobs.getRun",
+              "jobs.getRunOutput",
+              "jobs.cancelRun"
+            ]
+          }
         ]
       },
       "tooltip" : "The run_id returned by Run job now. Exception: for Get run output on a multi-task job, Databricks only accepts a single task's run_id -- read it from the terminal Get run response's tasks[].run_id, not this top-level run_id.",
@@ -939,9 +1119,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "vectorSearchOperation",
-        "type" : "simple",
-        "equals" : "vectorSearch.query"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "vectorSearch"
+          },
+          {
+            "property" : "vectorSearchOperation",
+            "type" : "simple",
+            "equals" : "vectorSearch.query"
+          }
+        ]
       },
       "placeholder" : "main.default.my_index",
       "tooltip" : "Three-level Unity Catalog name of the vector search index.",
@@ -962,9 +1151,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "vectorSearchOperation",
-        "type" : "simple",
-        "equals" : "vectorSearch.query"
+        "allMatch" : [
+          {
+            "property" : "service",
+            "type" : "simple",
+            "equals" : "vectorSearch"
+          },
+          {
+            "property" : "vectorSearchOperation",
+            "type" : "simple",
+            "equals" : "vectorSearch.query"
+          }
+        ]
       },
       "tooltip" : "Request body for the index query. Only columns is required. Supply query_text for a text index or query_vector for a direct vector, plus optional num_results, filters_json, query_type, and score_threshold.",
       "type" : "Text"
