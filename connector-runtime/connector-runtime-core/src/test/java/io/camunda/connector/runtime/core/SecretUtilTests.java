@@ -137,6 +137,25 @@ public class SecretUtilTests {
   }
 
   @Test
+  void shouldResolveAChainedBracketedReferenceIntroducedByTheParenthesesPassItself() {
+    // The parentheses pass is itself bounded by the original match count: with a single original
+    // occurrence "{{secrets.A}}", it gets exactly one iteration, which resolves A to the literal
+    // "{{secrets.B}}" and then exits -- it never attempts B. That leftover bracket text must not
+    // be treated as "denied" by the bare pass just because it's present at the pass boundary; the
+    // bare pass must get a real chance to resolve B.
+    Function<String, String> secretReplacer =
+        name -> {
+          if ("A".equals(name)) return "{{secrets.B}}";
+          if ("B".equals(name)) return "FINAL";
+          return null;
+        };
+
+    String result = SecretUtil.replaceSecrets("{{secrets.A}}", secretReplacer);
+
+    assertThat(result).isEqualTo("{{FINAL}}");
+  }
+
+  @Test
   void shouldTrimTheExtractedNameSoItMatchesWhatReplacementLooksUp() {
     // The parentheses pattern's capture reaches past the name to the closing braces, so
     // "{{ secrets.FOO }}" declares FOO, not "FOO ". Returning the untrimmed form left the

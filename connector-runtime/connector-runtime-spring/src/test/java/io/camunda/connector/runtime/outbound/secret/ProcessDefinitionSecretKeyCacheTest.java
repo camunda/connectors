@@ -18,16 +18,14 @@ package io.camunda.connector.runtime.outbound.secret;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
-import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,7 +35,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.cache.Cache;
 
 @ExtendWith(MockitoExtension.class)
 class ProcessDefinitionSecretKeyCacheTest {
@@ -45,19 +42,15 @@ class ProcessDefinitionSecretKeyCacheTest {
   private static final long PROCESS_DEF_KEY = 1L;
 
   @Mock private CamundaOperateClient camundaOperateClient;
-  @Mock private Cache cache;
 
   private ProcessDefinitionSecretKeyCache secretKeyCache;
 
   @BeforeEach
-  void setUp() throws Exception {
-    secretKeyCache = new ProcessDefinitionSecretKeyCache(camundaOperateClient, cache);
-    when(cache.get(anyLong(), any(Callable.class)))
-        .thenAnswer(
-            invocation -> {
-              Callable<?> loader = invocation.getArgument(1);
-              return loader.call();
-            });
+  void setUp() {
+    // A real Caffeine cache, not a mock: exercises the actual get(key, Function) contract this
+    // class now relies on, including unchecked-exception propagation.
+    secretKeyCache =
+        new ProcessDefinitionSecretKeyCache(camundaOperateClient, Caffeine.newBuilder().build());
   }
 
   @Test
@@ -175,13 +168,29 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
-  void getSecretKeys_noCamundaOperateClient_throwsIllegalStateException() {
-    var cacheWithoutClient = new ProcessDefinitionSecretKeyCache(null, cache);
+  void getSecretKeys_noCamundaOperateClient_throwsSecretFilterUnavailableException() {
+    var cacheWithoutClient =
+        new ProcessDefinitionSecretKeyCache(null, Caffeine.newBuilder().build());
 
     assertThatThrownBy(
             () -> cacheWithoutClient.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "task")))
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(SecretFilterUnavailableException.class)
         .hasMessageContaining("No CamundaOperateClient available");
+  }
+
+  @Test
+  void getSecretKeys_operateLookupFails_propagatesTheOperateExceptionWrappedExactlyOnce()
+      throws Exception {
+    // Caffeine's Cache#get(key, Function) rethrows the mapping function's exception unwrapped --
+    // SecretKeyLookupException is the only wrapper this path ever introduces, needed solely to
+    // cross the Function boundary with the checked OperateException.
+    when(camundaOperateClient.getProcessDefinitionModel(PROCESS_DEF_KEY))
+        .thenThrow(new io.camunda.operate.exception.OperateException("404"));
+
+    assertThatThrownBy(
+            () -> secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "task")))
+        .isInstanceOf(SecretKeyLookupException.class)
+        .hasCauseInstanceOf(io.camunda.operate.exception.OperateException.class);
   }
 
   private BpmnModelInstance loadBpmn(String fileName) throws IOException {

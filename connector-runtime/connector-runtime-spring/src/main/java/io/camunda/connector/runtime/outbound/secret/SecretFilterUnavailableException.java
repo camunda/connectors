@@ -16,10 +16,14 @@
  */
 package io.camunda.connector.runtime.outbound.secret;
 
-import java.util.List;
-
-public interface SecretKeyCache {
-  List<String> getSecretKeys(SecretKeyContext secretKeyContext);
-
-  record SecretKeyContext(long processDefinitionKey, String elementId) {}
+/**
+ * Thrown when the secret filter cannot do its job for a reason of this runtime's own making (no
+ * {@code CamundaOperateClient} bean available), never because of anything a client or parser echoed
+ * back. Its message is self-authored operator guidance, not derived from external content, so
+ * unlike every other failure path here it is safe to surface as-is.
+ */
+public class SecretFilterUnavailableException extends RuntimeException {
+  public SecretFilterUnavailableException(String message) {
+    super(message);
+  }
 }

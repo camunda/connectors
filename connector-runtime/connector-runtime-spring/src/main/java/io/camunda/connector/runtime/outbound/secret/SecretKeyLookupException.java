@@ -16,10 +16,16 @@
  */
 package io.camunda.connector.runtime.outbound.secret;
 
-import java.util.List;
-
-public interface SecretKeyCache {
-  List<String> getSecretKeys(SecretKeyContext secretKeyContext);
-
-  record SecretKeyContext(long processDefinitionKey, String elementId) {}
+/**
+ * Wraps a checked failure from the Operate lookup so it can cross a {@code
+ * com.github.benmanes.caffeine.cache.Cache#get(Object, java.util.function.Function)} boundary,
+ * whose mapping function may not declare checked exceptions. This is the only wrapper in the lookup
+ * path — Caffeine, unlike Spring's {@code Cache#get(Object, Callable)}, rethrows an unchecked
+ * mapping-function failure unwrapped, so every other exception on this path reaches the caller
+ * exactly as thrown.
+ */
+public class SecretKeyLookupException extends RuntimeException {
+  public SecretKeyLookupException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }
