@@ -299,139 +299,53 @@ class InboundConnectorContextImplTest {
     assertThat(secretContext.getValue().tenantId()).isEqualTo("<default>");
   }
 
-  /** An element carrying its own raw properties, used by the secret-filter tests below. */
-  private static InboundConnectorElement elementWithProperties(
-      String elementId, Map<String, String> rawProperties) {
-    var properties = new HashMap<>(rawProperties);
-    properties.put("inbound.type", "io.camunda:connector:1");
-    return new InboundConnectorElement(
-        properties,
-        new StandaloneMessageCorrelationPoint("", "", null, null),
-        new ProcessElementWithRuntimeData(
-            "bool",
-            null,
-            null,
-            0,
-            0,
-            elementId,
-            null,
-            null,
-            "<default>",
-            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
-            new ElementTemplateDetails("Test", "1", "icon"),
-            properties));
-  }
-
-  /**
-   * Groups elements into one executable under the given deduplication scope. A declared scope (as
-   * the webhook connector has) means only in-scope properties must agree, so grouped elements may
-   * legitimately differ on out-of-scope ones — which is what lets a single executable's elements
-   * declare different secrets.
-   */
-  private static ValidInboundConnectorDetails detailsOf(
-      List<String> deduplicationScope, InboundConnectorElement... elements) {
-    var list = List.of(elements);
-    var details =
-        InboundConnectorDetails.of(
-            list.getFirst().deduplicationId(deduplicationScope), list, deduplicationScope);
-    assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
-    return (ValidInboundConnectorDetails) details;
-  }
-
-  private InboundConnectorContextImpl contextWithSecretFilter(
-      ValidInboundConnectorDetails details,
-      SecretProvider secretProvider,
-      InboundCorrelationHandler correlationHandler) {
-    return new InboundConnectorContextImpl(
-        secretProvider,
-        (e) -> {},
-        mock(DocumentFactory.class),
-        details,
-        correlationHandler,
-        (e) -> {},
-        mapper,
-        activityLogRegistry,
-        camundaClient,
-        true);
-  }
-
   @Test
-  void secretFilterEnabled_stillResolvesASecretTheModelDeclares() {
-    // The filter's whole design claim: an allow-list derived from the model can never exclude a
-    // name that same model text declares, so enabling it must not change what resolves.
-    var details =
-        detailsOf(List.of(), elementWithProperties("a", Map.of("token", "secrets.DECLARED")));
+  void secretFilterEnabled_allowsASecretDeclaredInTheElementsOwnPropertyText() {
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.ALLOWED"));
     var secretProvider = mock(SecretProvider.class);
-    when(secretProvider.getSecret(eq("DECLARED"), any())).thenReturn("resolved");
-
-    var context = contextWithSecretFilter(details, secretProvider, null);
-
-    assertThat(context.getProperties()).containsEntry("token", "resolved");
-  }
-
-  @Test
-  void secretFilterEnabled_blocksASecretNameThatArrivedAsData() {
-    // A name no element declares must not resolve, even though the provider holds it. This is the
-    // property the filter turns from "holds because of where the call sites read from" into a
-    // checked one.
-    var details =
-        detailsOf(List.of(), elementWithProperties("a", Map.of("token", "secrets.DECLARED")));
-    var secretProvider = mock(SecretProvider.class);
-    when(secretProvider.getSecret(eq("INJECTED"), any())).thenReturn("leaked");
-
-    var context = contextWithSecretFilter(details, secretProvider, null);
+    when(secretProvider.getSecret(eq("ALLOWED"), any())).thenReturn("bar");
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            mock(DocumentFactory.class),
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient,
+            true);
 
     var result =
-        context.getSecretHandler().replaceSecrets("secrets.INJECTED", new SecretContext("t", "p"));
+        context.getSecretHandler().replaceSecrets("secrets.ALLOWED", new SecretContext("t", "p"));
 
-    assertThat(result).isEqualTo("secrets.INJECTED");
-    verify(secretProvider, never()).getSecret(eq("INJECTED"), any());
+    assertThat(result).isEqualTo("bar");
   }
 
   @Test
-  void secretFilterEnabled_resolvesASecretDeclaredOnlyByTheActivatedElement() {
-    // Element-scoped binding filters the ACTIVATED element's own property text, which for a
-    // multi-element executable need not be the element that fed rawPropertiesWithoutKeywords.
-    var first = elementWithProperties("a", Map.of("shared", "x", "stringMap", "={}"));
-    var activated =
-        elementWithProperties(
-            "b", Map.of("shared", "x", "stringMap", "={\"k\":\"secrets.B_ONLY\"}"));
-    var details = detailsOf(List.of("shared"), first, activated);
+  void secretFilterEnabled_blocksASecretNotDeclaredInAnyElementsPropertyText() {
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.ALLOWED"));
     var secretProvider = mock(SecretProvider.class);
-    when(secretProvider.getSecret(eq("B_ONLY"), any())).thenReturn("b-value");
-    var correlationHandler = mock(InboundCorrelationHandler.class);
-    when(correlationHandler.correlate(any(), any()))
-        .thenReturn(
-            new CorrelationResult.Success.ProcessInstanceCreated(
-                activated.element(), 1L, "<default>"));
-
-    var context = contextWithSecretFilter(details, secretProvider, correlationHandler);
-    var result = context.correlate(CorrelationRequest.builder().variables(Map.of()).build());
-
-    assertThat(result).isInstanceOf(CorrelationResult.Success.class);
-    var bound = ((CorrelationResult.Success) result).bindProperties(TestPropertiesClass.class);
-    assertThat(bound.getStringMap()).containsEntry("k", "b-value");
-  }
-
-  @Test
-  void secretFilterEnabled_resolvesASecretIntroducedByAHotSwappedElement() {
-    // A new process version hot-swaps its elements into the live context via
-    // updateConnectorDetails. The compatibility check only pins the FIRST element's properties, so
-    // a newly added element may declare a secret none of the original elements did. An allow-list
-    // snapshotted at construction would silently stop that secret from resolving.
-    var scope = List.of("shared");
-    var first = elementWithProperties("a", Map.of("shared", "x"));
-    var added = elementWithProperties("b", Map.of("shared", "x", "token", "secrets.ADDED"));
-    var secretProvider = mock(SecretProvider.class);
-    when(secretProvider.getSecret(eq("ADDED"), any())).thenReturn("added-value");
-
-    var context = contextWithSecretFilter(detailsOf(scope, first), secretProvider, null);
-    context.updateConnectorDetails(detailsOf(scope, first, added));
+    when(secretProvider.getSecret(eq("OTHER"), any())).thenReturn("bar");
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            mock(DocumentFactory.class),
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient,
+            true);
 
     var result =
-        context.getSecretHandler().replaceSecrets("secrets.ADDED", new SecretContext("t", "p"));
+        context.getSecretHandler().replaceSecrets("secrets.OTHER", new SecretContext("t", "p"));
 
-    assertThat(result).isEqualTo("added-value");
+    assertThat(result).isEqualTo("secrets.OTHER");
+    verify(secretProvider, never()).getSecret(eq("OTHER"), any());
   }
 
   @Test
