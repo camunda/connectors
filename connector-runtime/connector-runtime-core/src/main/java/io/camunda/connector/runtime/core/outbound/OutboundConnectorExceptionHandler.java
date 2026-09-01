@@ -305,7 +305,7 @@ public class OutboundConnectorExceptionHandler {
         "Exception while processing job: {} for tenant: {}, message: {}",
         job.getKey(),
         job.getTenantId(),
-        ex.getMessage());
+        newException.getMessage());
     return new ConnectorResult.ErrorResult(
         Map.of("error", exceptionToMap(newException)), newException, 0);
   }
