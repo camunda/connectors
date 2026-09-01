@@ -299,53 +299,91 @@ class InboundConnectorContextImplTest {
     assertThat(secretContext.getValue().tenantId()).isEqualTo("<default>");
   }
 
-  @Test
-  void secretFilterEnabled_allowsASecretDeclaredInTheElementsOwnPropertyText() {
-    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.ALLOWED"));
-    var secretProvider = mock(SecretProvider.class);
-    when(secretProvider.getSecret(eq("ALLOWED"), any())).thenReturn("bar");
-    var context =
-        new InboundConnectorContextImpl(
-            secretProvider,
-            (e) -> {},
-            mock(DocumentFactory.class),
-            definition,
+  private static InboundConnectorElement elementWithProperties(
+      String elementId, Map<String, String> properties) {
+    var rawProperties = new HashMap<>(properties);
+    rawProperties.put("inbound.type", "io.camunda:connector:1");
+    return new InboundConnectorElement(
+        rawProperties,
+        new StandaloneMessageCorrelationPoint("", "", null, null),
+        new ProcessElementWithRuntimeData(
+            "bool",
             null,
-            (e) -> {},
-            mapper,
-            activityLogRegistry,
-            camundaClient,
-            true);
+            null,
+            0,
+            0,
+            elementId,
+            null,
+            null,
+            "<default>",
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            new ElementTemplateDetails("Test", "1", "icon"),
+            rawProperties));
+  }
 
-    var result =
-        context.getSecretHandler().replaceSecrets("secrets.ALLOWED", new SecretContext("t", "p"));
+  private static ValidInboundConnectorDetails detailsOf(
+      List<String> deduplicationScope, InboundConnectorElement... elements) {
+    var grouped = List.of(elements);
+    return (ValidInboundConnectorDetails)
+        InboundConnectorDetails.of(
+            grouped.getFirst().deduplicationId(deduplicationScope), grouped, deduplicationScope);
+  }
 
-    assertThat(result).isEqualTo("bar");
+  private InboundConnectorContextImpl filteringContext(
+      ValidInboundConnectorDetails details, SecretProvider secretProvider) {
+    return new InboundConnectorContextImpl(
+        secretProvider,
+        (e) -> {},
+        mock(DocumentFactory.class),
+        details,
+        null,
+        (e) -> {},
+        mapper,
+        activityLogRegistry,
+        camundaClient,
+        true);
+  }
+
+  private static String replace(InboundConnectorContextImpl context, String text) {
+    return context.getSecretHandler().replaceSecrets(text, new SecretContext("t", "p"));
   }
 
   @Test
-  void secretFilterEnabled_blocksASecretNotDeclaredInAnyElementsPropertyText() {
-    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.ALLOWED"));
+  void secretFilterEnabled_resolvesADeclaredSecret() {
     var secretProvider = mock(SecretProvider.class);
-    when(secretProvider.getSecret(eq("OTHER"), any())).thenReturn("bar");
+    when(secretProvider.getSecret(eq("DECLARED"), any())).thenReturn("resolved");
     var context =
-        new InboundConnectorContextImpl(
-            secretProvider,
-            (e) -> {},
-            mock(DocumentFactory.class),
-            definition,
-            null,
-            (e) -> {},
-            mapper,
-            activityLogRegistry,
-            camundaClient,
-            true);
+        filteringContext(
+            getInboundConnectorDefinition(Map.of("token", "secrets.DECLARED")), secretProvider);
 
-    var result =
-        context.getSecretHandler().replaceSecrets("secrets.OTHER", new SecretContext("t", "p"));
+    assertThat(replace(context, "secrets.DECLARED")).isEqualTo("resolved");
+  }
 
-    assertThat(result).isEqualTo("secrets.OTHER");
-    verify(secretProvider, never()).getSecret(eq("OTHER"), any());
+  @Test
+  void secretFilterEnabled_leavesAnUndeclaredSecret() {
+    var secretProvider = mock(SecretProvider.class);
+    var context =
+        filteringContext(
+            getInboundConnectorDefinition(Map.of("token", "secrets.DECLARED")), secretProvider);
+
+    assertThat(replace(context, "secrets.INJECTED")).isEqualTo("secrets.INJECTED");
+    verify(secretProvider, never()).getSecret(eq("INJECTED"), any());
+  }
+
+  @Test
+  void secretFilterEnabled_resolvesASecretIntroducedByAHotSwappedElement() {
+    var scope = List.of("shared");
+    var first = elementWithProperties("a", Map.of("shared", "x", "token", "secrets.ORIGINAL"));
+    var added = elementWithProperties("b", Map.of("shared", "x", "token", "secrets.ADDED"));
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("ORIGINAL"), any())).thenReturn("original-value");
+    when(secretProvider.getSecret(eq("ADDED"), any())).thenReturn("added-value");
+    var context = filteringContext(detailsOf(scope, first), secretProvider);
+    assertThat(replace(context, "secrets.ORIGINAL")).isEqualTo("original-value");
+
+    context.updateConnectorDetails(detailsOf(scope, first, added));
+
+    assertThat(replace(context, "secrets.ADDED")).isEqualTo("added-value");
   }
 
   @Test

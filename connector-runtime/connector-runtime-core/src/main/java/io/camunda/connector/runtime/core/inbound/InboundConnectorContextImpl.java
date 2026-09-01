@@ -51,6 +51,7 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretHandler;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
@@ -60,6 +61,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +79,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final DocumentFactory documentFactory;
   private final Long activationTimestamp;
   private final CamundaClient camundaClient;
+  private final boolean secretFilterEnabled;
   private ValidInboundConnectorDetails connectorDetails;
   private Health health = Health.unknown();
   private @Nullable Map<String, Object> propertiesWithSecrets;
@@ -105,11 +108,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   /**
-   * @param secretFilterEnabled when {@code true}, restricts secret resolution to the names declared
-   *     in this element's own deployed {@code zeebe:property} text (#7730), mirroring the outbound
-   *     job path's model-derived allow-list. Legacy replacement here only ever runs over that same
-   *     text, never over a runtime value, so the allow-list this builds is always exactly the set
-   *     of names the text it filters already declares.
+   * @param secretFilterEnabled when {@code true}, restricts secret resolution to the names this
+   *     executable's deployed {@code zeebe:property} text declares (#7730), mirroring the outbound
+   *     job path's model-derived allow-list.
    */
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -122,12 +123,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       ActivityLogWriter activityLogWriter,
       CamundaClient camundaClient,
       boolean secretFilterEnabled) {
-    super(
-        secretProvider,
-        secretFilterEnabled
-            ? buildSecretFilter(connectorDetails.connectorElements())
-            : SecretFilter.allowAll(),
-        validationProvider);
+    super(secretProvider, SecretFilter.allowAll(), validationProvider);
+    this.secretFilterEnabled = secretFilterEnabled;
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;
@@ -170,19 +167,25 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   /**
-   * The union, across every element this context represents, of secret names declared in that
-   * element's own raw {@code zeebe:property} text — the same text {@link SecretUtil} is asked to
-   * replace secrets within, so this can never exclude a name legacy replacement would otherwise
-   * resolve.
+   * Resolved per call rather than once, because {@link #updateConnectorDetails} swaps the elements
+   * of a live executable when a new process version is deployed.
    */
-  private static SecretFilter buildSecretFilter(List<InboundConnectorElement> elements) {
-    var allowedSecretNames =
-        elements.stream()
-            .flatMap(element -> element.rawProperties().values().stream())
-            .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
-            .distinct()
-            .toList();
-    return SecretFilter.allowOnly(allowedSecretNames);
+  @Override
+  public SecretHandler getSecretHandler() {
+    if (!secretFilterEnabled) {
+      return super.getSecretHandler();
+    }
+    return new SecretHandler(secretProvider, SecretFilter.allowOnly(declaredSecretNames()));
+  }
+
+  private List<String> declaredSecretNames() {
+    return Stream.concat(
+            Stream.of(connectorDetails.rawPropertiesWithoutKeywords()),
+            connectorDetails.connectorElements().stream()
+                .map(element -> element.element().properties()))
+        .flatMap(properties -> properties.values().stream())
+        .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
+        .toList();
   }
 
   @Override
