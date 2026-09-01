@@ -107,9 +107,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   /**
-   * @param secretFilterEnabled when {@code true}, restricts secret resolution to the names this
-   *     executable's deployed {@code zeebe:property} text declares (#7730), mirroring the outbound
-   *     job path's model-derived allow-list.
+   * @param secretFilterEnabled when {@code true}, restricts secret resolution to the names declared
+   *     by the deployed {@code zeebe:property} text each replacement runs over (#7730).
    */
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
