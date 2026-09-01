@@ -106,7 +106,7 @@
       "constraints" : {
         "notEmpty" : true,
         "pattern" : {
-          "value" : "^(=|(https://|secrets|\\{\\{).*$)",
+          "value" : "^(=.*|https://.*|\\{\\{secrets\\..+\\}\\})$",
           "message" : "Must be an https URL, a FEEL expression, or a {{secrets.NAME}} placeholder"
         }
       },
@@ -1274,14 +1274,14 @@
       "id" : "errorExpression",
       "label" : "Error expression",
       "description" : "Note: a failed SQL statement returns HTTP 200 with status.state FAILED, so the status code alone does not indicate success.",
-      "value" : "=if response != null and response.body != null and response.body.status != null and response.body.status.state != null and (response.body.status.state = \"FAILED\" or response.body.status.state = \"CANCELED\" or response.body.status.state = \"CLOSED\") then bpmnError(\"DATABRICKS_SQL_\" + response.body.status.state, \"Databricks SQL statement ended in state \" + response.body.status.state + \": \" + (if response.body.status.error = null then \"no error detail returned\" else response.body.status.error.message)) else null",
+      "value" : "=if response != null and response.body != null and response.body.statement_id != null and response.body.status != null and response.body.status.state != null and (response.body.status.state = \"FAILED\" or response.body.status.state = \"CANCELED\" or response.body.status.state = \"CLOSED\") then bpmnError(\"DATABRICKS_SQL_\" + response.body.status.state, \"Databricks SQL statement ended in state \" + response.body.status.state + \": \" + (if response.body.status.error = null then \"no error detail returned\" else response.body.status.error.message)) else null",
       "feel" : "required",
       "group" : "error",
       "binding" : {
         "key" : "errorExpression",
         "type" : "zeebe:taskHeader"
       },
-      "tooltip" : "The default expression raises a BPMN error for the terminal SQL states FAILED, CANCELED, and CLOSED. PENDING and RUNNING are not errors, they mean the statement is still executing. Job run outcomes are not covered, because a failed run is reported in state.result_state and is normally handled with a gateway rather than an error.",
+      "tooltip" : "The default expression raises a BPMN error for the terminal SQL states FAILED, CANCELED, and CLOSED. PENDING and RUNNING are not errors, they mean the statement is still executing. Gated on statement_id being present, so a custom model (Model Serving raw payload) whose own response happens to contain a status.state field is not misread as a SQL failure -- this expression is evaluated on the response alone, with no way to see which operation produced it. Job run outcomes are not covered, because a failed run is reported in state.result_state and is normally handled with a gateway rather than an error.",
       "type" : "Text"
     },
     {

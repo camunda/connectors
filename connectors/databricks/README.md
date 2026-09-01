@@ -86,7 +86,7 @@ Additional headers can be supplied, but the mandated `User-Agent` value is merge
 
 ## Error handling
 
-The Databricks SQL Statement Execution API returns **HTTP 200 with `status.state = FAILED`** when a statement fails at the warehouse, so a plain HTTP success check is not sufficient. The template ships a default error expression that raises a BPMN error for the terminal failure states `FAILED`, `CANCELED`, and `CLOSED`. `PENDING` and `RUNNING` are deliberately **not** errors — they mean the statement is still executing.
+The Databricks SQL Statement Execution API returns **HTTP 200 with `status.state = FAILED`** when a statement fails at the warehouse, so a plain HTTP success check is not sufficient. The template ships a default error expression that raises a BPMN error for the terminal failure states `FAILED`, `CANCELED`, and `CLOSED`. `PENDING` and `RUNNING` are deliberately **not** errors — they mean the statement is still executing. This expression sees only the response body, not which operation produced it, so it also checks for the SQL-specific `statement_id` field before interpreting `status.state` — without that guard, a *Invoke custom model (raw payload)* response happening to contain its own `status.state` (a custom model's own field, unrelated to Databricks) would be misread as a SQL failure.
 
 **Job run outcomes are not covered by that expression.** A failed run is reported in `state.result_state` on *Get run*, and polling loops normally branch on it with a gateway rather than throwing. Add it to the error expression only if you want a failed run to become a BPMN error.
 
