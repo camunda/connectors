@@ -266,11 +266,11 @@ jobs:
                       "source_sha": "${{ github.sha }}",
                       "gen_name": "'"${GEN_NAME}"'",
                       "c8Version": "8.10",
-                      "zeebeVersion": "SNAPSHOT",
-                      "operateVersion": "SNAPSHOT",
-                      "tasklistVersion": "SNAPSHOT",
+                      "zeebeVersion": "8.10-SNAPSHOT",
+                      "operateVersion": "8.10-SNAPSHOT",
+                      "tasklistVersion": "8.10-SNAPSHOT",
                       "connectorsVersion": "${{ needs.build-image.outputs.connectors-version }}",
-                      "optimizeVersion": "SNAPSHOT"
+                      "optimizeVersion": "8.10-SNAPSHOT"
                   }
                 }'
 
