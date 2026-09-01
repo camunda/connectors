@@ -19,18 +19,25 @@ package io.camunda.connector.runtime.outbound.job;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
+import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
+import io.camunda.operate.CamundaOperateClient;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.Cache;
+import org.springframework.cache.caffeine.CaffeineCache;
+import org.springframework.cache.support.NoOpCache;
 
 @ExtendWith(MockitoExtension.class)
 class ConfigurableSecretFilterFactoryTest {
@@ -112,5 +119,35 @@ class ConfigurableSecretFilterFactoryTest {
 
     assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
         .hasMessageContaining("Operate returned 404 for process definition 42");
+  }
+
+  @Test
+  void create_strict_whenOperateLookupFailsThroughACaffeineCache_messageSurfacesTheRealCause()
+      throws Exception {
+    // Goes through a real Cache#get(key, loader), which wraps the loader's exception in
+    // Cache.ValueRetrievalException -- unlike the mock above, this reproduces the wrapping that
+    // hid the real cause in production.
+    assertMessageSurfacesRealCauseNotTheCacheWrapper(
+        new CaffeineCache("test", Caffeine.newBuilder().build()));
+  }
+
+  @Test
+  void create_strict_whenOperateLookupFailsThroughANoOpCache_messageSurfacesTheRealCause()
+      throws Exception {
+    assertMessageSurfacesRealCauseNotTheCacheWrapper(new NoOpCache("test"));
+  }
+
+  private void assertMessageSurfacesRealCauseNotTheCacheWrapper(Cache cache) throws Exception {
+    var operateClient = mock(CamundaOperateClient.class);
+    when(operateClient.getProcessDefinitionModel(PROCESS_DEF_KEY))
+        .thenThrow(new RuntimeException("Operate returned 404 for process definition 42"));
+    SecretKeyCache realSecretKeyCache = new ProcessDefinitionSecretKeyCache(operateClient, cache);
+    var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, realSecretKeyCache);
+
+    var filter = factory.create(CONTEXT);
+
+    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+        .hasMessageContaining("Operate returned 404 for process definition 42")
+        .hasMessageNotContaining("could not be loaded using");
   }
 }

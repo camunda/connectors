@@ -35,7 +35,6 @@ import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrate
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.caffeine.CaffeineCache;
@@ -53,34 +52,33 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   /**
-   * A plain {@link Cache}, not a {@code CacheManager}-typed bean: registering an unqualified {@code
-   * CacheManager} bean satisfies Spring Boot's {@code CacheAutoConfiguration}
-   * {@code @ConditionalOnMissingBean(CacheManager.class)} condition, so a host application
-   * embedding this runtime as a library would silently lose its own cache autoconfiguration (and,
-   * with its own {@code CacheManager} bean, fail to start at all with an ambiguous-bean error) —
-   * regardless of the {@code @Qualifier} used at each consumption site below, since that condition
-   * only checks bean type, not name.
+   * Wrapped in {@link SecretKeyCacheHolder} rather than exposed as a plain {@link Cache} bean:
+   * registering an unqualified {@code Cache}, just like an unqualified {@code CacheManager}, would
+   * collide with a host application's own cache bean of that exact type — the same ambiguous-bean
+   * problem this replaces, one type level down. The holder is package-private, so no code outside
+   * this configuration class can declare or depend on a bean of this type either.
    */
   @Bean
-  public Cache secretKeyCacheStore(
+  SecretKeyCacheHolder secretKeyCacheStore(
       @Value("${camunda.connector.secret-resolver.secret-filter.cache.enabled:true}")
           boolean cacheEnabled,
       @Value("${camunda.connector.secret-resolver.secret-filter.cache.max-size:1000}")
           int cacheMaxSize) {
     if (!cacheEnabled) {
-      return new NoOpCache(SecretKeyCache.SECRET_KEY_CACHE_NAME);
+      return new SecretKeyCacheHolder(new NoOpCache(SecretKeyCache.SECRET_KEY_CACHE_NAME));
     }
     int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
-    return new CaffeineCache(
-        SecretKeyCache.SECRET_KEY_CACHE_NAME,
-        Caffeine.newBuilder().maximumSize(boundedMaxSize).build());
+    return new SecretKeyCacheHolder(
+        new CaffeineCache(
+            SecretKeyCache.SECRET_KEY_CACHE_NAME,
+            Caffeine.newBuilder().maximumSize(boundedMaxSize).build()));
   }
 
   @Bean
   public SecretKeyCache secretKeyCache(
       @Autowired(required = false) CamundaOperateClient camundaOperateClient,
-      @Qualifier("secretKeyCacheStore") Cache secretKeyCacheStore) {
-    return new ProcessDefinitionSecretKeyCache(camundaOperateClient, secretKeyCacheStore);
+      SecretKeyCacheHolder secretKeyCacheStore) {
+    return new ProcessDefinitionSecretKeyCache(camundaOperateClient, secretKeyCacheStore.cache());
   }
 
   @Bean
