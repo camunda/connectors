@@ -160,6 +160,21 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_messageIntermediateThrowEventAndEndEvent_returnsEachElementsOwnSecrets()
+      throws Exception {
+    when(camundaOperateClient.getProcessDefinitionModel(PROCESS_DEF_KEY))
+        .thenReturn(loadBpmn("outbound-message-events.bpmn"));
+
+    var throwEventKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "send-message-throw"));
+    var endEventKeys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "send-message-end"));
+
+    assertThat(throwEventKeys).containsExactly("THROW_EVENT_SECRET");
+    assertThat(endEventKeys).containsExactly("END_EVENT_SECRET");
+  }
+
+  @Test
   void getSecretKeys_noCamundaOperateClient_throwsIllegalStateException() {
     var cacheWithoutClient = new ProcessDefinitionSecretKeyCache(null, cache);
 
