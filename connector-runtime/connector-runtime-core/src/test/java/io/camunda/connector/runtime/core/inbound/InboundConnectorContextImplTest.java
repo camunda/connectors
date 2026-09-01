@@ -360,6 +360,17 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
+  void secretFilterEnabled_resolvesADeclaredSecretInBraceSyntax() {
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("BRACED"), any())).thenReturn("resolved");
+    var context =
+        filteringContext(
+            getInboundConnectorDefinition(Map.of("token", "{{ secrets.BRACED }}")), secretProvider);
+
+    assertThat(replace(context, "{{ secrets.BRACED }}")).isEqualTo("resolved");
+  }
+
+  @Test
   void secretFilterEnabled_leavesAnUndeclaredSecret() {
     var secretProvider = mock(SecretProvider.class);
     var context =
