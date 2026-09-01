@@ -356,6 +356,13 @@ jobs:
 
   check-versioned-element-templates:
 
+    # Only run where the PR's target branch is known. On push events
+    # github.ref_name is the feature branch itself, so the release-branch guard
+    # in the script cannot fire and branches based on alpha/* or stable/* report
+    # every alpha-only versioned template as a spurious mismatch against main.
+    # Every branch also gets a pull_request run, so nothing is lost by skipping.
+    if: github.event_name != 'push'
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
