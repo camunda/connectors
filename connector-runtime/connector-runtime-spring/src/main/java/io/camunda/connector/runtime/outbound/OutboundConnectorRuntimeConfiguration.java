@@ -74,9 +74,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.caffeine.CaffeineCacheManager;
-import org.springframework.cache.support.NoOpCacheManager;
+import org.springframework.cache.Cache;
+import org.springframework.cache.caffeine.CaffeineCache;
+import org.springframework.cache.support.NoOpCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -462,20 +462,28 @@ public class OutboundConnectorRuntimeConfiguration {
             addresses));
   }
 
+  /**
+   * A plain {@link Cache}, not a {@code CacheManager}-typed bean: registering an unqualified {@code
+   * CacheManager} bean satisfies Spring Boot's {@code CacheAutoConfiguration}
+   * {@code @ConditionalOnMissingBean(CacheManager.class)} condition, so a host application
+   * embedding this runtime as a library would silently lose its own cache autoconfiguration (and,
+   * with its own {@code CacheManager} bean, fail to start at all with an ambiguous-bean error) —
+   * regardless of the {@code @Qualifier} used at each consumption site below, since that condition
+   * only checks bean type, not name.
+   */
   @Bean
-  public CacheManager secretKeyCacheManager(
+  public Cache secretKeyCacheStore(
       @Value("${camunda.connector.secret-resolver.secret-filter.cache.enabled:true}")
           boolean cacheEnabled,
       @Value("${camunda.connector.secret-resolver.secret-filter.cache.max-size:1000}")
           int cacheMaxSize) {
     if (!cacheEnabled) {
-      return new NoOpCacheManager();
+      return new NoOpCache(SecretKeyCache.SECRET_KEY_CACHE_NAME);
     }
     int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
-    CaffeineCacheManager cacheManager =
-        new CaffeineCacheManager(SecretKeyCache.SECRET_KEY_CACHE_NAME);
-    cacheManager.setCaffeine(Caffeine.newBuilder().maximumSize(boundedMaxSize));
-    return cacheManager;
+    return new CaffeineCache(
+        SecretKeyCache.SECRET_KEY_CACHE_NAME,
+        Caffeine.newBuilder().maximumSize(boundedMaxSize).build());
   }
 
   /**
@@ -497,11 +505,9 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public SecretKeyCache secretKeyCache(
-      CamundaClient camundaClient, @Qualifier("secretKeyCacheManager") CacheManager cacheManager) {
+      CamundaClient camundaClient, @Qualifier("secretKeyCacheStore") Cache secretKeyCacheStore) {
     return new ProcessDefinitionSecretKeyCache(
-        resolvePhysicalTenantIdOrDefault(camundaClient),
-        camundaClient,
-        cacheManager.getCache(SecretKeyCache.SECRET_KEY_CACHE_NAME));
+        resolvePhysicalTenantIdOrDefault(camundaClient), camundaClient, secretKeyCacheStore);
   }
 
   @Bean
@@ -513,10 +519,7 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   private static Map<String, SecretKeyCache> buildSecretKeyCachesByPhysicalTenantId(
-      CamundaClientRegistry registry,
-      CamundaClient legacyCamundaClient,
-      CacheManager cacheManager) {
-    var sharedCache = cacheManager.getCache(SecretKeyCache.SECRET_KEY_CACHE_NAME);
+      CamundaClientRegistry registry, CamundaClient legacyCamundaClient, Cache sharedCache) {
     // Resolved once per client name (rather than via toMapByPhysicalTenantId, which would
     // recompute the same physical tenant ID a second time inside the value-mapper) and reused as
     // both the map key and the cache's own id.
@@ -540,9 +543,10 @@ public class OutboundConnectorRuntimeConfiguration {
   private static Map<String, SecretFilterFactory> buildSecretFilterFactoriesByPhysicalTenantId(
       CamundaClientRegistry registry,
       CamundaClient legacyCamundaClient,
-      CacheManager cacheManager,
+      Cache secretKeyCacheStore,
       SecretFilterMode secretFilterMode) {
-    return buildSecretKeyCachesByPhysicalTenantId(registry, legacyCamundaClient, cacheManager)
+    return buildSecretKeyCachesByPhysicalTenantId(
+            registry, legacyCamundaClient, secretKeyCacheStore)
         .entrySet()
         .stream()
         .collect(
@@ -555,19 +559,20 @@ public class OutboundConnectorRuntimeConfiguration {
   public Map<String, SecretKeyCache> secretKeyCachesByPhysicalTenantId(
       @Autowired(required = false) CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
-      @Qualifier("secretKeyCacheManager") CacheManager cacheManager) {
-    return buildSecretKeyCachesByPhysicalTenantId(registry, legacyCamundaClient, cacheManager);
+      @Qualifier("secretKeyCacheStore") Cache secretKeyCacheStore) {
+    return buildSecretKeyCachesByPhysicalTenantId(
+        registry, legacyCamundaClient, secretKeyCacheStore);
   }
 
   @Bean
   public Map<String, SecretFilterFactory> secretFilterFactoriesByPhysicalTenantId(
       @Autowired(required = false) CamundaClientRegistry registry,
       @Autowired(required = false) CamundaClient legacyCamundaClient,
-      @Qualifier("secretKeyCacheManager") CacheManager cacheManager,
+      @Qualifier("secretKeyCacheStore") Cache secretKeyCacheStore,
       @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode) {
     return buildSecretFilterFactoriesByPhysicalTenantId(
-        registry, legacyCamundaClient, cacheManager, secretFilterMode);
+        registry, legacyCamundaClient, secretKeyCacheStore, secretFilterMode);
   }
 
   /**
@@ -595,14 +600,14 @@ public class OutboundConnectorRuntimeConfiguration {
       @Autowired(required = false) DocumentFactory documentFactory,
       @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode,
-      @Qualifier("secretKeyCacheManager") CacheManager secretKeyCacheManager,
+      @Qualifier("secretKeyCacheStore") Cache secretKeyCacheStore,
       @OutboundConnectorObjectMapper ObjectMapper outboundConnectorObjectMapper,
       Optional<MeterRegistry> meterRegistry) {
     var documentFactoriesByPhysicalTenantId =
         buildDocumentFactoriesByPhysicalTenantId(registry, legacyCamundaClient, documentFactory);
     var secretFilterFactoriesByPhysicalTenantId =
         buildSecretFilterFactoriesByPhysicalTenantId(
-            registry, legacyCamundaClient, secretKeyCacheManager, secretFilterMode);
+            registry, legacyCamundaClient, secretKeyCacheStore, secretFilterMode);
     var objectMappersByPhysicalTenantId =
         buildOutboundConnectorObjectMappersByPhysicalTenantId(
             documentFactoriesByPhysicalTenantId, outboundConnectorObjectMapper);
