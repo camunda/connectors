@@ -32,21 +32,21 @@ class OutboundConnectorRuntimeConfigurationTest {
 
   @Test
   void secretKeyCacheStore_whenEnabled_returnsCaffeineCache() {
-    var cache = configuration.secretKeyCacheStore(true, 1000);
+    var cache = configuration.secretKeyCacheStore(true, 1000).cache();
 
     assertInstanceOf(CaffeineCache.class, cache);
   }
 
   @Test
   void secretKeyCacheStore_whenDisabled_returnsNoOpCache() {
-    var cache = configuration.secretKeyCacheStore(false, 1000);
+    var cache = configuration.secretKeyCacheStore(false, 1000).cache();
 
     assertInstanceOf(NoOpCache.class, cache);
   }
 
   @Test
   void secretKeyCacheStore_whenDisabled_cacheNeverStoresValues() {
-    Cache cache = configuration.secretKeyCacheStore(false, 1000);
+    Cache cache = configuration.secretKeyCacheStore(false, 1000).cache();
 
     var callCount = new AtomicInteger(0);
     cache.get("key", callCount::incrementAndGet);
@@ -57,15 +57,25 @@ class OutboundConnectorRuntimeConfigurationTest {
 
   @Test
   void secretKeyCacheStore_whenMaxSizeIsZero_clampedToDefault() {
-    var cache = configuration.secretKeyCacheStore(true, 0);
+    var cache = configuration.secretKeyCacheStore(true, 0).cache();
 
     assertInstanceOf(CaffeineCache.class, cache);
   }
 
   @Test
   void secretKeyCacheStore_whenMaxSizeIsNegative_clampedToDefault() {
-    var cache = configuration.secretKeyCacheStore(true, -1);
+    var cache = configuration.secretKeyCacheStore(true, -1).cache();
 
     assertInstanceOf(CaffeineCache.class, cache);
+  }
+
+  @Test
+  void secretKeyCacheStore_beanTypeIsNotAPlainCache_soItCannotCollideWithAHostCacheBean() {
+    // Regression: the bean previously returned a plain Cache, which collided with a host
+    // application's own unqualified Cache bean the same way an unqualified CacheManager bean
+    // used to. The holder type is what makes that impossible now, not the @Qualifier.
+    var holder = configuration.secretKeyCacheStore(true, 1000);
+
+    assertInstanceOf(SecretKeyCacheHolder.class, holder);
   }
 }

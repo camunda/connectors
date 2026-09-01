@@ -52,12 +52,14 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
                 new SecretKeyContext(context.processDefinitionKey(), context.elementId()));
           } catch (RuntimeException e) {
             if (strict) {
-              // Only getMessage() reaches the Zeebe incident (see the exception-handling layer
-              // that turns this into a failJob command) -- the real cause, e, is otherwise
-              // visible only in this pod's log. Folding it into the message here is what actually
-              // gets it in front of an operator.
+              // Only getMessage() reaches the Zeebe incident. e is usually a
+              // Cache.ValueRetrievalException (Spring's Cache#get(key, loader) wraps whatever the
+              // loader throws), whose own getMessage() is a generic lambda-identity string with no
+              // diagnostic value -- the real cause is on getCause(). Fold that into the message
+              // instead so an operator sees something actionable.
+              Throwable realCause = e.getCause() != null ? e.getCause() : e;
               throw new IllegalArgumentException(
-                  "Error retrieving secret keys: " + e.getMessage(), e);
+                  "Error retrieving secret keys: " + realCause.getMessage(), e);
             } else {
               LOG.warn(
                   "Error filtering secrets for element '{}' in process definition key {}, will allow all as secret-filter-mode is LAX",
