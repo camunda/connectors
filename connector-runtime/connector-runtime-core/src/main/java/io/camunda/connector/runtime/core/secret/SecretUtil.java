@@ -115,7 +115,7 @@ public class SecretUtil {
                         result ->
                             pattern != SECRET_PATTERN_SECRETS
                                 || isNotNestedInAny(result, bracketedReferences)))
-        .map(matchResult -> matchResult.group("secret"))
+        .map(matchResult -> matchResult.group("secret").trim())
         .distinct()
         .toList();
   }

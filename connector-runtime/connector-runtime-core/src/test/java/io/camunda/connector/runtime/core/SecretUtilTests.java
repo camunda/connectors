@@ -115,6 +115,19 @@ public class SecretUtilTests {
   }
 
   @Test
+  void shouldTrimTheExtractedNameSoItMatchesWhatReplacementLooksUp() {
+    // The parentheses pattern's capture reaches past the name to the closing braces, so
+    // "{{ secrets.FOO }}" declares FOO, not "FOO ". Returning the untrimmed form left the
+    // allow-list containing a name resolution never looks up, denying a legitimately declared
+    // secret.
+    var withWhitespace = "{{ secrets.FOO }}";
+    Function<String, String> secretReplacer = name -> "FOO".equals(name) ? "resolved" : null;
+
+    assertThat(SecretUtil.retrieveSecretKeysInInput(withWhitespace)).containsExactly("FOO");
+    assertThat(SecretUtil.replaceSecrets(withWhitespace, secretReplacer)).isEqualTo("resolved");
+  }
+
+  @Test
   void shouldOnlyReplaceAllowListedSecrets() {
     List<String> allowList = List.of("KEY1", "KEY2");
     Function<String, String> secretReplacer =
