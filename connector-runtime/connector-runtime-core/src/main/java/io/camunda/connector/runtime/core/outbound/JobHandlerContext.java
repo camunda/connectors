@@ -48,18 +48,6 @@ public class JobHandlerContext extends AbstractConnectorContext
   private final JobContext jobContext;
   private String jsonWithSecrets = null;
 
-  /**
-   * Preserves the pre-existing four-argument constructor for programmatic callers compiled against
-   * it, defaulting to an unfiltered {@link SecretFilter#allowAll()}.
-   */
-  public JobHandlerContext(
-      final ActivatedJob job,
-      final SecretProvider secretProvider,
-      final ValidationProvider validationProvider,
-      final ObjectMapper objectMapper) {
-    this(job, secretProvider, validationProvider, objectMapper, SecretFilter.allowAll());
-  }
-
   public JobHandlerContext(
       final ActivatedJob job,
       final SecretProvider secretProvider,

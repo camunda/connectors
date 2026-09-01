@@ -39,6 +39,7 @@ import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1.FailJobCommandStep2;
 import io.camunda.zeebe.client.api.worker.JobClient;
@@ -72,7 +73,7 @@ class ConnectorJobHandlerTest {
     class ResultVariableTests {
 
       protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
-        return new ConnectorJobHandler(call, e -> {});
+        return new ConnectorJobHandler(call, null, e -> {}, null, SecretFilterFactory.disabled());
       }
 
       @ParameterizedTest
@@ -411,7 +412,13 @@ class ConnectorJobHandlerTest {
       @Test
       void shouldNotSetWithoutResultVariableAndExpression() {
         // given
-        var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"), e -> {});
+        var jobHandler =
+            new ConnectorJobHandler(
+                (context) -> Map.of("hello", "world"),
+                null,
+                e -> {},
+                null,
+                SecretFilterFactory.disabled());
 
         // when
         var result = JobBuilder.create().executeAndCaptureResult(jobHandler);
@@ -425,7 +432,11 @@ class ConnectorJobHandlerTest {
         // given
         var jobHandler =
             new ConnectorJobHandler(
-                (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")), e -> {});
+                (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")),
+                null,
+                e -> {},
+                null,
+                SecretFilterFactory.disabled());
         var resultExpression = "{\"processedOutput\": response.callStatus, \"nullVar\": null}";
         var resultVariable = "result";
 
