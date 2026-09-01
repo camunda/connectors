@@ -119,6 +119,25 @@ public class SecretUtilTests {
   }
 
   @Test
+  void shouldNotResolveADeniedBracketedReferenceDuringAChainedRescan() {
+    // The bare pass reruns once per match in the original text, so a resolved value that itself
+    // looks like a secret reference can chain into a further replacement. A still-denied bracketed
+    // reference elsewhere in the same text must stay excluded across every one of those reruns, not
+    // just the first.
+    SecretReplacer secretReplacer =
+        (name, context) -> {
+          if ("A".equals(name)) return "secrets.FOO";
+          if ("FOO".equals(name)) return "REAL_VALUE";
+          return null;
+        };
+
+    String result =
+        SecretUtil.replaceSecrets("secrets.A and {{secrets.FOO:BAR}}", null, secretReplacer);
+
+    assertThat(result).isEqualTo("REAL_VALUE and {{secrets.FOO:BAR}}");
+  }
+
+  @Test
   void shouldOnlyReplaceAllowListedSecrets() {
     List<String> allowList = List.of("KEY1", "KEY2");
     SecretReplacer secretReplacer =
