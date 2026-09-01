@@ -72,19 +72,27 @@ public class SecretUtil {
    * secrets.FOO}, which the bare pattern would happily match and resolve on its own since {@code
    * FOO} genuinely is allowed. Excluding bare matches nested in a still-literal bracketed reference
    * closes that: the bracket pass already ruled on that name, and the bare pass must not
-   * re-litigate a truncated prefix of it.
+   * re-litigate a truncated prefix of it. The exclusion is recomputed on every iteration, against
+   * whatever {@code input} that iteration is about to scan, so a still-denied reference stays
+   * excluded across the bounded rescan below that lets a resolved value chain into a further
+   * replacement.
    */
   private static String replaceSecretsWithoutParentheses(
       String input, SecretContext context, SecretReplacer secretReplacer) {
-    List<MatchResult> deniedBracketedReferences =
-        SECRET_PATTERN_PARENTHESES.matcher(input).results().toList();
-    return replaceTokens(
-        input,
-        SECRET_PATTERN_SECRETS,
-        matcher ->
-            isNotNestedInAny(matcher, deniedBracketedReferences)
-                ? resolveSecretValue(context, secretReplacer, matcher)
-                : matcher.group());
+    var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_SECRETS.matcher(input);
+    while (secretVariableNameWithParenthesesMatcher.find()) {
+      List<MatchResult> deniedBracketedReferences =
+          SECRET_PATTERN_PARENTHESES.matcher(input).results().toList();
+      input =
+          replaceTokens(
+              input,
+              SECRET_PATTERN_SECRETS,
+              matcher ->
+                  isNotNestedInAny(matcher, deniedBracketedReferences)
+                      ? resolveSecretValue(context, secretReplacer, matcher)
+                      : matcher.group());
+    }
+    return input;
   }
 
   private static @Nullable String resolveSecretValue(
