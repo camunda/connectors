@@ -70,20 +70,6 @@ public class ConnectorJobHandler implements JobHandler {
   private OutboundConnectorExceptionHandler outboundConnectorExceptionHandler;
   private final SecretFilterFactory secretFilterFactory;
 
-  /**
-   * Create a handler wrapper for the specified connector function.
-   *
-   * @param call - the connector function to call
-   */
-  public ConnectorJobHandler(
-      final OutboundConnectorFunction call,
-      final SecretProvider secretProvider,
-      final ValidationProvider validationProvider,
-      final DocumentFactory documentFactory,
-      final ObjectMapper objectMapper) {
-    this(call, secretProvider, validationProvider, documentFactory, objectMapper, null);
-  }
-
   public ConnectorJobHandler(
       final OutboundConnectorFunction call,
       final SecretProvider secretProvider,
@@ -98,8 +84,7 @@ public class ConnectorJobHandler implements JobHandler {
     this.objectMapper = objectMapper;
     this.outboundConnectorExceptionHandler =
         new OutboundConnectorExceptionHandler(getSecretProvider());
-    this.secretFilterFactory =
-        secretFilterFactory != null ? secretFilterFactory : SecretFilterFactory.disabled();
+    this.secretFilterFactory = secretFilterFactory;
   }
 
   protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(

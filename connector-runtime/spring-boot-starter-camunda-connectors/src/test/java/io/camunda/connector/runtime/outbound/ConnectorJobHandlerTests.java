@@ -25,6 +25,7 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.runtime.core.outbound.ConnectorJobHandler;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.utils.TestSecretProvider;
 import io.camunda.connector.runtime.utils.TestValidation;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -46,7 +47,8 @@ public class ConnectorJobHandlerTests {
         new DefaultValidationProvider(),
         documentFactory,
         ConnectorsObjectMapperSupplier.getCopy(
-            documentFactory, JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()));
+            documentFactory, JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()),
+        SecretFilterFactory.disabled());
   }
 
   protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {

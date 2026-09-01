@@ -51,32 +51,6 @@ public class OutboundConnectorManager {
   private final DocumentFactory documentFactory;
   private final SecretFilterFactory secretFilterFactory;
 
-  /**
-   * Preserves the pre-existing eight-argument constructor for callers that instantiate this manager
-   * directly, defaulting to {@link SecretFilterFactory#disabled()}. Spring wiring uses the
-   * nine-argument constructor below with the configured factory.
-   */
-  public OutboundConnectorManager(
-      JobWorkerManager jobWorkerManager,
-      OutboundConnectorFactory connectorFactory,
-      CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
-      SecretProviderAggregator secretProviderAggregator,
-      ValidationProvider validationProvider,
-      DocumentFactory documentFactory,
-      ObjectMapper objectMapper,
-      MetricsRecorder metricsRecorder) {
-    this(
-        jobWorkerManager,
-        connectorFactory,
-        commandExceptionHandlingStrategy,
-        secretProviderAggregator,
-        validationProvider,
-        documentFactory,
-        objectMapper,
-        metricsRecorder,
-        SecretFilterFactory.disabled());
-  }
-
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
       OutboundConnectorFactory connectorFactory,
