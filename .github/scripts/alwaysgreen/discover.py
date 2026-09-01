@@ -171,6 +171,8 @@ def sm_candidates(run_id: str, base_ref: str, job_name: str, workdir: Path) -> p
             ((report.get("config") or {}).get("rootDir")) if isinstance(report, dict) else None
         )
         cand.specs.extend(classify.failing_specs(report, suite=suite))
+    # One report per shard, so the same spec can arrive more than once.
+    cand.specs = classify.merge_specs(cand.specs)
     return cand
 
 
@@ -233,6 +235,8 @@ def saas_candidate(run_id: str, base_ref: str, job_name: str, workdir: Path) -> 
                     else None
                 )
                 cand.specs.extend(classify.failing_specs(report, suite=suite))
+            # One report per Tasklist generation, so the same spec can arrive twice.
+            cand.specs = classify.merge_specs(cand.specs)
         else:
             has_reports = False
 
@@ -241,24 +245,28 @@ def saas_candidate(run_id: str, base_ref: str, job_name: str, workdir: Path) -> 
         f"saas counts total={counts.total} failed={counts.failed} "
         f"flaky={counts.flaky} setup_failed={counts.setup_failed} -> {cand.surface}"
     )
-    if cand.surface != classify.SURFACE_SAAS_E2E:
-        # Only a genuine non-setup test failure is actionable in test code.
+    # Each surface carries only the specs that belong to it, so the agent is never
+    # handed a failure its dispatch is not about.
+    if cand.surface == classify.SURFACE_SAAS_E2E:
+        # A mixed report — provisioning broke *and* a real spec failed — is dispatched
+        # for the real one. The setup failures are withheld: they are a separate
+        # surface with a separate remit, and leaving them in would both widen this
+        # agent's brief and claim their fingerprints, marking them handled when they
+        # are not. They come back on the next run as their own provisioning candidate.
+        withheld = [s for s in cand.specs if classify.is_setup_spec(s.file)]
+        if withheld:
+            log(
+                f"saas: withholding {len(withheld)} setup spec(s) from a mixed report: "
+                + ", ".join(sorted({s.file for s in withheld}))
+            )
+            cand.specs = [s for s in cand.specs if not classify.is_setup_spec(s.file)]
+    elif cand.surface == classify.SURFACE_SAAS_PROVISIONING:
+        # Setup specs are the whole evidence here, so they are what travels. Keeping
+        # only them stops an unrelated flake from riding along on this dispatch.
+        cand.specs = [s for s in cand.specs if classify.is_setup_spec(s.file)]
+    else:
+        # saas-infra: no report, or nothing failed. Nothing to hand over.
         cand.specs = []
-        return cand
-
-    # A mixed report — org provisioning broke *and* a real spec failed — stays
-    # dispatchable for the real one, but the setup failures must not travel with it.
-    # The agent is told to fix every spec it is given, and test-setup.spec.ts failing
-    # is a cluster/org problem no test-code change can address. Dropping them here also
-    # keeps them out of the coverage block, so the provisioning failure stays
-    # unclaimed and is re-triaged rather than marked handled.
-    dropped = [s for s in cand.specs if classify.is_setup_spec(s.file)]
-    if dropped:
-        log(
-            f"saas: withholding {len(dropped)} provisioning spec(s) from the payload: "
-            + ", ".join(sorted({s.file for s in dropped}))
-        )
-        cand.specs = [s for s in cand.specs if not classify.is_setup_spec(s.file)]
     return cand
 
 

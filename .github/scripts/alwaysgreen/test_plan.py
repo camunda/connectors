@@ -245,8 +245,14 @@ def test_two_sources_on_the_same_branch_do_not_suppress_each_other():
 def test_key_labels_fit_githubs_length_limit():
     # A label over the limit is rejected silently by `gh label create`, and the missing
     # label disables dedupe instead of failing the run — so this is asserted, not hoped.
-    sources = ("camunda", "connectors", "camunda-operator")
-    base_refs = ("main", "stable/8.7", "stable/8.8", "stable/8.9", "stable/8.10")
+    #
+    # The matrix is this copy's real key space, not a speculative one: `SOURCE` derives
+    # from `REPO`, and alwaysgreen-fix rejects any dispatch key whose source is not
+    # `connectors`, so no other value can reach a label. The widest real key today is
+    # 46 characters, leaving four spare — enough that a longer surface name would trip
+    # this rather than silently break dedupe in production.
+    sources = ("connectors",)
+    base_refs = ("main", "stable/8.7", "stable/8.8", "stable/8.9")
     for source in sources:
         for base_ref in base_refs:
             for surface in sorted(classify.DISPATCHABLE_SURFACES):

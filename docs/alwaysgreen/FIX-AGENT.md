@@ -102,6 +102,38 @@ Read PNG screenshots directly. For a trace: `unzip -l trace.zip`, then extract w
    `camunda-docs/versioned_docs/version-<X.Y>/` and cite it in the PR body. Match the
    version tree exactly. Skip this for pure selector drift.
 
+## A `saas-provisioning` dispatch
+
+You get this surface when **every** failing spec is in `test-setup.spec.ts` — the org,
+project-folder and cluster preparation the rest of the suite depends on. The name
+describes the symptom, not the cause, and the two causes need opposite responses:
+
+|                        What the evidence shows                        |          What to do          |
+|-----------------------------------------------------------------------|------------------------------|
+| a moved or renamed control — the app rendered, the locator missed it   | fix the spec, like any other |
+| the app never got there — login loop, blank render, 401/403/5xx in the network log, an org that does not exist | escalate, change nothing     |
+
+The screenshot and the trace decide it, and they are the only thing that can: the SaaS
+org is deleted after the run, so there is nothing left to check live. Open the screenshot
+first. If Modeler or Console rendered and a control is simply not where the spec looked,
+that is a stale spec and an ordinary fix. If the page is blank, an error, or a login
+screen, the environment failed and no spec change is honest.
+
+Three specific traps here, because this surface invites all of them:
+
+- **Never weaken or delete a setup assertion** to get past a dead environment. A green
+  setup that did not actually set anything up makes every later failure unreadable.
+- **Never add a retry or a longer wait** to ride out provisioning that is down. Retries
+  are for flakiness — a deterministic 403 is not flaky.
+- **"Several users failed the same step" is not itself proof of an environment fault.**
+  Three users failing `Create Project Folder` is equally consistent with one broken
+  locator in the shared helper they all call. Check the helper before concluding.
+
+When you escalate, write `category: "not-determined"` with `prs: []`, name what the
+screenshot showed, and quote the failing request if the trace has one. That report is the
+deliverable — it is what tells a human whether to look at the org, the cluster, or
+Modeler.
+
 ## Regression, or an intended change the test has not caught up with?
 
 A changed locator has two possible causes, and they land in different repositories. Decide

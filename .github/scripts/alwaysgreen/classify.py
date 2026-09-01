@@ -110,9 +110,18 @@ SURFACE_CI_INFRA = "ci-infra"
 #: is reported and routed, never dispatched — see DISPATCHABLE_SURFACES.
 SURFACE_CONNECTORS_AI = "connectors-ai-e2e"
 
-#: Surfaces the first increment dispatches. Everything else is recorded and
-#: reported but not handed to the agent yet.
-DISPATCHABLE_SURFACES = frozenset({SURFACE_SM_E2E, SURFACE_SAAS_E2E})
+#: Surfaces handed to the agent. Everything else is recorded and reported only.
+#:
+#: `saas-provisioning` is included because the name describes a symptom, not a cause:
+#: every failing spec being in test-setup.spec.ts can mean the SaaS org or cluster is
+#: genuinely dead, or it can mean the setup spec itself has gone stale against a changed
+#: Modeler UI — and the second is as fixable as any other spec. Only the screenshot and
+#: the trace separate them, which is the agent's job, not the classifier's. The manual
+#: requires it to escalate rather than weaken a setup assertion when the environment is
+#: the one at fault.
+DISPATCHABLE_SURFACES = frozenset(
+    {SURFACE_SM_E2E, SURFACE_SAAS_E2E, SURFACE_SAAS_PROVISIONING}
+)
 
 #: A pure propagator: it fails whenever the reusable helm workflow failed and
 #: carries no independent signal.
@@ -343,6 +352,41 @@ def failing_specs(report: Any, *, suite: str | None = None) -> list[FailingSpec]
             )
         )
     return out
+
+
+def merge_specs(specs: list[FailingSpec]) -> list[FailingSpec]:
+    """Collapse the same spec reported by several runs into one entry.
+
+    A SaaS run publishes one report per Tasklist generation (`json-report-8.8-v1` and
+    `-v2`), and an SM run one per shard, so the same failing spec arrives more than
+    once. Left alone it reaches the agent twice, telling it to fix one thing two ways,
+    and puts duplicate `fp=` lines in the PR coverage block.
+
+    Attempt histories are concatenated rather than one occurrence winning, because
+    `deterministic` is what steers the agent between a behavioural fix and a waiting
+    fix. A spec that failed every attempt in both generations is deterministic; one that
+    passed in either is flaky, and merging keeps that visible instead of depending on
+    which report happened to be read first.
+    """
+    merged: dict[tuple[str, str], FailingSpec] = {}
+    for spec in specs:
+        key = (spec.file, spec.test_name)
+        first = merged.get(key)
+        if first is None:
+            merged[key] = FailingSpec(
+                file=spec.file,
+                test_name=spec.test_name,
+                error=spec.error,
+                project=spec.project,
+                attempts=spec.attempts,
+                statuses=list(spec.statuses),
+            )
+            continue
+        first.attempts += spec.attempts
+        first.statuses.extend(spec.statuses)
+        first.error = first.error or spec.error
+        first.project = first.project or spec.project
+    return list(merged.values())
 
 
 # ---------------------------------------------------------------------------
