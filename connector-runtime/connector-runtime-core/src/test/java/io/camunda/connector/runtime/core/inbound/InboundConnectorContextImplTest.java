@@ -416,19 +416,32 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
-  void secretFilterEnabled_resolvesASecretIntroducedByAHotSwappedElement() {
+  void secretFilterEnabled_leavesASecretOnlyASiblingElementDeclares() {
     var scope = List.of("shared");
-    var first = elementWithProperties("a", Map.of("shared", "x", "token", "secrets.ORIGINAL"));
-    var added = elementWithProperties("b", Map.of("shared", "x", "token", "secrets.ADDED"));
+    var bound = elementWithProperties("a", Map.of("shared", "x", "token", "secrets.OWN"));
+    var sibling = elementWithProperties("b", Map.of("shared", "x", "token", "secrets.ONLY_B"));
     var secretProvider = mock(SecretProvider.class);
-    when(secretProvider.getSecret(eq("ORIGINAL"), any())).thenReturn("original-value");
-    when(secretProvider.getSecret(eq("ADDED"), any())).thenReturn("added-value");
-    var context = filteringContext(detailsOf(scope, first), secretProvider);
-    assertThat(replace(context, "secrets.ORIGINAL")).isEqualTo("original-value");
+    when(secretProvider.getSecret(eq("OWN"), any())).thenReturn("own-value");
+    when(secretProvider.getSecret(eq("ONLY_B"), any())).thenReturn("leaked-b-value");
+    var context = filteringContext(detailsOf(scope, bound, sibling), secretProvider);
 
-    context.updateConnectorDetails(detailsOf(scope, first, added));
+    assertThat(replace(context, "secrets.OWN")).isEqualTo("own-value");
+    assertThat(replace(context, "secrets.ONLY_B")).isEqualTo("secrets.ONLY_B");
+    verify(secretProvider, never()).getSecret(eq("ONLY_B"), any());
+  }
 
-    assertThat(replace(context, "secrets.ADDED")).isEqualTo("added-value");
+  @Test
+  void secretFilterEnabled_leavesASecretNamedOnlyByAnotherSecretsValue() {
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("CHAIN_ROOT"), any())).thenReturn("secrets.CHAINED");
+    when(secretProvider.getSecret(eq("CHAINED"), any())).thenReturn("leaked-value");
+    var context =
+        filteringContext(
+            getInboundConnectorDefinition(Map.of("token", "{{secrets.CHAIN_ROOT}}")),
+            secretProvider);
+
+    assertThat(replace(context, "{{secrets.CHAIN_ROOT}}")).isEqualTo("secrets.CHAINED");
+    verify(secretProvider, never()).getSecret(eq("CHAINED"), any());
   }
 
   @Test

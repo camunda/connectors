@@ -61,7 +61,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -172,21 +171,24 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
    */
   @Override
   public SecretHandler getSecretHandler() {
-    return secretHandler(connectorDetails);
+    return secretHandler(connectorDetails.rawPropertiesWithoutKeywords());
   }
 
-  private SecretHandler secretHandler(ValidInboundConnectorDetails details) {
+  /**
+   * Scoped to the very text it is about to filter, so a name that text does not declare is refused.
+   * Replacement feeds its own output through a second pattern pass, so a resolved value containing
+   * reference-shaped text would otherwise reach a secret no model declares.
+   */
+  private SecretHandler secretHandler(Map<String, String> rawProperties) {
     if (!secretFilterEnabled) {
       return super.getSecretHandler();
     }
-    return new SecretHandler(secretProvider, SecretFilter.allowOnly(declaredSecretNames(details)));
+    return new SecretHandler(
+        secretProvider, SecretFilter.allowOnly(declaredSecretNames(rawProperties)));
   }
 
-  private List<String> declaredSecretNames(ValidInboundConnectorDetails details) {
-    return Stream.concat(
-            Stream.of(details.rawPropertiesWithoutKeywords()),
-            details.connectorElements().stream().map(element -> element.element().properties()))
-        .flatMap(properties -> properties.values().stream())
+  private List<String> declaredSecretNames(Map<String, String> rawProperties) {
+    return rawProperties.values().stream()
         .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
         .toList();
   }
@@ -414,7 +416,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       var wrapped = InboundPropertyHandler.readWrappedProperties(rawProperties);
       var withSecrets =
           InboundPropertyHandler.getPropertiesWithSecrets(
-              secretHandler(details),
+              secretHandler(rawProperties),
               objectMapper,
               wrapped,
               new SecretContext(
