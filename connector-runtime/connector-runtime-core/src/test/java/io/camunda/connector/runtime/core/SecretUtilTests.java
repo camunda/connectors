@@ -107,6 +107,18 @@ public class SecretUtilTests {
   }
 
   @Test
+  void shouldNotResolveABarePrefixInsideAStillDeniedBracketedReference() {
+    // FOO is allowed on its own, but "FOO:BAR" is not declared anywhere and so is denied. The
+    // parentheses pass correctly leaves the literal "{{secrets.FOO:BAR}}" untouched — but its own
+    // text still contains "secrets.FOO", which the bare pass must not separately resolve.
+    SecretReplacer secretReplacer = (name, context) -> "FOO".equals(name) ? "REAL_VALUE" : null;
+
+    String result = SecretUtil.replaceSecrets("{{secrets.FOO:BAR}}", null, secretReplacer);
+
+    assertThat(result).isEqualTo("{{secrets.FOO:BAR}}");
+  }
+
+  @Test
   void shouldOnlyReplaceAllowListedSecrets() {
     List<String> allowList = List.of("KEY1", "KEY2");
     SecretReplacer secretReplacer =
