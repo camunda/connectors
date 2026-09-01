@@ -172,17 +172,20 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
    */
   @Override
   public SecretHandler getSecretHandler() {
+    return secretHandler(connectorDetails);
+  }
+
+  private SecretHandler secretHandler(ValidInboundConnectorDetails details) {
     if (!secretFilterEnabled) {
       return super.getSecretHandler();
     }
-    return new SecretHandler(secretProvider, SecretFilter.allowOnly(declaredSecretNames()));
+    return new SecretHandler(secretProvider, SecretFilter.allowOnly(declaredSecretNames(details)));
   }
 
-  private List<String> declaredSecretNames() {
+  private List<String> declaredSecretNames(ValidInboundConnectorDetails details) {
     return Stream.concat(
-            Stream.of(connectorDetails.rawPropertiesWithoutKeywords()),
-            connectorDetails.connectorElements().stream()
-                .map(element -> element.element().properties()))
+            Stream.of(details.rawPropertiesWithoutKeywords()),
+            details.connectorElements().stream().map(element -> element.element().properties()))
         .flatMap(properties -> properties.values().stream())
         .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
         .toList();
@@ -205,11 +208,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   private CorrelationResult correlateWithResultInternal(CorrelationRequest correlationRequest) {
+    var details = connectorDetails;
     try {
-      var result =
-          correlationHandler.correlate(connectorDetails.connectorElements(), correlationRequest);
+      var result = correlationHandler.correlate(details.connectorElements(), correlationRequest);
       logCorrelationResult(result);
-      return attachElementBinder(result);
+      return attachElementBinder(details, result);
     } catch (ConnectorInputException connectorInputException) {
       return new CorrelationResult.Failure.InvalidInput(
           connectorInputException.getMessage(), connectorInputException);
@@ -237,12 +240,20 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
    * CorrelationResult.Success#bindProperties(Class)} using this context's secret + FEEL pipeline,
    * without handling raw property maps.
    */
-  private CorrelationResult attachElementBinder(CorrelationResult result) {
+  private CorrelationResult attachElementBinder(
+      ValidInboundConnectorDetails details, CorrelationResult result) {
     if (!(result instanceof Success success)) {
       return result;
     }
     var element =
-        new BindableProcessElement(success.activatedElement(), this::bindElementProperties);
+        new BindableProcessElement(
+            success.activatedElement(),
+            new BindableProcessElement.PropertyBinder() {
+              @Override
+              public <T> T bind(Map<String, String> rawProperties, Class<T> type) {
+                return bindElementProperties(details, rawProperties, type);
+              }
+            });
     return switch (success) {
       case ProcessInstanceCreated s ->
           new ProcessInstanceCreated(element, s.processInstanceKey(), s.tenantId());
@@ -397,18 +408,17 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     }
   }
 
-  private <T> T bindElementProperties(Map<String, String> rawProperties, Class<T> cls) {
+  private <T> T bindElementProperties(
+      ValidInboundConnectorDetails details, Map<String, String> rawProperties, Class<T> cls) {
     try {
       var wrapped = InboundPropertyHandler.readWrappedProperties(rawProperties);
       var withSecrets =
           InboundPropertyHandler.getPropertiesWithSecrets(
-              getSecretHandler(),
+              secretHandler(details),
               objectMapper,
               wrapped,
               new SecretContext(
-                  connectorDetails.tenantId(),
-                  connectorDetails.processDefinitionId(),
-                  physicalTenantId()));
+                  details.tenantId(), details.processDefinitionId(), physicalTenantId()));
       var propertiesJson = objectMapper.valueToTree(withSecrets);
       var result =
           FeelContextAwareObjectReader.of(objectMapper)

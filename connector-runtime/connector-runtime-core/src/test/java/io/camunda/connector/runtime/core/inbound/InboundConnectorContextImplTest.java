@@ -331,12 +331,19 @@ class InboundConnectorContextImplTest {
 
   private InboundConnectorContextImpl filteringContext(
       ValidInboundConnectorDetails details, SecretProvider secretProvider) {
+    return filteringContext(details, secretProvider, null);
+  }
+
+  private InboundConnectorContextImpl filteringContext(
+      ValidInboundConnectorDetails details,
+      SecretProvider secretProvider,
+      InboundCorrelationHandler correlationHandler) {
     return new InboundConnectorContextImpl(
         secretProvider,
         (e) -> {},
         mock(DocumentFactory.class),
         details,
-        null,
+        correlationHandler,
         (e) -> {},
         mapper,
         activityLogRegistry,
@@ -379,6 +386,33 @@ class InboundConnectorContextImplTest {
 
     assertThat(replace(context, "secrets.INJECTED")).isEqualTo("secrets.INJECTED");
     verify(secretProvider, never()).getSecret(eq("INJECTED"), any());
+  }
+
+  @Test
+  void secretFilterEnabled_resolvesASecretOfARetainedElementDroppedByAHotSwap() {
+    var scope = List.of("shared");
+    var kept = elementWithProperties("a", Map.of("shared", "x"));
+    var dropped =
+        elementWithProperties("b", Map.of("shared", "x", "stringMap", "={\"k\":\"secrets.KEPT\"}"));
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("KEPT"), any())).thenReturn("kept-value");
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    when(correlationHandler.correlate(any(), any()))
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreated(
+                dropped.element(), 1L, "<default>"));
+    var context =
+        filteringContext(detailsOf(scope, kept, dropped), secretProvider, correlationHandler);
+    var success =
+        (CorrelationResult.Success)
+            context.correlate(CorrelationRequest.builder().variables(Map.of()).build());
+    assertThat(success.bindProperties(TestPropertiesClass.class).getStringMap())
+        .containsEntry("k", "kept-value");
+
+    context.updateConnectorDetails(detailsOf(scope, kept));
+
+    assertThat(success.bindProperties(TestPropertiesClass.class).getStringMap())
+        .containsEntry("k", "kept-value");
   }
 
   @Test
