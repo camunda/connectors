@@ -87,6 +87,26 @@ public class SecretUtilTests {
   }
 
   @Test
+  void shouldNotAdmitABarePrefixOfABracketedNameWithSpecialCharacters() {
+    // {{secrets.DECLARED_A:SUB}} is one declaration. The bare pattern's narrower character class
+    // (no ':') would also match "secrets.DECLARED_A" inside that same literal text, spuriously
+    // admitting the shorter "DECLARED_A" into the allow-list this feeds — letting a runtime value
+    // that merely spells {{secrets.DECLARED_A}} resolve a secret the model never declared.
+    assertThat(SecretUtil.retrieveSecretKeysInInput("{{secrets.DECLARED_A:SUB}}"))
+        .containsExactly("DECLARED_A:SUB");
+  }
+
+  @Test
+  void shouldStillReportABareReferenceOutsideAnyBracketedOccurrence() {
+    // The exclusion only applies to a bare match nested inside a bracketed one; a genuinely
+    // separate bare occurrence elsewhere in the text must still be reported.
+    assertThat(
+            SecretUtil.retrieveSecretKeysInInput(
+                "{{secrets.DECLARED_A:SUB}} and also secrets.OTHER_BARE"))
+        .containsExactlyInAnyOrder("DECLARED_A:SUB", "OTHER_BARE");
+  }
+
+  @Test
   void shouldOnlyReplaceAllowListedSecrets() {
     List<String> allowList = List.of("KEY1", "KEY2");
     SecretReplacer secretReplacer =
