@@ -52,18 +52,34 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
                 new SecretKeyContext(context.processDefinitionKey(), context.elementId()));
           } catch (RuntimeException e) {
             if (strict) {
-              // Only getMessage() reaches the Zeebe incident (see the exception-handling layer
-              // that turns this into a failJob command) -- the real cause, e, is otherwise
-              // visible only in this pod's log. Folding it into the message here is what actually
-              // gets it in front of an operator.
-              throw new IllegalArgumentException(
-                  "Error retrieving secret keys: " + e.getMessage(), e);
-            } else {
-              LOG.warn(
-                  "Error filtering secrets for element '{}' in process definition key {}, will allow all as secret-filter-mode is LAX",
+              // e is usually a Cache.ValueRetrievalException (Spring's Cache#get(key, loader)
+              // wraps whatever the loader throws); unwrap to name the real failure type. Never
+              // log the cause's message, or the cause itself, anywhere -- not the incident, not
+              // the pod log -- a client/parser exception message can echo response-body content,
+              // so neither sink gets more than the exception's class name. The element ID,
+              // process-definition key, and exception class are enough for an operator to
+              // distinguish failure modes.
+              Throwable realCause = e.getCause() != null ? e.getCause() : e;
+              LOG.error(
+                  "Error retrieving secret keys for element '{}' in process definition key {} ({})",
                   context.elementId(),
                   context.processDefinitionKey(),
-                  e);
+                  realCause.getClass().getName());
+              throw new IllegalArgumentException(
+                  "Error retrieving secret keys for element '"
+                      + context.elementId()
+                      + "' in process definition key "
+                      + context.processDefinitionKey()
+                      + " ("
+                      + realCause.getClass().getName()
+                      + ")");
+            } else {
+              Throwable realCause = e.getCause() != null ? e.getCause() : e;
+              LOG.warn(
+                  "Error filtering secrets for element '{}' in process definition key {} ({}), will allow all as secret-filter-mode is LAX",
+                  context.elementId(),
+                  context.processDefinitionKey(),
+                  realCause.getClass().getName());
               return null;
             }
           }
