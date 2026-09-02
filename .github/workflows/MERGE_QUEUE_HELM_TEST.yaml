@@ -691,12 +691,9 @@ jobs:
           mask_multiline_field() {
             local field="$1"
             local value
-            value=$(echo "$SERVICE_ACCOUNT_JSON" | jq -r --arg f "$field" '.[$f] // empty' 2>/dev/null) || {
-              echo "::warning::Could not extract '$field' from IDP_GCP_SERVICE_ACCOUNT for masking (parse failed or field missing)"
-              return 0
-            }
-            if [ -z "$value" ]; then
-              return 0
+            if ! value=$(echo "$SERVICE_ACCOUNT_JSON" | jq -r --arg f "$field" '.[$f] // empty' 2>/dev/null) || [ -z "$value" ]; then
+              echo "::error::Could not extract '$field' from IDP_GCP_SERVICE_ACCOUNT - failing rather than running the real test unmasked"
+              exit 1
             fi
             while IFS= read -r line; do
               [ -n "$line" ] && echo "::add-mask::$line"
