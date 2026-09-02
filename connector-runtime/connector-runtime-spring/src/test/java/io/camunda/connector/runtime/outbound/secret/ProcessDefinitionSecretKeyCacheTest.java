@@ -149,6 +149,26 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_referenceToASiblingFieldDoesNotPropagateASiblingsSecret() throws IOException {
+    // authentication.token and authentication.type are siblings that merely share a top-level
+    // target segment. usesSiblingFieldOnly references authentication.type specifically, not the
+    // whole authentication object, so it must not inherit AUTH_TOKEN from its sibling field.
+    // usesWholeAuth, by reading the whole authentication object, legitimately picks it up.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-sibling-fields.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys)
+        .contains(
+            new Secret("AUTH_TOKEN", List.of("authentication", "token")),
+            new Secret("AUTH_TOKEN", List.of("usesWholeAuth")))
+        .doesNotContain(
+            new Secret("AUTH_TOKEN", List.of("usesSiblingFieldOnly")),
+            new Secret("AUTH_TOKEN", List.of("authentication", "type")));
+  }
+
+  @Test
   void getSecretKeys_multipleTasksWithSecrets_returnsOnlyKeysForRequestedElement()
       throws IOException {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-multiple-tasks-with-secrets.bpmn"));

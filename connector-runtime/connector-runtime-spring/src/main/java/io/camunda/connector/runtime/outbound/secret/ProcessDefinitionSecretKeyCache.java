@@ -43,7 +43,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -147,11 +146,13 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
    * as directly as the input that named it, so the allow-list has to follow that data flow rather
    * than stop at the input where the secret's name is written.
    *
-   * <p>A dependency is resolved by matching a referenced variable's top-level name against the
-   * top-level segment of another input's {@code target} (a dotted target like {@code
-   * authentication.type} publishes the top-level variable {@code authentication}) — not by
-   * comparing full paths, since a FEEL expression normally references the top-level variable a
-   * group of inputs assembles, not one specific field of it.
+   * <p>A dependency is resolved by matching a referenced variable's full qualified path against
+   * another input's {@code target} path, one a prefix of the other (a dotted target like {@code
+   * authentication.type} publishes both the top-level variable {@code authentication} and the field
+   * {@code authentication.type}). Requiring a prefix relation on the full path — rather than just
+   * the top-level segment — keeps sibling fields under the same top-level name, like {@code
+   * authentication.type} and {@code authentication.token}, from being treated as dependent on each
+   * other merely for sharing a top-level name.
    */
   private List<Secret> extractSecrets(List<ZeebeInput> inputs) {
     Map<ZeebeInput, List<String>> pathByInput = new LinkedHashMap<>();
@@ -166,16 +167,19 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
               .toList());
     }
 
-    Map<String, List<ZeebeInput>> inputsByTopLevelTargetName =
-        inputs.stream().collect(Collectors.groupingBy(input -> pathByInput.get(input).get(0)));
-
     Map<ZeebeInput, List<ZeebeInput>> directDependencies = new LinkedHashMap<>();
     for (ZeebeInput input : inputs) {
+      List<List<String>> referencedPaths = referencedVariablePaths(input.getSource());
       directDependencies.put(
           input,
-          referencedTopLevelVariableNames(input.getSource()).stream()
-              .flatMap(name -> inputsByTopLevelTargetName.getOrDefault(name, List.of()).stream())
+          inputs.stream()
               .filter(candidate -> candidate != input)
+              .filter(
+                  candidate ->
+                      referencedPaths.stream()
+                          .anyMatch(
+                              referencedPath ->
+                                  isPrefix(referencedPath, pathByInput.get(candidate))))
               .distinct()
               .toList());
     }
@@ -200,28 +204,32 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   }
 
   /**
-   * The top-level names of every variable a FEEL expression references, or an empty set if {@code
-   * source} isn't a FEEL expression (no leading {@code =}) or fails to parse — a static value or a
-   * malformed expression simply has nothing to propagate from.
+   * The full qualified path of every variable a FEEL expression references, or an empty list if
+   * {@code source} isn't a FEEL expression (no leading {@code =}) or fails to parse — a static
+   * value or a malformed expression simply has nothing to propagate from.
    */
-  private static Set<String> referencedTopLevelVariableNames(String source) {
+  private static List<List<String>> referencedVariablePaths(String source) {
     if (source == null) {
-      return Set.of();
+      return List.of();
     }
     String trimmed = source.trim();
     if (!trimmed.startsWith("=")) {
-      return Set.of();
+      return List.of();
     }
     var parseResult = FEEL_ENGINE.parseExpression(trimmed.substring(1));
     if (parseResult.isFailure()) {
-      return Set.of();
+      return List.of();
     }
-    Set<String> names = new LinkedHashSet<>();
-    parseResult
-        .parsedExpression()
-        .getVariableReferences()
-        .forEach(ref -> names.add(ref.getFullQualifiedName().get(0)));
-    return names;
+    return parseResult.parsedExpression().getVariableReferences().stream()
+        .map(ref -> ref.getFullQualifiedName())
+        .distinct()
+        .toList();
+  }
+
+  /** Whether one path is a prefix of the other, in either direction. */
+  private static boolean isPrefix(List<String> a, List<String> b) {
+    int sharedLength = Math.min(a.size(), b.size());
+    return a.subList(0, sharedLength).equals(b.subList(0, sharedLength));
   }
 
   private List<ZeebeInput> findElementInput(BaseElement element) {
