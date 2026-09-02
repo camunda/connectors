@@ -106,7 +106,7 @@
       "constraints" : {
         "notEmpty" : true,
         "pattern" : {
-          "value" : "^(=.*|https://[^/\\s]+/?|\\{\\{secrets\\..+\\}\\})$",
+          "value" : "^(=.*|https://[^/\\s?#]+/?|\\{\\{secrets\\..+\\}\\})$",
           "message" : "Must be an https URL, a FEEL expression, or a {{secrets.NAME}} placeholder"
         }
       },
