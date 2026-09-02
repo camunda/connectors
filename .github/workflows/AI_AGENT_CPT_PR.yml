@@ -14,11 +14,12 @@ on:
   pull_request:
     types: [ labeled, synchronize ]
 
-# Scoped to the PR number only (no label name in the key): removing-then-re-adding the label
-# cancels an in-flight run instead of racing a duplicate - the actual guard against label-flapping
-# cost abuse, since every run here spends real LLM API quota.
+# Scoped to the PR number + which event fired (label name on `labeled`, the action name on
+# `synchronize`): removing-then-re-adding the `ai-agent-cpt` label still cancels an in-flight run
+# as intended, but adding an unrelated label (e.g. deploy-preview) lands in its own group instead
+# of canceling a real, cost-bearing CPT run in progress. Mirrors BUILD_PR_DOCKER_IMAGES.yml's key.
 concurrency:
-  group: ai-agent-cpt-${{ github.event.pull_request.number }}
+  group: ai-agent-cpt-${{ github.event.pull_request.number }}-${{ github.event.label.name || github.event.action }}
   cancel-in-progress: true
 
 permissions:
