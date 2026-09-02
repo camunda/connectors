@@ -63,5 +63,17 @@ public interface SecretFilter {
    */
   boolean isAllowed(Secret context);
 
-  record Secret(String secretName, List<String> fieldPath) {}
+  record Secret(String secretName, List<String> fieldPath) {
+
+    /**
+     * Defensively copies {@code fieldPath}: callers such as {@code Arrays.asList(...)} return a
+     * fixed-size but still mutable (via {@code set}) list, which would otherwise let anyone holding
+     * a cached {@code Secret} reach in and change which fields it authorizes for later, unrelated
+     * jobs.
+     */
+    public Secret(String secretName, List<String> fieldPath) {
+      this.secretName = secretName;
+      this.fieldPath = List.copyOf(fieldPath);
+    }
+  }
 }
