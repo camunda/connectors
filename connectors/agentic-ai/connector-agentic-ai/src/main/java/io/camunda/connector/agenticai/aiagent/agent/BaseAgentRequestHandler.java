@@ -92,8 +92,9 @@ public abstract class BaseAgentRequestHandler<
 
   @Override
   public R handleRequest(final C executionContext) {
-    final var initializationResult = agentInitializer.initializeAgent(executionContext);
+    AgentInitializationResult initializationResult = null;
     try {
+      initializationResult = agentInitializer.initializeAgent(executionContext);
       return switch (initializationResult) {
         case DiscoverTools(var agentContext, var toolDiscoveryToolCalls) -> {
           LOGGER.debug(
@@ -112,18 +113,19 @@ public abstract class BaseAgentRequestHandler<
         }
       };
     } catch (RuntimeException failure) {
-      reportIdleOnFailure(executionContext, initializationResult.agentContext(), failure);
+      final var agentContext =
+          initializationResult == null ? null : initializationResult.agentContext();
+      reportIdleOnFailure(executionContext, agentContext, failure);
       throw failure;
     }
   }
 
   /**
    * Attempts to clear a stale {@code THINKING} or {@code TOOL_CALLING} agent instance status before
-   * {@code failure} propagates as a job failure. Skips the call when {@code failure} already
-   * originated from an agent instance write, since retrying would likely fail the same way and
-   * could overwrite a status a newer, still-live activation already advanced past. Does not cover a
-   * failure inside {@code initializeAgent()}, which {@link #handleRequest} calls outside this try
-   * block.
+   * {@code failure} propagates as a job failure, including a failure inside {@code
+   * initializeAgent()} for a resumed agent. Skips the call when {@code failure} already originated
+   * from an agent instance write, since retrying would likely fail the same way and could overwrite
+   * a status a newer, still-live activation already advanced past.
    */
   private void reportIdleOnFailure(
       C executionContext, @Nullable AgentContext agentContext, RuntimeException failure) {

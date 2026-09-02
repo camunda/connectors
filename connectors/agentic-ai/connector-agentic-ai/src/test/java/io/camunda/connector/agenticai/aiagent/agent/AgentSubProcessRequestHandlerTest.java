@@ -570,6 +570,28 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
+  void reportsIdleWhenInitializeAgentFailsForAResumedAgentWithARecoverableKey() {
+    // a resumed agent already carries a real key in initialAgentContext() -- a failure inside
+    // initializeAgent() itself (e.g. reloading tool definitions) must still report IDLE for it
+    reset(conversationStoreRegistry);
+    final var agentInstanceKey = AgentInstanceKey.of(7L);
+    when(agentExecutionContext.initialAgentContext())
+        .thenReturn(
+            AgentContext.builder()
+                .state(AgentState.READY)
+                .toolDefinitions(TOOL_DEFINITIONS)
+                .metadata(new AgentMetadata(1L, 1L, 7L, null))
+                .build());
+    final var initializationFailure = new RuntimeException("tool reload failed");
+    when(agentInitializer.initializeAgent(agentExecutionContext)).thenThrow(initializationFailure);
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isSameAs(initializationFailure);
+
+    verify(agentInstanceClient).reportIdleOnFailure(agentExecutionContext, agentInstanceKey);
+  }
+
+  @Test
   void reportsIdleWhenModelCallFailsOnANewlyCreatedAgentInstanceWithNoInitialAgentContext() {
     // brand-new agent, first job: initialAgentContext() is deliberately left un-stubbed (this mock
     // is RETURNS_DEEP_STUBS, so it resolves to a deep stub with no metadata, not null) -- the

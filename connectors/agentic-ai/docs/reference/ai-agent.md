@@ -1771,12 +1771,13 @@ lease-fenced `update()` mechanism).
 
 ### Reporting IDLE on job failure
 
-`BaseAgentRequestHandler.handleRequest` catches a job failure around dispatch/converse and calls
-`AgentInstanceClient.reportIdleOnFailure`, so an incident doesn't leave the agent instance stuck at a
-stale `THINKING`/`TOOL_CALLING` status. It resolves the key from the in-flight `AgentContext`
-(`initializeAgent()`'s result), falling back to `executionContext.initialAgentContext()` — the
-in-flight context is required for a brand-new agent's first job, whose key doesn't exist yet in
-`initialAgentContext()`.
+`BaseAgentRequestHandler.handleRequest` catches a job failure around `initializeAgent()` and
+dispatch/converse and calls `AgentInstanceClient.reportIdleOnFailure`, so an incident doesn't leave
+the agent instance stuck at a stale `THINKING`/`TOOL_CALLING` status. It resolves the key from the
+in-flight `AgentContext` (`initializeAgent()`'s result, if it returned one), falling back to
+`executionContext.initialAgentContext()`. The in-flight context is required for a brand-new agent's
+first job, whose key doesn't exist yet in `initialAgentContext()`; the fallback covers a resumed
+agent whose `initializeAgent()` call itself fails, since its key is already in `initialAgentContext()`.
 
 `reportIdleOnFailure` logs and swallows its own failures (a deliberate exception to the strict-failure
 convention every other `AgentInstanceClient` method follows) and is skipped when the failure already
@@ -1784,8 +1785,8 @@ came from `AgentInstanceClient`
 (`AGENT_INSTANCE_UPDATE_FAILED`/`AGENT_INSTANCE_CREATION_FAILED`/`AGENT_INSTANCE_SUPERSEDED`), to
 avoid retrying a doomed call or clobbering a superseded activation's newer status.
 
-**Known gap**: a failure inside `initializeAgent()` itself, which runs outside the try, is never
-reported — accepted, since there's no instance or no new state to clear at that point.
+**Known gap**: a brand-new agent instance whose creation fails inside `initializeAgent()`, before it
+returns any result, is never reported — accepted, since that instance has no prior status to clear.
 
 ### Conversation history items
 
