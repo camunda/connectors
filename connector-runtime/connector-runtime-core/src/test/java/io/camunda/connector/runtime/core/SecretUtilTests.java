@@ -19,8 +19,10 @@ package io.camunda.connector.runtime.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.core.secret.SecretReplacer;
@@ -104,6 +106,19 @@ public class SecretUtilTests {
             SecretUtil.retrieveSecretKeysInInput(
                 "{{secrets.DECLARED_A:SUB}} and also secrets.OTHER_BARE"))
         .containsExactlyInAnyOrder("DECLARED_A:SUB", "OTHER_BARE");
+  }
+
+  @Test
+  void shouldAskTheReplacerAtMostOnceForAGivenNameAcrossBothPasses() {
+    // secretReplacer is not guaranteed side-effect-free in production (a provider aggregator can
+    // count each resolution), so a name the parentheses pass already resolved or denied must not
+    // be looked up again by the bare pass's own denial check.
+    var secretReplacer = mock(SecretReplacer.class);
+    when(secretReplacer.replaceSecrets(eq("FOO:BAR"), any())).thenReturn(null);
+
+    SecretUtil.replaceSecrets("{{secrets.FOO:BAR}}", null, secretReplacer);
+
+    verify(secretReplacer, times(1)).replaceSecrets(eq("FOO:BAR"), any());
   }
 
   @Test
