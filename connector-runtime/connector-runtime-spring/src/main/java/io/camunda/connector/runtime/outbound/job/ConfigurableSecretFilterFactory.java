@@ -88,9 +88,16 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
   }
 
   private static Throwable mostSpecificCause(Throwable t) {
+    var seen =
+        java.util.Collections.newSetFromMap(
+            new java.util.IdentityHashMap<Throwable, Boolean>());
     Throwable current = t;
-    while (current.getCause() != null) {
-      current = current.getCause();
+    while (seen.add(current)) {
+      Throwable cause = current.getCause();
+      if (cause == null) {
+        return current;
+      }
+      current = cause;
     }
     return current;
   }
