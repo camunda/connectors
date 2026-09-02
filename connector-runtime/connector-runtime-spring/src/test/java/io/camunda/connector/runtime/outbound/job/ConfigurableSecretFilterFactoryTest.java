@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
@@ -31,13 +32,11 @@ import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCa
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.cache.Cache;
-import org.springframework.cache.caffeine.CaffeineCache;
-import org.springframework.cache.support.NoOpCache;
 
 @ExtendWith(MockitoExtension.class)
 class ConfigurableSecretFilterFactoryTest {
@@ -126,25 +125,59 @@ class ConfigurableSecretFilterFactoryTest {
   }
 
   @Test
-  void
-      create_strict_whenProcessDefinitionLookupFailsThroughACaffeineCache_messageIdentifiesTheFailureWithoutLeakingTheCauseText()
-          throws Exception {
-    // Goes through a real Cache#get(key, loader), which wraps the loader's exception in
-    // Cache.ValueRetrievalException -- unlike the mock above, this reproduces the wrapping that
-    // hid the exception type in production.
-    assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(
-        new CaffeineCache("test", Caffeine.newBuilder().build()));
+  void create_strict_whenCauseIsWrappedSeveralLayersDeep_messageIdentifiesTheRootCause() {
+    // A client can wrap the real failure in its own generic exception type before it ever reaches
+    // this code. A single getCause() would still return that generic, non-discriminating type;
+    // the message must walk to the actual root.
+    var rootCause = new java.net.ConnectException("Connection refused");
+    when(secretKeyCache.getSecretKeys(any()))
+        .thenThrow(
+            new RuntimeException(
+                "outer",
+                new RuntimeException("sdk wrapper", new RuntimeException("mid", rootCause))));
+    var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
+
+    var filter = factory.create(CONTEXT);
+
+    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+        .hasMessageContaining(java.net.ConnectException.class.getName())
+        .hasMessageNotContaining("Connection refused");
+  }
+
+  @Test
+  void create_strict_whenCauseChainIsCyclic_terminatesInsteadOfHanging() {
+    // Throwable#initCause permits a legal cycle (a's cause is b, b's cause is a) if a third-party
+    // exception is constructed that way; walking to the "most specific" cause must still
+    // terminate rather than loop forever.
+    var a = new RuntimeException("a");
+    var b = new RuntimeException("b", a);
+    a.initCause(b);
+    when(secretKeyCache.getSecretKeys(any())).thenThrow(a);
+    var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
+
+    var filter = factory.create(CONTEXT);
+
+    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
   void
-      create_strict_whenProcessDefinitionLookupFailsThroughANoOpCache_messageIdentifiesTheFailureWithoutLeakingTheCauseText()
-          throws Exception {
-    assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(new NoOpCache("test"));
+      create_strict_whenProcessDefinitionLookupFailsThroughARealCache_messageIdentifiesTheFailureWithoutLeakingTheCauseText() {
+    // Goes through a real Cache#get(key, mappingFunction) -- unlike the mock above, this
+    // reproduces the actual path in production.
+    assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(Caffeine.newBuilder().build());
   }
 
-  private void assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(Cache cache)
-      throws Exception {
+  @Test
+  void
+      create_strict_whenProcessDefinitionLookupFailsThroughADisabledCache_messageIdentifiesTheFailureWithoutLeakingTheCauseText() {
+    assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(
+        Caffeine.newBuilder().maximumSize(0).build());
+  }
+
+  private void assertMessageIdentifiesTheFailureWithoutLeakingTheCauseText(
+      Cache<Long, Map<String, List<String>>> cache) {
     var camundaClient = mock(CamundaClient.class);
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEF_KEY))
         .thenThrow(new RuntimeException("Operate returned 404 for process definition 42"));

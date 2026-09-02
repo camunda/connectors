@@ -17,22 +17,20 @@
 package io.camunda.connector.runtime.outbound.secret;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.fetch.ProcessDefinitionGetXmlRequest;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.Callable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.cache.Cache;
 
 @ExtendWith(MockitoExtension.class)
 class ProcessDefinitionSecretKeyCacheTest {
@@ -41,20 +39,16 @@ class ProcessDefinitionSecretKeyCacheTest {
 
   @Mock private CamundaClient camundaClient;
   @Mock private ProcessDefinitionGetXmlRequest xmlRequest;
-  @Mock private Cache cache;
 
   private ProcessDefinitionSecretKeyCache secretKeyCache;
 
   @BeforeEach
-  void setUp() throws Exception {
-    secretKeyCache = new ProcessDefinitionSecretKeyCache(camundaClient, cache);
+  void setUp() {
+    // A real Caffeine cache, not a mock: exercises the actual get(key, Function) contract this
+    // class now relies on.
+    secretKeyCache =
+        new ProcessDefinitionSecretKeyCache(camundaClient, Caffeine.newBuilder().build());
     when(camundaClient.newProcessDefinitionGetXmlRequest(anyLong())).thenReturn(xmlRequest);
-    when(cache.get(anyLong(), any(Callable.class)))
-        .thenAnswer(
-            invocation -> {
-              Callable<?> loader = invocation.getArgument(1);
-              return loader.call();
-            });
   }
 
   @Test

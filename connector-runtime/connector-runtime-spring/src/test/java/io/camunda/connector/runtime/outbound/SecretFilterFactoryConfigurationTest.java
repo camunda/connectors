@@ -16,14 +16,13 @@
  */
 package io.camunda.connector.runtime.outbound;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
-import org.springframework.cache.Cache;
-import org.springframework.cache.caffeine.CaffeineCache;
-import org.springframework.cache.support.NoOpCache;
 
 class SecretFilterFactoryConfigurationTest {
 
@@ -31,51 +30,68 @@ class SecretFilterFactoryConfigurationTest {
       new SecretFilterFactoryConfiguration();
 
   @Test
-  void secretKeyCacheStore_whenEnabled_returnsCaffeineCache() {
-    var cache = configuration.secretKeyCacheStore(true, 1000).cache();
+  void secretKeyCacheStore_whenEnabled_cachesAValueAcrossGets() {
+    Cache<Long, String> cache = rawCache(configuration.secretKeyCacheStore(true, 1000));
 
-    assertInstanceOf(CaffeineCache.class, cache);
-  }
+    var callCount = new AtomicInteger(0);
+    cache.get(1L, k -> "v" + callCount.incrementAndGet());
+    cache.get(1L, k -> "v" + callCount.incrementAndGet());
 
-  @Test
-  void secretKeyCacheStore_whenDisabled_returnsNoOpCache() {
-    var cache = configuration.secretKeyCacheStore(false, 1000).cache();
-
-    assertInstanceOf(NoOpCache.class, cache);
+    assertEquals(1, callCount.get(), "an enabled cache must memoize across gets for the same key");
   }
 
   @Test
   void secretKeyCacheStore_whenDisabled_cacheNeverStoresValues() {
-    Cache cache = configuration.secretKeyCacheStore(false, 1000).cache();
+    Cache<Long, String> cache = rawCache(configuration.secretKeyCacheStore(false, 1000));
 
     var callCount = new AtomicInteger(0);
-    cache.get("key", callCount::incrementAndGet);
-    cache.get("key", callCount::incrementAndGet);
+    cache.get(1L, k -> "v" + callCount.incrementAndGet());
+    cache.get(1L, k -> "v" + callCount.incrementAndGet());
 
-    assertEquals(2, callCount.get(), "NoOp cache must call loader on every get");
+    assertEquals(2, callCount.get(), "a disabled cache must call the loader on every get");
   }
 
   @Test
   void secretKeyCacheStore_whenMaxSizeIsZero_clampedToDefault() {
-    var cache = configuration.secretKeyCacheStore(true, 0).cache();
+    Cache<Long, String> cache = rawCache(configuration.secretKeyCacheStore(true, 0));
 
-    assertInstanceOf(CaffeineCache.class, cache);
+    var callCount = new AtomicInteger(0);
+    cache.get(1L, k -> "v" + callCount.incrementAndGet());
+    cache.get(1L, k -> "v" + callCount.incrementAndGet());
+
+    assertEquals(
+        1, callCount.get(), "clamped-to-default must still memoize, unlike the disabled case");
   }
 
   @Test
   void secretKeyCacheStore_whenMaxSizeIsNegative_clampedToDefault() {
-    var cache = configuration.secretKeyCacheStore(true, -1).cache();
+    Cache<Long, String> cache = rawCache(configuration.secretKeyCacheStore(true, -1));
 
-    assertInstanceOf(CaffeineCache.class, cache);
+    var callCount = new AtomicInteger(0);
+    cache.get(1L, k -> "v" + callCount.incrementAndGet());
+    cache.get(1L, k -> "v" + callCount.incrementAndGet());
+
+    assertEquals(
+        1, callCount.get(), "clamped-to-default must still memoize, unlike the disabled case");
   }
 
   @Test
   void secretKeyCacheStore_beanTypeIsNotAPlainCache_soItCannotCollideWithAHostCacheBean() {
-    // Regression: the bean previously returned a plain Cache, which collided with a host
-    // application's own unqualified Cache bean the same way an unqualified CacheManager bean
-    // used to. The holder type is what makes that impossible now, not the @Qualifier.
+    // Regression: the bean previously returned a plain Spring Cache (backed by
+    // spring-context-support), which collided with a host application's own unqualified Cache
+    // bean the same way an unqualified CacheManager bean used to -- and separately put
+    // CaffeineCacheManager on the classpath, which this runtime's own pre-existing caffeine
+    // dependency made eligible for Spring Boot's Caffeine-provider auto-configuration, able to
+    // silently replace a host's own auto-configured CacheManager. The holder type wrapping
+    // Caffeine's own Cache is what makes both impossible now.
     var holder = configuration.secretKeyCacheStore(true, 1000);
 
     assertInstanceOf(SecretKeyCacheHolder.class, holder);
+    assertThat(holder.cache()).isInstanceOf(Cache.class);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Cache<Long, String> rawCache(SecretKeyCacheHolder holder) {
+    return (Cache<Long, String>) (Cache<?, ?>) holder.cache();
   }
 }

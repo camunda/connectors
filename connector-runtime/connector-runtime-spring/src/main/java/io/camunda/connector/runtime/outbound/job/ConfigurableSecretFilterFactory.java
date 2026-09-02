@@ -21,6 +21,9 @@ import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,15 +54,16 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
             return secretKeyCache.getSecretKeys(
                 new SecretKeyContext(context.processDefinitionKey(), context.elementId()));
           } catch (RuntimeException e) {
+            // realCause walks to the root of the chain, not just one level: the client can wrap
+            // the actual failure in its own generic exception type before it ever reaches here,
+            // so a single getCause() can still return a non-discriminating wrapper class. Never
+            // log the cause's message, or the cause itself, anywhere -- not the incident, not the
+            // pod log -- a client/parser exception message can echo response-body content, so
+            // neither sink gets more than the exception's class name. The element ID,
+            // process-definition key, and exception class are enough for an operator to
+            // distinguish failure modes.
+            Throwable realCause = mostSpecificCause(e);
             if (strict) {
-              // e is usually a Cache.ValueRetrievalException (Spring's Cache#get(key, loader)
-              // wraps whatever the loader throws); unwrap to name the real failure type. Never
-              // log the cause's message, or the cause itself, anywhere -- not the incident, not
-              // the pod log -- a client/parser exception message can echo response-body content,
-              // so neither sink gets more than the exception's class name. The element ID,
-              // process-definition key, and exception class are enough for an operator to
-              // distinguish failure modes.
-              Throwable realCause = e.getCause() != null ? e.getCause() : e;
               LOG.error(
                   "Error retrieving secret keys for element '{}' in process definition key {} ({})",
                   context.elementId(),
@@ -74,7 +78,6 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
                       + realCause.getClass().getName()
                       + ")");
             } else {
-              Throwable realCause = e.getCause() != null ? e.getCause() : e;
               LOG.warn(
                   "Error filtering secrets for element '{}' in process definition key {} ({}), will allow all as secret-filter-mode is LAX",
                   context.elementId(),
@@ -84,6 +87,20 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
             }
           }
         });
+  }
+
+  private static Throwable mostSpecificCause(Throwable t) {
+    // Java permits a cyclic cause chain (a.initCause(b) after b was already given cause a), so
+    // this must not walk unboundedly -- track visited throwables by identity and stop the moment
+    // one repeats, rather than hang the worker on a malformed third-party exception. Identity,
+    // not equals/hashCode: a third-party Throwable may override equality, and two distinct equal
+    // causes would then stop the walk early and report a wrapper instead of the root cause.
+    Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+    Throwable current = t;
+    while (current.getCause() != null && seen.add(current)) {
+      current = current.getCause();
+    }
+    return current;
   }
 
   public enum SecretFilterMode {
