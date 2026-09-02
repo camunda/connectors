@@ -30,6 +30,7 @@ import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.Callable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,6 +78,20 @@ class ProcessDefinitionSecretKeyCacheTest {
     assertThat(keys)
         .extracting(Secret::secretName)
         .containsExactlyInAnyOrder("API_KEY", "MY_TOKEN");
+  }
+
+  @Test
+  void getSecretKeys_dottedTarget_splitsIntoAMultiSegmentFieldPath() throws IOException {
+    // Projecting away fieldPath (as every other assertion in this class does, via
+    // Secret::secretName) would let a regression that assigns every secret an empty or wrong
+    // path pass unnoticed — this asserts the complete Secret, name and path together, against a
+    // target with more than one segment.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-dotted-target.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys).containsExactly(new Secret("API_KEY", List.of("auth", "token")));
   }
 
   @Test
