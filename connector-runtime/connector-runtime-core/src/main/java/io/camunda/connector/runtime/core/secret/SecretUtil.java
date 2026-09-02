@@ -16,9 +16,12 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /** Utility class to replace secrets in strings. */
 public class SecretUtil {
@@ -77,6 +80,17 @@ public class SecretUtil {
     } else {
       return null;
     }
+  }
+
+  public static List<String> retrieveSecretKeysInInput(String input) {
+    return Objects.isNull(input)
+        ? List.of()
+        : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
+            .map(pattern -> pattern.matcher(input))
+            .flatMap(Matcher::results)
+            .map(matchResult -> matchResult.group("secret"))
+            .distinct()
+            .toList();
   }
 
   public static String replaceTokens(
