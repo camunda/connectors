@@ -162,8 +162,7 @@ jobs:
     with:
       image-source: artifactory
       connectors-version: ${{ needs.build-image.outputs.connectors-version }}
-      release-branch: main
-      helm-dir: camunda-platform-8.9
+      release-branch: stable/8.9
       # Route to the dedicated AlwaysGreen GKE namespace/node pool that finance tracks for cost.
       scenario: alwaysgreen
       shortname: agrn
