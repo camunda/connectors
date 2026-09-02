@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
-import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterFactoryContext;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
@@ -46,8 +46,8 @@ class ConfigurableSecretFilterFactoryTest {
 
   private static final long PROCESS_DEF_KEY = 42L;
   private static final String ELEMENT_ID = "service-task-1";
-  private static final SecretFilterFactoryContext CONTEXT =
-      new SecretFilterFactoryContext(PROCESS_DEF_KEY, ELEMENT_ID);
+  private static final SecretFilterContext CONTEXT =
+      new SecretFilterContext(PROCESS_DEF_KEY, ELEMENT_ID);
   private static final SecretKeyContext SECRET_KEY_CONTEXT =
       new SecretKeyContext(PROCESS_DEF_KEY, ELEMENT_ID);
 

@@ -67,7 +67,7 @@ import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
-import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterFactoryContext;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
@@ -199,7 +199,7 @@ public class SpringConnectorJobHandler implements JobHandler {
         job.getTenantId());
     var secretFilter =
         secretFilterFactory.create(
-            new SecretFilterFactoryContext(job.getProcessDefinitionKey(), job.getElementId()));
+            new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
     var context =
         new JobHandlerContext(
             job,

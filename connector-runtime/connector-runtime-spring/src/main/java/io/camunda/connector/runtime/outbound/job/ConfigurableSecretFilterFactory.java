@@ -38,7 +38,7 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
   }
 
   @Override
-  public SecretFilter create(SecretFilterFactoryContext context) {
+  public SecretFilter create(SecretFilterContext context) {
     return switch (secretFilterMode) {
       case DISABLED -> SecretFilter.allowAll();
       case LAX -> enabled(context, false);
@@ -46,7 +46,7 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
     };
   }
 
-  private SecretFilter enabled(SecretFilterFactoryContext context, boolean strict) {
+  private SecretFilter enabled(SecretFilterContext context, boolean strict) {
     return new LazyLoadingSecretFilter(
         () -> {
           try {
