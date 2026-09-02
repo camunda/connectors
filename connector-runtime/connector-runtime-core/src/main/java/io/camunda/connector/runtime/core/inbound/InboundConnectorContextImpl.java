@@ -51,6 +51,7 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretHandler;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
@@ -190,9 +191,18 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         secretProvider, SecretFilter.allowOnly(declaredSecretNames(rawProperties)));
   }
 
-  private List<String> declaredSecretNames(Map<String, String> rawProperties) {
+  /**
+   * An empty field path on every entry: {@link SecretFilter}'s field-path scoping exists to
+   * distinguish where in a resolved JSON tree a secret was declared versus where it is being
+   * resolved, and this allow-list has no such tree to scope against — it names every legacy secret
+   * this connector's raw {@code zeebe:property} text declares, full stop. An empty path is a
+   * wildcard for {@link SecretFilter#allowOnly} (it is a prefix of every path), so this reduces to
+   * the flat name-only matching this allow-list was always meant to express.
+   */
+  private List<Secret> declaredSecretNames(Map<String, String> rawProperties) {
     return rawProperties.values().stream()
         .flatMap(value -> SecretUtil.retrieveLegacySecretKeysInInput(value).stream())
+        .map(name -> new Secret(name, List.of()))
         .toList();
   }
 

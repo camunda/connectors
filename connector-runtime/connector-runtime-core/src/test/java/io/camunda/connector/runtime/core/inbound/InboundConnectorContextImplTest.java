@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.EvaluateExpressionCommandStep1.EvaluateExpressionCommandStep2;
 import io.camunda.client.api.response.EvaluateExpressionResponse;
@@ -351,8 +352,20 @@ class InboundConnectorContextImplTest {
         true);
   }
 
+  private static final ObjectMapper PROBE_MAPPER = new ObjectMapper();
+
+  /**
+   * The declared-secret allow-list this feature builds has no field-path concept (see {@link
+   * InboundConnectorContextImpl#declaredSecretNames}), so which field the probe text sits under
+   * doesn't matter for matching — "value" is arbitrary.
+   */
   private static String replace(InboundConnectorContextImpl context, String text) {
-    return context.getSecretHandler().replaceSecrets(text, new SecretContext("t", "p"));
+    ObjectNode probe = PROBE_MAPPER.createObjectNode().put("value", text);
+    return context
+        .getSecretHandler()
+        .replaceSecrets(probe, new SecretContext("t", "p"))
+        .get("value")
+        .asText();
   }
 
   @Test
