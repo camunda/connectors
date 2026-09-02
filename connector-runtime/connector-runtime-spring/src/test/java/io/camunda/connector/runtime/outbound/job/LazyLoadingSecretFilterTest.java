@@ -34,6 +34,10 @@ class LazyLoadingSecretFilterTest {
     return new Secret(name, List.of("field"));
   }
 
+  private static Secret at(String name, String... fieldPath) {
+    return new Secret(name, List.of(fieldPath));
+  }
+
   @Test
   void isAllowed_withAllowList_permitsListedSecret() {
     var filter =
@@ -48,6 +52,43 @@ class LazyLoadingSecretFilterTest {
     var filter = new LazyLoadingSecretFilter(() -> List.of(secret("MY_SECRET")));
 
     assertFalse(filter.isAllowed(query("UNLISTED_SECRET")));
+  }
+
+  @Test
+  void isAllowed_permitsRuntimePathNestedDeeperThanDeclaredPath() {
+    // The declared path is derived statically from the zeebe:input target (e.g. "foo"), but a FEEL
+    // context/object expression can put the resolved value under a subpath of that at runtime (e.g.
+    // "foo.bar"). The declared path only has to be a prefix of the runtime path, not an exact
+    // match,
+    // or every input that expands into a nested object would spuriously get its secrets rejected.
+    var filter = new LazyLoadingSecretFilter(() -> List.of(at("TOKEN", "foo")));
+
+    assertTrue(filter.isAllowed(at("TOKEN", "foo", "bar")));
+  }
+
+  @Test
+  void isAllowed_permitsExactRuntimePathMatch() {
+    var filter = new LazyLoadingSecretFilter(() -> List.of(at("TOKEN", "foo", "bar")));
+
+    assertTrue(filter.isAllowed(at("TOKEN", "foo", "bar")));
+  }
+
+  @Test
+  void isAllowed_deniesRuntimePathShallowerThanDeclaredPath() {
+    // The reverse of the nesting case above: a secret statically declared at the deeper path
+    // "foo.bar" must not match a runtime lookup at the shallower "foo" — the declared path can only
+    // be a prefix of the runtime one, never the other way around.
+    var filter = new LazyLoadingSecretFilter(() -> List.of(at("TOKEN", "foo", "bar")));
+
+    assertFalse(filter.isAllowed(at("TOKEN", "foo")));
+  }
+
+  @Test
+  void isAllowed_deniesRuntimePathOnASiblingBranch() {
+    var filter = new LazyLoadingSecretFilter(() -> List.of(at("TOKEN", "foo")));
+
+    assertFalse(filter.isAllowed(at("TOKEN", "baz")));
+    assertFalse(filter.isAllowed(at("TOKEN", "baz", "bar")));
   }
 
   @Test
