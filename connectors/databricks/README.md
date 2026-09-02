@@ -63,7 +63,7 @@ Pick a **Databricks API**, then an **Operation**. The form shows only the fields
 
 **Warm the warehouse first.** *Execute statement* against a stopped warehouse waits for it to start. To control that explicitly, call *Start warehouse* and poll *Get warehouse* until `state` is `RUNNING`. Start and stop return immediately and do not wait for the transition.
 
-**Raise Job timeout alongside Read timeout for slow calls.** Model Serving allows up to 597s of model execution, and a long SQL `wait_timeout` can hold a connection open nearly as long. If **Job timeout** (Zeebe's own job activation timeout) stays at its default while **Read timeout in seconds** is raised to cover that wait, Zeebe can decide the job timed out and reactivate it on another worker while the first HTTP request is still in flight — a duplicate non-idempotent call that `Retries = 0` does not prevent, because it happens outside the connector entirely. Raise both together.
+**Raise Job timeout alongside Read timeout for slow calls.** Model Serving allows up to 597s of model execution, well beyond SQL's own `wait_timeout`, which is capped at 50s. If **Job timeout** (Zeebe's own job activation timeout) stays at its default while **Read timeout in seconds** is raised to cover a slow Model Serving call, Zeebe can decide the job timed out and reactivate it on another worker while the first HTTP request is still in flight — a duplicate non-idempotent call that `Retries = 0` does not prevent, because it happens outside the connector entirely. Raise both together.
 
 ## Authentication
 
