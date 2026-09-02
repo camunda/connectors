@@ -41,7 +41,8 @@ public class SecretHandler {
                 .orElseThrow(() -> new SecretNotAvailableException(secretFilterContext));
           }
           LOG.debug(
-              "Secret '{}' not in allow-list — placeholder left unreplaced", secretFilterContext);
+              "Secret '{}' not in allow-list — placeholder left unreplaced",
+              secretFilterContext.secretName());
           return null;
         };
   }
