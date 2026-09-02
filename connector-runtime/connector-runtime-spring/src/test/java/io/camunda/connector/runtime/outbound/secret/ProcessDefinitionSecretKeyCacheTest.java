@@ -186,6 +186,22 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_laterParentOverwriteInvalidatesAnEarlierDescendantWriter() throws IOException {
+    // authentication.token = secrets.TOKEN is declared first, then authentication (the whole
+    // parent object) is overwritten wholesale, replacing that field's secret-bearing value. url
+    // references authentication.token afterwards, but by then the token write is shadowed by
+    // the parent overwrite -- TOKEN must not be allowed on url.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-parent-overwrite.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys)
+        .contains(new Secret("TOKEN", List.of("authentication", "token")))
+        .doesNotContain(new Secret("TOKEN", List.of("url")));
+  }
+
+  @Test
   void getSecretKeys_multipleTasksWithSecrets_returnsOnlyKeysForRequestedElement()
       throws IOException {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-multiple-tasks-with-secrets.bpmn"));

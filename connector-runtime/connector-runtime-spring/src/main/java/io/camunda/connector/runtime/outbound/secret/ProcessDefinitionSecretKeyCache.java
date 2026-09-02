@@ -192,7 +192,11 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
                                   isPrefix(referencedPath, pathByInput.get(candidate))))
               .distinct()
               .toList());
-      effectiveTargets.put(pathByInput.get(input), input);
+      // A write to a parent path replaces the whole subtree beneath it, so every existing writer
+      // of a descendant path is no longer effective from this point on.
+      List<String> ownPath = pathByInput.get(input);
+      effectiveTargets.keySet().removeIf(existingPath -> isProperPrefix(ownPath, existingPath));
+      effectiveTargets.put(ownPath, input);
     }
 
     List<Secret> result = new ArrayList<>();
@@ -241,6 +245,11 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private static boolean isPrefix(List<String> a, List<String> b) {
     int sharedLength = Math.min(a.size(), b.size());
     return a.subList(0, sharedLength).equals(b.subList(0, sharedLength));
+  }
+
+  /** Whether {@code shorter} is a strict ancestor path of {@code longer} (not equal to it). */
+  private static boolean isProperPrefix(List<String> shorter, List<String> longer) {
+    return shorter.size() < longer.size() && longer.subList(0, shorter.size()).equals(shorter);
   }
 
   private List<ZeebeInput> findElementInput(BaseElement element) {
