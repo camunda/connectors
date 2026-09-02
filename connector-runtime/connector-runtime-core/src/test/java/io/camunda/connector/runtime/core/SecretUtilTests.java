@@ -323,6 +323,45 @@ public class SecretUtilTests {
   }
 
   @Test
+  void shouldNotResolveABarePrefixInsideACycleLeftoverThatItselfHasACachedNonNullResolution() {
+    // "A:B" resolves to "{{secrets.C:D}}" and "C:D" resolves back to "{{secrets.A:B}}" -- this
+    // never converges, so resolveTruncatingBracketsFully's fixed cap leaves ONE of the two
+    // literal, still-unapplied. That leftover's own name has a cached non-null resolution (it
+    // resolves to the OTHER bracket, which never actually got applied to this exact span) --
+    // asking "is this name denied" would wrongly say no and let the bare pass resolve bare "C" on
+    // its own, producing "{{VALUE:D}}" instead of leaving the whole cycle leftover untouched.
+    SecretReplacer secretReplacer =
+        (name, context) -> {
+          if ("A:B".equals(name)) return "{{secrets.C:D}}";
+          if ("C:D".equals(name)) return "{{secrets.A:B}}";
+          if ("C".equals(name)) return "VALUE";
+          return null;
+        };
+
+    String result = SecretUtil.replaceSecrets("{{secrets.A:B}}", null, secretReplacer);
+
+    assertThat(result).matches("\\{\\{secrets\\.[AC]:[BD]}}");
+  }
+
+  @Test
+  void shouldResolveAChainGeneratedBracketWhoseNameHasNoBareMatchAtAll() {
+    // ":B" starts with a character outside the bare pattern's class entirely, so the bare
+    // pattern never matches anything for it at all -- not even a truncated prefix. With no bare
+    // match to gate a loop iteration, this bracket would never get attempted unless the full-name
+    // resolution runs at least once regardless of whether any bare match exists in the text.
+    SecretReplacer secretReplacer =
+        (name, context) -> {
+          if ("A".equals(name)) return "{{secrets.:B}}";
+          if (":B".equals(name)) return "FINAL";
+          return null;
+        };
+
+    String result = SecretUtil.replaceSecrets("{{secrets.A}}", null, secretReplacer);
+
+    assertThat(result).isEqualTo("FINAL");
+  }
+
+  @Test
   void shouldResolveAChainedBracketedReferenceIntroducedByAnEarlierResolution() {
     // A's own resolved value happens to spell "{{secrets.B}}" -- the parentheses pass never saw
     // this occurrence, since it didn't exist in the original text, so it was never "denied" by

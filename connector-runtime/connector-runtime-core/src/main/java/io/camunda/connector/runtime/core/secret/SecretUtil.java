@@ -108,18 +108,28 @@ public class SecretUtil {
       SecretContext context,
       SecretReplacer secretReplacer,
       Map<String, String> resolutionsByName) {
+    // A chain-generated bracket whose name has no character the bare pattern would ever match at
+    // all (e.g. ":B", starting outside the bare class) produces no bare match of its own, so
+    // nothing below would gate a loop iteration for it. It still needs one attempt at full-name
+    // resolution, independent of whether any bare match exists elsewhere in the text.
+    input = resolveTruncatingBracketsFully(input, context, secretReplacer, resolutionsByName);
+
     var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_SECRETS.matcher(input);
     while (secretVariableNameWithParenthesesMatcher.find()) {
       input = resolveTruncatingBracketsFully(input, context, secretReplacer, resolutionsByName);
 
+      // Truncated, not "and denied": a truncating bracket still literally present here -- after
+      // resolveTruncatingBracketsFully already tried to fully resolve it -- is unsafe for the bare
+      // pass to touch regardless of what its cached resolution says. A self-reference or a cycle
+      // through several names can leave a *different* truncating bracket's resolution cached as
+      // non-null while this exact span never got applied (the chain-depth cap cut it off first);
+      // asking "is this name denied" would then wrongly say no and let the bare pass resolve this
+      // bracket's own truncated prefix on its own.
       List<MatchResult> deniedBracketedReferences =
           SECRET_PATTERN_PARENTHESES
               .matcher(input)
               .results()
-              .filter(
-                  match ->
-                      isTruncatedByBarePattern(match)
-                          && isDenied(match, context, secretReplacer, resolutionsByName))
+              .filter(SecretUtil::isTruncatedByBarePattern)
               .toList();
       // Both this list and the bare matches replaceTokens visits below are already left-to-right
       // ordered (Matcher.find()/results() guarantee it), and denied brackets never overlap. A
@@ -174,15 +184,6 @@ public class SecretUtil {
       input = next;
     }
     return input;
-  }
-
-  private static boolean isDenied(
-      MatchResult bracketedMatch,
-      SecretContext context,
-      SecretReplacer secretReplacer,
-      Map<String, String> resolutionsByName) {
-    String name = bracketedMatch.group("secret").trim();
-    return resolve(name, context, secretReplacer, resolutionsByName) == null;
   }
 
   private static @Nullable String resolveSecretValue(
