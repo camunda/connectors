@@ -169,6 +169,23 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_referenceToAVariableDefinedLaterDoesNotPropagateItsSecret()
+      throws IOException {
+    // url ("=baseUrl") is declared before baseUrl ("secrets.API_KEY") in the same ioMapping.
+    // zeebe:input mappings evaluate in declaration order, each against the output the ones before
+    // it already built, so url's expression sees the process-scope baseUrl, not this mapping's
+    // own -- API_KEY must not be allowed on url.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-reverse-order-reference.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys)
+        .contains(new Secret("API_KEY", List.of("baseUrl")))
+        .doesNotContain(new Secret("API_KEY", List.of("url")));
+  }
+
+  @Test
   void getSecretKeys_multipleTasksWithSecrets_returnsOnlyKeysForRequestedElement()
       throws IOException {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-multiple-tasks-with-secrets.bpmn"));

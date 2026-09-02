@@ -153,6 +153,11 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
    * the top-level segment — keeps sibling fields under the same top-level name, like {@code
    * authentication.type} and {@code authentication.token}, from being treated as dependent on each
    * other merely for sharing a top-level name.
+   *
+   * <p>Only a preceding, still-effective writer of the referenced path counts as a dependency:
+   * {@code zeebe:input} mappings evaluate in declaration order, each against the output the ones
+   * before it already built, so a later mapping's target is invisible to an earlier one, and a
+   * target written more than once is reachable only through its last writer before this point.
    */
   private List<Secret> extractSecrets(List<ZeebeInput> inputs) {
     Map<ZeebeInput, List<String>> pathByInput = new LinkedHashMap<>();
@@ -167,13 +172,18 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
               .toList());
     }
 
+    // zeebe:input mappings are evaluated in declaration order, each against the output built by
+    // the ones before it -- a later mapping is invisible to an earlier one, and a target written
+    // more than once is only reachable through its last (nearest-preceding), still-effective
+    // writer. effectiveTargets is therefore built up one input at a time, alongside the loop, and
+    // an input's own dependencies are resolved against it before that input registers itself.
     Map<ZeebeInput, List<ZeebeInput>> directDependencies = new LinkedHashMap<>();
+    Map<List<String>, ZeebeInput> effectiveTargets = new LinkedHashMap<>();
     for (ZeebeInput input : inputs) {
       List<List<String>> referencedPaths = referencedVariablePaths(input.getSource());
       directDependencies.put(
           input,
-          inputs.stream()
-              .filter(candidate -> candidate != input)
+          effectiveTargets.values().stream()
               .filter(
                   candidate ->
                       referencedPaths.stream()
@@ -182,6 +192,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
                                   isPrefix(referencedPath, pathByInput.get(candidate))))
               .distinct()
               .toList());
+      effectiveTargets.put(pathByInput.get(input), input);
     }
 
     List<Secret> result = new ArrayList<>();
