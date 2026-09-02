@@ -51,8 +51,10 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretHandler;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
+import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +78,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final DocumentFactory documentFactory;
   private final Long activationTimestamp;
   private final CamundaClient camundaClient;
-  private ValidInboundConnectorDetails connectorDetails;
+  private final boolean secretFilterEnabled;
+  private volatile ValidInboundConnectorDetails connectorDetails;
   private Health health = Health.unknown();
   private @Nullable Map<String, Object> propertiesWithSecrets;
 
@@ -90,18 +93,36 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       ObjectMapper objectMapper,
       ActivityLogWriter activityLogWriter,
       CamundaClient camundaClient) {
-    // No name-level restriction, because on this path there is nothing for one to reject. The
-    // outbound filter's allow-list is drawn from the deployed model while replacement runs over the
-    // job's variables, and that asymmetry is what it protects: a legacy name carried by a runtime
-    // value resolves only if the model declares it too. Here the two sides coincide — legacy
-    // replacement only ever runs over this element's own zeebe:property text, read from the
-    // deployed
-    // model (see getPropertiesWithSecrets and bindElementProperties), and never over a runtime
-    // value, since an evaluation result is data and is never fed back through replacement. An
-    // allow-list derived from the model would therefore be the same set as the text it filters.
-    // #7730 would wire a filter in regardless, making that a checked property rather than one that
-    // holds because of where the call sites read from.
+    this(
+        secretProvider,
+        validationProvider,
+        documentFactory,
+        connectorDetails,
+        correlationHandler,
+        cancellationCallback,
+        objectMapper,
+        activityLogWriter,
+        camundaClient,
+        false);
+  }
+
+  /**
+   * @param secretFilterEnabled when {@code true}, restricts secret resolution to the names declared
+   *     by the deployed {@code zeebe:property} text each replacement runs over (#7730).
+   */
+  public InboundConnectorContextImpl(
+      SecretProvider secretProvider,
+      ValidationProvider validationProvider,
+      DocumentFactory documentFactory,
+      ValidInboundConnectorDetails connectorDetails,
+      InboundCorrelationHandler correlationHandler,
+      Consumer<Throwable> cancellationCallback,
+      ObjectMapper objectMapper,
+      ActivityLogWriter activityLogWriter,
+      CamundaClient camundaClient,
+      boolean secretFilterEnabled) {
     super(secretProvider, SecretFilter.allowAll(), validationProvider);
+    this.secretFilterEnabled = secretFilterEnabled;
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;
@@ -143,6 +164,38 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         camundaClient);
   }
 
+  /**
+   * Resolved per call rather than once, because {@link #updateConnectorDetails} swaps the elements
+   * of a live executable when a new process version is deployed.
+   */
+  @Override
+  public SecretHandler getSecretHandler() {
+    return secretHandler(connectorDetails.rawPropertiesWithoutKeywords());
+  }
+
+  /**
+   * Scoped to the very text it is about to filter, so a name that text does not declare in a legacy
+   * form is refused. Replacement feeds its own output through a second pattern pass, so a resolved
+   * value containing reference-shaped text would otherwise reach a secret no model declares.
+   *
+   * <p>Only the legacy forms count as declared: {@link SecretHandler#replaceSecrets} never resolves
+   * the new {@code camunda.secrets.<name>} form, so a name appearing only in that form is not one
+   * the legacy providers this allow-list gates were ever responsible for.
+   */
+  private SecretHandler secretHandler(Map<String, String> rawProperties) {
+    if (!secretFilterEnabled) {
+      return super.getSecretHandler();
+    }
+    return new SecretHandler(
+        secretProvider, SecretFilter.allowOnly(declaredSecretNames(rawProperties)));
+  }
+
+  private List<String> declaredSecretNames(Map<String, String> rawProperties) {
+    return rawProperties.values().stream()
+        .flatMap(value -> SecretUtil.retrieveLegacySecretKeysInInput(value).stream())
+        .toList();
+  }
+
   @Override
   public ActivationCheckResult canActivate(Object variables) {
     return correlationHandler.canActivate(connectorDetails.connectorElements(), variables);
@@ -160,11 +213,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   private CorrelationResult correlateWithResultInternal(CorrelationRequest correlationRequest) {
+    var details = connectorDetails;
     try {
-      var result =
-          correlationHandler.correlate(connectorDetails.connectorElements(), correlationRequest);
+      var result = correlationHandler.correlate(details.connectorElements(), correlationRequest);
       logCorrelationResult(result);
-      return attachElementBinder(result);
+      return attachElementBinder(details, result);
     } catch (ConnectorInputException connectorInputException) {
       return new CorrelationResult.Failure.InvalidInput(
           connectorInputException.getMessage(), connectorInputException);
@@ -192,12 +245,20 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
    * CorrelationResult.Success#bindProperties(Class)} using this context's secret + FEEL pipeline,
    * without handling raw property maps.
    */
-  private CorrelationResult attachElementBinder(CorrelationResult result) {
+  private CorrelationResult attachElementBinder(
+      ValidInboundConnectorDetails details, CorrelationResult result) {
     if (!(result instanceof Success success)) {
       return result;
     }
     var element =
-        new BindableProcessElement(success.activatedElement(), this::bindElementProperties);
+        new BindableProcessElement(
+            success.activatedElement(),
+            new BindableProcessElement.PropertyBinder() {
+              @Override
+              public <T> T bind(Map<String, String> rawProperties, Class<T> type) {
+                return bindElementProperties(details, rawProperties, type);
+              }
+            });
     return switch (success) {
       case ProcessInstanceCreated s ->
           new ProcessInstanceCreated(element, s.processInstanceKey(), s.tenantId());
@@ -352,18 +413,17 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     }
   }
 
-  private <T> T bindElementProperties(Map<String, String> rawProperties, Class<T> cls) {
+  private <T> T bindElementProperties(
+      ValidInboundConnectorDetails details, Map<String, String> rawProperties, Class<T> cls) {
     try {
       var wrapped = InboundPropertyHandler.readWrappedProperties(rawProperties);
       var withSecrets =
           InboundPropertyHandler.getPropertiesWithSecrets(
-              getSecretHandler(),
+              secretHandler(rawProperties),
               objectMapper,
               wrapped,
               new SecretContext(
-                  connectorDetails.tenantId(),
-                  connectorDetails.processDefinitionId(),
-                  physicalTenantId()));
+                  details.tenantId(), details.processDefinitionId(), physicalTenantId()));
       var propertiesJson = objectMapper.valueToTree(withSecrets);
       var result =
           FeelContextAwareObjectReader.of(objectMapper)

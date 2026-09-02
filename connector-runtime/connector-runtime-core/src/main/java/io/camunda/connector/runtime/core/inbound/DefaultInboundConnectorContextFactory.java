@@ -40,6 +40,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
   private final ProcessInstanceClient processInstanceClient;
   private final DocumentFactory documentFactory;
   private final CamundaClient camundaClient;
+  private final boolean secretFilterEnabled;
 
   public DefaultInboundConnectorContextFactory(
       final ObjectMapper mapper,
@@ -49,6 +50,26 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
       final ProcessInstanceClient processInstanceClient,
       final DocumentFactory documentFactory,
       final CamundaClient camundaClient) {
+    this(
+        mapper,
+        correlationHandler,
+        secretProviderAggregator,
+        validationProvider,
+        processInstanceClient,
+        documentFactory,
+        camundaClient,
+        false);
+  }
+
+  public DefaultInboundConnectorContextFactory(
+      final ObjectMapper mapper,
+      final InboundCorrelationHandler correlationHandler,
+      final SecretProviderAggregator secretProviderAggregator,
+      final ValidationProvider validationProvider,
+      final ProcessInstanceClient processInstanceClient,
+      final DocumentFactory documentFactory,
+      final CamundaClient camundaClient,
+      final boolean secretFilterEnabled) {
     this.objectMapper = mapper;
     this.correlationHandler = correlationHandler;
     this.secretProviderAggregator = secretProviderAggregator;
@@ -56,6 +77,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
     this.processInstanceClient = processInstanceClient;
     this.documentFactory = documentFactory;
     this.camundaClient = Objects.requireNonNull(camundaClient, "camundaClient must not be null");
+    this.secretFilterEnabled = secretFilterEnabled;
   }
 
   @Override
@@ -75,7 +97,8 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
             cancellationCallback,
             objectMapper,
             logWriter,
-            camundaClient);
+            camundaClient,
+            secretFilterEnabled);
 
     if (isIntermediateContext(executableClass)) {
       inboundContext =
