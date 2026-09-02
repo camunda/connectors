@@ -51,15 +51,17 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
             return secretKeyCache.getSecretKeys(
                 new SecretKeyContext(context.processDefinitionKey(), context.elementId()));
           } catch (RuntimeException e) {
+            // realCause walks to the root of the chain, not just one level: e is usually a
+            // Cache.ValueRetrievalException (Spring's Cache#get(key, loader) wraps whatever the
+            // loader throws), and the client can wrap the actual failure in its own generic
+            // exception type on top of that -- a single getCause() can still return a
+            // non-discriminating wrapper class. Never log the cause's message, or the cause
+            // itself, anywhere -- not the incident, not the pod log -- a client/parser exception
+            // message can echo response-body content, so neither sink gets more than the
+            // exception's class name. The element ID, process-definition key, and exception class
+            // are enough for an operator to distinguish failure modes.
+            Throwable realCause = mostSpecificCause(e);
             if (strict) {
-              // e is usually a Cache.ValueRetrievalException (Spring's Cache#get(key, loader)
-              // wraps whatever the loader throws); unwrap to name the real failure type. Never
-              // log the cause's message, or the cause itself, anywhere -- not the incident, not
-              // the pod log -- a client/parser exception message can echo response-body content,
-              // so neither sink gets more than the exception's class name. The element ID,
-              // process-definition key, and exception class are enough for an operator to
-              // distinguish failure modes.
-              Throwable realCause = e.getCause() != null ? e.getCause() : e;
               LOG.error(
                   "Error retrieving secret keys for element '{}' in process definition key {} ({})",
                   context.elementId(),
@@ -74,7 +76,6 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
                       + realCause.getClass().getName()
                       + ")");
             } else {
-              Throwable realCause = e.getCause() != null ? e.getCause() : e;
               LOG.warn(
                   "Error filtering secrets for element '{}' in process definition key {} ({}), will allow all as secret-filter-mode is LAX",
                   context.elementId(),
@@ -84,6 +85,14 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
             }
           }
         });
+  }
+
+  private static Throwable mostSpecificCause(Throwable t) {
+    Throwable current = t;
+    while (current.getCause() != null) {
+      current = current.getCause();
+    }
+    return current;
   }
 
   public enum SecretFilterMode {

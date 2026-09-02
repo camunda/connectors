@@ -19,8 +19,6 @@ package io.camunda.connector.runtime.outbound.secret;
 import java.util.List;
 
 public interface SecretKeyCache {
-  String SECRET_KEY_CACHE_NAME = SecretKeyCache.class.getName();
-
   List<String> getSecretKeys(SecretKeyContext secretKeyContext);
 
   record SecretKeyContext(long processDefinitionKey, String elementId) {}

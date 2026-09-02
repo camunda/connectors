@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.outbound.secret;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -43,7 +44,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.Cache;
 
 public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionSecretKeyCache.class);
@@ -61,9 +61,10 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   }
 
   private final CamundaClient camundaClient;
-  private final Cache cache;
+  private final Cache<Long, Map<String, List<String>>> cache;
 
-  public ProcessDefinitionSecretKeyCache(CamundaClient camundaClient, Cache cache) {
+  public ProcessDefinitionSecretKeyCache(
+      CamundaClient camundaClient, Cache<Long, Map<String, List<String>>> cache) {
     this.camundaClient = camundaClient;
     this.cache = cache;
   }
@@ -73,7 +74,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     return cache
         .get(
             secretKeyContext.processDefinitionKey(),
-            () -> fetchSecretKeysByElementIds(secretKeyContext.processDefinitionKey()))
+            key -> fetchSecretKeysByElementIds(secretKeyContext.processDefinitionKey()))
         .getOrDefault(secretKeyContext.elementId(), Collections.emptyList());
   }
 
