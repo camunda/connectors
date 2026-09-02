@@ -44,7 +44,9 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -93,6 +95,10 @@ public class GenerateElementTemplate {
   // operation-specific behavior to layer onto response mapping.
   private static final Set<String> KEPT_OUTPUT_PROPERTY_IDS =
       Set.of("resultVariable", "resultExpression");
+  // Single source of truth for the element template's version -- it must otherwise be set both
+  // on the template itself (ElementTemplateBuilder#version) and on the "connector" group's
+  // read-only version property (CommonProperties#version), which drifted out of sync before.
+  private static final long TEMPLATE_VERSION = 9L;
 
   public static void main(String[] args) throws Exception {
     ElementTemplate salesforceTemplate = generate();
@@ -182,7 +188,7 @@ public class GenerateElementTemplate {
         builder
             .id("io.camunda.connectors.Salesforce.v1")
             .name("Salesforce Outbound Connector")
-            .version(8)
+            .version(TEMPLATE_VERSION)
             .category(ElementTemplateCategory.CONNECTORS)
             .documentationRef(
                 "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/salesforce/")
@@ -455,7 +461,7 @@ public class GenerateElementTemplate {
                 .group("operation")
                 .feel(FeelMode.optional)
                 .binding(new ZeebeInput("apiVersion"))
-                .value("v58.0")
+                .value("v67.0")
                 .constraints(PropertyConstraints.builder().notEmpty(true).build())
                 .condition(
                     new OneOf(
@@ -721,7 +727,7 @@ public class GenerateElementTemplate {
         .id("connector")
         .label("Connector")
         .properties(
-            CommonProperties.version(8L)
+            CommonProperties.version(TEMPLATE_VERSION)
                 .binding(new ZeebeTaskHeader("elementTemplateVersion"))
                 .build(),
             CommonProperties.id("io.camunda.connectors.Salesforce.v1")
@@ -821,19 +827,33 @@ public class GenerateElementTemplate {
     return List.of(
         new Preset(
             "sObject_get",
-            java.util.Map.of("salesforceOperationType", "sObject", "interactionType", "get")),
+            orderedMap("salesforceOperationType", "sObject", "interactionType", "get")),
         new Preset(
             "sObject_post",
-            java.util.Map.of("salesforceOperationType", "sObject", "interactionType", "post")),
+            orderedMap("salesforceOperationType", "sObject", "interactionType", "post")),
         new Preset(
             "sObject_patch",
-            java.util.Map.of("salesforceOperationType", "sObject", "interactionType", "patch")),
+            orderedMap("salesforceOperationType", "sObject", "interactionType", "patch")),
         new Preset(
             "sObject_delete",
-            java.util.Map.of("salesforceOperationType", "sObject", "interactionType", "delete")),
-        new Preset("soqlQuery", java.util.Map.of("salesforceOperationType", "soqlQuery")),
-        new Preset("apexRest", java.util.Map.of("salesforceOperationType", "apexRest")),
-        new Preset("composite", java.util.Map.of("salesforceOperationType", "composite")));
+            orderedMap("salesforceOperationType", "sObject", "interactionType", "delete")),
+        new Preset("soqlQuery", orderedMap("salesforceOperationType", "soqlQuery")),
+        new Preset("apexRest", orderedMap("salesforceOperationType", "apexRest")),
+        new Preset("composite", orderedMap("salesforceOperationType", "composite")));
+  }
+
+  /**
+   * {@code Map.of} backs its iteration order with a per-JVM-process salt, so a fresh generator run
+   * can serialize these properties in a different key order than a previous run even though the
+   * content is identical -- producing spurious diffs against the committed element template. This
+   * preserves the given key/value order deterministically across runs.
+   */
+  private static Map<String, String> orderedMap(String... keysAndValues) {
+    Map<String, String> map = new LinkedHashMap<>();
+    for (int i = 0; i < keysAndValues.length; i += 2) {
+      map.put(keysAndValues[i], keysAndValues[i + 1]);
+    }
+    return map;
   }
 
   private static final String SALESFORCE_ICON =
