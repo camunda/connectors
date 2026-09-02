@@ -164,7 +164,6 @@ jobs:
     with:
       image-source: artifactory
       connectors-version: ${{ needs.build-image.outputs.connectors-version }}
-      release-branch: main
       # Route to the dedicated AlwaysGreen GKE namespace/node pool that finance tracks for cost.
       scenario: alwaysgreen
       shortname: agrn
