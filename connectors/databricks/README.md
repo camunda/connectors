@@ -88,9 +88,38 @@ Additional headers can be supplied, but the mandated `User-Agent` value is merge
 
 ## Error handling
 
-The Databricks SQL Statement Execution API returns **HTTP 200 with `status.state = FAILED`** when a statement fails at the warehouse, so a plain HTTP success check is not sufficient. The template ships a default error expression that raises a BPMN error for the terminal failure states `FAILED` and `CANCELED`. `CLOSED` is a terminal **success** state — Databricks defines it as "execution successful, and statement closed; result no longer available for fetch" — so it is deliberately not treated as an error, along with `PENDING` and `RUNNING`, which mean the statement is still executing. This expression sees only the response body, not which operation produced it, so it also checks for the SQL-specific `statement_id` field before interpreting `status.state` — without that guard, a *Invoke custom model (raw payload)* response happening to contain its own `status.state` (a custom model's own field, unrelated to Databricks) would be misread as a SQL failure.
+The Databricks SQL Statement Execution API returns **HTTP 200 with `status.state = FAILED`** when a statement fails at the warehouse, so a plain HTTP success check is not sufficient. The terminal states are:
 
-**Job run outcomes are not covered by that expression.** A failed run is reported in `state.result_state` on *Get run*, and polling loops normally branch on it with a gateway rather than throwing. Add it to the error expression only if you want a failed run to become a BPMN error.
+| State | Meaning |
+| --- | --- |
+| `SUCCEEDED` | Execution successful, result available for fetch. |
+| `FAILED` | Execution failed; the reason is in `status.error.message`. |
+| `CANCELED` | Cancelled explicitly, or by `on_wait_timeout=CANCEL`. |
+| `CLOSED` | **Success.** "Execution successful, and statement closed; result no longer available for fetch." |
+
+`PENDING` and `RUNNING` are not terminal — they mean the statement is still executing, and the result must be polled with *Get statement status and result*.
+
+**Branch on the state with a gateway, not with an error expression.** Map the state into a variable in the **Result expression**, then route on it:
+
+```
+Result expression:
+  {
+    sqlState: response.body.status.state,
+    sqlError: if response.body.status.error = null then null else response.body.status.error.message,
+    rows: if response.body.result = null then null else response.body.result.data_array
+  }
+
+Exclusive gateway:
+  =sqlState = "FAILED"    -> error handling path
+  =sqlState = "CANCELED"  -> cancellation path
+  (default)               -> continue
+```
+
+**Why not an error expression?** The template deliberately ships **no default error expression**. An error expression is evaluated against the *mapped output* whenever **Result variable** or **Result expression** is set, not against the raw response — so an expression written against `response.body.status.state` evaluates `response.body` as `null` and silently never fires, exactly when a task is configured the normal way. A failed statement would then complete as a success. (Verified against a real workspace: with a result mapping the expression's `response` is the mapped variable map; without one it is the raw HTTP result.)
+
+If you do write your own error expression anyway, write it against whatever your result mapping produces, and guard on the SQL-specific `statement_id` — the expression cannot tell which operation produced the response, so an *Invoke custom model (raw payload)* response that happens to carry its own `status.state` would otherwise be misread as a SQL failure.
+
+**Job runs work the same way.** A failed run is reported in `state.result_state` on *Get run* (`SUCCESS`, `FAILED`, `TIMEDOUT`, `CANCELED`, …), available only once `state.life_cycle_state` is terminal. Map it out and branch on it with the same gateway pattern.
 
 ## Limitations
 
