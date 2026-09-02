@@ -55,6 +55,24 @@ class LegacySecretFallbackWiringTest {
   }
 
   @Nested
+  @SpringBootTest(
+      classes = {TestConnectorRuntimeApplication.class, FooSpringSecretProvider.class},
+      properties = {"camunda.connector.secret-resolver.legacy.mode=FALLBACK"})
+  class WhenFallbackIsChosenWithNoExplicitFilterMode {
+
+    @Autowired SecretProviderAggregator secretProviderAggregator;
+
+    @Test
+    void startsBecauseTheSecretFilterDefaultsToStrict() {
+      // The guard bean and the outbound secret filter each read their own @Value default for
+      // camunda.connector.secret-resolver.secret-filter.mode independently; the app only starts
+      // here if both resolve to STRICT.
+      assertThat(secretProviderAggregator.getSecretProviders())
+          .hasAtLeastOneElementOfType(CentralStoreSecretProvider.class);
+    }
+  }
+
+  @Nested
   @SpringBootTest(classes = {TestConnectorRuntimeApplication.class, FooSpringSecretProvider.class})
   class WhenNothingIsConfigured {
 
