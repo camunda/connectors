@@ -1,8 +1,11 @@
 # Databricks Connector
 
-The **Databricks Connector** lets a BPMN process call the [Databricks REST API](https://docs.databricks.com/api/workspace/introduction) — SQL Statement Execution, SQL Warehouses, Jobs, Model Serving, and Vector Search.
+This module ships two element templates, both JSON-only specializations of already-shipping connectors — no Java code, no separate runtime:
 
-This Connector reuses the base implementation of the [HTTP JSON Connector](../http/rest) by providing a compatible element template. There is no Java code and no separate runtime to deploy.
+- **Databricks** (`databricks-connector.json`) — the [Databricks REST API](https://docs.databricks.com/api/workspace/introduction): SQL Statement Execution, SQL Warehouses, Jobs, Model Serving, and Vector Search. Reuses the [HTTP JSON Connector](../http/rest).
+- **Databricks Genie (MCP)** (`databricks-genie-mcp-connector.json`) — natural-language questions over a Genie space via [Databricks' managed Genie MCP server](https://docs.databricks.com/aws/en/agents/mcp-tools/genie-mcp). Reuses the agentic-ai [MCP Remote Client connector](../agentic-ai). See [Databricks Genie (MCP)](#databricks-genie-mcp) below.
+
+The two exist separately because their auth models differ (service principal vs. on-behalf-of-user) and because MCP, not REST, is Databricks' required path for chat/agent-facing Genie integrations — see [Limitations](#limitations) below for why the REST template excludes Genie.
 
 ## Supported operations
 
@@ -129,7 +132,7 @@ If you do write your own error expression anyway, write it against whatever your
 - **`stream` is forced to `false`** for chat endpoints. A streamed `text/event-stream` response cannot be consumed by a synchronous Connector.
 - **Statements expire.** Roughly 12 hours after reaching a terminal state a statement is removed, and *Get statement* / *Get result chunk* then return HTTP 404.
 - **Jobs uses API 2.2.** The older 2.1 endpoints are not exposed.
-- **Genie Conversation API is not included.** It requires a multi-call poll-until-terminal loop over conversation state, and the Partner Well-Architected Framework directs chat-based integrations to Genie via MCP rather than REST.
+- **Genie Conversation API is not included.** It requires a multi-call poll-until-terminal loop over conversation state, and the Partner Well-Architected Framework directs chat-based integrations to Genie via MCP rather than REST. See [Databricks Genie (MCP)](#databricks-genie-mcp) below for that path.
 - Write operations beyond those listed (creating jobs, editing warehouses, deleting endpoints) are intentionally not exposed.
 
 ## Requirements
@@ -146,3 +149,50 @@ If you do write your own error expression anyway, write it against whatever your
 - [Model Serving — query endpoint](https://docs.databricks.com/api/workspace/servingendpoints/query)
 - [Vector Search — query index](https://docs.databricks.com/api/workspace/vectorsearchindexes/queryindex)
 - [OAuth M2M for service principals](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m)
+
+---
+
+## Databricks Genie (MCP)
+
+Lets a BPMN process ask a [Databricks Genie](https://docs.databricks.com/aws/en/genie/index) space a natural-language question, over Databricks' managed Genie MCP server, using the agentic-ai [MCP Remote Client connector](../agentic-ai) underneath (`databricks-genie-mcp-connector.json`). No code in `connectors/agentic-ai/` was changed — this template only pre-configures that connector's existing inputs.
+
+### Why this is a separate template, not an option on the REST template above
+
+The REST template's own limitations section already says Genie needs MCP, not REST, for chat/agent-facing use (per Databricks' Partner Well-Architected Framework). This template is that MCP path. It cannot simply reuse the REST template's OAuth M2M block, because **the auth models are genuinely incompatible** — see below.
+
+### Tool surface
+
+Confirmed against `docs.databricks.com/aws/en/agents/mcp-tools/genie-mcp` (not assumed): the Genie MCP server exposes five tools, not the one or two guessed in earlier research passes on this epic. This template covers four of them via a **Genie operation** dropdown; the fifth, `view_ask`, only works with MCP-Apps-compatible interactive clients and doesn't apply to a headless BPMN task, so it's intentionally excluded.
+
+| Genie operation | MCP tool | Notes |
+| --- | --- | --- |
+| Ask a question | `genie_ask` | Starts a turn. Returns a `conversation_id` and `response_id`; async, not blocking. |
+| Poll for a response | `genie_poll_response` | Call repeatedly until `status` is terminal. |
+| Get full query result | `genie_get_query_result` | Full SQL result beyond the truncated default. |
+| Cancel response | `genie_cancel_response` | Cancel an in-flight turn. |
+
+**This needs a poll loop, modelled in BPMN** — the same pattern as the SQL Statement Execution and Jobs loops in the REST template above: *Ask a question*, then loop *Poll for a response* behind a BPMN timer until `status` is terminal.
+
+Endpoint: a single Genie space at `https://<workspace>/api/2.0/mcp/genie/{genie_space_id}`, or the whole workspace ("Genie One") at `https://<workspace>/api/2.0/mcp/genie` with no space id — a **Genie scope** field picks between them. Databricks documents no space-listing API, so there is nothing here to discover a space id for you; copy it from the space's URL in the workspace.
+
+**Tool argument and response field names are not formally published.** Databricks' docs are prose-only for these five tools — no parameter table, no example request/response body. `question`, `conversation_id`, and `response_id` (used by this template) are the best-corroborated guesses, not a confirmed schema. The **Genie operation** field carries an always-visible note saying so, and points at this template's own "List Tools" operation choice as the way to check the live schema against your endpoint before relying on it.
+
+### Authentication — deliberately not OAuth M2M
+
+Confirmed against Databricks' docs (`genie-mcp`, `managed-mcp`, and `connect-clients` pages, independently, Aug 2026): **"Service principals aren't supported"** for Genie MCP. It requires on-behalf-of-user OAuth (interactive authorization-code + PKCE, a human identity) or a personal access token — there is no server-to-server path.
+
+This directly contradicts this feature's own epic ([camunda/experience-pdp#51](https://github.com/camunda/experience-pdp/issues/51)), which assumed OAuth M2M "appears to be met already" — that assumption is now known to be false, not merely undecided. The template's authentication dropdown is narrowed accordingly to **None** (local/mock testing) and **Bearer token**, dropping OAuth 2.0 client-credentials entirely rather than leaving a guaranteed-to-fail option in the UI. The token is a human-obtained OAuth user access token or a PAT, stored as `{{secrets.DATABRICKS_GENIE_ACCESS_TOKEN}}` — a name distinct from the REST template's `DATABRICKS_CLIENT_SECRET`/`DATABRICKS_TOKEN`, because it is a different kind of credential (a human identity's token, not a service principal's secret) and conflating the names would invite rotating the wrong one.
+
+**This token is not refreshed by the connector.** A user access token is typically valid for about an hour; a long-running unattended process needs an external mechanism to rotate the secret. There is currently no way to run this template against Genie MCP with a purely unattended, always-valid credential.
+
+### Attribution — a limitation, not something this template solves
+
+Databricks requires anything that surfaces a Genie answer to display "Powered by Genie" plus a citation linking to the source Genie Space. This connector only writes process variables; it cannot render that label. The **Genie space ID** (and any space/conversation link the tool response happens to include) is available to pull into the **Result expression**, so whatever renders the answer — a Camunda form, Tasklist, or a custom app — can display it. Who owns actually rendering that label is an open question on experience-pdp#51 and is not decided here.
+
+### What was and wasn't verified
+
+- Tool names, endpoint paths, OAuth scope (`genie`), and the service-principal restriction: confirmed against fetched Databricks documentation.
+- Tool argument/response field names: not confirmed (Databricks publishes no schema for them) — best-effort, flagged in the template.
+- The `isError` field checked by the default error expression: confirmed from this repo's own `McpClientCallToolResult` source, not guessed.
+- The element template's JSON Schema validity and its FEEL expressions (URL derivation, tool name/argument derivation, error guard) were checked with `ajv` and `feelin` respectively — `feelin` is close to Zeebe's Scala FEEL engine but not verified byte-identical.
+- **No live call was made against a real Databricks Genie MCP endpoint.** Nothing here has been observed on the wire.
