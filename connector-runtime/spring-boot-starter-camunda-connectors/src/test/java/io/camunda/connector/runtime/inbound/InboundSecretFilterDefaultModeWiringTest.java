@@ -38,9 +38,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 /**
  * No {@code camunda.connector.secret-resolver.secret-filter.mode} property is set here, so this
  * exercises the {@code @Value} default on {@code springInboundConnectorContextFactory} itself —
- * unlike a direct call to that bean method, which bypasses Spring's property resolution entirely. A
- * typo in that default string turns inbound filtering off silently, and because every mode behaves
- * identically on the live inbound path, no integration test would catch it.
+ * unlike a direct call to that bean method, which bypasses Spring's property resolution entirely
+ * and so stays green however wrong that default string is.
+ *
+ * <p>What this catches is a default that resolves to {@code DISABLED}, which turns inbound
+ * filtering off silently. It cannot distinguish {@code LAX} from {@code STRICT}, because those two
+ * behave identically inbound — {@code
+ * InboundConnectorRuntimeConfigurationTest#springInboundConnectorContextFactory_filtersSecretsUnlessModeIsDisabled}
+ * pins that equivalence, and {@code DISABLED}'s difference from both, at the bean-method level.
  */
 @SpringBootTest(classes = TestConnectorRuntimeApplication.class)
 class InboundSecretFilterDefaultModeWiringTest {
