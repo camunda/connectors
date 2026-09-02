@@ -299,6 +299,164 @@ class InboundConnectorContextImplTest {
     assertThat(secretContext.getValue().tenantId()).isEqualTo("<default>");
   }
 
+  private static InboundConnectorElement elementWithProperties(
+      String elementId, Map<String, String> properties) {
+    var rawProperties = new HashMap<>(properties);
+    rawProperties.put("inbound.type", "io.camunda:connector:1");
+    return new InboundConnectorElement(
+        rawProperties,
+        new StandaloneMessageCorrelationPoint("", "", null, null),
+        new ProcessElementWithRuntimeData(
+            "bool",
+            null,
+            null,
+            0,
+            0,
+            elementId,
+            null,
+            null,
+            "<default>",
+            ProcessElementWithRuntimeData.DEFAULT_PHYSICAL_TENANT_ID,
+            new ElementTemplateDetails("Test", "1", "icon"),
+            rawProperties));
+  }
+
+  private static ValidInboundConnectorDetails detailsOf(
+      List<String> deduplicationScope, InboundConnectorElement... elements) {
+    var grouped = List.of(elements);
+    return (ValidInboundConnectorDetails)
+        InboundConnectorDetails.of(
+            grouped.getFirst().deduplicationId(deduplicationScope), grouped, deduplicationScope);
+  }
+
+  private InboundConnectorContextImpl filteringContext(
+      ValidInboundConnectorDetails details, SecretProvider secretProvider) {
+    return filteringContext(details, secretProvider, null);
+  }
+
+  private InboundConnectorContextImpl filteringContext(
+      ValidInboundConnectorDetails details,
+      SecretProvider secretProvider,
+      InboundCorrelationHandler correlationHandler) {
+    return new InboundConnectorContextImpl(
+        secretProvider,
+        (e) -> {},
+        mock(DocumentFactory.class),
+        details,
+        correlationHandler,
+        (e) -> {},
+        mapper,
+        activityLogRegistry,
+        camundaClient,
+        true);
+  }
+
+  private static String replace(InboundConnectorContextImpl context, String text) {
+    return context.getSecretHandler().replaceSecrets(text, new SecretContext("t", "p"));
+  }
+
+  @Test
+  void secretFilterEnabled_resolvesADeclaredSecret() {
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("DECLARED"), any())).thenReturn("resolved");
+    var context =
+        filteringContext(
+            getInboundConnectorDefinition(Map.of("token", "secrets.DECLARED")), secretProvider);
+
+    assertThat(replace(context, "secrets.DECLARED")).isEqualTo("resolved");
+  }
+
+  @Test
+  void secretFilterEnabled_resolvesADeclaredSecretInBraceSyntax() {
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("BRACED"), any())).thenReturn("resolved");
+    var context =
+        filteringContext(
+            getInboundConnectorDefinition(Map.of("token", "{{ secrets.BRACED }}")), secretProvider);
+
+    assertThat(replace(context, "{{ secrets.BRACED }}")).isEqualTo("resolved");
+  }
+
+  @Test
+  void secretFilterEnabled_leavesAnUndeclaredSecret() {
+    var secretProvider = mock(SecretProvider.class);
+    var context =
+        filteringContext(
+            getInboundConnectorDefinition(Map.of("token", "secrets.DECLARED")), secretProvider);
+
+    assertThat(replace(context, "secrets.INJECTED")).isEqualTo("secrets.INJECTED");
+    verify(secretProvider, never()).getSecret(eq("INJECTED"), any());
+  }
+
+  @Test
+  void secretFilterEnabled_resolvesASecretOfARetainedElementDroppedByAHotSwap() {
+    var scope = List.of("shared");
+    var kept = elementWithProperties("a", Map.of("shared", "x"));
+    var dropped =
+        elementWithProperties("b", Map.of("shared", "x", "stringMap", "={\"k\":\"secrets.KEPT\"}"));
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("KEPT"), any())).thenReturn("kept-value");
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    when(correlationHandler.correlate(any(), any()))
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreated(
+                dropped.element(), 1L, "<default>"));
+    var context =
+        filteringContext(detailsOf(scope, kept, dropped), secretProvider, correlationHandler);
+    var success =
+        (CorrelationResult.Success)
+            context.correlate(CorrelationRequest.builder().variables(Map.of()).build());
+    assertThat(success.bindProperties(TestPropertiesClass.class).getStringMap())
+        .containsEntry("k", "kept-value");
+
+    context.updateConnectorDetails(detailsOf(scope, kept));
+
+    assertThat(success.bindProperties(TestPropertiesClass.class).getStringMap())
+        .containsEntry("k", "kept-value");
+  }
+
+  @Test
+  void secretFilterEnabled_leavesASecretOnlyASiblingElementDeclares() {
+    var scope = List.of("shared");
+    var bound = elementWithProperties("a", Map.of("shared", "x", "token", "secrets.OWN"));
+    var sibling = elementWithProperties("b", Map.of("shared", "x", "token", "secrets.ONLY_B"));
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("OWN"), any())).thenReturn("own-value");
+    when(secretProvider.getSecret(eq("ONLY_B"), any())).thenReturn("leaked-b-value");
+    var context = filteringContext(detailsOf(scope, bound, sibling), secretProvider);
+
+    assertThat(replace(context, "secrets.OWN")).isEqualTo("own-value");
+    assertThat(replace(context, "secrets.ONLY_B")).isEqualTo("secrets.ONLY_B");
+    verify(secretProvider, never()).getSecret(eq("ONLY_B"), any());
+  }
+
+  @Test
+  void secretFilterEnabled_leavesASecretNamedOnlyByAnotherSecretsValue() {
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("CHAIN_ROOT"), any())).thenReturn("secrets.CHAINED");
+    when(secretProvider.getSecret(eq("CHAINED"), any())).thenReturn("leaked-value");
+    var context =
+        filteringContext(
+            getInboundConnectorDefinition(Map.of("token", "{{secrets.CHAIN_ROOT}}")),
+            secretProvider);
+
+    assertThat(replace(context, "{{secrets.CHAIN_ROOT}}")).isEqualTo("secrets.CHAINED");
+    verify(secretProvider, never()).getSecret(eq("CHAINED"), any());
+  }
+
+  @Test
+  void secretFilterEnabled_leavesASecretDeclaredOnlyInTheNewForm() {
+    var secretProvider = mock(SecretProvider.class);
+    when(secretProvider.getSecret(eq("API_KEY"), any())).thenReturn("leaked-via-legacy-path");
+    var context =
+        filteringContext(
+            getInboundConnectorDefinition(Map.of("newForm", "=camunda.secrets.API_KEY")),
+            secretProvider);
+
+    assertThat(replace(context, "secrets.API_KEY")).isEqualTo("secrets.API_KEY");
+    verify(secretProvider, never()).getSecret(eq("API_KEY"), any());
+  }
+
   @Test
   void getDefinition_reportsTheElementsPhysicalTenantId() {
     var definition =
