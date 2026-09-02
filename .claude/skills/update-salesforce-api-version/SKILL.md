@@ -5,7 +5,7 @@ description: Bump the Salesforce connector's default apiVersion to the latest Sa
 
 # Update the Salesforce connector's default API version
 
-The Salesforce connector's `apiVersion` property (used to build every sObject/SOQL/Composite
+The Salesforce connector's `apiVersion` property (used to build every sObject/SOQL
 request URL) has a hardcoded default value in the generator source. Salesforce ships a new REST
 API version roughly three times a year (Spring/Summer/Winter releases); this skill keeps the
 connector's default current.
@@ -96,7 +96,7 @@ Finally, sanity-check the versioned-snapshot CI gate locally before pushing:
 
 ```bash
 git fetch origin main --quiet
-TARGET_BRANCH=<your-branch-name> bash .github/workflows/scripts/check_versioned_element_templates.sh
+TARGET_BRANCH=main bash .github/workflows/scripts/check_versioned_element_templates.sh
 ```
 
 ## 5. Commit
