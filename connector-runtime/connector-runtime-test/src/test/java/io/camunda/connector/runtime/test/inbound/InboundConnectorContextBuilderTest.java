@@ -98,9 +98,7 @@ public class InboundConnectorContextBuilderTest {
     Executable replacement =
         () -> context.getSecretHandler().replaceSecrets(wrap("secrets.foo"), null);
     assertThrows(
-        ConnectorInputException.class,
-        replacement,
-        "Secret with name 'foo' is not available on path 'value'");
+        ConnectorInputException.class, replacement, "Secret with name 'foo' is not available");
   }
 
   @Test

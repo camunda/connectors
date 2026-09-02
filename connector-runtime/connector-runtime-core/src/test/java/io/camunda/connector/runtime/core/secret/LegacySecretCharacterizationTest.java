@@ -213,7 +213,7 @@ class LegacySecretCharacterizationTest {
 
     assertThatThrownBy(() -> secretHandler.replaceSecrets(wrap("{{secrets.MISSING}}"), null))
         .isInstanceOf(ConnectorInputException.class)
-        .hasMessage("Secret with name 'MISSING' is not available on path 'value'");
+        .hasMessage("Secret with name 'MISSING' is not available");
   }
 
   @Test

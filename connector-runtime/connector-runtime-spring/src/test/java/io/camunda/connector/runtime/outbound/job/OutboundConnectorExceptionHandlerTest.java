@@ -318,7 +318,7 @@ class OutboundConnectorExceptionHandlerTest {
             SecretFilter.allowAll());
 
     assertThat(result.exception().getMessage())
-        .isEqualTo("Secret with name 'BAR' is not available on path 'b'");
+        .isEqualTo("Secret with name 'BAR' is not available");
     assertThat(result.retries()).isZero();
   }
 
