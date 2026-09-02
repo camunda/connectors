@@ -12,9 +12,10 @@ on:
         required: true
         type: string
       release-branch:
-        description: 'Connectors release branch containing code to test. Used to determine the Helm chart directory via helm-git-refs.json'
-        required: true
+        description: 'Connectors release branch containing code to test. Used to determine the Helm chart directory via helm-git-refs.json. Defaults to the calling ref when omitted.'
+        required: false
         type: string
+        default: ''
       scenario:
         description: 'Helm test scenario passed through to camunda-platform-helm test-integration-template (e.g. keycloak-original, alwaysgreen)'
         required: false
