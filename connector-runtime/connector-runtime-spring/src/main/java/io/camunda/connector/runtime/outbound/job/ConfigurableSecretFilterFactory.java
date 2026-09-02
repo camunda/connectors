@@ -88,9 +88,11 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
   }
 
   private static Throwable mostSpecificCause(Throwable t) {
+    // Java permits a cyclic cause chain (a.initCause(b) after b was already given cause a), so
+    // this must not walk unboundedly -- track visited throwables by identity and stop the moment
+    // one repeats, rather than hang the worker on a malformed third-party exception.
     var seen =
-        java.util.Collections.newSetFromMap(
-            new java.util.IdentityHashMap<Throwable, Boolean>());
+        java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<Throwable, Boolean>());
     Throwable current = t;
     while (seen.add(current)) {
       Throwable cause = current.getCause();
