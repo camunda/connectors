@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.camunda.feel.api.FeelEngineApi;
 import org.camunda.feel.api.FeelEngineBuilder;
 import org.slf4j.Logger;
@@ -183,13 +185,8 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
       List<List<String>> referencedPaths = referencedVariablePaths(input.getSource());
       directDependencies.put(
           input,
-          effectiveTargets.values().stream()
-              .filter(
-                  candidate ->
-                      referencedPaths.stream()
-                          .anyMatch(
-                              referencedPath ->
-                                  isPrefix(referencedPath, pathByInput.get(candidate))))
+          referencedPaths.stream()
+              .flatMap(referencedPath -> matchingWriters(referencedPath, effectiveTargets))
               .distinct()
               .toList());
       // A write to a parent path replaces the whole subtree beneath it, so every existing writer
@@ -241,10 +238,40 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
         .toList();
   }
 
-  /** Whether one path is a prefix of the other, in either direction. */
-  private static boolean isPrefix(List<String> a, List<String> b) {
-    int sharedLength = Math.min(a.size(), b.size());
-    return a.subList(0, sharedLength).equals(b.subList(0, sharedLength));
+  /**
+   * The writers a reference to {@code referencedPath} depends on, given the writers currently still
+   * effective. Two disjoint cases, since a single symmetric prefix match would let a stale ancestor
+   * writer stand in for a leaf that a later, more specific writer has since replaced:
+   *
+   * <ul>
+   *   <li>The reference targets a specific field or the exact field a writer wrote: at most one
+   *       writer answers it, the <em>nearest</em> (most specific) ancestor-or-self path among the
+   *       effective writers -- a closer writer, even an earlier one, shadows a more distant
+   *       ancestor's stake in that one field.
+   *   <li>The reference targets a whole object a writer's field lives under: every writer whose
+   *       path is a descendant of the reference answers it, since reading the whole object reads
+   *       every field currently set beneath it.
+   * </ul>
+   */
+  private static Stream<ZeebeInput> matchingWriters(
+      List<String> referencedPath, Map<List<String>, ZeebeInput> effectiveTargets) {
+    var nearestAncestorOrSelf =
+        effectiveTargets.entrySet().stream()
+            .filter(entry -> isAncestorOrSelf(entry.getKey(), referencedPath))
+            .max(Comparator.comparingInt(entry -> entry.getKey().size()))
+            .map(Map.Entry::getValue);
+    var descendants =
+        effectiveTargets.entrySet().stream()
+            .filter(entry -> isProperPrefix(referencedPath, entry.getKey()))
+            .map(Map.Entry::getValue);
+    return nearestAncestorOrSelf
+        .map(writer -> Stream.concat(Stream.of(writer), descendants))
+        .orElse(descendants);
+  }
+
+  /** Whether {@code ancestor} is a prefix of {@code path}, including being equal to it. */
+  private static boolean isAncestorOrSelf(List<String> ancestor, List<String> path) {
+    return ancestor.size() <= path.size() && path.subList(0, ancestor.size()).equals(ancestor);
   }
 
   /** Whether {@code shorter} is a strict ancestor path of {@code longer} (not equal to it). */

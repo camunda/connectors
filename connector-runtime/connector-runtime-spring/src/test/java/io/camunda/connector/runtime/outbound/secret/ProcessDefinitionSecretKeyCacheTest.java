@@ -202,6 +202,27 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_laterChildOverwriteShadowsTheParentForAReferenceToThatChild()
+      throws IOException {
+    // authentication = secrets.WHOLE_SECRET is declared first; authentication.token is then
+    // overwritten with a plain, non-secret value. url references authentication.token
+    // specifically -- by then the nearest effective writer of that exact field is the plain
+    // overwrite, not the earlier secret-bearing parent, so WHOLE_SECRET must not reach url.
+    // wholeObjectRead references the whole authentication object instead, which still legitimately
+    // picks up WHOLE_SECRET.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-child-overwrite.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys)
+        .contains(
+            new Secret("WHOLE_SECRET", List.of("authentication")),
+            new Secret("WHOLE_SECRET", List.of("wholeObjectRead")))
+        .doesNotContain(new Secret("WHOLE_SECRET", List.of("url")));
+  }
+
+  @Test
   void getSecretKeys_multipleTasksWithSecrets_returnsOnlyKeysForRequestedElement()
       throws IOException {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-multiple-tasks-with-secrets.bpmn"));
