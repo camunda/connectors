@@ -100,4 +100,15 @@ public interface AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       List<ToolCallResult> toolCallResults,
       AgentConversationTurn previousTurn);
+
+  /**
+   * Attempts to move the agent instance to {@code IDLE} without changing its history, so it stops
+   * showing a stale {@code THINKING} or {@code TOOL_CALLING} status when the caller is about to
+   * fail a job. Unlike every other method on this interface, implementations MUST NOT propagate a
+   * failure from this call: the caller is already on a failure path, and this call must not replace
+   * or mask the original failure. Implementations log and swallow any failure instead, and treat a
+   * {@code null} {@code agentInstanceKey} as a no-op.
+   */
+  void reportIdleOnFailure(
+      AgentExecutionContext executionContext, @Nullable AgentInstanceKey agentInstanceKey);
 }

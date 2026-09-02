@@ -350,6 +350,25 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     applyBatchedUpdate(executionContext, agentInstanceKey.value(), null, items);
   }
 
+  @Override
+  public void reportIdleOnFailure(
+      AgentExecutionContext executionContext, @Nullable AgentInstanceKey agentInstanceKey) {
+    if (agentInstanceKey == null) {
+      LOGGER.debug("Skipping agent instance idle-on-failure report: no agent instance key");
+      return;
+    }
+    try {
+      applyBatchedUpdate(
+          executionContext, agentInstanceKey.value(), AgentInstanceUpdateStatus.IDLE, List.of());
+    } catch (RuntimeException e) {
+      LOGGER.warn(
+          "Failed to report IDLE status to agent instance {} after a job failure; the original "
+              + "failure will still be thrown",
+          agentInstanceKey.value(),
+          e);
+    }
+  }
+
   private void applyBatchedUpdate(
       AgentExecutionContext executionContext,
       long agentInstanceKey,

@@ -10,17 +10,26 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 public sealed interface AgentInitializationResult {
 
-  /** Agent provisioned and tools resolved: proceed to the conversation phase. */
+  /** Returns the agent context carried by this result, or {@code null} if this result has none. */
+  @Nullable AgentContext agentContext();
+
+  /** Agent initialization provisioned the agent and resolved its tools. Proceed to converse. */
   record ReadyToConverse(AgentContext agentContext, List<ToolCallResult> toolCallResults)
       implements AgentInitializationResult {}
 
-  /** Gateway tools require discovery: dispatch these discovery tool calls, then await results. */
+  /** Gateway tools require discovery. Dispatch these tool calls, then await their results. */
   record DiscoverTools(AgentContext agentContext, List<ToolCall> toolDiscoveryToolCalls)
       implements AgentInitializationResult {}
 
-  /** Discovery already dispatched; results not all present yet — no-op this turn. */
-  record DeferConversation() implements AgentInitializationResult {}
+  /** Tool discovery started, but not all results have arrived. Skip processing this turn. */
+  record DeferConversation() implements AgentInitializationResult {
+    @Override
+    public @Nullable AgentContext agentContext() {
+      return null;
+    }
+  }
 }

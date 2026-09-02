@@ -47,6 +47,7 @@ import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -83,25 +84,83 @@ public abstract class BaseAgentRequestHandler<
     this.agentInstanceClient = agentInstanceClient;
   }
 
+  private static final Set<String> AGENT_INSTANCE_CLIENT_ERROR_CODES =
+      Set.of(
+          AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED,
+          AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED,
+          AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED);
+
   @Override
   public R handleRequest(final C executionContext) {
-    return switch (agentInitializer.initializeAgent(executionContext)) {
-      case DiscoverTools(var agentContext, var toolDiscoveryToolCalls) -> {
-        LOGGER.debug(
-            "AI Agent initialization dispatching {} gateway tool discovery calls. Completing job without further processing.",
-            toolDiscoveryToolCalls.size());
-        yield dispatchToolDiscovery(executionContext, agentContext, toolDiscoveryToolCalls);
+    final var initializationResult = agentInitializer.initializeAgent(executionContext);
+    try {
+      return switch (initializationResult) {
+        case DiscoverTools(var agentContext, var toolDiscoveryToolCalls) -> {
+          LOGGER.debug(
+              "AI Agent initialization dispatching {} gateway tool discovery calls. Completing job without further processing.",
+              toolDiscoveryToolCalls.size());
+          yield dispatchToolDiscovery(executionContext, agentContext, toolDiscoveryToolCalls);
+        }
+        case DeferConversation() -> {
+          LOGGER.debug(
+              "AI Agent initialization tool discovery is still in progress. Completing job without further processing.");
+          yield handleNoOp(executionContext);
+        }
+        case ReadyToConverse(var agentContext, var toolCallResults) -> {
+          LOGGER.debug("Handling agent request with {} tool call results", toolCallResults.size());
+          yield converse(executionContext, agentContext, toolCallResults);
+        }
+      };
+    } catch (RuntimeException failure) {
+      reportIdleOnFailure(executionContext, initializationResult.agentContext(), failure);
+      throw failure;
+    }
+  }
+
+  /**
+   * Attempts to clear a stale {@code THINKING} or {@code TOOL_CALLING} agent instance status before
+   * {@code failure} propagates as a job failure. Skips the call when {@code failure} already
+   * originated from an agent instance write, since retrying would likely fail the same way and
+   * could overwrite a status a newer, still-live activation already advanced past. Does not cover a
+   * failure inside {@code initializeAgent()}, which {@link #handleRequest} calls outside this try
+   * block.
+   */
+  private void reportIdleOnFailure(
+      C executionContext, @Nullable AgentContext agentContext, RuntimeException failure) {
+    if (originatedFromAgentInstanceClient(failure)) {
+      return;
+    }
+    final var agentInstanceKey =
+        resolveAgentInstanceKeyForFailureReport(executionContext, agentContext);
+    if (agentInstanceKey != null) {
+      agentInstanceClient.reportIdleOnFailure(executionContext, agentInstanceKey);
+    }
+  }
+
+  private static boolean originatedFromAgentInstanceClient(RuntimeException failure) {
+    return failure instanceof ConnectorException ce
+        && AGENT_INSTANCE_CLIENT_ERROR_CODES.contains(ce.getErrorCode());
+  }
+
+  /**
+   * Resolves the agent instance key to report as {@code IDLE} after a failure. Prefers {@code
+   * agentContext}, the in-flight {@link AgentContext} from this invocation's {@code
+   * initializeAgent()} result, since it holds a brand-new agent instance's freshly assigned key
+   * before {@code executionContext.initialAgentContext()} does. Falls back to {@code
+   * initialAgentContext()} when {@code agentContext} is {@code null} or carries no metadata.
+   */
+  private @Nullable AgentInstanceKey resolveAgentInstanceKeyForFailureReport(
+      C executionContext, @Nullable AgentContext agentContext) {
+    if (agentContext != null) {
+      final var key = AgentInstanceKey.from(agentContext.metadata());
+      if (key != null) {
+        return key;
       }
-      case DeferConversation() -> {
-        LOGGER.debug(
-            "AI Agent initialization tool discovery is still in progress. Completing job without further processing.");
-        yield handleNoOp(executionContext);
-      }
-      case ReadyToConverse(var agentContext, var toolCallResults) -> {
-        LOGGER.debug("Handling agent request with {} tool call results", toolCallResults.size());
-        yield converse(executionContext, agentContext, toolCallResults);
-      }
-    };
+    }
+    final var initialAgentContext = executionContext.initialAgentContext();
+    return initialAgentContext == null
+        ? null
+        : AgentInstanceKey.from(initialAgentContext.metadata());
   }
 
   private R converse(

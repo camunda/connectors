@@ -23,6 +23,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
@@ -34,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ContentFilteredTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceClientVerifier;
@@ -274,6 +276,89 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasStatus(AgentInstanceStatus.COMPLETED)
         .hasToolResultsFor("SuperfluxProduct", "Download_A_File")
+        .verify();
+  }
+
+  /**
+   * A job failure (max model calls reached, raising an incident) while the instance is stuck at
+   * {@code TOOL_CALLING} must still report {@code IDLE} so Operate doesn't keep showing a stale
+   * in-progress status for an agent that has stopped (camunda/connectors#8591). Deliberately trips
+   * the limit right after a tool-calling turn rather than a plain-text turn: a plain-text turn
+   * already leaves the instance {@code IDLE} via the normal turn-completion path, which would make
+   * this test pass even without the fix.
+   */
+  @Test
+  void reportsIdleStatusWhenMaximumModelCallsIsReachedWhileToolCalling() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            null, 10, 20, ToolCall.of("call-001", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}")));
+
+    final var zeebeTest =
+        awaitActiveIncidents(
+            createProcessInstance(
+                elementTemplate -> elementTemplate.property("data.limits.maxModelCalls", "1"),
+                Map.of("userPrompt", "Calculate the superflux product of 5 and 3")));
+
+    assertIncident(
+        zeebeTest,
+        incident ->
+            assertThat(incident.getErrorMessage())
+                .startsWith("Maximum number of model calls reached (modelCalls: 1, limit: 1)"));
+
+    // resolve the agent instance from the process instance -- the job never completed, so no
+    // process variable carries the key
+    final var processInstanceKey = zeebeTest.getProcessInstanceEvent().getProcessInstanceKey();
+    final var agentInstanceKey =
+        camundaClient
+            .newAgentInstanceSearchRequest()
+            .filter(f -> f.processInstanceKey(processInstanceKey))
+            .execute()
+            .singleItem()
+            .getAgentInstanceKey();
+
+    verify(agentInstanceClient)
+        .reportIdleOnFailure(
+            any(AgentExecutionContext.class), eq(AgentInstanceKey.of(agentInstanceKey)));
+
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
+        .hasStatus(AgentInstanceStatus.IDLE)
+        .verify();
+  }
+
+  /**
+   * A brand-new agent instance whose very first model call is rejected (content-filtered), raising
+   * an incident before any turn ever completes, must still report {@code IDLE}. Regression guard
+   * for the gap where the recoverable key was only ever read from {@code
+   * executionContext.initialAgentContext()} (the pre-invocation state, always {@code null} for a
+   * first job) instead of the in-flight {@code AgentContext} that {@code initializeAgent()} just
+   * created (camunda/connectors#8591).
+   */
+  @Test
+  void reportsIdleStatusWhenFirstModelCallOnANewAgentInstanceIsContentFiltered() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        new ContentFilteredTurnStub("I can help, but", 10, 20));
+
+    final var zeebeTest =
+        awaitActiveIncidents(
+            createProcessInstance(
+                elementTemplate -> elementTemplate.property("retryCount", "1"),
+                Map.of("userPrompt", "Calculate the superflux product of 5 and 3")));
+
+    final var processInstanceKey = zeebeTest.getProcessInstanceEvent().getProcessInstanceKey();
+    final var agentInstanceKey =
+        camundaClient
+            .newAgentInstanceSearchRequest()
+            .filter(f -> f.processInstanceKey(processInstanceKey))
+            .execute()
+            .singleItem()
+            .getAgentInstanceKey();
+
+    verify(agentInstanceClient)
+        .reportIdleOnFailure(
+            any(AgentExecutionContext.class), eq(AgentInstanceKey.of(agentInstanceKey)));
+
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
+        .hasStatus(AgentInstanceStatus.IDLE)
         .verify();
   }
 

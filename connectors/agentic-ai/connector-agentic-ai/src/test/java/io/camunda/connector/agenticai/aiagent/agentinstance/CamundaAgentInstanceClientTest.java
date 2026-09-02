@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -484,6 +485,59 @@ class CamundaAgentInstanceClientTest {
               Duration.ofSeconds(2),
               Duration.ofSeconds(4),
               Duration.ofSeconds(8));
+      verify(camundaClient, times(5)).newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY);
+    }
+  }
+
+  /**
+   * Unlike every other {@link AgentInstanceClient} method, {@code reportIdleOnFailure} must never
+   * throw: it is called while an original job failure is already propagating, and a secondary
+   * failure here must never replace or mask it.
+   */
+  @Nested
+  class ReportIdleOnFailure {
+
+    @Test
+    void shouldSkipWhenAgentInstanceKeyIsNull() {
+      // when
+      client.reportIdleOnFailure(TestAgentExecutionContext.withLimits(), null);
+
+      // then
+      verifyNoInteractions(camundaClient);
+    }
+
+    @Test
+    void shouldSendOneBatchedUpdateWithIdleStatusAndEmptyHistory() {
+      givenUpdateCommand();
+
+      // when
+      client.reportIdleOnFailure(
+          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY));
+
+      // then
+      verify(updateCommandStep2).status(AgentInstanceUpdateStatus.IDLE);
+      verify(updateCommandStep2).jobKey(JOB_KEY);
+      verify(updateCommandStep3).jobLease(DEFAULT_LEASE_TOKEN);
+      verify(updateCommandStep4).history(List.of());
+      verify(updateCommandStep4).execute();
+    }
+
+    @Test
+    void shouldSwallowAndLogWhenUnderlyingUpdateFailsAfterRetriesAreExhausted() {
+      givenUpdateCommand();
+      when(updateCommandStep4.execute())
+          .thenThrow(new ClientHttpException(500, "Internal Server Error"));
+
+      // when / then
+      assertThatCode(
+              () ->
+                  client.reportIdleOnFailure(
+                      TestAgentExecutionContext.withLimits(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY)))
+          .doesNotThrowAnyException();
+
+      // retries still ran to exhaustion before the failure was swallowed
+      assertThat(recordedSleeps).hasSize(4);
       verify(camundaClient, times(5)).newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY);
     }
   }

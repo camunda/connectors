@@ -20,6 +20,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -31,10 +33,12 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.De
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -42,6 +46,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -257,6 +262,90 @@ class AgentTaskRequestHandlerTest {
             });
 
     verifyNoInteractions(chatModelRegistry, chatModel, agentInstanceClient);
+  }
+
+  @Test
+  void reportsIdleToAgentInstanceWhenJobFailsWithARecoverableAgentInstanceKey() {
+    mockConfiguration();
+    final var agentInstanceKey = AgentInstanceKey.of(42L);
+    when(agentExecutionContext.initialAgentContext())
+        .thenReturn(
+            AgentContext.builder()
+                .state(AgentState.READY)
+                .toolDefinitions(TOOL_DEFINITIONS)
+                .metadata(new AgentMetadata(1L, 1L, 42L, null))
+                .build());
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.NoInput());
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> assertThat(e.getErrorCode()).isEqualTo("NO_USER_MESSAGE_CONTENT"));
+
+    verify(agentInstanceClient).reportIdleOnFailure(agentExecutionContext, agentInstanceKey);
+  }
+
+  @Test
+  void reportsIdleWhenModelCallFailsOnANewlyCreatedAgentInstanceWithNoInitialAgentContext() {
+    // brand-new agent, first job: initialAgentContext() reflects the pre-invocation state and has
+    // no metadata yet (deliberately left un-stubbed, defaulting to null) -- the recoverable key
+    // must come from the in-flight AgentContext returned by initializeAgent() instead
+    mockConfiguration();
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+
+    final var freshAgentContext =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .toolDefinitions(TOOL_DEFINITIONS)
+            .metadata(new AgentMetadata(1L, 1L, 99L, null))
+            .build();
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(freshAgentContext, List.of()));
+
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(any()))
+        .thenThrow(new ContentFilteredException("blocked by content filtering", null));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED));
+
+    verify(agentInstanceClient)
+        .reportIdleOnFailure(agentExecutionContext, AgentInstanceKey.of(99L));
+  }
+
+  @Test
+  void doesNotReportIdleWhenFailureOriginatesFromAnAgentInstanceUpdate() {
+    // no initialAgentContext() stub: the recursive-failure guard must short-circuit before ever
+    // resolving a key, so this key-resolution path is never even reached for this scenario
+    mockConfiguration();
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    doThrow(
+            new ConnectorException(
+                AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED, "update failed"))
+        .when(agentInstanceClient)
+        .applyTurnStart(any(), any(), any(), any(), any(), any());
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED));
+
+    verify(agentInstanceClient, never()).reportIdleOnFailure(any(), any());
   }
 
   @Test
