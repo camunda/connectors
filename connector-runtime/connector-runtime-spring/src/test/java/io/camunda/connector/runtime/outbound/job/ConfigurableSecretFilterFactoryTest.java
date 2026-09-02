@@ -148,6 +148,23 @@ class ConfigurableSecretFilterFactoryTest {
   }
 
   @Test
+  void create_strict_whenCauseChainIsCyclic_terminatesInsteadOfHanging() {
+    // Throwable#initCause permits a legal cycle (a's cause is b, b's cause is a) if a third-party
+    // exception is constructed that way; walking to the "most specific" cause must still
+    // terminate rather than loop forever.
+    var a = new RuntimeException("a");
+    var b = new RuntimeException("b", a);
+    a.initCause(b);
+    when(secretKeyCache.getSecretKeys(any())).thenThrow(a);
+    var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
+
+    var filter = factory.create(CONTEXT);
+
+    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
   void
       create_strict_whenProcessDefinitionFetchFailsThroughACaffeineCache_messageIdentifiesTheFailureWithoutLeakingTheCauseText() {
     // Goes through a real Cache#get(key, loader), which wraps the loader's exception in
