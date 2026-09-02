@@ -561,6 +561,7 @@
       "description" : "Between 0.0 and 2.0.",
       "optional" : true,
       "constraints" : {
+        "notEmpty" : false,
         "pattern" : {
           "value" : "^(=.*|[01](\\.[0-9]+)?|2(\\.0+)?|)$",
           "message" : "Must be between 0.0 and 2.0, or a FEEL expression"
@@ -1055,6 +1056,7 @@
       "description" : "Note: without a token, a connector retry can start the job a second time. Databricks accepts at most 64 characters.",
       "optional" : true,
       "constraints" : {
+        "notEmpty" : false,
         "pattern" : {
           "value" : "^(=.*|.{0,64})$",
           "message" : "Databricks accepts at most 64 characters, or use a FEEL expression"
