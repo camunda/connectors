@@ -118,6 +118,22 @@ class LegacySecretCharacterizationTest {
   }
 
   @Test
+  void aReferenceWrittenAsAPropertyNameIsReplacedJustAsOneWrittenAsAValueIs() throws Exception {
+    // The raw-text pass this replaced matched a placeholder anywhere in the document, key or
+    // value, since it never parsed the document's structure. A placeholder used as a property
+    // name has to keep resolving the same way for the tree-walking replacement to be a faithful
+    // successor.
+    Map<String, String> secrets = Map.of("KEY", "resolved-key");
+    SecretReplacer secretReplacer = (secret, context) -> secrets.get(secret.secretName());
+    String input = "{\"{{secrets.KEY}}\":\"value\"}";
+
+    var result =
+        SecretUtil.replaceSecrets((ObjectNode) objectMapper.readTree(input), null, secretReplacer);
+
+    assertThat(result).isEqualTo(objectMapper.readTree("{\"resolved-key\":\"value\"}"));
+  }
+
+  @Test
   void aReferenceEmbeddedInALongerValueIsReplaced() {
     Map<String, String> secrets = Map.of("TOKEN", "tok123", "A", "a1", "B", "b2");
     SecretReplacer secretReplacer = (secret, context) -> secrets.get(secret.secretName());

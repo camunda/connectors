@@ -62,7 +62,7 @@ public class SecretUtil {
 
   private static ObjectNode replaceSecretsWithParentheses(
       ObjectNode input, SecretContext context, SecretReplacer secretReplacer) {
-    walkTree(
+    walkJsonNode(
         input,
         (stringValue, fieldPath) -> {
           var secretVariableNameWithParenthesesMatcher =
@@ -82,7 +82,7 @@ public class SecretUtil {
 
   private static ObjectNode replaceSecretsWithoutParentheses(
       ObjectNode input, SecretContext context, SecretReplacer secretReplacer) {
-    walkTree(
+    walkJsonNode(
         input,
         (stringValue, fieldPath) -> {
           var secretVariableNameWithParenthesesMatcher =
@@ -100,9 +100,19 @@ public class SecretUtil {
     return input;
   }
 
-  private static void walkTree(
-      ObjectNode input,
+  private static void walkJsonNode(
+      JsonNode input,
       BiFunction<String, List<String>, String> converter,
+      List<String> fieldPath) {
+    switch (input.getNodeType()) {
+    case ARRAY -> walkArray((ArrayNode) input, converter, fieldPath);
+    case OBJECT -> walkObject((ObjectNode) input, converter, fieldPath);
+    default -> {}
+    }
+
+  }
+
+  private static void walkObject(ObjectNode input, BiFunction<String, List<String>, String> converter,
       List<String> fieldPath) {
     for (Entry<String, JsonNode> entry : input.properties()) {
       JsonNode value = entry.getValue();
@@ -110,15 +120,13 @@ public class SecretUtil {
       extendedFieldPath.add(entry.getKey());
       if (value instanceof TextNode stringValue) {
         input.put(entry.getKey(), converter.apply(stringValue.asText(), extendedFieldPath));
-      } else if (value.isObject()) {
-        walkTree((ObjectNode) value, converter, extendedFieldPath);
-      } else if (value.isArray()) {
-        walkArray((ArrayNode) value, converter, extendedFieldPath);
+      } else  {
+        walkJsonNode(value, converter, extendedFieldPath);
       }
     }
   }
 
-  /** Recurses into array elements at arbitrary depth, mirroring {@link #walkTree}. */
+  /** Recurses into array elements at arbitrary depth, mirroring {@link #walkJsonNode}. */
   private static void walkArray(
       ArrayNode arrayNode,
       BiFunction<String, List<String>, String> converter,
@@ -127,10 +135,8 @@ public class SecretUtil {
       JsonNode item = arrayNode.get(i);
       if (item instanceof TextNode stringValue) {
         arrayNode.set(i, new TextNode(converter.apply(stringValue.asText(), fieldPath)));
-      } else if (item.isObject()) {
-        walkTree((ObjectNode) item, converter, fieldPath);
-      } else if (item.isArray()) {
-        walkArray((ArrayNode) item, converter, fieldPath);
+      } else  {
+        walkJsonNode(item, converter, fieldPath);
       }
     }
   }
@@ -208,7 +214,7 @@ public class SecretUtil {
    */
   private static List<Secret> keysIn(ObjectNode input, Pattern... patterns) {
     List<Secret> result = new ArrayList<>();
-    walkTree(
+    walkJsonNode(
         input,
         (stringValue, fieldPath) -> {
           result.addAll(
