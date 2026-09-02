@@ -18,8 +18,10 @@ package io.camunda.connector.runtime.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.util.List;
@@ -82,6 +84,19 @@ public class SecretUtilTests {
     Function<String, String> secretReplacer = (name) -> secrets.get(name);
     var result = SecretUtil.replaceSecrets(input, secretReplacer);
     assertThat(result).isEqualTo(output);
+  }
+
+  @Test
+  void shouldAskTheReplacerAtMostOnceForAGivenNameAcrossBothPasses() {
+    // secretReplacer is not guaranteed side-effect-free in production (a provider aggregator can
+    // count each resolution), so a name the parentheses pass already resolved or denied must not
+    // be looked up again by the bare pass's own denial check.
+    var secretReplacer = mock(Function.class);
+    when(secretReplacer.apply("FOO:BAR")).thenReturn(null);
+
+    SecretUtil.replaceSecrets("{{secrets.FOO:BAR}}", secretReplacer);
+
+    verify(secretReplacer, times(1)).apply("FOO:BAR");
   }
 
   @Test
