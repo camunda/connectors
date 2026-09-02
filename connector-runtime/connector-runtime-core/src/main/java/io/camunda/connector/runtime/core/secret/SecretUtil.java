@@ -24,6 +24,7 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -120,16 +121,27 @@ public class SecretUtil {
       ObjectNode input,
       BiFunction<String, List<String>, String> converter,
       List<String> fieldPath) {
-    for (Entry<String, JsonNode> entry : List.copyOf(input.properties())) {
+    // Map.entry(...) reads each key/value pair eagerly, decoupling the snapshot from the live
+    // map: input.properties() entries are backed by the same map nodes ObjectNode#set/remove
+    // mutate, so a snapshot that merely copies the entry objects (e.g. List.copyOf(...)) would
+    // still observe later renames through entries for keys processed earlier in this same loop.
+    for (Entry<String, JsonNode> entry :
+        input.properties().stream().map(e -> Map.entry(e.getKey(), e.getValue())).toList()) {
       String key = entry.getKey();
       JsonNode value = entry.getValue();
       List<String> extendedFieldPath = new ArrayList<>(fieldPath);
       extendedFieldPath.add(key);
 
       if (value instanceof TextNode stringValue) {
-        input.put(key, converter.apply(stringValue.asText(), extendedFieldPath));
+        input.set(key, new TextNode(converter.apply(stringValue.asText(), extendedFieldPath)));
       } else {
         walkJsonNode(value, converter, extendedFieldPath);
+        // Reinserts this entry's own (possibly object/array-mutated-in-place, otherwise
+        // untouched) value at its own original key, in snapshot order. Without this, a key
+        // rename earlier in this same loop that happens to collide with this entry's still
+        // unprocessed key would silently overwrite this entry before its own turn came, and this
+        // entry's non-text value — having no put/set of its own — would never overwrite it back.
+        input.set(key, value);
       }
 
       String newKey = converter.apply(key, extendedFieldPath);

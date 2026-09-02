@@ -134,6 +134,23 @@ class LegacySecretCharacterizationTest {
   }
 
   @Test
+  void aRenamedKeyCollidingWithALaterNonTextPropertyLosesToIt() throws Exception {
+    // "{{secrets.KEY}}" resolves to "resolved-key", which collides with a property that already
+    // exists further along in the same object. Parsing raw JSON text with a duplicate key keeps
+    // the later one, so the walk has to reproduce that: the later property's own value -- here an
+    // object, not a plain string -- must win, not the earlier (renamed) one.
+    Map<String, String> secrets = Map.of("KEY", "resolved-key");
+    SecretReplacer secretReplacer = (secret, context) -> secrets.get(secret.secretName());
+    String input = "{\"{{secrets.KEY}}\":\"placeholder\",\"resolved-key\":{\"nested\":\"value\"}}";
+
+    var result =
+        SecretUtil.replaceSecrets((ObjectNode) objectMapper.readTree(input), null, secretReplacer);
+
+    assertThat(result)
+        .isEqualTo(objectMapper.readTree("{\"resolved-key\":{\"nested\":\"value\"}}"));
+  }
+
+  @Test
   void aReferenceEmbeddedInALongerValueIsReplaced() {
     Map<String, String> secrets = Map.of("TOKEN", "tok123", "A", "a1", "B", "b2");
     SecretReplacer secretReplacer = (secret, context) -> secrets.get(secret.secretName());
