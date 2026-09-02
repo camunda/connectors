@@ -54,15 +54,14 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
             return secretKeyCache.getSecretKeys(
                 new SecretKeyContext(context.processDefinitionKey(), context.elementId()));
           } catch (RuntimeException e) {
-            // realCause walks to the root of the chain, not just one level: e is usually a
-            // Cache.ValueRetrievalException (Spring's Cache#get(key, loader) wraps whatever the
-            // loader throws), and the client can wrap the actual failure in its own generic
-            // exception type on top of that -- a single getCause() can still return a
-            // non-discriminating wrapper class. Never log the cause's message, or the cause
-            // itself, anywhere -- not the incident, not the pod log -- a client/parser exception
-            // message can echo response-body content, so neither sink gets more than the
-            // exception's class name. The element ID, process-definition key, and exception class
-            // are enough for an operator to distinguish failure modes.
+            // realCause walks to the root of the chain, not just one level: the client can wrap
+            // the actual failure in its own generic exception type before it ever reaches here,
+            // so a single getCause() can still return a non-discriminating wrapper class. Never
+            // log the cause's message, or the cause itself, anywhere -- not the incident, not the
+            // pod log -- a client/parser exception message can echo response-body content, so
+            // neither sink gets more than the exception's class name. The element ID,
+            // process-definition key, and exception class are enough for an operator to
+            // distinguish failure modes.
             Throwable realCause = mostSpecificCause(e);
             if (strict) {
               LOG.error(
