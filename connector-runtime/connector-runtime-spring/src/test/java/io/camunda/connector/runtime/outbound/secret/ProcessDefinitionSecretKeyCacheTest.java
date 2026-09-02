@@ -95,6 +95,43 @@ class ProcessDefinitionSecretKeyCacheTest {
   }
 
   @Test
+  void getSecretKeys_secretPropagatesToAnInputThatReferencesTheDeclaringInputsVariable()
+      throws IOException {
+    // baseUrl declares BASE_URL_SFDC; url is a FEEL expression built from baseUrl and path
+    // ("=baseUrl + \"/services/apexrest/\" + path"). url's runtime value can carry the secret's
+    // resolved text just as directly as baseUrl's can, so the secret must be allowed under url's
+    // own field path too -- not just under baseUrl's.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-referenced-variable.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys)
+        .contains(
+            new Secret("BASE_URL_SFDC", List.of("baseUrl")),
+            new Secret("BASE_URL_SFDC", List.of("url")));
+  }
+
+  @Test
+  void getSecretKeys_propagationDoesNotReachAnInputThatDoesNotReferenceTheDeclaringVariable()
+      throws IOException {
+    // method ("get") and connectionTimeoutInSeconds ("20") are unrelated static inputs on the same
+    // element -- propagation must not leak the secret onto every sibling input, only onto ones
+    // whose own expression actually reads the variable that carries it.
+    when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-with-referenced-variable.bpmn"));
+
+    var keys =
+        secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
+
+    assertThat(keys)
+        .doesNotContain(
+            new Secret("BASE_URL_SFDC", List.of("method")),
+            new Secret("BASE_URL_SFDC", List.of("connectionTimeoutInSeconds")),
+            new Secret("BASE_URL_SFDC", List.of("path")),
+            new Secret("BASE_URL_SFDC", List.of("authentication", "type")));
+  }
+
+  @Test
   void getSecretKeys_multipleTasksWithSecrets_returnsOnlyKeysForRequestedElement()
       throws IOException {
     when(xmlRequest.execute()).thenReturn(loadBpmn("outbound-multiple-tasks-with-secrets.bpmn"));

@@ -34,21 +34,29 @@ import io.camunda.zeebe.model.bpmn.instance.SubProcess;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
 import java.io.ByteArrayInputStream;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import org.camunda.feel.api.FeelEngineApi;
+import org.camunda.feel.api.FeelEngineBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
 
 public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionSecretKeyCache.class);
+  private static final FeelEngineApi FEEL_ENGINE = FeelEngineBuilder.forJava().build();
   private static final List<Class<? extends BaseElement>> OUTBOUND_ELIGIBLE_TYPES =
       new ArrayList<>();
 
@@ -131,14 +139,89 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     return discoveredOutboundConnectors;
   }
 
+  /**
+   * A secret is allowed not only on the input that names it directly, but also on every input whose
+   * own FEEL expression reads the variable that input's target writes — transitively. A template
+   * commonly assembles one input's value (e.g. {@code url}) from others (e.g. {@code baseUrl},
+   * itself holding a secret); the assembled input's runtime value can carry the secret's text just
+   * as directly as the input that named it, so the allow-list has to follow that data flow rather
+   * than stop at the input where the secret's name is written.
+   *
+   * <p>A dependency is resolved by matching a referenced variable's top-level name against the
+   * top-level segment of another input's {@code target} (a dotted target like {@code
+   * authentication.type} publishes the top-level variable {@code authentication}) — not by
+   * comparing full paths, since a FEEL expression normally references the top-level variable a
+   * group of inputs assembles, not one specific field of it.
+   */
   private List<Secret> extractSecrets(List<ZeebeInput> inputs) {
-    return inputs.stream()
-        .flatMap(
-            input ->
-                SecretUtil.retrieveSecretKeysInInput(input.getSource()).stream()
-                    .map(s -> new Secret(s.trim(), Arrays.asList(input.getTarget().split("\\.")))))
-        .distinct()
-        .toList();
+    Map<ZeebeInput, List<String>> pathByInput = new LinkedHashMap<>();
+    Map<ZeebeInput, List<String>> ownSecretNamesByInput = new LinkedHashMap<>();
+    for (ZeebeInput input : inputs) {
+      pathByInput.put(input, Arrays.asList(input.getTarget().split("\\.")));
+      ownSecretNamesByInput.put(
+          input,
+          SecretUtil.retrieveSecretKeysInInput(input.getSource()).stream()
+              .map(String::trim)
+              .distinct()
+              .toList());
+    }
+
+    Map<String, List<ZeebeInput>> inputsByTopLevelTargetName =
+        inputs.stream().collect(Collectors.groupingBy(input -> pathByInput.get(input).get(0)));
+
+    Map<ZeebeInput, List<ZeebeInput>> directDependencies = new LinkedHashMap<>();
+    for (ZeebeInput input : inputs) {
+      directDependencies.put(
+          input,
+          referencedTopLevelVariableNames(input.getSource()).stream()
+              .flatMap(name -> inputsByTopLevelTargetName.getOrDefault(name, List.of()).stream())
+              .filter(candidate -> candidate != input)
+              .distinct()
+              .toList());
+    }
+
+    List<Secret> result = new ArrayList<>();
+    for (ZeebeInput input : inputs) {
+      List<String> path = pathByInput.get(input);
+      ownSecretNamesByInput.get(input).forEach(name -> result.add(new Secret(name, path)));
+
+      Set<ZeebeInput> visited = new HashSet<>();
+      Deque<ZeebeInput> pending = new ArrayDeque<>(directDependencies.get(input));
+      while (!pending.isEmpty()) {
+        ZeebeInput dependency = pending.poll();
+        if (!visited.add(dependency)) {
+          continue;
+        }
+        ownSecretNamesByInput.get(dependency).forEach(name -> result.add(new Secret(name, path)));
+        pending.addAll(directDependencies.getOrDefault(dependency, List.of()));
+      }
+    }
+    return result.stream().distinct().toList();
+  }
+
+  /**
+   * The top-level names of every variable a FEEL expression references, or an empty set if {@code
+   * source} isn't a FEEL expression (no leading {@code =}) or fails to parse — a static value or a
+   * malformed expression simply has nothing to propagate from.
+   */
+  private static Set<String> referencedTopLevelVariableNames(String source) {
+    if (source == null) {
+      return Set.of();
+    }
+    String trimmed = source.trim();
+    if (!trimmed.startsWith("=")) {
+      return Set.of();
+    }
+    var parseResult = FEEL_ENGINE.parseExpression(trimmed.substring(1));
+    if (parseResult.isFailure()) {
+      return Set.of();
+    }
+    Set<String> names = new LinkedHashSet<>();
+    parseResult
+        .parsedExpression()
+        .getVariableReferences()
+        .forEach(ref -> names.add(ref.getFullQualifiedName().get(0)));
+    return names;
   }
 
   private List<ZeebeInput> findElementInput(BaseElement element) {
