@@ -155,6 +155,22 @@ nothing to configure on the runtime.
 | App Integrations Chat Message Receive Task | Receive task | The same wait, as a task. |
 | App Integrations Chat Message Boundary Event | Boundary event | The same wait, attached to an activity. |
 
+The start template has a **Chat key** field holding the *whole* message name —
+`io.camunda.appIntegrations.conversationStarted.<chat key>`, defaulting to
+`…conversationStarted.default`. The chat key is configured per channel or chat on the App
+Integrations side, and the channel's Camunda settings in Teams and Slack display the composed name
+ready to copy. Paste it in as-is; the field is validated against the composed form, so a typo cannot
+silently subscribe the process to an unrelated business message.
+
+One chat key should belong to exactly one process definition per cluster. Two definitions carrying
+the same key both start on every message from that channel — a modelling error the backend cannot
+detect, because it does not see deployments.
+
+The backend validates only the short key, `^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$`, and prepends the
+prefix itself; the template's pattern is that same grammar with the prefix spelled out. They are one
+grammar written twice, in two repositories, with nothing enforcing that they stay in step — change
+one and change the other.
+
 The three waiting templates listen on the conversation named by their **Conversation** field, which
 defaults to the conversation the process is already holding. A process started from the chat start
 event therefore loops through a conversation with no configuration at all; to reply into a

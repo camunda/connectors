@@ -19,12 +19,27 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
+    "id" : "correlation",
+    "label" : "Correlation"
+  }, {
     "id" : "output",
     "label" : "Output mapping"
   } ],
   "properties" : [ {
-    "type" : "Hidden",
-    "value" : "io.camunda.appIntegrations.conversationStarted",
+    "id" : "messageName",
+    "label" : "Chat key",
+    "description" : "Must match the chat key configured on the channel or chat this process should answer. Copy it from the Camunda settings in Teams, or from `/camunda chat` in Slack.",
+    "type" : "String",
+    "value" : "io.camunda.appIntegrations.conversationStarted.default",
+    "placeholder" : "io.camunda.appIntegrations.conversationStarted.hr-intake",
+    "group" : "correlation",
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^io\\.camunda\\.appIntegrations\\.conversationStarted\\.[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$",
+        "message" : "must be io.camunda.appIntegrations.conversationStarted.<chat key>"
+      }
+    },
     "binding" : {
       "type" : "bpmn:Message#property",
       "name" : "name"
