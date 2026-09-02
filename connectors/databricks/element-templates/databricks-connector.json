@@ -1164,7 +1164,7 @@
           }
         ]
       },
-      "tooltip" : "Request body for the index query. Only columns is required. Supply query_text for a text index or query_vector for a direct vector, plus optional num_results, filters_json, query_type, and score_threshold.",
+      "tooltip" : "Request body for the index query. columns is required, but so is exactly one of query_text or query_vector -- a columns-only payload is rejected with HTTP 400 INVALID_PARAMETER_VALUE. Use query_text for a Delta Sync index backed by a model endpoint, or query_vector for a Direct Vector Access index or a Delta Sync index with self-managed vectors. Optional fields: num_results, filters_json, query_type, and score_threshold.",
       "type" : "Text"
     },
     {
@@ -1307,6 +1307,19 @@
         "type" : "zeebe:taskHeader"
       },
       "tooltip" : "ISO 8601 duration to wait between retries.",
+      "type" : "String"
+    },
+    {
+      "id" : "jobTimeout",
+      "label" : "Job timeout",
+      "description" : "Must exceed Read timeout in seconds above, or Zeebe can consider the job timed out and reactivate it on another worker while this HTTP request is still in flight -- a duplicate non-idempotent call that Retries = 0 does not prevent, because it happens outside the connector.",
+      "optional" : true,
+      "group" : "retries",
+      "binding" : {
+        "key" : "jobTimeout",
+        "type" : "zeebe:taskHeader"
+      },
+      "tooltip" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout. Raise this alongside Read timeout in seconds when waiting on slow Model Serving inference (up to 597s) or a long SQL wait_timeout.",
       "type" : "String"
     },
     {
