@@ -235,8 +235,8 @@ public class OutboundConnectorContextBuilder {
     protected TestConnectorContext(
         SecretProvider secretProvider, ValidationProvider validationProvider) {
       super(secretProvider, SecretFilter.allowAll(), validationProvider);
-      var asString = objectMapper.valueToTree(variables);
-      variablesWithSecrets = getSecretHandler().replaceSecrets(asString, null);
+      var asTree = objectMapper.valueToTree(variables != null ? variables : Map.of());
+      variablesWithSecrets = getSecretHandler().replaceSecrets(asTree, null);
       this.jobContext = new TestJobContext(() -> headers, variablesWithSecrets::toString);
     }
 

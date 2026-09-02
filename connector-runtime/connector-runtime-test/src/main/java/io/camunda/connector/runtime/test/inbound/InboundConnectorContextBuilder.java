@@ -260,7 +260,9 @@ public class InboundConnectorContextBuilder {
       this.result = result;
       this.activationTimestamp = System.currentTimeMillis();
       propertiesWithSecrets =
-          getSecretHandler().replaceSecrets(objectMapper.valueToTree(properties), null);
+          getSecretHandler()
+              .replaceSecrets(
+                  objectMapper.valueToTree(properties != null ? properties : Map.of()), null);
     }
 
     protected void correlate(Object variables) {
