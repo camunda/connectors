@@ -1,0 +1,53 @@
+---
+# ECK-managed Elasticsearch for the C8SM Connectors preview environment.
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: elasticsearch
+  labels: {{ include "commonLabels" $ | nindent 4 }}
+  annotations: {{ include "commonAnnotations" $ | nindent 4 }}
+spec:
+  # Keep in sync with the Elasticsearch 8 version the Camunda 8 release under
+  # test supports.
+  version: 8.19.16
+  nodeSets:
+  - name: default
+    count: 1
+    config:
+      node.store.allow_mmap: "false"
+      logger.org.elasticsearch.deprecation: "OFF"
+      # Authenticate unauthenticated requests as the "anonymous" superuser so
+      # Camunda can reach ES without credentials (preview-only convenience).
+      xpack.security.authc:
+        anonymous:
+          username: anonymous
+          roles: superuser
+    podTemplate:
+      spec:
+        containers:
+        - name: elasticsearch
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              memory: 2Gi
+        nodeSelector:
+          cloud.google.com/gke-nodepool: previews
+        tolerations:
+        - key: previews
+          operator: Exists
+          effect: NoSchedule
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
+  http:
+    tls:
+      selfSignedCertificate:
+        # Plain HTTP on the ES API (preview-only; see load-test setup).
+        disabled: true
