@@ -679,19 +679,10 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID;
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION;
 
-      # hashicorp/vault-action already masks IDP_GCP_SERVICE_ACCOUNT line-by-line as soon as it's
-      # fetched (see its own source: it splits the raw value on newlines and registers each
-      # non-empty line as a secret) - so most of what #8595 worried about is already covered.
-      # The real, narrower gap: once this step's JSON is decoded with jq, the PEM private key's
-      # *escaped* \n sequences become *real* newlines - a string vault-action never saw and never
-      # masked. If that decoded value is ever echoed (directly, via an SDK stack trace, etc.), it
-      # leaks. This masks the decoded private_key and private_key_id specifically.
-      #
-      # Masked one line at a time, not as a single multi-line value: GitHub Actions' ::add-mask::
-      # only recognizes the first line of a command as the command itself - a naive
-      # `echo "::add-mask::$value"` on a multi-line PEM key would register just the header line
-      # and print every other line of the actual key as plain, unmasked text. Confirmed by testing
-      # this exact failure mode locally before writing the fix this way.
+      # vault-action already masks the raw JSON line-by-line, but jq-decoding private_key here
+      # turns its escaped \n into real newlines it never saw - masking those specifically.
+      # Per-line, not as one value: ::add-mask:: only recognizes its own first line as the
+      # command, so a naive one-shot mask would print the rest of a multi-line key unmasked.
       - name: Mask decoded Vertex AI private key
         if: steps.changes.outputs.ai == 'true'
         env:
