@@ -5,7 +5,7 @@ description: Bump the Salesforce connector's default apiVersion to the latest Sa
 
 # Update the Salesforce connector's default API version
 
-The Salesforce connector's `apiVersion` property (used to build every sObject/SOQL
+The Salesforce connector's `apiVersion` property (used to build every sObject/SOQL/Composite
 request URL) has a hardcoded default value in the generator source. Salesforce ships a new REST
 API version roughly three times a year (Spring/Summer/Winter releases); this skill keeps the
 connector's default current.
