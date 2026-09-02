@@ -45,6 +45,7 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -79,7 +80,33 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
       ActivityLogWriter activityLogWriter) {
-    super(secretProvider, SecretFilter.allowAll(), validationProvider);
+    this(
+        secretProvider,
+        validationProvider,
+        documentFactory,
+        connectorDetails,
+        correlationHandler,
+        cancellationCallback,
+        objectMapper,
+        activityLogWriter,
+        false);
+  }
+
+  /**
+   * @param secretFilterEnabled when {@code true}, restricts secret resolution to the names declared
+   *     by the deployed {@code zeebe:property} text replacement runs over (#7730).
+   */
+  public InboundConnectorContextImpl(
+      SecretProvider secretProvider,
+      ValidationProvider validationProvider,
+      DocumentFactory documentFactory,
+      ValidInboundConnectorDetails connectorDetails,
+      InboundCorrelationHandler correlationHandler,
+      Consumer<Throwable> cancellationCallback,
+      ObjectMapper objectMapper,
+      ActivityLogWriter activityLogWriter,
+      boolean secretFilterEnabled) {
+    super(secretProvider, secretFilter(connectorDetails, secretFilterEnabled), validationProvider);
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;
@@ -267,6 +294,31 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     } catch (Throwable e) {
       LOG.error("Failed to deliver the cancellation signal to the runtime", e);
     }
+  }
+
+  /**
+   * The allow-list is drawn from the same {@code rawPropertiesWithoutKeywords} map that {@link
+   * #properties} is built from, so the names permitted and the text filtered always come from one
+   * read. That text is fixed at construction here — {@code properties} is final and {@link
+   * #updateConnectorDetails} does not rebuild it — so unlike the outbound path there is no
+   * separately-timed state for a hot swap to leave stale.
+   *
+   * <p>This is what the filter stops: {@link SecretUtil#replaceSecrets} runs the brace pass and
+   * then runs the bare pass over that pass's output, so a resolved value containing
+   * reference-shaped text otherwise produces a lookup for a name no model declares.
+   *
+   * <p>Static because it feeds the {@code super(...)} call, before any field is assigned.
+   */
+  private static SecretFilter secretFilter(
+      ValidInboundConnectorDetails connectorDetails, boolean secretFilterEnabled) {
+    if (!secretFilterEnabled) {
+      return SecretFilter.allowAll();
+    }
+    return SecretFilter.allowOnly(
+        connectorDetails.rawPropertiesWithoutKeywords().values().stream()
+            .flatMap(value -> SecretUtil.retrieveSecretKeysInInput(value).stream())
+            .distinct()
+            .toList());
   }
 
   @Override
