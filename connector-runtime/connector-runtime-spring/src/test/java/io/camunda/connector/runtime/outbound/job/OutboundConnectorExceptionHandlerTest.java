@@ -26,6 +26,8 @@ import static org.mockito.Mockito.when;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -33,6 +35,7 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretLookupRefusedException;
 import io.camunda.connector.runtime.core.secret.SecretNotAvailableException;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
@@ -53,6 +56,8 @@ import org.slf4j.LoggerFactory;
  */
 class OutboundConnectorExceptionHandlerTest {
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   private final SecretProvider secretProvider = mock(SecretProvider.class);
   private final List<String> requestedKeys = new ArrayList<>();
   private final OutboundConnectorExceptionHandler handler =
@@ -60,11 +65,21 @@ class OutboundConnectorExceptionHandlerTest {
 
   private static ActivatedJob jobOnEngine(String physicalTenantId) {
     var job = mock(ActivatedJob.class);
-    when(job.getVariables()).thenReturn("{\"token\": \"{{secrets.FOO}}\"}");
+    var variables = "{\"token\": \"{{secrets.FOO}}\"}";
+    when(job.getVariables()).thenReturn(variables);
+    when(job.getVariablesAsType(ObjectNode.class)).thenReturn(readTree(variables));
     when(job.getTenantId()).thenReturn("my-tenant");
     when(job.getBpmnProcessId()).thenReturn("my-process");
     when(job.getPhysicalTenantId()).thenReturn(physicalTenantId);
     return job;
+  }
+
+  private static ObjectNode readTree(String json) {
+    try {
+      return (ObjectNode) OBJECT_MAPPER.readTree(json);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private SecretContext captureSecretContext() {
@@ -297,13 +312,13 @@ class OutboundConnectorExceptionHandlerTest {
 
     var result =
         handler.manageConnectorJobHandlerException(
-            new SecretNotAvailableException("BAR"),
+            new SecretNotAvailableException(new Secret("BAR", List.of("b"))),
             job,
             Duration.ofSeconds(1),
             SecretFilter.allowAll());
 
     assertThat(result.exception().getMessage())
-        .isEqualTo("Secret with name 'BAR' is not available");
+        .isEqualTo("Secret with name 'BAR' is not available on path 'b'");
     assertThat(result.retries()).isZero();
   }
 
@@ -427,6 +442,7 @@ class OutboundConnectorExceptionHandlerTest {
   private static ActivatedJob jobNaming(String variables) {
     var job = mock(ActivatedJob.class);
     when(job.getVariables()).thenReturn(variables);
+    when(job.getVariablesAsType(ObjectNode.class)).thenReturn(readTree(variables));
     when(job.getTenantId()).thenReturn("my-tenant");
     when(job.getBpmnProcessId()).thenReturn("my-process");
     when(job.getPhysicalTenantId()).thenReturn("engine-1");

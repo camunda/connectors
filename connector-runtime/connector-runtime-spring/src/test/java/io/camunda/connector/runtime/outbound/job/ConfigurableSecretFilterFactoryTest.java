@@ -22,7 +22,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterFactoryContext;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
@@ -37,12 +38,20 @@ class ConfigurableSecretFilterFactoryTest {
 
   private static final long PROCESS_DEF_KEY = 42L;
   private static final String ELEMENT_ID = "service-task-1";
-  private static final SecretFilterContext CONTEXT =
-      new SecretFilterContext(PROCESS_DEF_KEY, ELEMENT_ID);
+  private static final SecretFilterFactoryContext CONTEXT =
+      new SecretFilterFactoryContext(PROCESS_DEF_KEY, ELEMENT_ID);
   private static final SecretKeyContext SECRET_KEY_CONTEXT =
       new SecretKeyContext(PROCESS_DEF_KEY, ELEMENT_ID);
 
   @Mock private SecretKeyCache secretKeyCache;
+
+  private static Secret secret(String name) {
+    return new Secret(name, List.of());
+  }
+
+  private static Secret query(String name) {
+    return new Secret(name, List.of("field"));
+  }
 
   @Test
   void create_disabled_allowsAllSecrets_withoutCacheInteraction() {
@@ -50,21 +59,22 @@ class ConfigurableSecretFilterFactoryTest {
 
     var filter = factory.create(CONTEXT);
 
-    assertThat(filter.isAllowed("ANY_SECRET")).isTrue();
-    assertThat(filter.isAllowed("ANOTHER_SECRET")).isTrue();
+    assertThat(filter.isAllowed(query("ANY_SECRET"))).isTrue();
+    assertThat(filter.isAllowed(query("ANOTHER_SECRET"))).isTrue();
     verifyNoInteractions(secretKeyCache);
   }
 
   @Test
   void create_lax_withSecretKeys_restrictesFilterToList() {
-    when(secretKeyCache.getSecretKeys(SECRET_KEY_CONTEXT)).thenReturn(List.of("API_KEY", "TOKEN"));
+    when(secretKeyCache.getSecretKeys(SECRET_KEY_CONTEXT))
+        .thenReturn(List.of(secret("API_KEY"), secret("TOKEN")));
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.LAX, secretKeyCache);
 
     var filter = factory.create(CONTEXT);
 
-    assertThat(filter.isAllowed("API_KEY")).isTrue();
-    assertThat(filter.isAllowed("TOKEN")).isTrue();
-    assertThat(filter.isAllowed("UNLISTED_SECRET")).isFalse();
+    assertThat(filter.isAllowed(query("API_KEY"))).isTrue();
+    assertThat(filter.isAllowed(query("TOKEN"))).isTrue();
+    assertThat(filter.isAllowed(query("UNLISTED_SECRET"))).isFalse();
   }
 
   @Test
@@ -74,18 +84,18 @@ class ConfigurableSecretFilterFactoryTest {
 
     var filter = factory.create(CONTEXT);
 
-    assertThat(filter.isAllowed("ANY_SECRET")).isTrue();
+    assertThat(filter.isAllowed(query("ANY_SECRET"))).isTrue();
   }
 
   @Test
   void create_strict_withSecretKeys_restrictesFilterToList() {
-    when(secretKeyCache.getSecretKeys(SECRET_KEY_CONTEXT)).thenReturn(List.of("API_KEY"));
+    when(secretKeyCache.getSecretKeys(SECRET_KEY_CONTEXT)).thenReturn(List.of(secret("API_KEY")));
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, secretKeyCache);
 
     var filter = factory.create(CONTEXT);
 
-    assertThat(filter.isAllowed("API_KEY")).isTrue();
-    assertThat(filter.isAllowed("UNLISTED_SECRET")).isFalse();
+    assertThat(filter.isAllowed(query("API_KEY"))).isTrue();
+    assertThat(filter.isAllowed(query("UNLISTED_SECRET"))).isFalse();
   }
 
   @Test
@@ -95,7 +105,7 @@ class ConfigurableSecretFilterFactoryTest {
 
     var filter = factory.create(CONTEXT);
 
-    assertThatThrownBy(() -> filter.isAllowed("ANY_SECRET"))
+    assertThatThrownBy(() -> filter.isAllowed(query("ANY_SECRET")))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Error retrieving secret keys");
   }

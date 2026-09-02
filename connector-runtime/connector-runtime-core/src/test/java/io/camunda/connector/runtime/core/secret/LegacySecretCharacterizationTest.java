@@ -25,12 +25,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.InboundPropertyHandler;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +53,10 @@ import org.junit.jupiter.params.provider.CsvSource;
 class LegacySecretCharacterizationTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
+
+  private ObjectNode wrap(String value) {
+    return objectMapper.createObjectNode().put("value", value);
+  }
 
   @ParameterizedTest
   @CsvSource({
@@ -77,52 +83,66 @@ class LegacySecretCharacterizationTest {
   void secretNameCharsetIsUnchanged(String input, String secret, Boolean shouldDetect) {
     var secretReplacer = mock(SecretReplacer.class);
 
-    SecretUtil.replaceSecrets(input, null, secretReplacer);
+    SecretUtil.replaceSecrets(wrap(input), null, secretReplacer);
 
     if (shouldDetect) {
-      verify(secretReplacer).replaceSecrets(eq(secret), any());
+      verify(secretReplacer).replaceSecrets(eq(new Secret(secret, List.of("value"))), any());
     } else {
       verifyNoInteractions(secretReplacer);
     }
   }
 
   @Test
-  void bothSpellingsAreReplacedInOneJsonPayload() {
+  void bothSpellingsAreReplacedInOneJsonPayload() throws Exception {
     Map<String, String> secrets = Map.of("K1", "V1", "K2", "V2", "K3", "V3");
-    SecretReplacer secretReplacer = (name, context) -> secrets.get(name);
+    SecretReplacer secretReplacer = (secret, context) -> secrets.get(secret.secretName());
     String input = "{\"a\":{\"b\":\"secrets.K1\"},\"c\":[\"{{secrets.K2}}\",\"secrets.K3\"]}";
 
-    String result = SecretUtil.replaceSecrets(input, null, secretReplacer);
+    var result =
+        SecretUtil.replaceSecrets((ObjectNode) objectMapper.readTree(input), null, secretReplacer);
 
-    assertThat(result).isEqualTo("{\"a\":{\"b\":\"V1\"},\"c\":[\"V2\",\"V3\"]}");
+    assertThat(result)
+        .isEqualTo(objectMapper.readTree("{\"a\":{\"b\":\"V1\"},\"c\":[\"V2\",\"V3\"]}"));
   }
 
   @Test
   void aReferenceEmbeddedInALongerValueIsReplaced() {
     Map<String, String> secrets = Map.of("TOKEN", "tok123", "A", "a1", "B", "b2");
-    SecretReplacer secretReplacer = (name, context) -> secrets.get(name);
+    SecretReplacer secretReplacer = (secret, context) -> secrets.get(secret.secretName());
 
-    assertThat(SecretUtil.replaceSecrets("Bearer {{secrets.TOKEN}}", null, secretReplacer))
+    assertThat(
+            SecretUtil.replaceSecrets(wrap("Bearer {{secrets.TOKEN}}"), null, secretReplacer)
+                .get("value")
+                .asText())
         .isEqualTo("Bearer tok123");
-    assertThat(SecretUtil.replaceSecrets("{{secrets.A}}/{{secrets.B}}", null, secretReplacer))
+    assertThat(
+            SecretUtil.replaceSecrets(wrap("{{secrets.A}}/{{secrets.B}}"), null, secretReplacer)
+                .get("value")
+                .asText())
         .isEqualTo("a1/b2");
   }
 
   @Test
   void theSameSecretIsReplacedAtEveryOccurrence() {
-    SecretReplacer secretReplacer = (name, context) -> "K".equals(name) ? "V" : null;
+    SecretReplacer secretReplacer =
+        (secret, context) -> "K".equals(secret.secretName()) ? "V" : null;
 
-    String result =
-        SecretUtil.replaceSecrets("secrets.K secrets.K {{secrets.K}}", null, secretReplacer);
+    var result =
+        SecretUtil.replaceSecrets(wrap("secrets.K secrets.K {{secrets.K}}"), null, secretReplacer);
 
-    assertThat(result).isEqualTo("V V V");
+    assertThat(result.get("value").asText()).isEqualTo("V V V");
   }
 
   @Test
   void whitespaceInsideBracesIsTolerated() {
-    SecretReplacer secretReplacer = (name, context) -> "X".equals(name) ? "val" : null;
+    SecretReplacer secretReplacer =
+        (secret, context) -> "X".equals(secret.secretName()) ? "val" : null;
 
-    assertThat(SecretUtil.replaceSecrets("{{ secrets.X }}", null, secretReplacer)).isEqualTo("val");
+    assertThat(
+            SecretUtil.replaceSecrets(wrap("{{ secrets.X }}"), null, secretReplacer)
+                .get("value")
+                .asText())
+        .isEqualTo("val");
   }
 
   @Test
@@ -130,23 +150,25 @@ class LegacySecretCharacterizationTest {
     Map<String, String> secrets = Map.of("KEY1", "VALUE1", "KEY2", "VALUE2", "KEY3", "VALUE3");
     List<String> allowList = List.of("KEY1", "KEY2");
     SecretReplacer secretReplacer =
-        (name, context) -> allowList.contains(name) ? secrets.get(name) : null;
+        (secret, context) ->
+            allowList.contains(secret.secretName()) ? secrets.get(secret.secretName()) : null;
     String content = "Hello {{secrets.KEY1}} and {{secrets.KEY2}} and {{secrets.KEY3}}";
 
-    String result =
+    var result =
         SecretUtil.replaceSecrets(
-            content, new SecretContext("tenantId", "processId"), secretReplacer);
+            wrap(content), new SecretContext("tenantId", "processId"), secretReplacer);
 
-    assertThat(result).isEqualTo("Hello VALUE1 and VALUE2 and {{secrets.KEY3}}");
+    assertThat(result.get("value").asText())
+        .isEqualTo("Hello VALUE1 and VALUE2 and {{secrets.KEY3}}");
   }
 
   @Test
   void aMissingSecretFailsTheConnector() {
     SecretHandler secretHandler = new SecretHandler(mapProvider(Map.of()), SecretFilter.allowAll());
 
-    assertThatThrownBy(() -> secretHandler.replaceSecrets("{{secrets.MISSING}}", null))
+    assertThatThrownBy(() -> secretHandler.replaceSecrets(wrap("{{secrets.MISSING}}"), null))
         .isInstanceOf(ConnectorInputException.class)
-        .hasMessage("Secret with name 'MISSING' is not available");
+        .hasMessage("Secret with name 'MISSING' is not available on path 'value'");
   }
 
   @Test
@@ -158,9 +180,10 @@ class LegacySecretCharacterizationTest {
     SecretHandler secretHandler =
         new SecretHandler(mapProvider(Map.of("SECRET", raw)), SecretFilter.allowAll());
 
-    String output = secretHandler.replaceSecrets("{\"value\": \"secrets.SECRET\"}", null);
+    var output = secretHandler.replaceSecrets(wrap("secrets.SECRET"), null);
+    var roundTripped = objectMapper.readTree(objectMapper.writeValueAsString(output));
 
-    assertThat(objectMapper.readTree(output).get("value").asText()).isEqualTo(raw);
+    assertThat(roundTripped.get("value").asText()).isEqualTo(raw);
   }
 
   @Test
@@ -172,12 +195,12 @@ class LegacySecretCharacterizationTest {
             SecretFilter.allowAll(),
             validationProvider) {};
 
-    String result =
+    var result =
         context
             .getSecretHandler()
-            .replaceSecrets("{\"value\": \"{{secrets.FOO}}\"}", new SecretContext("t", "p"));
+            .replaceSecrets(wrap("{{secrets.FOO}}"), new SecretContext("t", "p"));
 
-    assertThat(result).isEqualTo("{\"value\": \"bar-value\"}");
+    assertThat(result.get("value").asText()).isEqualTo("bar-value");
   }
 
   @Test

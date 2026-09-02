@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.outbound.job;
 
 import static io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -29,6 +30,7 @@ import io.camunda.connector.runtime.core.error.InvalidJobTimeoutException;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFailureDiagnostic;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretNotAvailableException;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.time.Duration;
@@ -189,8 +191,12 @@ public class OutboundConnectorExceptionHandler {
       var context =
           new SecretContext(job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId());
       var legacyKeys =
-          allowedKeys(SecretUtil.retrieveLegacySecretKeysInInput(job.getVariables()), secretFilter);
-      var legacyValues = this.secretProvider.fetchAll(legacyKeys, context);
+          allowedKeys(
+              SecretUtil.retrieveLegacySecretKeysInInput(job.getVariablesAsType(ObjectNode.class)),
+              secretFilter);
+      var legacyValues =
+          this.secretProvider.fetchAll(
+              legacyKeys.stream().map(Secret::secretName).toList(), context);
       if (legacyValues.size() < legacyKeys.size() && !reportsAnUnavailableSecret(jobFailure)) {
         return new MaskingSecrets(
             List.of(),
@@ -198,7 +204,9 @@ public class OutboundConnectorExceptionHandler {
                 legacyKeys.size() - legacyValues.size(), legacyKeys.size()));
       }
       var referenceKeys =
-          allowedKeys(SecretUtil.retrieveSecretKeysInInput(job.getVariables()), secretFilter)
+          allowedKeys(
+                  SecretUtil.retrieveSecretKeysInInput(job.getVariablesAsType(ObjectNode.class)),
+                  secretFilter)
               .stream()
               .filter(key -> !legacyKeys.contains(key))
               .toList();
@@ -241,9 +249,10 @@ public class OutboundConnectorExceptionHandler {
    * on, which is a binding that actually needed the value; here it goes to the log.
    */
   private List<String> fetchReferencedSecrets(
-      List<String> referenceKeys, SecretContext context, ActivatedJob job) {
+      List<Secret> referenceKeys, SecretContext context, ActivatedJob job) {
     try {
-      return this.secretProvider.fetchAll(referenceKeys, context);
+      return this.secretProvider.fetchAll(
+          referenceKeys.stream().map(Secret::secretName).toList(), context);
     } catch (Exception ex) {
       LOGGER.warn(
           "Reading the values behind the camunda.secrets references named by job: {} for tenant: {}"
@@ -256,7 +265,7 @@ public class OutboundConnectorExceptionHandler {
     }
   }
 
-  private static List<String> allowedKeys(List<String> keys, SecretFilter secretFilter) {
+  private static List<Secret> allowedKeys(List<Secret> keys, SecretFilter secretFilter) {
     return keys.stream().filter(secretFilter::isAllowed).toList();
   }
 

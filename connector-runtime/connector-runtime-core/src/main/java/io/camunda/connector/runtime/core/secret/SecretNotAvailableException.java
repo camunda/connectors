@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.secret;
 
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 
 /**
  * A legacy secret reference the filter allowed, for which no configured provider held a value. The
@@ -30,7 +31,10 @@ import io.camunda.connector.api.error.ConnectorInputException;
  */
 public class SecretNotAvailableException extends ConnectorInputException {
 
-  public SecretNotAvailableException(String secretName) {
-    super(String.format("Secret with name '%s' is not available", secretName));
+  public SecretNotAvailableException(Secret secret) {
+    super(
+        String.format(
+            "Secret with name '%s' is not available on path '%s'",
+            secret.secretName(), String.join(".", secret.fieldPath())));
   }
 }

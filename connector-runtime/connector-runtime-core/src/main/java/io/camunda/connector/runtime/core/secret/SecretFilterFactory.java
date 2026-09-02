@@ -17,11 +17,11 @@
 package io.camunda.connector.runtime.core.secret;
 
 public interface SecretFilterFactory {
-  SecretFilter create(SecretFilterContext context);
+  SecretFilter create(SecretFilterFactoryContext context);
 
   static SecretFilterFactory disabled() {
     return context -> SecretFilter.allowAll();
   }
 
-  record SecretFilterContext(long processDefinitionKey, String elementId) {}
+  record SecretFilterFactoryContext(long processDefinitionKey, String elementId) {}
 }

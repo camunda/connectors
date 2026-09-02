@@ -22,7 +22,9 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.api.command.InternalClientException;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -36,6 +38,7 @@ import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClass;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClassString;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +59,25 @@ class JobHandlerContextTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
   private JobHandlerContext jobHandlerContext;
 
+  /**
+   * Mirrors {@code CamundaObjectMapper.fromJson}, which is what the real {@code ActivatedJob}
+   * delegates {@code getVariablesAsType} to: malformed JSON surfaces as an {@link
+   * InternalClientException} wrapping the original Jackson exception, not the Jackson exception
+   * itself.
+   */
+  private static JsonNode parseLikeClient(String json) {
+    try {
+      return new ObjectMapper().readValue(json, JsonNode.class);
+    } catch (IOException e) {
+      throw new InternalClientException(
+          String.format("Failed to deserialize json '%s' to class '%s'", json, JsonNode.class), e);
+    }
+  }
+
+  private void stubVariables(String json) {
+    when(activatedJob.getVariablesAsType(JsonNode.class)).thenAnswer(inv -> parseLikeClient(json));
+  }
+
   @BeforeEach
   void setUp() {
     jobHandlerContext =
@@ -70,9 +92,9 @@ class JobHandlerContextTest {
 
   @Test
   void getVariables() {
-    when(activatedJob.getVariables()).thenReturn("{}");
+    stubVariables("{}");
     jobHandlerContext.getJobContext().getVariables();
-    verify(activatedJob).getVariables();
+    verify(activatedJob).getVariablesAsType(JsonNode.class);
   }
 
   @Test
@@ -122,14 +144,14 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_success() {
     String json = "{ \"integer\": 3}";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     assertThat(jobHandlerContext.bindVariables(TestClass.class).integer).isEqualTo(3);
   }
 
   @Test
   void bindVariables_failedSecretAreBounded() {
-    String json = "{ \"integer\": \"{{secrets.FOO}}\"";
-    when(activatedJob.getVariables()).thenReturn(json);
+    String json = "{ \"integer\": \"{{secrets.FOO}}\" }";
+    stubVariables(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("secret");
     Exception thrown =
         assertThrows(
@@ -140,15 +162,18 @@ class JobHandlerContextTest {
 
   @Test
   void bindVariables_successSecretAreBounded() {
-    String json = "{ \"integer\": {{secrets.FOO}} }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    // Legacy secret substitution now runs after JSON parsing (over the parsed tree), so a
+    // placeholder must sit inside a JSON string like any other value — an unquoted placeholder for
+    // a non-string field is no longer valid JSON and can never reach substitution.
+    String json = "{ \"integer\": \"{{secrets.FOO}}\" }";
+    stubVariables(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("1");
     assertThat(jobHandlerContext.bindVariables(TestClass.class).integer).isEqualTo(1);
   }
 
   @Test
   void bindVariables_secretContextCarriesTheJobsPhysicalTenantId() {
-    when(activatedJob.getVariables()).thenReturn("{ \"integer\": {{secrets.FOO}} }");
+    stubVariables("{ \"integer\": \"{{secrets.FOO}}\" }");
     when(activatedJob.getTenantId()).thenReturn("my-tenant");
     when(activatedJob.getBpmnProcessId()).thenReturn("my-process");
     when(activatedJob.getPhysicalTenantId()).thenReturn("engine-1");
@@ -165,7 +190,7 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_secretContextHasNoPhysicalTenantIdWhenTheJobReportsNone() {
     // clusters that predate multi-engine support report an empty physical tenant
-    when(activatedJob.getVariables()).thenReturn("{ \"integer\": {{secrets.FOO}} }");
+    stubVariables("{ \"integer\": \"{{secrets.FOO}}\" }");
     when(activatedJob.getPhysicalTenantId()).thenReturn("");
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("1");
 
@@ -222,7 +247,7 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_successJsonSecretAreEscaped() {
     String json = "{ \"value\": \"{{secrets.FOO}}\" }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("{\"key\": \"secret\"}");
     assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
         .isEqualTo("{\"key\": \"secret\"}");
@@ -231,7 +256,7 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_successJsonSecretAreEscapedAndCarriageReturnEscaped() {
     String json = "{ \"value\": \"{{secrets.FOO}}\" }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("{\"key\": \n\"secret\"}");
     assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
         .isEqualTo("{\"key\": \n\"secret\"}");
@@ -240,7 +265,7 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_successJsonSecretAreEscapedAndNullByteRemoved() {
     String json = "{ \"value\": \"{{secrets.FOO}}\" }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("{\"key\": \"sec\0ret\"}");
     assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
         .isEqualTo("{\"key\": \"sec\0ret\"}");
@@ -248,8 +273,8 @@ class JobHandlerContextTest {
 
   @Test
   void bindVariables_secretIsNotAvailable() {
-    String json = "{ \"integer\": {{secrets.FOO2}} }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    String json = "{ \"integer\": \"{{secrets.FOO2}}\" }";
+    stubVariables(json);
     when(secretProvider.getSecret(eq("FOO2"), any())).thenReturn(null);
     assertThrows(
         ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
@@ -258,7 +283,7 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_successStringSecretAreEscapedAndCarriageReturnEscaped() {
     String json = "{ \"value\": \"{{secrets.FOO}}\" }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("Hello \n World");
     assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
         .isEqualTo("Hello \n World");
@@ -267,7 +292,7 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_successStringSecretAreEscapedAndQuoteEscaped() {
     String json = "{ \"value\": \"{{secrets.FOO}}\" }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("Hello \" World");
     assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
         .isEqualTo("Hello \" World");
@@ -276,7 +301,7 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_successStringSecretAreEscapedAndNullByteEscaped() {
     String json = "{ \"value\": \"{{secrets.FOO}}\" }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("Hello \0 World");
     assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
         .isEqualTo("Hello \0 World");
@@ -285,14 +310,14 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_nullValue() {
     String json = "{ \"integer\": null}";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     assertThat(jobHandlerContext.bindVariables(TestClass.class).integer).isEqualTo(null);
   }
 
   @Test
   void bindVariables_invalidFormat() {
     String json = "{ \"integer\": \"hello\"}";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     Exception thrown =
         assertThrows(
             ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
@@ -304,7 +329,7 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_invalidFormatNull() {
     String json = "{ \"invalid\": null }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     Exception thrown =
         assertThrows(
             ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
@@ -315,7 +340,7 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_invalidParsing() {
     String json = "{ \"integer\" hello\"}";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     Exception thrown =
         assertThrows(
             ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
@@ -325,8 +350,8 @@ class JobHandlerContextTest {
 
   @Test
   void bindVariables_invalidFormatObject() {
-    String json = "{ \"integer\": \"{ \"hello\" : 3\"}";
-    when(activatedJob.getVariables()).thenReturn(json);
+    String json = "{ \"integer\": \"{ \\\"hello\\\" : 3}\" }";
+    stubVariables(json);
     Exception thrown =
         assertThrows(
             ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
@@ -338,7 +363,7 @@ class JobHandlerContextTest {
   @Test
   void bindVariables_emptyString() {
     String json = "";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     Exception thrown =
         assertThrows(
             ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
@@ -348,21 +373,22 @@ class JobHandlerContextTest {
 
   @Test
   void bindVariables_emptyArray() {
+    // Job variables are always a JSON object in Zeebe/Camunda 8, and the tree walk that secret
+    // substitution runs first requires one, so an array is rejected before it ever reaches type
+    // binding.
     String json = "[]";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     Exception thrown =
         assertThrows(
             ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
-    assertThat(thrown.getMessage())
-        .isEqualTo(
-            "Cannot deserialize value of type `io.camunda.connector.runtime.core.testutil.classexample.TestClass` from Array value (token `JsonToken.START_ARRAY`)");
+    assertThat(thrown.getMessage()).isEqualTo("This is not a JSON object");
   }
 
   @Test
   void bindVariables_invalidFormatArray() {
     String json = "{ \"integer\": [\"hello\"] }";
-    when(activatedJob.getVariables()).thenReturn(json);
+    stubVariables(json);
     Exception thrown =
         assertThrows(
             ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));

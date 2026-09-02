@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.Optional;
@@ -33,17 +34,19 @@ public class SecretHandler {
   public SecretHandler(final SecretProvider secretProvider, SecretFilter secretFilter) {
     this.secretProvider = secretProvider;
     secretReplacer =
-        (name, context) -> {
-          if (secretFilter.isAllowed(name)) {
-            return Optional.ofNullable(secretProvider.getSecret(name, context))
-                .orElseThrow(() -> new SecretNotAvailableException(name));
+        (secretFilterContext, context) -> {
+          if (secretFilter.isAllowed(secretFilterContext)) {
+            return Optional.ofNullable(
+                    secretProvider.getSecret(secretFilterContext.secretName(), context))
+                .orElseThrow(() -> new SecretNotAvailableException(secretFilterContext));
           }
-          LOG.debug("Secret '{}' not in allow-list — placeholder left unreplaced", name);
+          LOG.debug(
+              "Secret '{}' not in allow-list — placeholder left unreplaced", secretFilterContext);
           return null;
         };
   }
 
-  public String replaceSecrets(String input, SecretContext context) {
+  public JsonNode replaceSecrets(JsonNode input, SecretContext context) {
     return SecretUtil.replaceSecrets(input, context, secretReplacer);
   }
 }

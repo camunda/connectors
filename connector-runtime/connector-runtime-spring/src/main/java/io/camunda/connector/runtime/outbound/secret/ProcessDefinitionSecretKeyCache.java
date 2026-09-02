@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.outbound.secret;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -34,6 +35,7 @@ import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -89,7 +91,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
   private record CachedProcessDefinitionKey(String physicalTenantId, long processDefinitionKey) {}
 
   @Override
-  public List<String> getSecretKeys(SecretKeyContext secretKeyContext) {
+  public List<Secret> getSecretKeys(SecretKeyContext secretKeyContext) {
     var cacheKey =
         new CachedProcessDefinitionKey(physicalTenantId, secretKeyContext.processDefinitionKey());
     return cache
@@ -97,7 +99,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
         .getOrDefault(secretKeyContext.elementId(), Collections.emptyList());
   }
 
-  private Map<String, List<String>> fetchSecretKeysByElementIds(long processDefinitionKey) {
+  private Map<String, List<Secret>> fetchSecretKeysByElementIds(long processDefinitionKey) {
     String bpmnXml =
         camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).execute();
 
@@ -111,7 +113,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
-  private Map<String, List<String>> inspectBpmnProcess(Process process, long processDefinitionKey) {
+  private Map<String, List<Secret>> inspectBpmnProcess(Process process, long processDefinitionKey) {
     Collection<BaseElement> outboundEligibleElements =
         retrieveOutboundEligibleElementsFromProcess(process);
     if (outboundEligibleElements.isEmpty()) {
@@ -120,7 +122,7 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
       return Collections.emptyMap();
     }
 
-    Map<String, List<String>> discoveredOutboundConnectors = new HashMap<>();
+    Map<String, List<Secret>> discoveredOutboundConnectors = new HashMap<>();
     for (BaseElement element : outboundEligibleElements) {
       var inputs = findElementInput(element);
       var definedSecrets = extractSecrets(inputs);
@@ -129,10 +131,12 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     return discoveredOutboundConnectors;
   }
 
-  private List<String> extractSecrets(List<ZeebeInput> inputs) {
+  private List<Secret> extractSecrets(List<ZeebeInput> inputs) {
     return inputs.stream()
-        .flatMap(input -> SecretUtil.retrieveSecretKeysInInput(input.getSource()).stream())
-        .map(String::trim)
+        .flatMap(
+            input ->
+                SecretUtil.retrieveSecretKeysInInput(input.getSource()).stream()
+                    .map(s -> new Secret(s.trim(), Arrays.asList(input.getTarget().split("\\.")))))
         .distinct()
         .toList();
   }

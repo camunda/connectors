@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.*;
+import io.camunda.client.api.command.InternalClientException;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -54,7 +55,7 @@ public class JobHandlerContext extends AbstractConnectorContext
   private final ObjectMapper objectMapper;
   private final JobContext jobContext;
   private final DocumentFactory documentFactory;
-  private @Nullable String jsonWithSecrets = null;
+  private @Nullable JsonNode jsonWithSecrets = null;
 
   public JobHandlerContext(
       final ActivatedJob job,
@@ -67,7 +68,7 @@ public class JobHandlerContext extends AbstractConnectorContext
     this.documentFactory = documentFactory;
     this.job = job;
     this.objectMapper = objectMapper;
-    this.jobContext = new ActivatedJobContext(job, this::getJsonReplacedWithSecrets);
+    this.jobContext = new ActivatedJobContext(job, () -> getJsonReplacedWithSecrets().toString());
   }
 
   @Override
@@ -88,46 +89,68 @@ public class JobHandlerContext extends AbstractConnectorContext
     return objectMapper;
   }
 
-  private String getJsonReplacedWithSecrets() {
+  private JsonNode getJsonReplacedWithSecrets() {
     if (jsonWithSecrets == null) {
       jsonWithSecrets =
           getSecretHandler()
               .replaceSecrets(
-                  job.getVariables(),
+                  parseVariables(),
                   new SecretContext(
                       job.getTenantId(), job.getBpmnProcessId(), job.getPhysicalTenantId()));
     }
     return jsonWithSecrets;
   }
 
+  private JsonNode parseVariables() {
+    JsonNode variables;
+    try {
+      variables = job.getVariablesAsType(JsonNode.class);
+    } catch (InternalClientException e) {
+      if (e.getCause() instanceof JsonProcessingException jsonProcessingException) {
+        throw translateJsonException(jsonProcessingException);
+      }
+      throw e;
+    }
+    if (!variables.isObject()) {
+      throw new ConnectorInputException("This is not a JSON object");
+    }
+    return variables;
+  }
+
   private <T> T mapJson(Class<T> cls) {
     var jsonWithSecrets = getJsonReplacedWithSecrets();
     try {
-      return objectMapper.readValue(jsonWithSecrets, cls);
-    } catch (JsonParseException e) {
-      throw new ConnectorInputException("This is not a JSON object", e);
-    } catch (InvalidFormatException
-        | InvalidNullException
-        | InvalidTypeIdException
-        | PropertyBindingException e) {
+      return objectMapper.treeToValue(jsonWithSecrets, cls);
+    } catch (JsonProcessingException e) {
+      throw translateJsonException(e);
+    }
+  }
+
+  private static ConnectorInputException translateJsonException(JsonProcessingException e) {
+    if (e instanceof JsonParseException) {
+      return new ConnectorInputException("This is not a JSON object", e);
+    }
+    if (e instanceof InvalidFormatException
+        || e instanceof InvalidNullException
+        || e instanceof InvalidTypeIdException
+        || e instanceof PropertyBindingException) {
+      MismatchedInputException mappingException = (MismatchedInputException) e;
       String errorMessage =
-          e.getPath().stream()
+          mappingException.getPath().stream()
               .map(JsonMappingException.Reference::getFieldName)
               .reduce((s, s2) -> s.concat(", ").concat(s2))
               .map("Json object contains an invalid field: "::concat)
               .map(
                   s ->
-                      e.getTargetType() == null
+                      mappingException.getTargetType() == null
                           ? s
                           : s.concat(". It Must be `")
-                              .concat(e.getTargetType().getSimpleName())
+                              .concat(mappingException.getTargetType().getSimpleName())
                               .concat("`"))
               .orElse("Unexpected Error, Further investigation is needed");
-
-      throw new ConnectorInputException(errorMessage, e);
-    } catch (JsonProcessingException e) {
-      throw new ConnectorInputException(e.getOriginalMessage(), e);
+      return new ConnectorInputException(errorMessage, e);
     }
+    return new ConnectorInputException(e.getOriginalMessage(), e);
   }
 
   @Override

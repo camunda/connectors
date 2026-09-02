@@ -228,20 +228,16 @@ public class OutboundConnectorContextBuilder {
   public class TestConnectorContext extends AbstractConnectorContext
       implements OutboundConnectorContext {
 
-    private final String variablesWithSecrets;
+    private final JsonNode variablesWithSecrets;
 
     private final TestJobContext jobContext;
 
     protected TestConnectorContext(
         SecretProvider secretProvider, ValidationProvider validationProvider) {
       super(secretProvider, SecretFilter.allowAll(), validationProvider);
-      try {
-        var asString = objectMapper.writeValueAsString(variables);
-        variablesWithSecrets = getSecretHandler().replaceSecrets(asString, null);
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
-      }
-      this.jobContext = new TestJobContext(() -> headers, () -> variablesWithSecrets);
+      var asString = objectMapper.valueToTree(variables);
+      variablesWithSecrets = getSecretHandler().replaceSecrets(asString, null);
+      this.jobContext = new TestJobContext(() -> headers, variablesWithSecrets::toString);
     }
 
     @Override
@@ -275,7 +271,7 @@ public class OutboundConnectorContextBuilder {
     @Override
     public <T> T bindVariables(Class<T> cls) {
       try {
-        var mappedObject = objectMapper.readValue(variablesWithSecrets, cls);
+        var mappedObject = objectMapper.treeToValue(variablesWithSecrets, cls);
         if (validationProvider != null) {
           getValidationProvider().validate(mappedObject);
         }

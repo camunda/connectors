@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.fetch.ProcessDefinitionGetXmlRequest;
+import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -73,7 +74,9 @@ class ProcessDefinitionSecretKeyCacheTest {
     var keys =
         secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1"));
 
-    assertThat(keys).containsExactlyInAnyOrder("API_KEY", "MY_TOKEN");
+    assertThat(keys)
+        .extracting(Secret::secretName)
+        .containsExactlyInAnyOrder("API_KEY", "MY_TOKEN");
   }
 
   @Test
@@ -85,8 +88,10 @@ class ProcessDefinitionSecretKeyCacheTest {
         secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "task-alpha"));
     var betaKeys = secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "task-beta"));
 
-    assertThat(alphaKeys).containsExactly("SECRET_ALPHA");
-    assertThat(betaKeys).containsExactlyInAnyOrder("SECRET_BETA", "SECRET_GAMMA");
+    assertThat(alphaKeys).extracting(Secret::secretName).containsExactly("SECRET_ALPHA");
+    assertThat(betaKeys)
+        .extracting(Secret::secretName)
+        .containsExactlyInAnyOrder("SECRET_BETA", "SECRET_GAMMA");
   }
 
   @Test
@@ -108,7 +113,7 @@ class ProcessDefinitionSecretKeyCacheTest {
 
     var keys = secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "plain-task"));
 
-    assertThat(keys).containsExactly("SECRET_X");
+    assertThat(keys).extracting(Secret::secretName).containsExactly("SECRET_X");
   }
 
   @Test
@@ -120,8 +125,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     var childKeys =
         secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "child-task"));
 
-    assertThat(subProcessKeys).containsExactly("ADHOC_SECRET");
-    assertThat(childKeys).containsExactly("CHILD_SECRET");
+    assertThat(subProcessKeys).extracting(Secret::secretName).containsExactly("ADHOC_SECRET");
+    assertThat(childKeys).extracting(Secret::secretName).containsExactly("CHILD_SECRET");
   }
 
   @Test
@@ -138,9 +143,9 @@ class ProcessDefinitionSecretKeyCacheTest {
     var grandchildKeys =
         secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "grandchild-task"));
 
-    assertThat(outerKeys).containsExactly("OUTER_SECRET");
-    assertThat(innerKeys).containsExactly("INNER_SECRET");
-    assertThat(grandchildKeys).containsExactly("GRANDCHILD_SECRET");
+    assertThat(outerKeys).extracting(Secret::secretName).containsExactly("OUTER_SECRET");
+    assertThat(innerKeys).extracting(Secret::secretName).containsExactly("INNER_SECRET");
+    assertThat(grandchildKeys).extracting(Secret::secretName).containsExactly("GRANDCHILD_SECRET");
   }
 
   @Test
@@ -153,8 +158,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     var endEventKeys =
         secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "send-message-end"));
 
-    assertThat(throwEventKeys).containsExactly("THROW_EVENT_SECRET");
-    assertThat(endEventKeys).containsExactly("END_EVENT_SECRET");
+    assertThat(throwEventKeys).extracting(Secret::secretName).containsExactly("THROW_EVENT_SECRET");
+    assertThat(endEventKeys).extracting(Secret::secretName).containsExactly("END_EVENT_SECRET");
   }
 
   @Test
@@ -190,7 +195,9 @@ class ProcessDefinitionSecretKeyCacheTest {
     var keysB =
         cacheForTenantB.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "no-secrets-task"));
 
-    assertThat(keysA).containsExactlyInAnyOrder("API_KEY", "MY_TOKEN");
+    assertThat(keysA)
+        .extracting(Secret::secretName)
+        .containsExactlyInAnyOrder("API_KEY", "MY_TOKEN");
     assertThat(keysB).isEmpty();
     // each tenant's own client was queried exactly once, proving neither served the other's cache
     // entry despite the identical processDefinitionKey

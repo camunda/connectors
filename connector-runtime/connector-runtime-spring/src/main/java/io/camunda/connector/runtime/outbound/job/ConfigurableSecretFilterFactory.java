@@ -18,7 +18,6 @@ package io.camunda.connector.runtime.outbound.job;
 
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
-import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
   }
 
   @Override
-  public SecretFilter create(SecretFilterContext context) {
+  public SecretFilter create(SecretFilterFactoryContext context) {
     return switch (secretFilterMode) {
       case DISABLED -> SecretFilter.allowAll();
       case LAX -> enabled(context, false);
@@ -44,7 +43,7 @@ public class ConfigurableSecretFilterFactory implements SecretFilterFactory {
     };
   }
 
-  private SecretFilter enabled(SecretFilterContext context, boolean strict) {
+  private SecretFilter enabled(SecretFilterFactoryContext context, boolean strict) {
     return new LazyLoadingSecretFilter(
         () -> {
           try {
